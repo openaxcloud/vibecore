@@ -13,10 +13,11 @@
  */
 
 import type { Message } from 'ai';
-import { memo, useCallback } from 'react';
+import { forwardRef, memo, useCallback } from 'react';
 import { toast } from 'react-toastify';
 
 import { useShareLink } from '~/lib/hooks/useShareLink';
+import { t } from '~/lib/i18n/dictionary';
 
 export interface ShareConversationButtonProps {
   conversationId: string;
@@ -29,60 +30,64 @@ export interface ShareConversationButtonProps {
 }
 
 export const ShareConversationButton = memo(
-  ({
-    conversationId,
-    projectId,
-    authorUserId,
-    title,
-    messages,
-    allowFork,
-    className,
-  }: ShareConversationButtonProps) => {
-    const share = useShareLink();
+  forwardRef<HTMLButtonElement, ShareConversationButtonProps>(
+    ({ conversationId, projectId, authorUserId, title, messages, allowFork, className }, ref) => {
+      const share = useShareLink();
 
-    const handleClick = useCallback(async () => {
-      const url = share.build({
-        conversationId,
-        projectId,
-        authorUserId,
-        title,
-        messages,
-        allowFork,
-      });
+      const handleClick = useCallback(async () => {
+        const url = share.build({
+          conversationId,
+          projectId,
+          authorUserId,
+          title,
+          messages,
+          allowFork,
+        });
 
-      if (!url) {
-        const message = share.state.kind === 'error' ? share.state.message : 'Could not build share link';
-        toast.error(message);
+        if (!url) {
+          const message = share.state.kind === 'error' ? share.state.message : t('shareButton.errorCouldNotBuild');
+          toast.error(message);
 
-        return;
-      }
+          return;
+        }
 
-      const ok = await share.copyToClipboard();
+        /*
+         * Write directly to the clipboard with the freshly-built URL —
+         * share.copyToClipboard reads the hook's React state which is
+         * still 'idle' inside this click handler's closure (the
+         * setState in build() doesn't flush mid-callback).
+         */
+        if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+          toast.error(t('shareButton.errorClipboard'));
+          return;
+        }
 
-      if (ok) {
-        toast.success('Share link copied to clipboard');
-      } else {
-        const message =
-          share.state.kind === 'error' ? share.state.message : 'Built share link but clipboard copy failed';
-        toast.error(message);
-      }
-    }, [allowFork, authorUserId, conversationId, messages, projectId, share, title]);
+        try {
+          await navigator.clipboard.writeText(url);
+          toast.success(t('shareButton.copiedToast'));
+        } catch (error) {
+          const message = error instanceof Error ? error.message : t('shareButton.errorClipboard');
+          toast.error(message);
+        }
+      }, [allowFork, authorUserId, conversationId, messages, projectId, share, title]);
 
-    const disabled = messages.length === 0;
+      const disabled = messages.length === 0;
 
-    return (
-      <button
-        type="button"
-        className={className}
-        onClick={handleClick}
-        disabled={disabled}
-        aria-label="Share this conversation"
-        title={disabled ? 'Send at least one message before sharing' : 'Copy a share link to this conversation'}
-      >
-        <span className="i-ph:share-network" aria-hidden />
-      </button>
-    );
-  },
+      return (
+        <button
+          ref={ref}
+          type="button"
+          className={className}
+          onClick={handleClick}
+          disabled={disabled}
+          aria-label={t('shareButton.label')}
+          title={disabled ? t('shareButton.disabled') : t('shareButton.enabled')}
+        >
+          <span className="i-ph:share-network" aria-hidden />
+        </button>
+      );
+    },
+  ),
 );
 
 ShareConversationButton.displayName = 'ShareConversationButton';

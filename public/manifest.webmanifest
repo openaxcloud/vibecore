@@ -1,13 +1,13 @@
 {
-  "name": "VibeCore",
-  "short_name": "VibeCore",
-  "description": "A responsive Bolt IDE SaaS workspace for desktop, tablet, and mobile.",
+  "name": "E-Code.ai",
+  "short_name": "E-Code",
+  "description": "AI-powered coding platform with governed workspaces, real runtimes, and deployment controls.",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "browser"],
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#0D0D0D",
+  "theme_color": "#F26207",
   "orientation": "any",
   "icons": [
     {
@@ -17,10 +17,52 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/logo-light.png",
-      "sizes": "512x512",
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [

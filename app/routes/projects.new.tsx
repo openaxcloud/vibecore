@@ -40,6 +40,7 @@ import {
 } from '~/components/ui';
 import { ECODE_PROJECT_REQUIREMENT_LINES } from '~/lib/common/prompts/ecode-requirements';
 import {
+  apiErrorMessage,
   apiRequest,
   firstOrganization,
   formObject,
@@ -63,6 +64,16 @@ import { PROMPT_MAX_CHARS, validateProjectPrompt } from '~/utils/prompt-validati
 export const meta: MetaFunction = () => [{ title: 'Create project - VibeCore' }];
 
 type Project = { id: string };
+type ProjectCreationResult = { project: Project };
+type PendingProjectPrompt = {
+  id: string;
+  prompt: string;
+  model: string;
+  provider: string;
+  createdAt: string;
+  aiFallback?: boolean;
+  aiFallbackReason?: string;
+};
 type ArtifactCategory = {
   id: string;
   label: string;
@@ -272,6 +283,8 @@ const fallbackProvider =
   providerOptions[0];
 const fallbackModel =
   fallbackProvider?.staticModels.find((model) => model.name === DEFAULT_MODEL) ?? fallbackProvider?.staticModels[0];
+const PROJECT_QUOTA_EXCEEDED_MESSAGE =
+  'Your workspace has reached its project limit. Upgrade the plan or ask an admin for a quota override before creating another project.';
 
 function knownProviderForName(providerName?: string) {
   return PROVIDER_LIST.find((provider) => provider.name === providerName) ?? fallbackProvider ?? DEFAULT_PROVIDER;
@@ -456,6 +469,61 @@ function loginRedirect(request: Request) {
   return redirect(`/login?redirectTo=${encodeURIComponent(redirectTo)}`);
 }
 
+function createPendingPromptId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+async function queueProjectPrompt(request: Request, projectId: string, pendingPrompt: PendingProjectPrompt) {
+  await apiRequest(request, `/projects/${projectId}/ide-state`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      state: {
+        chat: {
+          pendingPrompt,
+        },
+      },
+    }),
+  });
+}
+
+async function projectQuotaActionMessage(error: unknown) {
+  if (!isApiResponse(error, 402) && !isApiResponse(error, 429)) {
+    return undefined;
+  }
+
+  const message = await apiErrorMessage(error, '');
+
+  return /quota exceeded for projects\.count/i.test(message) ? PROJECT_QUOTA_EXCEEDED_MESSAGE : undefined;
+}
+
+async function createProjectOrReturnQuotaError(
+  request: Request,
+  path: string,
+  body: Record<string, unknown>,
+): Promise<{ ok: true; result: ProjectCreationResult } | { ok: false; error: string }> {
+  try {
+    return {
+      ok: true,
+      result: await apiRequest<ProjectCreationResult>(request, path, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    };
+  } catch (error) {
+    const quotaMessage = await projectQuotaActionMessage(error);
+
+    if (quotaMessage) {
+      return { ok: false, error: quotaMessage };
+    }
+
+    throw error;
+  }
+}
+
 async function requireFirstOrganization(request: Request) {
   try {
     return await firstOrganization(request);
@@ -568,54 +636,73 @@ export async function action({ request, context }: EnterpriseActionArgs) {
     return { error: 'Project name is required' };
   }
 
-  let result: { project: Project };
+  let result: ProjectCreationResult;
   let aiGenerationFailed = false;
   let aiGenerationError: string | undefined;
 
   if (prompt) {
     try {
-      result = await apiRequest<{ project: Project }>(request, `/orgs/${organization.id}/projects/from-ai`, {
-        method: 'POST',
-        body: JSON.stringify({
-          name,
-          prompt: generationPrompt,
-          artifactType: artifactCategory.id,
-          framework: artifactCategory.framework,
-          provider: selectedProvider,
-          model: selectedModel,
-        }),
+      const created = await createProjectOrReturnQuotaError(request, `/orgs/${organization.id}/projects/from-ai`, {
+        name,
+        prompt: generationPrompt,
+        artifactType: artifactCategory.id,
+        framework: artifactCategory.framework,
+        provider: selectedProvider,
+        model: selectedModel,
       });
+
+      if (!created.ok) {
+        return { error: created.error };
+      }
+
+      result = created.result;
     } catch (error) {
       aiGenerationFailed = true;
       aiGenerationError = error instanceof Error ? error.message : 'AI generation failed';
 
       // Fall back to creating an empty project so the user keeps their prompt and can retry inside the IDE.
-      result = await apiRequest<{ project: Project }>(request, `/orgs/${organization.id}/projects`, {
-        method: 'POST',
-        body: JSON.stringify({ name }),
-      });
+      const created = await createProjectOrReturnQuotaError(request, `/orgs/${organization.id}/projects`, { name });
+
+      if (!created.ok) {
+        return { error: created.error };
+      }
+
+      result = created.result;
     }
   } else {
-    result = await apiRequest<{ project: Project }>(request, `/orgs/${organization.id}/projects`, {
-      method: 'POST',
-      body: JSON.stringify({ name }),
-    });
+    const created = await createProjectOrReturnQuotaError(request, `/orgs/${organization.id}/projects`, { name });
+
+    if (!created.ok) {
+      return { error: created.error };
+    }
+
+    result = created.result;
+  }
+
+  let promptQueueError: string | undefined;
+
+  if (prompt) {
+    const pendingPrompt: PendingProjectPrompt = {
+      id: createPendingPromptId(),
+      prompt: generationPrompt,
+      model: selectedModel,
+      provider: selectedProvider,
+      createdAt: new Date().toISOString(),
+      ...(aiGenerationFailed ? { aiFallback: true } : {}),
+      ...(aiGenerationError ? { aiFallbackReason: aiGenerationError.slice(0, 240) } : {}),
+    };
+
+    try {
+      await queueProjectPrompt(request, result.project.id, pendingPrompt);
+    } catch (error) {
+      promptQueueError = error instanceof Error ? error.message : 'Unable to queue the initial prompt';
+    }
   }
 
   const ideParams = new URLSearchParams();
 
-  if (prompt) {
-    ideParams.set('prompt', generationPrompt);
-    ideParams.set('model', selectedModel);
-    ideParams.set('provider', selectedProvider);
-  }
-
-  if (aiGenerationFailed) {
-    ideParams.set('aiFallback', 'true');
-
-    if (aiGenerationError) {
-      ideParams.set('aiFallbackReason', aiGenerationError.slice(0, 240));
-    }
+  if (promptQueueError) {
+    ideParams.set('promptQueueError', promptQueueError.slice(0, 240));
   }
 
   const ideUrl = `/projects/${result.project.id}/ide${ideParams.size ? `?${ideParams.toString()}` : ''}`;
@@ -1134,6 +1221,19 @@ function ProjectsNewErrorActions({ descriptor }: { descriptor: ProjectsNewErrorD
         </div>
       );
 
+    case 'quota':
+      return (
+        <div className="vc-new-project-error-actions">
+          <Link to="/billing" className="vc-new-project-submit">
+            <Rocket className="h-4 w-4" aria-hidden />
+            <span>View billing</span>
+          </Link>
+          <Link to="/dashboard" className="vc-new-project-example">
+            Back to dashboard
+          </Link>
+        </div>
+      );
+
     case 'server':
       return (
         <div className="vc-new-project-error-actions">
@@ -1184,7 +1284,11 @@ export function ErrorBoundary() {
   const descriptor = categorizeProjectsNewError(error);
 
   const shellDescription =
-    descriptor.kind === 'auth' ? 'Sign in to create a project.' : 'Project creation is temporarily unavailable.';
+    descriptor.kind === 'auth'
+      ? 'Sign in to create a project.'
+      : descriptor.kind === 'quota'
+        ? 'Project quota reached.'
+        : 'Project creation is temporarily unavailable.';
 
   return (
     <AppShell

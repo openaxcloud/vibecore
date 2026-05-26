@@ -20,12 +20,26 @@ import { memo, useCallback, useEffect, useMemo, useState, type RefObject } from 
 
 import { SlashCommandsPalette } from './SlashCommandsPalette';
 import { parseSlashInput, type SlashCommand, type SlashCommandContext } from '~/lib/chat/slash-commands';
+import { recordSlashCommand } from '~/lib/persistence/projectIdeMemory';
 
 export interface ComposerSlashOverlayProps {
   textareaRef: RefObject<HTMLTextAreaElement>;
   input: string;
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   context?: SlashCommandContext;
+
+  /**
+   * MRU slash-command ids from projectIdeMemory. When supplied, the
+   * palette boosts those commands so frequent ones surface first.
+   */
+  recentSlashCommandIds?: readonly string[];
+
+  /**
+   * Project id for persistence. When supplied + a command is executed,
+   * we record its id via recordSlashCommand so the next palette open
+   * surfaces it first.
+   */
+  projectId?: string;
 }
 
 interface ActiveTrigger {
@@ -50,7 +64,7 @@ export function detectSlashTrigger(input: string): ActiveTrigger | null {
 }
 
 export const ComposerSlashOverlay = memo(
-  ({ textareaRef, input, handleInputChange, context }: ComposerSlashOverlayProps) => {
+  ({ textareaRef, input, handleInputChange, context, recentSlashCommandIds, projectId }: ComposerSlashOverlayProps) => {
     const trigger = useMemo(() => detectSlashTrigger(input), [input]);
 
     const [focused, setFocused] = useState(false);
@@ -112,6 +126,10 @@ export const ComposerSlashOverlay = memo(
         const argument = trigger?.argument ?? '';
         const resolvedContext: SlashCommandContext = { ...(context ?? {}), argument };
 
+        if (projectId) {
+          void recordSlashCommand(projectId, command.id);
+        }
+
         try {
           await command.execute(resolvedContext);
         } finally {
@@ -123,7 +141,7 @@ export const ComposerSlashOverlay = memo(
           });
         }
       },
-      [clearInput, context, textareaRef, trigger],
+      [clearInput, context, projectId, textareaRef, trigger],
     );
 
     const handleDismiss = useCallback(() => {
@@ -157,6 +175,7 @@ export const ComposerSlashOverlay = memo(
           onSelect={handleSelect}
           onDismiss={handleDismiss}
           pendingArgument={trigger.argument || undefined}
+          recentSlashCommandIds={recentSlashCommandIds}
         />
       </div>
     );

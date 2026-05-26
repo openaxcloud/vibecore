@@ -26,6 +26,7 @@ import {
   StripeBillingClient,
   assertQuota,
   billingPlans,
+  computeAiCostCents,
   planByKey,
   verifyStripeSignature,
   type PlanKey,
@@ -44,6 +45,7 @@ import {
   hasRecentReauth,
   isIpAllowed,
   requireCsrfToken,
+  requireProductionSecret,
 } from '@vibecore/security';
 import { DOMParser } from '@xmldom/xmldom';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
@@ -79,6 +81,13 @@ import {
   redactDeploymentLog,
 } from './deployments.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
+import {
+  resolveIntegrationOauthStateSecret,
+  signIntegrationOauthState,
+  verifyIntegrationOauthState,
+} from './integrations/oauth-state.js';
+import { githubConnector, resolveGithubCredentials } from './integrations/providers/github.js';
+import { ConnectorProviderError } from './integrations/providers/types.js';
 import {
   McpMarketplaceService,
   McpMarketplaceError,
@@ -135,7 +144,7 @@ export interface ApiAppOptions {
   /**
    * Override the static build orchestrator. Production uses the default
    * exported from `./deployments`, which spawns `npm install` + the user's
-   * build command on the host. Tests inject a deterministic fake.
+   * build command on the host. Tests inject a deterministic implementation.
    */
   staticBuildRunner?: typeof runStaticBuild;
 }
@@ -162,16 +171,27 @@ function createDefaultAgentMemory(store: ApiStore) {
 
 const allPermissionKeys = new Set(Object.values(rolePermissions).flat() as PermissionKey[]);
 
+/*
+ * Cap user-supplied password lengths to defang scrypt CPU-exhaustion
+ * attacks. scryptSync runs synchronously on Node's event loop, so an
+ * attacker who can submit a >100KB "password" stalls the API for every
+ * concurrent request while the hash computes. 128 chars is plenty for
+ * even the strongest passphrase managers (1Password / Bitwarden default
+ * to 14–20 char generated passwords) and matches the OWASP ASVS V2.1.1
+ * upper-bound guidance.
+ */
+const PASSWORD_MAX_LENGTH = 128;
+
 const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  name: z.string().min(1).optional(),
-  organizationName: z.string().min(1).optional(),
+  email: z.string().email().max(254),
+  password: z.string().min(8).max(PASSWORD_MAX_LENGTH),
+  name: z.string().min(1).max(200).optional(),
+  organizationName: z.string().min(1).max(200).optional(),
 });
 
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
+  email: z.string().email().max(254),
+  password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
   mfaCode: z.string().min(6).max(32).optional(),
 });
 
@@ -181,22 +201,43 @@ const contactSalesSchema = z.object({
   teamSize: z.string().optional(),
   requirements: z.string().min(1),
 });
+
+/*
+ * Supported BCP-47 primary language tags. Kept narrow to match the bundles
+ * shipped by `app/lib/i18n/messages/` — adding a language is a coordinated
+ * change (bundle + UI strings + QA) so a typo'd PATCH /auth/me payload
+ * should fail validation rather than silently persisting an unsupported
+ * tag the client can't render.
+ */
+const supportedLanguageTagSchema = z.enum(['en', 'fr']);
+
 const userProfileSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
   timezone: z.string().min(1).optional(),
+
+  /*
+   * `null` clears the stored preference (back to client-side detection);
+   * an unset key leaves the column untouched.
+   */
+  language: supportedLanguageTagSchema.nullable().optional(),
 });
 const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(8),
+  currentPassword: z.string().min(1).max(PASSWORD_MAX_LENGTH),
+  newPassword: z.string().min(8).max(PASSWORD_MAX_LENGTH),
 });
 
 const deleteAccountSchema = z.object({ confirmation: z.literal('DELETE MY ACCOUNT') });
-const tokenSchema = z.object({ token: z.string().min(16) });
-const passwordResetRequestSchema = z.object({ email: z.string().email() });
-const passwordResetConfirmSchema = z.object({ token: z.string().min(16), password: z.string().min(8) });
+const tokenSchema = z.object({ token: z.string().min(16).max(256) });
+const passwordResetRequestSchema = z.object({ email: z.string().email().max(254) });
+
+const passwordResetConfirmSchema = z.object({
+  token: z.string().min(16).max(256),
+  password: z.string().min(8).max(PASSWORD_MAX_LENGTH),
+});
+
 const mfaVerifySchema = z.object({ code: z.string().min(6).max(32) });
-const reauthSchema = z.object({ password: z.string().min(1) });
+const reauthSchema = z.object({ password: z.string().min(1).max(PASSWORD_MAX_LENGTH) });
 const createOrgSchema = z.object({ name: z.string().min(1), slug: z.string().min(2).optional() });
 const orgParams = z.object({ orgId: z.string().min(1) });
 const membershipParams = orgParams.extend({ userId: z.string().min(1) });
@@ -241,6 +282,26 @@ const projectSettingsSchema = z.object({
 });
 const projectIdeStateSchema = z.object({
   state: z.record(z.unknown()),
+});
+
+const agentPatchProposalParams = z.object({
+  projectId: z.string().min(1),
+  proposalId: z.string().min(1),
+});
+
+const agentPatchProposalStatusSchema = z.enum(['pending', 'applying', 'failed']);
+
+const agentPatchProposalUpsertSchema = z.object({
+  artifactId: z.string().min(1),
+  messageId: z.string().min(1),
+  actionId: z.string().min(1),
+  filePath: z.string().min(1),
+  relativePath: z.string().min(1),
+  originalContent: z.string(),
+  proposedContent: z.string(),
+  hunks: z.unknown(),
+  status: agentPatchProposalStatusSchema,
+  error: z.string().optional(),
 });
 const projectActivityQuerySchema = z.object({
   action: z.string().min(1).max(160).optional(),
@@ -641,6 +702,16 @@ const oauthCallbackSchema = z.object({
 
 const oidcCallbackSchema = oauthCallbackSchema.extend({ orgId: z.string().optional() });
 const samlAcsSchema = z.object({ SAMLResponse: z.string().min(1) });
+const integrationOauthProviderParams = z.object({ provider: z.string().min(1) });
+const integrationOauthConnectSchema = z.object({ projectId: z.string().min(1).optional() });
+
+const integrationOauthCallbackBodySchema = z.object({
+  code: z.string().min(1),
+  state: z.string().min(1),
+});
+
+const userConnectionListQuerySchema = z.object({ provider: z.string().min(1).optional() });
+const userConnectionIdParams = z.object({ userConnectionId: z.string().min(1) });
 const platformAdminParams = z.object({ userId: z.string().min(1) });
 const platformAdminSchema = z.object({ platformAdmin: z.boolean() });
 const adminUserParams = z.object({ userId: z.string().min(1) });
@@ -703,6 +774,23 @@ const aiMessageSchema = z.object({
   model: z.string().optional(),
   stream: z.boolean().default(false),
 });
+const aiRecordUsageSchema = z.object({
+  conversationId: z.string().min(1).optional(),
+  messageId: z.string().min(1).optional(),
+  provider: z.string().min(1),
+  model: z.string().min(1),
+  inputTokens: z.number().int().nonnegative(),
+  outputTokens: z.number().int().nonnegative(),
+  finishReason: z.string().optional(),
+  source: z.string().min(1).default('remix-chat'),
+});
+
+const aiCheckQuotaSchema = z.object({
+  estimatedInputTokens: z.number().int().nonnegative().default(0),
+  model: z.string().optional(),
+  provider: z.string().optional(),
+});
+
 const aiToolSchema = z.object({
   workspaceId: z.string().min(1).optional(),
   path: z.string().optional(),
@@ -1468,8 +1556,16 @@ function collaborationDocuments(state?: ProjectIdeStateRecord) {
 }
 
 function projectFilesFromPersistedIdeState(state?: ProjectIdeStateRecord): Array<{ path: string; content: string }> {
-  const root = ideStateObject(state);
+  const persistedManifest = projectFileManifestFromPersistedIdeState(state);
 
+  if (persistedManifest.exists) {
+    return persistedManifest.files;
+  }
+
+  return projectFilesFromIdeStateRoot(ideStateObject(state));
+}
+
+function projectFilesFromIdeStateRoot(root: Record<string, unknown>): Array<{ path: string; content: string }> {
   const chat =
     root.chat && typeof root.chat === 'object' && !Array.isArray(root.chat)
       ? (root.chat as Record<string, unknown>)
@@ -1491,6 +1587,109 @@ function projectFilesFromPersistedIdeState(state?: ProjectIdeStateRecord): Array
   }
 
   return [...files.entries()].map(([path, content]) => ({ path, content }));
+}
+
+function projectFileManifestFromPersistedIdeState(state?: ProjectIdeStateRecord): {
+  exists: boolean;
+  files: Array<{ path: string; content: string }>;
+} {
+  const root = ideStateObject(state);
+  return projectFileManifestFromPersistedInput(root.files);
+}
+
+function projectFileManifestFromPersistedInput(input: unknown): {
+  exists: boolean;
+  files: Array<{ path: string; content: string }>;
+} {
+  const manifest = input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
+  const exists = Array.isArray(manifest.entries);
+  return {
+    exists,
+    files: exists ? projectFilesFromPersistedFileManifest(input) : [],
+  };
+}
+
+function projectFilesFromPersistedFileManifest(input: unknown): Array<{ path: string; content: string }> {
+  const manifest = input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
+  const entries = Array.isArray(manifest.entries) ? manifest.entries : [];
+  const files: Array<{ path: string; content: string }> = [];
+
+  for (const entry of entries) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      continue;
+    }
+
+    const record = entry as Record<string, unknown>;
+
+    if (typeof record.path !== 'string' || typeof record.content !== 'string') {
+      continue;
+    }
+
+    const normalizedPath = normalizeProjectPath(record.path);
+
+    if (!normalizedPath) {
+      continue;
+    }
+
+    files.push({ path: normalizedPath, content: record.content });
+  }
+
+  return files;
+}
+
+function projectFileManifestState(files: Array<{ path: string; content: string }>) {
+  return {
+    entries: files
+      .map((file) => ({ path: normalizeProjectPath(file.path), content: file.content }))
+      .filter((file): file is { path: string; content: string } => Boolean(file.path)),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function projectFilesWithUpdatedAt(files: Array<{ path: string; content: string }>): ProjectFile[] {
+  const updatedAt = new Date().toISOString();
+  return files.map((file) => ({ ...file, updatedAt }));
+}
+
+function projectFilesMatch(left: ProjectFile[], right: Array<{ path: string; content: string }>) {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  const leftByPath = new Map(left.map((file) => [file.path, file.content]));
+
+  return right.every((file) => leftByPath.get(file.path) === file.content);
+}
+
+async function syncProjectStorageWithFileManifest(
+  projectStorage: ProjectStorage,
+  projectId: string,
+  existingFiles: ProjectFile[],
+  files: Array<{ path: string; content: string }>,
+) {
+  if (projectFilesMatch(existingFiles, files)) {
+    return existingFiles;
+  }
+
+  return projectStorage.restoreSnapshot({ projectId, files: projectFilesWithUpdatedAt(files) });
+}
+
+async function persistProjectFileManifest(
+  store: ApiStore,
+  projectId: string,
+  files: Array<{ path: string; content: string }>,
+  updatedByUserId?: string,
+  options: { clearRecoveredChatFiles?: boolean } = {},
+) {
+  const existingState = await store.getProjectIdeState(projectId);
+  await store.upsertProjectIdeState({
+    projectId,
+    updatedByUserId,
+    state: mergeProjectIdeState(existingState?.state, {
+      files: projectFileManifestState(files),
+      ...(options.clearRecoveredChatFiles ? { chat: { clearMessages: true, messages: [] } } : {}),
+    }),
+  });
 }
 
 function persistedIdeMessageContent(message: unknown) {
@@ -1577,12 +1776,18 @@ async function ensureProjectStorageFromIdeState(
   projectId: string,
 ): Promise<ProjectFile[]> {
   const existingFiles = await projectStorage.listFiles(projectId);
+  const ideState = await store.getProjectIdeState(projectId);
+  const persistedManifest = projectFileManifestFromPersistedIdeState(ideState);
+
+  if (persistedManifest.exists) {
+    return syncProjectStorageWithFileManifest(projectStorage, projectId, existingFiles, persistedManifest.files);
+  }
 
   if (existingFiles.length > 0) {
     return existingFiles;
   }
 
-  const recoveredFiles = projectFilesFromPersistedIdeState(await store.getProjectIdeState(projectId));
+  const recoveredFiles = projectFilesFromPersistedIdeState(ideState);
 
   if (!recoveredFiles.length) {
     return existingFiles;
@@ -1597,7 +1802,14 @@ async function listProjectFilesIncludingIdeState(
   projectId: string,
 ): Promise<ProjectFile[]> {
   const existingFiles = await projectStorage.listFiles(projectId);
-  const recoveredFiles = projectFilesFromPersistedIdeState(await store.getProjectIdeState(projectId));
+  const ideState = await store.getProjectIdeState(projectId);
+  const persistedManifest = projectFileManifestFromPersistedIdeState(ideState);
+
+  if (persistedManifest.exists) {
+    return syncProjectStorageWithFileManifest(projectStorage, projectId, existingFiles, persistedManifest.files);
+  }
+
+  const recoveredFiles = projectFilesFromPersistedIdeState(ideState);
 
   if (!recoveredFiles.length) {
     return existingFiles;
@@ -1918,6 +2130,34 @@ export async function assertOidcIdToken(
   }
 }
 
+/*
+ * Well-known OAuth endpoints for providers whose URLs never change.
+ * Operators only need to provision `<PROVIDER>_CLIENT_ID` /
+ * `<PROVIDER>_CLIENT_SECRET` (plus optionally `_REDIRECT_URI`); the
+ * authorization, token, and userinfo URLs default to the canonical
+ * provider URLs below. Custom deployments (GitHub Enterprise Server,
+ * self-hosted Gitea, etc.) can still override any of these via the
+ * matching `_OAUTH_AUTHORIZATION_URL` / `_TOKEN_URL` / `_USERINFO_URL`
+ * env vars.
+ */
+const wellKnownOauthEndpoints: Record<
+  string,
+  { authorizationUrl: string; tokenUrl: string; userInfoUrl: string; scope?: string }
+> = {
+  google: {
+    authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+    tokenUrl: 'https://oauth2.googleapis.com/token',
+    userInfoUrl: 'https://openidconnect.googleapis.com/v1/userinfo',
+    scope: 'openid email profile',
+  },
+  github: {
+    authorizationUrl: 'https://github.com/login/oauth/authorize',
+    tokenUrl: 'https://github.com/login/oauth/access_token',
+    userInfoUrl: 'https://api.github.com/user',
+    scope: 'read:user user:email',
+  },
+};
+
 async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthCallbackSchema>) {
   if (body.email && body.externalId && body.accessToken) {
     return {
@@ -1936,19 +2176,38 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
     });
   }
 
-  const tokenUrl = process.env[`${provider.toUpperCase()}_TOKEN_URL`];
-  const userInfoUrl = process.env[`${provider.toUpperCase()}_USERINFO_URL`];
+  const tokenUrl = process.env[`${provider.toUpperCase()}_TOKEN_URL`] ?? wellKnownOauthEndpoints[provider]?.tokenUrl;
+
+  const userInfoUrl =
+    process.env[`${provider.toUpperCase()}_USERINFO_URL`] ?? wellKnownOauthEndpoints[provider]?.userInfoUrl;
 
   if (!tokenUrl || !userInfoUrl) {
-    throw Object.assign(new Error('OAuth provider is not configured'), {
-      statusCode: 503,
-      code: 'OAUTH_PROVIDER_NOT_CONFIGURED',
-    });
+    throw Object.assign(
+      new Error(
+        `OAuth provider ${provider} is not configured (missing ${provider.toUpperCase()}_TOKEN_URL or ${provider.toUpperCase()}_USERINFO_URL)`,
+      ),
+      {
+        statusCode: 503,
+        code: 'OAUTH_PROVIDER_NOT_CONFIGURED',
+      },
+    );
   }
 
   const clientId = process.env[`${provider.toUpperCase()}_CLIENT_ID`];
   const clientSecret = process.env[`${provider.toUpperCase()}_CLIENT_SECRET`];
   const redirectUri = process.env[`${provider.toUpperCase()}_REDIRECT_URI`];
+
+  if (!clientId || !clientSecret) {
+    throw Object.assign(
+      new Error(
+        `OAuth provider ${provider} is missing credentials (need ${provider.toUpperCase()}_CLIENT_ID and ${provider.toUpperCase()}_CLIENT_SECRET)`,
+      ),
+      {
+        statusCode: 503,
+        code: 'OAUTH_PROVIDER_MISSING_CREDENTIALS',
+      },
+    );
+  }
 
   const tokenPayload: Record<string, string> = {
     grant_type: 'authorization_code',
@@ -1974,10 +2233,22 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
   });
 
   if (!tokenResponse.ok) {
-    throw Object.assign(new Error('OAuth token exchange failed'), {
-      statusCode: 401,
-      code: 'OAUTH_TOKEN_EXCHANGE_FAILED',
-    });
+    let providerBody = '';
+
+    try {
+      providerBody = (await tokenResponse.text()).slice(0, 500);
+    } catch {
+      // ignore body read failures
+    }
+    throw Object.assign(
+      new Error(`OAuth token exchange failed (status=${tokenResponse.status}): ${providerBody || '<empty>'}`),
+      {
+        statusCode: 401,
+        code: 'OAUTH_TOKEN_EXCHANGE_FAILED',
+        providerStatus: tokenResponse.status,
+        providerBody,
+      },
+    );
   }
 
   const tokens = (await tokenResponse.json()) as { access_token?: string; id_token?: string; refresh_token?: string };
@@ -1993,22 +2264,84 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
     await assertOidcIdToken(tokens.id_token);
   }
 
-  const profileResponse = await fetch(userInfoUrl, { headers: { authorization: `Bearer ${tokens.access_token}` } });
+  const userInfoHeaders: Record<string, string> = {
+    authorization: `Bearer ${tokens.access_token}`,
+    accept: 'application/json',
+  };
+
+  if (provider === 'github') {
+    /*
+     * GitHub's REST API requires a User-Agent header and recommends the
+     * vendor-specific accept type. Without User-Agent some intermediary
+     * proxies return 403; with the vendor accept type we get the stable
+     * v3 schema regardless of future default changes.
+     */
+    userInfoHeaders['user-agent'] = process.env.GITHUB_USER_AGENT ?? 'vibecore-app';
+    userInfoHeaders.accept = 'application/vnd.github+json';
+  }
+
+  const profileResponse = await fetch(userInfoUrl, { headers: userInfoHeaders });
 
   if (!profileResponse.ok) {
-    throw Object.assign(new Error('OAuth userinfo failed'), { statusCode: 401, code: 'OAUTH_USERINFO_FAILED' });
+    let providerBody = '';
+
+    try {
+      providerBody = (await profileResponse.text()).slice(0, 500);
+    } catch {
+      // ignore body read failures
+    }
+    throw Object.assign(
+      new Error(`OAuth userinfo failed (status=${profileResponse.status}): ${providerBody || '<empty>'}`),
+      {
+        statusCode: 401,
+        code: 'OAUTH_USERINFO_FAILED',
+        providerStatus: profileResponse.status,
+        providerBody,
+      },
+    );
   }
 
   const profile = (await profileResponse.json()) as {
-    email?: string;
-    id?: string;
+    email?: string | null;
+    id?: string | number;
     sub?: string;
     name?: string;
     login?: string;
   };
 
-  const email = profile.email;
-  const externalId = profile.id ?? profile.sub ?? profile.login;
+  let email = profile.email ?? undefined;
+  const externalId =
+    profile.id !== undefined && profile.id !== null
+      ? String(profile.id)
+      : profile.sub ?? profile.login;
+
+  if (!email && provider === 'github' && tokens.access_token) {
+    /*
+     * GitHub omits the primary email from /user when the user marks it
+     * private (the default for many accounts). The user:email scope grants
+     * /user/emails which returns every verified address with primary/verified
+     * flags — pick the primary verified one and fall back to any verified
+     * address so accounts without an explicit primary still log in.
+     */
+    const emailsUrl = process.env.GITHUB_USERINFO_EMAILS_URL ?? `${userInfoUrl.replace(/\/$/, '')}/emails`;
+    const emailResponse = await fetch(emailsUrl, { headers: userInfoHeaders });
+
+    if (emailResponse.ok) {
+      const emails = (await emailResponse.json()) as Array<{
+        email: string;
+        primary?: boolean;
+        verified?: boolean;
+      }>;
+      const candidate =
+        emails.find((entry) => entry.primary && entry.verified) ??
+        emails.find((entry) => entry.verified) ??
+        emails[0];
+
+      if (candidate?.email) {
+        email = candidate.email;
+      }
+    }
+  }
 
   if (!email || !externalId) {
     throw Object.assign(new Error('OAuth profile is missing email or subject'), {
@@ -2531,6 +2864,23 @@ function publicFiles(files: ProjectFile[]) {
   return files.map(({ path, updatedAt, content }) => ({ path, updatedAt, sizeBytes: Buffer.byteLength(content) }));
 }
 
+async function archiveProjectFiles(projectId: string, files: ProjectFile[]) {
+  const zip = new JSZip();
+
+  for (const file of files) {
+    zip.file(file.path, file.content);
+  }
+
+  const content = await zip.generateAsync({ type: 'nodebuffer' });
+
+  return {
+    storageKey: `exports/${projectId}/${Date.now()}-${randomUUID()}.zip`,
+    byteLength: content.byteLength,
+    base64: content.toString('base64'),
+    createdAt: new Date().toISOString(),
+  };
+}
+
 type ProjectPackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
 
 interface ProjectPackageDependency {
@@ -2715,8 +3065,42 @@ function runtimeNamespace() {
   return process.env.WORKSPACE_RUNTIME_NAMESPACE ?? 'workspaces';
 }
 
+function assertProductionWorkspaceManagerUrl(rawUrl = process.env.WORKSPACE_MANAGER_URL) {
+  const normalized = rawUrl?.trim().replace(/\/+$/, '');
+
+  if (!normalized) {
+    throw new Error('WORKSPACE_MANAGER_URL is required in production.');
+  }
+
+  let url: URL;
+
+  try {
+    url = new URL(normalized);
+  } catch {
+    throw new Error('WORKSPACE_MANAGER_URL must be an absolute URL in production.');
+  }
+
+  const isInternalKubernetesService =
+    url.protocol === 'http:' && (url.hostname.endsWith('.svc') || url.hostname.endsWith('.svc.cluster.local'));
+  const isHttps = url.protocol === 'https:';
+
+  if (!isHttps && !isInternalKubernetesService) {
+    throw new Error('WORKSPACE_MANAGER_URL must use HTTPS or an internal Kubernetes service DNS URL in production.');
+  }
+
+  if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/i.test(url.hostname)) {
+    throw new Error('WORKSPACE_MANAGER_URL must not point to localhost in production.');
+  }
+
+  return normalized;
+}
+
 function workspaceManagerUrl() {
-  return (process.env.WORKSPACE_MANAGER_URL ?? 'http://127.0.0.1:3010').replace(/\/+$/, '');
+  if (process.env.NODE_ENV === 'production') {
+    return assertProductionWorkspaceManagerUrl();
+  }
+
+  return (process.env.WORKSPACE_MANAGER_URL?.trim() || 'http://127.0.0.1:3010').replace(/\/+$/, '');
 }
 
 function agentBaseUrl(workspaceId: string) {
@@ -2733,7 +3117,9 @@ function agentBaseUrl(workspaceId: string) {
 }
 
 function previewUrlForWorkspacePort(workspaceId: string, port: number) {
-  const template = process.env.PREVIEW_URL_TEMPLATE ?? process.env.PREVIEW_PROXY_URL;
+  const template = [process.env.PREVIEW_URL_TEMPLATE, process.env.PREVIEW_PROXY_URL].find(
+    (value) => value && value !== 'undefined' && value !== 'null',
+  );
 
   if (template) {
     return template
@@ -3272,7 +3658,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   if (isProduction) {
     const unsafeOrigins = allowedOrigins.filter(
-      (origin) => !origin.startsWith('https://') || /(?:^|[/@])(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::|\b|\/)/i.test(origin),
+      (origin) =>
+        !origin.startsWith('https://') || /(?:^|[/@])(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::|\b|\/)/i.test(origin),
     );
 
     if (allowedOrigins.length === 0 || unsafeOrigins.length > 0) {
@@ -3282,7 +3669,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }). Set API_CORS_ORIGINS=https://app.example.com,https://admin.example.com before boot.`,
       );
     }
+
+    assertProductionWorkspaceManagerUrl();
   }
+
   const aiGatewayUrl = (options.aiGatewayUrl ?? process.env.AI_GATEWAY_URL ?? 'http://127.0.0.1:3030').replace(
     /\/+$/,
     '',
@@ -3290,7 +3680,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const stripeClient =
     process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_BASE_URL
       ? new StripeBillingClient({
-          apiKey: process.env.STRIPE_SECRET_KEY ?? 'dev-stripe-key',
+          apiKey: requireProductionSecret('STRIPE_SECRET_KEY', process.env.STRIPE_SECRET_KEY, 'dev-stripe-key'),
           baseUrl: process.env.STRIPE_API_BASE_URL,
         })
       : undefined;
@@ -3300,8 +3690,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const sentry = createSentryReporter({ environment: process.env.NODE_ENV, release: process.env.SENTRY_RELEASE });
   const localRuntimeProcesses = new Map<string, Map<string, LocalRuntimeProcess>>();
 
+  /*
+   * In production the API runs behind a load balancer / ingress
+   * (GKE Ingress for app.e-code.ai, or any reverse proxy a self-host
+   * operator slots in). Without `trustProxy`, `request.ip` is the
+   * socket source — i.e. the LB's internal IP — so the per-IP rate
+   * limiter, the audit log, and the abuse detector all collapse onto
+   * one tenant per LB. We opt in by env var so it's never on by
+   * default (which would let a public-facing operator be tricked by a
+   * spoofed `X-Forwarded-For`). Accepts:
+   *   TRUST_PROXY=true        – trust the chain (use behind LB only)
+   *   TRUST_PROXY=1           – trust the immediate upstream hop
+   *   TRUST_PROXY=10.0.0.0/8  – trust a specific CIDR
+   *   (unset / false)         – fall back to socket IP (dev default)
+   */
+  const trustProxyEnv = process.env.TRUST_PROXY;
+
+  const trustProxy: boolean | number | string =
+    trustProxyEnv === 'true'
+      ? true
+      : trustProxyEnv === 'false' || trustProxyEnv === undefined
+        ? false
+        : /^\d+$/.test(trustProxyEnv)
+          ? Number(trustProxyEnv)
+          : trustProxyEnv;
+
   const app = Fastify({
     bodyLimit: Number(process.env.API_BODY_LIMIT_BYTES ?? 25 * 1024 * 1024),
+    trustProxy,
     genReqId(request) {
       const header = request.headers['x-request-id'];
       return typeof header === 'string' && header.length > 0 ? header : randomUUID();
@@ -3349,8 +3765,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     referrerPolicy: { policy: 'no-referrer' },
     strictTransportSecurity: isProduction ? { maxAge: 63072000, includeSubDomains: true, preload: true } : false,
   });
-  await app.register(cookie, { secret: process.env.COOKIE_SECRET || 'dev-cookie-secret-change-me' });
-  await app.register(jwt, { secret: options.jwtSecret || process.env.JWT_SECRET || 'dev-jwt-secret-change-me' });
+  await app.register(cookie, {
+    secret: requireProductionSecret('COOKIE_SECRET', process.env.COOKIE_SECRET, 'dev-cookie-secret-change-me'),
+  });
+  await app.register(jwt, {
+    secret: requireProductionSecret(
+      'JWT_SECRET',
+      options.jwtSecret ?? process.env.JWT_SECRET,
+      'dev-jwt-secret-change-me',
+    ),
+  });
   await app.register(cors, {
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -3414,7 +3838,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
   });
   app.addHook('preParsing', async (request, _reply, payload) => {
-    if (request.url.startsWith('/billing/stripe/webhook')) {
+    if (request.url.startsWith('/billing/stripe/webhook') || request.url.startsWith('/webhooks/')) {
       const chunks: Buffer[] = [];
 
       for await (const chunk of payload as AsyncIterable<Buffer>) {
@@ -3620,7 +4044,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post(
     '/auth/register',
-    { config: { rateLimit: { max: Number(process.env.AUTH_REGISTER_RATE_LIMIT_MAX ?? 200), timeWindow: '1 minute' } } },
+    {
+      /*
+       * Default 10 register attempts per minute per IP+user+org bucket
+       * (see the `keyGenerator` on the global rate limiter). 200/min was
+       * the legacy default from the API-only era; with the UI now live
+       * on a public domain that's a wide-open registration spam vector.
+       * Operators can lift the ceiling via `AUTH_REGISTER_RATE_LIMIT_MAX`
+       * during marketing pushes.
+       */
+      config: { rateLimit: { max: Number(process.env.AUTH_REGISTER_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' } },
+    },
     async (request, reply) => {
       const body = parse(registerSchema, request.body);
       const existing = await store.findUserByEmail(body.email);
@@ -3675,7 +4109,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post(
     '/auth/login',
-    { config: { rateLimit: { max: Number(process.env.AUTH_LOGIN_RATE_LIMIT_MAX ?? 100), timeWindow: '1 minute' } } },
+    {
+      /*
+       * 10 attempts per minute per IP keeps credential-stuffing bots in
+       * check while leaving room for a confused human to fat-finger
+       * their password. Tighter than register because every failed
+       * attempt forces a scrypt computation.
+       */
+      config: { rateLimit: { max: Number(process.env.AUTH_LOGIN_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' } },
+    },
     async (request, reply) => {
       const body = parse(loginSchema, request.body);
       const user = await store.findUserByEmail(body.email);
@@ -3789,7 +4231,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   );
 
   function oauthStateSecret() {
-    return process.env.OAUTH_STATE_SECRET || options.jwtSecret || process.env.JWT_SECRET || 'dev-jwt-secret-change-me';
+    return requireProductionSecret(
+      'OAUTH_STATE_SECRET',
+      process.env.OAUTH_STATE_SECRET ?? options.jwtSecret ?? process.env.JWT_SECRET,
+      'dev-jwt-secret-change-me',
+    );
   }
 
   function signOauthState(provider: string, ttlSeconds = 600): string {
@@ -3859,11 +4305,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   function oauthAuthorizationUrl(provider: string) {
     const authorizationUrl =
       process.env[`${provider.toUpperCase()}_OAUTH_AUTHORIZATION_URL`] ??
-      process.env[`${provider.toUpperCase()}_AUTHORIZATION_URL`];
+      process.env[`${provider.toUpperCase()}_AUTHORIZATION_URL`] ??
+      wellKnownOauthEndpoints[provider]?.authorizationUrl;
 
     const clientId = process.env[`${provider.toUpperCase()}_CLIENT_ID`];
     const redirectUri = process.env[`${provider.toUpperCase()}_REDIRECT_URI`];
-    const scope = process.env[`${provider.toUpperCase()}_SCOPE`] ?? 'openid email profile';
+
+    const scope =
+      process.env[`${provider.toUpperCase()}_SCOPE`] ??
+      wellKnownOauthEndpoints[provider]?.scope ??
+      'openid email profile';
 
     if (!authorizationUrl || !clientId) {
       return null;
@@ -3903,33 +4354,72 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.code(401).send({ error: 'Invalid or expired OAuth state', code: 'OAUTH_STATE_INVALID' });
       }
 
-      const profile = await resolveOAuthProfile(provider, body);
+      let profile;
 
-      const user =
-        (await store.findUserByEmail(profile.email)) ??
-        (await store.createUser({
-          email: profile.email,
-          name: profile.name,
-          passwordHash: hashPassword(createOpaqueToken('oauth')),
-        }));
-      await store.upsertOAuthConnection({
-        userId: user.id,
-        provider,
-        externalId: profile.externalId,
-        accessToken: profile.accessToken,
-        refreshToken: profile.refreshToken,
-      });
+      try {
+        profile = await resolveOAuthProfile(provider, body);
+      } catch (err: any) {
+        request.log.error(
+          { provider, code: err?.code, statusCode: err?.statusCode, msg: err?.message },
+          'oauth resolveOAuthProfile failed',
+        );
+        return reply
+          .code(err?.statusCode ?? 500)
+          .send({ error: err?.message ?? 'OAuth resolve failed', code: err?.code ?? 'OAUTH_RESOLVE_FAILED' });
+      }
 
-      const token = createOpaqueToken('session');
-      await createLoginSession({ store, userId: user.id, organizationId: orgIdFromRequest(request), token, request });
-      reply.setCookie('session', token, authCookieOptions(isProduction));
-      await audit(request, store, {
-        action: `auth.oauth.${provider}.login`,
-        resourceType: 'user',
-        resourceId: user.id,
-      });
+      try {
+        let isNewUser = false;
+        let user = await store.findUserByEmail(profile.email);
+        if (!user) {
+          user = await store.createUser({
+            email: profile.email,
+            name: profile.name,
+            passwordHash: hashPassword(createOpaqueToken('oauth')),
+          });
+          isNewUser = true;
+        }
+        await store.upsertOAuthConnection({
+          userId: user.id,
+          provider,
+          externalId: profile.externalId,
+          accessToken: profile.accessToken,
+          refreshToken: profile.refreshToken,
+        });
 
-      return { token, user: { id: user.id, email: user.email, name: user.name } };
+        // Auto-create organization for users who don't have one (new OAuth users)
+        let organizationId = orgIdFromRequest(request);
+        if (!organizationId) {
+          const existingOrgs = await store.listOrganizations(user.id);
+          if (existingOrgs.length > 0) {
+            organizationId = existingOrgs[0].id;
+          } else {
+            const org = await store.createOrganization({
+              name: `${profile.name ?? profile.email}'s Organization`,
+              slug: `org-${user.id.slice(-8)}`,
+              ownerUserId: user.id,
+            });
+            organizationId = org.id;
+          }
+        }
+
+        const token = createOpaqueToken('session');
+        await createLoginSession({ store, userId: user.id, organizationId, token, request });
+        reply.setCookie('session', token, authCookieOptions(isProduction));
+        await audit(request, store, {
+          action: `auth.oauth.${provider}.login`,
+          resourceType: 'user',
+          resourceId: user.id,
+        });
+
+        return { token, user: { id: user.id, email: user.email, name: user.name } };
+      } catch (err: any) {
+        request.log.error(
+          { provider, code: err?.code, msg: err?.message, stack: err?.stack },
+          'oauth user/session persistence failed',
+        );
+        return reply.code(500).send({ error: 'OAuth login persistence failed', code: 'OAUTH_SESSION_FAILED' });
+      }
     },
   );
   app.get('/auth/oidc/start', async () => ({
@@ -3949,13 +4439,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const profile = await resolveOAuthProfile('oidc', body);
 
-      const user =
-        (await store.findUserByEmail(profile.email)) ??
-        (await store.createUser({
+      let user = await store.findUserByEmail(profile.email);
+      if (!user) {
+        user = await store.createUser({
           email: profile.email,
           name: profile.name,
           passwordHash: hashPassword(createOpaqueToken('oidc')),
-        }));
+        });
+      }
       await store.upsertOAuthConnection({
         userId: user.id,
         provider: 'oidc',
@@ -3964,11 +4455,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         refreshToken: profile.refreshToken,
       });
 
+      // Auto-create organization for users who don't have one (new OIDC users)
+      let oidcOrgId = body.orgId ?? orgIdFromRequest(request);
+      if (!oidcOrgId) {
+        const existingOrgs = await store.listOrganizations(user.id);
+        if (existingOrgs.length > 0) {
+          oidcOrgId = existingOrgs[0].id;
+        } else {
+          const org = await store.createOrganization({
+            name: `${profile.name ?? profile.email}'s Organization`,
+            slug: `org-${user.id.slice(-8)}`,
+            ownerUserId: user.id,
+          });
+          oidcOrgId = org.id;
+        }
+      }
+
       const token = createOpaqueToken('session');
       await createLoginSession({
         store,
         userId: user.id,
-        organizationId: body.orgId ?? orgIdFromRequest(request),
+        organizationId: oidcOrgId,
         token,
         request,
       });
@@ -4089,6 +4596,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/auth/saml') ||
       request.url.startsWith('/contact-sales') ||
       request.url.startsWith('/billing/stripe/webhook') ||
+      request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/')
     ) {
@@ -4298,6 +4806,784 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { memory: archived };
+  });
+
+  app.post(
+    '/api/integrations/oauth/:provider/connect',
+    {
+      config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      if (!request.currentUser) {
+        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      }
+
+      const params = parse(integrationOauthProviderParams, request.params);
+      const body = parse(integrationOauthConnectSchema, request.body);
+
+      if (params.provider !== 'github') {
+        return reply.code(400).send({
+          error: `Unsupported connector provider: ${params.provider}`,
+          code: 'CONNECTOR_UNKNOWN_PROVIDER',
+        });
+      }
+
+      let projectId: string | undefined;
+      let organizationId: string;
+
+      if (body.projectId) {
+        const project = await requireProject(request, store, body.projectId, 'projects:write');
+        projectId = project.id;
+        organizationId = project.organizationId;
+      } else {
+        // Account-scoped connect (Settings → GitHub tab, no project context).
+        // Bind the resulting UserConnection to the first organization the
+        // builder belongs to so the AuditLog row carries an organizationId.
+        const orgs = await store.listOrganizations(request.currentUser.id);
+
+        if (orgs.length === 0) {
+          return reply.code(400).send({
+            error: 'Account is not a member of any organization.',
+            code: 'NO_ORGANIZATION_MEMBERSHIP',
+          });
+        }
+
+        organizationId = orgs[0].id;
+      }
+
+      const credentials = resolveGithubCredentials();
+
+      if (!credentials) {
+        return reply.code(503).send({
+          error: 'GitHub integration OAuth credentials are not configured on this server.',
+          code: 'PROVIDER_NOT_CONFIGURED',
+        });
+      }
+
+      const state = signIntegrationOauthState({
+        context: {
+          provider: params.provider,
+          projectId,
+          userId: request.currentUser.id,
+          organizationId,
+        },
+        secret: resolveIntegrationOauthStateSecret(),
+      });
+
+      const authorizationUrl = githubConnector.buildAuthorizeUrl({ credentials, state });
+
+      return { provider: params.provider, authorizationUrl };
+    },
+  );
+
+  app.post(
+    '/api/integrations/oauth/:provider/callback',
+    {
+      config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      if (!request.currentUser) {
+        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      }
+
+      const params = parse(integrationOauthProviderParams, request.params);
+      const body = parse(integrationOauthCallbackBodySchema, request.body);
+
+      if (params.provider !== 'github') {
+        return reply.code(400).send({
+          error: `Unsupported connector provider: ${params.provider}`,
+          code: 'CONNECTOR_UNKNOWN_PROVIDER',
+        });
+      }
+
+      const stateResult = verifyIntegrationOauthState({
+        state: body.state,
+        expectedProvider: params.provider,
+        secret: resolveIntegrationOauthStateSecret(),
+      });
+
+      if (!stateResult.ok) {
+        const code = stateResult.reason === 'expired' ? 'OAUTH_STATE_EXPIRED' : 'OAUTH_STATE_INVALID';
+
+        return reply.code(401).send({ error: `OAuth state ${stateResult.reason}`, code });
+      }
+
+      const context = stateResult.context;
+
+      if (context.userId !== request.currentUser.id) {
+        return reply
+          .code(401)
+          .send({ error: 'OAuth state does not belong to the current user', code: 'OAUTH_STATE_USER_MISMATCH' });
+      }
+
+      if (context.projectId) {
+        const project = await store.getProject(context.projectId);
+
+        if (!project || project.organizationId !== context.organizationId) {
+          return reply.code(404).send({ error: 'Project not found', code: 'PROJECT_NOT_FOUND' });
+        }
+      }
+
+      const credentials = resolveGithubCredentials();
+
+      if (!credentials) {
+        return reply.code(503).send({
+          error: 'GitHub integration OAuth credentials are not configured on this server.',
+          code: 'PROVIDER_NOT_CONFIGURED',
+        });
+      }
+
+      try {
+        const tokenResult = await githubConnector.exchangeCodeForToken({ credentials, code: body.code });
+        const userInfo = await githubConnector.fetchUserInfo({ accessToken: tokenResult.accessToken });
+
+        const accessTokenEncrypted = encryptJson({ value: tokenResult.accessToken });
+
+        const refreshTokenEncrypted = tokenResult.refreshToken
+          ? encryptJson({ value: tokenResult.refreshToken })
+          : undefined;
+
+        const userConnection = await store.upsertUserConnection({
+          userId: context.userId,
+          provider: params.provider,
+          externalAccountId: userInfo.externalAccountId,
+          externalAccountLabel: userInfo.externalAccountLabel,
+          accessTokenEncrypted,
+          refreshTokenEncrypted,
+          scopes: tokenResult.scopes,
+          tokenExpiresAt: tokenResult.expiresInSeconds
+            ? new Date(Date.now() + tokenResult.expiresInSeconds * 1000)
+            : undefined,
+          forAgentUse: true,
+          oauthAppSource: 'e_code_default',
+          createdByUserId: context.userId,
+        });
+
+        if (context.projectId) {
+          await store.linkProjectToUserConnection({
+            projectId: context.projectId,
+            userConnectionId: userConnection.id,
+            linkedByUserId: context.userId,
+          });
+        }
+
+        await audit(request, store, {
+          organizationId: context.organizationId,
+          action: `connector.oauth.${params.provider}.connect`,
+          resourceType: 'UserConnection',
+          resourceId: userConnection.id,
+          metadata: {
+            projectId: context.projectId ?? null,
+            scope: context.projectId ? 'project' : 'account',
+            provider: params.provider,
+            accountLabel: userInfo.externalAccountLabel,
+            scopes: tokenResult.scopes,
+          },
+        });
+
+        return {
+          userConnectionId: userConnection.id,
+          provider: params.provider,
+          accountLabel: userInfo.externalAccountLabel,
+          scopes: tokenResult.scopes,
+        };
+      } catch (error) {
+        if (error instanceof ConnectorProviderError) {
+          return reply.code(error.httpStatus ?? 502).send({
+            error: error.message,
+            code: error.code,
+            detail: error.providerDetail,
+          });
+        }
+
+        throw error;
+      }
+    },
+  );
+
+  app.get('/api/account/connections', async (request, reply) => {
+    if (!request.currentUser) {
+      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+    }
+
+    const query = parse(userConnectionListQuerySchema, request.query);
+
+    const connections = await store.listUserConnectionsByUser(request.currentUser.id, {
+      provider: query.provider,
+    });
+
+    return {
+      connections: connections.map((connection) => ({
+        id: connection.id,
+        provider: connection.provider,
+        externalAccountId: connection.externalAccountId,
+        externalAccountLabel: connection.externalAccountLabel,
+        scopes: connection.scopes,
+        status: connection.status,
+        forAgentUse: connection.forAgentUse,
+        oauthAppSource: connection.oauthAppSource,
+        createdAt: connection.createdAt,
+        updatedAt: connection.updatedAt,
+        lastUsedAt: connection.lastUsedAt ?? null,
+        tokenExpiresAt: connection.tokenExpiresAt ?? null,
+        revokedAt: connection.revokedAt ?? null,
+      })),
+    };
+  });
+
+  app.post('/api/account/connections/:userConnectionId/revoke', async (request, reply) => {
+    if (!request.currentUser) {
+      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+    }
+
+    const params = parse(userConnectionIdParams, request.params);
+    const existing = await store.getUserConnectionById(params.userConnectionId);
+
+    if (!existing || existing.userId !== request.currentUser.id) {
+      return reply.code(404).send({ error: 'Connection not found', code: 'CONNECTION_NOT_FOUND' });
+    }
+
+    if (existing.status === 'revoked') {
+      return {
+        userConnectionId: existing.id,
+        status: existing.status,
+        revokedAt: existing.revokedAt,
+      };
+    }
+
+    const updated = await store.markUserConnectionStatus({
+      id: existing.id,
+      status: 'revoked',
+      revokedAt: new Date(),
+    });
+
+    await audit(request, store, {
+      action: `connector.oauth.${existing.provider}.revoke`,
+      resourceType: 'UserConnection',
+      resourceId: existing.id,
+      metadata: {
+        provider: existing.provider,
+        accountLabel: existing.externalAccountLabel,
+      },
+    });
+
+    return {
+      userConnectionId: existing.id,
+      status: updated?.status ?? 'revoked',
+      revokedAt: updated?.revokedAt ?? new Date().toISOString(),
+    };
+  });
+
+  async function resolveActiveGithubAccessToken(request: any, reply: any): Promise<string | null> {
+    if (!request.currentUser) {
+      reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+
+      return null;
+    }
+
+    const connections = await store.listUserConnectionsByUser(request.currentUser.id, { provider: 'github' });
+    const active = connections.find((row) => row.status === 'active');
+
+    if (!active) {
+      reply.code(401).send({ error: 'GitHub is not connected for this account.', code: 'CONNECTOR_NOT_LINKED' });
+
+      return null;
+    }
+
+    if (!active.accessTokenEncrypted) {
+      reply.code(503).send({ error: 'GitHub token unavailable', code: 'CONNECTOR_TOKEN_UNAVAILABLE' });
+
+      return null;
+    }
+
+    try {
+      const decrypted = decryptJson<{ value: string }>(active.accessTokenEncrypted);
+
+      return decrypted.value;
+    } catch {
+      reply.code(503).send({ error: 'GitHub token could not be decrypted', code: 'CONNECTOR_TOKEN_DECRYPT_FAILED' });
+
+      return null;
+    }
+  }
+
+  async function handleGithubProviderResponse(
+    request: any,
+    reply: any,
+    response: Response,
+    fallbackCode: 'PROVIDER_API_FAILED',
+  ) {
+    if (response.status === 401 || response.status === 403) {
+      const connections = await store.listUserConnectionsByUser(request.currentUser?.id ?? '', { provider: 'github' });
+      const active = connections.find((row) => row.status === 'active');
+
+      if (active) {
+        await store.markUserConnectionStatus({ id: active.id, status: 'needs_reconnect' });
+        await audit(request, store, {
+          action: 'connector.oauth.github.needs_reconnect',
+          resourceType: 'UserConnection',
+          resourceId: active.id,
+          metadata: { reason: 'token_expired_or_revoked', upstreamStatus: response.status },
+        });
+      }
+
+      return reply.code(401).send({
+        error: 'GitHub rejected the stored access token',
+        code: 'CONNECTOR_NEEDS_RECONNECT',
+        upstreamStatus: response.status,
+      });
+    }
+
+    return reply.code(502).send({
+      error: `GitHub upstream returned HTTP ${response.status}`,
+      code: fallbackCode,
+      upstreamStatus: response.status,
+    });
+  }
+
+  app.get('/api/github-user', async (request, reply) => {
+    const accessToken = await resolveActiveGithubAccessToken(request, reply);
+
+    if (!accessToken) {
+      return reply;
+    }
+
+    const response = await fetch('https://api.github.com/user', {
+      method: 'GET',
+      headers: {
+        authorization: `token ${accessToken}`,
+        accept: 'application/vnd.github+json',
+        'user-agent': 'e-code-api',
+        'x-github-api-version': '2022-11-28',
+      },
+    });
+
+    if (!response.ok) {
+      return handleGithubProviderResponse(request, reply, response, 'PROVIDER_API_FAILED');
+    }
+
+    type GithubUserResponse = {
+      login: string;
+      avatar_url: string;
+      html_url: string;
+      name?: string | null;
+      bio?: string | null;
+      public_repos?: number;
+      followers?: number;
+      following?: number;
+      public_gists?: number;
+      created_at: string;
+      updated_at: string;
+    };
+
+    const payload = (await response.json()) as GithubUserResponse;
+
+    return {
+      login: payload.login,
+      avatar_url: payload.avatar_url,
+      html_url: payload.html_url,
+      name: payload.name ?? '',
+      bio: payload.bio ?? '',
+      public_repos: payload.public_repos ?? 0,
+      followers: payload.followers ?? 0,
+      following: payload.following ?? 0,
+      public_gists: payload.public_gists ?? 0,
+      created_at: payload.created_at,
+      updated_at: payload.updated_at,
+    };
+  });
+
+  app.get('/api/github-stats', async (request, reply) => {
+    const accessToken = await resolveActiveGithubAccessToken(request, reply);
+
+    if (!accessToken) {
+      return reply;
+    }
+
+    const reposResponse = await fetch(
+      'https://api.github.com/user/repos?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member',
+      {
+        method: 'GET',
+        headers: {
+          authorization: `token ${accessToken}`,
+          accept: 'application/vnd.github+json',
+          'user-agent': 'e-code-api',
+          'x-github-api-version': '2022-11-28',
+        },
+      },
+    );
+
+    if (!reposResponse.ok) {
+      return handleGithubProviderResponse(request, reply, reposResponse, 'PROVIDER_API_FAILED');
+    }
+
+    type GithubRepoSummary = {
+      id: number;
+      name: string;
+      full_name: string;
+      html_url: string;
+      description: string | null;
+      stargazers_count: number;
+      forks_count: number;
+      default_branch: string;
+      updated_at: string;
+      language: string | null;
+      private?: boolean;
+      topics?: string[];
+      archived?: boolean;
+      fork?: boolean;
+      size?: number;
+    };
+
+    const repos = (await reposResponse.json()) as GithubRepoSummary[];
+
+    const totalStars = repos.reduce((acc, repo) => acc + (repo.stargazers_count ?? 0), 0);
+    const totalForks = repos.reduce((acc, repo) => acc + (repo.forks_count ?? 0), 0);
+    const publicRepos = repos.filter((repo) => !repo.private).length;
+    const privateRepos = repos.filter((repo) => repo.private === true).length;
+
+    const languages: Record<string, number> = {};
+
+    for (const repo of repos) {
+      if (repo.language) {
+        languages[repo.language] = (languages[repo.language] ?? 0) + 1;
+      }
+    }
+
+    return {
+      repos: repos.map((repo) => ({
+        id: String(repo.id),
+        name: repo.name,
+        full_name: repo.full_name,
+        html_url: repo.html_url,
+        description: repo.description ?? '',
+        stargazers_count: repo.stargazers_count,
+        forks_count: repo.forks_count,
+        default_branch: repo.default_branch,
+        updated_at: repo.updated_at,
+        language: repo.language ?? '',
+        languages_url: `https://api.github.com/repos/${repo.full_name}/languages`,
+        private: repo.private,
+        topics: repo.topics ?? [],
+        archived: repo.archived ?? false,
+        fork: repo.fork ?? false,
+        size: repo.size ?? 0,
+      })),
+      totalStars,
+      totalForks,
+      organizations: [],
+      recentActivity: [],
+      languages,
+      totalGists: 0,
+      publicRepos,
+      privateRepos,
+      stars: totalStars,
+      forks: totalForks,
+      followers: 0,
+      publicGists: 0,
+      privateGists: 0,
+      lastUpdated: new Date().toISOString(),
+    };
+  });
+
+  app.post('/webhooks/github', async (request, reply) => {
+    const signingSecret = process.env.INTEGRATION_GITHUB_WEBHOOK_SIGNING_SECRET;
+
+    if (!signingSecret) {
+      return reply.code(503).send({
+        error: 'GitHub webhook signing secret is not configured on this server.',
+        code: 'WEBHOOK_NOT_CONFIGURED',
+      });
+    }
+
+    const rawBody = request.rawBody;
+
+    if (typeof rawBody !== 'string') {
+      return reply.code(400).send({
+        error: 'Raw body unavailable; the preParsing hook did not capture this request.',
+        code: 'WEBHOOK_RAW_BODY_MISSING',
+      });
+    }
+
+    const headerSignature = request.headers['x-hub-signature-256'];
+
+    if (typeof headerSignature !== 'string' || !headerSignature.startsWith('sha256=')) {
+      return reply.code(401).send({
+        error: 'Missing or malformed X-Hub-Signature-256 header.',
+        code: 'WEBHOOK_SIGNATURE_MISSING',
+      });
+    }
+
+    const expected = createHmac('sha256', signingSecret).update(rawBody).digest('hex');
+    const provided = headerSignature.slice('sha256='.length);
+
+    if (expected.length !== provided.length) {
+      return reply.code(401).send({
+        error: 'Webhook signature is invalid.',
+        code: 'WEBHOOK_SIGNATURE_INVALID',
+      });
+    }
+
+    let signaturesMatch = false;
+
+    try {
+      signaturesMatch = timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(provided, 'hex'));
+    } catch {
+      return reply.code(401).send({
+        error: 'Webhook signature is invalid.',
+        code: 'WEBHOOK_SIGNATURE_INVALID',
+      });
+    }
+
+    if (!signaturesMatch) {
+      return reply.code(401).send({
+        error: 'Webhook signature is invalid.',
+        code: 'WEBHOOK_SIGNATURE_INVALID',
+      });
+    }
+
+    const eventType = String(request.headers['x-github-event'] ?? 'unknown');
+    const deliveryId = String(request.headers['x-github-delivery'] ?? '');
+
+    let payload: { installation?: { id?: number }; repository?: { full_name?: string }; sender?: { login?: string } };
+
+    try {
+      payload = JSON.parse(rawBody) as typeof payload;
+    } catch {
+      return reply.code(400).send({
+        error: 'Webhook body is not valid JSON.',
+        code: 'WEBHOOK_BODY_INVALID',
+      });
+    }
+
+    await audit(request, store, {
+      action: 'connector.webhook.received',
+      resourceType: 'GithubWebhook',
+      resourceId: deliveryId || undefined,
+      metadata: {
+        provider: 'github',
+        eventType,
+        deliveryId,
+        installationId: payload.installation?.id,
+        repository: payload.repository?.full_name,
+        sender: payload.sender?.login,
+      },
+    });
+
+    return {
+      received: true,
+      provider: 'github',
+      eventType,
+      deliveryId,
+    };
+  });
+
+  /*
+   * Resend transactional-email webhook.
+   *
+   * Resend signs deliveries with Svix headers (svix-id, svix-timestamp,
+   * svix-signature). The signing secret is the dashboard-issued string
+   * shaped like `whsec_<base64>`; the bytes after the prefix are the HMAC
+   * key. The signed payload is `${svix_id}.${svix_timestamp}.${rawBody}`
+   * and the header carries one or more space-separated `v1,<base64sig>`
+   * tokens — we accept the request if any of them matches.
+   *
+   * We persist every accepted event in EmailDeliveryEvent and dedupe on
+   * (provider, svix-id) so Resend's retry queue is idempotent. The route
+   * is intentionally unauthenticated — the signature IS the auth — and is
+   * exempted from the global auth hook because it lives under /webhooks/.
+   */
+  app.post('/webhooks/resend', async (request, reply) => {
+    const rawSecret = process.env.RESEND_WEBHOOK_SECRET;
+
+    if (!rawSecret) {
+      return reply.code(503).send({
+        error: 'Resend webhook signing secret is not configured on this server.',
+        code: 'WEBHOOK_NOT_CONFIGURED',
+      });
+    }
+
+    const rawBody = request.rawBody;
+
+    if (typeof rawBody !== 'string') {
+      return reply.code(400).send({
+        error: 'Raw body unavailable; the preParsing hook did not capture this request.',
+        code: 'WEBHOOK_RAW_BODY_MISSING',
+      });
+    }
+
+    const svixId = request.headers['svix-id'];
+    const svixTimestamp = request.headers['svix-timestamp'];
+    const svixSignature = request.headers['svix-signature'];
+
+    if (typeof svixId !== 'string' || typeof svixTimestamp !== 'string' || typeof svixSignature !== 'string') {
+      return reply.code(401).send({
+        error: 'Missing svix-id, svix-timestamp, or svix-signature header.',
+        code: 'WEBHOOK_SIGNATURE_MISSING',
+      });
+    }
+
+    const timestampSeconds = Number.parseInt(svixTimestamp, 10);
+    if (!Number.isFinite(timestampSeconds)) {
+      return reply.code(401).send({
+        error: 'Invalid svix-timestamp header.',
+        code: 'WEBHOOK_TIMESTAMP_INVALID',
+      });
+    }
+
+    /*
+     * Reject deliveries whose timestamp is more than five minutes out from
+     * the server clock. Svix's reference verifier uses the same window;
+     * the goal is to bound the replay-attack surface if a signature header
+     * leaks (e.g. via a misconfigured log sink).
+     */
+    const skewSeconds = Math.abs(Math.floor(Date.now() / 1000) - timestampSeconds);
+    if (skewSeconds > 5 * 60) {
+      return reply.code(401).send({
+        error: 'Webhook timestamp is outside the allowed tolerance.',
+        code: 'WEBHOOK_TIMESTAMP_SKEW',
+      });
+    }
+
+    const secretBase64 = rawSecret.startsWith('whsec_') ? rawSecret.slice('whsec_'.length) : rawSecret;
+    let secretBytes: Buffer;
+    try {
+      secretBytes = Buffer.from(secretBase64, 'base64');
+      if (secretBytes.length === 0) {
+        throw new Error('empty secret');
+      }
+    } catch {
+      return reply.code(503).send({
+        error: 'Resend webhook signing secret is malformed.',
+        code: 'WEBHOOK_SECRET_INVALID',
+      });
+    }
+
+    const signedPayload = `${svixId}.${svixTimestamp}.${rawBody}`;
+    const expectedSignature = createHmac('sha256', secretBytes).update(signedPayload).digest('base64');
+    const expectedBuffer = Buffer.from(expectedSignature, 'base64');
+
+    /*
+     * The header may carry multiple signatures (e.g. during secret
+     * rotation). Each token looks like `v1,<base64>`; we ignore any
+     * version we don't understand and only count `v1` matches.
+     */
+    const providedSignatures = svixSignature
+      .split(' ')
+      .map((token) => token.trim())
+      .filter((token) => token.startsWith('v1,'))
+      .map((token) => token.slice('v1,'.length));
+
+    let signatureMatched = false;
+    for (const candidate of providedSignatures) {
+      let candidateBuffer: Buffer;
+      try {
+        candidateBuffer = Buffer.from(candidate, 'base64');
+      } catch {
+        continue;
+      }
+
+      if (candidateBuffer.length !== expectedBuffer.length) {
+        continue;
+      }
+
+      if (timingSafeEqual(candidateBuffer, expectedBuffer)) {
+        signatureMatched = true;
+        break;
+      }
+    }
+
+    if (!signatureMatched) {
+      return reply.code(401).send({
+        error: 'Webhook signature is invalid.',
+        code: 'WEBHOOK_SIGNATURE_INVALID',
+      });
+    }
+
+    let payload: {
+      type?: string;
+      created_at?: string;
+      data?: {
+        email_id?: string;
+        from?: string;
+        to?: string[] | string;
+        subject?: string;
+        bounce?: { message?: string; subType?: string };
+        click?: { link?: string };
+      };
+    };
+
+    try {
+      payload = JSON.parse(rawBody) as typeof payload;
+    } catch {
+      return reply.code(400).send({
+        error: 'Webhook body is not valid JSON.',
+        code: 'WEBHOOK_BODY_INVALID',
+      });
+    }
+
+    const eventType = typeof payload.type === 'string' ? payload.type : 'unknown';
+    const data = payload.data ?? {};
+    const recipientCandidate = Array.isArray(data.to) ? data.to[0] : data.to;
+    const recipient = typeof recipientCandidate === 'string' ? recipientCandidate.toLowerCase() : 'unknown';
+
+    const { event, created } = await store.recordEmailDeliveryEvent({
+      provider: 'resend',
+      providerEventId: svixId,
+      type: eventType,
+      email: recipient,
+      emailMessageId: typeof data.email_id === 'string' ? data.email_id : undefined,
+      subject: typeof data.subject === 'string' ? data.subject : undefined,
+      fromAddress: typeof data.from === 'string' ? data.from : undefined,
+      payload,
+    });
+
+    /*
+     * Surface delivery failures at WARN so they show up in oncall log
+     * filters without a dedicated alert. Everything else (sent,
+     * delivered, opened, clicked, delivery_delayed) stays at INFO.
+     */
+    const isFailure =
+      eventType === 'email.bounced' || eventType === 'email.complained' || eventType === 'email.failed';
+    const logger = isFailure ? request.log.warn.bind(request.log) : request.log.info.bind(request.log);
+
+    logger({
+      event: 'email.delivery_event',
+      provider: 'resend',
+      type: eventType,
+      svixId,
+      emailMessageId: event.emailMessageId,
+      recipient: event.email,
+      duplicate: !created,
+    });
+
+    request.observabilityMetrics?.increment?.('resend_webhook_events_total', {
+      type: eventType,
+      duplicate: !created,
+    });
+
+    if (created) {
+      await audit(request, store, {
+        action: 'email.delivery_event.received',
+        resourceType: 'EmailDeliveryEvent',
+        resourceId: event.id,
+        metadata: {
+          provider: 'resend',
+          eventType,
+          providerEventId: svixId,
+          emailMessageId: event.emailMessageId,
+          recipient: event.email,
+        },
+      });
+    }
+
+    return {
+      received: true,
+      provider: 'resend',
+      eventType,
+      eventId: event.id,
+      duplicate: !created,
+    };
   });
 
   app.get('/mcp/catalog', async (request, reply) => {
@@ -4614,6 +5900,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     (error as { code?: string } | undefined)?.code === 'WORKSPACE_MANAGER_UNAVAILABLE' ||
     (error instanceof Error && error.message === 'Workspace manager is unavailable');
 
+  const isRuntimeAgentUnavailable = (error: unknown) =>
+    (error as { code?: string } | undefined)?.code === 'WORKSPACE_AGENT_REQUEST_FAILED';
+
+  const shouldUseLocalRuntimeFallback = (error: unknown) =>
+    localRuntimeFallbackEnabled() && (isRuntimeManagerUnavailable(error) || isRuntimeAgentUnavailable(error));
+
   const localRuntimeRoot = (workspaceId: string) => {
     const safeId = workspaceId.replace(/[^A-Za-z0-9_.-]/g, '_');
     return resolve(process.env.WORKSPACE_LOCAL_RUNTIME_ROOT ?? '.vibecore/local-runtime', safeId);
@@ -4749,6 +6041,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       status: record.status,
       exitCode: record.exitCode,
     })),
+  });
+
+  const listLocalRuntimePorts = (workspaceId: string) => ({
+    ports: [...(localRuntimeProcesses.get(workspaceId)?.values() ?? [])].flatMap((record) => {
+      const source = `${record.command}\n${record.output ?? ''}`;
+      const matches = source.matchAll(
+        /(?:https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[[^\]]+\])[:/]|localhost:|127\.0\.0\.1:|0\.0\.0\.0:|--port\s+|LISTEN\s+)(\d{2,5})/gi,
+      );
+      const ports = new Set([...matches].map((match) => Number(match[1])).filter((port) => port > 0 && port <= 65535));
+
+      if (
+        !ports.size &&
+        /\b(vite|next dev|astro dev|remix dev|npm run dev|pnpm dev|yarn dev)\b/i.test(record.command)
+      ) {
+        ports.add(/\bnext dev\b/i.test(record.command) ? 3000 : 5173);
+      }
+
+      return [...ports].map((port) => ({ port, processId: record.id }));
+    }),
   });
 
   const stopLocalRuntimeProcess = (workspaceId: string, processId: string) => {
@@ -5060,7 +6371,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   const createBeforeAiSnapshot = async (request: any, project: ProjectRecord, reason: string) => {
-    const files = await projectStorage.listFiles(project.id);
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
     const archive = await projectStorage.createSnapshot({ projectId: project.id, label: reason, files });
 
     return store.createSnapshot({
@@ -5195,7 +6506,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       output = await gitProvider.commit({
         projectId: project.id,
         message: input.message ?? 'AI changes',
-        files: await projectStorage.listFiles(project.id),
+        files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id),
       });
     } else if (toolName === 'deploy_project') {
       await ensureQuota(request, project.organizationId, 'deployments.count');
@@ -5539,7 +6850,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         { method: 'POST', body: JSON.stringify(body) },
       );
     } catch (error) {
-      if (!isRuntimeManagerUnavailable(error)) {
+      if (!shouldUseLocalRuntimeFallback(error)) {
         throw error;
       }
 
@@ -5571,7 +6882,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         '/processes',
       );
     } catch (error) {
-      if (!isRuntimeManagerUnavailable(error)) {
+      if (!shouldUseLocalRuntimeFallback(error)) {
         throw error;
       }
 
@@ -5588,7 +6899,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       await agentRequest(authorized.workspaceId, `/processes/${id}/kill`, { method: 'POST' });
     } catch (error) {
-      if (!isRuntimeManagerUnavailable(error)) {
+      if (!shouldUseLocalRuntimeFallback(error)) {
         throw error;
       }
 
@@ -5601,10 +6912,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
 
-    const result = await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
-      authorized.workspaceId,
-      '/ports',
-    );
+    let result: { ports: Array<{ port: number; processId?: string }> };
+
+    try {
+      result = await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
+        authorized.workspaceId,
+        '/ports',
+      );
+    } catch (error) {
+      if (!shouldUseLocalRuntimeFallback(error)) {
+        throw error;
+      }
+
+      result = listLocalRuntimePorts(authorized.workspaceId);
+    }
 
     return result.ports.map((port) => ({
       ...port,
@@ -5632,7 +6953,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { port, url, ready: true };
   });
-  app.all('/api/runtime/workspaces/:workspaceId/preview/:port/proxy/*', async (request, reply) => {
+  const handleRuntimePreviewProxy = async (request: FastifyRequest, reply: FastifyReply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const params = request.params as { port: string; '*': string };
     const port = Number(params.port);
@@ -5676,7 +6997,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return reply.code(response.status).send(Buffer.from(await response.arrayBuffer()));
-  });
+  };
+  app.all('/api/runtime/workspaces/:workspaceId/preview/:port/proxy', handleRuntimePreviewProxy);
+  app.all('/api/runtime/workspaces/:workspaceId/preview/:port/proxy/*', handleRuntimePreviewProxy);
   app.post('/api/runtime/workspaces/:workspaceId/snapshots', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
@@ -5899,10 +7222,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
     const client = normalizeRuntimeApiWebSocket(socket);
 
-    const result = await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
-      authorized.workspaceId,
-      '/ports',
-    );
+    let result: { ports: Array<{ port: number; processId?: string }> };
+
+    try {
+      result = await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
+        authorized.workspaceId,
+        '/ports',
+      );
+    } catch (error) {
+      if (!shouldUseLocalRuntimeFallback(error)) {
+        throw error;
+      }
+
+      result = listLocalRuntimePorts(authorized.workspaceId);
+    }
 
     for (const port of result.ports) {
       client.send(
@@ -5928,27 +7261,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             emailVerifiedAt: user.emailVerifiedAt,
             mfaEnabled: user.mfaEnabled,
             platformAdmin: user.platformAdmin,
+            language: user.language,
             createdAt: user.createdAt,
           }
         : request.currentUser,
     };
   });
-  app.patch('/auth/me', async (request) => {
+  app.patch('/auth/me', async (request, reply) => {
     const body = parse(userProfileSchema, request.body);
 
     const user = await store.updateUser({
       userId: request.currentUser!.id,
       email: body.email,
       name: body.name,
+      language: body.language,
     });
+
+    /*
+     * Slice 3 react-i18next — mirror the persisted language into a
+     * `vibecore-lang` cookie so the client's i18next runtime can pick it
+     * up at boot without an extra round trip to GET /auth/me. The cookie
+     * is intentionally NOT httpOnly: the client reads it from
+     * `document.cookie` to pre-select the i18next language before any
+     * UI renders. SameSite=Lax + Secure (in prod) match the session
+     * cookie so the SSO redirect roundtrip preserves it.
+     */
+    if (body.language !== undefined) {
+      if (body.language === null) {
+        reply.clearCookie('vibecore-lang', { path: '/' });
+      } else {
+        reply.setCookie('vibecore-lang', body.language, {
+          httpOnly: false,
+          sameSite: 'lax',
+          secure: isProduction,
+          path: '/',
+          maxAge: 60 * 60 * 24 * 365,
+        });
+      }
+    }
+
     await audit(request, store, {
       action: 'auth.profile.update',
       resourceType: 'user',
       resourceId: user.id,
-      metadata: { timezone: body.timezone },
+      metadata: { timezone: body.timezone, language: body.language },
     });
 
-    return { user: { id: user.id, email: user.email, name: user.name } };
+    return {
+      user: { id: user.id, email: user.email, name: user.name, language: user.language },
+    };
   });
 
   app.patch(
@@ -6100,6 +7461,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   app.get('/auth/sessions', async (request) => ({ sessions: await store.listSessions(request.currentUser!.id) }));
+  app.get('/auth/connections', async (request) => {
+    const records = await store.listOAuthConnections(request.currentUser!.id);
+    return {
+      connections: records.map((record) => ({
+        provider: record.provider,
+        externalId: record.externalId,
+        createdAt: record.createdAt,
+      })),
+    };
+  });
   app.post('/auth/logout', async (request) => {
     const sessionId = request.currentSession!.id;
     const revoked = await store.revokeSession(request.currentUser!.id, sessionId);
@@ -6223,7 +7594,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { user: { id: user.id, email: user.email, name: user.name, platformAdmin: user.platformAdmin } };
   });
 
-  app.get('/orgs', async (request) => ({ organizations: await store.listOrganizations(request.currentUser!.id) }));
+  app.get('/orgs', async (request) => {
+    let organizations = await store.listOrganizations(request.currentUser!.id);
+    // Auto-provision a default organization for users who don't have one (e.g. OAuth users created before the auto-create fix)
+    if (organizations.length === 0) {
+      const user = request.currentUser!;
+      const org = await store.createOrganization({
+        name: `${user.name ?? user.email}'s Organization`,
+        slug: `org-${user.id.slice(-8)}`,
+        ownerUserId: user.id,
+      });
+      organizations = [org];
+    }
+    return { organizations };
+  });
   app.post('/orgs', async (request, reply) => {
     const body = parse(createOrgSchema, request.body);
 
@@ -6770,7 +8154,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       description: body.description,
       sourceType: 'blank',
     });
-    await projectStorage.writeFiles(project.id, starterFiles({ sourceType: 'blank', name: project.name }));
+    const files = await projectStorage.writeFiles(project.id, starterFiles({ sourceType: 'blank', name: project.name }));
+    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
@@ -6802,10 +8187,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       sourceType: 'template',
       templateName: body.templateName,
     });
-    await projectStorage.writeFiles(
+    const files = await projectStorage.writeFiles(
       project.id,
       starterFiles({ sourceType: 'template', name: project.name, templateName: body.templateName }),
     );
+    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
@@ -6838,7 +8224,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       sourceType: 'ai',
     });
-    await projectStorage.writeFiles(
+    const files = await projectStorage.writeFiles(
       project.id,
       starterFiles({
         sourceType: 'ai',
@@ -6849,6 +8235,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         model: body.model,
       }),
     );
+    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
@@ -6888,7 +8275,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       gitRepositoryUrl: imported.remoteUrl,
       gitDefaultBranch: imported.defaultBranch,
     });
-    await projectStorage.writeFiles(project.id, imported.files);
+    const files = await projectStorage.writeFiles(project.id, imported.files);
+    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
       projectId: project.id,
@@ -6904,7 +8292,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { repositoryUrl: body.repositoryUrl },
     });
 
-    return reply.code(201).send({ project, files: publicFiles(await projectStorage.listFiles(project.id)) });
+    return reply.code(201).send({ project, files: publicFiles(files) });
   });
   app.post('/orgs/:orgId/projects/import/zip', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
@@ -6922,6 +8310,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     const files = await projectStorage.importZip(project.id, body.zipBase64);
+    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
@@ -7023,7 +8412,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         updatedAt: project.updatedAt,
         sourceType: project.sourceType,
       },
-      files: await projectStorage.listFiles(project.id),
+      files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id),
     });
 
     return reply
@@ -7079,7 +8468,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const state = mergeProjectIdeState(existingState?.state, body.state);
+    let state = mergeProjectIdeState(existingState?.state, body.state);
+    const generatedFiles = projectFilesFromIdeStateRoot(ideStateRecord(state));
+
+    if (generatedFiles.length) {
+      const mergedFiles = new Map(projectFilesFromPersistedIdeState(existingState).map((file) => [file.path, file]));
+
+      for (const file of generatedFiles) {
+        mergedFiles.set(file.path, file);
+      }
+
+      state = mergeProjectIdeState(state, { files: projectFileManifestState([...mergedFiles.values()]) });
+    }
 
     const ideState = await store.upsertProjectIdeState({
       projectId: project.id,
@@ -7113,6 +8513,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { ideState };
   });
+
+  /*
+   * Persistence for the workbench AgentPatchProposal queue. Terminal-status
+   * rows (accepted/rejected/reverted) are hard-deleted by the client when
+   * the user makes their decision; this table only holds proposals still
+   * awaiting a manual action (pending/applying/failed). See the
+   * AgentPatchProposal Prisma model for the schema rationale.
+   */
+  app.get('/projects/:projectId/agent-patch-proposals', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    return { proposals: await store.listOpenAgentPatchProposals(project.id) };
+  });
+
+  app.put('/projects/:projectId/agent-patch-proposals/:proposalId', async (request) => {
+    const { projectId, proposalId } = parse(agentPatchProposalParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:write');
+    const body = parse(agentPatchProposalUpsertSchema, request.body ?? {});
+
+    const proposal = await store.upsertAgentPatchProposal({
+      id: proposalId,
+      projectId: project.id,
+      artifactId: body.artifactId,
+      messageId: body.messageId,
+      actionId: body.actionId,
+      filePath: body.filePath,
+      relativePath: body.relativePath,
+      originalContent: body.originalContent,
+      proposedContent: body.proposedContent,
+      hunks: body.hunks,
+      status: body.status,
+      error: body.error,
+    });
+
+    return { proposal };
+  });
+
+  app.delete('/projects/:projectId/agent-patch-proposals/:proposalId', async (request) => {
+    const { projectId, proposalId } = parse(agentPatchProposalParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:write');
+
+    return { deleted: await store.deleteAgentPatchProposal(project.id, proposalId) };
+  });
+
   app.get('/projects/:projectId/settings', async (request) => ({
     project: await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read'),
   }));
@@ -7168,6 +8617,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const files = await projectStorage.importZip(project.id, body.zipBase64, {
       replaceExisting: body.replaceExisting === true,
     });
+    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id, {
+      clearRecoveredChatFiles: body.replaceExisting === true,
+    });
+
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
@@ -7191,9 +8644,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
-    await ensureProjectStorageFromIdeState(store, projectStorage, project.id);
-
-    const archive = await projectStorage.exportZip(project.id);
+    const files = await ensureProjectStorageFromIdeState(store, projectStorage, project.id);
+    const archive = await archiveProjectFiles(project.id, files);
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
@@ -8048,7 +9500,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       name: body.name,
       slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
     });
-    await projectStorage.writeFiles(duplicate.id, await projectStorage.listFiles(project.id));
+    const sourceFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+    const duplicateFiles = await projectStorage.writeFiles(duplicate.id, sourceFiles);
+    await persistProjectFileManifest(store, duplicate.id, duplicateFiles, request.currentUser!.id);
     await store.recordProjectActivity({
       projectId: duplicate.id,
       actorUserId: request.currentUser!.id,
@@ -8150,7 +9604,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return {
       workspaceId: workspace.id,
       projectId: project.id,
-      files: publicFiles(await projectStorage.listFiles(project.id)),
+      files: publicFiles(await listProjectFilesIncludingIdeState(store, projectStorage, project.id)),
     };
   });
   app.get('/files/:workspaceId/metadata', async (request) => {
@@ -8166,7 +9620,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return {
       workspaceId: workspace.id,
       projectId: project.id,
-      files: publicFiles(await projectStorage.listFiles(project.id)),
+      files: publicFiles(await listProjectFilesIncludingIdeState(store, projectStorage, project.id)),
     };
   });
 
@@ -8191,7 +9645,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(createSnapshotSchema, request.body);
     await ensureQuota(request, project.organizationId, 'snapshots.count');
 
-    const files = await projectStorage.listFiles(project.id);
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
     const archive = await projectStorage.createSnapshot({ projectId: project.id, label: body.label, files });
 
     const snapshot = await store.createSnapshot({
@@ -8238,7 +9692,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
     await ensureQuota(request, project.organizationId, 'snapshots.count');
 
-    const files = await projectStorage.listFiles(project.id);
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
 
     const archive = await projectStorage.createSnapshot({
       projectId: project.id,
@@ -8293,6 +9747,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const snapshotFiles = snapshot.storageKey ? await projectStorage.getSnapshotFiles(snapshot.storageKey) : [];
     const restored = await projectStorage.restoreSnapshot({ projectId: project.id, files: snapshotFiles });
+    await persistProjectFileManifest(store, project.id, restored, request.currentUser!.id, {
+      clearRecoveredChatFiles: true,
+    });
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
@@ -8448,6 +9905,154 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { messages: await store.listAiMessages(conversationId) };
   });
+
+  /*
+   * C1.b.4 — Pre-flight quota check called by the Remix chat route BEFORE
+   * starting streamText. Estimates input tokens from the incoming
+   * conversation, runs the same ensureQuota path as the in-server AI
+   * routes, and returns the remaining headroom so the client can warn
+   * the user. ensureQuota throws 429 on overage with the structured
+   * error code QUOTA_EXCEEDED, which the Fastify error handler will
+   * pass through and Remix will surface as a chat-error annotation.
+   */
+  app.post('/projects/:projectId/ai/check-quota', async (request) => {
+    const { projectId } = parse(projectParams, request.params);
+    const project = await requireProject(request, store, projectId, 'workspaces:read');
+    const body = parse(aiCheckQuotaSchema, request.body ?? {});
+
+    /*
+     * Always charge 1 message against the daily ai.messages cap. This is
+     * checked even when estimatedInputTokens is 0 so a barely-typed
+     * "..." still trips the rate-limit at a sane upper bound.
+     */
+    const estimated = body.estimatedInputTokens ?? 0;
+    await ensureQuota(request, project.organizationId, 'ai.messages', 1);
+
+    if (estimated > 0) {
+      await ensureQuota(request, project.organizationId, 'ai.inputTokens', estimated);
+    }
+
+    /*
+     * Resolve the live headroom for both relevant quotas so the client
+     * can render a "X tokens left this month" hint. The plan-resolution
+     * path is shared with ensureQuota so the override table is honoured.
+     */
+    const state = await billingState(project.organizationId);
+    const { limits, plan } = state;
+    const tokenOverride = await store.getQuotaOverride(project.organizationId, 'ai.inputTokens');
+
+    const tokenLimit =
+      (isQuotaOverrideActive(tokenOverride) ? tokenOverride?.limit : undefined) ?? limits['ai.inputTokens'] ?? 0;
+
+    const tokenUsed = await usageForQuota(project.organizationId, 'ai.inputTokens', request);
+
+    const messageOverride = await store.getQuotaOverride(project.organizationId, 'ai.messages');
+
+    const messageLimit =
+      (isQuotaOverrideActive(messageOverride) ? messageOverride?.limit : undefined) ?? limits['ai.messages'] ?? 0;
+
+    const messageUsed = await usageForQuota(project.organizationId, 'ai.messages', request);
+
+    /*
+     * C1.b.6 — BYOK policy. Managed-mode plans (free + pro) force the
+     * server-side env keys (ANTHROPIC_API_KEY etc.) so a user can't
+     * silently bypass vibecore's quota by pasting their own provider
+     * key into the Bolt UI cookies. Team + enterprise are advanced
+     * tiers where bringing-your-own-key is a legitimate feature.
+     * Override via the ENTERPRISE_FORCE_MANAGED_KEYS env knob if a
+     * specific deployment wants everyone on managed.
+     */
+    const byokAllowedPlans: PlanKey[] = ['team', 'enterprise'];
+    const forceManaged = process.env.ENTERPRISE_FORCE_MANAGED_KEYS === 'true';
+    const byokAllowed = !forceManaged && byokAllowedPlans.includes(plan.key);
+
+    return {
+      ok: true,
+      ai: {
+        inputTokens: {
+          used: tokenUsed,
+          limit: tokenLimit,
+          remaining: Math.max(0, tokenLimit - tokenUsed),
+        },
+        messages: {
+          used: messageUsed,
+          limit: messageLimit,
+          remaining: Math.max(0, messageLimit - messageUsed),
+        },
+      },
+      byok: {
+        allowed: byokAllowed,
+        reason: byokAllowed ? 'plan-allows-byok' : 'managed-mode-plan',
+        plan: plan.key,
+      },
+    };
+  });
+
+  /*
+   * C1.b.2 — Record-usage endpoint called by the Remix chat route after a
+   * Bolt streamText() completes. Today the Remix chat bypasses
+   * services/ai-gateway (Bolt's inherited code calls the providers
+   * directly), so the only way to charge the cost ledger + enforce
+   * quotas is to have Remix POST here in onFinish. Auth is the standard
+   * project ACL (the Remix loader forwards the user's session cookie),
+   * so a malicious caller can only inflate their *own* org's usage.
+   * Once C1.b.4 reroutes the stream through ai-gateway, this endpoint
+   * becomes redundant and the gateway records usage directly.
+   */
+  app.post('/projects/:projectId/ai/record-usage', async (request) => {
+    const { projectId } = parse(projectParams, request.params);
+    const project = await requireProject(request, store, projectId, 'workspaces:read');
+    const body = parse(aiRecordUsageSchema, request.body ?? {});
+
+    const { costCents, matched } = computeAiCostCents({
+      model: body.model,
+      provider: body.provider as Parameters<typeof computeAiCostCents>[0]['provider'],
+      inputTokens: body.inputTokens,
+      outputTokens: body.outputTokens,
+    });
+
+    await store.recordAiCost({
+      organizationId: project.organizationId,
+      projectId: project.id,
+      conversationId: body.conversationId,
+      messageId: body.messageId,
+      provider: body.provider,
+      model: body.model,
+      inputTokens: body.inputTokens,
+      outputTokens: body.outputTokens,
+      costCents,
+      reason: `chat.completion.${body.source}`,
+    });
+
+    await recordUsage(request, project.organizationId, 'ai.messages');
+
+    if (body.inputTokens > 0) {
+      await recordUsage(request, project.organizationId, 'ai.inputTokens', body.inputTokens);
+    }
+
+    if (body.outputTokens > 0) {
+      await recordUsage(request, project.organizationId, 'ai.outputTokens', body.outputTokens);
+    }
+
+    metrics.increment(
+      'ai_tokens_total',
+      { provider: body.provider, model: body.model, direction: 'input' },
+      body.inputTokens,
+    );
+    metrics.increment(
+      'ai_tokens_total',
+      { provider: body.provider, model: body.model, direction: 'output' },
+      body.outputTokens,
+    );
+    metrics.setGauge('cost_estimate_cents', { organizationId: project.organizationId, source: 'ai' }, costCents);
+
+    return {
+      recorded: true,
+      costCents,
+      modelMatched: matched,
+      finishReason: body.finishReason ?? null,
+    };
+  });
   app.post('/projects/:projectId/ai/tools/:toolName', async (request, reply) => {
     const { projectId, toolName } = parse(aiToolParams, request.params);
     const project = await requireProject(request, store, projectId, 'workspaces:read');
@@ -8486,6 +10091,95 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/ai/usage', async (request) => {
     const organization = await requireAnyOrgPermission(request, store, 'usage:read');
     return { usage: await store.listAiCosts(organization.id) };
+  });
+
+  /*
+   * Aggregated AI cost summary for billing dashboards. Returns totals plus
+   * breakdowns by provider/model/day/project so the admin UI can render
+   * trend charts without re-grouping the raw ledger client-side. Filtering
+   * by `from`/`to` (ISO timestamps) is supported for "last 30 days"-style
+   * panels; when omitted we summarise the entire ledger for the org.
+   */
+  app.get('/orgs/:orgId/ai/cost-summary', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'billing:read');
+
+    const query = parse(
+      z.object({
+        from: z.string().datetime().optional(),
+        to: z.string().datetime().optional(),
+      }),
+      request.query ?? {},
+    );
+
+    const fromMs = query.from ? new Date(query.from).getTime() : 0;
+    const toMs = query.to ? new Date(query.to).getTime() : Number.POSITIVE_INFINITY;
+
+    const ledger = (await store.listAiCosts(orgId)).filter((row) => {
+      const created = new Date(row.createdAt).getTime();
+      return created >= fromMs && created <= toMs;
+    });
+
+    let totalCostCents = 0;
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+
+    const byProvider: Record<
+      string,
+      { costCents: number; inputTokens: number; outputTokens: number; messages: number }
+    > = {};
+    const byModel: Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }> =
+      {};
+    const byDay: Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }> =
+      {};
+    const byProject: Record<
+      string,
+      { costCents: number; inputTokens: number; outputTokens: number; messages: number }
+    > = {};
+
+    for (const row of ledger) {
+      totalCostCents += row.costCents;
+      totalInputTokens += row.inputTokens;
+      totalOutputTokens += row.outputTokens;
+
+      const day = row.createdAt.slice(0, 10); // YYYY-MM-DD
+
+      const bucketKeys: Array<
+        [Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }>, string]
+      > = [
+        [byProvider, row.provider],
+        [byModel, row.model],
+        [byDay, day],
+        [byProject, row.projectId ?? '<no-project>'],
+      ];
+
+      for (const [bucket, key] of bucketKeys) {
+        const existing = bucket[key] ?? { costCents: 0, inputTokens: 0, outputTokens: 0, messages: 0 };
+        existing.costCents += row.costCents;
+        existing.inputTokens += row.inputTokens;
+        existing.outputTokens += row.outputTokens;
+        existing.messages += 1;
+        bucket[key] = existing;
+      }
+    }
+
+    return {
+      organizationId: orgId,
+      window: {
+        from: query.from ?? null,
+        to: query.to ?? null,
+      },
+      totals: {
+        costCents: totalCostCents,
+        inputTokens: totalInputTokens,
+        outputTokens: totalOutputTokens,
+        messages: ledger.length,
+      },
+      byProvider,
+      byModel,
+      byDay,
+      byProject,
+    };
   });
 
   app.get('/orgs/:orgId/billing', async (request) => {
@@ -9309,7 +11003,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const commit = await gitProvider.commit({
       projectId: project.id,
       message: body.message,
-      files: await projectStorage.listFiles(project.id),
+      files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id),
       selectedFiles: body.files,
     });
     await store.recordProjectActivity({

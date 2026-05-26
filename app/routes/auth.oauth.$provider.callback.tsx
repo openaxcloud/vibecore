@@ -21,7 +21,20 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   });
 
   if (!response.ok) {
-    throw redirect(`/login?oauth=${provider}&error=callback_failed`);
+    let detail = 'unknown';
+
+    try {
+      const err = (await response.json()) as { code?: string; error?: string };
+      detail = err.code ?? err.error ?? JSON.stringify(err);
+    } catch {
+      try {
+        detail = (await response.text()).slice(0, 200) || `http_${response.status}`;
+      } catch {
+        detail = `http_${response.status}`;
+      }
+    }
+    console.error('[oauth-callback]', provider, response.status, detail);
+    throw redirect(`/login?oauth=${provider}&error=callback_failed&detail=${encodeURIComponent(detail)}`);
   }
 
   const result = (await response.json()) as { token: string };

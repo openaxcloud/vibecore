@@ -11,7 +11,7 @@
 
 import { isRouteErrorResponse } from '@remix-run/react';
 
-export type ProjectsNewErrorKind = 'auth' | 'network' | 'server' | 'unknown';
+export type ProjectsNewErrorKind = 'auth' | 'network' | 'quota' | 'server' | 'unknown';
 
 export interface ProjectsNewErrorDescriptor {
   kind: ProjectsNewErrorKind;
@@ -41,6 +41,13 @@ const NETWORK_MESSAGE_PATTERNS: readonly RegExp[] = [
   /EAI_AGAIN/,
   /aborted/i,
 ];
+
+const PROJECT_QUOTA_PATTERN = /quota exceeded for projects\.count/i;
+
+function looksLikeProjectQuotaError(error: unknown): boolean {
+  const message = extractDetail(error);
+  return PROJECT_QUOTA_PATTERN.test(message);
+}
 
 function looksLikeNetworkError(error: unknown): boolean {
   if (typeof error === 'object' && error !== null) {
@@ -122,6 +129,16 @@ export function categorizeProjectsNewError(error: unknown): ProjectsNewErrorDesc
       };
     }
 
+    if ((error.status === 402 || error.status === 429) && PROJECT_QUOTA_PATTERN.test(detail)) {
+      return {
+        kind: 'quota',
+        title: 'Project quota reached',
+        subtitle:
+          'This workspace has reached its current project limit. Upgrade the plan or ask an admin for a quota override.',
+        detail,
+      };
+    }
+
     return {
       kind: 'unknown',
       title: 'Project creation is unavailable',
@@ -136,6 +153,16 @@ export function categorizeProjectsNewError(error: unknown): ProjectsNewErrorDesc
       title: 'Connection issue',
       subtitle:
         "We couldn't reach the project service. Check your connection and retry — you don't need to sign in again.",
+      detail: extractDetail(error),
+    };
+  }
+
+  if (looksLikeProjectQuotaError(error)) {
+    return {
+      kind: 'quota',
+      title: 'Project quota reached',
+      subtitle:
+        'This workspace has reached its current project limit. Upgrade the plan or ask an admin for a quota override.',
       detail: extractDetail(error),
     };
   }

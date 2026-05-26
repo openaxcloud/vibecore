@@ -35,7 +35,11 @@ export interface ChatHistoryItem {
 
 const persistenceEnabled = !import.meta.env.VITE_DISABLE_PERSISTENCE;
 
-export const db = persistenceEnabled ? await openDatabase() : undefined;
+/*
+ * `db` is browser-only. Guard the top-level await so this module can be
+ * imported during SSR without touching indexedDB (which is undefined in Node).
+ */
+export const db = persistenceEnabled && typeof indexedDB !== 'undefined' ? await openDatabase() : undefined;
 
 export const chatId = atom<string | undefined>(undefined);
 export const description = atom<string | undefined>(undefined);
@@ -108,7 +112,9 @@ export function useChatHistory() {
         .catch((error) => {
           console.error(error);
           logStore.logError('Failed to load project IDE chat memory', error);
-          toast.error('Failed to load project IDE memory: ' + error.message);
+          toast.error('Failed to load project IDE memory: ' + error.message, {
+            toastId: `project-ide-memory-load-${projectId}`,
+          });
           chatId.set(`project:${projectId}`);
           description.set('Project assistant');
           setReady(true);
@@ -491,10 +497,14 @@ ${value.content}
 }
 
 function navigateChat(nextId: string) {
-  /**
-   * FIXME: Using the intended navigate function causes a rerender for <Chat /> that breaks the app.
-   *
-   * `navigate(`/chat/${nextId}`, { replace: true });`
+  /*
+   * Update the address bar without going through the Remix router. We're
+   * called mid-`storeMessageHistory` — Remix `navigate()` would treat the
+   * new `/chat/:id` as a route transition, remount <Chat />, and lose the
+   * in-flight save (snapshot + setMessages haven't completed yet). The
+   * chat ID is also a server-generated alias for an already-loaded chat,
+   * not a different route, so `history.replaceState` is the semantically
+   * correct tool here: same view, freshened URL.
    */
   const url = new URL(window.location.href);
   url.pathname = `/chat/${nextId}`;

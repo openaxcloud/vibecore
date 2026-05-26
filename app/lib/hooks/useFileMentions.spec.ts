@@ -72,4 +72,32 @@ describe('searchFileMentions', () => {
     const results = searchFileMentions(SAMPLE_FILES, '', { limit: 2 });
     expect(results.length).toBe(2);
   });
+
+  it('boosts MRU entries to the top of the empty-query list', () => {
+    const recent = ['src/components/Footer.tsx', 'src/lib/utils/format.ts'];
+
+    const results = searchFileMentions(SAMPLE_FILES, '', {
+      recentMentionedFilePaths: recent,
+      limit: 6,
+    });
+
+    expect(results[0].displayPath).toBe('src/components/Footer.tsx');
+    expect(results[1].displayPath).toBe('src/lib/utils/format.ts');
+  });
+
+  it('MRU bonus stacks with the fuzzy match score on a partial query', () => {
+    // Without MRU, "He" matches both Header.tsx and (eg via path) others.
+    const withoutMru = searchFileMentions(SAMPLE_FILES, 'He');
+    expect(withoutMru[0].displayPath).toBe('src/components/Header.tsx');
+
+    /*
+     * Promoting Footer to MRU should NOT move it ahead of a tight match
+     * ("He" doesn't fuzzy-match Footer.tsx), but a fuzzy-matching MRU
+     * entry would. Verify the latter:
+     */
+    const recent = ['src/components/Header.tsx'];
+    const boosted = searchFileMentions(SAMPLE_FILES, 'He', { recentMentionedFilePaths: recent });
+    expect(boosted[0].displayPath).toBe('src/components/Header.tsx');
+    expect(boosted[0].score).toBeGreaterThan(withoutMru[0].score);
+  });
 });

@@ -3,7 +3,7 @@ import { EnterpriseFormPage, PrimaryButton, SelectField, TextField } from '~/com
 import {
   apiRequest,
   apiErrorMessage,
-  firstOrganization,
+  firstOrganizationOrNull,
   formObject,
   isForbiddenApiResponse,
   json,
@@ -13,10 +13,12 @@ import {
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const url = new URL(request.url);
+  const orgIdParam = url.searchParams.get('orgId');
+  const organization = orgIdParam ? { id: orgIdParam } : await firstOrganizationOrNull(request);
 
-  const organization = url.searchParams.get('orgId')
-    ? { id: url.searchParams.get('orgId')! }
-    : await firstOrganization(request);
+  if (!organization) {
+    throw json({ error: 'No organization found' }, { status: 400 });
+  }
 
   const rolesResult = await apiRequest<{ roles: Array<{ key: string; name: string; permissions: string[] }> }>(
     request,

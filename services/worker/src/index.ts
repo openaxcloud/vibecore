@@ -3,6 +3,7 @@ import { Redis } from 'ioredis';
 import { createHmac } from 'node:crypto';
 import { createDatabaseClient } from '@vibecore/database';
 import { decryptJson } from '@vibecore/security';
+import { runConnectorReconnectionNotifier, runConnectorTokenHealthCheck } from './connector-jobs.js';
 
 const connection = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
@@ -75,10 +76,45 @@ async function enforceDataRetention() {
   }
 }
 
+/**
+ * GC trigger — POSTs to workspace-manager's /workspaces/gc which iterates
+ * the WorkspaceRuntime table and stops/deletes pods past their inactivity
+ * thresholds. Inactivity + deletion windows can be overridden per-job via
+ * the BullMQ job data, otherwise we default to 30m / 24h which the manager
+ * itself uses as the route default.
+ */
+export async function triggerWorkspaceGarbageCollect(jobData: Record<string, unknown> = {}) {
+  const baseUrl = process.env.WORKSPACE_MANAGER_URL;
+  if (!baseUrl) {
+    throw new Error('WORKSPACE_MANAGER_URL is required to trigger workspace.gc');
+  }
+
+  const body = {
+    namespace: (jobData.namespace as string | undefined) ?? process.env.WORKSPACE_RUNTIME_NAMESPACE ?? 'workspaces',
+    inactiveMs: (jobData.inactiveMs as number | undefined) ?? 30 * 60_000,
+    deleteMs: (jobData.deleteMs as number | undefined) ?? 24 * 60 * 60_000,
+  };
+
+  const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/workspaces/gc`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(`workspace.gc upstream failed: ${response.status}`);
+  }
+}
+
 export const worker = new Worker(
   'workspace-jobs',
   async (job) => {
     job.log(`processing ${job.name}`);
+
+    if (job.name === 'workspace.gc') {
+      await triggerWorkspaceGarbageCollect((job.data ?? {}) as Record<string, unknown>);
+      return { collected: true };
+    }
 
     throw new Error(`Unsupported workspace job: ${job.name}`);
   },
@@ -98,6 +134,16 @@ export const enterpriseWorker = new Worker(
     if (job.name === 'retention.enforce') {
       await enforceDataRetention();
       return { retained: true };
+    }
+
+    if (job.name === 'connector.healthcheck') {
+      const result = await runConnectorTokenHealthCheck({ prisma: createDatabaseClient() });
+      return result;
+    }
+
+    if (job.name === 'connector.notify.reconnect') {
+      const result = await runConnectorReconnectionNotifier({ prisma: createDatabaseClient() });
+      return result;
     }
 
     throw new Error(`Unsupported enterprise job: ${job.name}`);

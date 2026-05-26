@@ -29,7 +29,7 @@ export type ProjectIdeWorkspacePanel =
   | 'domains'
   | 'snapshots'
   | 'settings';
-export type ProjectMobilePanel = 'chat' | 'files' | 'editor' | 'terminal' | 'preview' | 'deploy';
+export type ProjectMobilePanel = 'chat' | 'files' | 'editor' | 'search' | 'terminal' | 'preview' | 'deploy';
 
 export interface ProjectIdePaneTab {
   id: string;
@@ -65,6 +65,15 @@ export interface ProjectIdeMemory {
     messages?: Message[];
     archivedMessages?: Message[];
     clearMessages?: boolean;
+    pendingPrompt?: {
+      id: string;
+      prompt: string;
+      model?: string;
+      provider?: string;
+      createdAt: string;
+      aiFallback?: boolean;
+      aiFallbackReason?: string;
+    } | null;
     conversations?: Array<{
       id: string;
       title?: string;
@@ -108,6 +117,14 @@ export interface ProjectIdeMemory {
     editorMinimapEnabled?: boolean;
     lockedItems?: Array<{ path: string; type: 'file' | 'folder' }>;
     deletedPaths?: string[];
+
+    /*
+     * Sprint 3/4 polish — most-recently-used lists that the composer
+     * palettes boost in their fuzzy ranking. Capped to RECENT_LIMIT to
+     * keep the JSON payload reasonable; deduped MRU-first.
+     */
+    recentMentionedFilePaths?: string[];
+    recentSlashCommandIds?: string[];
   };
   updatedAt?: string;
 }
@@ -165,6 +182,7 @@ let storageListenerInstalled = false;
 export const PROJECT_IDE_MEMORY_STORAGE_PREFIX = 'vibecore.projectIdeMemory';
 
 const SAVE_RETRY_DELAYS_MS = [1_000, 4_000, 12_000];
+const PROJECT_IDE_MEMORY_AUTH_STATUSES = new Set([401, 403]);
 
 function messageKey(message: Message, index: number) {
   return message.id ?? `${message.role}:${index}:${String(message.content).slice(0, 80)}`;
@@ -364,8 +382,8 @@ function parseEtagHeader(header: string | null | undefined): number | undefined 
 
 /*
  * The real `fetch` Response always has a `Headers` instance, but the unit
- * tests stub `fetch` with plain objects that omit `headers`. We tolerate
- * that here instead of forcing every existing mock to grow a headers shim.
+ * tests can provide plain response objects that omit `headers`. We tolerate
+ * that here instead of forcing every existing test double to grow a headers shim.
  */
 function readResponseHeader(response: Response, name: string): string | null {
   const headers = (response as { headers?: { get?: (name: string) => string | null } }).headers;
@@ -496,6 +514,14 @@ export async function getProjectIdeMemory(projectId: string): Promise<ProjectIde
       headers: { accept: 'application/json' },
     });
 
+    if (PROJECT_IDE_MEMORY_AUTH_STATUSES.has(response.status)) {
+      const memory = localMemory ?? {};
+      memoryCache.set(projectId, memory);
+      versionByProject.delete(projectId);
+
+      return memory;
+    }
+
     if (!response.ok) {
       throw new Error(`Failed to load project IDE memory (${response.status})`);
     }
@@ -523,6 +549,41 @@ export async function getProjectIdeMemory(projectId: string): Promise<ProjectIde
 
     throw error;
   }
+}
+
+/**
+ * Sprint 3/4 — composer palette MRU. We keep the lists short so they
+ * stay snappy in the fuzzy boost and don't bloat the persisted JSON.
+ */
+export const PALETTE_RECENT_LIMIT = 20;
+
+function pushMruEntry(list: string[] | undefined, entry: string): string[] {
+  const cleaned = (list ?? []).filter((existing) => existing !== entry);
+  cleaned.unshift(entry);
+
+  return cleaned.slice(0, PALETTE_RECENT_LIMIT);
+}
+
+/**
+ * Record a file the user selected in the @-mentions palette so the
+ * next palette open prioritises it.
+ */
+export function recordMentionedFile(projectId: string, filePath: string): Promise<void> {
+  const cached = memoryCache.get(projectId);
+  const next = pushMruEntry(cached?.ui?.recentMentionedFilePaths, filePath);
+
+  return saveProjectIdeMemory(projectId, { ui: { recentMentionedFilePaths: next } });
+}
+
+/**
+ * Record a slash command id the user executed so the next palette
+ * open prioritises it.
+ */
+export function recordSlashCommand(projectId: string, commandId: string): Promise<void> {
+  const cached = memoryCache.get(projectId);
+  const next = pushMruEntry(cached?.ui?.recentSlashCommandIds, commandId);
+
+  return saveProjectIdeMemory(projectId, { ui: { recentSlashCommandIds: next } });
 }
 
 export function saveProjectIdeMemory(projectId: string, patch: ProjectIdeMemory): Promise<void> {

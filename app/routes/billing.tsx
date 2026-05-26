@@ -7,8 +7,11 @@ import {
   apiRequest,
   apiErrorMessage,
   firstOrganization,
+  firstOrganizationOrNull,
+  isApiResponse,
   isForbiddenApiResponse,
   json,
+  redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
@@ -22,7 +25,11 @@ type BillingData = {
 
 export const meta: MetaFunction = () => [{ title: 'Billing - VibeCore' }];
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const organization = await firstOrganization(request);
+  const organization = await firstOrganizationOrNull(request);
+
+  if (!organization) {
+    return redirect('/');
+  }
 
   try {
     const billing = await apiRequest<BillingData>(request, `/orgs/${organization.id}/billing`);
@@ -59,10 +66,10 @@ export async function action({ request }: EnterpriseActionArgs) {
       });
       return Response.redirect(result.portalUrl);
     } catch (error) {
-      if (isForbiddenApiResponse(error)) {
+      if (isApiResponse(error)) {
         return json(
           { error: await apiErrorMessage(error, 'You cannot manage billing for this organization.') },
-          { status: 403 },
+          { status: error.status },
         );
       }
 
@@ -82,10 +89,10 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return Response.redirect(result.checkoutUrl);
   } catch (error) {
-    if (isForbiddenApiResponse(error)) {
+    if (isApiResponse(error)) {
       return json(
-        { error: await apiErrorMessage(error, 'You cannot manage billing for this organization.') },
-        { status: 403 },
+        { error: await apiErrorMessage(error, 'Billing checkout is unavailable. Please try again later.') },
+        { status: error.status },
       );
     }
 

@@ -13,15 +13,36 @@ export const DEFAULT_THEME = 'dark';
 
 export const themeStore = atom<Theme>(initStore());
 
+function isTheme(value: string | null | undefined): value is Theme {
+  return value === 'dark' || value === 'light';
+}
+
 function initStore() {
   if (!import.meta.env.SSR) {
-    const persistedTheme = localStorage.getItem(kTheme) as Theme | undefined;
+    const persistedTheme = localStorage.getItem(kTheme);
     const themeAttribute = document.querySelector('html')?.getAttribute('data-theme');
 
-    return persistedTheme ?? (themeAttribute as Theme) ?? DEFAULT_THEME;
+    return isTheme(persistedTheme) ? persistedTheme : isTheme(themeAttribute) ? themeAttribute : DEFAULT_THEME;
   }
 
   return DEFAULT_THEME;
+}
+
+export function applyThemeToDocument(theme: Theme) {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  const root = document.documentElement;
+
+  root.setAttribute('data-theme', theme);
+  root.classList.toggle('dark', theme === 'dark');
+  root.style.colorScheme = theme;
+
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0a0f1c' : '#f6f8fb');
+  document
+    .querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
+    ?.setAttribute('content', theme === 'dark' ? 'black-translucent' : 'default');
 }
 
 export function toggleTheme() {
@@ -35,10 +56,7 @@ export function toggleTheme() {
   localStorage.setItem(kTheme, newTheme);
 
   // Update the HTML theme hooks used by both CSS variables and Tailwind dark variants.
-  const root = document.querySelector('html');
-
-  root?.setAttribute('data-theme', newTheme);
-  root?.classList.toggle('dark', newTheme === 'dark');
+  applyThemeToDocument(newTheme);
 
   // Update user profile if it exists
   try {

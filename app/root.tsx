@@ -1,14 +1,26 @@
 /* eslint-disable import/order */
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, useFetchers, useNavigation } from '@remix-run/react';
+import {
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useFetchers,
+  useLocation,
+  useNavigation,
+} from '@remix-run/react';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { installEditorPwaServiceWorker } from '@vibecore/editor';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 import { useEffect, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { I18nextProvider } from 'react-i18next';
 import { cssTransition, ToastContainer } from 'react-toastify';
+
+import { getI18nInstance } from './lib/i18n/runtime';
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
@@ -57,7 +69,7 @@ const inlineThemeCode = stripIndents`
   function setTutorialKitTheme() {
     let theme = localStorage.getItem('bolt_theme');
 
-    if (!theme) {
+    if (theme !== 'dark' && theme !== 'light') {
       theme = 'dark';
     }
 
@@ -65,6 +77,11 @@ const inlineThemeCode = stripIndents`
 
     root?.setAttribute('data-theme', theme);
     root?.classList.toggle('dark', theme === 'dark');
+    root && (root.style.colorScheme = theme);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0a0f1c' : '#f6f8fb');
+    document
+      .querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
+      ?.setAttribute('content', theme === 'dark' ? 'black-translucent' : 'default');
   }
 `;
 
@@ -72,11 +89,11 @@ export const Head = createHead(() => (
   <>
     <meta charSet="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#0a0f1c" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="VibeCore" />
+    <meta name="apple-mobile-web-app-title" content="E-Code" />
     <Meta />
     <Links />
     <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
@@ -85,12 +102,11 @@ export const Head = createHead(() => (
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const theme = useStore(themeStore);
+  const location = useLocation();
+  const showIdeBootFallback = /^\/projects\/[^/]+\/ide(?:\/|$)/.test(location.pathname);
 
   useEffect(() => {
-    const root = document.querySelector('html');
-
-    root?.setAttribute('data-theme', theme);
-    root?.classList.toggle('dark', theme === 'dark');
+    applyThemeToDocument(theme);
   }, [theme]);
 
   useEffect(() => {
@@ -99,7 +115,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <ClientOnly>{() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}</ClientOnly>
+      <ClientOnly fallback={<AppBootFallback ide={showIdeBootFallback} />}>
+        {() => (
+          <I18nextProvider i18n={getI18nInstance()}>
+            <DndProvider backend={HTML5Backend}>{children}</DndProvider>
+          </I18nextProvider>
+        )}
+      </ClientOnly>
       <ClientOnly>{() => <GlobalRouteLoader />}</ClientOnly>
       <ClientOnly>{() => <AppToastContainer />}</ClientOnly>
       <ScrollRestoration />
@@ -108,7 +130,48 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+function AppBootFallback({ ide }: { ide: boolean }) {
+  if (!ide) {
+    return (
+      <main className="bolt-app-boot-fallback" aria-label="Loading E-Code" role="status">
+        <div className="bolt-app-boot-mark" aria-hidden />
+        <span>Loading E-Code</span>
+      </main>
+    );
+  }
+
+  return (
+    <main className="bolt-ide-boot-fallback" aria-label="Loading project IDE" role="status">
+      <div className="bolt-ide-boot-topbar">
+        <span />
+        <span />
+        <span />
+      </div>
+      <div className="bolt-ide-boot-body">
+        <aside>
+          <span />
+          <span />
+          <span />
+        </aside>
+        <section>
+          <div />
+          <div />
+          <div />
+        </section>
+        <aside>
+          <span />
+          <span />
+          <span />
+        </aside>
+      </div>
+      <span className="bolt-ide-boot-label">Loading project IDE</span>
+    </main>
+  );
+}
+
 function AppToastContainer() {
+  const theme = useStore(themeStore);
+
   return (
     <ToastContainer
       closeButton={({ closeToast }) => {
@@ -136,6 +199,7 @@ function AppToastContainer() {
       autoClose={4000}
       limit={5}
       newestOnTop={false}
+      theme={theme}
     />
   );
 }
@@ -178,7 +242,7 @@ function GlobalRouteLoader() {
 }
 
 import { logStore } from './lib/stores/logs';
-import { themeStore } from './lib/stores/theme';
+import { applyThemeToDocument, themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 
 export default function App() {
@@ -213,7 +277,7 @@ export default function App() {
 
   return (
     <Layout>
-      <AppErrorBoundary title="VibeCore" boundaryId="app-root">
+      <AppErrorBoundary title="E-Code" boundaryId="app-root">
         <Outlet />
       </AppErrorBoundary>
     </Layout>

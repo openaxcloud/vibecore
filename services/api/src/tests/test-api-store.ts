@@ -4,6 +4,8 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import type {
   AbuseEventRecord,
+  AgentPatchProposalRecord,
+  AgentPatchProposalStatus,
   ApiStore,
   AiCostLedgerRecord,
   AiConversationRecord,
@@ -17,10 +19,14 @@ import type {
   CustomRoleRecord,
   DeploymentRecord,
   DomainVerificationRecord,
+  EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
   FeatureFlagRecord,
   MembershipRecord,
   OAuthConnectionRecord,
+  ProjectConnectionLinkRecord,
+  UserConnectionRecord,
+  UserConnectionStatus,
   OrganizationInviteRecord,
   OrganizationRecord,
   ProjectActivityListOptions,
@@ -81,6 +87,7 @@ export class TestApiStore implements ApiStore {
   readonly collaborationPresence = new Map<string, CollaborationPresenceRecord>();
   readonly collaborationComments = new Map<string, CollaborationCommentRecord>();
   readonly projectShareLinks = new Map<string, ProjectShareLinkRecord>();
+  readonly agentPatchProposals = new Map<string, AgentPatchProposalRecord>();
   readonly projectTemplates = new Map<string, ProjectTemplateRecord>();
   readonly deployments = new Map<string, DeploymentRecord>();
   readonly supportTickets = new Map<string, SupportTicketRecord>();
@@ -104,6 +111,8 @@ export class TestApiStore implements ApiStore {
   readonly siemWebhooks = new Map<string, SiemWebhookRecord>();
   readonly organizationInvites = new Map<string, OrganizationInviteRecord>();
   readonly oauthConnections = new Map<string, OAuthConnectionRecord>();
+  readonly userConnections = new Map<string, UserConnectionRecord>();
+  readonly projectConnectionLinks = new Map<string, ProjectConnectionLinkRecord>();
   readonly aiConversations = new Map<string, AiConversationRecord>();
   readonly aiMessages = new Map<string, AiMessageRecord>();
   readonly aiToolCalls = new Map<string, AiToolCallRecord>();
@@ -115,6 +124,7 @@ export class TestApiStore implements ApiStore {
   readonly usageEvents = new Map<string, UsageEventRecord>();
   readonly quotaOverrides = new Map<string, QuotaOverrideRecord>();
   readonly stripeEvents = new Map<string, StripeEventRecord>();
+  readonly emailDeliveryEvents: EmailDeliveryEventRecord[] = [];
   readonly auditLogs: AuditEvent[] = [];
   readonly adminAuditLogs: AdminAuditLogRecord[] = [];
 
@@ -141,6 +151,7 @@ export class TestApiStore implements ApiStore {
     mfaEnabled?: boolean;
     mfaSecretEncrypted?: string;
     platformAdmin?: boolean;
+    language?: string | null;
   }) {
     const user = this.users.get(input.userId);
 
@@ -156,6 +167,7 @@ export class TestApiStore implements ApiStore {
       mfaEnabled: input.mfaEnabled ?? user.mfaEnabled,
       mfaSecretEncrypted: input.mfaSecretEncrypted ?? user.mfaSecretEncrypted,
       platformAdmin: input.platformAdmin ?? user.platformAdmin,
+      language: input.language === undefined ? user.language : input.language ?? undefined,
     });
 
     return user;
@@ -726,6 +738,58 @@ export class TestApiStore implements ApiStore {
     return [...this.projectShareLinks.values()].filter((link) => link.projectId === projectId);
   }
 
+  async upsertAgentPatchProposal(input: {
+    id: string;
+    projectId: string;
+    artifactId: string;
+    messageId: string;
+    actionId: string;
+    filePath: string;
+    relativePath: string;
+    originalContent: string;
+    proposedContent: string;
+    hunks: unknown;
+    status: AgentPatchProposalStatus;
+    error?: string;
+  }) {
+    const existing = this.agentPatchProposals.get(input.id);
+    const proposal: AgentPatchProposalRecord = {
+      id: input.id,
+      projectId: input.projectId,
+      artifactId: input.artifactId,
+      messageId: input.messageId,
+      actionId: input.actionId,
+      filePath: input.filePath,
+      relativePath: input.relativePath,
+      originalContent: existing?.originalContent ?? input.originalContent,
+      proposedContent: input.proposedContent,
+      hunks: input.hunks,
+      status: input.status,
+      error: input.error,
+      createdAt: existing?.createdAt ?? now(),
+      updatedAt: now(),
+    };
+    this.agentPatchProposals.set(input.id, proposal);
+    return proposal;
+  }
+
+  async listOpenAgentPatchProposals(projectId: string) {
+    return [...this.agentPatchProposals.values()]
+      .filter((proposal) => proposal.projectId === projectId)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+
+  async deleteAgentPatchProposal(projectId: string, id: string) {
+    const existing = this.agentPatchProposals.get(id);
+
+    if (!existing || existing.projectId !== projectId) {
+      return false;
+    }
+
+    this.agentPatchProposals.delete(id);
+    return true;
+  }
+
   async createWorkspace(input: { id?: string; projectId: string; name: string; runtimeMode: string }) {
     const workspace: WorkspaceRecord = {
       id: input.id ?? id('workspace'),
@@ -1173,7 +1237,135 @@ export class TestApiStore implements ApiStore {
       createdAt: existing?.createdAt ?? now(),
     };
     this.oauthConnections.set(key, record);
+
     return record;
+  }
+
+  async listOAuthConnections(userId: string) {
+    return [...this.oauthConnections.values()]
+      .filter((connection) => connection.userId === userId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  private userConnectionKey(userId: string, provider: string, externalAccountId: string) {
+    return `${userId}:${provider}:${externalAccountId}`;
+  }
+
+  async upsertUserConnection(input: {
+    userId: string;
+    provider: string;
+    externalAccountId: string;
+    externalAccountLabel: string;
+    accessTokenEncrypted: string;
+    refreshTokenEncrypted?: string;
+    apiKeyFieldsEncrypted?: Record<string, string>;
+    scopes: string[];
+    tokenExpiresAt?: Date;
+    forAgentUse?: boolean;
+    oauthAppSource?: 'e_code_default' | 'org_override';
+    oauthAppOverrideId?: string;
+    createdByUserId: string;
+  }): Promise<UserConnectionRecord> {
+    const key = this.userConnectionKey(input.userId, input.provider, input.externalAccountId);
+    const existing = Array.from(this.userConnections.values()).find(
+      (row) => this.userConnectionKey(row.userId, row.provider, row.externalAccountId) === key,
+    );
+    const record: UserConnectionRecord = {
+      id: existing?.id ?? id('uconn'),
+      userId: input.userId,
+      provider: input.provider,
+      externalAccountId: input.externalAccountId,
+      externalAccountLabel: input.externalAccountLabel,
+      accessTokenEncrypted: input.accessTokenEncrypted,
+      refreshTokenEncrypted: input.refreshTokenEncrypted,
+      apiKeyFieldsEncrypted: input.apiKeyFieldsEncrypted,
+      scopes: input.scopes,
+      tokenExpiresAt: input.tokenExpiresAt?.toISOString(),
+      status: 'active',
+      lastUsedAt: existing?.lastUsedAt,
+      forAgentUse: input.forAgentUse ?? true,
+      oauthAppSource: input.oauthAppSource ?? 'e_code_default',
+      oauthAppOverrideId: input.oauthAppOverrideId,
+      createdByUserId: input.createdByUserId,
+      createdAt: existing?.createdAt ?? now(),
+      updatedAt: now(),
+      revokedAt: undefined,
+    };
+    this.userConnections.set(record.id, record);
+
+    return record;
+  }
+
+  async getUserConnectionById(connectionId: string) {
+    return this.userConnections.get(connectionId);
+  }
+
+  async listUserConnectionsByUser(userId: string, opts?: { provider?: string }) {
+    return Array.from(this.userConnections.values())
+      .filter((row) => row.userId === userId && (!opts?.provider || row.provider === opts.provider))
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  }
+
+  async markUserConnectionStatus(input: { id: string; status: UserConnectionStatus; revokedAt?: Date }) {
+    const existing = this.userConnections.get(input.id);
+
+    if (!existing) {
+      return undefined;
+    }
+
+    const updated: UserConnectionRecord = {
+      ...existing,
+      status: input.status,
+      revokedAt: input.revokedAt?.toISOString(),
+      updatedAt: now(),
+    };
+    this.userConnections.set(updated.id, updated);
+
+    return updated;
+  }
+
+  private projectConnectionLinkKey(projectId: string, userConnectionId: string) {
+    return `${projectId}:${userConnectionId}`;
+  }
+
+  async linkProjectToUserConnection(input: { projectId: string; userConnectionId: string; linkedByUserId: string }) {
+    const key = this.projectConnectionLinkKey(input.projectId, input.userConnectionId);
+    const existing = Array.from(this.projectConnectionLinks.values()).find(
+      (row) => this.projectConnectionLinkKey(row.projectId, row.userConnectionId) === key,
+    );
+    const link: ProjectConnectionLinkRecord = {
+      id: existing?.id ?? id('plink'),
+      projectId: input.projectId,
+      userConnectionId: input.userConnectionId,
+      linkedByUserId: input.linkedByUserId,
+      linkedAt: existing?.linkedAt ?? now(),
+      unlinkedAt: undefined,
+    };
+    this.projectConnectionLinks.set(link.id, link);
+
+    return link;
+  }
+
+  async unlinkProjectFromUserConnection(input: { projectId: string; userConnectionId: string }) {
+    const key = this.projectConnectionLinkKey(input.projectId, input.userConnectionId);
+    const existing = Array.from(this.projectConnectionLinks.values()).find(
+      (row) => this.projectConnectionLinkKey(row.projectId, row.userConnectionId) === key,
+    );
+
+    if (!existing) {
+      return undefined;
+    }
+
+    const updated: ProjectConnectionLinkRecord = { ...existing, unlinkedAt: now() };
+    this.projectConnectionLinks.set(existing.id, updated);
+
+    return updated;
+  }
+
+  async listProjectConnectionLinks(projectId: string, opts?: { includeUnlinked?: boolean }) {
+    return Array.from(this.projectConnectionLinks.values()).filter(
+      (row) => row.projectId === projectId && (opts?.includeUnlinked || !row.unlinkedAt),
+    );
   }
 
   async createAiConversation(input: { projectId?: string; userId: string; title?: string }) {
@@ -1389,6 +1581,60 @@ export class TestApiStore implements ApiStore {
     const event: StripeEventRecord = { ...input, processedAt: now() };
     this.stripeEvents.set(event.id, event);
     return { event, created: true };
+  }
+
+  async recordEmailDeliveryEvent(input: {
+    provider: string;
+    providerEventId: string;
+    type: string;
+    email: string;
+    emailMessageId?: string;
+    subject?: string;
+    fromAddress?: string;
+    payload: unknown;
+  }) {
+    const existing = this.emailDeliveryEvents.find(
+      (event) => event.provider === input.provider && event.providerEventId === input.providerEventId,
+    );
+
+    if (existing) {
+      return { event: existing, created: false };
+    }
+
+    const event: EmailDeliveryEventRecord = {
+      id: id('email_event'),
+      provider: input.provider,
+      providerEventId: input.providerEventId,
+      type: input.type,
+      email: input.email,
+      emailMessageId: input.emailMessageId,
+      subject: input.subject,
+      fromAddress: input.fromAddress,
+      payload: input.payload,
+      receivedAt: now(),
+    };
+    this.emailDeliveryEvents.push(event);
+    return { event, created: true };
+  }
+
+  async listEmailDeliveryEvents(filter?: {
+    email?: string;
+    type?: string;
+    emailMessageId?: string;
+    limit?: number;
+  }) {
+    const limit = Math.min(Math.max(filter?.limit ?? 100, 1), 500);
+
+    return this.emailDeliveryEvents
+      .filter((event) => {
+        if (filter?.email && event.email !== filter.email) return false;
+        if (filter?.type && event.type !== filter.type) return false;
+        if (filter?.emailMessageId && event.emailMessageId !== filter.emailMessageId) return false;
+        return true;
+      })
+      .slice()
+      .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt))
+      .slice(0, limit);
   }
 
   async recordAudit(event: AuditEvent) {

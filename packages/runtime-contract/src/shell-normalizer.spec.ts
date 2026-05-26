@@ -4,7 +4,7 @@ import {
   normalizeShellCommandArgs,
   normalizeShellCommandRequest,
   splitPipeSegments,
-} from './index';
+} from './index.js';
 
 describe('normalizeShellCommand', () => {
   it('rewrites obsolete head and tail counts to POSIX -n counts', () => {
@@ -15,9 +15,7 @@ describe('normalizeShellCommand', () => {
 
   it('preserves quoted shell text verbatim', () => {
     expect(normalizeShellCommand('echo "head -20" && head -5 file')).toBe('echo "head -20" && head -n 5 file');
-    expect(normalizeShellCommand("printf '%s\\n' 'tail -5' | head -1")).toBe(
-      "printf '%s\\n' 'tail -5' | head -n 1",
-    );
+    expect(normalizeShellCommand("printf '%s\\n' 'tail -5' | head -1")).toBe("printf '%s\\n' 'tail -5' | head -n 1");
   });
 
   it('does not rewrite unrelated flags or embedded command names', () => {

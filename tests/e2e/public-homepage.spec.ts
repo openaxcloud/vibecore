@@ -36,9 +36,9 @@ test.describe('public homepage', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByRole('banner', { name: 'Site header' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'VibeCore' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'E-Code' }).first()).toBeVisible();
     await expect(page.getByTestId('public-theme-toggle')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Start building' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Get started' }).first()).toBeVisible();
     await expect(page.getByTestId('section-hero')).toBeVisible();
     await expect(page.getByRole('heading', { name: /Build and deploy production apps/i })).toBeVisible();
     await expect(page.getByTestId('input-homepage-prompt')).toBeVisible();
@@ -49,7 +49,9 @@ test.describe('public homepage', () => {
     await expect(page.getByTestId('section-cta')).toBeVisible();
     await expect(page.getByRole('contentinfo', { name: 'Site footer' })).toBeVisible();
 
-    const noHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+    const noHorizontalOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+    );
     expect(noHorizontalOverflow).toBeTruthy();
   });
 
@@ -67,7 +69,9 @@ test.describe('public homepage', () => {
     await expect(page.getByTestId('button-homepage-build')).toBeVisible();
     await expect(page.getByRole('contentinfo', { name: 'Site footer' })).toBeVisible();
 
-    const noHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+    const noHorizontalOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+    );
     expect(noHorizontalOverflow).toBeTruthy();
   });
 
@@ -86,7 +90,7 @@ test.describe('public homepage', () => {
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       await expect(page.getByRole('banner', { name: 'Site header' })).toBeVisible();
       await expect(page.getByTestId('public-theme-toggle')).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Start building' }).first()).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Get started' }).first()).toBeVisible();
       await expect(page.getByTestId('button-homepage-build')).toBeVisible();
 
       const snapshot = await page.evaluate(() => {
@@ -94,9 +98,7 @@ test.describe('public homepage', () => {
         const heroHeading = document.querySelector<HTMLElement>('[data-testid="section-hero"] h1')!;
         const navSummary = document.querySelector<HTMLElement>('.vc-marketing-menu summary')!;
         const builderButton = document.querySelector<HTMLElement>('[data-testid="button-homepage-build"]')!;
-        const startBuildingLink = Array.from(document.querySelectorAll<HTMLAnchorElement>('a')).find(
-          (link) => link.textContent?.trim() === 'Start building',
-        )!;
+        const primaryNavAction = document.querySelector<HTMLAnchorElement>('.vc-public-actions a[href="/register"]')!;
 
         const read = (element: HTMLElement) => {
           const style = window.getComputedStyle(element);
@@ -116,7 +118,7 @@ test.describe('public homepage', () => {
           heroHeading: read(heroHeading),
           navSummary: read(navSummary),
           builderButton: read(builderButton),
-          startBuildingLink: read(startBuildingLink),
+          primaryNavAction: read(primaryNavAction),
           tokens: {
             text: window.getComputedStyle(shell).getPropertyValue('--vc-public-text').trim(),
             background: window.getComputedStyle(shell).getPropertyValue('--vc-public-bg').trim(),
@@ -128,11 +130,11 @@ test.describe('public homepage', () => {
 
       expect(snapshot.noHorizontalOverflow).toBeTruthy();
       expect(snapshot.builderButton.backgroundImage).toContain('linear-gradient');
-      expect(snapshot.startBuildingLink.backgroundImage).toContain('linear-gradient');
+      expect(snapshot.primaryNavAction.backgroundImage).toContain('linear-gradient');
       expect(snapshot.builderButton.visibility).toBe('visible');
-      expect(snapshot.startBuildingLink.visibility).toBe('visible');
+      expect(snapshot.primaryNavAction.visibility).toBe('visible');
       expect(Number(snapshot.builderButton.opacity)).toBeGreaterThan(0.95);
-      expect(Number(snapshot.startBuildingLink.opacity)).toBeGreaterThan(0.95);
+      expect(Number(snapshot.primaryNavAction.opacity)).toBeGreaterThan(0.95);
       expect(contrastRatio(snapshot.heroHeading.color, snapshot.shell.backgroundColor)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(snapshot.navSummary.color, snapshot.shell.backgroundColor)).toBeGreaterThanOrEqual(4.5);
 

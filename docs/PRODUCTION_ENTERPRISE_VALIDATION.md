@@ -31,7 +31,7 @@ The production gate covers:
 - Stripe catalog and webhook secrets
 - Deployment providers: `DEPLOYMENT_PROVIDERS_ENABLED` must list the beta/production providers. `static` needs no external env; non-static providers require their real dispatch env (`VERCEL_DEPLOY_HOOK_URL`, `NETLIFY_BUILD_HOOK_URL`, `CLOUDFLARE_DEPLOY_HOOK_URL`, `GITHUB_DEPLOY_TOKEN` + `GITHUB_PAGES_REPO` + `GITHUB_PAGES_WORKFLOW`, `CLOUD_RUN_BUILD_TRIGGER_URL` + `GCP_OAUTH_TOKEN`, or `DOCKER_BUILD_TRIGGER_URL` + `GCP_OAUTH_TOKEN` + `DOCKER_REGISTRY_URL`).
 - Workspace sandbox controls: `WORKSPACE_DISABLE_SANDBOX_SCHEDULING` must not be `1` in production.
-- Runtime mode: `VITE_RUNTIME_MODE=remote-kubernetes`, `VITE_RUNTIME_API_BASE_URL` and `WORKSPACE_MANAGER_URL` must be HTTPS, and `WORKSPACE_RUNTIME_NAMESPACE` must be set.
+- Runtime mode: `VITE_RUNTIME_MODE=remote-kubernetes`, `VITE_RUNTIME_API_BASE_URL` must point to `/api/runtime`, `WORKSPACE_MANAGER_URL` must be HTTPS or an internal Kubernetes service DNS URL, and `WORKSPACE_RUNTIME_NAMESPACE`, `WORKSPACE_AGENT_IMAGE`, `PREVIEW_PROXY_SHARED_SECRET`, and `PREVIEW_URL_TEMPLATE` must be set.
 - At least one production AI provider key or self-host endpoint
 - PostgreSQL, Redis, JWT, cookie, config encryption and workspace-agent token secrets
 - OpenTelemetry, incident response, log redaction, secret rotation and evidence retention settings

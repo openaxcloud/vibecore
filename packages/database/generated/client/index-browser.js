@@ -129,6 +129,7 @@ exports.Prisma.UserScalarFieldEnum = {
   mfaEnabled: 'mfaEnabled',
   mfaSecretCiphertext: 'mfaSecretCiphertext',
   platformAdmin: 'platformAdmin',
+  language: 'language',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -258,6 +259,23 @@ exports.Prisma.ProjectIdeStateScalarFieldEnum = {
   updatedByUserId: 'updatedByUserId',
   updatedAt: 'updatedAt',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.AgentPatchProposalScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  artifactId: 'artifactId',
+  messageId: 'messageId',
+  actionId: 'actionId',
+  filePath: 'filePath',
+  relativePath: 'relativePath',
+  originalContent: 'originalContent',
+  proposedContent: 'proposedContent',
+  hunks: 'hunks',
+  status: 'status',
+  error: 'error',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.ProjectEnvironmentScalarFieldEnum = {
@@ -738,6 +756,7 @@ exports.Prisma.McpCatalogEntryScalarFieldEnum = {
   installCount: 'installCount',
   featured: 'featured',
   verified: 'verified',
+  featuredForIdePanel: 'featuredForIdePanel',
   publishedAt: 'publishedAt',
   updatedAt: 'updatedAt'
 };
@@ -797,6 +816,144 @@ exports.Prisma.ConsensusRecordScalarFieldEnum = {
   rounds: 'rounds',
   durationMs: 'durationMs',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.WorkspaceRuntimeScalarFieldEnum = {
+  id: 'id',
+  orgId: 'orgId',
+  projectId: 'projectId',
+  plan: 'plan',
+  status: 'status',
+  pvcName: 'pvcName',
+  podName: 'podName',
+  serviceName: 'serviceName',
+  agentTokenSecretName: 'agentTokenSecretName',
+  error: 'error',
+  createdAt: 'createdAt',
+  lastActiveAt: 'lastActiveAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ConnectorCatalogScalarFieldEnum = {
+  id: 'id',
+  provider: 'provider',
+  displayName: 'displayName',
+  description: 'description',
+  category: 'category',
+  authType: 'authType',
+  section: 'section',
+  logoUrl: 'logoUrl',
+  defaultClientId: 'defaultClientId',
+  defaultClientSecretEnc: 'defaultClientSecretEnc',
+  authorizeUrl: 'authorizeUrl',
+  tokenUrl: 'tokenUrl',
+  revokeUrl: 'revokeUrl',
+  userInfoUrl: 'userInfoUrl',
+  defaultScopes: 'defaultScopes',
+  availableScopes: 'availableScopes',
+  apiKeyFields: 'apiKeyFields',
+  apiKeyTestEndpoint: 'apiKeyTestEndpoint',
+  triggersSupported: 'triggersSupported',
+  triggerDescriptions: 'triggerDescriptions',
+  webhookSupport: 'webhookSupport',
+  webhookSignatureScheme: 'webhookSignatureScheme',
+  webhookSigningSecretEnc: 'webhookSigningSecretEnc',
+  minPlanTier: 'minPlanTier',
+  forAgentUse: 'forAgentUse',
+  displayOrder: 'displayOrder',
+  featuredForIdePanel: 'featuredForIdePanel',
+  enabled: 'enabled',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.UserConnectionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  provider: 'provider',
+  externalAccountId: 'externalAccountId',
+  externalAccountLabel: 'externalAccountLabel',
+  accessTokenEncrypted: 'accessTokenEncrypted',
+  refreshTokenEncrypted: 'refreshTokenEncrypted',
+  apiKeyFieldsEncrypted: 'apiKeyFieldsEncrypted',
+  scopes: 'scopes',
+  tokenExpiresAt: 'tokenExpiresAt',
+  status: 'status',
+  lastUsedAt: 'lastUsedAt',
+  forAgentUse: 'forAgentUse',
+  oauthAppSource: 'oauthAppSource',
+  oauthAppOverrideId: 'oauthAppOverrideId',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  revokedAt: 'revokedAt'
+};
+
+exports.Prisma.ProjectConnectionLinkScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  userConnectionId: 'userConnectionId',
+  linkedByUserId: 'linkedByUserId',
+  linkedAt: 'linkedAt',
+  unlinkedAt: 'unlinkedAt'
+};
+
+exports.Prisma.OrganizationOAuthAppOverrideScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  provider: 'provider',
+  clientId: 'clientId',
+  clientSecretEncrypted: 'clientSecretEncrypted',
+  scopes: 'scopes',
+  configuredByUserId: 'configuredByUserId',
+  testedAt: 'testedAt',
+  testStatus: 'testStatus',
+  testError: 'testError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.OrganizationConnectorPolicyScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  provider: 'provider',
+  enabled: 'enabled',
+  allowedRoleKeys: 'allowedRoleKeys',
+  rateLimitOverride: 'rateLimitOverride',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ReconnectionAlertScalarFieldEnum = {
+  id: 'id',
+  userConnectionId: 'userConnectionId',
+  reason: 'reason',
+  detectedAt: 'detectedAt',
+  resolvedAt: 'resolvedAt',
+  notifiedAt: 'notifiedAt'
+};
+
+exports.Prisma.IntegrationFeatureRequestScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  organizationId: 'organizationId',
+  integrationName: 'integrationName',
+  useCaseDescription: 'useCaseDescription',
+  status: 'status',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.EmailDeliveryEventScalarFieldEnum = {
+  id: 'id',
+  provider: 'provider',
+  providerEventId: 'providerEventId',
+  type: 'type',
+  email: 'email',
+  emailMessageId: 'emailMessageId',
+  subject: 'subject',
+  fromAddress: 'fromAddress',
+  payload: 'payload',
+  receivedAt: 'receivedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -925,6 +1082,7 @@ exports.Prisma.ModelName = {
   AgentMemory: 'AgentMemory',
   AgentMemoryPreference: 'AgentMemoryPreference',
   ProjectIdeState: 'ProjectIdeState',
+  AgentPatchProposal: 'AgentPatchProposal',
   ProjectEnvironment: 'ProjectEnvironment',
   ProjectSecret: 'ProjectSecret',
   ProjectEnvVar: 'ProjectEnvVar',
@@ -974,7 +1132,16 @@ exports.Prisma.ModelName = {
   McpInstall: 'McpInstall',
   AgentRun: 'AgentRun',
   AgentRunResult: 'AgentRunResult',
-  ConsensusRecord: 'ConsensusRecord'
+  ConsensusRecord: 'ConsensusRecord',
+  WorkspaceRuntime: 'WorkspaceRuntime',
+  ConnectorCatalog: 'ConnectorCatalog',
+  UserConnection: 'UserConnection',
+  ProjectConnectionLink: 'ProjectConnectionLink',
+  OrganizationOAuthAppOverride: 'OrganizationOAuthAppOverride',
+  OrganizationConnectorPolicy: 'OrganizationConnectorPolicy',
+  ReconnectionAlert: 'ReconnectionAlert',
+  IntegrationFeatureRequest: 'IntegrationFeatureRequest',
+  EmailDeliveryEvent: 'EmailDeliveryEvent'
 };
 
 /**

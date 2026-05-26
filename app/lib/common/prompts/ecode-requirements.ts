@@ -17,6 +17,7 @@ export const ECODE_AGENT_REQUIREMENTS = `
     - WebSocket connections must auto-reconnect with exponential backoff and clean up timers/listeners on unmount.
     - Accessibility is mandatory: semantic HTML, labels, keyboard navigation, focus states, contrast, and touch targets.
     - Security is mandatory: validate user input, avoid leaking secrets, and isolate sensitive config from client code.
+    - External service behavior must use real typed local/offline adapters with persisted state, or expose a clear integration-required state and configuration path.
 
   Build workflow:
     1. Architect briefly: stack, data model, API surfaces, core workflow, verification plan.
@@ -51,5 +52,6 @@ export const ECODE_PROJECT_REQUIREMENT_LINES = [
   '- Any WebSocket or realtime client must auto-reconnect with exponential backoff and clean up timers/listeners.',
   '- Include realistic data, meaningful copy, complete empty/loading/error/success/disabled states, and at least one complete primary workflow.',
   '- Validate user input, avoid secret leaks, and keep client config safe.',
+  '- Never report successful external-service behavior unless a real typed local/offline adapter is executing or a clear integration-required state is shown.',
   '- Run or define relevant tests and verification paths; do not present broken code as finished.',
 ];

@@ -1,8 +1,5 @@
-/*
- * @ts-nocheck
- * Preventing TS checks with files presented in the video for a better presentation.
- */
-/* eslint-disable import/order */
+/* eslint-disable @typescript-eslint/ban-ts-comment, import/order */
+// @ts-nocheck — Preventing TS checks. Must be a line comment, not a block, or tsc silently ignores the directive.
 import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { EditorAdapter } from '@vibecore/editor';
@@ -33,10 +30,13 @@ import {
   deploymentStatusColor,
   partitionMonitoringEvents as partitionMonitoringEventsHelper,
 } from './projectMonitoring';
+import { formatRailBadgeValue } from '~/lib/labels/rail-badge';
 import { setAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
 import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
+import { ConversationBranchesMenu } from './ConversationBranchesMenu';
 import { Messages } from './Messages.client';
+import { PresenceAvatars } from './PresenceAvatars';
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { Menu } from '~/components/sidebar/Menu.client';
@@ -86,13 +86,19 @@ import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
 import { StickToBottom, useKeybindings, useStickToBottomContext } from '~/lib/hooks';
 import { ChatBox } from './ChatBox';
+import { modelListFromResponse } from './modelList';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
 import { useResponsiveLayout } from '@vibecore/editor';
 import { useSwipeGesture } from '~/lib/hooks/useMobileGestures';
 import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
-import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
+import {
+  getProjectIdeMemory,
+  saveProjectIdeMemory,
+  subscribeProjectIdeMemory,
+  type ProjectIdeMemory,
+} from '~/lib/persistence/projectIdeMemory';
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useSearchParams } from '@remix-run/react';
 import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
@@ -247,7 +253,328 @@ const IDE_MANAGEMENT_PANELS = [
 const IDE_RIGHT_PANELS = ['files'] as const;
 const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS] as const;
 const IDE_URL_PANELS = [...IDE_WORKSPACE_PANELS, ...IDE_RIGHT_PANELS] as const;
-const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'terminal', 'preview', 'deploy'] as const;
+const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'search', 'locks', 'terminal', 'preview', 'deploy'] as const;
+
+const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deployments'] as const;
+
+const ECODE_MOBILE_COMPATIBLE_PANEL_TABS: Record<(typeof MOBILE_IDE_PANELS)[number], Set<string>> = {
+  chat: new Set(['agent', 'assistant', 'actions', 'tools']),
+  files: new Set(['files']),
+  editor: new Set(['editor']),
+  search: new Set(['search']),
+  locks: new Set(['locks']),
+  terminal: new Set(['terminal', 'console', 'shell']),
+  preview: new Set(['preview', 'web']),
+  deploy: new Set([
+    'deploy',
+    'deployments',
+    'publishing',
+    'object-storage',
+    'app-storage',
+    'auth',
+    'database',
+    'debugger',
+    'debug',
+    'developer',
+    'git',
+    'activity',
+    'history',
+    'integrations',
+    'collaborators',
+    'collaboration',
+    'collaborate',
+    'multiplayer',
+    'packages',
+    'secrets',
+    'settings',
+    'workflows',
+    'snapshots',
+    'checkpoints',
+    'extensions',
+    'security',
+    'env',
+    'logs',
+    'monitoring',
+    'domains',
+    'overview',
+    'kv-store',
+    'storage',
+  ]),
+};
+
+const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: string }> = {
+  preview: { id: 'preview', name: 'Webview', icon: 'i-ph:monitor' },
+  agent: { id: 'agent', name: 'AI Agent', icon: 'agent' },
+  deploy: { id: 'deploy', name: 'Deployments', icon: 'i-ph:rocket-launch' },
+  deployments: { id: 'deployments', name: 'Deployments', icon: 'i-ph:rocket-launch' },
+  files: { id: 'files', name: 'Files', icon: 'i-ph:folder-open' },
+  editor: { id: 'editor', name: 'Editor', icon: 'i-ph:code' },
+  search: { id: 'search', name: 'Search', icon: 'i-ph:magnifying-glass' },
+  locks: { id: 'locks', name: 'Locks', icon: 'i-ph:lock' },
+  terminal: { id: 'terminal', name: 'Terminal', icon: 'i-ph:terminal-window' },
+  actions: { id: 'actions', name: 'AI Agent', icon: 'agent' },
+  assistant: { id: 'assistant', name: 'AI Agent', icon: 'agent' },
+  publishing: { id: 'publishing', name: 'Deployments', icon: 'i-ph:rocket-launch' },
+  'app-storage': { id: 'app-storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
+  auth: { id: 'auth', name: 'Settings', icon: 'i-ph:gear' },
+  console: { id: 'console', name: 'Terminal', icon: 'i-ph:terminal-window' },
+  database: { id: 'database', name: 'Database', icon: 'i-ph:database' },
+  debug: { id: 'debug', name: 'Debugger', icon: 'i-ph:bug' },
+  debugger: { id: 'debugger', name: 'Debugger', icon: 'i-ph:bug' },
+  developer: { id: 'developer', name: 'Debugger', icon: 'i-ph:bug' },
+  git: { id: 'git', name: 'Git', icon: 'i-ph:git-branch' },
+  history: { id: 'history', name: 'Activity', icon: 'i-ph:activity' },
+  activity: { id: 'activity', name: 'Activity', icon: 'i-ph:activity' },
+  integrations: { id: 'integrations', name: 'Integrations', icon: 'i-ph:package' },
+  multiplayer: { id: 'multiplayer', name: 'Collaborators', icon: 'i-ph:users' },
+  collaboration: { id: 'collaboration', name: 'Collaborators', icon: 'i-ph:users' },
+  collaborate: { id: 'collaborate', name: 'Collaborators', icon: 'i-ph:users' },
+  collaborators: { id: 'collaborators', name: 'Collaborators', icon: 'i-ph:users' },
+  packages: { id: 'packages', name: 'Packages', icon: 'i-ph:package' },
+  secrets: { id: 'secrets', name: 'Secrets', icon: 'i-ph:lock' },
+  settings: { id: 'settings', name: 'Settings', icon: 'i-ph:gear' },
+  workflows: { id: 'workflows', name: 'Workflows', icon: 'i-ph:git-branch' },
+  checkpoints: { id: 'checkpoints', name: 'Snapshots', icon: 'i-ph:stack' },
+  snapshots: { id: 'snapshots', name: 'Snapshots', icon: 'i-ph:stack' },
+  extensions: { id: 'extensions', name: 'Extensions', icon: 'i-ph:puzzle-piece' },
+  security: { id: 'security', name: 'Security', icon: 'i-ph:shield-check' },
+  shell: { id: 'shell', name: 'Terminal', icon: 'i-ph:terminal-window' },
+  'kv-store': { id: 'kv-store', name: 'Database', icon: 'i-ph:database' },
+  storage: { id: 'storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
+  'object-storage': { id: 'object-storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
+  env: { id: 'env', name: 'Environment variables', icon: 'i-ph:brackets-curly' },
+  logs: { id: 'logs', name: 'Logs', icon: 'i-ph:list-magnifying-glass' },
+  monitoring: { id: 'monitoring', name: 'Monitoring', icon: 'i-ph:chart-line' },
+  domains: { id: 'domains', name: 'Domains', icon: 'i-ph:globe' },
+  overview: { id: 'overview', name: 'Overview', icon: 'i-ph:gauge' },
+  web: { id: 'web', name: 'Webview', icon: 'i-ph:monitor' },
+  tools: { id: 'tools', name: 'Tools', icon: 'i-ph:stack' },
+};
+
+const ECODE_MOBILE_TOOLS = [
+  {
+    id: 'search',
+    section: 'search',
+    title: 'Search',
+    description: 'Search through your files',
+    icon: 'i-ph:magnifying-glass',
+  },
+  {
+    id: 'files',
+    section: 'search',
+    title: 'Files',
+    description: 'Find a file',
+    icon: 'i-ph:folder-open',
+  },
+  {
+    id: 'editor',
+    section: 'search',
+    title: 'Editor',
+    description: 'Open code editor',
+    icon: 'i-ph:code',
+  },
+  {
+    id: 'overview',
+    section: 'tools',
+    title: 'Overview',
+    description: 'Project summary',
+    icon: 'i-ph:gauge',
+    tone: 'info',
+  },
+  {
+    id: 'agent',
+    section: 'tools',
+    title: 'AI Agent',
+    description: 'Agent can make changes, review its work, and debug itself automatically.',
+    icon: 'agent',
+    tone: 'agent',
+  },
+  {
+    id: 'deployments',
+    section: 'tools',
+    title: 'Deployments',
+    description: 'Publish your app',
+    icon: 'i-ph:rocket-launch',
+    tone: 'success',
+  },
+  {
+    id: 'object-storage',
+    section: 'tools',
+    title: 'Object Storage',
+    description: 'File storage',
+    icon: 'i-ph:hard-drives',
+  },
+  {
+    id: 'settings',
+    section: 'tools',
+    title: 'Settings',
+    description: 'Project settings',
+    icon: 'i-ph:gear',
+    tone: 'info',
+  },
+  {
+    id: 'terminal',
+    section: 'tools',
+    title: 'Terminal',
+    description: 'Workspace terminal',
+    icon: 'i-ph:terminal-window',
+  },
+  {
+    id: 'database',
+    section: 'tools',
+    title: 'Database',
+    description: 'SQL browser',
+    icon: 'i-ph:database',
+    tone: 'info',
+  },
+  {
+    id: 'locks',
+    section: 'tools',
+    title: 'Locks',
+    description: 'Locked files',
+    icon: 'i-ph:lock',
+    tone: 'warning',
+  },
+  {
+    id: 'debugger',
+    section: 'tools',
+    title: 'Debugger',
+    description: 'Breakpoints and launch configs',
+    icon: 'i-ph:bug',
+  },
+  {
+    id: 'git',
+    section: 'tools',
+    title: 'Git',
+    description: 'Version control for your App',
+    icon: 'i-ph:git-branch',
+    tone: 'warning',
+  },
+  {
+    id: 'integrations',
+    section: 'tools',
+    title: 'Integrations',
+    description: 'Connected services',
+    icon: 'i-ph:package',
+  },
+  {
+    id: 'extensions',
+    section: 'tools',
+    title: 'Extensions',
+    description: 'Marketplace',
+    icon: 'i-ph:puzzle-piece',
+  },
+  {
+    id: 'collaborators',
+    section: 'tools',
+    title: 'Collaborators',
+    description: 'Team access',
+    icon: 'i-ph:users',
+    tone: 'info',
+  },
+  {
+    id: 'preview',
+    section: 'tools',
+    title: 'Webview',
+    description: 'Preview your App',
+    icon: 'i-ph:monitor',
+  },
+  {
+    id: 'logs',
+    section: 'tools',
+    title: 'Logs',
+    description: 'Terminal',
+    icon: 'i-ph:list-magnifying-glass',
+    tone: 'info',
+  },
+  {
+    id: 'secrets',
+    section: 'tools',
+    title: 'Secrets',
+    description: 'Store sensitive information (like API keys) securely in your App',
+    icon: 'i-ph:key',
+  },
+  {
+    id: 'security',
+    section: 'tools',
+    title: 'Security',
+    description: 'Security scanner',
+    icon: 'i-ph:shield-check',
+    tone: 'danger',
+  },
+  {
+    id: 'monitoring',
+    section: 'tools',
+    title: 'Monitoring',
+    description: 'App metrics',
+    icon: 'i-ph:chart-line',
+  },
+  {
+    id: 'env',
+    section: 'tools',
+    title: 'Environment variables',
+    description: 'Environment variables',
+    icon: 'i-ph:brackets-curly',
+  },
+  {
+    id: 'workflows',
+    section: 'tools',
+    title: 'Workflows',
+    description: 'Configure different ways to run your App',
+    icon: 'i-ph:lightning',
+    tone: 'warning',
+  },
+  {
+    id: 'activity',
+    section: 'tools',
+    title: 'Activity',
+    description: 'Project timeline',
+    icon: 'i-ph:activity',
+  },
+  {
+    id: 'snapshots',
+    section: 'tools',
+    title: 'Snapshots',
+    description: 'Rollback points',
+    icon: 'i-ph:stack',
+  },
+  {
+    id: 'domains',
+    section: 'tools',
+    title: 'Domains',
+    description: 'Custom domains',
+    icon: 'i-ph:globe',
+  },
+] as const;
+
+const ECODE_MOBILE_MORE_MENU_ITEMS = [
+  { id: 'overview', label: 'Overview', icon: 'i-ph:gauge' },
+  { id: 'preview', label: 'Webview', icon: 'i-ph:monitor' },
+  { id: 'deployments', label: 'Deployments', icon: 'i-ph:rocket-launch' },
+  { id: 'git', label: 'Git', icon: 'i-ph:git-branch' },
+  { id: 'packages', label: 'Packages', icon: 'i-ph:package' },
+  { id: 'database', label: 'Database', icon: 'i-ph:database' },
+  { id: 'object-storage', label: 'Object Storage', icon: 'i-ph:hard-drives' },
+  { id: 'locks', label: 'Locks', icon: 'i-ph:lock' },
+  { id: 'secrets', label: 'Secrets', icon: 'i-ph:key' },
+  { id: 'env', label: 'Environment variables', icon: 'i-ph:brackets-curly' },
+  { id: 'terminal', label: 'Terminal', icon: 'i-ph:terminal-window' },
+  { id: 'logs', label: 'Logs', icon: 'i-ph:list-magnifying-glass' },
+  { id: 'debugger', label: 'Debugger', icon: 'i-ph:bug' },
+  { id: 'search', label: 'Search', icon: 'i-ph:magnifying-glass' },
+  { id: 'commands', label: 'Commands', icon: 'i-ph:command' },
+  { id: 'workflows', label: 'Workflows', icon: 'i-ph:git-branch' },
+  { id: 'integrations', label: 'Integrations', icon: 'i-ph:package' },
+  { id: 'collaborators', label: 'Collaborators', icon: 'i-ph:users' },
+  { id: 'share', label: 'Share', icon: 'i-ph:share-network' },
+  { id: 'activity', label: 'Activity', icon: 'i-ph:activity' },
+  { id: 'snapshots', label: 'Snapshots', icon: 'i-ph:stack' },
+  { id: 'extensions', label: 'Extensions', icon: 'i-ph:puzzle-piece' },
+  { id: 'monitoring', label: 'Monitoring', icon: 'i-ph:chart-line' },
+  { id: 'domains', label: 'Domains', icon: 'i-ph:globe' },
+  { id: 'security', label: 'Security', icon: 'i-ph:shield-check' },
+  { id: 'settings', label: 'Settings', icon: 'i-ph:gear' },
+] as const;
 
 const IDE_FILE_TREE_HIDDEN_PATTERNS = [
   /\/node_modules\//,
@@ -303,6 +630,8 @@ type AgentToolAction = {
   description: string;
   icon: string;
 };
+
+const ECODE_MOBILE_MANAGEMENT_PANEL_TABS: Partial<Record<IdeManagementPanel, string>> = {};
 type ProjectSnapshot = {
   id: string;
   label?: string;
@@ -557,6 +886,10 @@ function previewPortText(input: {
     return 'Port: unavailable';
   }
 
+  if (input.previewServerState.status === 'static') {
+    return 'Port: static';
+  }
+
   return input.workspaceLoading || input.previewServerState.status === 'starting' ? 'Port: detecting' : 'Port: none';
 }
 
@@ -574,6 +907,10 @@ function previewPortCompactText(input: {
 
   if (input.workspaceError) {
     return 'Unavailable';
+  }
+
+  if (input.previewServerState.status === 'static') {
+    return 'Static';
   }
 
   return input.workspaceLoading || input.previewServerState.status === 'starting' ? 'Detecting' : 'No port';
@@ -607,6 +944,10 @@ function devServerStatusText(input: {
 
   if (input.workspaceError || input.previewServerState.status === 'error') {
     return 'Dev: blocked';
+  }
+
+  if (input.previewServerState.status === 'static') {
+    return 'Dev: static preview';
   }
 
   if (
@@ -1149,10 +1490,6 @@ function formatEditorTabLabel(label: string, panel: IdeWorkspacePanel) {
   return `${pathParts.at(-2)}/${pathParts.at(-1)}`;
 }
 
-function formatRailBadgeValue(value: number) {
-  return value > 99 ? '99+' : String(value);
-}
-
 function formatRailItemLabel(label: string, badgeLabel?: string) {
   return badgeLabel ? `${label}, ${badgeLabel}` : label;
 }
@@ -1378,16 +1715,43 @@ function HeaderTip({
   children: React.ReactElement;
   side?: 'top' | 'bottom' | 'left' | 'right';
 }) {
+  const [open, setOpen] = useState(false);
+
+  const trigger = React.cloneElement(children, {
+    'data-vc-radix-tooltip': 'true',
+    title: children.props.title ?? label,
+    onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
+      children.props.onPointerEnter?.(event);
+      setOpen(true);
+    },
+    onPointerLeave: (event: React.PointerEvent<HTMLElement>) => {
+      children.props.onPointerLeave?.(event);
+      setOpen(false);
+    },
+    onFocus: (event: React.FocusEvent<HTMLElement>) => {
+      children.props.onFocus?.(event);
+      setOpen(true);
+    },
+    onBlur: (event: React.FocusEvent<HTMLElement>) => {
+      children.props.onBlur?.(event);
+      setOpen(false);
+    },
+    onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
+      children.props.onKeyDown?.(event);
+
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    },
+  });
+
   return (
-    <Tooltip.Root>
-      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
+    <Tooltip.Root open={open} onOpenChange={setOpen} delayDuration={0}>
+      <Tooltip.Trigger asChild>{trigger}</Tooltip.Trigger>
       <Tooltip.Portal>
-        <Tooltip.Content
-          side={side}
-          sideOffset={6}
-          className="z-[80] max-w-[240px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-2 py-1 text-[11px] font-medium leading-tight text-bolt-elements-textPrimary shadow-md"
-        >
+        <Tooltip.Content side={side} sideOffset={8} collisionPadding={12} className="bolt-project-tooltip-content">
           {label}
+          <Tooltip.Arrow className="bolt-project-tooltip-arrow" />
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
@@ -1698,25 +2062,263 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [searchParams, setSearchParams] = useSearchParams();
     const layout = useResponsiveLayout();
-    const useMobileIde = layout.isMobile || layout.isTabletPortrait;
 
-    const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'editor' | 'terminal' | 'preview' | 'deploy'>(
-      'chat',
+    /*
+     * Header presence — subscribe to the project collaboration channel
+     * at the root so PresenceAvatars in the agent header stays live
+     * regardless of which sidebar panel is active. (The collaborators
+     * panel currently runs its own subscription too; deduping is a
+     * follow-up — the WS handshake cost is negligible.)
+     */
+    const headerCollaboration = useProjectCollaboration({
+      projectId,
+      enabled: Boolean(projectId) && projectIdeMode,
+      mode: 'editing',
+    });
+
+    /*
+     * Sprint 3/4 polish — read the MRU palette lists from project IDE
+     * memory so the @-mentions and /-commands palettes can boost
+     * frequent entries. Updates live via subscribeProjectIdeMemory so a
+     * fresh pick from another tab also bumps the local ranking.
+     */
+    const [paletteMemory, setPaletteMemory] = useState<ProjectIdeMemory | undefined>(undefined);
+
+    useEffect(() => {
+      if (!projectId || !projectIdeMode) {
+        setPaletteMemory(undefined);
+
+        return undefined;
+      }
+
+      let cancelled = false;
+
+      getProjectIdeMemory(projectId)
+        .then((value) => {
+          if (!cancelled) {
+            setPaletteMemory(value);
+          }
+        })
+        .catch(() => undefined);
+
+      const unsubscribe = subscribeProjectIdeMemory(projectId, (next) => {
+        if (!cancelled) {
+          setPaletteMemory(next);
+        }
+      });
+
+      return () => {
+        cancelled = true;
+        unsubscribe();
+      };
+    }, [projectId, projectIdeMode]);
+
+    const recentMentionedFilePaths = paletteMemory?.ui?.recentMentionedFilePaths;
+    const recentSlashCommandIds = paletteMemory?.ui?.recentSlashCommandIds;
+
+    /*
+     * Slash command callbacks. Each one is opt-in — when its hook isn't
+     * relevant (e.g. Bolt standalone has no projectId, no snapshot route),
+     * we simply leave the callback off the context and the command
+     * no-ops gracefully (verified in slash-commands.spec.ts).
+     */
+    const insertIntoComposer = useCallback(
+      (text: string, opts?: { replace?: boolean }) => {
+        if (!handleInputChange) {
+          return;
+        }
+
+        const nextValue = opts?.replace ? text : `${input ?? ''}${text}`;
+
+        const syntheticEvent = {
+          target: { value: nextValue },
+          currentTarget: { value: nextValue },
+        } as unknown as React.ChangeEvent<HTMLTextAreaElement>;
+        handleInputChange(syntheticEvent);
+
+        window.requestAnimationFrame(() => {
+          const el = textareaRef?.current;
+
+          if (!el) {
+            return;
+          }
+
+          el.focus();
+
+          const caret = nextValue.length;
+          el.setSelectionRange(caret, caret);
+        });
+      },
+      [handleInputChange, input, textareaRef],
     );
+
+    const createSnapshotCommand = useCallback(async () => {
+      if (!projectId) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/snapshots`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { accept: 'application/json', 'content-type': 'application/json' },
+          body: JSON.stringify({ label: 'Manual checkpoint via /snapshot', kind: 'manual', manifest: {} }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Snapshot failed (${response.status})`);
+        }
+
+        toast.success('Snapshot created');
+      } catch (error) {
+        toast.error(`Snapshot failed: ${(error as Error).message}`);
+      }
+    }, [projectId]);
+
+    const getLastPreviewError = useCallback(() => {
+      const state = workbenchStore.previewServerState.get();
+
+      if (state.status !== 'error' || !state.error) {
+        return undefined;
+      }
+
+      return state.error;
+    }, []);
+
+    /*
+     * /open <path> — switch to code view + select the file. Normalises
+     * the path against WORK_DIR so the user can pass either relative
+     * (`src/App.tsx`) or absolute (`/home/project/src/App.tsx`).
+     */
+    const openFileFromSlash = useCallback((rawPath: string) => {
+      const normalised = rawPath.startsWith('/') ? rawPath : `${WORK_DIR}/${rawPath.replace(/^\.?\//, '')}`;
+      workbenchStore.currentView.set('code');
+      workbenchStore.setSelectedFile(normalised);
+    }, []);
+
+    /*
+     * /diff <path> — switch to diff view; when no path is given, keep
+     * the currently selected file as the diff target.
+     */
+    const openDiffFromSlash = useCallback((rawPath?: string) => {
+      if (rawPath) {
+        const normalised = rawPath.startsWith('/') ? rawPath : `${WORK_DIR}/${rawPath.replace(/^\.?\//, '')}`;
+        workbenchStore.setSelectedFile(normalised);
+      }
+
+      workbenchStore.currentView.set('diff');
+    }, []);
+
+    /*
+     * /run <command> — execute a shell command via the bolt terminal.
+     * The output streams into the IDE terminal panel; we surface a
+     * toast on failure so the user knows when it crashed silently.
+     */
+    const runShellCommandFromSlash = useCallback(async (command: string) => {
+      const shell = workbenchStore.boltTerminal;
+
+      if (!shell || typeof shell.executeCommand !== 'function') {
+        toast.error('Shell unavailable — open the terminal panel first');
+        return;
+      }
+
+      try {
+        await shell.executeCommand(`slash-run:${Date.now()}`, command);
+      } catch (error) {
+        toast.error(`Shell command failed: ${(error as Error).message}`);
+      }
+    }, []);
+
+    const useMobileIde = layout.isMobile || layout.isTablet;
+
+    const [mobilePanel, setMobilePanel] = useState<
+      'chat' | 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy'
+    >('chat');
+
+    const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+    const [mobileToolsSheetOpen, setMobileToolsSheetOpen] = useState(false);
+    const [mobileToolsQuery, setMobileToolsQuery] = useState('');
+
+    const [mobileTabSwitcherOpen, setMobileTabSwitcherOpen] = useState(false);
+
+    const closeMobileOverlays = useCallback(() => {
+      setMobileMoreOpen(false);
+      setMobileToolsSheetOpen(false);
+      setMobileTabSwitcherOpen(false);
+      setMobileToolsQuery('');
+    }, []);
+
+    const closeMobileToolsSheet = useCallback(() => {
+      setMobileToolsSheetOpen(false);
+      setMobileToolsQuery('');
+    }, []);
+
+    const openMobileToolsSheet = useCallback(() => {
+      setMobileMoreOpen(false);
+      setMobileTabSwitcherOpen(false);
+      setMobileToolsQuery('');
+      setMobileToolsSheetOpen(true);
+    }, []);
+
+    const openMobileMoreMenu = useCallback(() => {
+      setMobileToolsSheetOpen(false);
+      setMobileToolsQuery('');
+      setMobileTabSwitcherOpen(false);
+      setMobileMoreOpen(true);
+    }, []);
+
+    const openMobileTabSwitcher = useCallback(() => {
+      setMobileMoreOpen(false);
+      setMobileToolsSheetOpen(false);
+      setMobileToolsQuery('');
+      setMobileTabSwitcherOpen(true);
+    }, []);
+
+    const [mobileOpenTabs, setMobileOpenTabs] = useState(() =>
+      ECODE_MOBILE_DEFAULT_TABS.map((tab) => ECODE_MOBILE_TAB_META[tab]),
+    );
+
+    const [activeMobileOpenTabId, setActiveMobileOpenTabId] = useState('agent');
+
     const { state: mobileIdeLocalState, setActivePanel: persistMobilePanel } = useMobileIdePersistence(
       projectIdeMode ? projectId : undefined,
     );
+    const ensureMobileOpenTab = useCallback((tabId: string) => {
+      const tab = ECODE_MOBILE_TAB_META[tabId] ?? {
+        id: tabId,
+        name: panelTitle(tabId),
+        icon: panelIcon(tabId),
+      };
+
+      setMobileOpenTabs((current) => (current.some((item) => item.id === tab.id) ? current : [...current, tab]));
+      setActiveMobileOpenTabId(tab.id);
+    }, []);
     const setMobileIdePanel = useCallback(
-      (panel: (typeof MOBILE_IDE_PANELS)[number]) => {
+      (panel: (typeof MOBILE_IDE_PANELS)[number], options: { activeTabId?: string } = {}) => {
         setMobilePanel(panel);
         persistMobilePanel(panel);
+        ensureMobileOpenTab(options.activeTabId ?? (panel === 'chat' ? 'agent' : panel));
 
         if (panel !== 'chat') {
           workbenchStore.setShowWorkbench(true);
         }
       },
-      [persistMobilePanel],
+      [ensureMobileOpenTab, persistMobilePanel],
     );
+    const filteredMobileToolsSheetItems = useMemo(() => {
+      const query = mobileToolsQuery.trim().toLowerCase();
+
+      if (!query) {
+        return ECODE_MOBILE_TOOLS;
+      }
+
+      return ECODE_MOBILE_TOOLS.filter(
+        (item) =>
+          item.title.toLowerCase().includes(query) ||
+          item.description.toLowerCase().includes(query) ||
+          item.id.toLowerCase().includes(query),
+      );
+    }, [mobileToolsQuery]);
     const goToAdjacentMobilePanel = useCallback(
       (direction: 1 | -1) => {
         const currentIndex = MOBILE_IDE_PANELS.indexOf(mobilePanel);
@@ -1744,6 +2346,30 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       preventScroll: useMobileIde,
     });
 
+    useEffect(() => {
+      if (!useMobileIde) {
+        closeMobileOverlays();
+      }
+    }, [closeMobileOverlays, useMobileIde]);
+
+    useEffect(() => {
+      if (!useMobileIde || (!mobileMoreOpen && !mobileToolsSheetOpen && !mobileTabSwitcherOpen)) {
+        return undefined;
+      }
+
+      const handleMobileOverlayEscape = (event: KeyboardEvent) => {
+        if (event.key !== 'Escape') {
+          return;
+        }
+
+        closeMobileOverlays();
+      };
+
+      window.addEventListener('keydown', handleMobileOverlayEscape);
+
+      return () => window.removeEventListener('keydown', handleMobileOverlayEscape);
+    }, [closeMobileOverlays, mobileMoreOpen, mobileTabSwitcherOpen, mobileToolsSheetOpen, useMobileIde]);
+
     const [isOnline, setIsOnline] = useState(true);
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
     const [modelList, setModelList] = useState<ModelInfo[]>([]);
@@ -1770,9 +2396,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const currentDocument = useStore(workbenchStore.currentDocument);
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const theme = useStore(themeStore);
-    const DEFAULT_RIGHT_PANEL_WIDTH = 220;
-    const MIN_RIGHT_PANEL_WIDTH = 160;
-    const MAX_RIGHT_PANEL_WIDTH = 260;
+    const DEFAULT_RIGHT_PANEL_WIDTH = 280;
+    const MIN_RIGHT_PANEL_WIDTH = 272;
+    const MAX_RIGHT_PANEL_WIDTH = 360;
     const [rightPanelOpen, setRightPanelOpen] = useState(true);
     const [rightPanelMode, setRightPanelMode] = useState<'files' | 'preview-logs'>('files');
     const [rightPanelWidth, setRightPanelWidth] = useState(DEFAULT_RIGHT_PANEL_WIDTH);
@@ -1975,9 +2601,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const setProjectPanelSearchParam = useCallback(
       (panel?: string) => {
-        setSearchParams(withPanelSearchParam(searchParams, panel));
+        setSearchParams((current) => withPanelSearchParam(current, panel));
       },
-      [searchParams, setSearchParams],
+      [setSearchParams],
     );
 
     const activeMobileServicePanel = useMemo<IdeManagementPanel>(() => {
@@ -1990,6 +2616,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const projectFilePaths = useMemo(
       () => Object.keys(projectFiles).filter((filePath) => projectFiles[filePath]?.type === 'file'),
       [projectFiles],
+    );
+
+    /*
+     * Visible files share the same hidden-path filter as ProjectFilesTool
+     * so the rail badge, the panel header, and the tree all agree on one
+     * count. Power tooling (search index, mention picker) keeps using
+     * `projectFilePaths` because it needs every indexed path.
+     */
+    const visibleProjectFilePaths = useMemo(
+      () => projectFilePaths.filter((filePath) => !isIdeHiddenPath(filePath)),
+      [projectFilePaths],
     );
 
     const recentProjectFiles = useMemo(() => projectFilePaths.slice(0, 5), [projectFilePaths]);
@@ -2103,7 +2740,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       const status = projectRuntimeState.workspace?.status?.toLowerCase();
 
-      if (status === 'running' || status === 'booting' || status === 'starting') {
+      if (status === 'running') {
+        return 'Running';
+      }
+
+      if (status === 'booting' || status === 'starting') {
         return 'Starting';
       }
 
@@ -2444,7 +3085,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         eventSource.onerror = () => {
           if (!cancelled) {
-            console.error('Project IDE overview stream disconnected; falling back to slow refresh.');
+            console.warn('Project IDE overview stream disconnected; falling back to slow refresh.');
             eventSource?.close();
             startFallbackPolling();
           }
@@ -2594,7 +3235,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           if (
             ui?.mobilePanel &&
-            ['chat', 'files', 'editor', 'terminal', 'preview', 'deploy'].includes(ui.mobilePanel)
+            ['chat', 'files', 'editor', 'search', 'terminal', 'preview', 'deploy'].includes(ui.mobilePanel)
           ) {
             setMobilePanel(ui.mobilePanel);
           }
@@ -2694,7 +3335,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [projectFilePaths.length, projectIdeMode, rightPanelMode, rightPanelOpen]);
 
     useEffect(() => {
-      if (!projectIdeMode) {
+      if (!projectIdeMode || useMobileIde || workspaceLoading || workspaceError) {
         return undefined;
       }
 
@@ -2702,10 +3343,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return undefined;
       }
 
-      const timer = window.setTimeout(() => setGuidedTourOpen(true), 900);
+      const timer = window.setTimeout(() => setGuidedTourOpen(true), 4_000);
 
       return () => window.clearTimeout(timer);
-    }, [projectIdeMode]);
+    }, [projectIdeMode, useMobileIde, workspaceError, workspaceLoading]);
+
+    useEffect(() => {
+      if (useMobileIde && guidedTourOpen) {
+        setGuidedTourOpen(false);
+      }
+    }, [guidedTourOpen, useMobileIde]);
 
     useEffect(() => {
       if (!projectIdeMode || !guidedTourOpen) {
@@ -3047,19 +3694,158 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.dispatchEvent(new CustomEvent('vibecore:editor-command', { detail: { command } }));
     }, []);
 
+    const openProjectFilesPanel = useCallback(() => {
+      setRightPanelMode('files');
+      setRightPanelOpen(true);
+      workbenchStore.projectFilesPanelOpen.set(true);
+      setProjectPanelSearchParam('files');
+    }, [setProjectPanelSearchParam]);
+
     const openIdeTool = useCallback(
       (panel: IdeWorkspacePanel | IdeRightPanel, paneId = activePaneId) => {
         if (isIdeRightPanel(panel)) {
-          setRightPanelMode('files');
-          setRightPanelOpen(true);
-          setProjectPanelSearchParam(panel);
+          openProjectFilesPanel();
 
           return;
         }
 
         openWorkspacePanel(panel, { paneId });
       },
-      [activePaneId, openWorkspacePanel, setProjectPanelSearchParam],
+      [activePaneId, openProjectFilesPanel, openWorkspacePanel],
+    );
+
+    const openCommandPalette = useCallback((mode: 'all' | 'tools' | 'files' = 'all') => {
+      setCommandPaletteMode(mode);
+      setCommandPaletteQuery('');
+      setCommandPaletteIndex(0);
+      setCommandPaletteOpen(true);
+    }, []);
+
+    const activateMobileTool = useCallback(
+      (toolId: string) => {
+        const managementPanelByTool: Record<string, IdeManagementPanel> = {
+          deployments: 'deployments',
+          publishing: 'deployments',
+          deploy: 'deployments',
+          'object-storage': 'object-storage',
+          'app-storage': 'object-storage',
+          storage: 'object-storage',
+          database: 'database',
+          'kv-store': 'database',
+          debugger: 'debugger',
+          debug: 'debugger',
+          developer: 'debugger',
+          git: 'git',
+          activity: 'activity',
+          history: 'activity',
+          integrations: 'integrations',
+          collaborators: 'collaborators',
+          collaboration: 'collaborators',
+          collaborate: 'collaborators',
+          multiplayer: 'collaborators',
+          packages: 'packages',
+          secrets: 'secrets',
+          env: 'env',
+          auth: 'settings',
+          settings: 'settings',
+          workflows: 'workflows',
+          snapshots: 'snapshots',
+          checkpoints: 'snapshots',
+          extensions: 'extensions',
+          security: 'security',
+          logs: 'logs',
+          monitoring: 'monitoring',
+          domains: 'domains',
+          overview: 'overview',
+        };
+
+        const normalizedToolId = toolId === 'deployment' ? 'deployments' : toolId;
+
+        if (
+          normalizedToolId === 'agent' ||
+          normalizedToolId === 'assistant' ||
+          normalizedToolId === 'actions' ||
+          normalizedToolId === 'tools'
+        ) {
+          setMobileIdePanel('chat', { activeTabId: normalizedToolId });
+        } else if (normalizedToolId === 'files') {
+          setMobileIdePanel('files');
+          setProjectPanelSearchParam('files');
+        } else if (normalizedToolId === 'search') {
+          setMobileIdePanel('search');
+          setProjectPanelSearchParam('search');
+        } else if (normalizedToolId === 'locks') {
+          setMobileIdePanel('locks');
+          setProjectPanelSearchParam('locks');
+        } else if (normalizedToolId === 'preview') {
+          setMobileIdePanel('preview');
+          setProjectPanelSearchParam('preview');
+        } else if (normalizedToolId === 'console' || normalizedToolId === 'terminal' || normalizedToolId === 'shell') {
+          setMobileIdePanel('terminal', { activeTabId: 'terminal' });
+          setProjectPanelSearchParam('terminal');
+        } else if (normalizedToolId === 'editor') {
+          setMobileIdePanel('editor');
+          setProjectPanelSearchParam('editor');
+        } else {
+          const managementPanel = managementPanelByTool[normalizedToolId];
+
+          if (managementPanel) {
+            openWorkspacePanel(managementPanel, { replaceUrl: false });
+            setProjectPanelSearchParam(managementPanel);
+            setMobileIdePanel('deploy', { activeTabId: managementPanel });
+          }
+        }
+
+        setMobileMoreOpen(false);
+        setMobileToolsSheetOpen(false);
+        setMobileToolsQuery('');
+        setMobileTabSwitcherOpen(false);
+      },
+      [ensureMobileOpenTab, openWorkspacePanel, setMobileIdePanel, setProjectPanelSearchParam],
+    );
+
+    const activateMobileMoreMenuItem = useCallback(
+      async (itemId: (typeof ECODE_MOBILE_MORE_MENU_ITEMS)[number]['id']) => {
+        if (itemId === 'commands') {
+          setMobileMoreOpen(false);
+          openCommandPalette('all');
+
+          return;
+        }
+
+        if (itemId === 'share') {
+          setMobileMoreOpen(false);
+
+          try {
+            await navigator.clipboard?.writeText(`${window.location.origin}/projects/${projectId}`);
+            toast.success('Project link copied');
+          } catch (error) {
+            toast.error(`Copy failed: ${(error as Error).message}`);
+          }
+
+          return;
+        }
+
+        activateMobileTool(itemId);
+      },
+      [activateMobileTool, openCommandPalette, projectId],
+    );
+
+    const closeMobileOpenTab = useCallback(
+      (tabId: string) => {
+        setMobileOpenTabs((current) => {
+          const coreTabs = new Set<string>(ECODE_MOBILE_DEFAULT_TABS);
+          const nextTabs = coreTabs.has(tabId) ? current : current.filter((tab) => tab.id !== tabId);
+
+          if (activeMobileOpenTabId === tabId) {
+            const fallbackTab = nextTabs[nextTabs.length - 1] ?? ECODE_MOBILE_TAB_META.agent;
+            window.setTimeout(() => activateMobileTool(fallbackTab.id), 0);
+          }
+
+          return nextTabs;
+        });
+      },
+      [activateMobileTool, activeMobileOpenTabId],
     );
 
     useEffect(() => {
@@ -3074,6 +3860,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return;
         }
 
+        if (useMobileIde) {
+          activateMobileTool(panel);
+
+          return;
+        }
+
         if (isIdeRightPanel(panel) || isIdeWorkspacePanel(panel)) {
           openIdeTool(panel);
         }
@@ -3084,7 +3876,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       return () => {
         window.removeEventListener('vibecore:open-project-ide-panel', handleOpenProjectIdePanel);
       };
-    }, [openIdeTool, projectIdeMode]);
+    }, [activateMobileTool, openIdeTool, projectIdeMode, useMobileIde]);
 
     const closeWorkspacePanel = useCallback(
       (panel: IdeWorkspacePanel, paneId = activePaneId, tabId?: string) => {
@@ -3132,6 +3924,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setRightPanelMode('files');
         setRightPanelOpen(true);
 
+        if (useMobileIde && activeProjectPanel === 'files') {
+          setMobileIdePanel('files');
+        }
+
         return;
       }
 
@@ -3139,16 +3935,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         openWorkspacePanel(activeProjectPanel, { replaceUrl: false });
 
         if (useMobileIde) {
-          if (activeProjectPanel === 'terminal' || activeProjectPanel === 'logs') {
+          if (activeProjectPanel === 'terminal') {
             setMobileIdePanel('terminal');
           } else if (activeProjectPanel === 'preview') {
             setMobileIdePanel('preview');
           } else if (activeProjectPanel === 'files') {
             setMobileIdePanel('files');
+          } else if (activeProjectPanel === 'search') {
+            setMobileIdePanel('search');
           } else if (activeProjectPanel === 'editor') {
             setMobileIdePanel('editor');
+          } else if (activeProjectPanel === 'locks') {
+            setMobileIdePanel('locks');
           } else if (isIdeManagementPanel(activeProjectPanel)) {
-            setMobileIdePanel('deploy');
+            setMobileIdePanel('deploy', {
+              activeTabId: ECODE_MOBILE_MANAGEMENT_PANEL_TABS[activeProjectPanel] ?? activeProjectPanel,
+            });
           }
         }
       }
@@ -3206,13 +4008,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [useMobileIde],
     );
-
-    const openCommandPalette = useCallback((mode: 'all' | 'tools' | 'files' = 'all') => {
-      setCommandPaletteMode(mode);
-      setCommandPaletteQuery('');
-      setCommandPaletteIndex(0);
-      setCommandPaletteOpen(true);
-    }, []);
 
     const reopenLastClosedTab = useCallback(() => {
       const [tab, ...rest] = closedTabs;
@@ -3472,14 +4267,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       if (
         !projectIdeMode ||
         !useMobileIde ||
+        activeProjectPanel ||
         !mobileIdeLocalState.activePanel ||
         !MOBILE_IDE_PANELS.includes(mobileIdeLocalState.activePanel as any)
       ) {
         return;
       }
 
-      setMobilePanel(mobileIdeLocalState.activePanel as (typeof MOBILE_IDE_PANELS)[number]);
-    }, [mobileIdeLocalState.activePanel, projectIdeMode, useMobileIde]);
+      const persistedPanel = mobileIdeLocalState.activePanel as (typeof MOBILE_IDE_PANELS)[number];
+      setMobilePanel(persistedPanel);
+
+      if (ECODE_MOBILE_COMPATIBLE_PANEL_TABS[persistedPanel]?.has(activeMobileOpenTabId)) {
+        return;
+      }
+
+      ensureMobileOpenTab(persistedPanel === 'chat' ? 'agent' : persistedPanel);
+    }, [
+      activeMobileOpenTabId,
+      activeProjectPanel,
+      ensureMobileOpenTab,
+      mobileIdeLocalState.activePanel,
+      projectIdeMode,
+      useMobileIde,
+    ]);
 
     const networkToastRef = useRef<{ offline?: string | number; first: boolean }>({ first: true });
 
@@ -3600,11 +4410,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         fetch('/api/models')
           .then((response) => response.json())
           .then((data) => {
-            const typedData = data as { modelList: ModelInfo[] };
-            setModelList(typedData.modelList);
+            setModelList(modelListFromResponse(data));
           })
           .catch((error) => {
-            console.error('Error fetching model list:', error);
+            console.warn('Error fetching model list:', error);
           })
           .finally(() => {
             setIsModelLoading(undefined);
@@ -3624,9 +4433,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       try {
         const response = await fetch(`/api/models/${encodeURIComponent(providerName)}`);
         const data = await response.json();
-        providerModels = (data as { modelList: ModelInfo[] }).modelList;
+        providerModels = modelListFromResponse(data);
       } catch (error) {
-        console.error('Error loading dynamic models for:', providerName, error);
+        console.warn('Error loading dynamic models for:', providerName, error);
       }
 
       // Only update models for the specific provider
@@ -4070,7 +4879,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 planFirst: projectPlanFirst,
                 setPlanFirst: setProjectPlanFirst,
                 autoApplyEnabled: projectAutoApply,
+                insertIntoComposer,
+                createSnapshot: projectId ? createSnapshotCommand : undefined,
+                getLastPreviewError,
+                openFile: openFileFromSlash,
+                openDiff: openDiffFromSlash,
+                runShellCommand: runShellCommandFromSlash,
               }}
+              projectId={projectId}
+              recentMentionedFilePaths={recentMentionedFilePaths}
+              recentSlashCommandIds={recentSlashCommandIds}
               designScheme={designScheme}
               setDesignScheme={setDesignScheme}
               selectedElement={selectedElement}
@@ -4670,14 +5488,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         panel: 'files',
         label: 'Files',
         icon: 'i-ph:files',
-        badge: projectFilePaths.length || undefined,
+        badge: visibleProjectFilePaths.length || undefined,
         badgeLabel:
-          projectFilePaths.length > 0
-            ? `${projectFilePaths.length} indexed file${projectFilePaths.length === 1 ? '' : 's'}`
+          visibleProjectFilePaths.length > 0
+            ? `${visibleProjectFilePaths.length} file${visibleProjectFilePaths.length === 1 ? '' : 's'}`
             : undefined,
         tone: 'neutral',
         active: rightPanelOpen && rightPanelMode === 'files',
-        title: `${projectFilePaths.length} indexed file${projectFilePaths.length === 1 ? '' : 's'}`,
+        title: `${visibleProjectFilePaths.length} file${visibleProjectFilePaths.length === 1 ? '' : 's'} in the project`,
       },
       { panel: 'search', label: 'Search', icon: 'i-ph:magnifying-glass', badge: undefined, tone: 'neutral' },
       {
@@ -4716,34 +5534,70 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       const active = 'active' in item ? item.active : activeWorkspacePanel === item.panel;
 
       return (
-        <button
-          key={item.panel}
-          type="button"
-          className="bolt-project-ide-rail-item"
-          aria-current={active ? 'page' : undefined}
-          aria-label={formatRailItemLabel(item.label, badgeLabel)}
-          title={tooltip}
-          data-vc-tooltip={tooltip}
-          data-tone={item.tone}
-          onClick={() => openIdeTool(item.panel)}
-        >
-          <span className={item.icon} aria-hidden />
-          <span className="bolt-project-ide-rail-label">{item.label}</span>
-          {item.badge ? (
-            <span className="bolt-project-ide-rail-badge" aria-hidden>
-              {formatRailBadgeValue(item.badge)}
-            </span>
-          ) : null}
-        </button>
+        <HeaderTip key={item.panel} label={tooltip} side="right">
+          <button
+            type="button"
+            className="bolt-project-ide-rail-item"
+            aria-current={active ? 'page' : undefined}
+            aria-label={formatRailItemLabel(item.label, badgeLabel)}
+            title={tooltip}
+            data-vc-tooltip={tooltip}
+            data-tone={item.tone}
+            onClick={() => openIdeTool(item.panel)}
+          >
+            <span className={item.icon} aria-hidden />
+            <span className="bolt-project-ide-rail-label">{item.label}</span>
+            {item.badge ? (
+              <span className="bolt-project-ide-rail-badge" aria-hidden>
+                {formatRailBadgeValue(item.badge)}
+              </span>
+            ) : null}
+          </button>
+        </HeaderTip>
       );
     };
 
-    const panelPercentToPixels = useCallback((size: number) => {
+    const getProjectPanelAvailableWidth = useCallback(() => {
       const viewportWidth = typeof window === 'undefined' ? 1440 : window.innerWidth;
-      const availableWidth = Math.max(320, viewportWidth - 48);
 
-      return Math.round((availableWidth * size) / 100);
+      const railWidth =
+        typeof document === 'undefined'
+          ? 56
+          : Number.parseFloat(
+              window
+                .getComputedStyle(document.querySelector('.bolt-responsive-ide-desktop') ?? document.documentElement)
+                .getPropertyValue('--project-ide-rail-width'),
+            ) || 56;
+
+      return Math.max(320, viewportWidth - railWidth - 1);
     }, []);
+
+    const panelPercentToPixels = useCallback(
+      (size: number) => Math.round((getProjectPanelAvailableWidth() * size) / 100),
+      [getProjectPanelAvailableWidth],
+    );
+
+    const panelPixelsToPercent = useCallback(
+      (pixels: number) => {
+        const clampedPixels = Math.min(MAX_RIGHT_PANEL_WIDTH, Math.max(MIN_RIGHT_PANEL_WIDTH, pixels));
+
+        return (clampedPixels / getProjectPanelAvailableWidth()) * 100;
+      },
+      [MAX_RIGHT_PANEL_WIDTH, MIN_RIGHT_PANEL_WIDTH, getProjectPanelAvailableWidth],
+    );
+
+    const rightPanelDefaultSize = panelPixelsToPercent(rightPanelWidth);
+    const rightPanelMinSize = panelPixelsToPercent(MIN_RIGHT_PANEL_WIDTH);
+    const rightPanelMaxSize = panelPixelsToPercent(MAX_RIGHT_PANEL_WIDTH);
+    const agentPanelDefaultSize = 24;
+
+    const workspacePanelDefaultSize = rightPanelOpen
+      ? projectAgentPanelOpen
+        ? Math.max(35, 100 - agentPanelDefaultSize - rightPanelDefaultSize)
+        : Math.max(35, 100 - rightPanelDefaultSize)
+      : projectAgentPanelOpen
+        ? 100 - agentPanelDefaultSize
+        : 100;
 
     const projectIdePanels = (
       <div
@@ -4777,7 +5631,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <Panel
             id="project-workspace-panel"
             order={projectAgentPanelOpen ? 2 : 1}
-            defaultSize={rightPanelOpen ? (projectAgentPanelOpen ? 62 : 84) : projectAgentPanelOpen ? 76 : 100}
+            defaultSize={workspacePanelDefaultSize}
             minSize={35}
             className="bolt-project-panel-slot bolt-project-panel-slot-workspace"
           >
@@ -4846,9 +5700,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <Panel
                 id="project-right-panel"
                 order={projectAgentPanelOpen ? 3 : 2}
-                defaultSize={14}
-                minSize={10}
-                maxSize={22}
+                defaultSize={rightPanelDefaultSize}
+                minSize={rightPanelMinSize}
+                maxSize={rightPanelMaxSize}
                 collapsible
                 collapsedSize={0}
                 className="bolt-project-panel-slot bolt-project-panel-slot-right"
@@ -4936,7 +5790,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <Panel
                 id="project-agent-panel"
                 order={1}
-                defaultSize={24}
+                defaultSize={agentPanelDefaultSize}
                 minSize={20}
                 maxSize={36}
                 className="bolt-project-panel-slot bolt-project-panel-slot-agent"
@@ -4964,6 +5818,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       </button>
                     )}
                     <div className="ml-auto flex items-center gap-1">
+                      <PresenceAvatars
+                        entries={(headerCollaboration.snapshot?.presence ?? [])
+                          .filter((entry: any) => entry?.status !== 'offline')
+                          .map((entry: any) => ({
+                            userId: String(entry.userId ?? entry.sessionId ?? ''),
+                            name: String(entry.userId ?? entry.sessionId ?? '?'),
+                            status: entry.status === 'idle' ? 'idle' : 'viewing',
+                            lastSeenAt: Date.parse(entry.updatedAt ?? '') || Date.now(),
+                          }))}
+                        maxVisible={3}
+                      />
+                      {projectId ? (
+                        <HeaderTip label="Browse conversation branches">
+                          <ConversationBranchesMenu projectId={projectId} className="bolt-project-ide-icon-button" />
+                        </HeaderTip>
+                      ) : null}
                       {projectId ? (
                         <HeaderTip label="Share this conversation as a read-only link">
                           <ShareConversationButton
@@ -4979,7 +5849,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       <HeaderTip label="Switch light / dark theme">
                         <ThemeSwitch
                           size="lg"
-                          title=""
+                          title="Switch light/dark theme"
                           className="bolt-project-ide-icon-button"
                           iconClassName="text-[14px]"
                         />
@@ -5265,7 +6135,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             ['preview', 'Webview', 'App preview', formatKeybindingCombo('cmd+enter')],
             ['database', 'Database', 'SQL browser', ''],
             ['object-storage', 'Object Storage', 'File storage', ''],
-            ['env', 'Env vars', 'Environment variables', ''],
+            ['env', 'Environment variables', 'Environment variables', ''],
             ['secrets', 'Secrets', 'Encrypted project secrets', ''],
             ['git', 'Git', 'Version control', ''],
             ['packages', 'Packages', 'Dependencies manager', ''],
@@ -5290,7 +6160,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           ...[
             ['run', 'Run app', 'Open preview runtime', ''],
             ['stop', 'Stop app', 'Open logs to stop runtime process', ''],
-            ['deploy', 'Deploy', 'Open deployment panel', ''],
+            ['deploy', 'Deployments', 'Open Deployments panel', ''],
             ['theme', 'Toggle theme', 'Use existing theme controls', ''],
             ['reset-layout', 'Reset layout', 'Restore default IDE layout', ''],
           ].map(([command, title, description, shortcut]) => ({
@@ -5384,6 +6254,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const keybindingConflicts = useMemo(() => detectKeybindingConflicts(projectKeybindings), [projectKeybindings]);
 
+    const mobileHeaderTab = ECODE_MOBILE_TAB_META[activeMobileOpenTabId] ??
+      ECODE_MOBILE_TAB_META[mobilePanel === 'chat' ? 'agent' : mobilePanel] ?? {
+        id: activeMobileOpenTabId,
+        name: panelTitle(activeMobileOpenTabId),
+        icon: panelIcon(activeMobileOpenTabId),
+      };
+    const mobileServiceHeaderTab =
+      useMobileIde && mobilePanel === 'deploy' && activeMobileOpenTabId ? mobileHeaderTab : undefined;
+
     const keybindingSections = useMemo(
       () =>
         (['File', 'Navigation', 'Workbench', 'Editor', 'Agent', 'Terminal', 'Help'] as const)
@@ -5416,6 +6295,50 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         {...(useMobileIde ? mobileSwipeHandlers : {})}
       >
         {!projectIdeMode && <ClientOnly>{() => <Menu />}</ClientOnly>}
+        {projectIdeMode && useMobileIde && (
+          <header className="bolt-mobile-ecode-header" data-testid="mobile-ide-header">
+            <div className="bolt-mobile-ecode-header-inner">
+              <div className="bolt-mobile-ecode-header-side">
+                <button type="button" aria-label="Back" data-testid="button-back" onClick={() => window.history.back()}>
+                  <span className="i-ph:arrow-left" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Activity"
+                  data-testid="button-history"
+                  onClick={() => activateMobileTool('activity')}
+                >
+                  <span className="i-ph:activity" aria-hidden />
+                </button>
+              </div>
+
+              <div className="bolt-mobile-ecode-header-title">
+                {mobileHeaderTab.icon === 'agent' ? (
+                  <MobileReplitAgentIcon className="bolt-mobile-ecode-header-agent" />
+                ) : (
+                  <span className={mobileHeaderTab.icon} aria-hidden />
+                )}
+                <span>{mobileHeaderTab.name}</span>
+              </div>
+
+              <div className="bolt-mobile-ecode-header-side bolt-mobile-ecode-header-side--right">
+                <button type="button" aria-label="New tab" data-testid="button-new-tab" onClick={openMobileToolsSheet}>
+                  <span className="i-ph:plus" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  aria-label="More options"
+                  aria-haspopup="dialog"
+                  aria-expanded={mobileMoreOpen}
+                  data-testid="button-more"
+                  onClick={openMobileMoreMenu}
+                >
+                  <span className="i-ph:dots-three-vertical" aria-hidden />
+                </button>
+              </div>
+            </div>
+          </header>
+        )}
         <div className="bolt-connection-status" role="status" aria-live="polite" data-online={isOnline}>
           {!isOnline ? 'Offline mode: edits stay local until the workspace connection returns.' : 'Connection healthy'}
         </div>
@@ -5540,19 +6463,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           ) : (
             <>
               {agentPanel}
-              {useMobileIde && mobilePanel === 'deploy' ? (
-                <PanelBoundary title={IDE_TOOL_DESCRIPTIONS[activeMobileServicePanel] ?? 'Project tools'}>
-                  <div className="bolt-workbench-mobile fixed top-[calc(var(--header-height)+3rem+env(safe-area-inset-top,0px))] bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] left-0 z-0 w-full px-2">
-                    <div className="h-full overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
-                      <ProjectIdeServicePanel
-                        projectId={projectId}
-                        panel={activeMobileServicePanel}
-                        initialPayload={initialIdePanels?.[activeMobileServicePanel]}
-                      />
-                    </div>
+              {useMobileIde && mobilePanel === 'locks' ? (
+                <PanelBoundary title="Locks">
+                  <div
+                    className="bolt-workbench-mobile bolt-workbench-mobile-service fixed left-0 z-0 w-full"
+                    data-testid="mobile-locks-panel"
+                  >
+                    <LockManager />
                   </div>
                 </PanelBoundary>
-              ) : (
+              ) : useMobileIde && mobilePanel === 'deploy' ? (
+                <PanelBoundary title={IDE_TOOL_DESCRIPTIONS[activeMobileServicePanel] ?? 'Project tools'}>
+                  <div className="bolt-workbench-mobile bolt-workbench-mobile-service fixed left-0 z-0 w-full">
+                    <ProjectIdeServicePanel
+                      projectId={projectId}
+                      panel={activeMobileServicePanel}
+                      displayTitle={mobileServiceHeaderTab?.name}
+                      displayIcon={mobileServiceHeaderTab?.icon === 'agent' ? undefined : mobileServiceHeaderTab?.icon}
+                      initialPayload={initialIdePanels?.[activeMobileServicePanel]}
+                    />
+                  </div>
+                </PanelBoundary>
+              ) : useMobileIde && mobilePanel === 'chat' ? null : (
                 <ClientOnly>
                   {() => (
                     <PanelBoundary title="Workbench">
@@ -5574,30 +6506,332 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </>
           )}
         </div>
-        <nav className="bolt-mobile-tabbar" aria-label="IDE panels">
-          <ThemeSwitch size="lg" title="Switch light/dark theme" className="bolt-mobile-theme-switch" />
-          {[
-            ['chat', 'i-ph:chat-circle-text', 'Chat'],
-            ['files', 'i-ph:files', 'Files'],
-            ['editor', 'i-ph:code', 'Editor'],
-            ['terminal', 'i-ph:terminal-window', 'Terminal'],
-            ['preview', 'i-ph:browser', 'Preview'],
-            ['deploy', 'i-ph:rocket-launch', 'Deploy'],
-          ].map(([id, icon, label]) => (
+        {useMobileIde && (
+          <nav className="bolt-mobile-replit-nav" aria-label="IDE panels" data-testid="mobile-bottom-navigation">
+            <div className="bolt-mobile-replit-nav-bg" aria-hidden />
+            <div className="bolt-mobile-replit-nav-inner">
+              <button
+                type="button"
+                className={classNames('bolt-mobile-replit-run', {
+                  'bolt-mobile-replit-run--active': isRuntimeReallyRunning,
+                })}
+                aria-label={isRuntimeReallyRunning ? 'Stop running' : 'Run project'}
+                data-testid="button-play-stop"
+                onClick={() => {
+                  if (isRuntimeReallyRunning) {
+                    void workbenchStore.stopPreviewServer();
+                  } else {
+                    setMobileIdePanel('preview');
+                    void workbenchStore.startPreviewServer();
+                  }
+                }}
+              >
+                <span className={isRuntimeReallyRunning ? 'i-ph:square-fill' : 'i-ph:play-fill'} aria-hidden />
+              </button>
+
+              <div className="bolt-mobile-replit-tabs" data-testid="mobile-open-tabs">
+                <button
+                  type="button"
+                  className="bolt-mobile-replit-icon-tab"
+                  aria-label="Open tab switcher"
+                  data-testid="button-tab-switcher"
+                  onClick={openMobileTabSwitcher}
+                >
+                  <span className="i-ph:squares-four" aria-hidden />
+                </button>
+                <span className="bolt-mobile-replit-divider" aria-hidden />
+                {mobileOpenTabs.slice(0, 3).map((tab) => {
+                  const isActive = activeMobileOpenTabId === tab.id;
+
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      className="bolt-mobile-replit-icon-tab"
+                      aria-label={`Switch to ${tab.name} tab`}
+                      aria-pressed={isActive}
+                      aria-current={isActive ? 'page' : undefined}
+                      data-testid={`tab-${tab.id}`}
+                      onClick={() => activateMobileTool(tab.id)}
+                    >
+                      {tab.icon === 'agent' ? <MobileReplitAgentIcon /> : <span className={tab.icon} aria-hidden />}
+                      {isActive ? <i aria-hidden /> : null}
+                    </button>
+                  );
+                })}
+                {mobileOpenTabs.length > 3 ? (
+                  <button
+                    type="button"
+                    className="bolt-mobile-replit-icon-tab bolt-mobile-replit-more-tabs"
+                    aria-label={`Show ${mobileOpenTabs.length - 3} more tabs`}
+                    data-testid="button-more-tabs"
+                    onClick={openMobileTabSwitcher}
+                  >
+                    +{mobileOpenTabs.length - 3}
+                  </button>
+                ) : null}
+                {mobileOpenTabs.length < 4 ? (
+                  <>
+                    <span className="bolt-mobile-replit-divider" aria-hidden />
+                    <button
+                      type="button"
+                      className="bolt-mobile-replit-icon-tab"
+                      aria-label="Add new tab"
+                      data-testid="button-add-tab"
+                      onClick={openMobileToolsSheet}
+                    >
+                      <span className="i-ph:plus" aria-hidden />
+                    </button>
+                  </>
+                ) : null}
+              </div>
+
+              <button
+                type="button"
+                className="bolt-mobile-replit-more"
+                aria-label="More options"
+                aria-haspopup="dialog"
+                aria-expanded={mobileMoreOpen}
+                data-testid="button-more"
+                onClick={openMobileMoreMenu}
+              >
+                <span className="i-ph:dots-three-vertical" aria-hidden />
+              </button>
+            </div>
+          </nav>
+        )}
+        {useMobileIde && mobileTabSwitcherOpen && (
+          <section
+            className="bolt-mobile-tab-switcher"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Tab switcher"
+            data-testid="mobile-tab-switcher"
+          >
+            <div className="bolt-mobile-tab-switcher-body">
+              <div className="bolt-mobile-tab-switcher-content">
+                <div className="bolt-mobile-tab-switcher-grid">
+                  {mobileOpenTabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      className="bolt-mobile-tab-switcher-card"
+                      aria-current={activeMobileOpenTabId === tab.id ? 'true' : undefined}
+                      data-testid={`tab-card-${tab.id}`}
+                      onClick={() => activateMobileTool(tab.id)}
+                    >
+                      <span className="bolt-mobile-tab-switcher-card-icon" aria-hidden>
+                        {tab.icon === 'agent' ? <MobileReplitAgentIcon /> : <span className={tab.icon} />}
+                      </span>
+                      <span>{tab.name}</span>
+                      {!ECODE_MOBILE_DEFAULT_TABS.includes(tab.id as any) ? (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="bolt-mobile-tab-switcher-close"
+                          aria-label={`Close ${tab.name} tab`}
+                          data-testid={`button-close-tab-${tab.id}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            closeMobileOpenTab(tab.id);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              closeMobileOpenTab(tab.id);
+                            }
+                          }}
+                        >
+                          <span className="i-ph:x" aria-hidden />
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="bolt-mobile-tab-switcher-footer">
+                <div className="bolt-mobile-tab-switcher-quick" role="group" aria-label="Quick access tools">
+                  {['secrets', 'database', 'settings'].map((toolId) => {
+                    const tool = ECODE_MOBILE_TAB_META[toolId];
+
+                    return (
+                      <button
+                        key={toolId}
+                        type="button"
+                        aria-label={`Quick access: ${tool.name}`}
+                        data-testid={`quick-access-${toolId}`}
+                        onClick={() => activateMobileTool(toolId)}
+                      >
+                        <span className={tool.icon} aria-hidden />
+                        <span>{tool.name}</span>
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    aria-label="Open new tab"
+                    data-testid="button-new-tab"
+                    onClick={openMobileToolsSheet}
+                  >
+                    <span className="i-ph:plus" aria-hidden />
+                    <span>New Tab</span>
+                  </button>
+                </div>
+                <div className="bolt-mobile-tab-switcher-search">
+                  <label>
+                    <span className="i-ph:files" aria-hidden />
+                    <input placeholder="Search tabs..." aria-label="Search open tabs" data-testid="input-search-tabs" />
+                  </label>
+                  <button type="button" aria-label="Clear search" data-testid="button-clear-search">
+                    <span className="i-ph:magnifying-glass" aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Close tab switcher"
+                    data-testid="button-close-switcher"
+                    onClick={() => setMobileTabSwitcherOpen(false)}
+                  >
+                    <span className="i-ph:x" aria-hidden />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+        {useMobileIde && mobileMoreOpen && (
+          <>
             <button
-              key={id}
               type="button"
-              aria-label={label}
-              aria-current={mobilePanel === id ? 'page' : undefined}
-              onClick={() => {
-                setMobileIdePanel(id as typeof mobilePanel);
-              }}
+              className="bolt-mobile-more-menu-backdrop"
+              aria-label="Close more menu"
+              onClick={() => setMobileMoreOpen(false)}
+              data-testid="mobile-more-menu-backdrop"
+            />
+            <section
+              className="bolt-mobile-more-menu-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Tools"
+              data-testid="mobile-more-menu-sheet"
             >
-              <span className={icon} aria-hidden />
-              <span>{id === 'deploy' ? 'Publish' : label}</span>
-            </button>
-          ))}
-        </nav>
+              <div className="bolt-mobile-more-menu-handle" aria-hidden />
+              <header className="bolt-mobile-more-menu-header">
+                <h2>Tools</h2>
+                <button
+                  type="button"
+                  aria-label="Close more menu"
+                  data-testid="mobile-more-menu-close"
+                  onClick={() => setMobileMoreOpen(false)}
+                >
+                  <span className="i-ph:x" aria-hidden />
+                </button>
+              </header>
+              <div className="bolt-mobile-more-menu-grid">
+                {ECODE_MOBILE_MORE_MENU_ITEMS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="bolt-mobile-more-menu-item"
+                    data-testid={`mobile-more-menu-${item.id}`}
+                    onClick={() => void activateMobileMoreMenuItem(item.id)}
+                  >
+                    <span className="bolt-mobile-more-menu-icon" aria-hidden>
+                      <span className={item.icon} />
+                      {item.id === 'debug' && statusbarDiagnostics.errors > 0 ? (
+                        <strong>{statusbarDiagnostics.errors}</strong>
+                      ) : null}
+                    </span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+        {useMobileIde && mobileToolsSheetOpen && (
+          <>
+            <button
+              type="button"
+              className="bolt-mobile-more-backdrop"
+              aria-label="Close tools sheet"
+              onClick={closeMobileToolsSheet}
+            />
+            <section
+              className="bolt-mobile-more-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Search for tools and files"
+              data-testid="tools-sheet"
+            >
+              <div className="bolt-mobile-more-handle" aria-hidden />
+              <header className="bolt-mobile-more-header">
+                <label className="bolt-mobile-more-search">
+                  <span className="sr-only">Search for tools and files</span>
+                  <input
+                    value={mobileToolsQuery}
+                    onChange={(event) => setMobileToolsQuery(event.target.value)}
+                    placeholder="Search for tools and files"
+                    autoComplete="off"
+                    autoFocus
+                    data-testid="tools-search-input"
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="bolt-mobile-more-close"
+                  data-testid="tools-sheet-close"
+                  onClick={closeMobileToolsSheet}
+                >
+                  Close
+                </button>
+              </header>
+              <div className="bolt-mobile-more-scroll">
+                {(['search', 'tools'] as const).map((section) => {
+                  const items = filteredMobileToolsSheetItems.filter((item) => item.section === section);
+
+                  if (!items.length) {
+                    return null;
+                  }
+
+                  return (
+                    <div key={section} className="bolt-mobile-more-group">
+                      <div className="bolt-mobile-more-section-label">{section === 'search' ? 'Search' : 'Tools'}</div>
+                      <div className="bolt-mobile-more-list">
+                        {items.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            className="bolt-mobile-more-item"
+                            data-tone={'tone' in item ? item.tone : undefined}
+                            aria-label={item.title}
+                            aria-current={activeMobileOpenTabId === item.id ? 'page' : undefined}
+                            data-testid={`tool-item-${item.id}`}
+                            onClick={() => activateMobileTool(item.id)}
+                          >
+                            <span className="bolt-mobile-more-item-icon" aria-hidden>
+                              {item.icon === 'agent' ? <MobileReplitAgentIcon /> : <span className={item.icon} />}
+                            </span>
+                            <span className="bolt-mobile-more-item-copy">
+                              <span>{item.title}</span>
+                              <small>{item.description}</small>
+                            </span>
+                            {section === 'search' ? (
+                              <span className="bolt-mobile-more-item-chevron i-ph:caret-right" aria-hidden />
+                            ) : null}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {filteredMobileToolsSheetItems.length === 0 && (
+                <div className="bolt-mobile-more-empty">No tools found for "{mobileToolsQuery}".</div>
+              )}
+            </section>
+          </>
+        )}
         {projectIdeMode && (
           <footer
             className={classNames('bolt-project-statusbar', {
@@ -5632,14 +6866,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <button
                 type="button"
                 className="bolt-project-statusbar-pill"
-                aria-label={`Open Problems. ${statusbarDiagnostics.errors} errors and ${statusbarDiagnostics.warnings} warnings.`}
-                title={`Problems: ${statusbarDiagnostics.errors} errors, ${statusbarDiagnostics.warnings} warnings`}
+                aria-label={`Open Problems. ${statusbarDiagnostics.errors} ${statusbarDiagnostics.errors === 1 ? 'error' : 'errors'}, ${statusbarDiagnostics.warnings} ${statusbarDiagnostics.warnings === 1 ? 'warning' : 'warnings'}.`}
+                title={`${statusbarDiagnostics.errors} ${statusbarDiagnostics.errors === 1 ? 'error' : 'errors'} · ${statusbarDiagnostics.warnings} ${statusbarDiagnostics.warnings === 1 ? 'warning' : 'warnings'}`}
                 onClick={() => openBottomTerminal('problems')}
               >
-                <span className="i-ph:warning-circle" aria-hidden />
                 <span className="bolt-project-statusbar-label">Problems</span>
-                <span className="bolt-project-statusbar-error-count">{statusbarDiagnostics.errors}</span>
-                <span className="bolt-project-statusbar-warning-count">{statusbarDiagnostics.warnings}</span>
+                <span
+                  className="bolt-project-statusbar-error-count"
+                  data-empty={statusbarDiagnostics.errors === 0 ? 'true' : undefined}
+                  aria-label={`${statusbarDiagnostics.errors} ${statusbarDiagnostics.errors === 1 ? 'error' : 'errors'}`}
+                >
+                  <span className="i-ph:x-circle-fill" aria-hidden />
+                  {statusbarDiagnostics.errors}
+                </span>
+                <span
+                  className="bolt-project-statusbar-warning-count"
+                  data-empty={statusbarDiagnostics.warnings === 0 ? 'true' : undefined}
+                  aria-label={`${statusbarDiagnostics.warnings} ${statusbarDiagnostics.warnings === 1 ? 'warning' : 'warnings'}`}
+                >
+                  <span className="i-ph:warning-fill" aria-hidden />
+                  {statusbarDiagnostics.warnings}
+                </span>
               </button>
               <button
                 type="button"
@@ -5962,10 +7209,14 @@ function ProjectIdeGuidedTour({
 function ProjectIdeServicePanel({
   projectId,
   panel,
+  displayTitle,
+  displayIcon,
   initialPayload,
 }: {
   projectId?: string;
   panel: string;
+  displayTitle?: string;
+  displayIcon?: string;
   initialPayload?: any;
 }) {
   const [payload, setPayload] = useState<any>(() => initialPayload);
@@ -5985,7 +7236,8 @@ function ProjectIdeServicePanel({
     mode: 'editing',
   });
 
-  const title = panelTitle(panel);
+  const title = displayTitle ?? panelTitle(panel);
+  const icon = displayIcon ?? panelIcon(panel);
 
   const rendersEmptyStateActions =
     panel === 'deployments' ||
@@ -6151,7 +7403,7 @@ function ProjectIdeServicePanel({
   return (
     <div className="bolt-project-service-panel" data-testid="ide-service-panel" data-panel={panel}>
       <div className="bolt-project-ide-panel-header">
-        <span className={panelIcon(panel)} aria-hidden />
+        <span className={icon} aria-hidden />
         <h2 className="m-0 text-sm font-semibold">{title}</h2>
         <button
           type="button"
@@ -6356,9 +7608,26 @@ function ProjectProblemsPanel() {
             {errors} errors · {warnings} warnings in the current workspace
           </p>
         </div>
-        <div className="bolt-project-problems-counts" aria-label={`${errors} errors and ${warnings} warnings`}>
-          <span className="bolt-project-problems-count bolt-project-problems-count-error">{errors}</span>
-          <span className="bolt-project-problems-count bolt-project-problems-count-warning">{warnings}</span>
+        <div
+          className="bolt-project-problems-counts"
+          aria-label={`${errors} ${errors === 1 ? 'error' : 'errors'}, ${warnings} ${warnings === 1 ? 'warning' : 'warnings'}`}
+        >
+          <span
+            className="bolt-project-problems-count bolt-project-problems-count-error"
+            data-empty={errors === 0 ? 'true' : undefined}
+          >
+            <span className="i-ph:x-circle-fill" aria-hidden />
+            {errors}
+            <span className="bolt-project-problems-count-suffix">{errors === 1 ? 'error' : 'errors'}</span>
+          </span>
+          <span
+            className="bolt-project-problems-count bolt-project-problems-count-warning"
+            data-empty={warnings === 0 ? 'true' : undefined}
+          >
+            <span className="i-ph:warning-fill" aria-hidden />
+            {warnings}
+            <span className="bolt-project-problems-count-suffix">{warnings === 1 ? 'warning' : 'warnings'}</span>
+          </span>
         </div>
       </header>
       {diagnostics.length === 0 ? (
@@ -7164,7 +8433,7 @@ function IdeTabBar({
     ['object-storage', 'Object Storage', 'File storage', 'i-ph:package', 'var(--vc-ide-accent-warning)', 'Data'],
     [
       'env',
-      'Env vars',
+      'Environment variables',
       'Environment variables',
       'i-ph:brackets-curly',
       'var(--vc-ide-accent-warning)',
@@ -13949,6 +15218,17 @@ function PanelButton({ children, variant, ...props }: any) {
   );
 }
 
+function MobileReplitAgentIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+      <circle cx="7" cy="7" r="3" />
+      <circle cx="17" cy="7" r="3" />
+      <circle cx="7" cy="17" r="3" />
+      <circle cx="17" cy="17" r="3" />
+    </svg>
+  );
+}
+
 function panelTitle(panel: string) {
   const titles: Record<string, string> = {
     editor: 'Editor',
@@ -13968,7 +15248,7 @@ function panelTitle(panel: string) {
     search: 'Search',
     locks: 'Locks',
     overview: 'Overview',
-    deployments: 'Deploy',
+    deployments: 'Deployments',
     security: 'Security',
     env: 'Environment variables',
     secrets: 'Secrets',

@@ -1,40 +1,337 @@
-import { Form, useActionData } from '@remix-run/react';
-import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
+import { Form, Link, useActionData, useNavigation } from '@remix-run/react';
 import {
+  Building2,
+  CheckCircle,
+  Chrome,
+  Code2,
+  Eye,
+  EyeOff,
+  Github,
+  Lock,
+  Mail,
+  Shield,
+  Sparkles,
+  User as UserIcon,
+} from 'lucide-react';
+import { useState } from 'react';
+import { AuthField, AuthScreen, AuthSubmit } from '~/components/auth/AuthScreen';
+import {
+  apiBaseUrl,
   apiRequest,
   formObject,
+  json,
   redirect,
   sessionCookie,
   type EnterpriseActionArgs,
+  type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+
+/*
+ * Mirror login.tsx: the marketing host shouldn't expose the signup form.
+ * Visitors who land on `e-code.ai/register` or `e-code.ai/signup` are
+ * 301-redirected to `app.e-code.ai/register` so password managers and
+ * OAuth callbacks all converge on a single canonical hostname.
+ */
+export async function loader({ request }: EnterpriseLoaderArgs) {
+  const host = request.headers.get('host')?.toLowerCase() ?? '';
+
+  if (host === 'e-code.ai' || host === 'www.e-code.ai') {
+    return redirect('https://app.e-code.ai/register', { status: 301 });
+  }
+
+  return null;
+}
+
+type ActionResult =
+  | { error: string; fields?: { name?: string; email?: string; organizationName?: string } }
+  | { ok: true };
 
 export async function action({ request }: EnterpriseActionArgs) {
   const body = formObject(await request.formData());
 
-  const result = await apiRequest<{ token: string }>(request, '/auth/register', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+  const password = typeof body.password === 'string' ? body.password : '';
+  const confirmPassword = typeof body.confirmPassword === 'string' ? body.confirmPassword : '';
+  const organizationName = typeof body.organizationName === 'string' ? body.organizationName.trim() : '';
 
-  return redirect('/verify-email', { headers: { 'Set-Cookie': sessionCookie(result.token) } });
+  /*
+   * Server-side cross-checks duplicating the HTML5 constraints. The
+   * browser enforces the same rules, but a hostile client (or a curl
+   * call) can bypass them, and the API rejects with a 400 anyway —
+   * mirroring the rules here gives us a friendly inline error instead
+   * of a generic 400 from Fastify.
+   */
+  if (!email) {
+    return json<ActionResult>(
+      { error: 'Email is required.', fields: { name, email, organizationName } },
+      { status: 400 },
+    );
+  }
+
+  if (password.length < 8) {
+    return json<ActionResult>(
+      { error: 'Password must be at least 8 characters.', fields: { name, email, organizationName } },
+      { status: 400 },
+    );
+  }
+
+  if (password !== confirmPassword) {
+    return json<ActionResult>(
+      { error: 'Passwords do not match.', fields: { name, email, organizationName } },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const result = await apiRequest<{ token: string }>(request, '/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        email,
+        password,
+
+        /*
+         * The Zod schema on the API treats these as `z.string().min(1).optional()`,
+         * which rejects empty strings. Drop the key when the user left the
+         * field blank so the server falls back to its default
+         * "${email}'s Organization" naming.
+         */
+        ...(name ? { name } : {}),
+        ...(organizationName ? { organizationName } : {}),
+      }),
+    });
+
+    /*
+     * `/auth/register` returns a session cookie, so the user is logged
+     * in immediately. The verification email (logged or sent depending
+     * on `EmailProvider`) is non-blocking — they can verify later from
+     * `/verify-email`. This keeps the MVP path frictionless while we
+     * wire up Resend / SES.
+     */
+    return redirect('/dashboard', {
+      headers: { 'Set-Cookie': sessionCookie(result.token) },
+    });
+  } catch (error) {
+    if (error instanceof Response) {
+      let message = 'Could not create your account.';
+
+      try {
+        const payload = (await error.json()) as { error?: string; code?: string };
+
+        if (payload.code === 'AUTH_EMAIL_EXISTS') {
+          message = 'An account with this email already exists. Try signing in instead.';
+        } else if (payload.error) {
+          message = payload.error;
+        }
+      } catch {
+        message = error.statusText || message;
+      }
+
+      return json<ActionResult>(
+        { error: message, fields: { name, email, organizationName } },
+        { status: error.status },
+      );
+    }
+
+    return json<ActionResult>(
+      {
+        error: `Signup failed. API service is not reachable at ${apiBaseUrl()}. Start it with pnpm run dev:api or pnpm run dev:all.`,
+        fields: { name, email, organizationName },
+      },
+      { status: 503 },
+    );
+  }
 }
 
 export default function SignupPage() {
-  const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+  const actionData = useActionData<typeof action>() as
+    | { error?: string; fields?: { name?: string; email?: string; organizationName?: string } }
+    | undefined;
+
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === 'submitting';
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showOrgField, setShowOrgField] = useState(Boolean(actionData?.fields?.organizationName));
 
   return (
-    <EnterpriseFormPage
-      title="Signup"
-      description="Create a user account and the first organization workspace."
+    <AuthScreen
+      eyebrow="Free to get started"
+      title="Create your account"
+      description="Spin up your first workspace, invite teammates and start shipping with the AI agent in minutes."
       error={actionData?.error}
+      backTo="/"
+      backLabel="Back to home"
+      heroEyebrow="Start free, scale on demand"
+      heroTitle="Build production apps with an AI co-pilot"
+      heroBody="Provision a workspace, share live previews and ship to your own infrastructure — all from a single browser tab."
+      heroAside={
+        <>
+          <div className="mt-9 grid gap-4">
+            {[
+              { icon: Shield, text: 'SOC2-ready controls, MFA and audit logs out of the box' },
+              { icon: Sparkles, text: 'AI agent that writes, reviews and ships code with you' },
+              { icon: Code2, text: 'Cloud IDE with terminal, preview and Git-native workflows' },
+              { icon: CheckCircle, text: 'Bring your own keys for 21 AI providers' },
+            ].map((feature) => {
+              const Icon = feature.icon;
+
+              return (
+                <div key={feature.text} className="flex items-center gap-3">
+                  <div className="grid h-10 w-10 place-items-center rounded-lg bg-white/18 backdrop-blur-md">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <span className="text-[14px] font-medium text-white/92">{feature.text}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-10 grid grid-cols-2 gap-5 border-t border-white/20 pt-8">
+            <div>
+              <div className="text-3xl font-bold">21</div>
+              <div className="mt-1 text-[12px] text-white/72">AI providers</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold">29+</div>
+              <div className="mt-1 text-[12px] text-white/72">Languages</div>
+            </div>
+          </div>
+        </>
+      }
+      footer={
+        <>
+          Already have an account?{' '}
+          <Link to="/login" className="vc-auth-link font-semibold hover:underline">
+            Sign in
+          </Link>
+        </>
+      }
+      belowCard={
+        <p className="vc-auth-legal mt-5 text-center text-[11px] leading-5 sm:mt-6">
+          By creating an account, you agree to our{' '}
+          <Link to="/terms" className="underline">
+            Terms
+          </Link>{' '}
+          and{' '}
+          <Link to="/privacy" className="underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
+      }
     >
-      <Form method="post" className="space-y-4">
-        <TextField label="Name" name="name" />
-        <TextField label="Organization" name="organizationName" required />
-        <TextField label="Email" name="email" type="email" required />
-        <TextField label="Password" name="password" type="password" required />
-        <PrimaryButton>Create account</PrimaryButton>
+      <Form method="post" className="space-y-4 sm:space-y-5">
+        <AuthField
+          label="Full name"
+          name="name"
+          autoComplete="name"
+          defaultValue={actionData?.fields?.name ?? ''}
+          placeholder="Ada Lovelace"
+          icon={<UserIcon className="h-4 w-4" />}
+        />
+
+        <AuthField
+          label="Work email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          defaultValue={actionData?.fields?.email ?? ''}
+          placeholder="you@company.com"
+          icon={<Mail className="h-4 w-4" />}
+        />
+
+        <label className="block">
+          <span className="vc-auth-label text-[13px] font-medium">Password</span>
+          <span className="relative mt-2 block">
+            <Lock className="vc-auth-field-icon pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+            <input
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              required
+              minLength={8}
+              placeholder="At least 8 characters"
+              className="vc-auth-input h-12 w-full rounded-md border px-10 pr-12 text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((value) => !value)}
+              className="vc-auth-input-action absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-md transition-colors sm:h-8 sm:w-8"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </span>
+          <span className="vc-auth-hint mt-2 block text-[11px] leading-5">
+            Use 8+ characters. Mix in letters, numbers and symbols for a stronger password.
+          </span>
+        </label>
+
+        <label className="block">
+          <span className="vc-auth-label text-[13px] font-medium">Confirm password</span>
+          <span className="relative mt-2 block">
+            <Lock className="vc-auth-field-icon pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+            <input
+              name="confirmPassword"
+              type={showConfirmPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              required
+              minLength={8}
+              placeholder="Re-enter the same password"
+              className="vc-auth-input h-12 w-full rounded-md border px-10 pr-12 text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((value) => !value)}
+              className="vc-auth-input-action absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-md transition-colors sm:h-8 sm:w-8"
+              aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+            >
+              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </span>
+        </label>
+
+        {showOrgField ? (
+          <AuthField
+            label="Organization name"
+            name="organizationName"
+            autoComplete="organization"
+            defaultValue={actionData?.fields?.organizationName ?? ''}
+            placeholder="Acme Inc."
+            icon={<Building2 className="h-4 w-4" />}
+            hint="Leave blank to create a personal workspace — you can rename it later in settings."
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowOrgField(true)}
+            className="vc-auth-inline-link text-[12px] font-semibold hover:underline"
+          >
+            + Add an organization name (optional)
+          </button>
+        )}
+
+        <AuthSubmit label="Create account" loadingLabel="Creating account..." isSubmitting={isSubmitting} />
       </Form>
-    </EnterpriseFormPage>
+
+      <div className="vc-auth-secondary-actions mt-5 grid gap-3 border-t pt-5 sm:grid-cols-2">
+        <Link
+          to="/auth/oauth/github"
+          className="vc-auth-secondary-action inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors"
+        >
+          <Github className="h-4 w-4" />
+          Sign up with GitHub
+        </Link>
+        <Link
+          to="/auth/oauth/google"
+          className="vc-auth-secondary-action inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors"
+        >
+          <Chrome className="h-4 w-4" />
+          Sign up with Google
+        </Link>
+      </div>
+    </AuthScreen>
   );
 }

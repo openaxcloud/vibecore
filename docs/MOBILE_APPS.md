@@ -11,7 +11,7 @@ Vibecore mobile is a Capacitor-based native shell in `apps/mobile/` that reuses 
 - Capacitor config: `apps/mobile/capacitor.config.ts`.
 - Runtime config is environment-driven. Do not hardcode API or app URLs.
 - Production app content should set `VITE_WEB_APP_ORIGIN` to the deployed Vibecore web app and `VITE_API_BASE_URL` to the API origin.
-- Release association assets are checked in at `apps/mobile/assets/apple-app-site-association` and `apps/mobile/assets/assetlinks.json`; production release must publish them at the iOS associated-domain host and Android App Link host.
+- Release association assets are checked in at `apps/mobile/assets/apple-app-site-association` and `apps/mobile/assets/assetlinks.json`, and mirrored to `public/.well-known/` for the web app host. Production release must publish the generated files at the iOS associated-domain host and Android App Link host.
 
 ## Native Capabilities
 

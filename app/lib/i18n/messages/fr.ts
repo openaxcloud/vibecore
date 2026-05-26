@@ -30,4 +30,42 @@ export const fr: TranslationBundle = {
   'plan.statusInProgress': 'En cours',
   'plan.statusCompleted': 'Terminé',
   'plan.statusFailed': 'Échec',
+
+  // Conversation branches dropdown
+  'branches.ariaLabel': 'Branches de conversation ({count})',
+  'branches.trigger.title': 'Parcourir les branches de conversation',
+  'branches.row.switch': 'Basculer vers {label}',
+  'branches.row.rename': 'Renommer {label}',
+  'branches.row.delete': 'Supprimer {label}',
+  'branches.row.deleteTitle': 'Supprimer la branche (et ses descendantes)',
+  'branches.row.renameTitle': 'Renommer la branche',
+  'branches.switchedToast': 'Conversation changée',
+  'branches.switchFailedToast': 'Impossible de basculer — conversation manquante',
+  'branches.renamePrompt': 'Renommer la branche',
+  'branches.emptyTitleToast': 'Le titre ne peut pas être vide',
+  'branches.deleteConfirm': 'Supprimer cette branche et ses sous-branches ?',
+  'branches.deletedToast': 'Branche supprimée',
+
+  // Share view
+  'share.fallbackTitle': 'Conversation partagée',
+  'share.metaPrefix': 'Partagée depuis le projet',
+  'share.disclaimer': 'Aperçu en lecture seule de la conversation. {count} message{plural} dans le lot.',
+  'share.errorTitle': 'Lien de partage indisponible',
+  'share.errorDefault': "Le contenu du lien n'a pas pu être décodé.",
+  'share.forkButton': 'Forker cette conversation (connexion requise)',
+
+  // Presence avatars
+  'presence.viewersAriaLabel': '{count} observateurs',
+  'presence.overflowAriaLabel': '{count} observateurs supplémentaires',
+  'presence.statusTyping': 'en train de taper',
+  'presence.statusViewing': 'regarde',
+  'presence.statusIdle': 'inactif',
+
+  // Share button
+  'shareButton.label': 'Partager cette conversation',
+  'shareButton.disabled': 'Envoie au moins un message avant de partager',
+  'shareButton.enabled': 'Copier un lien de partage de cette conversation',
+  'shareButton.copiedToast': 'Lien de partage copié dans le presse-papier',
+  'shareButton.errorCouldNotBuild': 'Impossible de construire le lien de partage',
+  'shareButton.errorClipboard': 'Lien construit mais la copie a échoué',
 };

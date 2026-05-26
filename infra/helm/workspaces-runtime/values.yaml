@@ -1,9 +1,20 @@
 namespace: workspaces
+platformNamespace: vibecore
+
+workspaceManager:
+  serviceAccountName: vibecore-vibecore-platform-workspace-manager
 
 runtimeClass:
   enabled: true
   name: gvisor
   handler: runsc
+
+storageClass:
+  enabled: true
+  name: workspace-standard-rwo
+  type: pd-standard
+  reclaimPolicy: Delete
+  allowVolumeExpansion: true
 
 sandboxNodeSelector:
   vibecore.ai/node-pool: sandbox

@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { RemoteKubernetesRuntimeAdapter, type WebSocketLike } from './index';
+import { RemoteKubernetesRuntimeAdapter, type WebSocketLike } from './index.js';
+
+type FakeWebSocketListener = (event: unknown) => void;
 
 class FakeWebSocket implements WebSocketLike {
   readyState = 1;
   sent: Array<string | ArrayBufferLike | Blob | ArrayBufferView> = [];
-  listeners = new Map<string, Function[]>();
+  listeners = new Map<string, FakeWebSocketListener[]>();
   static instances: FakeWebSocket[] = [];
 
   constructor(readonly url: string) {
@@ -20,18 +22,18 @@ class FakeWebSocket implements WebSocketLike {
     this.emit('close', {});
   }
 
-  addEventListener(type: 'open' | 'message' | 'error' | 'close', listener: (event: any) => void) {
+  addEventListener(type: 'open' | 'message' | 'error' | 'close', listener: FakeWebSocketListener) {
     this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]);
   }
 
-  removeEventListener(type: 'open' | 'message' | 'error' | 'close', listener: (event: any) => void) {
+  removeEventListener(type: 'open' | 'message' | 'error' | 'close', listener: FakeWebSocketListener) {
     this.listeners.set(
       type,
       (this.listeners.get(type) ?? []).filter((item) => item !== listener),
     );
   }
 
-  emit(type: string, event: any) {
+  emit(type: string, event: unknown) {
     for (const listener of this.listeners.get(type) ?? []) {
       listener(event);
     }
@@ -90,6 +92,7 @@ function createFetchMock() {
 describe('RemoteKubernetesRuntimeAdapter', () => {
   it('opens project workspace, loads file tree, saves edits, runs patches, and opens previews', async () => {
     const fetchMock = createFetchMock();
+
     const adapter = new RemoteKubernetesRuntimeAdapter({
       baseUrl: 'https://runtime.example.com',
       authToken: 'token-123',
@@ -120,6 +123,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
   it('supports terminal, file watch, and log WebSockets with realistic messages', async () => {
     FakeWebSocket.instances = [];
+
     const adapter = new RemoteKubernetesRuntimeAdapter({
       baseUrl: 'https://runtime.example.com',
       authToken: () => 'token-456',
@@ -156,6 +160,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
   it('reconnects watch sockets and terminal sockets after disconnects', async () => {
     vi.useFakeTimers();
     FakeWebSocket.instances = [];
+
     const adapter = new RemoteKubernetesRuntimeAdapter({
       baseUrl: 'https://runtime.example.com',
       authToken: 'token-reconnect',

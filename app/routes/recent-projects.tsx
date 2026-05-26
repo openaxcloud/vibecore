@@ -1,14 +1,19 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
 import { useLoaderData } from '@remix-run/react';
 import { AppShell, ProjectGrid } from '~/components/dashboard/SaaSLayout';
-import { apiRequest, firstOrganization, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { apiRequest, firstOrganizationOrNull, redirect, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 
 export const meta: MetaFunction = () => [{ title: 'Recent projects - VibeCore' }];
 
 type ApiProject = { id: string; name: string; updatedAt?: string; sourceType?: string; gitRepositoryUrl?: string };
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const organization = await firstOrganization(request);
+  const organization = await firstOrganizationOrNull(request);
+
+  if (!organization) {
+    return redirect('/');
+  }
+
   const result = await apiRequest<{ projects: ApiProject[] }>(request, `/orgs/${organization.id}/projects`);
 
   return {

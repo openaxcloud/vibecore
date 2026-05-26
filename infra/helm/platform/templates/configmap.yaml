@@ -1,0 +1,93 @@
+{{- /*
+Non-secret platform-wide env: OAuth provider URLs, the api base URL the web
+pod uses to reach the api service, and the admin allowlist. These are public
+well-known URLs (Google/GitHub) and cluster-internal DNS — none of them belong
+in Secret Manager. Mounted via `envFrom` alongside the existing secret so the
+API and web pods see them as process.env entries.
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "vibecore-platform.fullname" . }}-platform-env
+  labels:
+    app.kubernetes.io/part-of: vibecore
+data:
+  # In-cluster URL the web/admin pods use to reach the api service. Mirrors
+  # the build-time fallback baked into app/lib/enterprise-api.server.ts —
+  # set explicitly here so the source of truth is the chart, not the bundle.
+  SAAS_API_URL: {{ .Values.platformEnv.saasApiUrl | quote }}
+  API_BASE_URL: {{ .Values.platformEnv.apiBaseUrl | quote }}
+  {{- if .Values.platformEnv.publicApiBaseUrl }}
+  PUBLIC_API_BASE_URL: {{ .Values.platformEnv.publicApiBaseUrl | quote }}
+  {{- end }}
+
+  # Google OAuth — well-known endpoints, redirect URI derived from the chart.
+  GOOGLE_AUTHORIZATION_URL: {{ .Values.platformEnv.google.authorizationUrl | quote }}
+  GOOGLE_TOKEN_URL: {{ .Values.platformEnv.google.tokenUrl | quote }}
+  GOOGLE_USERINFO_URL: {{ .Values.platformEnv.google.userinfoUrl | quote }}
+  GOOGLE_REDIRECT_URI: {{ .Values.platformEnv.google.redirectUri | quote }}
+  GOOGLE_SCOPE: {{ .Values.platformEnv.google.scope | quote }}
+
+  # GitHub OAuth — well-known endpoints, redirect URI derived from the chart.
+  GITHUB_AUTHORIZATION_URL: {{ .Values.platformEnv.github.authorizationUrl | quote }}
+  GITHUB_TOKEN_URL: {{ .Values.platformEnv.github.tokenUrl | quote }}
+  GITHUB_USERINFO_URL: {{ .Values.platformEnv.github.userinfoUrl | quote }}
+  GITHUB_REDIRECT_URI: {{ .Values.platformEnv.github.redirectUri | quote }}
+  GITHUB_SCOPE: {{ .Values.platformEnv.github.scope | quote }}
+
+  # Comma-separated list of emails granted PlatformAdmin (services/api/src/app.ts:2224).
+  PLATFORM_ADMIN_EMAILS: {{ .Values.platformEnv.platformAdminEmails | quote }}
+
+  # Tell Fastify to honor X-Forwarded-* from the GKE ingress so request.ip
+  # is the real client IP (audit logs, rate-limits, OAuth callback origin).
+  TRUST_PROXY: {{ .Values.platformEnv.trustProxy | default "true" | quote }}
+
+  # Gate /platform/admin/* behind a TOTP step-up. The api treats anything
+  # other than the literal string "false" as required (services/api/src/app.ts:1005),
+  # so the only way to relax the policy is to set this to "false".
+  ADMIN_MFA_REQUIRED: {{ .Values.platformEnv.adminMfaRequired | default "true" | quote }}
+  PROJECT_STORAGE_DIR: {{ .Values.platformEnv.projectStorageDir | default "/tmp/vibecore-project-storage" | quote }}
+
+  # Remote Kubernetes runtime. These are operational endpoints and image
+  # references, not credentials; credentials stay in the Secret.
+  VITE_RUNTIME_MODE: {{ .Values.platformEnv.runtime.mode | quote }}
+  VITE_RUNTIME_API_BASE_URL: {{ .Values.platformEnv.runtime.apiBaseUrl | quote }}
+  WORKSPACE_MANAGER_URL: {{ .Values.platformEnv.runtime.workspaceManagerUrl | quote }}
+  WORKSPACE_RUNTIME_NAMESPACE: {{ .Values.platformEnv.runtime.workspaceRuntimeNamespace | quote }}
+  WORKSPACE_STORAGE_CLASS: {{ .Values.platformEnv.runtime.workspaceStorageClass | quote }}
+  WORKSPACE_AGENT_IMAGE: {{ .Values.platformEnv.runtime.workspaceAgentImage | quote }}
+  PREVIEW_URL_TEMPLATE: {{ .Values.platformEnv.runtime.previewUrlTemplate | quote }}
+
+  {{- if .Values.platformEnv.email.httpEndpoint }}
+  EMAIL_HTTP_ENDPOINT: {{ .Values.platformEnv.email.httpEndpoint | quote }}
+  {{- end }}
+  {{- if .Values.platformEnv.email.from }}
+  EMAIL_FROM: {{ .Values.platformEnv.email.from | quote }}
+  {{- end }}
+
+  {{- with .Values.platformEnv.stripe }}
+  {{- if .freeProductId }}
+  STRIPE_FREE_PRODUCT_ID: {{ .freeProductId | quote }}
+  {{- end }}
+  {{- if .freePriceId }}
+  STRIPE_FREE_PRICE_ID: {{ .freePriceId | quote }}
+  {{- end }}
+  {{- if .proProductId }}
+  STRIPE_PRO_PRODUCT_ID: {{ .proProductId | quote }}
+  {{- end }}
+  {{- if .proPriceId }}
+  STRIPE_PRO_PRICE_ID: {{ .proPriceId | quote }}
+  {{- end }}
+  {{- if .teamProductId }}
+  STRIPE_TEAM_PRODUCT_ID: {{ .teamProductId | quote }}
+  {{- end }}
+  {{- if .teamPriceId }}
+  STRIPE_TEAM_PRICE_ID: {{ .teamPriceId | quote }}
+  {{- end }}
+  {{- if .enterpriseProductId }}
+  STRIPE_ENTERPRISE_PRODUCT_ID: {{ .enterpriseProductId | quote }}
+  {{- end }}
+  {{- if .enterprisePriceId }}
+  STRIPE_ENTERPRISE_PRICE_ID: {{ .enterprisePriceId | quote }}
+  {{- end }}
+  {{- end }}

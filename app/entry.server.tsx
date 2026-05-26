@@ -1,7 +1,6 @@
 import type { AppLoadContext } from '@remix-run/cloudflare';
 import { RemixServer } from '@remix-run/react';
-import { isbot } from 'isbot';
-import { renderToReadableStream } from 'react-dom/server';
+import { renderToReadableStream } from 'react-dom/server.browser';
 import { renderHeadToString } from 'remix-island';
 import { Head } from './root';
 import { themeStore } from '~/lib/stores/theme';
@@ -13,8 +12,6 @@ export default async function handleRequest(
   remixContext: any,
   _loadContext: AppLoadContext,
 ) {
-  // await initializeModelList({});
-
   const head = renderHeadToString({
     request,
     remixContext: { ...remixContext, serverHandoffStream: undefined },
@@ -28,6 +25,15 @@ export default async function handleRequest(
       responseStatusCode = 500;
     },
   });
+
+  /*
+   * Block until every Suspense boundary has resolved. Under the Node runtime
+   * the streaming shell finishes before the route content is committed, which
+   * was producing a `<div id="root">` empty of any markup and a black page
+   * on the client. Awaiting allReady trades streaming for a complete SSR
+   * payload, which is the right tradeoff for the landing page and IDE shell.
+   */
+  await readable.allReady;
 
   const body = new ReadableStream({
     start(controller) {
@@ -67,10 +73,6 @@ export default async function handleRequest(
       readable.cancel();
     },
   });
-
-  if (isbot(request.headers.get('user-agent') || '')) {
-    await readable.allReady;
-  }
 
   responseHeaders.set('Content-Type', 'text/html');
 

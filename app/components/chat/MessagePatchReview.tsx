@@ -86,6 +86,7 @@ export const MessagePatchReview = memo(({ messageId, content, parts, onApply }: 
    * the aggregate stays in source order with the cards below.
    */
   const files = useStore(workbenchStore.files) as FileMap;
+  const selfRepairByPath = useStore(workbenchStore.agentPatchSelfRepair);
 
   const aggregate = useMemo(() => {
     return aggregateReviewableDiffSummaries(fileActions.map((action) => computeFileActionDiff(files, action).summary));
@@ -201,7 +202,12 @@ export const MessagePatchReview = memo(({ messageId, content, parts, onApply }: 
       {isOpen ? (
         <div id={`patch-review-body-${messageId}`} className="bolt-message-patch-review-body">
           {fileActions.map((action) => (
-            <InlineFileActionDiff key={action.id} action={action} onApply={applyHandler} />
+            <InlineFileActionDiff
+              key={action.id}
+              action={action}
+              onApply={applyHandler}
+              selfRepair={selfRepairByPath[action.filePath]}
+            />
           ))}
         </div>
       ) : null}

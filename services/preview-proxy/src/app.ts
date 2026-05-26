@@ -1,25 +1,37 @@
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 
 export interface PreviewProxyOptions {
   logger?: boolean;
   workspaceManagerUrl?: string;
   proxySharedSecret?: string;
+  isProduction?: boolean;
   fetchImpl?: typeof fetch;
   resolveAgent?: (workspaceId: string) => Promise<{ baseUrl: string; token: string } | undefined>;
   requestTimeoutMs?: number;
 }
 
+type PreviewRouteParams = { workspaceId: string; port: string; '*'?: string };
+
 export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): Promise<FastifyInstance> {
+  const isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
+
+  if (isProduction && !options.resolveAgent) {
+    assertProductionDefaultResolverConfig(options);
+  }
+
   const fetchImpl = options.fetchImpl ?? fetch;
   const requestTimeoutMs = options.requestTimeoutMs ?? 30_000;
   const app = Fastify({ logger: options.logger ?? false });
 
   app.get('/health', async () => ({ status: 'ok', service: 'preview-proxy' }));
 
-  const resolveAgent = options.resolveAgent ?? defaultResolveAgent(options);
+  const resolveAgent = options.resolveAgent ?? defaultResolveAgent(options, fetchImpl);
 
-  app.all('/p/:workspaceId/:port/*', async (request, reply) => {
-    const params = request.params as { workspaceId: string; port: string; '*': string };
+  const handlePreviewRequest = async (
+    request: FastifyRequest<{ Params: PreviewRouteParams }>,
+    reply: FastifyReply,
+  ) => {
+    const params = request.params;
     const portNumber = Number(params.port);
 
     if (!Number.isInteger(portNumber) || portNumber < 1 || portNumber > 65535) {
@@ -32,7 +44,8 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       return reply.code(404).send({ error: 'Workspace agent not reachable', code: 'PREVIEW_AGENT_NOT_FOUND' });
     }
 
-    const upstreamPath = `/preview/${portNumber}/${params['*'] ?? ''}`;
+    const proxyPath = params['*'] ?? '';
+    const upstreamPath = `/preview/${portNumber}/${proxyPath}`;
     const queryString = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
     const upstream = new URL(`${agent.baseUrl.replace(/\/$/, '')}${upstreamPath}${queryString}`);
     const headers: Record<string, string> = {
@@ -92,7 +105,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     } finally {
       clearTimeout(timeout);
     }
-  });
+  };
+
+  app.all('/p/:workspaceId/:port', handlePreviewRequest);
+  app.all('/p/:workspaceId/:port/*', handlePreviewRequest);
 
   return app;
 }
@@ -101,16 +117,16 @@ function shouldStreamBody(method: string): boolean {
   return method !== 'GET' && method !== 'HEAD';
 }
 
-function defaultResolveAgent(options: PreviewProxyOptions) {
+function defaultResolveAgent(options: PreviewProxyOptions, fetchImpl: typeof fetch) {
   return async (workspaceId: string) => {
     const managerUrl = options.workspaceManagerUrl;
-    const secret = options.proxySharedSecret;
+    const secret = normalizeSharedSecret(options.proxySharedSecret);
 
     if (!managerUrl || !secret) {
       return undefined;
     }
 
-    const response = await fetch(`${managerUrl.replace(/\/$/, '')}/internal/workspaces/${workspaceId}/agent`, {
+    const response = await fetchImpl(`${managerUrl.replace(/\/$/, '')}/internal/workspaces/${workspaceId}/agent`, {
       headers: { authorization: `Bearer ${secret}` },
     });
 
@@ -120,4 +136,42 @@ function defaultResolveAgent(options: PreviewProxyOptions) {
     if (!body.baseUrl || !body.token) return undefined;
     return { baseUrl: body.baseUrl, token: body.token };
   };
+}
+
+function assertProductionDefaultResolverConfig(options: PreviewProxyOptions) {
+  const managerUrl = options.workspaceManagerUrl?.trim();
+  const secret = normalizeSharedSecret(options.proxySharedSecret);
+
+  if (!managerUrl) {
+    throw new Error('WORKSPACE_MANAGER_URL is required in production for preview-proxy.');
+  }
+
+  if (!secret) {
+    throw new Error('PREVIEW_PROXY_SHARED_SECRET is required in production for preview-proxy.');
+  }
+
+  let url: URL;
+
+  try {
+    url = new URL(managerUrl);
+  } catch {
+    throw new Error('WORKSPACE_MANAGER_URL must be an absolute URL in production for preview-proxy.');
+  }
+
+  const isInternalKubernetesService =
+    url.protocol === 'http:' && (url.hostname.endsWith('.svc') || url.hostname.endsWith('.svc.cluster.local'));
+  const isHttps = url.protocol === 'https:';
+
+  if (!isHttps && !isInternalKubernetesService) {
+    throw new Error('WORKSPACE_MANAGER_URL must use HTTPS or an internal Kubernetes service DNS URL in production.');
+  }
+
+  if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/i.test(url.hostname)) {
+    throw new Error('WORKSPACE_MANAGER_URL must not point to localhost in production.');
+  }
+}
+
+function normalizeSharedSecret(value: string | undefined): string | undefined {
+  const normalized = value?.trim();
+  return normalized ? normalized : undefined;
 }

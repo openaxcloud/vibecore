@@ -277,7 +277,7 @@ ${ECODE_AGENT_REQUIREMENTS}
 11. Modularity is PARAMOUNT - Break down functionality into logical, reusable parts
 12. IMMEDIATELY refactor any file exceeding 250 lines
 13. ALWAYS plan refactoring before implementation - Consider impacts on the entire system
-14. NEVER ship decorative controls with no handler. If an external API would normally be required, simulate the workflow locally and keep the preview fully runnable.
+14. NEVER ship decorative controls with no handler. If an external API would normally be required, implement a real typed local/offline adapter or a clear "integration required" state; never report a successful external workflow unless the adapter ran.
 15. For React/Vite apps, create typed fixtures, derived metrics, event handlers, and reusable components instead of a static JSX screen.
 
 ## Artifact Usage

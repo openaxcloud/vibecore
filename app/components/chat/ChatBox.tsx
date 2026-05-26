@@ -23,13 +23,14 @@ import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
+import { normalizeModelList } from './modelList';
 
 interface ChatBoxProps {
   isModelSettingsCollapsed: boolean;
   setIsModelSettingsCollapsed: (collapsed: boolean) => void;
   provider: any;
-  providerList: any[];
-  modelList: any[];
+  providerList?: any[] | null;
+  modelList?: any[] | null;
   apiKeys: Record<string, string>;
   isModelLoading: string | undefined;
   onApiKeysChange: (providerName: string, apiKey: string) => void;
@@ -69,9 +70,21 @@ interface ChatBoxProps {
   setSelectedElement?: ((element: ElementInfo | null) => void) | undefined;
   projectIdeMode?: boolean;
   placeholder?: string;
+
+  /** Project id used by the composer overlays to persist MRU palettes. */
+  projectId?: string;
+
+  /** MRU file paths from projectIdeMemory; boosts ranking in @-palette. */
+  recentMentionedFilePaths?: readonly string[];
+
+  /** MRU slash command ids from projectIdeMemory; boosts ranking in /-palette. */
+  recentSlashCommandIds?: readonly string[];
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
+  const modelList = normalizeModelList(props.modelList);
+  const providerList = Array.isArray(props.providerList) ? props.providerList : (PROVIDER_LIST as ProviderInfo[]);
+
   const settingsToggleTitle = props.projectIdeMode
     ? props.isModelSettingsCollapsed
       ? 'Show agent settings'
@@ -127,27 +140,25 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           {() => (
             <div className={props.isModelSettingsCollapsed ? 'hidden' : ''}>
               <ModelSelector
-                key={props.provider?.name + ':' + props.modelList.length}
+                key={`${props.provider?.name ?? 'provider'}:${modelList.length}`}
                 model={props.model}
                 setModel={props.setModel}
-                modelList={props.modelList}
+                modelList={modelList}
                 provider={props.provider}
                 setProvider={props.setProvider}
-                providerList={props.providerList || (PROVIDER_LIST as ProviderInfo[])}
+                providerList={providerList}
                 apiKeys={props.apiKeys}
                 modelLoading={props.isModelLoading}
               />
-              {(props.providerList || []).length > 0 &&
-                props.provider &&
-                !LOCAL_PROVIDERS.includes(props.provider.name) && (
-                  <APIKeyManager
-                    provider={props.provider}
-                    apiKey={props.apiKeys[props.provider.name] || ''}
-                    setApiKey={(key) => {
-                      props.onApiKeysChange(props.provider.name, key);
-                    }}
-                  />
-                )}
+              {providerList.length > 0 && props.provider && !LOCAL_PROVIDERS.includes(props.provider.name) && (
+                <APIKeyManager
+                  provider={props.provider}
+                  apiKey={props.apiKeys[props.provider.name] || ''}
+                  setApiKey={(key) => {
+                    props.onApiKeysChange(props.provider.name, key);
+                  }}
+                />
+              )}
             </div>
           )}
         </ClientOnly>
@@ -193,6 +204,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
       >
         <textarea
           ref={props.textareaRef}
+          aria-label={props.projectIdeMode ? 'Agent prompt' : 'Chat prompt'}
           className={classNames(
             'w-full pl-4 pt-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
             'transition-all duration-200',
@@ -269,6 +281,8 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             textareaRef={props.textareaRef}
             input={props.input}
             handleInputChange={props.handleInputChange}
+            recentMentionedFilePaths={props.recentMentionedFilePaths}
+            projectId={props.projectId}
           />
         ) : null}
         {props.textareaRef ? (
@@ -281,6 +295,8 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               setChatMode: props.setChatMode,
               ...(props.slashContext ?? {}),
             }}
+            recentSlashCommandIds={props.recentSlashCommandIds}
+            projectId={props.projectId}
           />
         ) : null}
         <ClientOnly>

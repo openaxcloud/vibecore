@@ -41,6 +41,19 @@ describe('categorizeProjectsNewError', () => {
     expect(descriptor.title).toMatch(/project service/i);
   });
 
+  it('maps project-count quota errors to the quota branch', () => {
+    const descriptor = categorizeProjectsNewError(
+      routeErrorResponse(429, { data: { error: 'Quota exceeded for projects.count' } }),
+    );
+    expect(descriptor.kind).toBe('quota');
+    expect(descriptor.title).toBe('Project quota reached');
+  });
+
+  it('maps bare project-count quota Errors to the quota branch', () => {
+    const descriptor = categorizeProjectsNewError(new Error('Quota exceeded for projects.count'));
+    expect(descriptor.kind).toBe('quota');
+  });
+
   it('maps a 404 RouteErrorResponse to the unknown branch (not auth)', () => {
     const descriptor = categorizeProjectsNewError(routeErrorResponse(404));
     expect(descriptor.kind).toBe('unknown');

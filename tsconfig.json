@@ -34,5 +34,22 @@
     "**/.server/**/*.tsx",
     "**/.client/**/*.ts",
     "**/.client/**/*.tsx"
+  ],
+  "exclude": [
+    "**/.claude",
+    "**/.claude/**",
+    "**/.playwright-mcp",
+    "**/.playwright-mcp/**",
+    "**/.vibecore",
+    "**/.vibecore/**",
+    "**/.vibecore-project-storage",
+    "**/.vibecore-project-storage/**",
+    "**/.vibecore-static-deployments",
+    "**/.vibecore-static-deployments/**",
+    "build",
+    "dist",
+    "node_modules",
+    "test-results",
+    "tmp"
   ]
 }

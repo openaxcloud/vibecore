@@ -6,10 +6,10 @@
     "@vibecore/database": "workspace:*",
     "fastify": "^5.8.5",
     "gpt-tokenizer": "^3.4.0",
-    "ioredis": "^5.10.1"
+    "ioredis": "^5.10.1",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
-    "tsx": "^4.21.0",
     "vitest": "^3.2.4"
   },
   "scripts": {

@@ -85,12 +85,41 @@ describe('OAuth state CSRF', () => {
 
 describe('HSTS in production', () => {
   let originalNodeEnv: string | undefined;
+  let originalCookieSecret: string | undefined;
+  let originalJwtSecret: string | undefined;
+  let originalWorkspaceManagerUrl: string | undefined;
+
   beforeEach(() => {
     originalNodeEnv = process.env.NODE_ENV;
+    originalCookieSecret = process.env.COOKIE_SECRET;
+    originalJwtSecret = process.env.JWT_SECRET;
+    originalWorkspaceManagerUrl = process.env.WORKSPACE_MANAGER_URL;
     process.env.NODE_ENV = 'production';
+    process.env.COOKIE_SECRET = 'test-cookie-secret-long-enough-for-production-hsts';
+    process.env.JWT_SECRET = 'test-jwt-secret-long-enough-for-production-hsts';
+    process.env.WORKSPACE_MANAGER_URL = 'http://workspace-manager.vibecore.svc:3010';
   });
+
   afterEach(() => {
     process.env.NODE_ENV = (originalNodeEnv ?? 'test') as 'test' | 'production' | 'development';
+
+    if (originalCookieSecret === undefined) {
+      delete process.env.COOKIE_SECRET;
+    } else {
+      process.env.COOKIE_SECRET = originalCookieSecret;
+    }
+
+    if (originalJwtSecret === undefined) {
+      delete process.env.JWT_SECRET;
+    } else {
+      process.env.JWT_SECRET = originalJwtSecret;
+    }
+
+    if (originalWorkspaceManagerUrl === undefined) {
+      delete process.env.WORKSPACE_MANAGER_URL;
+    } else {
+      process.env.WORKSPACE_MANAGER_URL = originalWorkspaceManagerUrl;
+    }
   });
 
   it('emits Strict-Transport-Security with includeSubDomains and preload when NODE_ENV=production', async () => {

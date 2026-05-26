@@ -261,8 +261,7 @@ export function buildSelfRepairPrompt(filePath: string, source: string, validati
 }
 
 /**
- * Tests-only hook to flush the cached Prettier module (so a test can
- * swap the mock between cases).
+ * Tests-only hook to flush the cached Prettier module between cases.
  */
 export function resetPrettierCacheForTest(): void {
   cachedPrettier = undefined;

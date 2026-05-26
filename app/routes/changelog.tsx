@@ -2,7 +2,7 @@ import type { MetaFunction } from '@remix-run/cloudflare';
 import { GitBranch, Rocket, ShieldCheck } from 'lucide-react';
 import { ActivityList, PublicShell } from '~/components/dashboard/SaaSLayout';
 
-export const meta: MetaFunction = () => [{ title: 'Changelog - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Changelog - E-Code' }];
 
 export default function ChangelogPage() {
   return (
@@ -15,6 +15,12 @@ export default function ChangelogPage() {
         <div className="mt-8">
           <ActivityList
             items={[
+              {
+                title: 'v1 platform hardening',
+                detail:
+                  'GCP storage, deployer, creation flow, AI generator, mobile shipping kit, marketing and docs foundations.',
+                icon: ShieldCheck,
+              },
               {
                 title: 'Billing and quotas',
                 detail: 'Stripe lifecycle, signed webhooks, quota ledgers and billing pages added.',

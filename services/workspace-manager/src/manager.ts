@@ -109,6 +109,7 @@ export interface StartWorkspaceInput {
     ramMb?: number;
     storageGb?: number;
   };
+  storageClassName?: string;
 }
 
 export class WorkspaceManager {
@@ -128,6 +129,7 @@ export class WorkspaceManager {
       ...input,
       pvcName,
       agentTokenSecretName,
+      storageClassName: input.storageClassName ?? process.env.WORKSPACE_STORAGE_CLASS,
       tokenSecret: this.tokenSecret,
       secretEnv,
       env: { ...input.env, WORKSPACE_ID: input.workspaceId },

@@ -89,8 +89,11 @@ export function SupabaseConnection() {
             height="20"
             width="20"
             crossOrigin="anonymous"
+            alt=""
+            aria-hidden
             src="https://cdn.simpleicons.org/supabase"
           />
+          <span className="sr-only">Open Supabase connection</span>
           {isConnected && supabaseConn.project && (
             <span className="ml-1 text-xs max-w-[100px] truncate">{supabaseConn.project.name}</span>
           )}
@@ -320,6 +323,7 @@ interface ButtonProps {
 function Button({ active = false, disabled = false, children, onClick, className }: ButtonProps) {
   return (
     <button
+      type="button"
       className={classNames(
         'flex items-center p-1.5',
         {

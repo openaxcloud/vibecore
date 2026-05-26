@@ -1,0 +1,229 @@
+global:
+  environment: production
+  imageRegistry: europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers
+  # imageTag MUST be overridden at deploy time with an immutable SHA tag, e.g.
+  #   helm upgrade ... --set global.imageTag=sha-abc1234
+  # The sentinel below makes an accidental `helm upgrade -f values-prod.yaml`
+  # fail fast on ImagePullBackOff instead of silently pulling a stale image.
+  imageTag: REQUIRED_OVERRIDE_AT_DEPLOY
+  appDomain: app.e-code.ai
+  previewDomain: preview.e-code.ai
+  marketingDomain: e-code.ai
+  apiDomain: api.e-code.ai
+  workspaceManagerDomain: workspace-manager.e-code.ai
+  dns01:
+    enabled: true
+    project: vibecore-495216
+    hostedZoneName: e-code-ai
+  labels:
+    app.kubernetes.io/part-of: vibecore
+  workloadIdentity:
+    web: ""
+    admin: ""
+    api: ""
+    worker: ""
+    aiGateway: ""
+    workspaceManager: ""
+    previewProxy: ""
+
+secrets:
+  existingSecret: vibecore-platform-secrets
+  # K8s Secret key → GCP Secret Manager secret name. The bootstrap script
+  # in docs/DEPLOYMENT.md (Step 2) reads each GCP secret and writes the
+  # resulting key/value pairs into the K8s Secret named above, which every
+  # Deployment consumes via envFrom. The chart templates themselves don't
+  # iterate this map yet (Phase 1 will introduce External Secrets Operator);
+  # for now it is the auditable source of truth and must stay in sync with
+  # the bash MAP in the runbook. When you add a secret here, also add it to
+  # the runbook so the next re-sync picks it up.
+  secretManagerMap:
+    DATABASE_URL: vibecore-prod-database-url
+    REDIS_URL: vibecore-prod-redis-url
+    JWT_SECRET: vibecore-prod-jwt-secret
+    COOKIE_SECRET: vibecore-prod-cookie-secret
+    CONFIG_ENCRYPTION_KEY: vibecore-prod-encryption-key
+    WORKSPACE_AGENT_TOKEN_SECRET: vibecore-prod-workspace-agent-token-secret
+    BACKUP_ENCRYPTION_KEY: vibecore-prod-backup-encryption-key
+    SIEM_SIGNING_SECRET: vibecore-prod-siem-signing-secret
+    GOOGLE_CLIENT_ID: vibecore-prod-google-client-id
+    GOOGLE_CLIENT_SECRET: vibecore-prod-google-client-secret
+    GITHUB_CLIENT_ID: vibecore-prod-github-client-id
+    GITHUB_CLIENT_SECRET: vibecore-prod-github-client-secret
+    OPENAI_API_KEY: vibecore-prod-openai-api-key
+    ANTHROPIC_API_KEY: vibecore-prod-anthropic-api-key
+    GOOGLE_GEMINI_API_KEY: vibecore-prod-google-gemini-api-key
+    XAI_API_KEY: vibecore-prod-xai-api-key
+    MOONSHOT_API_KEY: vibecore-prod-moonshot-api-key
+    STRIPE_SECRET_KEY: vibecore-prod-stripe-secret-key
+    STRIPE_WEBHOOK_SECRET: vibecore-prod-stripe-webhook-secret
+    EMAIL_HTTP_TOKEN: vibecore-prod-email-http-token
+    PREVIEW_PROXY_SHARED_SECRET: vibecore-prod-preview-proxy-shared-secret
+    # Svix-format signing secret from the Resend dashboard. Verifies POSTs
+    # to /webhooks/resend (services/api/src/app.ts:5217); the route returns
+    # 503 WEBHOOK_NOT_CONFIGURED until this is populated.
+    RESEND_WEBHOOK_SECRET: vibecore-prod-resend-webhook-secret
+    SENTRY_DSN: vibecore-prod-sentry-dsn
+
+# OAuth provider URLs, in-cluster api URL, and platform-admin allowlist.
+# These are public well-known endpoints (Google/GitHub) plus operational
+# config — none of them are secrets. Mounted via a ConfigMap so they live
+# in version-controlled chart values, not Secret Manager.
+platformEnv:
+  saasApiUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
+  apiBaseUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
+  publicApiBaseUrl: "https://api.e-code.ai"
+  # Comma-separated emails. PlatformAdmin grants global console access
+  # (services/api/src/app.ts:2224). Edit cautiously.
+  platformAdminEmails: "avi@snatchbot.me,groupequaliwatt@gmail.com"
+  # Fastify must trust X-Forwarded-* headers because traffic arrives via the
+  # GKE ingress (ingress-nginx). Without this, request.ip is always the proxy
+  # pod IP, breaking audit logs, rate-limits, and OAuth callback origin checks.
+  trustProxy: "true"
+  # Writable emptyDir mount for API-local project scaffolds and zip/snapshot
+  # staging. Durable generated app state lives in workspace PVCs; a shared
+  # object-storage backend should replace this for API-local archives.
+  projectStorageDir: "/tmp/vibecore-project-storage"
+  # Require TOTP MFA for every PlatformAdmin endpoint. The api defaults to
+  # required when the env var is anything other than the string "false"
+  # (services/api/src/app.ts:1005), but we set it explicitly here so the
+  # policy is auditable from the chart values rather than implicit in code.
+  adminMfaRequired: "true"
+  runtime:
+    mode: "remote-kubernetes"
+    apiBaseUrl: "https://api.e-code.ai/api/runtime"
+    workspaceManagerUrl: "http://vibecore-vibecore-platform-workspace-manager.vibecore.svc:3010"
+    workspaceRuntimeNamespace: "workspaces"
+    workspaceStorageClass: "workspace-standard-rwo"
+    workspaceAgentImage: "europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/workspace-agent:sha-ef77d35"
+    previewUrlTemplate: "https://{workspaceId}-{port}.preview.e-code.ai/p/{workspaceId}/{port}/"
+  email:
+    httpEndpoint: "https://api.resend.com/emails"
+    from: "no-reply@e-code.ai"
+  # Non-secret Stripe catalog IDs. Populate from `pnpm stripe:seed` after
+  # rotating STRIPE_SECRET_KEY; empty values are intentionally omitted from
+  # the rendered ConfigMap so they cannot mask Secret-sourced env values.
+  stripe:
+    freeProductId: ""
+    freePriceId: ""
+    proProductId: ""
+    proPriceId: ""
+    teamProductId: ""
+    teamPriceId: ""
+    enterpriseProductId: ""
+    enterprisePriceId: ""
+  google:
+    authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth"
+    tokenUrl: "https://oauth2.googleapis.com/token"
+    userinfoUrl: "https://openidconnect.googleapis.com/v1/userinfo"
+    redirectUri: "https://app.e-code.ai/auth/oauth/google/callback"
+    scope: "openid email profile"
+  github:
+    authorizationUrl: "https://github.com/login/oauth/authorize"
+    tokenUrl: "https://github.com/login/oauth/access_token"
+    userinfoUrl: "https://api.github.com/user"
+    redirectUri: "https://app.e-code.ai/auth/oauth/github/callback"
+    scope: "read:user user:email"
+
+ingress:
+  className: nginx
+  issuerName: letsencrypt-dns01
+  tlsSecretName: vibecore-platform-tls
+  previewTlsSecretName: vibecore-preview-wildcard-tls
+  proxyReadTimeoutSeconds: 180
+  proxySendTimeoutSeconds: 180
+
+services:
+  # Optional `imageTag` on any service overrides `global.imageTag` for that
+  # service only. This keeps emergency backend/runtime rollouts narrow while
+  # preserving immutable tags in production.
+  web:
+    enabled: true
+    image: web
+    port: 3000
+    # 2 replicas → PDB minAvailable: 1 activates (template guards on replicas>1)
+    # so rolling updates and node drains never take the public site to zero.
+    replicas: 2
+    command: []
+    path: /
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
+  admin:
+    enabled: true
+    image: admin
+    port: 3000
+    replicas: 2
+    path: /admin
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 250m, memory: 256Mi }
+  api:
+    enabled: true
+    image: api
+    port: 3001
+    replicas: 2
+    path: /api
+    # /ready hits Postgres + Redis (services/api/src/app.ts:3575). On a
+    # transient DB hiccup the pod drops out of the Service without being
+    # killed, so users hit a healthy replica instead of a 5xx mid-request.
+    readyPath: /ready
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
+  worker:
+    enabled: true
+    image: worker
+    port: 3002
+    # Queue worker: a single consumer is fine, BullMQ handles dedup. Keeping
+    # replicas: 1 avoids paying for an idle second worker. Re-evaluate once
+    # queue depth justifies a second consumer.
+    replicas: 1
+    path: ""
+    # No HTTP listener — background consumer driven by Redis/Postgres.
+    # An exec probe keeps liveness honest while the pod has no /health route.
+    httpHealth: false
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
+  aiGateway:
+    enabled: true
+    image: ai-gateway
+    # ai-gateway binary binds 3030 (services/ai-gateway/src/server.ts AI_GATEWAY_PORT default).
+    port: 3030
+    replicas: 2
+    path: /ai
+    resources:
+      requests: { cpu: 250m, memory: 512Mi }
+      limits: { cpu: "1", memory: 1Gi }
+  workspaceManager:
+    enabled: true
+    image: workspace-manager
+    # workspace-manager binary binds 3010 (services/workspace-manager/src/server.ts).
+    # B4 landed: PrismaWorkspaceStore lets replicas > 1 share Postgres-backed
+    # state — PDB activates because replicas > 1.
+    port: 3010
+    replicas: 2
+    path: /runtime
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
+  previewProxy:
+    enabled: true
+    image: preview-proxy
+    # preview-proxy binary binds 3020 (services/preview-proxy/src/server.ts).
+    port: 3020
+    replicas: 2
+    path: /
+    host: "*.preview.e-code.ai"
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
+
+podSecurity:
+  enabled: true
+  enforce: restricted
+
+networkPolicy:
+  ingressControllerNamespaceSelector:
+    kubernetes.io/metadata.name: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx

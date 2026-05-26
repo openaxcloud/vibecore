@@ -77,13 +77,24 @@ export default function ShareRoute() {
           This is a read-only snapshot of the conversation. {payload.visibleMessageIds.length} message
           {payload.visibleMessageIds.length === 1 ? '' : 's'} in the bundle.
         </p>
-        <ol>
-          {payload.visibleMessageIds.map((messageId) => (
-            <li key={messageId} className="bolt-share-view-message-id">
-              <code>{messageId}</code>
-            </li>
-          ))}
-        </ol>
+        {payload.inlineMessages && payload.inlineMessages.length > 0 ? (
+          <ol className="bolt-share-view-thread">
+            {payload.inlineMessages.map((message) => (
+              <li key={message.id} className="bolt-share-view-message" data-role={message.role}>
+                <div className="bolt-share-view-message-role">{message.role}</div>
+                <pre className="bolt-share-view-message-content">{message.content}</pre>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <ol>
+            {payload.visibleMessageIds.map((messageId) => (
+              <li key={messageId} className="bolt-share-view-message-id">
+                <code>{messageId}</code>
+              </li>
+            ))}
+          </ol>
+        )}
       </section>
       {payload.allowFork ? (
         <footer className="bolt-share-view-footer">

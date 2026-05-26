@@ -13,6 +13,12 @@
     "typecheck": "tsc --noEmit",
     "lint": "echo \"database package lint covered by root\""
   },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "@prisma/client-runtime-utils": "^7.8.0",
+    "prisma": "^7.8.0"
+  },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   }

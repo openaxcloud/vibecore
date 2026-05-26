@@ -52,3 +52,59 @@ spec:
 {{- range $key, $value := .Values.networkPolicy.ingressControllerNamespaceSelector }}
               {{ $key }}: {{ $value | quote }}
 {{- end }}
+---
+# `deny-all-default` above blocks pod-to-pod traffic inside this namespace, so
+# web→api, worker→api, ai-gateway→api etc. all fail. This policy re-opens
+# intra-namespace traffic, scoped to pods labelled `app.kubernetes.io/part-of:
+# vibecore` (all the chart's workloads carry that label — see deployments.yaml
+# and cronjobs.yaml). Cross-namespace traffic stays blocked; only ingress-nginx
+# (allow-ingress-controller above) and DNS/HTTPS egress (allow-platform-
+# required-egress above) remain reachable from outside the namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-intra-namespace-platform
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: vibecore
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: vibecore
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: vibecore
+---
+# Runtime traffic leaves the platform namespace on port 8080 to reach
+# workspace-agent pods. Keep it scoped to the runtime control-plane callers.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-workspace-runtime-egress
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: ["api", "workspace-manager", "preview-proxy"]
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.platformEnv.runtime.workspaceRuntimeNamespace | quote }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: vibecore-workspace
+      ports:
+        - protocol: TCP
+          port: 8080

@@ -406,8 +406,8 @@ async function auditPanelRender(projectId, token) {
       locator = page.locator('.bolt-project-webview-tool, iframe').first();
       marker = 'preview-webview';
     } else if (panel === 'terminal') {
-      locator = page.getByText('Bolt Terminal').first();
-      marker = 'Bolt Terminal';
+      locator = page.locator('.bolt-project-terminal-direct-panel').first();
+      marker = 'interactive-terminal-panel';
     } else if (panel === 'files') {
       locator = page.locator('.bolt-project-files-tool').first();
       marker = 'project-files-tool';
@@ -492,13 +492,13 @@ async function auditCriticalUiInteractions(projectId, token) {
     }
   }
 
-  function waitForPanelResponse(page, panel, method) {
+  function waitForPanelResponse(page, panel, method, timeout = 15_000) {
     return page.waitForResponse(
       (response) =>
         response.url().includes(`/api/projects/${projectId}/ide-panel/${panel}`) &&
         response.request().method() === method &&
         response.status() < 500,
-      { timeout: 15_000 },
+      { timeout },
     );
   }
 
@@ -572,9 +572,9 @@ async function auditCriticalUiInteractions(projectId, token) {
       await page.getByPlaceholder('Manual checkpoint').fill(label);
       await Promise.all([
         waitForPanelResponse(page, 'snapshots', 'POST'),
-        page.getByRole('button', { name: 'Create snapshot' }).click(),
+        page.getByRole('button', { name: '+ New checkpoint' }).click(),
       ]);
-      await page.locator('.text-sm.font-medium', { hasText: label }).first().waitFor({
+      await page.locator('.bolt-project-snapshot-card', { hasText: label }).first().waitFor({
         state: 'visible',
         timeout: 10_000,
       });
@@ -586,12 +586,26 @@ async function auditCriticalUiInteractions(projectId, token) {
     'database',
     async (page) => {
       const value = `postgres://audit.local/ui-${Date.now()}`;
-      await page.getByPlaceholder('postgres://user:pass@host:5432/db').fill(value);
-      await Promise.all([
-        waitForPanelResponse(page, 'database', 'POST'),
-        page.getByRole('button', { name: 'Save DATABASE_URL' }).click(),
-      ]);
-      await page.locator('.text-sm.font-medium', { hasText: 'DATABASE_URL' }).first().waitFor({
+      const onboardingInput = page.getByPlaceholder('postgresql://user:password@host/db?sslmode=require');
+
+      if ((await onboardingInput.count()) > 0 && (await onboardingInput.first().isVisible())) {
+        await onboardingInput.first().fill(value);
+        await Promise.all([
+          waitForPanelResponse(page, 'database', 'POST'),
+          page.getByRole('button', { name: 'Add your first database' }).click(),
+        ]);
+      } else {
+        const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]');
+        await databasePanel.getByRole('button', { name: 'Secrets' }).click();
+        await databasePanel.locator('input[name="key"]:visible').last().fill('DATABASE_URL');
+        await databasePanel.locator('input[name="value"]:visible').last().fill(value);
+        await Promise.all([
+          waitForPanelResponse(page, 'database', 'POST'),
+          databasePanel.getByRole('button', { name: 'Save encrypted secret' }).click(),
+        ]);
+      }
+
+      await page.getByText('DATABASE_URL').first().waitFor({
         state: 'visible',
         timeout: 10_000,
       });
@@ -602,16 +616,16 @@ async function auditCriticalUiInteractions(projectId, token) {
   await run(
     'packages',
     async (page) => {
-      const packageName = `@audit/package-${Date.now()}`;
-      await page.getByPlaceholder('lucide-react').fill(packageName);
-      await page.getByRole('button', { name: 'Add to plan' }).click();
-      await page.getByRole('button', { name: packageName }).waitFor({ state: 'visible', timeout: 10_000 });
+      const packageName = 'is-odd';
+      await page.getByPlaceholder('@scope/name, react-query, vite@latest').fill(packageName);
       await Promise.all([
-        waitForPanelResponse(page, 'packages', 'POST'),
-        page.getByRole('button', { name: 'Save install plan' }).click(),
+        waitForPanelResponse(page, 'packages', 'POST', 60_000),
+        page.getByRole('button', { name: 'Install package' }).click(),
       ]);
-      await page.getByText('Planned installs').waitFor({ state: 'visible', timeout: 10_000 });
-      await page.getByText(packageName).first().waitFor({ state: 'visible', timeout: 10_000 });
+      await page
+        .getByText(/add package/i)
+        .first()
+        .waitFor({ state: 'visible', timeout: 20_000 });
     },
     'create_package_install_plan_visible_after_backend_reload',
   );
@@ -657,13 +671,16 @@ async function auditCriticalUiInteractions(projectId, token) {
   await run(
     'extensions',
     async (page) => {
-      const extension = `audit-extension-${Date.now()}`;
-      await page.getByPlaceholder('supabase, stripe, sentry').fill(extension);
+      await page.getByPlaceholder('Theme, language, linter, debugger...').fill('Material Icon Theme');
+      const extensionCard = page.locator('.bolt-project-extension-card', { hasText: 'Material Icon Theme' }).first();
       await Promise.all([
         waitForPanelResponse(page, 'extensions', 'POST'),
-        page.getByRole('button', { name: 'Persist extension' }).click(),
+        extensionCard.getByRole('button', { name: 'Install' }).click(),
       ]);
-      await page.locator('strong', { hasText: extension }).first().waitFor({ state: 'visible', timeout: 10_000 });
+      await page
+        .locator('.bolt-project-installed-extensions', { hasText: 'Material Icon Theme' })
+        .first()
+        .waitFor({ state: 'visible', timeout: 10_000 });
     },
     'persist_extension_visible_after_backend_reload',
   );
@@ -703,8 +720,9 @@ async function auditCriticalUiInteractions(projectId, token) {
     async (page) => {
       const workflowName = `Workflow Audit ${Date.now()}`;
       await page.getByTestId('new-workflow-button').click();
-      await page.getByTestId('workflow-name-input').fill(workflowName);
-      await page.getByPlaceholder('npm run dev').fill(`echo ${workflowName}`);
+      const createForm = page.getByTestId('create-workflow-form');
+      await createForm.getByTestId('workflow-name-input').fill(workflowName);
+      await createForm.getByPlaceholder('npm run dev').fill(`echo ${workflowName}`);
       await Promise.all([
         waitForPanelResponse(page, 'workflows', 'POST'),
         page.getByRole('button', { name: 'Create Workflow' }).click(),
@@ -728,7 +746,10 @@ async function auditCriticalUiInteractions(projectId, token) {
     'monitoring',
     async (page) => {
       await page.getByRole('button', { name: '24h' }).click();
-      await page.getByText('24h backend view').first().waitFor({ state: 'visible', timeout: 10_000 });
+      await page
+        .getByText(/24h window/)
+        .first()
+        .waitFor({ state: 'visible', timeout: 10_000 });
       await page.getByRole('button', { name: 'Refresh metrics' }).click();
       await page.getByText('Workspace').first().waitFor({ state: 'visible', timeout: 10_000 });
     },
@@ -739,10 +760,16 @@ async function auditCriticalUiInteractions(projectId, token) {
   await run(
     'logs',
     async (page) => {
-      await page.getByRole('button', { name: 'Split' }).click();
-      await page.getByRole('button', { name: 'Unsplit' }).waitFor({ state: 'visible', timeout: 10_000 });
-      await page.getByRole('button', { name: 'Clear' }).click();
-      await page.getByText('No backend log lines in the current view.').waitFor({ state: 'visible', timeout: 10_000 });
+      await page.getByLabel('Toggle split log view').click();
+      await page.locator('button', { hasText: 'Close split' }).waitFor({ state: 'visible', timeout: 10_000 });
+      await page.getByLabel('Clear visible logs').click();
+      await page
+        .getByText(/Visible logs were cleared|No .* logs/i)
+        .first()
+        .waitFor({
+          state: 'visible',
+          timeout: 10_000,
+        });
     },
     'split_and_clear_logs_panel',
     ['GET'],
@@ -929,10 +956,13 @@ async function auditWorkspaceUiInteractions(projectId, token) {
   await run(
     'terminal',
     async (page) => {
+      await page.locator('.bolt-project-terminal-direct-panel').first().waitFor({ state: 'visible', timeout: 30_000 });
+      await page.getByRole('button', { name: 'Vibecore Terminal' }).first().waitFor({
+        state: 'visible',
+        timeout: 30_000,
+      });
+      await page.getByRole('button', { name: 'Runtime panels' }).click();
       await page.locator('[data-testid="terminal-hub-panel"]').first().waitFor({ state: 'visible', timeout: 30_000 });
-      await page.getByText('Bolt Terminal').first().waitFor({ state: 'visible', timeout: 30_000 });
-      await page.getByTitle('Reset Terminal').click();
-      await page.getByText('Bolt Terminal').first().waitFor({ state: 'visible', timeout: 10_000 });
       await page.getByTestId('tab-scripts').click();
       await page.getByTestId('button-create-script').click();
       const marker = `terminal-audit-${Date.now()}`;
@@ -969,7 +999,7 @@ async function auditResponsiveViewports(projectId, token) {
   const viewports = [
     { name: 'desktop', width: 1440, height: 900, mode: 'desktop' },
     { name: 'laptop', width: 1280, height: 800, mode: 'desktop' },
-    { name: 'tablet-landscape', width: 1024, height: 768, mode: 'desktop' },
+    { name: 'tablet-landscape', width: 1024, height: 768, mode: 'mobile' },
     { name: 'tablet-portrait', width: 820, height: 1180, mode: 'mobile' },
     { name: 'mobile', width: 390, height: 844, mode: 'mobile' },
     { name: 'small-mobile', width: 360, height: 740, mode: 'mobile' },
@@ -992,11 +1022,18 @@ async function auditResponsiveViewports(projectId, token) {
     });
   }
 
-  async function assertMobilePanel(page, label, locatorFactory) {
-    await page.locator('.bolt-mobile-tabbar').getByRole('button', { name: label, exact: true }).click();
+  async function waitForMobileChrome(page) {
+    await page.getByTestId('mobile-bottom-navigation').waitFor({ state: 'visible', timeout: 15_000 });
+  }
+
+  async function assertMobilePanel(page, panel, locatorFactory) {
+    await page.evaluate((targetPanel) => {
+      window.dispatchEvent(new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: targetPanel } }));
+    }, panel);
+    await waitForMobileChrome(page);
     await locatorFactory(page).waitFor({
       state: 'visible',
-      timeout: label === 'Terminal' || label === 'Preview' ? 30_000 : 15_000,
+      timeout: panel === 'terminal' || panel === 'preview' ? 30_000 : 15_000,
     });
   }
 
@@ -1018,23 +1055,24 @@ async function auditResponsiveViewports(projectId, token) {
       await page.locator('.bolt-responsive-ide').first().waitFor({ state: 'visible', timeout: 20_000 });
 
       if (viewport.mode === 'mobile') {
-        await page.locator('.bolt-mobile-tabbar').waitFor({ state: 'visible', timeout: 15_000 });
-        await assertMobilePanel(page, 'Chat', (activePage) =>
-          activePage.locator('[data-testid="ide-agent-panel"]').first(),
-        );
-        await assertMobilePanel(page, 'Files', (activePage) => activePage.getByTestId('mobile-files-panel').first());
-        await assertMobilePanel(page, 'Editor', (activePage) =>
+        await waitForMobileChrome(page);
+        await page.getByTestId('tab-agent').click();
+        await page.locator('[data-testid="ide-agent-panel"]').first().waitFor({ state: 'visible', timeout: 15_000 });
+        await assertMobilePanel(page, 'files', (activePage) => activePage.getByTestId('mobile-files-panel').first());
+        await assertMobilePanel(page, 'editor', (activePage) =>
           activePage.locator('[data-testid="responsive-code-editor"]').first(),
         );
-        await assertMobilePanel(page, 'Terminal', (activePage) => activePage.getByText('Bolt Terminal').first());
-        await assertMobilePanel(page, 'Preview', (activePage) =>
+        await assertMobilePanel(page, 'terminal', (activePage) =>
+          activePage.getByTestId('mobile-terminal-panel').first(),
+        );
+        await assertMobilePanel(page, 'preview', (activePage) =>
           activePage
             .locator(
               '.bolt-project-webview-tool, [data-testid="preview-not-running-state"], [data-testid="preview-splash-sequence"]',
             )
             .first(),
         );
-        await assertMobilePanel(page, 'Deploy', (activePage) =>
+        await assertMobilePanel(page, 'deployments', (activePage) =>
           activePage.locator('[data-testid="ide-service-panel"][data-panel="deployments"]').first(),
         );
       } else {

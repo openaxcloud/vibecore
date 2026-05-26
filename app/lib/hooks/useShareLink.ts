@@ -38,6 +38,42 @@ export interface BuildShareUrlInput {
  * message list by `allowedMessageIds` when provided. Throws if the
  * resulting payload exceeds the size cap (in practice >64 KB of ids).
  */
+/*
+ * Inline-message content budget. The payload itself is capped at 64 KB
+ * (cf. encodeShareLinkPayload). We reserve room for the metadata fields
+ * + visibleMessageIds, so the inline-bodies budget is conservative.
+ */
+const INLINE_MESSAGES_CONTENT_BUDGET = 32 * 1024;
+
+function buildInlineMessages(
+  messages: readonly { id?: string; role?: string; content?: string | unknown }[],
+): ShareLinkPayload['inlineMessages'] {
+  const inline: NonNullable<ShareLinkPayload['inlineMessages']> = [];
+
+  let bytesUsed = 0;
+
+  for (const message of messages) {
+    const id = typeof message.id === 'string' ? message.id : undefined;
+    const role = message.role;
+    const content = typeof message.content === 'string' ? message.content : '';
+
+    if (!id || (role !== 'user' && role !== 'assistant' && role !== 'system')) {
+      continue;
+    }
+
+    const size = new Blob([content]).size + 64;
+
+    if (bytesUsed + size > INLINE_MESSAGES_CONTENT_BUDGET) {
+      break;
+    }
+
+    bytesUsed += size;
+    inline.push({ id, role, content });
+  }
+
+  return inline.length > 0 ? inline : undefined;
+}
+
 export function buildShareUrl(input: BuildShareUrlInput): string {
   const filtered = input.allowedMessageIds
     ? selectShareableMessages(input.messages, { allowedIds: new Set(input.allowedMessageIds) })
@@ -52,6 +88,7 @@ export function buildShareUrl(input: BuildShareUrlInput): string {
     authorUserId: input.authorUserId,
     createdAt: now.toISOString(),
     visibleMessageIds: filtered.map((message) => message.id).filter((id): id is string => Boolean(id)),
+    inlineMessages: buildInlineMessages(filtered),
     allowFork: input.allowFork ?? false,
   };
 

@@ -46,7 +46,7 @@ pnpm mobile:release-assets:check
 
 The CI iOS job runs a macOS Capacitor sync check and creates `apps/mobile/mobile-artifacts/ios-build-readme.md`. It does not produce a signed IPA because signing credentials are environment-specific and must not be committed.
 
-Publish `apps/mobile/assets/apple-app-site-association` from the associated-domain host over HTTPS with no redirect and `application/json` content type. Populate the `appIDs` array with the Apple Team ID and bundle id before TestFlight validation.
+Publish `apps/mobile/assets/apple-app-site-association` from the associated-domain host over HTTPS with no redirect and `application/json` content type. `pnpm mobile:release-assets` also mirrors the same file to `public/.well-known/apple-app-site-association` for the web app host. Populate the `appIDs` array with the Apple Team ID and bundle id before TestFlight validation.
 
 Required release asset variables:
 

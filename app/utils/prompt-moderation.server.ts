@@ -6,7 +6,7 @@
  *
  * Design choices:
  *
- *  - **Real call, no mock.** When `OPENAI_API_KEY` is configured the prompt
+ *  - **Real call.** When `OPENAI_API_KEY` is configured the prompt
  *    is sent to OpenAI, the response is parsed, and we block the action if
  *    any category is flagged.
  *

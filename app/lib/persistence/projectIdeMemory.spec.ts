@@ -150,6 +150,20 @@ describe('project IDE memory persistence', () => {
     expect(restored.ui?.terminalBottomHeight).toBe(444);
   });
 
+  it('uses an empty local state for unauthenticated IDE memory reads instead of throwing', async () => {
+    const projectId = 'project-auth-expired';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: false,
+        status: 401,
+      })),
+    );
+
+    const restored = await getProjectIdeMemory(projectId);
+    expect(restored).toEqual({});
+  });
+
   it('prefers the newest state between server and localStorage', async () => {
     const projectId = 'project-newest';
     globalThis.localStorage.setItem(
@@ -249,6 +263,34 @@ describe('project IDE memory persistence', () => {
     expect(restored.ui?.activeWorkspacePanel).toBe('preview');
     expect(restored.chat?.messages?.map((message) => message.id)).toEqual(['u1', 'a1']);
     expect(restored.chat?.messages?.[1].content).toBe('Generated response');
+  });
+
+  it('can mark a queued project prompt as consumed without erasing chat messages', async () => {
+    const projectId = 'project-pending-prompt';
+
+    await saveProjectIdeMemory(projectId, {
+      chat: {
+        id: `project:${projectId}`,
+        pendingPrompt: {
+          id: 'pending-1',
+          prompt: 'Build a production project workspace',
+          model: 'gpt-4o',
+          provider: 'OpenAI',
+          createdAt: '2026-05-25T10:00:00.000Z',
+        },
+        messages: [{ id: 'u1', role: 'user', content: 'Existing prompt' }],
+      },
+    });
+
+    await saveProjectIdeMemory(projectId, {
+      chat: {
+        pendingPrompt: null,
+      },
+    });
+
+    const restored = await getProjectIdeMemory(projectId);
+    expect(restored.chat?.pendingPrompt).toBeNull();
+    expect(restored.chat?.messages?.map((message) => message.id)).toEqual(['u1']);
   });
 
   it('persists locked IDE files and folders in project memory', async () => {

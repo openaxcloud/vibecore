@@ -20,7 +20,7 @@ import { path } from '~/utils/path';
 
 const logger = createScopedLogger('FileTree');
 
-const NODE_BASE_PADDING_LEFT = 2;
+const NODE_BASE_PADDING_LEFT = 0;
 const NODE_PADDING_LEFT = 6;
 
 function FileTreeName({ name, className }: { name: string; className?: string }) {
@@ -439,59 +439,67 @@ export const FileTree = memo(
           ))}
 
         {activeView === 'files' &&
-          filteredFileList.map((fileOrFolder) => {
-            switch (fileOrFolder.kind) {
-              case 'file': {
-                return (
-                  <File
-                    key={fileOrFolder.id}
-                    selected={selectedFile === fileOrFolder.fullPath}
-                    file={fileOrFolder}
-                    unsavedChanges={unsavedFiles instanceof Set && unsavedFiles.has(fileOrFolder.fullPath)}
-                    gitStatus={gitStatusForPath(gitStatusByPath, fileOrFolder.fullPath)}
-                    bookmarked={bookmarks.has(fileOrFolder.fullPath)}
-                    fileHistory={fileHistory}
-                    onToggleBookmark={() => toggleBookmark(fileOrFolder.fullPath)}
-                    onCopyPath={() => {
-                      onCopyPath(fileOrFolder);
-                    }}
-                    onCopyRelativePath={() => {
-                      onCopyRelativePath(fileOrFolder);
-                    }}
-                    onClick={() => {
-                      onFilePreview?.(fileOrFolder.fullPath);
-                      onFileSelect?.(fileOrFolder.fullPath);
-                    }}
-                    onDoubleClick={() => {
-                      onFileOpen?.(fileOrFolder.fullPath);
-                    }}
-                  />
-                );
+          (filteredFileList.length ? (
+            filteredFileList.map((fileOrFolder) => {
+              switch (fileOrFolder.kind) {
+                case 'file': {
+                  return (
+                    <File
+                      key={fileOrFolder.id}
+                      selected={selectedFile === fileOrFolder.fullPath}
+                      file={fileOrFolder}
+                      unsavedChanges={unsavedFiles instanceof Set && unsavedFiles.has(fileOrFolder.fullPath)}
+                      gitStatus={gitStatusForPath(gitStatusByPath, fileOrFolder.fullPath)}
+                      bookmarked={bookmarks.has(fileOrFolder.fullPath)}
+                      fileHistory={fileHistory}
+                      onToggleBookmark={() => toggleBookmark(fileOrFolder.fullPath)}
+                      onCopyPath={() => {
+                        onCopyPath(fileOrFolder);
+                      }}
+                      onCopyRelativePath={() => {
+                        onCopyRelativePath(fileOrFolder);
+                      }}
+                      onClick={() => {
+                        onFilePreview?.(fileOrFolder.fullPath);
+                        onFileSelect?.(fileOrFolder.fullPath);
+                      }}
+                      onDoubleClick={() => {
+                        onFileOpen?.(fileOrFolder.fullPath);
+                      }}
+                    />
+                  );
+                }
+                case 'folder': {
+                  return (
+                    <Folder
+                      key={fileOrFolder.id}
+                      folder={fileOrFolder}
+                      selected={allowFolderSelection && selectedFile === fileOrFolder.fullPath}
+                      collapsed={collapsedFolders.has(fileOrFolder.fullPath)}
+                      onCopyPath={() => {
+                        onCopyPath(fileOrFolder);
+                      }}
+                      onCopyRelativePath={() => {
+                        onCopyRelativePath(fileOrFolder);
+                      }}
+                      onClick={() => {
+                        toggleCollapseState(fileOrFolder.fullPath);
+                      }}
+                    />
+                  );
+                }
+                default: {
+                  return undefined;
+                }
               }
-              case 'folder': {
-                return (
-                  <Folder
-                    key={fileOrFolder.id}
-                    folder={fileOrFolder}
-                    selected={allowFolderSelection && selectedFile === fileOrFolder.fullPath}
-                    collapsed={collapsedFolders.has(fileOrFolder.fullPath)}
-                    onCopyPath={() => {
-                      onCopyPath(fileOrFolder);
-                    }}
-                    onCopyRelativePath={() => {
-                      onCopyRelativePath(fileOrFolder);
-                    }}
-                    onClick={() => {
-                      toggleCollapseState(fileOrFolder.fullPath);
-                    }}
-                  />
-                );
-              }
-              default: {
-                return undefined;
-              }
-            }
-          })}
+            })
+          ) : (
+            <EmptyExplorerState
+              icon="i-ph:folder-open"
+              title="No files available"
+              description="Project files will appear here once the workspace is loaded."
+            />
+          ))}
       </div>
     );
   },
@@ -1021,7 +1029,6 @@ function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativ
           'i-ph:caret-right scale-98': collapsed,
           'i-ph:caret-down scale-98': !collapsed,
         })}
-        iconStyle={{ color: '#36373B' }}
         title={folder.fullPath}
         onClick={onClick}
       >
@@ -1130,7 +1137,6 @@ function File({
         iconClasses={classNames(materialFileIcon(name).icon, 'scale-98', {
           'group-hover:text-bolt-elements-item-contentActive': !selected,
         })}
-        iconStyle={{ color: '#36373B' }}
         title={fullPath}
         onClick={onClick}
         onDoubleClick={onDoubleClick}

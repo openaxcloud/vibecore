@@ -40,6 +40,48 @@ export interface SlashCommandContext {
   focusComposer?: () => void;
 
   /**
+   * Splice text into the composer. When `replace` is true the entire
+   * input is overwritten (used by `/preview-error` to pre-fill an
+   * actionable prompt); otherwise the text is appended at the caret.
+   * Wired by BaseChat through the same handleInputChange machinery
+   * the overlays use, so the production path stays shared.
+   */
+  insertIntoComposer?: (text: string, options?: { replace?: boolean }) => void;
+
+  /**
+   * Create a manual snapshot of the current workspace. Returns a promise
+   * so the command can await it before clearing the input.
+   */
+  createSnapshot?: () => void | Promise<void>;
+
+  /**
+   * Return the most recent preview error message (e.g. dev server crash,
+   * runtime exception). When the preview is healthy returns undefined.
+   */
+  getLastPreviewError?: () => string | undefined;
+
+  /**
+   * Open the given path in the workbench editor. Used by `/open`.
+   * Path can be absolute (`/home/project/...`) or relative — the
+   * implementation normalises against WORK_DIR.
+   */
+  openFile?: (filePath: string) => void;
+
+  /**
+   * Switch the workbench view to the inline diff for the given path
+   * (or the currently selected file when no path is provided). Used
+   * by `/diff`.
+   */
+  openDiff?: (filePath?: string) => void;
+
+  /**
+   * Execute a shell command in the project workspace. Used by `/run`.
+   * Should surface stdout/stderr in the IDE terminal panel rather than
+   * returning the output to the slash command runner.
+   */
+  runShellCommand?: (command: string) => void | Promise<void>;
+
+  /**
    * Free-form arguments parsed from after the command keyword, e.g. for
    * `/explain reactivity` the argument is `'reactivity'`.
    */
@@ -135,6 +177,89 @@ export const BUILT_IN_SLASH_COMMANDS: readonly SlashCommand[] = [
     aliases: ['?'],
     execute(context) {
       context.openHelp?.();
+    },
+  },
+  {
+    id: 'file',
+    label: 'Insert file mention',
+    description: 'Insert @<path> at the cursor without opening the @ autocomplete.',
+    takesArgument: true,
+    execute(context) {
+      const trimmed = context.argument?.trim();
+
+      if (!trimmed || !context.insertIntoComposer) {
+        return;
+      }
+
+      // Strip leading @ if the user already typed it, then re-add a single one.
+      const cleaned = trimmed.replace(/^@+/, '');
+      context.insertIntoComposer(`@${cleaned} `);
+    },
+  },
+  {
+    id: 'snapshot',
+    label: 'Create project snapshot',
+    description: 'Take a manual git-style snapshot of the workspace so you can roll back later.',
+    aliases: ['save'],
+    async execute(context) {
+      await context.createSnapshot?.();
+    },
+  },
+  {
+    id: 'preview-error',
+    label: 'Fix last preview error',
+    description: 'Pre-fill the composer with the most recent preview error so you only press Enter.',
+    aliases: ['fix-preview', 'fixerror'],
+    execute(context) {
+      const error = context.getLastPreviewError?.();
+
+      if (!error || !context.insertIntoComposer) {
+        return;
+      }
+
+      context.insertIntoComposer(`Fix this preview error:\n\n\`\`\`\n${error}\n\`\`\`\n`, { replace: true });
+    },
+  },
+  {
+    id: 'open',
+    label: 'Open file in editor',
+    description: 'Switch the workbench to code view and select the given file.',
+    aliases: ['edit'],
+    takesArgument: true,
+    execute(context) {
+      const path = context.argument?.trim();
+
+      if (!path || !context.openFile) {
+        return;
+      }
+
+      context.openFile(path);
+    },
+  },
+  {
+    id: 'diff',
+    label: 'Show diff for file',
+    description: 'Switch the workbench to inline diff view for the given path (or the active file).',
+    takesArgument: true,
+    execute(context) {
+      const trimmed = context.argument?.trim();
+      context.openDiff?.(trimmed || undefined);
+    },
+  },
+  {
+    id: 'run',
+    label: 'Run shell command',
+    description: 'Execute a shell command in the project workspace (output appears in the terminal).',
+    aliases: ['sh', 'shell'],
+    takesArgument: true,
+    async execute(context) {
+      const command = context.argument?.trim();
+
+      if (!command || !context.runShellCommand) {
+        return;
+      }
+
+      await context.runShellCommand(command);
     },
   },
 ];
@@ -236,14 +361,54 @@ export function parseSlashInput(input: string): ParsedSlashCommand | undefined {
  * Filter the registered commands by a fuzzy match on the query. Empty
  * query returns every command (sorted as `listSlashCommands` does).
  */
-export function searchSlashCommands(query: string): SlashCommand[] {
-  const trimmed = query.trim().toLowerCase();
+export interface SearchSlashCommandsOptions {
+  /**
+   * MRU command-id list to boost in the ranking. First entry gets the
+   * biggest bonus, decaying linearly so the most-used commands surface
+   * at the top of the empty-query default list.
+   */
+  recentSlashCommandIds?: readonly string[];
+}
 
-  if (trimmed.length === 0) {
-    return listSlashCommands();
+const SLASH_MRU_BONUS_MAX = 30;
+const SLASH_MRU_BONUS_DECAY = 2;
+
+function slashMruBonus(recent: readonly string[] | undefined, commandId: string): number {
+  if (!recent || recent.length === 0) {
+    return 0;
   }
 
+  const idx = recent.indexOf(commandId);
+
+  if (idx < 0) {
+    return 0;
+  }
+
+  return Math.max(0, SLASH_MRU_BONUS_MAX - idx * SLASH_MRU_BONUS_DECAY);
+}
+
+export function searchSlashCommands(query: string, options: SearchSlashCommandsOptions = {}): SlashCommand[] {
+  const trimmed = query.trim().toLowerCase();
   const haystack = listSlashCommands();
+  const recent = options.recentSlashCommandIds;
+
+  if (trimmed.length === 0) {
+    if (!recent || recent.length === 0) {
+      return haystack;
+    }
+
+    // Empty query: rank purely by MRU + fall back to alphabetical.
+    return [...haystack].sort((a, b) => {
+      const bonusDiff = slashMruBonus(recent, b.id) - slashMruBonus(recent, a.id);
+
+      if (bonusDiff !== 0) {
+        return bonusDiff;
+      }
+
+      return a.id.localeCompare(b.id);
+    });
+  }
+
   const results: { command: SlashCommand; score: number }[] = [];
 
   for (const command of haystack) {
@@ -257,7 +422,7 @@ export function searchSlashCommands(query: string): SlashCommand[] {
       continue;
     }
 
-    results.push({ command, score });
+    results.push({ command, score: score + slashMruBonus(recent, command.id) });
   }
 
   results.sort((a, b) => b.score - a.score || a.command.id.localeCompare(b.command.id));

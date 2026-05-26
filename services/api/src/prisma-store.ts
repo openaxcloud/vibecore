@@ -4,6 +4,8 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import type {
   AbuseEventRecord,
+  AgentPatchProposalRecord,
+  AgentPatchProposalStatus,
   ApiStore,
   AiCostLedgerRecord,
   AiConversationRecord,
@@ -17,6 +19,7 @@ import type {
   CustomRoleRecord,
   DeploymentRecord,
   DomainVerificationRecord,
+  EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
   FeatureFlagRecord,
   MembershipRecord,
@@ -26,6 +29,7 @@ import type {
   ProjectActivityListOptions,
   ProjectActivityRecord,
   ProjectCollaboratorRecord,
+  ProjectConnectionLinkRecord,
   ProjectEnvironmentRecord,
   ProjectIdeStateRecord,
   ProjectRecord,
@@ -42,6 +46,8 @@ import type {
   SsoConfigRecord,
   SupportTicketRecord,
   SystemSettingRecord,
+  UserConnectionRecord,
+  UserConnectionStatus,
   UserRecord,
   UsageEventRecord,
   WorkspaceRecord,
@@ -108,6 +114,7 @@ export class PrismaApiStore implements ApiStore {
     mfaEnabled?: boolean;
     mfaSecretEncrypted?: string;
     platformAdmin?: boolean;
+    language?: string | null;
   }) {
     return mapUser(
       await this.prisma.user.update({
@@ -120,6 +127,13 @@ export class PrismaApiStore implements ApiStore {
           mfaEnabled: input.mfaEnabled,
           mfaSecretCiphertext: input.mfaSecretEncrypted,
           platformAdmin: input.platformAdmin,
+          /*
+           * `language: null` clears the column (Prisma differentiates null
+           * from undefined: undefined skips the field, null writes NULL).
+           * The undefined case is the no-op we want when the caller didn't
+           * mention language at all.
+           */
+          language: input.language === undefined ? undefined : input.language,
         },
       }),
     );
@@ -710,6 +724,61 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async upsertAgentPatchProposal(input: {
+    id: string;
+    projectId: string;
+    artifactId: string;
+    messageId: string;
+    actionId: string;
+    filePath: string;
+    relativePath: string;
+    originalContent: string;
+    proposedContent: string;
+    hunks: unknown;
+    status: AgentPatchProposalStatus;
+    error?: string;
+  }) {
+    return mapAgentPatchProposal(
+      await this.prisma.agentPatchProposal.upsert({
+        where: { id: input.id },
+        create: {
+          id: input.id,
+          projectId: input.projectId,
+          artifactId: input.artifactId,
+          messageId: input.messageId,
+          actionId: input.actionId,
+          filePath: input.filePath,
+          relativePath: input.relativePath,
+          originalContent: input.originalContent,
+          proposedContent: input.proposedContent,
+          hunks: input.hunks as any,
+          status: input.status,
+          error: input.error,
+        },
+        update: {
+          proposedContent: input.proposedContent,
+          hunks: input.hunks as any,
+          status: input.status,
+          error: input.error,
+        },
+      }),
+    );
+  }
+
+  async listOpenAgentPatchProposals(projectId: string) {
+    return (
+      await this.prisma.agentPatchProposal.findMany({
+        where: { projectId, status: { in: ['pending', 'applying', 'failed'] } },
+        orderBy: { updatedAt: 'desc' },
+      })
+    ).map(mapAgentPatchProposal);
+  }
+
+  async deleteAgentPatchProposal(projectId: string, id: string) {
+    const deleted = await this.prisma.agentPatchProposal.deleteMany({ where: { projectId, id } });
+    return deleted.count > 0;
+  }
+
   async createWorkspace(input: { id?: string; projectId: string; name: string; runtimeMode: string }) {
     return mapWorkspace(await this.prisma.workspace.create({ data: { ...input, status: 'PENDING' } }));
   }
@@ -1248,6 +1317,156 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async listOAuthConnections(userId: string) {
+    return (
+      await this.prisma.oAuthConnection.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      })
+    ).map(mapOAuthConnection);
+  }
+
+  async upsertUserConnection(input: {
+    userId: string;
+    provider: string;
+    externalAccountId: string;
+    externalAccountLabel: string;
+    accessTokenEncrypted: string;
+    refreshTokenEncrypted?: string;
+    apiKeyFieldsEncrypted?: Record<string, string>;
+    scopes: string[];
+    tokenExpiresAt?: Date;
+    forAgentUse?: boolean;
+    oauthAppSource?: 'e_code_default' | 'org_override';
+    oauthAppOverrideId?: string;
+    createdByUserId: string;
+  }) {
+    return mapUserConnection(
+      await this.prisma.userConnection.upsert({
+        where: {
+          userId_provider_externalAccountId: {
+            userId: input.userId,
+            provider: input.provider,
+            externalAccountId: input.externalAccountId,
+          },
+        },
+        create: {
+          userId: input.userId,
+          provider: input.provider,
+          externalAccountId: input.externalAccountId,
+          externalAccountLabel: input.externalAccountLabel,
+          accessTokenEncrypted: input.accessTokenEncrypted,
+          refreshTokenEncrypted: input.refreshTokenEncrypted,
+          apiKeyFieldsEncrypted: input.apiKeyFieldsEncrypted as never,
+          scopes: input.scopes,
+          tokenExpiresAt: input.tokenExpiresAt,
+          forAgentUse: input.forAgentUse ?? true,
+          oauthAppSource: input.oauthAppSource ?? 'e_code_default',
+          oauthAppOverrideId: input.oauthAppOverrideId,
+          createdByUserId: input.createdByUserId,
+          status: 'active',
+        },
+        update: {
+          externalAccountLabel: input.externalAccountLabel,
+          accessTokenEncrypted: input.accessTokenEncrypted,
+          refreshTokenEncrypted: input.refreshTokenEncrypted,
+          apiKeyFieldsEncrypted: input.apiKeyFieldsEncrypted as never,
+          scopes: input.scopes,
+          tokenExpiresAt: input.tokenExpiresAt,
+          forAgentUse: input.forAgentUse,
+          oauthAppSource: input.oauthAppSource,
+          oauthAppOverrideId: input.oauthAppOverrideId,
+          status: 'active',
+          revokedAt: null,
+        },
+      }),
+    );
+  }
+
+  async getUserConnectionById(id: string) {
+    const row = await this.prisma.userConnection.findUnique({ where: { id } });
+
+    return row ? mapUserConnection(row) : undefined;
+  }
+
+  async listUserConnectionsByUser(userId: string, opts?: { provider?: string }) {
+    const rows = await this.prisma.userConnection.findMany({
+      where: {
+        userId,
+        provider: opts?.provider,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return rows.map(mapUserConnection);
+  }
+
+  async markUserConnectionStatus(input: { id: string; status: UserConnectionStatus; revokedAt?: Date }) {
+    try {
+      const updated = await this.prisma.userConnection.update({
+        where: { id: input.id },
+        data: { status: input.status, revokedAt: input.revokedAt },
+      });
+
+      return mapUserConnection(updated);
+    } catch {
+      return undefined;
+    }
+  }
+
+  async linkProjectToUserConnection(input: { projectId: string; userConnectionId: string; linkedByUserId: string }) {
+    const link = await this.prisma.projectConnectionLink.upsert({
+      where: {
+        projectId_userConnectionId: {
+          projectId: input.projectId,
+          userConnectionId: input.userConnectionId,
+        },
+      },
+      create: {
+        projectId: input.projectId,
+        userConnectionId: input.userConnectionId,
+        linkedByUserId: input.linkedByUserId,
+      },
+      update: { unlinkedAt: null },
+    });
+
+    return mapProjectConnectionLink(link);
+  }
+
+  async unlinkProjectFromUserConnection(input: { projectId: string; userConnectionId: string }) {
+    const link = await this.prisma.projectConnectionLink.findUnique({
+      where: {
+        projectId_userConnectionId: {
+          projectId: input.projectId,
+          userConnectionId: input.userConnectionId,
+        },
+      },
+    });
+
+    if (!link) {
+      return undefined;
+    }
+
+    const updated = await this.prisma.projectConnectionLink.update({
+      where: { id: link.id },
+      data: { unlinkedAt: new Date() },
+    });
+
+    return mapProjectConnectionLink(updated);
+  }
+
+  async listProjectConnectionLinks(projectId: string, opts?: { includeUnlinked?: boolean }) {
+    const rows = await this.prisma.projectConnectionLink.findMany({
+      where: {
+        projectId,
+        unlinkedAt: opts?.includeUnlinked ? undefined : null,
+      },
+      orderBy: { linkedAt: 'desc' },
+    });
+
+    return rows.map(mapProjectConnectionLink);
+  }
+
   async createAiConversation(input: { projectId?: string; userId: string; title?: string }) {
     return mapAiConversation(await this.prisma.aiConversation.create({ data: input }));
   }
@@ -1503,6 +1722,65 @@ export class PrismaApiStore implements ApiStore {
     };
   }
 
+  async recordEmailDeliveryEvent(input: {
+    provider: string;
+    providerEventId: string;
+    type: string;
+    email: string;
+    emailMessageId?: string;
+    subject?: string;
+    fromAddress?: string;
+    payload: unknown;
+  }) {
+    const existing = await this.prisma.emailDeliveryEvent.findUnique({
+      where: {
+        provider_providerEventId: { provider: input.provider, providerEventId: input.providerEventId },
+      },
+    });
+
+    if (existing) {
+      return { event: mapEmailDeliveryEvent(existing), created: false };
+    }
+
+    return {
+      event: mapEmailDeliveryEvent(
+        await this.prisma.emailDeliveryEvent.create({
+          data: {
+            provider: input.provider,
+            providerEventId: input.providerEventId,
+            type: input.type,
+            email: input.email,
+            emailMessageId: input.emailMessageId,
+            subject: input.subject,
+            fromAddress: input.fromAddress,
+            payload: input.payload as any,
+          },
+        }),
+      ),
+      created: true,
+    };
+  }
+
+  async listEmailDeliveryEvents(filter?: {
+    email?: string;
+    type?: string;
+    emailMessageId?: string;
+    limit?: number;
+  }) {
+    const where: Record<string, unknown> = {};
+    if (filter?.email) where.email = filter.email;
+    if (filter?.type) where.type = filter.type;
+    if (filter?.emailMessageId) where.emailMessageId = filter.emailMessageId;
+
+    const rows = await this.prisma.emailDeliveryEvent.findMany({
+      where,
+      orderBy: { receivedAt: 'desc' },
+      take: Math.min(Math.max(filter?.limit ?? 100, 1), 500),
+    });
+
+    return rows.map(mapEmailDeliveryEvent);
+  }
+
   async recordAudit(event: AuditEvent) {
     const metadata = redactAuditMetadata(event.metadata);
     await this.prisma.auditLog.create({
@@ -1658,6 +1936,7 @@ function mapUser(user: any): UserRecord {
     mfaEnabled: user.mfaEnabled,
     mfaSecretEncrypted: user.mfaSecretCiphertext ?? undefined,
     platformAdmin: user.platformAdmin,
+    language: user.language ?? undefined,
     createdAt: toIso(user.createdAt)!,
   };
 }
@@ -1835,6 +2114,25 @@ function mapProjectShareLink(link: any): ProjectShareLinkRecord {
   };
 }
 
+function mapAgentPatchProposal(row: any): AgentPatchProposalRecord {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    artifactId: row.artifactId,
+    messageId: row.messageId,
+    actionId: row.actionId,
+    filePath: row.filePath,
+    relativePath: row.relativePath,
+    originalContent: row.originalContent,
+    proposedContent: row.proposedContent,
+    hunks: row.hunks,
+    status: row.status,
+    error: row.error ?? undefined,
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
+  };
+}
+
 function mapDeployment(deployment: any): DeploymentRecord {
   return {
     id: deployment.id,
@@ -1990,6 +2288,41 @@ function mapOAuthConnection(connection: any): OAuthConnectionRecord {
   };
 }
 
+function mapUserConnection(connection: any): UserConnectionRecord {
+  return {
+    id: connection.id,
+    userId: connection.userId,
+    provider: connection.provider,
+    externalAccountId: connection.externalAccountId,
+    externalAccountLabel: connection.externalAccountLabel,
+    accessTokenEncrypted: connection.accessTokenEncrypted ?? undefined,
+    refreshTokenEncrypted: connection.refreshTokenEncrypted ?? undefined,
+    apiKeyFieldsEncrypted: (connection.apiKeyFieldsEncrypted as Record<string, string> | undefined) ?? undefined,
+    scopes: connection.scopes ?? [],
+    tokenExpiresAt: toIso(connection.tokenExpiresAt),
+    status: connection.status as UserConnectionStatus,
+    lastUsedAt: toIso(connection.lastUsedAt),
+    forAgentUse: connection.forAgentUse,
+    oauthAppSource: connection.oauthAppSource as 'e_code_default' | 'org_override',
+    oauthAppOverrideId: connection.oauthAppOverrideId ?? undefined,
+    createdByUserId: connection.createdByUserId,
+    createdAt: toIso(connection.createdAt)!,
+    updatedAt: toIso(connection.updatedAt)!,
+    revokedAt: toIso(connection.revokedAt),
+  };
+}
+
+function mapProjectConnectionLink(link: any): ProjectConnectionLinkRecord {
+  return {
+    id: link.id,
+    projectId: link.projectId,
+    userConnectionId: link.userConnectionId,
+    linkedByUserId: link.linkedByUserId,
+    linkedAt: toIso(link.linkedAt)!,
+    unlinkedAt: toIso(link.unlinkedAt),
+  };
+}
+
 function mapAiConversation(conversation: any): AiConversationRecord {
   return {
     id: conversation.id,
@@ -2122,5 +2455,20 @@ function mapStripeEvent(event: any): StripeEventRecord {
     type: event.type,
     processedAt: toIso(event.processedAt)!,
     payload: event.payload,
+  };
+}
+
+function mapEmailDeliveryEvent(event: any): EmailDeliveryEventRecord {
+  return {
+    id: event.id,
+    provider: event.provider,
+    providerEventId: event.providerEventId,
+    type: event.type,
+    email: event.email,
+    emailMessageId: event.emailMessageId ?? undefined,
+    subject: event.subject ?? undefined,
+    fromAddress: event.fromAddress ?? undefined,
+    payload: event.payload,
+    receivedAt: toIso(event.receivedAt)!,
   };
 }

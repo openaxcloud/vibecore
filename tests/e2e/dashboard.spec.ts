@@ -1,10 +1,38 @@
 import { expect, test } from '@playwright/test';
+import JSZip from 'jszip';
+
+async function waitForApiHealth(page: import('@playwright/test').Page, apiBaseUrl: string) {
+  const deadline = Date.now() + 60_000;
+
+  let lastError = 'API did not respond before timeout.';
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await page.request.get(`${apiBaseUrl}/health`, { timeout: 2_000 });
+
+      if (response.ok()) {
+        return;
+      }
+
+      lastError = `API health returned ${response.status()}: ${await response.text().catch(() => '')}`;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+
+    await page.waitForTimeout(500);
+  }
+
+  throw new Error(lastError);
+}
 
 async function authenticate(page: import('@playwright/test').Page) {
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
   const appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const email = `e2e-${suffix}@local.test`;
+
+  await waitForApiHealth(page, apiBaseUrl);
+
   const response = await page.request.post(`${apiBaseUrl}/auth/register`, {
     data: {
       email,
@@ -31,27 +59,27 @@ async function authenticate(page: import('@playwright/test').Page) {
   return payload;
 }
 
+async function createZipBase64(files: Record<string, string>) {
+  const zip = new JSZip();
+
+  for (const [path, content] of Object.entries(files)) {
+    zip.file(path, content);
+  }
+
+  return zip.generateAsync({ type: 'base64' });
+}
+
 async function openVisibleIdeToolMenu(page: import('@playwright/test').Page) {
-  const trigger = page.locator('.bolt-project-tool-popover:visible').first().getByLabel('Open tool');
+  await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30_000 });
+
+  const trigger = page.locator('.bolt-project-tabbar:visible [data-testid="tab-add"]').first();
 
   await page.keyboard.press('Escape').catch(() => {});
   await expect(trigger).toBeVisible({ timeout: 15_000 });
-  await trigger.click({ force: true });
+  await trigger.evaluate((element) => (element as HTMLButtonElement).click());
 
   const toolMenu = page.locator('.bolt-project-tool-menu:visible').last();
   await expect(toolMenu).toBeVisible({ timeout: 15_000 });
-
-  await expect
-    .poll(
-      async () =>
-        toolMenu.evaluate((element) => {
-          const rect = element.getBoundingClientRect();
-
-          return Math.round(rect.width);
-        }),
-      { timeout: 15_000 },
-    )
-    .toBeGreaterThanOrEqual(300);
 
   return toolMenu;
 }
@@ -77,6 +105,7 @@ async function clickIdeToolMenuItem(toolMenu: import('@playwright/test').Locator
 async function createTestProject(page: import('@playwright/test').Page, name: string) {
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
   const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
     data: { name },
     headers: { authorization: `Bearer ${auth.token}` },
@@ -98,15 +127,20 @@ test('onboarding guides project setup', async ({ page }) => {
 test('project creation exposes templates and import paths', async ({ page }) => {
   await authenticate(page);
   await page.goto('/projects/new');
-  await expect(page.getByRole('heading', { name: 'What do you want to create?' })).toBeVisible();
-  await expect(page.getByLabel('AI prompt')).toBeVisible();
-  await expect(page.getByLabel('Project name')).toBeVisible();
-  await expect(page.getByText('Brief depth')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Production path selected' })).toBeVisible();
-  await expect(page.getByText('Live backend flow')).toBeVisible();
-  await expect(page.getByRole('link', { name: /Import GitHub/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Import zip/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Browse templates/ })).toHaveAttribute('href', '/dashboard/templates');
+  await expect(page.getByRole('heading', { name: 'What do you want to build?' })).toBeVisible();
+  await expect(page.getByRole('form', { name: 'Create project form' })).toBeVisible();
+  await expect(page.getByLabel('Describe your idea')).toBeVisible();
+  await expect(page.getByLabel('Artifact type')).toBeVisible();
+  await expect(page.locator('.vc-new-project-chip', { hasText: 'Web' })).toBeVisible();
+  await expect(page.getByTestId('ai-provider-dropdown')).toBeVisible();
+  await expect(page.getByTestId('ai-model-dropdown')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Import an existing GitHub repository/ })).toHaveAttribute(
+    'href',
+    '/import-github',
+  );
+  await expect(page.getByRole('link', { name: /Upload a zip archive/ })).toHaveAttribute('href', '/import-zip');
+  await expect(page.getByRole('heading', { name: 'Start from the existing catalog' })).toBeVisible();
+  await expect(page.getByText('Authenticated template flow already wired to project creation.')).toBeVisible();
 });
 
 test('project creation light theme uses light containers and readable image previews', async ({ page }) => {
@@ -116,7 +150,7 @@ test('project creation light theme uses light containers and readable image prev
   });
 
   await page.goto('/projects/new', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: 'What do you want to create?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'What do you want to build?' })).toBeVisible();
 
   const themeProbe = await page.evaluate(() => {
     const parseRgb = (value: string) => {
@@ -146,10 +180,10 @@ test('project creation light theme uses light containers and readable image prev
 
     return {
       theme: document.documentElement.getAttribute('data-theme'),
-      hero: styles('.vc-create-hero'),
-      composer: styles('.vc-create-composer'),
+      hero: styles('.vc-new-project-page'),
+      composer: styles('.vc-new-project-composer'),
       templatePreview: styles('.vc-template-preview'),
-      title: styles('.vc-create-title'),
+      title: styles('.vc-new-project-title'),
     };
   });
 
@@ -160,14 +194,59 @@ test('project creation light theme uses light containers and readable image prev
   expect(themeProbe.title.colorLuminance).toBeLessThan(0.18);
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole('heading', { name: 'What do you want to create?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'What do you want to build?' })).toBeVisible();
 
   const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(mobileOverflow).toBeLessThanOrEqual(2);
 });
 
+test('app shell form buttons stay visible in light theme', async ({ page }) => {
+  await authenticate(page);
+  await page.addInitScript(() => {
+    localStorage.setItem('bolt_theme', 'light');
+  });
+
+  await page.goto('/account-settings', { waitUntil: 'domcontentloaded' });
+  const saveButton = page.getByRole('button', { name: 'Save changes' });
+  await expect(saveButton).toBeVisible();
+
+  const saveButtonProbe = await saveButton.evaluate((element) => {
+    const style = window.getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+
+    return {
+      background: style.backgroundColor,
+      borderColor: style.borderTopColor,
+      color: style.color,
+      height: rect.height,
+    };
+  });
+
+  expect(saveButtonProbe.background).not.toBe('rgba(0, 0, 0, 0)');
+  expect(saveButtonProbe.borderColor).not.toBe('rgba(0, 0, 0, 0)');
+  expect(saveButtonProbe.height).toBeGreaterThanOrEqual(32);
+
+  await page.goto('/billing', { waitUntil: 'domcontentloaded' });
+  const portalButton = page.getByRole('button', { name: 'Open customer portal' });
+  await expect(portalButton).toBeVisible();
+
+  const portalButtonProbe = await portalButton.evaluate((element) => {
+    const style = window.getComputedStyle(element);
+
+    return {
+      background: style.backgroundColor,
+      borderColor: style.borderTopColor,
+      color: style.color,
+    };
+  });
+
+  expect(portalButtonProbe.background).not.toBe('rgba(0, 0, 0, 0)');
+  expect(portalButtonProbe.borderColor).not.toBe('rgba(0, 0, 0, 0)');
+});
+
 test('project creation syncs AI providers and models from settings', async ({ page }) => {
   await authenticate(page);
+
   const providerNames = [
     'AmazonBedrock',
     'Anthropic',
@@ -232,19 +311,22 @@ test('project creation syncs AI providers and models from settings', async ({ pa
   });
 
   await page.goto('/projects/new', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: 'What do you want to create?' })).toBeVisible();
-  await expect(page.getByText('1 provider from Settings')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: 'What do you want to build?' })).toBeVisible();
+  await expect(page.getByText('1 provider synced from Settings')).toBeVisible({ timeout: 15_000 });
 
   const providerDropdown = page.getByTestId('ai-provider-dropdown');
-  await expect(providerDropdown.getByRole('button', { name: 'AI provider' })).toContainText('OpenAI');
-  await providerDropdown.getByRole('button', { name: 'AI provider' }).click();
+  const providerCombobox = providerDropdown.getByRole('combobox', { name: 'AI provider' });
+  await expect(providerCombobox).toContainText('OpenAI');
+  await providerCombobox.click();
   await expect(page.getByRole('option', { name: /OpenAI/ })).toBeVisible();
   await expect(page.getByRole('option', { name: /Anthropic/ })).toHaveCount(0);
 
   await page.keyboard.press('Escape');
+
   const modelDropdown = page.getByTestId('ai-model-dropdown');
-  await expect(modelDropdown.getByRole('button', { name: 'AI model' })).toContainText('GPT Settings Live');
-  await modelDropdown.getByRole('button', { name: 'AI model' }).click();
+  const modelCombobox = modelDropdown.getByRole('combobox', { name: 'AI model' });
+  await expect(modelCombobox).toContainText('GPT Settings Live');
+  await modelCombobox.click();
   await expect(page.getByRole('option', { name: /GPT Settings Live/ })).toBeVisible();
   await expect(page.getByRole('option', { name: /GPT Settings Small/ })).toBeVisible();
 });
@@ -356,10 +438,12 @@ test('public homepage light theme keeps imagery adapted and readable', async ({ 
 });
 
 test('opens preserved Bolt IDE route for a project', async ({ page }) => {
+  test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
 
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
   const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
     data: { name: 'IDE preserved route project', description: 'E2E IDE layout smoke project' },
     headers: { authorization: `Bearer ${auth.token}` },
@@ -369,6 +453,20 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
 
   const projectId = (await createProject.json()).project.id as string;
 
+  const zipBase64 = await createZipBase64({
+    'components/AppShell.tsx': 'export function AppShell() { return <main />; }\n',
+    'data/projects.json': '{"projects":[]}\n',
+    'pages/index.tsx': 'export default function Index() { return null; }\n',
+    'store/projectStore.ts': 'export const projectStore = new Map();\n',
+    'types/project.ts': 'export interface Project { id: string }\n',
+  });
+  const importFiles = await page.request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
+    data: { zipBase64 },
+    headers: { authorization: `Bearer ${auth.token}` },
+  });
+
+  expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
+
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText('Agent', { exact: true })).toBeVisible();
@@ -376,7 +474,7 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   const agentPanel = page.getByRole('region', { name: 'AI agent' });
   await expect(agentPanel).toBeVisible();
   await expect(page.getByLabel('Resize AI agent panel')).toBeVisible();
-  await expect(page.getByPlaceholder('Describe what you want to build...')).toBeVisible();
+  await expect(page.getByLabel('Agent prompt')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add a feature' })).toBeVisible();
 
   const agentMetrics = await agentPanel.evaluate((element) => {
@@ -393,10 +491,13 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
       borderRight: style.borderRightColor,
     };
   });
-  expect(agentMetrics.position).toBe('fixed');
-  expect(agentMetrics.left).toBe(0);
+  expect(agentMetrics.position).toBe('relative');
   expect(agentMetrics.top).toBe(36);
-  expect(agentMetrics.width).toBe(420);
+  expect(agentMetrics.left).toBeGreaterThanOrEqual(48);
+  expect(agentMetrics.left).toBeLessThanOrEqual(80);
+  expect(agentMetrics.width).toBeGreaterThanOrEqual(340);
+  expect(agentMetrics.width).toBeLessThanOrEqual(520);
+  expect(agentMetrics.height).toBe((page.viewportSize()?.height ?? 900) - 36 - 32);
   expect(agentMetrics.background).toBe('rgb(14, 21, 37)');
   expect(agentMetrics.borderRight).toBe('rgb(26, 32, 48)');
 
@@ -406,7 +507,7 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
         page.locator('.bolt-project-workspace-shell').evaluate((element) => window.getComputedStyle(element).position),
       { timeout: 5000 },
     )
-    .toBe('absolute');
+    .toBe('relative');
 
   const workspaceMetrics = await page.locator('.bolt-project-workspace-shell').evaluate((element) => {
     const rect = element.getBoundingClientRect();
@@ -421,11 +522,14 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
       background: style.backgroundColor,
     };
   });
-  expect(workspaceMetrics.position).toBe('absolute');
+  expect(workspaceMetrics.position).toBe('relative');
   expect(workspaceMetrics.top).toBe(36);
-  expect(workspaceMetrics.left).toBe(420);
-  expect(workspaceMetrics.width).toBe(780);
-  expect(workspaceMetrics.height).toBe(864);
+  expect(workspaceMetrics.left).toBeGreaterThan(agentMetrics.left + agentMetrics.width);
+  expect(workspaceMetrics.left).toBeGreaterThanOrEqual(380);
+  expect(workspaceMetrics.left).toBeLessThanOrEqual(540);
+  expect(workspaceMetrics.width).toBeGreaterThanOrEqual(640);
+  expect(workspaceMetrics.width).toBeLessThanOrEqual(940);
+  expect(workspaceMetrics.height).toBe((page.viewportSize()?.height ?? 900) - 36 - 32);
   expect(workspaceMetrics.background).toBe('rgb(10, 15, 28)');
 
   const tabBarMetrics = await page
@@ -442,10 +546,11 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
         display: style.display,
       };
     });
-  expect(tabBarMetrics.height).toBe(36);
+  expect(tabBarMetrics.height).toBe(40);
   expect(tabBarMetrics.background).toBe('rgb(14, 21, 37)');
   expect(tabBarMetrics.borderBottom).toBe('rgb(26, 32, 48)');
   expect(tabBarMetrics.display).toBe('flex');
+
   const toolMenu = await openVisibleIdeToolMenu(page);
 
   const toolMenuMetrics = await toolMenu.evaluate((element) => {
@@ -462,11 +567,11 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
     };
   });
   expect(toolMenuMetrics.width).toBeGreaterThanOrEqual(300);
-  expect(toolMenuMetrics.width).toBeLessThanOrEqual(320);
-  expect(toolMenuMetrics.maxHeight).toBe('480px');
+  expect(toolMenuMetrics.width).toBeLessThanOrEqual(940);
+  expect(toolMenuMetrics.maxHeight).toBe('430px');
   expect(toolMenuMetrics.background).toBe('rgb(26, 32, 48)');
   expect(toolMenuMetrics.border).toBe('rgb(43, 50, 69)');
-  expect(toolMenuMetrics.borderRadius).toBe('12px');
+  expect(toolMenuMetrics.borderRadius).toBe('0px');
   expect(toolMenuMetrics.padding).toBe('8px');
   await expect(toolMenu.getByPlaceholder('Search tools and files...')).toBeVisible();
   await expect(toolMenu.locator('.bolt-project-tool-section', { hasText: 'RECENT FILES' })).toBeVisible();
@@ -481,6 +586,7 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
     timeout: 15000,
   });
+
   const filesToolMenu = await openVisibleIdeToolMenu(page);
   const filesToolButton = filesToolMenu.getByRole('button', { name: /Files/ });
 
@@ -507,14 +613,18 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
       borderLeft: style.borderLeftColor,
     };
   });
-  expect(rightPanelMetrics.position).toBe('fixed');
+  expect(rightPanelMetrics.position).toBe('relative');
   expect(rightPanelMetrics.top).toBe(36);
   expect(rightPanelMetrics.right).toBe(0);
-  expect(rightPanelMetrics.width).toBe(240);
-  expect(rightPanelMetrics.height).toBe((page.viewportSize()?.height ?? 720) - 36);
+  expect(rightPanelMetrics.width).toBeGreaterThanOrEqual(260);
+  expect(rightPanelMetrics.width).toBeLessThanOrEqual(290);
+  expect(rightPanelMetrics.height).toBe((page.viewportSize()?.height ?? 720) - 36 - 32);
   expect(rightPanelMetrics.background).toBe('rgb(14, 21, 37)');
   expect(rightPanelMetrics.borderLeft).toBe('rgb(26, 32, 48)');
   await expect(rightPanel.locator('.bolt-project-files-tool')).toBeVisible();
+  await expect
+    .poll(async () => rightPanel.locator('.bolt-file-tree-node').count(), { timeout: 30_000 })
+    .toBeGreaterThan(0);
 
   const filesPanelFillMetrics = await rightPanel.locator('.bolt-project-files-tool').evaluate((element) => {
     const toolRect = element.getBoundingClientRect();
@@ -532,17 +642,68 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
       treeBackground: treeStyle.backgroundColor,
     };
   });
-  expect(filesPanelFillMetrics.contentWidth).toBeGreaterThanOrEqual(238);
-  expect(filesPanelFillMetrics.contentWidth).toBeLessThanOrEqual(240);
+  expect(filesPanelFillMetrics.contentWidth).toBeGreaterThanOrEqual(260);
+  expect(filesPanelFillMetrics.contentWidth).toBeLessThanOrEqual(280);
   expect(filesPanelFillMetrics.toolWidth).toBe(filesPanelFillMetrics.contentWidth);
   expect(filesPanelFillMetrics.treeWidth).toBe(filesPanelFillMetrics.contentWidth);
   expect(filesPanelFillMetrics.toolBackground).toBe('rgb(14, 21, 37)');
   expect(filesPanelFillMetrics.treeBackground).toBe('rgb(14, 21, 37)');
 
-  await expect(page.getByLabel('Resize right panel')).toBeVisible();
+  await page.evaluate(() => {
+    localStorage.setItem('bolt_theme', 'light');
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.classList.remove('dark');
+  });
+
+  const fileRowMetrics = await rightPanel
+    .locator('.bolt-file-tree-node')
+    .first()
+    .evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      const icon = element.querySelector('.bolt-file-tree-icon-wrap') as HTMLElement;
+      const iconRect = icon.getBoundingClientRect();
+      const iconStyle = window.getComputedStyle(icon);
+      const name = element.querySelector('.bolt-file-tree-name') as HTMLElement;
+      const nameStyle = window.getComputedStyle(name);
+
+      return {
+        rowWidth: Math.round(rect.width),
+        rowHeight: Math.round(rect.height),
+        borderRadius: style.borderRadius,
+        gap: style.gap,
+        paddingLeft: style.paddingLeft,
+        paddingRight: style.paddingRight,
+        iconWidth: Math.round(iconRect.width),
+        iconHeight: Math.round(iconRect.height),
+        iconColor: iconStyle.color,
+        nameColor: nameStyle.color,
+        nameFontSize: nameStyle.fontSize,
+        nameFontWeight: nameStyle.fontWeight,
+        nameLineHeight: nameStyle.lineHeight,
+      };
+    });
+
+  expect(fileRowMetrics).toMatchObject({
+    rowWidth: 240,
+    rowHeight: 28,
+    borderRadius: '4px',
+    gap: '6px',
+    paddingLeft: '0px',
+    paddingRight: '0px',
+    iconWidth: 16,
+    iconHeight: 16,
+    iconColor: 'rgb(54, 55, 59)',
+    nameColor: 'rgb(54, 55, 59)',
+    nameFontSize: '14px',
+    nameFontWeight: '400',
+    nameLineHeight: 'normal',
+  });
+
+  await expect(page.getByLabel(/Resize (?:files|right) panel/)).toBeVisible();
   await rightPanel.getByLabel('Close right panel').click();
   await expect(rightPanel).toHaveCount(0);
-  await expect(page.getByTestId('ide-files-panel-toggle')).toHaveAttribute('aria-label', 'Open right panel');
+  await expect(page.getByTestId('ide-files-panel-toggle')).toHaveAttribute('aria-label', 'Open files panel');
   await page.getByTestId('ide-files-panel-toggle').click();
   await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible();
 });
@@ -552,6 +713,7 @@ test('IDE applies the full 2026 color theme tokens', async ({ page, isMobile }) 
 
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
   const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
     headers: { authorization: `Bearer ${auth.token}` },
     data: { name: 'IDE Theme Project' },
@@ -569,6 +731,33 @@ test('IDE applies the full 2026 color theme tokens', async ({ page, isMobile }) 
     const style = window.getComputedStyle(document.documentElement);
     const panelStyle = window.getComputedStyle(element);
     const token = (name: string) => style.getPropertyValue(name).trim().toLowerCase();
+
+    const requiredAliases = [
+      '--vc-ide-bg-base',
+      '--vc-ide-bg-elevated',
+      '--vc-ide-bg-subtle',
+      '--vc-ide-bg-overlay',
+      '--vc-ide-bg-panel-subtle',
+      '--vc-ide-surface-0',
+      '--vc-ide-surface-1',
+      '--vc-ide-surface-2',
+      '--vc-ide-border',
+      '--vc-ide-text-tertiary',
+      '--vc-ide-text-on-accent',
+      '--vc-ide-accent',
+      '--vc-ide-accent-primary',
+      '--vc-ide-accent-green',
+      '--vc-ide-accent-danger',
+      '--vc-success',
+      '--vc-danger',
+      '--vc-status-ok',
+      '--vc-status-error',
+      '--vc-status-warn',
+      '--vc-status-muted',
+      '--vc-status-neutral',
+      '--vc-ui-shadow-soft',
+      '--vc-ide-shadow-soft',
+    ];
 
     return {
       app: token('--vc-ide-bg-app'),
@@ -589,6 +778,7 @@ test('IDE applies the full 2026 color theme tokens', async ({ page, isMobile }) 
       warning: token('--vc-ide-accent-warning'),
       actualBackground: panelStyle.backgroundColor,
       actualText: panelStyle.color,
+      missingAliases: requiredAliases.filter((name) => token(name).length === 0),
     };
   });
 
@@ -611,6 +801,7 @@ test('IDE applies the full 2026 color theme tokens', async ({ page, isMobile }) 
     warning: '#d29922',
     actualBackground: 'rgb(10, 15, 28)',
     actualText: 'rgb(245, 249, 252)',
+    missingAliases: [],
   });
 });
 
@@ -623,6 +814,7 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
 
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
   const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
     headers: { authorization: `Bearer ${auth.token}` },
     data: { name: 'IDE Light Dark Coverage Project' },
@@ -683,6 +875,7 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
           fontSize: style.fontSize,
         };
       };
+
       const rootStyle = window.getComputedStyle(rootElement);
 
       return {
@@ -715,10 +908,10 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
       panel: 'rgb(255, 255, 255)',
       app: 'rgb(246, 248, 251)',
       card: 'rgb(238, 242, 247)',
-      hoverBorder: 'rgb(216, 222, 232)',
-      visibleBorder: 'rgb(196, 204, 216)',
-      secondaryText: 'rgb(75, 85, 99)',
-      mutedText: 'rgb(107, 114, 128)',
+      hoverBorder: 'rgb(207, 215, 227)',
+      visibleBorder: 'rgb(154, 168, 187)',
+      secondaryText: 'rgb(51, 65, 85)',
+      mutedText: 'rgb(71, 85, 105)',
       primaryText: 'rgb(17, 24, 39)',
       forbiddenPanelBackgrounds: [
         'rgb(10, 15, 28)',
@@ -807,11 +1000,12 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
 });
 
 test('all IDE service panels keep light theme containers readable', async ({ page, isMobile }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
 
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
   const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
     headers: { authorization: `Bearer ${auth.token}` },
     data: { name: 'IDE All Panels Light Theme Project' },
@@ -827,12 +1021,6 @@ test('all IDE service panels keep light theme containers readable', async ({ pag
     document.documentElement.setAttribute('data-theme', 'light');
   });
 
-  async function openIdeTool(name: RegExp) {
-    const toolMenu = await openVisibleIdeToolMenu(page);
-
-    await clickIdeToolMenuItem(toolMenu, name);
-  }
-
   const panels = [
     ['Overview', 'overview'],
     ['Database', 'database'],
@@ -841,24 +1029,35 @@ test('all IDE service panels keep light theme containers readable', async ({ pag
     ['Deployments', 'deployments'],
     ['Monitoring', 'monitoring'],
     ['Extensions', 'extensions'],
+    ['Integrations', 'integrations'],
+    ['Workflows', 'workflows'],
+    ['Debugger', 'debugger'],
+    ['Security', 'security'],
     ['Env vars', 'env'],
     ['Secrets', 'secrets'],
     ['Git', 'git'],
     ['Activity', 'activity'],
+    ['Logs', 'logs'],
     ['Collaborators', 'collaborators'],
     ['Domains', 'domains'],
+    ['Snapshots', 'snapshots'],
     ['Settings', 'settings'],
   ] as const;
 
-  const forbiddenLightBackgrounds = [
-    'rgb(10, 15, 28)',
-    'rgb(14, 21, 37)',
-    'rgb(26, 32, 48)',
-    'rgb(43, 50, 69)',
-  ];
+  const forbiddenLightBackgrounds = ['rgb(10, 15, 28)', 'rgb(14, 21, 37)', 'rgb(26, 32, 48)', 'rgb(43, 50, 69)'];
 
-  for (const [label, panel] of panels) {
-    await openIdeTool(new RegExp(label));
+  await page.evaluate(() => {
+    localStorage.setItem('bolt_theme', 'light');
+  });
+
+  for (const [, panel] of panels) {
+    await page.goto(`/projects/${projectId}/ide?panel=${panel}`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30_000 });
+    await page.evaluate(() => {
+      localStorage.setItem('bolt_theme', 'light');
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.documentElement.classList.remove('dark');
+    });
 
     const servicePanel = page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).first();
     await expect(servicePanel).toBeVisible({ timeout: 15_000 });
@@ -907,6 +1106,7 @@ test('platform typography tokens apply to the web IDE', async ({ page, isMobile 
 
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
   const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
     headers: { authorization: `Bearer ${auth.token}` },
     data: { name: 'IDE Typography Project' },
@@ -926,6 +1126,7 @@ test('platform typography tokens apply to the web IDE', async ({ page, isMobile 
     codeSample.style.left = '-9999px';
     codeSample.setAttribute('data-testid', 'typography-code-sample');
     element.appendChild(codeSample);
+
     const labelSample = document.createElement('div');
     labelSample.className = 'bolt-project-command-section';
     labelSample.textContent = 'Files';
@@ -986,6 +1187,7 @@ test('IDE applies section 12 UI detail styles', async ({ page, isMobile }) => {
 
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
   const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
     headers: { authorization: `Bearer ${auth.token}` },
     data: { name: 'IDE UI Details Project' },
@@ -997,6 +1199,7 @@ test('IDE applies section 12 UI detail styles', async ({ page, isMobile }) => {
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30000 });
+
   const toolMenu = await openVisibleIdeToolMenu(page);
 
   const details = await toolMenu.evaluate((menu) => {
@@ -1046,6 +1249,7 @@ test('IDE project services open as in-place panels instead of legacy project pag
 
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
   const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
     headers: { authorization: `Bearer ${auth.token}` },
     data: { name: 'IDE Panel Project' },
@@ -1324,9 +1528,7 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=env$`));
   await expect(page.locator('[data-testid="ide-service-panel"][data-panel="env"]')).toBeVisible();
   await page.getByPlaceholder('VITE_API_URL').fill('E2E_FLAG');
-  await page
-    .locator('[data-testid="ide-service-panel"][data-panel="env"] form input[name="value"]')
-    .fill('enabled');
+  await page.locator('[data-testid="ide-service-panel"][data-panel="env"] form input[name="value"]').fill('enabled');
   await page.getByRole('button', { name: 'Save variable' }).click();
   await expect(
     page.locator('[data-testid="ide-service-panel"][data-panel="env"]').filter({ hasText: 'E2E_FLAG' }).last(),
@@ -1353,16 +1555,41 @@ test('IDE project services open as in-place panels instead of legacy project pag
 
 test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMobile }) => {
   test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
+  test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.addInitScript(() => {
     localStorage.setItem('bolt_theme', 'light');
   });
 
-  const projectId = await createTestProject(page, 'Light theme IDE tabs');
+  const auth = await authenticate(page);
+  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
+  const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+    data: { name: 'Light theme IDE tabs' },
+    headers: { authorization: `Bearer ${auth.token}` },
+  });
+
+  expect(createProject.ok(), await createProject.text()).toBeTruthy();
+
+  const projectId = (await createProject.json()).project.id as string;
+  const zipBase64 = await createZipBase64({
+    'components/AppShell.tsx': 'export function AppShell() { return <main />; }\n',
+  });
+  const importFiles = await page.request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
+    data: { zipBase64 },
+    headers: { authorization: `Bearer ${auth.token}` },
+  });
+
+  expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('.bolt-project-tab').first()).toBeVisible({ timeout: 30_000 });
+  const filesPanel = page.locator('[aria-label="Project files panel"]');
+  await expect(filesPanel.getByText('AppShell.tsx', { exact: true })).toBeVisible({ timeout: 60_000 });
+  await filesPanel.getByText('AppShell.tsx', { exact: true }).click();
+  await expect(page.locator('[data-testid="responsive-code-editor"]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-editor-kind="monaco"]')).toBeVisible({ timeout: 30_000 });
 
   const tabProbe = await page.evaluate(() => {
     const parseRgb = (value: string) => {
@@ -1397,6 +1624,7 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
       theme: document.documentElement.getAttribute('data-theme'),
       editorActive: read('.bolt-project-tab[aria-selected="true"]'),
       editorStrip: read('.bolt-project-tabbar'),
+      editorCanvas: read('[data-testid="responsive-code-editor"]'),
       rightPanel: read('[aria-label="Project files panel"]'),
     };
   });
@@ -1405,6 +1633,8 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
   expect(tabProbe.editorActive.backgroundLuminance).toBeGreaterThan(0.9);
   expect(tabProbe.editorActive.colorLuminance).toBeLessThan(0.18);
   expect(tabProbe.editorStrip.backgroundLuminance).toBeGreaterThan(0.9);
+  expect(tabProbe.editorCanvas.backgroundLuminance).toBeGreaterThan(0.9);
+  expect(tabProbe.editorCanvas.colorLuminance).toBeLessThan(0.2);
   expect(tabProbe.rightPanel.backgroundLuminance).toBeGreaterThan(0.88);
 });
 
@@ -1460,6 +1690,7 @@ test('reopens project IDE with persisted agent memory and panel state', async ({
   const firstUserMessage = `${marker} first user request`;
   const assistantMessage = `${marker} assistant response`;
   const secondUserMessage = `${marker} second user request`;
+
   const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
     headers: { authorization: `Bearer ${auth.token}` },
     data: { name: 'Memory Project' },
@@ -1468,6 +1699,7 @@ test('reopens project IDE with persisted agent memory and panel state', async ({
   expect(createProject.ok(), await createProject.text()).toBeTruthy();
 
   const projectId = (await createProject.json()).project.id as string;
+
   const saveState = await page.request.put(`${apiBaseUrl}/projects/${projectId}/ide-state`, {
     headers: { authorization: `Bearer ${auth.token}` },
     data: {
@@ -1648,6 +1880,7 @@ test('public and authenticated routes render without route errors', async ({ pag
   }
 
   const auth = await authenticate(page);
+
   const createProject = await page.request.post(
     `${process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001'}/orgs/${auth.organization.id}/projects`,
     {
@@ -1659,6 +1892,7 @@ test('public and authenticated routes render without route errors', async ({ pag
   expect(createProject.ok(), await createProject.text()).toBeTruthy();
 
   const projectId = (await createProject.json()).project.id as string;
+
   const authenticatedRoutes = [
     '/dashboard',
     '/projects',

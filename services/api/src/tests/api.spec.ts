@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { createTotpCode } from '@vibecore/auth';
 import { decryptJson } from '@vibecore/security';
 import JSZip from 'jszip';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import WebSocket from 'ws';
 import { buildApiApp, type ApiAppOptions } from '../app.js';
 import type { EmailMessage, EmailProvider } from '../email.js';
@@ -230,7 +230,9 @@ class MemoryProjectStorage implements ProjectStorage {
   }
 }
 
-async function startRuntimeServices(options: { logs?: string[]; commandStdout?: string; commandStderr?: string } = {}) {
+async function startRuntimeServices(
+  options: { logs?: string[]; commandStdout?: string; commandStderr?: string; agentUnavailable?: boolean } = {},
+) {
   const files = new Map<string, string>([['README.md', '# Runtime project\n']]);
   const calls: string[] = [];
 
@@ -245,6 +247,11 @@ async function startRuntimeServices(options: { logs?: string[]; commandStdout?: 
     request.on('end', () => {
       const payload = body ? JSON.parse(body) : {};
       response.setHeader('content-type', 'application/json');
+
+      if (options.agentUnavailable) {
+        response.writeHead(503).end(JSON.stringify({ error: 'workspace_agent_unavailable' }));
+        return;
+      }
 
       if (request.method === 'GET' && url.pathname === '/files/tree') {
         response.end(JSON.stringify([...files.keys()].map((path) => ({ path, type: 'file' }))));
@@ -270,6 +277,9 @@ async function startRuntimeServices(options: { logs?: string[]; commandStdout?: 
         );
       } else if (request.method === 'GET' && url.pathname === '/ports') {
         response.end(JSON.stringify({ ports: [{ port: 5173, processId: 'dev' }] }));
+      } else if (request.method === 'GET' && url.pathname === '/preview/5173/') {
+        response.setHeader('content-type', 'text/html');
+        response.end('<main>runtime preview root</main>');
       } else if (request.method === 'POST' && url.pathname === '/snapshots/create') {
         response.end(
           JSON.stringify({
@@ -340,6 +350,21 @@ function buildTestApiApp(options: ApiAppOptions = {}) {
   return buildApiApp({ gitProvider: new TestGitProvider(), emailProvider: new TestEmailProvider(), ...options });
 }
 
+async function withProductionWorkspaceManager<T>(callback: () => Promise<T>): Promise<T> {
+  const previousManager = process.env.WORKSPACE_MANAGER_URL;
+  process.env.WORKSPACE_MANAGER_URL = 'https://workspace-manager.example.com';
+
+  try {
+    return await callback();
+  } finally {
+    if (previousManager === undefined) {
+      delete process.env.WORKSPACE_MANAGER_URL;
+    } else {
+      process.env.WORKSPACE_MANAGER_URL = previousManager;
+    }
+  }
+}
+
 async function register(
   app: Awaited<ReturnType<typeof buildTestApiApp>>,
   input: { email: string; password?: string; name?: string; organizationName?: string },
@@ -380,6 +405,23 @@ function stripeSignature(payload: string, secret: string) {
   const signature = createHmac('sha256', secret).update(`${timestamp}.${payload}`).digest('hex');
 
   return `t=${timestamp},v1=${signature}`;
+}
+
+function svixSignature(input: { id: string; timestampSeconds: number; body: string; secretWhsec: string }) {
+  const secretBase64 = input.secretWhsec.startsWith('whsec_')
+    ? input.secretWhsec.slice('whsec_'.length)
+    : input.secretWhsec;
+  const key = Buffer.from(secretBase64, 'base64');
+  const signed = `${input.id}.${input.timestampSeconds}.${input.body}`;
+  return `v1,${createHmac('sha256', key).update(signed).digest('base64')}`;
+}
+
+function restoreEnv(key: string, value: string | undefined) {
+  if (value === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = value;
+  }
 }
 
 describe('SaaS API', () => {
@@ -464,37 +506,79 @@ describe('SaaS API', () => {
   });
 
   it('refuses to boot in production when the CORS allowlist is missing or dev-default', async () => {
-    await expect(
-      buildTestApiApp({
-        store: new TestApiStore(),
-        isProduction: true,
-        allowedOrigins: ['http://localhost:5173'],
-      }),
-    ).rejects.toThrow(/API_CORS_ORIGINS/);
+    await withProductionWorkspaceManager(async () => {
+      await expect(
+        buildTestApiApp({
+          store: new TestApiStore(),
+          isProduction: true,
+          allowedOrigins: ['http://localhost:5173'],
+        }),
+      ).rejects.toThrow(/API_CORS_ORIGINS/);
 
-    await expect(
-      buildTestApiApp({
-        store: new TestApiStore(),
-        isProduction: true,
-        allowedOrigins: [],
-      }),
-    ).rejects.toThrow(/API_CORS_ORIGINS/);
+      await expect(
+        buildTestApiApp({
+          store: new TestApiStore(),
+          isProduction: true,
+          allowedOrigins: [],
+        }),
+      ).rejects.toThrow(/API_CORS_ORIGINS/);
 
-    await expect(
-      buildTestApiApp({
+      await expect(
+        buildTestApiApp({
+          store: new TestApiStore(),
+          isProduction: true,
+          allowedOrigins: ['http://app.example.com'],
+        }),
+      ).rejects.toThrow(/API_CORS_ORIGINS/);
+    });
+  });
+
+  it('refuses to boot in production when the workspace manager URL is missing or local', async () => {
+    const previousManager = process.env.WORKSPACE_MANAGER_URL;
+
+    try {
+      delete process.env.WORKSPACE_MANAGER_URL;
+      await expect(
+        buildTestApiApp({
+          store: new TestApiStore(),
+          isProduction: true,
+          allowedOrigins: ['https://app.example.com'],
+        }),
+      ).rejects.toThrow(/WORKSPACE_MANAGER_URL is required/);
+
+      process.env.WORKSPACE_MANAGER_URL = 'http://127.0.0.1:3010';
+      await expect(
+        buildTestApiApp({
+          store: new TestApiStore(),
+          isProduction: true,
+          allowedOrigins: ['https://app.example.com'],
+        }),
+      ).rejects.toThrow(/WORKSPACE_MANAGER_URL must use HTTPS or an internal Kubernetes service DNS URL/);
+
+      process.env.WORKSPACE_MANAGER_URL = 'http://workspace-manager.vibecore.svc:3010';
+      const app = await buildTestApiApp({
         store: new TestApiStore(),
         isProduction: true,
-        allowedOrigins: ['http://app.example.com'],
-      }),
-    ).rejects.toThrow(/API_CORS_ORIGINS/);
+        allowedOrigins: ['https://app.example.com'],
+      });
+      await app.close();
+    } finally {
+      if (previousManager === undefined) {
+        delete process.env.WORKSPACE_MANAGER_URL;
+      } else {
+        process.env.WORKSPACE_MANAGER_URL = previousManager;
+      }
+    }
   });
 
   it('boots in production when the CORS allowlist is explicit HTTPS origins', async () => {
-    const app = await buildTestApiApp({
-      store: new TestApiStore(),
-      isProduction: true,
-      allowedOrigins: ['https://app.example.com', 'https://admin.example.com'],
-    });
+    const app = await withProductionWorkspaceManager(() =>
+      buildTestApiApp({
+        store: new TestApiStore(),
+        isProduction: true,
+        allowedOrigins: ['https://app.example.com', 'https://admin.example.com'],
+      }),
+    );
 
     const cors = await app.inject({
       method: 'OPTIONS',
@@ -917,6 +1001,244 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('uses well-known authorization URL defaults for Google when only the client id is set', async () => {
+    /*
+     * Reproduces the prod gap: operators provisioned GOOGLE_CLIENT_ID
+     * but not GOOGLE_OAUTH_AUTHORIZATION_URL, so /auth/oauth/google/start
+     * returned `ready:true` with `authorizationUrl:null` and the web
+     * route bounced to /login?error=not_configured. The well-known
+     * provider map should fill in the canonical Google endpoints so
+     * `client_id` alone is enough to make the start endpoint usable.
+     */
+    const original = {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      authorizationUrl: process.env.GOOGLE_OAUTH_AUTHORIZATION_URL,
+      legacyAuthorizationUrl: process.env.GOOGLE_AUTHORIZATION_URL,
+      githubClientId: process.env.GITHUB_CLIENT_ID,
+      githubAuthorizationUrl: process.env.GITHUB_OAUTH_AUTHORIZATION_URL,
+    };
+
+    delete process.env.GOOGLE_OAUTH_AUTHORIZATION_URL;
+    delete process.env.GOOGLE_AUTHORIZATION_URL;
+    delete process.env.GITHUB_OAUTH_AUTHORIZATION_URL;
+    process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
+    process.env.GITHUB_CLIENT_ID = 'test-github-client-id';
+
+    try {
+      const app = await buildTestApiApp({ store: new TestApiStore() });
+
+      const google = await app.inject({ method: 'GET', url: '/auth/oauth/google/start' });
+      expect(google.statusCode).toBe(200);
+
+      const googlePayload = google.json() as { ready: boolean; authorizationUrl: string | null };
+      expect(googlePayload.ready).toBe(true);
+      expect(googlePayload.authorizationUrl).toBeTruthy();
+
+      const googleUrl = new URL(googlePayload.authorizationUrl!);
+      expect(googleUrl.origin).toBe('https://accounts.google.com');
+      expect(googleUrl.pathname).toBe('/o/oauth2/v2/auth');
+      expect(googleUrl.searchParams.get('client_id')).toBe('test-google-client-id');
+      expect(googleUrl.searchParams.get('scope')).toBe('openid email profile');
+      expect(googleUrl.searchParams.get('response_type')).toBe('code');
+      expect(googleUrl.searchParams.get('state')).toBeTruthy();
+
+      const github = await app.inject({ method: 'GET', url: '/auth/oauth/github/start' });
+      const githubPayload = github.json() as { ready: boolean; authorizationUrl: string | null };
+      expect(githubPayload.ready).toBe(true);
+
+      const githubUrl = new URL(githubPayload.authorizationUrl!);
+      expect(githubUrl.origin).toBe('https://github.com');
+      expect(githubUrl.pathname).toBe('/login/oauth/authorize');
+      expect(githubUrl.searchParams.get('client_id')).toBe('test-github-client-id');
+      expect(githubUrl.searchParams.get('scope')).toBe('read:user user:email');
+
+      await app.close();
+    } finally {
+      restoreEnv('GOOGLE_CLIENT_ID', original.clientId);
+      restoreEnv('GOOGLE_OAUTH_AUTHORIZATION_URL', original.authorizationUrl);
+      restoreEnv('GOOGLE_AUTHORIZATION_URL', original.legacyAuthorizationUrl);
+      restoreEnv('GITHUB_CLIENT_ID', original.githubClientId);
+      restoreEnv('GITHUB_OAUTH_AUTHORIZATION_URL', original.githubAuthorizationUrl);
+    }
+  });
+
+  describe('GitHub OAuth code exchange', () => {
+    const originalEnv = {
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      redirectUri: process.env.GITHUB_REDIRECT_URI,
+      userAgent: process.env.GITHUB_USER_AGENT,
+      emailsUrl: process.env.GITHUB_USERINFO_EMAILS_URL,
+    };
+
+    afterEach(() => {
+      restoreEnv('GITHUB_CLIENT_ID', originalEnv.clientId);
+      restoreEnv('GITHUB_CLIENT_SECRET', originalEnv.clientSecret);
+      restoreEnv('GITHUB_REDIRECT_URI', originalEnv.redirectUri);
+      restoreEnv('GITHUB_USER_AGENT', originalEnv.userAgent);
+      restoreEnv('GITHUB_USERINFO_EMAILS_URL', originalEnv.emailsUrl);
+      vi.restoreAllMocks();
+    });
+
+    it('falls back to /user/emails when GitHub returns a null email for a private profile', async () => {
+      process.env.GITHUB_CLIENT_ID = 'gh-code-client-id';
+      process.env.GITHUB_CLIENT_SECRET = 'gh-code-client-secret';
+      process.env.GITHUB_REDIRECT_URI = 'https://app.e-code.ai/auth/oauth/github/callback';
+      process.env.GITHUB_USER_AGENT = 'vibecore-test-agent';
+
+      const store = new TestApiStore();
+      const app = await buildTestApiApp({ store });
+
+      const requests: Array<{ url: string; init?: RequestInit }> = [];
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+        const url = input instanceof Request ? input.url : input instanceof URL ? input.toString() : String(input);
+        requests.push({ url, init });
+
+        if (url === 'https://github.com/login/oauth/access_token') {
+          return new Response(
+            JSON.stringify({ access_token: 'gh-access-token', token_type: 'bearer', scope: 'read:user,user:email' }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
+
+        if (url === 'https://api.github.com/user') {
+          return new Response(
+            JSON.stringify({ id: 4242, login: 'octocat-private', name: 'Octo Private', email: null }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
+
+        if (url === 'https://api.github.com/user/emails') {
+          return new Response(
+            JSON.stringify([
+              { email: 'noreply@users.github.com', primary: false, verified: true },
+              { email: 'octo@example.com', primary: true, verified: true },
+            ]),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
+
+        throw new Error(`Unexpected fetch in GitHub OAuth test: ${url}`);
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/auth/oauth/github/callback',
+        payload: { code: 'gh-auth-code' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const result = response.json() as { token: string; user: { email: string } };
+      expect(result.user.email).toBe('octo@example.com');
+
+      const stored = await store.findUserByEmail('octo@example.com');
+      expect(stored).toBeTruthy();
+
+      const tokenRequest = requests.find((entry) => entry.url === 'https://github.com/login/oauth/access_token');
+      expect(tokenRequest).toBeTruthy();
+      const tokenBody = String(tokenRequest!.init?.body ?? '');
+      expect(tokenBody).toContain('code=gh-auth-code');
+      expect(tokenBody).toContain('client_id=gh-code-client-id');
+      expect(tokenBody).toContain('client_secret=gh-code-client-secret');
+      expect(tokenBody).toContain('redirect_uri=https%3A%2F%2Fapp.e-code.ai%2Fauth%2Foauth%2Fgithub%2Fcallback');
+
+      const userRequest = requests.find((entry) => entry.url === 'https://api.github.com/user');
+      expect(userRequest).toBeTruthy();
+      const userHeaders = new Headers((userRequest!.init?.headers ?? {}) as Record<string, string>);
+      expect(userHeaders.get('authorization')).toBe('Bearer gh-access-token');
+      expect(userHeaders.get('user-agent')).toBe('vibecore-test-agent');
+      expect(userHeaders.get('accept')).toBe('application/vnd.github+json');
+
+      const emailsRequest = requests.find((entry) => entry.url === 'https://api.github.com/user/emails');
+      expect(emailsRequest).toBeTruthy();
+      const emailHeaders = new Headers((emailsRequest!.init?.headers ?? {}) as Record<string, string>);
+      expect(emailHeaders.get('authorization')).toBe('Bearer gh-access-token');
+
+      await app.close();
+    });
+
+    it('uses the email returned by /user without an extra /user/emails request', async () => {
+      process.env.GITHUB_CLIENT_ID = 'gh-public-client-id';
+      process.env.GITHUB_CLIENT_SECRET = 'gh-public-client-secret';
+
+      const store = new TestApiStore();
+      const app = await buildTestApiApp({ store });
+
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+        const url = input instanceof Request ? input.url : input instanceof URL ? input.toString() : String(input);
+
+        if (url === 'https://github.com/login/oauth/access_token') {
+          return new Response(JSON.stringify({ access_token: 'gh-public-token' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        if (url === 'https://api.github.com/user') {
+          return new Response(
+            JSON.stringify({ id: 7, login: 'octocat-public', name: 'Octo Public', email: 'public@example.com' }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
+
+        throw new Error(`Unexpected fetch: ${url}`);
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/auth/oauth/github/callback',
+        payload: { code: 'gh-public-code' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect((response.json() as { user: { email: string } }).user.email).toBe('public@example.com');
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      await app.close();
+    });
+
+    it('returns OAUTH_PROFILE_INCOMPLETE when GitHub has no usable email and /user/emails fails', async () => {
+      process.env.GITHUB_CLIENT_ID = 'gh-noemail-client-id';
+      process.env.GITHUB_CLIENT_SECRET = 'gh-noemail-client-secret';
+
+      const store = new TestApiStore();
+      const app = await buildTestApiApp({ store });
+
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+        const url = input instanceof Request ? input.url : input instanceof URL ? input.toString() : String(input);
+
+        if (url === 'https://github.com/login/oauth/access_token') {
+          return new Response(JSON.stringify({ access_token: 'gh-noemail-token' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        if (url === 'https://api.github.com/user') {
+          return new Response(JSON.stringify({ id: 13, login: 'no-email', email: null }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        if (url === 'https://api.github.com/user/emails') {
+          return new Response('forbidden', { status: 403 });
+        }
+
+        throw new Error(`Unexpected fetch: ${url}`);
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/auth/oauth/github/callback',
+        payload: { code: 'gh-noemail-code' },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json()).toMatchObject({ code: 'OAUTH_PROFILE_INCOMPLETE' });
+      await app.close();
+    });
+  });
+
   it('completes OAuth, OIDC and SAML login callbacks with account linking', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
@@ -928,6 +1250,17 @@ describe('SaaS API', () => {
     });
     expect(oauth.statusCode).toBe(200);
     expect(await store.findUserByEmail('oauth@example.com')).toBeTruthy();
+
+    const oauthToken = oauth.json().token as string;
+    const connections = await app.inject({
+      method: 'GET',
+      url: '/auth/connections',
+      headers: { authorization: `Bearer ${oauthToken}` },
+    });
+    expect(connections.statusCode).toBe(200);
+    const connectionList = connections.json().connections as Array<{ provider: string; externalId: string }>;
+    expect(connectionList).toHaveLength(1);
+    expect(connectionList[0]).toMatchObject({ provider: 'github', externalId: 'gh_1' });
 
     const oidc = await app.inject({
       method: 'POST',
@@ -1641,6 +1974,193 @@ describe('SaaS API', () => {
     }
   });
 
+  it('verifies Resend webhooks, persists delivery events idempotently, and rejects bad signatures', async () => {
+    const previousSecret = process.env.RESEND_WEBHOOK_SECRET;
+    /*
+     * Random 24-byte secret encoded as base64 — matches the shape of a real
+     * Resend signing secret without leaking one from the dashboard.
+     */
+    const secretBytes = Buffer.from('0123456789abcdef0123456789abcdef0123456789abcdef');
+    const whsec = `whsec_${secretBytes.toString('base64')}`;
+    process.env.RESEND_WEBHOOK_SECRET = whsec;
+
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+
+    try {
+      const bouncedBody = JSON.stringify({
+        type: 'email.bounced',
+        created_at: '2026-05-20T12:00:00.000Z',
+        data: {
+          email_id: 'em_test_bounce',
+          from: 'no-reply@e-code.ai',
+          to: ['Bouncy@example.com'],
+          subject: 'Verify your email',
+          bounce: { subType: 'permanent', message: 'mailbox full' },
+        },
+      });
+
+      const ts = Math.floor(Date.now() / 1000);
+      const svixId = 'msg_resend_bounce_1';
+
+      const missingHeaders = await app.inject({
+        method: 'POST',
+        url: '/webhooks/resend',
+        headers: { 'content-type': 'application/json' },
+        payload: Buffer.from(bouncedBody),
+      });
+      expect(missingHeaders.statusCode).toBe(401);
+      expect(missingHeaders.json().code).toBe('WEBHOOK_SIGNATURE_MISSING');
+
+      const badSignature = await app.inject({
+        method: 'POST',
+        url: '/webhooks/resend',
+        headers: {
+          'content-type': 'application/json',
+          'svix-id': svixId,
+          'svix-timestamp': String(ts),
+          'svix-signature': 'v1,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+        },
+        payload: Buffer.from(bouncedBody),
+      });
+      expect(badSignature.statusCode).toBe(401);
+      expect(badSignature.json().code).toBe('WEBHOOK_SIGNATURE_INVALID');
+
+      const staleTimestamp = await app.inject({
+        method: 'POST',
+        url: '/webhooks/resend',
+        headers: {
+          'content-type': 'application/json',
+          'svix-id': svixId,
+          'svix-timestamp': String(ts - 60 * 60),
+          'svix-signature': svixSignature({
+            id: svixId,
+            timestampSeconds: ts - 60 * 60,
+            body: bouncedBody,
+            secretWhsec: whsec,
+          }),
+        },
+        payload: Buffer.from(bouncedBody),
+      });
+      expect(staleTimestamp.statusCode).toBe(401);
+      expect(staleTimestamp.json().code).toBe('WEBHOOK_TIMESTAMP_SKEW');
+
+      const valid = await app.inject({
+        method: 'POST',
+        url: '/webhooks/resend',
+        headers: {
+          'content-type': 'application/json',
+          'svix-id': svixId,
+          'svix-timestamp': String(ts),
+          'svix-signature': svixSignature({
+            id: svixId,
+            timestampSeconds: ts,
+            body: bouncedBody,
+            secretWhsec: whsec,
+          }),
+        },
+        payload: Buffer.from(bouncedBody),
+      });
+      expect(valid.statusCode).toBe(200);
+      expect(valid.json()).toMatchObject({
+        received: true,
+        provider: 'resend',
+        eventType: 'email.bounced',
+        duplicate: false,
+      });
+
+      expect(store.emailDeliveryEvents).toHaveLength(1);
+      const persisted = store.emailDeliveryEvents[0]!;
+      expect(persisted.email).toBe('bouncy@example.com');
+      expect(persisted.emailMessageId).toBe('em_test_bounce');
+      expect(persisted.subject).toBe('Verify your email');
+      expect(persisted.fromAddress).toBe('no-reply@e-code.ai');
+      expect(persisted.type).toBe('email.bounced');
+      expect(persisted.providerEventId).toBe(svixId);
+
+      const replay = await app.inject({
+        method: 'POST',
+        url: '/webhooks/resend',
+        headers: {
+          'content-type': 'application/json',
+          'svix-id': svixId,
+          'svix-timestamp': String(ts),
+          'svix-signature': svixSignature({
+            id: svixId,
+            timestampSeconds: ts,
+            body: bouncedBody,
+            secretWhsec: whsec,
+          }),
+        },
+        payload: Buffer.from(bouncedBody),
+      });
+      expect(replay.statusCode).toBe(200);
+      expect(replay.json().duplicate).toBe(true);
+      expect(store.emailDeliveryEvents).toHaveLength(1);
+
+      const deliveredBody = JSON.stringify({
+        type: 'email.delivered',
+        created_at: '2026-05-20T12:01:00.000Z',
+        data: {
+          email_id: 'em_test_delivered',
+          from: 'no-reply@e-code.ai',
+          to: ['Reach@example.com'],
+          subject: 'Welcome to e-code',
+        },
+      });
+      const deliveredId = 'msg_resend_delivered_1';
+      const delivered = await app.inject({
+        method: 'POST',
+        url: '/webhooks/resend',
+        headers: {
+          'content-type': 'application/json',
+          'svix-id': deliveredId,
+          'svix-timestamp': String(ts),
+          'svix-signature': svixSignature({
+            id: deliveredId,
+            timestampSeconds: ts,
+            body: deliveredBody,
+            secretWhsec: whsec,
+          }),
+        },
+        payload: Buffer.from(deliveredBody),
+      });
+      expect(delivered.statusCode).toBe(200);
+      expect(delivered.json().eventType).toBe('email.delivered');
+      expect(store.emailDeliveryEvents).toHaveLength(2);
+
+      const queried = await store.listEmailDeliveryEvents({ email: 'reach@example.com' });
+      expect(queried).toHaveLength(1);
+      expect(queried[0]!.type).toBe('email.delivered');
+
+      expect(store.auditLogs.some((log) => log.action === 'email.delivery_event.received')).toBe(true);
+    } finally {
+      restoreEnv('RESEND_WEBHOOK_SECRET', previousSecret);
+      await app.close();
+    }
+  });
+
+  it('returns 503 from /webhooks/resend when RESEND_WEBHOOK_SECRET is unset', async () => {
+    const previousSecret = process.env.RESEND_WEBHOOK_SECRET;
+    delete process.env.RESEND_WEBHOOK_SECRET;
+
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/webhooks/resend',
+        headers: { 'content-type': 'application/json' },
+        payload: Buffer.from('{}'),
+      });
+      expect(response.statusCode).toBe(503);
+      expect(response.json().code).toBe('WEBHOOK_NOT_CONFIGURED');
+    } finally {
+      restoreEnv('RESEND_WEBHOOK_SECRET', previousSecret);
+      await app.close();
+    }
+  });
+
   it('blocks quota exceeded actions and allows audited quota overrides', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
@@ -2045,7 +2565,7 @@ describe('SaaS API', () => {
       },
     });
     expect(saveIdeState.statusCode).toBe(200);
-    expect(saveIdeState.json().ideState.version).toBe(1);
+    expect(saveIdeState.json().ideState.version).toBe(2);
 
     const loadIdeState = await app.inject({
       method: 'GET',
@@ -2170,7 +2690,16 @@ describe('SaaS API', () => {
 
     const projectId = create.json().project.id as string;
 
-    // Initial PUT without If-Match seeds version 1 and surfaces the etag header.
+    // Project scaffolds seed an internal file manifest at version 1; the first UI save bumps it.
+    const seededState = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(seededState.statusCode).toBe(200);
+    expect(seededState.json().ideState.version).toBe(1);
+    expect(seededState.headers.etag).toBe('"1"');
+
     const firstSave = await app.inject({
       method: 'PUT',
       url: `/projects/${projectId}/ide-state`,
@@ -2178,8 +2707,8 @@ describe('SaaS API', () => {
       payload: { state: { ui: { agentWidth: 480 } } },
     });
     expect(firstSave.statusCode).toBe(200);
-    expect(firstSave.json().ideState.version).toBe(1);
-    expect(firstSave.headers.etag).toBe('"1"');
+    expect(firstSave.json().ideState.version).toBe(2);
+    expect(firstSave.headers.etag).toBe('"2"');
 
     // GET also surfaces the etag so the client can seed its If-Match state.
     const initialFetch = await app.inject({
@@ -2188,32 +2717,32 @@ describe('SaaS API', () => {
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(initialFetch.statusCode).toBe(200);
-    expect(initialFetch.headers.etag).toBe('"1"');
+    expect(initialFetch.headers.etag).toBe('"2"');
 
-    // PUT with matching If-Match → success, version bumps to 2, new etag.
+    // PUT with matching If-Match -> success, version bumps to 3, new etag.
     const matchingSave = await app.inject({
       method: 'PUT',
       url: `/projects/${projectId}/ide-state`,
-      headers: { authorization: `Bearer ${auth.token}`, 'if-match': '"1"' },
+      headers: { authorization: `Bearer ${auth.token}`, 'if-match': '"2"' },
       payload: { state: { ui: { agentWidth: 520 } } },
     });
     expect(matchingSave.statusCode).toBe(200);
-    expect(matchingSave.json().ideState.version).toBe(2);
-    expect(matchingSave.headers.etag).toBe('"2"');
+    expect(matchingSave.json().ideState.version).toBe(3);
+    expect(matchingSave.headers.etag).toBe('"3"');
 
     // Stale If-Match → 412 with the current state in the body so the client can re-merge.
     const staleSave = await app.inject({
       method: 'PUT',
       url: `/projects/${projectId}/ide-state`,
-      headers: { authorization: `Bearer ${auth.token}`, 'if-match': '"1"' },
+      headers: { authorization: `Bearer ${auth.token}`, 'if-match': '"2"' },
       payload: { state: { ui: { agentWidth: 999 } } },
     });
     expect(staleSave.statusCode).toBe(412);
-    expect(staleSave.headers.etag).toBe('"2"');
+    expect(staleSave.headers.etag).toBe('"3"');
 
     const staleBody = staleSave.json();
     expect(staleBody.code).toBe('IDE_STATE_PRECONDITION_FAILED');
-    expect(staleBody.ideState.version).toBe(2);
+    expect(staleBody.ideState.version).toBe(3);
     expect(staleBody.ideState.state.ui.agentWidth).toBe(520);
 
     // The rejected write must not bump the version or land its payload.
@@ -2222,7 +2751,7 @@ describe('SaaS API', () => {
       url: `/projects/${projectId}/ide-state`,
       headers: { authorization: `Bearer ${auth.token}` },
     });
-    expect(afterStale.json().ideState.version).toBe(2);
+    expect(afterStale.json().ideState.version).toBe(3);
     expect(afterStale.json().ideState.state.ui.agentWidth).toBe(520);
 
     // Backward compatibility: requests without an If-Match header still work.
@@ -2233,8 +2762,8 @@ describe('SaaS API', () => {
       payload: { state: { ui: { agentWidth: 540 } } },
     });
     expect(headerlessSave.statusCode).toBe(200);
-    expect(headerlessSave.json().ideState.version).toBe(3);
-    expect(headerlessSave.headers.etag).toBe('"3"');
+    expect(headerlessSave.json().ideState.version).toBe(4);
+    expect(headerlessSave.headers.etag).toBe('"4"');
 
     await app.close();
   });
@@ -2480,6 +3009,119 @@ describe('SaaS API', () => {
 
     expect(replaced.statusCode).toBe(200);
     expect(replaced.json().files.map((file: { path: string }) => file.path)).toEqual(['README.md']);
+
+    await app.close();
+  });
+
+  it('prefers replacement ZIP storage over recovered IDE state files', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const app = await buildTestApiApp({ store, projectStorage });
+    const auth = await register(app, { email: 'zip-replace@example.com', organizationName: 'Zip Replace Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Replace Existing Project' },
+    });
+    expect(project.statusCode).toBe(201);
+
+    const projectId = project.json().project.id as string;
+    await store.upsertProjectIdeState({
+      projectId,
+      updatedByUserId: auth.user.id,
+      state: {
+        chat: {
+          messages: [
+            {
+              content: `<boltArtifact id="old-app" title="Old App">
+<boltAction type="file" filePath="package.json">
+{"scripts":{"dev":"vite"}}
+</boltAction>
+<boltAction type="file" filePath="src/App.tsx">
+export function App() { return 'Old app'; }
+</boltAction>
+</boltArtifact>`,
+            },
+          ],
+        },
+      },
+    });
+
+    const replacementZip = new JSZip();
+    replacementZip.file('index.html', '<!doctype html><main data-replaced="true">Replacement app</main>');
+
+    const replacementZipBase64 = (await replacementZip.generateAsync({ type: 'nodebuffer' })).toString('base64');
+    const replaced = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/files/import/zip`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { zipBase64: replacementZipBase64, replaceExisting: true },
+    });
+    expect(replaced.statusCode).toBe(200);
+    expect(replaced.json().files.map((file: { path: string }) => file.path)).toEqual(['index.html']);
+
+    projectStorage.files.delete(projectId);
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/files`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(listed.statusCode).toBe(200);
+    expect(listed.json().files.map((file: { path: string }) => file.path)).toEqual(['index.html']);
+
+    const exported = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/export/zip`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(exported.statusCode).toBe(200);
+
+    const archive = await JSZip.loadAsync(Buffer.from(exported.json().archive.base64, 'base64'));
+    expect(Object.keys(archive.files)).toEqual(['index.html']);
+    expect(await archive.file('index.html')!.async('string')).toContain('Replacement app');
+
+    await app.close();
+  });
+
+  it('recovers new project scaffold files from persisted storage state when pod-local storage is empty', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const app = await buildTestApiApp({ store, projectStorage });
+    const auth = await register(app, { email: 'scaffold-recovery@example.com', organizationName: 'Scaffold Recovery Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Scaffold Recovery Project' },
+    });
+    expect(project.statusCode).toBe(201);
+
+    const projectId = project.json().project.id as string;
+    projectStorage.files.delete(projectId);
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/files`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(listed.statusCode).toBe(200);
+    expect(listed.json().files.map((file: { path: string }) => file.path)).toEqual(
+      expect.arrayContaining(['package.json', 'src/App.tsx', 'README.md']),
+    );
+
+    const exported = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/export/zip`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(exported.statusCode).toBe(200);
+
+    const archive = await JSZip.loadAsync(Buffer.from(exported.json().archive.base64, 'base64'));
+    expect(Object.keys(archive.files)).toEqual(expect.arrayContaining(['package.json', 'src/App.tsx', 'README.md']));
 
     await app.close();
   });
@@ -3462,6 +4104,36 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     }
   });
 
+  it('proxies root preview requests without requiring a trailing wildcard path', async () => {
+    const runtime = await startRuntimeServices();
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, { email: 'runtime-preview-proxy@example.com', organizationName: 'Runtime Preview Proxy Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Preview Proxy Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${projectId}/preview/5173/proxy`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toContain('runtime preview root');
+      expect(runtime.calls).toContain('GET /preview/5173/');
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
   it('returns classified runtime log snapshots for IDE log streams', async () => {
     const runtime = await startRuntimeServices({
       logs: ['vite ready in 120ms', 'GET /api/health 200', 'runtime port 5173 opened', 'Error: build failed'],
@@ -3665,6 +4337,83 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     }
   });
 
+  it('uses the local runtime fallback for commands and ports when the workspace agent is unavailable', async () => {
+    const runtime = await startRuntimeServices({ agentUnavailable: true });
+    const previousFallback = process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK;
+    const previousFallbackRoot = process.env.WORKSPACE_LOCAL_RUNTIME_ROOT;
+    const localRuntimeRoot = await mkdtemp(join(tmpdir(), 'vibecore-local-runtime-agent-fallback-'));
+    process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK = 'true';
+    process.env.WORKSPACE_LOCAL_RUNTIME_ROOT = localRuntimeRoot;
+
+    const projectStorage = new MemoryProjectStorage();
+    const app = await buildTestApiApp({ store: new TestApiStore(), projectStorage });
+
+    const auth = await register(app, {
+      email: 'runtime-agent-fallback@example.com',
+      organizationName: 'Runtime Agent Fallback Org',
+    });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Agent Fallback Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+    await projectStorage.writeFiles(projectId, [
+      { path: 'package.json', content: '{\n  "scripts": { "dev": "vite" }\n}\n' },
+    ]);
+
+    try {
+      const command = await app.inject({
+        method: 'POST',
+        url: `/api/runtime/workspaces/${projectId}/commands`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {
+          command: 'sh',
+          args: ['-lc', 'echo "Local: http://127.0.0.1:5173/"'],
+          timeoutMs: 5000,
+        },
+      });
+
+      expect(command.statusCode).toBe(200);
+      expect(command.json()).toMatchObject({ exitCode: 0, localRuntime: true });
+      expect(command.json().output).toContain('127.0.0.1:5173');
+
+      const ports = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${projectId}/ports`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+
+      expect(ports.statusCode).toBe(200);
+      expect(ports.json()).toEqual([
+        expect.objectContaining({
+          port: 5173,
+          type: 'open',
+          ready: true,
+          url: `/api/runtime/workspaces/${projectId}/preview/5173/proxy/`,
+        }),
+      ]);
+    } finally {
+      if (previousFallback === undefined) {
+        delete process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK;
+      } else {
+        process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK = previousFallback;
+      }
+
+      if (previousFallbackRoot === undefined) {
+        delete process.env.WORKSPACE_LOCAL_RUNTIME_ROOT;
+      } else {
+        process.env.WORKSPACE_LOCAL_RUNTIME_ROOT = previousFallbackRoot;
+      }
+
+      await runtime.close();
+      await app.close();
+      await rm(localRuntimeRoot, { recursive: true, force: true });
+    }
+  });
+
   it('creates a before-AI snapshot before destructive tools', async () => {
     const runtime = await startRuntimeServices();
     const store = new TestApiStore();
@@ -3695,5 +4444,681 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       await runtime.close();
       await app.close();
     }
+  });
+
+  it('records chat usage in the AI cost ledger and the usage counters', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'usage@example.com', organizationName: 'Usage Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Usage Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    const record = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/ai/record-usage`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-6',
+        inputTokens: 10_000,
+        outputTokens: 2_000,
+        finishReason: 'stop',
+        source: 'bolt-chat',
+      },
+    });
+
+    expect(record.statusCode).toBe(200);
+
+    const body = record.json();
+    expect(body.recorded).toBe(true);
+    expect(body.modelMatched).toBe(true);
+
+    // 10000 input @ 300¢/M = 3¢, 2000 output @ 1500¢/M = 3¢ → 6¢
+    expect(body.costCents).toBe(6);
+    expect(body.finishReason).toBe('stop');
+
+    const costs = await store.listAiCosts(auth.organization.id);
+    expect(costs).toHaveLength(1);
+    expect(costs[0].provider).toBe('anthropic');
+    expect(costs[0].model).toBe('claude-sonnet-4-6');
+    expect(costs[0].inputTokens).toBe(10_000);
+    expect(costs[0].outputTokens).toBe(2_000);
+    expect(costs[0].costCents).toBe(6);
+    expect(costs[0].reason).toBe('chat.completion.bolt-chat');
+
+    await app.close();
+  });
+
+  it('returns matched:false and 0¢ when the model is not in the pricing catalog', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'unknown-model@example.com', organizationName: 'Unknown Model Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Unknown Model Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    const record = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/ai/record-usage`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {
+        provider: 'anthropic',
+        model: 'claude-future-2030',
+        inputTokens: 1000,
+        outputTokens: 1000,
+      },
+    });
+
+    expect(record.statusCode).toBe(200);
+
+    const body = record.json();
+    expect(body.recorded).toBe(true);
+    expect(body.modelMatched).toBe(false);
+    expect(body.costCents).toBe(0);
+
+    /*
+     * The cost row is still written (with cents=0) so we can spot
+     * "we silently zero-billed N chats" in the ledger later.
+     */
+    const costs = await store.listAiCosts(auth.organization.id);
+    expect(costs).toHaveLength(1);
+    expect(costs[0].model).toBe('claude-future-2030');
+    expect(costs[0].costCents).toBe(0);
+
+    await app.close();
+  });
+
+  it('check-quota returns headroom when within the plan limits', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'check-ok@example.com', organizationName: 'Quota OK Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Quota OK Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    const check = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/ai/check-quota`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { estimatedInputTokens: 5_000, model: 'claude-sonnet-4-6' },
+    });
+
+    expect(check.statusCode).toBe(200);
+
+    const body = check.json();
+    expect(body.ok).toBe(true);
+    expect(body.ai.inputTokens.limit).toBe(100_000);
+    expect(body.ai.inputTokens.remaining).toBeGreaterThan(0);
+    expect(body.ai.messages.limit).toBe(50);
+
+    // free plan is managed-mode → BYOK disallowed
+    expect(body.byok.allowed).toBe(false);
+    expect(body.byok.plan).toBe('free');
+    expect(body.byok.reason).toBe('managed-mode-plan');
+
+    await app.close();
+  });
+
+  it('check-quota allows BYOK on team and enterprise plans', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'byok@example.com', organizationName: 'BYOK Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'BYOK Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    await store.upsertSubscription({
+      organizationId: auth.organization.id,
+      planKey: 'team',
+      status: 'ACTIVE',
+    });
+
+    const check = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/ai/check-quota`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { estimatedInputTokens: 5_000 },
+    });
+
+    expect(check.statusCode).toBe(200);
+
+    const body = check.json();
+    expect(body.byok.allowed).toBe(true);
+    expect(body.byok.plan).toBe('team');
+    expect(body.byok.reason).toBe('plan-allows-byok');
+
+    await app.close();
+  });
+
+  it('check-quota forces managed keys when ENTERPRISE_FORCE_MANAGED_KEYS=true overrides plan', async () => {
+    process.env.ENTERPRISE_FORCE_MANAGED_KEYS = 'true';
+
+    try {
+      const store = new TestApiStore();
+      const app = await buildTestApiApp({ store });
+      const auth = await register(app, { email: 'forced-managed@example.com', organizationName: 'Forced Managed' });
+
+      const project = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { name: 'Forced Project' },
+      });
+
+      const projectId = project.json().project.id as string;
+
+      await store.upsertSubscription({
+        organizationId: auth.organization.id,
+        planKey: 'enterprise',
+        status: 'ACTIVE',
+      });
+
+      const check = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/ai/check-quota`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { estimatedInputTokens: 5_000 },
+      });
+
+      expect(check.statusCode).toBe(200);
+
+      const body = check.json();
+
+      // enterprise would normally allow BYOK, but the env override forces managed
+      expect(body.byok.allowed).toBe(false);
+      expect(body.byok.plan).toBe('enterprise');
+
+      await app.close();
+    } finally {
+      delete (process.env as Record<string, string | undefined>).ENTERPRISE_FORCE_MANAGED_KEYS;
+    }
+  });
+
+  it('check-quota rejects with 429 when the estimated tokens would exceed the plan', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'check-over@example.com', organizationName: 'Quota Over Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Quota Over Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    // Free plan caps ai.inputTokens at 100_000. Asking for 200_000 must 429.
+    const blocked = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/ai/check-quota`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { estimatedInputTokens: 200_000, model: 'claude-sonnet-4-6' },
+    });
+
+    expect(blocked.statusCode).toBe(429);
+
+    const error = blocked.json();
+    expect(error.code).toMatch(/QUOTA/);
+
+    await app.close();
+  });
+
+  it('cost-summary aggregates AiCostLedger rows by provider/model/day/project', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'cost-summary@example.com', organizationName: 'Cost Summary Org' });
+
+    const projectA = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Project A' },
+    });
+
+    const projectAId = projectA.json().project.id as string;
+
+    // Seed three usage rows: 2 anthropic Sonnet (one each on two days), 1 openai gpt
+    await store.recordAiCost({
+      organizationId: auth.organization.id,
+      projectId: projectAId,
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-6',
+      inputTokens: 1000,
+      outputTokens: 500,
+      costCents: 6,
+      reason: 'chat.completion.remix-chat',
+    });
+    await store.recordAiCost({
+      organizationId: auth.organization.id,
+      projectId: projectAId,
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-6',
+      inputTokens: 2000,
+      outputTokens: 1000,
+      costCents: 12,
+      reason: 'chat.completion.remix-chat',
+    });
+    await store.recordAiCost({
+      organizationId: auth.organization.id,
+      projectId: projectAId,
+      provider: 'openai',
+      model: 'gpt-4.1',
+      inputTokens: 500,
+      outputTokens: 250,
+      costCents: 3,
+      reason: 'chat.completion.remix-chat',
+    });
+
+    const summary = await app.inject({
+      method: 'GET',
+      url: `/orgs/${auth.organization.id}/ai/cost-summary`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(summary.statusCode).toBe(200);
+
+    const body = summary.json();
+    expect(body.organizationId).toBe(auth.organization.id);
+    expect(body.totals.costCents).toBe(21);
+    expect(body.totals.inputTokens).toBe(3500);
+    expect(body.totals.outputTokens).toBe(1750);
+    expect(body.totals.messages).toBe(3);
+    expect(body.byProvider.anthropic.costCents).toBe(18);
+    expect(body.byProvider.anthropic.messages).toBe(2);
+    expect(body.byProvider.openai.costCents).toBe(3);
+    expect(body.byModel['claude-sonnet-4-6'].costCents).toBe(18);
+    expect(body.byModel['gpt-4.1'].costCents).toBe(3);
+    expect(body.byProject[projectAId].messages).toBe(3);
+
+    await app.close();
+  });
+
+  it('cost-summary filters by from/to window', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'cost-window@example.com', organizationName: 'Cost Window Org' });
+
+    /*
+     * Two rows; default TestApiStore uses now() so both fall in "now".
+     * We test the filter by giving a future `from` that excludes both.
+     */
+    await store.recordAiCost({
+      organizationId: auth.organization.id,
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-6',
+      inputTokens: 100,
+      outputTokens: 50,
+      costCents: 1,
+      reason: 'test',
+    });
+
+    const future = new Date(Date.now() + 86_400_000).toISOString();
+
+    const summary = await app.inject({
+      method: 'GET',
+      url: `/orgs/${auth.organization.id}/ai/cost-summary?from=${encodeURIComponent(future)}`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(summary.statusCode).toBe(200);
+
+    const body = summary.json();
+    expect(body.totals.messages).toBe(0);
+    expect(body.totals.costCents).toBe(0);
+    expect(body.window.from).toBe(future);
+
+    await app.close();
+  });
+
+  it('rejects unauthenticated record-usage requests with 401', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'auth-required@example.com', organizationName: 'Auth Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Auth Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    const anonymous = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/ai/record-usage`,
+      payload: {
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-6',
+        inputTokens: 100,
+        outputTokens: 100,
+      },
+    });
+
+    expect(anonymous.statusCode).toBe(401);
+
+    const costs = await store.listAiCosts(auth.organization.id);
+    expect(costs).toHaveLength(0);
+
+    await app.close();
+  });
+
+  it('persists and lists AgentPatchProposal rows across the project lifecycle', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+
+    const owner = await register(app, {
+      email: 'agent-patch@example.com',
+      organizationName: 'Agent Patch Org',
+    });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/projects`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { name: 'Agent Patch Project' },
+    });
+    expect(project.statusCode).toBe(201);
+
+    const projectId = project.json().project.id as string;
+
+    const proposalId = 'artifact-1:action-1';
+
+    const upsert = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/agent-patch-proposals/${proposalId}`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: {
+        artifactId: 'artifact-1',
+        messageId: 'msg-1',
+        actionId: 'action-1',
+        filePath: '/home/project/src/App.tsx',
+        relativePath: 'src/App.tsx',
+        originalContent: 'before',
+        proposedContent: 'after',
+        hunks: [{ id: 'h-1' }],
+        status: 'pending',
+      },
+    });
+    expect(upsert.statusCode).toBe(200);
+    expect(upsert.json().proposal.status).toBe('pending');
+    expect(upsert.json().proposal.proposedContent).toBe('after');
+
+    const list = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/agent-patch-proposals`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(list.statusCode).toBe(200);
+    expect(list.json().proposals).toHaveLength(1);
+    expect(list.json().proposals[0].id).toBe(proposalId);
+
+    /*
+     * Re-upserting with a different proposedContent + status must update
+     * in place and keep the same id so the client's nanostore key stays
+     * in sync with the server row.
+     */
+    const refresh = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/agent-patch-proposals/${proposalId}`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: {
+        artifactId: 'artifact-1',
+        messageId: 'msg-1',
+        actionId: 'action-1',
+        filePath: '/home/project/src/App.tsx',
+        relativePath: 'src/App.tsx',
+        originalContent: 'before',
+        proposedContent: 'after-v2',
+        hunks: [{ id: 'h-1' }, { id: 'h-2' }],
+        status: 'failed',
+        error: 'Parser error',
+      },
+    });
+    expect(refresh.statusCode).toBe(200);
+    expect(refresh.json().proposal.status).toBe('failed');
+    expect(refresh.json().proposal.proposedContent).toBe('after-v2');
+
+    const removed = await app.inject({
+      method: 'DELETE',
+      url: `/projects/${projectId}/agent-patch-proposals/${proposalId}`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(removed.statusCode).toBe(200);
+    expect(removed.json().deleted).toBe(true);
+
+    const afterDelete = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/agent-patch-proposals`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(afterDelete.json().proposals).toHaveLength(0);
+
+    /*
+     * Deleting a non-existent proposal returns 200 with deleted=false so
+     * the client can stay idempotent (e.g., retrying after a network
+     * flake) without surfacing a 404 to the user.
+     */
+    const ghostDelete = await app.inject({
+      method: 'DELETE',
+      url: `/projects/${projectId}/agent-patch-proposals/no-such-id`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(ghostDelete.statusCode).toBe(200);
+    expect(ghostDelete.json().deleted).toBe(false);
+
+    await app.close();
+  });
+
+  it('enforces organization isolation on AgentPatchProposal endpoints', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+
+    const owner = await register(app, {
+      email: 'agent-patch-iso-owner@example.com',
+      organizationName: 'Owner Org',
+    });
+    const stranger = await register(app, {
+      email: 'agent-patch-iso-stranger@example.com',
+      organizationName: 'Stranger Org',
+    });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/projects`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { name: 'Isolated Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    const denied = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/agent-patch-proposals/x:y`,
+      headers: { authorization: `Bearer ${stranger.token}` },
+      payload: {
+        artifactId: 'x',
+        messageId: 'm',
+        actionId: 'y',
+        filePath: '/home/project/x.ts',
+        relativePath: 'x.ts',
+        originalContent: '',
+        proposedContent: '',
+        hunks: [],
+        status: 'pending',
+      },
+    });
+    expect(denied.statusCode).toBe(404);
+
+    const list = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/agent-patch-proposals`,
+      headers: { authorization: `Bearer ${stranger.token}` },
+    });
+    expect(list.statusCode).toBe(404);
+
+    await app.close();
+  });
+
+  it('persists User.language through PATCH /auth/me and surfaces it on GET', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'i18n-user@example.com', organizationName: 'i18n Org' });
+
+    /*
+     * Fresh users have no language preference — GET /auth/me should
+     * surface it as undefined so the client can fall back to
+     * navigator.language detection.
+     */
+    const before = await app.inject({
+      method: 'GET',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(before.statusCode).toBe(200);
+    expect(before.json().user.language).toBeFalsy();
+
+    const setFr = await app.inject({
+      method: 'PATCH',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { language: 'fr' },
+    });
+    expect(setFr.statusCode).toBe(200);
+    expect(setFr.json().user.language).toBe('fr');
+
+    const afterSet = await app.inject({
+      method: 'GET',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(afterSet.json().user.language).toBe('fr');
+
+    /*
+     * Explicit null clears the preference; the client goes back to
+     * navigator.language on the next boot.
+     */
+    const clear = await app.inject({
+      method: 'PATCH',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { language: null },
+    });
+    expect(clear.statusCode).toBe(200);
+    expect(clear.json().user.language).toBeFalsy();
+
+    await app.close();
+  });
+
+  it('rejects unsupported language tags on PATCH /auth/me', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'i18n-bad@example.com', organizationName: 'i18n Bad Org' });
+
+    const bad = await app.inject({
+      method: 'PATCH',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { language: 'klingon' },
+    });
+
+    expect(bad.statusCode).toBe(400);
+
+    await app.close();
+  });
+
+  it('mirrors the persisted language into the vibecore-lang cookie and clears it on null', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'i18n-cookie@example.com', organizationName: 'i18n Cookie Org' });
+
+    const setFr = await app.inject({
+      method: 'PATCH',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { language: 'fr' },
+    });
+    expect(setFr.statusCode).toBe(200);
+
+    const setCookies = setFr.headers['set-cookie'];
+    const setCookieArray = Array.isArray(setCookies) ? setCookies : setCookies ? [setCookies] : [];
+    const langCookie = setCookieArray.find((header) => header.startsWith('vibecore-lang='));
+    expect(langCookie).toBeDefined();
+    expect(langCookie).toContain('vibecore-lang=fr');
+    expect(langCookie).toContain('SameSite=Lax');
+    expect(langCookie).toContain('Max-Age=31536000');
+    expect(langCookie).not.toContain('HttpOnly');
+
+    const clear = await app.inject({
+      method: 'PATCH',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { language: null },
+    });
+    expect(clear.statusCode).toBe(200);
+
+    const clearCookies = clear.headers['set-cookie'];
+    const clearCookieArray = Array.isArray(clearCookies) ? clearCookies : clearCookies ? [clearCookies] : [];
+    const langClear = clearCookieArray.find((header) => header.startsWith('vibecore-lang='));
+    expect(langClear).toBeDefined();
+
+    /*
+     * fastify-cookie's clearCookie sets the value to '' and pushes
+     * Expires into the past so the browser drops it on the next round
+     * trip. Either signal proves the clear path fired.
+     */
+    expect(langClear).toMatch(/vibecore-lang=;|Expires=Thu, 01 Jan 1970/i);
+
+    await app.close();
+  });
+
+  it('does not touch the vibecore-lang cookie when the PATCH omits language', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+
+    const auth = await register(app, {
+      email: 'i18n-cookie-skip@example.com',
+      organizationName: 'i18n Cookie Skip Org',
+    });
+
+    const nameOnly = await app.inject({
+      method: 'PATCH',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Renamed' },
+    });
+    expect(nameOnly.statusCode).toBe(200);
+
+    const setCookies = nameOnly.headers['set-cookie'];
+    const setCookieArray = Array.isArray(setCookies) ? setCookies : setCookies ? [setCookies] : [];
+    expect(setCookieArray.find((header) => header.startsWith('vibecore-lang='))).toBeUndefined();
+
+    await app.close();
   });
 });

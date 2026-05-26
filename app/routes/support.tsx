@@ -7,6 +7,7 @@ import {
   apiRequest,
   apiErrorMessage,
   firstOrganization,
+  firstOrganizationOrNull,
   isForbiddenApiResponse,
   json,
   redirect,
@@ -19,14 +20,30 @@ type Ticket = { id: string; subject: string; status: string; createdAt?: string 
 export const meta: MetaFunction = () => [{ title: 'Support - VibeCore' }];
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const organization = await firstOrganization(request);
-  const tickets = await apiRequest<{ tickets: Ticket[] }>(request, `/support/${organization.id}/tickets`);
+  try {
+    const organization = await firstOrganization(request);
+    const tickets = await apiRequest<{ tickets: Ticket[] }>(request, `/support/${organization.id}/tickets`);
 
-  return { organization, tickets: tickets.tickets };
+    return { organization, tickets: tickets.tickets, supportAccessLimited: null };
+  } catch (error) {
+    return {
+      organization: null,
+      tickets: [],
+      supportAccessLimited: await apiErrorMessage(
+        error,
+        'Support tickets are temporarily unavailable. The support page is still available.',
+      ),
+    };
+  }
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
-  const organization = await firstOrganization(request);
+  const organization = await firstOrganizationOrNull(request);
+
+  if (!organization) {
+    return json({ error: 'No organization found' }, { status: 400 });
+  }
+
   const form = await request.formData();
 
   try {
@@ -49,8 +66,9 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 export default function SupportPage() {
-  const { tickets } = useLoaderData<typeof loader>();
+  const { tickets, supportAccessLimited } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+  const visibleTickets = tickets.filter(Boolean) as Ticket[];
 
   return (
     <AppShell title="Support" description="Open support tickets and review enterprise support status.">
@@ -60,10 +78,15 @@ export default function SupportPage() {
             {actionData.error}
           </div>
         ) : null}
+        {supportAccessLimited ? (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200 lg:col-span-2">
+            {supportAccessLimited}
+          </div>
+        ) : null}
         <ActivityList
           items={
-            tickets.length
-              ? tickets.map((ticket) => ({
+            visibleTickets.length
+              ? visibleTickets.map((ticket) => ({
                   title: ticket.subject,
                   detail: `${ticket.status} - ${ticket.createdAt ? new Date(ticket.createdAt).toLocaleString() : 'recorded'}`,
                   icon: LifeBuoy,

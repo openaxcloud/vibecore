@@ -1,0 +1,260 @@
+# Cloud Build pipeline for all production service images.
+#
+# Builds all 7 platform images (web + 6 node services) and pushes them to
+# Artifact Registry under both the commit SHA (immutable, used by helm) and
+# `latest` (mutable, convenience tag for ad-hoc kubectl runs).
+#
+# Trigger:
+#   gcloud builds submit \
+#     --project=vibecore-495216 \
+#     --region=europe-west9 \
+#     --config=cloudbuild.yaml \
+#     --substitutions=_SHORT_SHA=$(git rev-parse --short=10 HEAD) \
+#     --machine-type=e2-highcpu-8 \
+#     --timeout=3600s .
+#
+# Stick with e2-highcpu-8 — europe-west9 doesn't carry quota for the
+# larger e2-highcpu-32 tier as of 2026-05-19 (gcloud returns
+# FAILED_PRECONDITION otherwise).
+#
+# The chart pins `global.imageTag` to a SHA at deploy time, so the SHA tag
+# is what production actually rolls. `latest` is kept fresh as a fallback.
+#
+# Pipeline shape (2026-05-20 rewrite — was 25-50 min, now ~8-12 min):
+#   1. prime-cache: pull every previous :latest in parallel so subsequent
+#      --cache-from has layers to match against.
+#   2. build-deps: install the entire monorepo's node_modules ONCE into a
+#      shared base image. ~3-5 min cold, ~30 s when package.json /
+#      pnpm-lock.yaml are unchanged (the layer is reused from
+#      deps:latest).
+#   3. build-{web,admin,api,worker,ai-gateway,workspace-manager,preview-proxy}:
+#      seven service builds running in PARALLEL with waitFor=build-deps.
+#      Each one uses --build-arg DEPS_IMAGE=deps:${SHORT_SHA} so it skips
+#      `pnpm install` entirely and goes straight to its filter-build +
+#      pnpm deploy. Previously these ran serially because each redid the
+#      install and seven concurrent installs OOM'd 8 GiB. With deps
+#      shared, the per-service builds are CPU-bound on tsc/vite (small)
+#      and fit comfortably in parallel.
+#
+# BuildKit + inline cache:
+#   DOCKER_BUILDKIT=1 is set on each docker step, and
+#   BUILDKIT_INLINE_CACHE=1 embeds cache metadata in pushed images so the
+#   next build's --cache-from actually has something to match against —
+#   without it, --cache-from on a registry pull is a no-op. The deps image
+#   intentionally persists the pnpm store so service deploy stages can reuse
+#   package tarballs and only hit npm for missing resolver metadata.
+substitutions:
+  _REGION: europe-west9
+  _PROJECT: vibecore-495216
+  _REPO: vibecore-prod-containers
+  _SHORT_SHA: dev
+options:
+  machineType: E2_HIGHCPU_8
+  logging: CLOUD_LOGGING_ONLY
+  # Build context plus 8 image layers (deps + 7 services) chew through disk;
+  # give plenty of headroom so we never run out mid-bundle.
+  diskSizeGb: 200
+  env:
+    - DOCKER_BUILDKIT=1
+
+timeout: 3600s
+
+steps:
+  # ---- 1. prime cache ----
+  # Pull previous :latest tags so --cache-from has layers to match against.
+  # `|| true` so a missing cache (first-ever run, deleted image) never
+  # fails the build. Cloud Build's daemon survives across steps within a
+  # single build, so subsequent build steps see these images.
+  - id: prime-cache
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        for img in deps web admin api worker ai-gateway workspace-manager preview-proxy; do
+          docker pull ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/$img:latest || true
+        done
+
+  # ---- 2. build shared deps base (runs once, blocks all service builds) ----
+  - id: build-deps
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['prime-cache']
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - -f=infra/docker/deps.Dockerfile
+      - --build-arg=BUILDKIT_INLINE_CACHE=1
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:latest
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:latest
+      - .
+
+  # ---- 3. fan out — all seven service builds in parallel ----
+  # Each waitFor: ['build-deps'] so Cloud Build dispatches them
+  # concurrently the moment deps is ready. No waitFor between siblings.
+
+  - id: build-web
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-deps']
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - --target=bolt-ai-production
+      - --build-arg=BUILDKIT_INLINE_CACHE=1
+      - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:${_SHORT_SHA}
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest
+      - .
+
+  - id: build-admin
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-deps']
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - -f=infra/docker/node-service.Dockerfile
+      - --build-arg=BUILDKIT_INLINE_CACHE=1
+      - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
+      - --build-arg=PACKAGE_FILTER=@vibecore/admin
+      - --build-arg=START_CMD=node serve.mjs
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:latest
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:${_SHORT_SHA}
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:latest
+      - .
+
+  - id: build-api
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-deps']
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - -f=infra/docker/node-service.Dockerfile
+      - --build-arg=BUILDKIT_INLINE_CACHE=1
+      - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
+      - --build-arg=PACKAGE_FILTER=@vibecore/api
+      - --build-arg=START_CMD=tsx dist/server.js
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/api:latest
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/api:${_SHORT_SHA}
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/api:latest
+      - .
+
+  - id: build-worker
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-deps']
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - -f=infra/docker/node-service.Dockerfile
+      - --build-arg=BUILDKIT_INLINE_CACHE=1
+      - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
+      - --build-arg=PACKAGE_FILTER=@vibecore/worker
+      - --build-arg=START_CMD=tsx dist/index.js
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:latest
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:${_SHORT_SHA}
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:latest
+      - .
+
+  - id: build-ai-gateway
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-deps']
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - -f=infra/docker/node-service.Dockerfile
+      - --build-arg=BUILDKIT_INLINE_CACHE=1
+      - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
+      - --build-arg=PACKAGE_FILTER=@vibecore/ai-gateway
+      - --build-arg=START_CMD=tsx dist/server.js
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:latest
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:${_SHORT_SHA}
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:latest
+      - .
+
+  - id: build-workspace-manager
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-deps']
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - -f=infra/docker/node-service.Dockerfile
+      - --build-arg=BUILDKIT_INLINE_CACHE=1
+      - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
+      - --build-arg=PACKAGE_FILTER=@vibecore/workspace-manager
+      - --build-arg=START_CMD=tsx dist/server.js
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-manager:latest
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-manager:${_SHORT_SHA}
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-manager:latest
+      - .
+
+  - id: build-preview-proxy
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-deps']
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - -f=infra/docker/node-service.Dockerfile
+      - --build-arg=BUILDKIT_INLINE_CACHE=1
+      - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
+      - --build-arg=PACKAGE_FILTER=@vibecore/preview-proxy
+      - --build-arg=START_CMD=tsx dist/server.js
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:latest
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:${_SHORT_SHA}
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:latest
+      - .
+
+  # ---- 4. vulnerability scan (non-blocking) ----
+  # Runs after every service build is pushed. `allowFailure: true` keeps the
+  # pipeline green when the scanner is unavailable or finds CVEs — surfacing
+  # findings in Cloud Build logs without gating deploys. Tighten later by
+  # parsing the scan output and failing on CRITICAL severities.
+  - id: scan-images
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor:
+      - build-web
+      - build-admin
+      - build-api
+      - build-worker
+      - build-ai-gateway
+      - build-workspace-manager
+      - build-preview-proxy
+    allowFailure: true
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -u
+        for img in web admin api worker ai-gateway workspace-manager preview-proxy; do
+          echo "::: scanning $img:${_SHORT_SHA}"
+          gcloud artifacts docker images scan \
+            "${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/$img:${_SHORT_SHA}" \
+            --location="${_REGION}" \
+            --format='value(response.scan)' \
+            || echo "WARN: scan failed for $img (non-fatal)"
+        done
+
+images:
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:latest
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:${_SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:${_SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:latest
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/api:${_SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/api:latest
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:${_SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:latest
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:${_SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:latest
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-manager:${_SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-manager:latest
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:${_SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:latest

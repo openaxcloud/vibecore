@@ -17,11 +17,25 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type RefObject
 
 import { FileMentionsPalette } from './FileMentionsPalette';
 import type { FileMentionCandidate } from '~/lib/hooks/useFileMentions';
+import { recordMentionedFile } from '~/lib/persistence/projectIdeMemory';
 
 export interface ComposerMentionsOverlayProps {
   textareaRef: RefObject<HTMLTextAreaElement>;
   input: string;
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
+
+  /**
+   * MRU display paths from projectIdeMemory.ui.recentMentionedFilePaths.
+   * When supplied, the palette boosts those entries in its ranking.
+   */
+  recentMentionedFilePaths?: readonly string[];
+
+  /**
+   * Project id for persistence. When supplied + a candidate is picked,
+   * we record the file path via recordMentionedFile so the next palette
+   * open surfaces it first.
+   */
+  projectId?: string;
 }
 
 interface ActiveTrigger {
@@ -73,7 +87,7 @@ export function detectMentionTrigger(input: string, caret: number): ActiveTrigge
 }
 
 export const ComposerMentionsOverlay = memo(
-  ({ textareaRef, input, handleInputChange }: ComposerMentionsOverlayProps) => {
+  ({ textareaRef, input, handleInputChange, recentMentionedFilePaths, projectId }: ComposerMentionsOverlayProps) => {
     const [caret, setCaret] = useState<number>(0);
 
     /*
@@ -121,6 +135,11 @@ export const ComposerMentionsOverlay = memo(
           return;
         }
 
+        if (projectId) {
+          // Fire-and-forget MRU record — the debounced save layer batches.
+          void recordMentionedFile(projectId, candidate.displayPath);
+        }
+
         const before = input.slice(0, active.start);
         const after = input.slice(active.end);
         const insertion = `@${candidate.displayPath} `;
@@ -146,7 +165,7 @@ export const ComposerMentionsOverlay = memo(
           setCaret(nextCaret);
         });
       },
-      [handleInputChange, input, textareaRef, trigger],
+      [handleInputChange, input, projectId, textareaRef, trigger],
     );
 
     const handleDismiss = useCallback(() => {
@@ -172,7 +191,12 @@ export const ComposerMentionsOverlay = memo(
 
     return (
       <div className="bolt-composer-mentions-overlay">
-        <FileMentionsPalette query={trigger.query} onSelect={handleSelect} onDismiss={handleDismiss} />
+        <FileMentionsPalette
+          query={trigger.query}
+          onSelect={handleSelect}
+          onDismiss={handleDismiss}
+          recentMentionedFilePaths={recentMentionedFilePaths}
+        />
       </div>
     );
   },

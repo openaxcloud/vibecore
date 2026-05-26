@@ -3,6 +3,7 @@ import * as Popover from '@radix-ui/react-popover';
 import { Form, Link, NavLink, useNavigate } from '@remix-run/react';
 import {
   Activity,
+  ArrowUpRight,
   Bell,
   BookOpen,
   Boxes,
@@ -18,7 +19,6 @@ import {
   GitBranch,
   Github,
   Globe2,
-  Instagram,
   KeyRound,
   Layers,
   LifeBuoy,
@@ -40,7 +40,6 @@ import {
   User as UserIcon,
   Users,
   X,
-  Youtube,
   type LucideIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -83,13 +82,223 @@ type TemplateCard = {
   providers: TemplateProvider[];
 };
 
+type MarketingMenuItem = readonly [title: string, to: string, description: string];
+type FooterLink = readonly [label: string, to: string];
+type FooterUtilityLink = { label: string; to: string; icon: Icon; external?: boolean };
+type FooterColumn = {
+  title: string;
+  links: readonly FooterLink[];
+};
+
+export const ECODE_MARKETING_BRAND = {
+  name: 'E-Code',
+  tagline: 'Build software fast with AI',
+  description: 'Code with AI. Deploy instantly. Share with the world. Build and ship software 10x faster.',
+  legalName: 'E-Code.AI (Snatch Group Limited)',
+  logoSrc: '/assets/logo.svg',
+  aiAvatarSrc: '/assets/ai-avatar.svg',
+  faviconSrc: '/favicon.svg',
+  appleTouchIconSrc: '/apple-touch-icon.png',
+  repositoryUrl: 'https://github.com/openaxcloud/vibecore',
+} as const;
+
 export const publicNav = [
-  { label: 'Product', to: '/#product' },
-  { label: 'Solutions', to: '/#solutions' },
-  { label: 'Templates', to: '/templates' },
-  { label: 'Security', to: '/security' },
+  { label: 'Product', to: '/product' },
+  { label: 'Platform', to: '/apps' },
+  { label: 'Solutions', to: '/solutions/app-builder' },
+  { label: 'Resources', to: '/docs' },
+  { label: 'Company', to: '/about' },
   { label: 'Pricing', to: '/pricing' },
+  { label: 'Teams', to: '/team' },
 ];
+
+export const publicMarketingMenus = {
+  product: [
+    ['Product Tour', '/product', 'Editor, AI, agents, deploy, mobile and collaboration in one product surface.'],
+    ['AI Agent', '/ai', 'Build production-ready apps with natural language prompts.'],
+    ['Features', '/features', 'Enterprise-grade development workspace built for teams.'],
+    ['Multiplayer', '/collaboration', 'Live collaboration, pair programming and shared presence.'],
+    ['Mobile App', '/mobile', 'Ship from phone and tablet with the same IDE workflow.'],
+    ['Desktop App', '/desktop', 'Optimized local workflows with secure project sync.'],
+    ['AI Platform', '/ai', 'Governance, observability and orchestration for AI workloads.'],
+    ['Deployments', '/marketing/deployments', 'Preview, validate and release with production controls.'],
+    ['Bounties', '/marketing/bounties', 'Activate an on-demand developer network to accelerate delivery.'],
+    ['Teams', '/marketing/teams', 'Enterprise controls, compliance and insights for large orgs.'],
+  ],
+  platform: [
+    ['Apps', '/apps', 'Imported app catalog for internal tools, SaaS projects and AI workflows.'],
+    ['New project', '/new', 'Start a project from prompt, template, GitHub or imported design.'],
+    ['AI Agent Studio', '/ai-agent/studio', 'Plan, supervise and validate AI agent work.'],
+    ['GitHub Import', '/github-import', 'Bring repositories into E-Code with dependency and preview setup.'],
+    ['Runtimes', '/runtimes', 'Choose browser, remote and deployment runtime paths.'],
+    ['Runtime Diagnostics', '/runtime-diagnostics', 'Inspect install, server, port and preview health.'],
+    ['Database', '/database', 'Design schemas, migrations and data-backed generated apps.'],
+    ['Object Storage', '/object-storage', 'Handle uploads, generated assets and public media.'],
+    ['KV Store', '/kv-store', 'Use lightweight state for sessions, flags and edge workflows.'],
+    ['Console', '/console', 'Review commands, logs and operational status.'],
+    ['Shell', '/shell', 'Run controlled project commands with clear recovery paths.'],
+    ['Packages', '/packages', 'Track workspace packages, dependency versions and installs.'],
+    ['Security Scanner', '/security-scanner', 'Scan code, dependencies and configuration before release.'],
+    ['Authentication', '/authentication', 'Plan passwords, OAuth, sessions and enterprise SSO.'],
+    ['Workflows', '/workflows', 'Automate generation, validation, review and release preparation.'],
+    ['Extensions', '/extensions', 'Extend workspaces with approved tools and capabilities.'],
+    ['Integrations', '/integrations', 'Connect source control, providers, data and operational systems.'],
+    ['Networking', '/networking', 'Manage ports, preview URLs, domains and secure connectivity.'],
+    ['Advanced Mobile', '/advanced/mobile', 'Deep mobile delivery guidance for app and IDE surfaces.'],
+    ['Advanced SSO', '/advanced/sso', 'Enterprise identity architecture and role mapping.'],
+  ],
+  solutions: [
+    ['App Builder', '/solutions/app-builder', 'Rapidly prototype and deploy full-stack applications.'],
+    ['Website Builder', '/solutions/website-builder', 'Create polished marketing sites with zero setup.'],
+    ['Game Builder', '/solutions/game-builder', 'Design and launch interactive experiences powered by AI.'],
+    ['Dashboard Builder', '/solutions/dashboard-builder', 'Data-rich dashboards with real-time collaboration.'],
+    [
+      'Chatbot / AI Agent Builder',
+      '/solutions/chatbot-builder',
+      'Deploy conversational assistants across your organization.',
+    ],
+    [
+      'Internal AI Builder',
+      '/solutions/internal-ai-builder',
+      'Bring private AI agents to every team safely and securely.',
+    ],
+    ['Enterprise', '/solutions/enterprise', 'SSO, audit logs, private runtimes and guided rollout.'],
+    ['Startups', '/solutions/startups', 'Ship faster with startup-friendly plans and deployment paths.'],
+    ['Freelancers', '/solutions/freelancers', 'Deliver client projects faster with portfolio-ready hosting.'],
+  ],
+  resources: [
+    ['Documentation', '/docs', 'Guides for projects, runtimes, security and deployment.'],
+    ['AI Documentation', '/ai-documentation', 'Complete AI capabilities and agent workflow guide.'],
+    ['Tutorials', '/tutorials', 'Step-by-step learning from beginner to advanced.'],
+    ['Blog', '/blog', 'Stories on shipping software at global scale.'],
+    ['Changelog', '/changelog', 'Latest platform updates and validation notes.'],
+    ['Community', '/community', 'Connect with builders and share best practices.'],
+    ['Forum', '/forum', 'Discuss implementation questions and platform workflows.'],
+    ['Marketplace', '/marketplace', 'Discover reusable project starters and implementation patterns.'],
+    ['Templates', '/templates', 'Production starters for SaaS, dashboards, APIs and AI tools.'],
+    ['Explore', '/explore', 'Browse solutions, examples and platform paths.'],
+    ['Search', '/search', 'Find docs, templates, community notes and product pages.'],
+    ['Case Studies', '/case-studies', 'Enterprise success patterns and delivery evidence.'],
+    ['Help Center', '/help-center', 'FAQs, troubleshooting and support.'],
+    ['Status', '/status', 'Operational status and incident visibility.'],
+    ['Learn', '/learn', 'Structured paths for prompt-to-app delivery and runtime operations.'],
+    ['API SDK', '/api-sdk', 'Typed platform interfaces for integrations and automation.'],
+    ['Performance', '/performance', 'Guidance for fast previews, bundles and responsive apps.'],
+    ['Themes', '/themes', 'Dark default, light mode and generated UI styling guidance.'],
+    ['Advanced Search', '/search-advanced', 'Search projects, docs, files, templates and agent context.'],
+  ],
+  company: [
+    ['About', '/about', 'Learn about the platform mission and product direction.'],
+    ['Customers', '/customers', 'Internal tools, AI products and education showcases imported from E-Code.'],
+    ['Careers', '/careers', 'Join a distributed team building the future of software.'],
+    ['Press', '/press', 'Brand, partner and platform overview.'],
+    ['Partners', '/partners', 'Strategic alliances and solution partners.'],
+    ['Contact', '/contact', 'Get in touch with our team.'],
+    ['Accessibility', '/accessibility', 'Our commitment to inclusive, responsible platform use.'],
+  ],
+} as const satisfies Record<string, readonly MarketingMenuItem[]>;
+
+export const publicFooterColumns: readonly FooterColumn[] = [
+  {
+    title: 'Product',
+    links: [
+      ['Product Tour', '/product'],
+      ['AI Agent', '/ai'],
+      ['IDE', '/features'],
+      ['Multiplayer', '/collaboration'],
+      ['Mobile App', '/mobile'],
+      ['Deployments', '/marketing/deployments'],
+      ['AI Platform', '/ai'],
+      ['Templates', '/templates'],
+      ['Pricing', '/pricing'],
+      ['Bounties', '/marketing/bounties'],
+    ],
+  },
+  {
+    title: 'Platform',
+    links: [
+      ['Apps', '/apps'],
+      ['New project', '/new'],
+      ['AI Agent Studio', '/ai-agent/studio'],
+      ['GitHub Import', '/github-import'],
+      ['Runtimes', '/runtimes'],
+      ['Diagnostics', '/runtime-diagnostics'],
+      ['Database', '/database'],
+      ['Object storage', '/object-storage'],
+      ['KV Store', '/kv-store'],
+      ['Console', '/console'],
+      ['Security scanner', '/security-scanner'],
+      ['Integrations', '/integrations'],
+    ],
+  },
+  {
+    title: 'Resources',
+    links: [
+      ['Docs', '/docs'],
+      ['AI Documentation', '/ai-documentation'],
+      ['Tutorials', '/tutorials'],
+      ['Learn', '/learn'],
+      ['API SDK', '/api-sdk'],
+      ['Blog', '/blog'],
+      ['Templates', '/templates'],
+      ['Marketplace', '/marketplace'],
+      ['Explore', '/explore'],
+      ['Performance', '/performance'],
+      ['Changelog', '/changelog'],
+      ['Status', '/status'],
+      ['Community', '/community'],
+      ['Forum', '/forum'],
+    ],
+  },
+  {
+    title: 'Company',
+    links: [
+      ['About', '/about'],
+      ['Careers', '/careers'],
+      ['Press', '/press'],
+      ['Partners', '/partners'],
+      ['Customers', '/customers'],
+      ['Contact sales', '/contact-sales'],
+      ['Contact', '/contact'],
+      ['Security', '/security'],
+      ['Support', '/support'],
+    ],
+  },
+  {
+    title: 'Legal',
+    links: [
+      ['Terms', '/terms'],
+      ['Privacy', '/privacy'],
+      ['DPA', '/dpa'],
+      ['Subprocessors', '/subprocessors'],
+      ['Student DPA', '/student-dpa'],
+      ['Acceptable use', '/acceptable-use'],
+      ['Security', '/security'],
+      ['Report abuse', '/report-abuse'],
+    ],
+  },
+] as const;
+
+export const publicFooterActionLinks = [
+  ['Talk to sales', '/contact-sales'],
+  ['Start building', '/register'],
+] as const satisfies readonly FooterLink[];
+
+export const publicCompareLinks = [
+  ['E-Code vs GitHub Codespaces', '/compare/github-codespaces'],
+  ['E-Code vs Glitch', '/compare/glitch'],
+  ['E-Code vs Heroku', '/compare/heroku'],
+  ['E-Code vs CodeSandbox', '/compare/codesandbox'],
+  ['E-Code vs AWS Cloud9', '/compare/aws-cloud9'],
+] as const satisfies readonly FooterLink[];
+
+export const publicFooterUtilityLinks = [
+  { label: 'GitHub', to: ECODE_MARKETING_BRAND.repositoryUrl, icon: Github, external: true },
+  { label: 'Documentation', to: '/docs', icon: BookOpen, external: false },
+  { label: 'Status', to: '/status', icon: Globe2, external: false },
+  { label: 'Templates', to: '/templates', icon: Layers, external: false },
+  { label: 'Contact', to: '/contact-sales', icon: MailPlus, external: false },
+] as const satisfies readonly FooterUtilityLink[];
 
 type NavItem = { label: string; to: string; icon: Icon; shortcut?: string };
 
@@ -221,71 +430,68 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function VibecoreLogo({ compact = false }: { compact?: boolean }) {
+function EcodeMarketingLogo({ compact = false }: { compact?: boolean }) {
   return (
-    <span className="vc-logo" aria-label="VibeCore">
+    <span className="vc-logo" aria-label={ECODE_MARKETING_BRAND.name}>
       <span className="vc-logo-mark" aria-hidden>
-        <Sparkles className="h-4 w-4" />
+        <img src={ECODE_MARKETING_BRAND.logoSrc} alt="" loading="eager" decoding="async" />
       </span>
-      {!compact ? <span className="vc-logo-text">VibeCore</span> : null}
+      {!compact ? <span className="vc-logo-text">{ECODE_MARKETING_BRAND.name}</span> : null}
     </span>
   );
 }
 
 function PublicMarketingHeader() {
-  const productItems = [
-    ['AI Agent', '/#builder', 'Generate, patch and ship production apps from natural language.'],
-    ['Browser IDE', '/#product', 'A preserved Bolt workbench with files, terminal, preview and deploy tools.'],
-    ['Mobile IDE', '/#mobile', 'Review, run and inspect projects from phone and tablet layouts.'],
-    ['Deployments', '/#deploy', 'Runtime-aware previews, snapshots and production release controls.'],
-  ];
-  const resourceItems = [
-    ['Documentation', '/docs', 'Guides for projects, runtimes, security and deployment.'],
-    ['Templates', '/templates', 'Production starters for SaaS, dashboards, APIs and AI tools.'],
-    ['Changelog', '/changelog', 'Latest platform updates and validation notes.'],
-    ['Status', '/status', 'Operational status and incident visibility.'],
-  ];
+  const mobileItems = [
+    ...publicMarketingMenus.product,
+    ...publicMarketingMenus.platform,
+    ...publicMarketingMenus.solutions,
+    ...publicMarketingMenus.resources,
+    ...publicMarketingMenus.company,
+    ['Pricing', '/pricing', 'Plans for individuals, teams and enterprise deployments.'],
+    ['Teams', '/team', 'Enterprise collaboration, controls and procurement support.'],
+  ] as const satisfies readonly MarketingMenuItem[];
 
   return (
     <header className="vc-public-header" role="banner" aria-label="Site header">
       <div className="vc-public-announcement">
         <div className="vc-public-container vc-public-announcement-inner">
-          <span className="vc-badge">New</span>
-          <span>Enterprise-grade mobile IDE, runtime status and Android build validation are now live.</span>
+          <span className="vc-badge">NEW</span>
+          <span>Introducing E-Code Enterprise Cloud with dedicated AI governance and auditability.</span>
           <Link to="/contact-sales">Talk to an expert</Link>
         </div>
       </div>
       <nav className="vc-public-nav" aria-label="Main navigation">
         <div className="vc-public-container vc-public-nav-inner">
           <Link to="/" className="vc-public-brand">
-            <VibecoreLogo />
+            <EcodeMarketingLogo />
           </Link>
           <div className="vc-public-desktop-nav" aria-label="Public navigation">
-            <MarketingMenu label="Product" items={productItems} icon={Sparkles} />
-            <MarketingMenu label="Resources" items={resourceItems} icon={BookOpen} />
+            <MarketingMenu label="Product" items={publicMarketingMenus.product} icon={Sparkles} />
+            <MarketingMenu label="Platform" items={publicMarketingMenus.platform} icon={Command} />
+            <MarketingMenu label="Solutions" items={publicMarketingMenus.solutions} icon={Rocket} />
+            <MarketingMenu label="Resources" items={publicMarketingMenus.resources} icon={BookOpen} />
+            <MarketingMenu label="Company" items={publicMarketingMenus.company} icon={ShieldCheck} />
             <NavButton to="/pricing">Pricing</NavButton>
-            <NavButton to="/security">Security</NavButton>
-            <NavButton to="/contact-sales">Enterprise</NavButton>
+            <NavButton to="/team">Teams</NavButton>
           </div>
           <div className="vc-public-actions">
             <PublicThemeToggle />
             <LinkButton to="/login" variant="ghost">
               Sign in
             </LinkButton>
-            <LinkButton to="/signup">Start building</LinkButton>
+            <LinkButton to="/register">Get started</LinkButton>
             <details className="vc-public-mobile-menu">
               <summary aria-label="Open mobile menu">
                 <Menu className="h-5 w-5" aria-hidden />
               </summary>
               <div className="vc-public-mobile-menu-panel">
-                {[...productItems, ...resourceItems, ['Pricing', '/pricing', 'Plans for teams and enterprises']].map(
-                  ([title, to, description]) => (
-                    <Link key={to} to={to}>
-                      <strong>{title}</strong>
-                      <span>{description}</span>
-                    </Link>
-                  ),
-                )}
+                {mobileItems.map(([title, to, description]) => (
+                  <Link key={`${title}-${to}`} to={to}>
+                    <strong>{title}</strong>
+                    <span>{description}</span>
+                  </Link>
+                ))}
               </div>
             </details>
           </div>
@@ -320,7 +526,15 @@ function PublicThemeToggle() {
   );
 }
 
-function MarketingMenu({ label, items, icon: menuIcon }: { label: string; items: string[][]; icon: Icon }) {
+function MarketingMenu({
+  label,
+  items,
+  icon: menuIcon,
+}: {
+  label: string;
+  items: readonly MarketingMenuItem[];
+  icon: Icon;
+}) {
   const MenuIcon = menuIcon;
 
   return (
@@ -331,7 +545,7 @@ function MarketingMenu({ label, items, icon: menuIcon }: { label: string; items:
       </summary>
       <div className="vc-marketing-menu-panel">
         {items.map(([title, to, description]) => (
-          <Link key={to} to={to}>
+          <Link key={`${title}-${to}`} to={to}>
             <MenuIcon className="h-4 w-4" aria-hidden />
             <span>
               <strong>{title}</strong>
@@ -345,66 +559,47 @@ function MarketingMenu({ label, items, icon: menuIcon }: { label: string; items:
 }
 
 function PublicMarketingFooter() {
-  const footerColumns = [
-    {
-      title: 'Product',
-      links: [
-        ['AI Agent', '/#builder'],
-        ['IDE', '/#product'],
-        ['Mobile', '/#mobile'],
-        ['Deployments', '/#deploy'],
-        ['Pricing', '/pricing'],
-      ],
-    },
-    {
-      title: 'Resources',
-      links: [
-        ['Docs', '/docs'],
-        ['Templates', '/templates'],
-        ['Changelog', '/changelog'],
-        ['Status', '/status'],
-        ['Contact sales', '/contact-sales'],
-      ],
-    },
-    {
-      title: 'Company',
-      links: [
-        ['Security', '/security'],
-        ['Privacy', '/privacy'],
-        ['Terms', '/terms'],
-        ['Acceptable use', '/acceptable-use'],
-      ],
-    },
-  ];
-
   return (
-    <footer className="vc-public-footer" role="contentinfo" aria-label="Site footer">
+    <footer id="company" className="vc-public-footer" role="contentinfo" aria-label="Site footer">
       <div className="vc-public-container">
         <div className="vc-public-footer-cta">
           <div>
             <span className="vc-badge">
               <ShieldCheck className="h-3 w-3" aria-hidden />
-              Enterprise ready
+              Built for Fortune 500
             </span>
-            <h2>The future of governed software development.</h2>
+            <h2>The future of enterprise software development.</h2>
             <p>
-              VibeCore combines Bolt IDE ergonomics, managed runtimes, auditability and production deployment controls.
+              E-Code combines secure cloud workspaces, intelligent automation and enterprise controls so your teams can
+              ship faster across every device.
             </p>
           </div>
           <div className="vc-public-footer-actions">
-            <LinkButton to="/contact-sales">Talk to sales</LinkButton>
-            <LinkButton to="/signup" variant="outline">
-              Start building
-            </LinkButton>
+            {publicFooterActionLinks.map(([label, to], index) => (
+              <LinkButton key={to} to={to} variant={index === 0 ? 'default' : 'outline'}>
+                {label}
+                {index === 0 ? <ArrowUpRight className="h-4 w-4" aria-hidden /> : null}
+              </LinkButton>
+            ))}
           </div>
+        </div>
+        <div className="vc-public-footer-metrics" aria-label="Enterprise platform metrics">
+          <article>
+            <span>Global uptime</span>
+            <strong>99.99%</strong>
+          </article>
+          <article>
+            <span>Enterprise teams</span>
+            <strong>4,500+</strong>
+          </article>
         </div>
         <div className="vc-public-footer-grid">
           <div className="vc-public-footer-brand">
-            <VibecoreLogo />
-            <p>Persistent projects, real runtimes and a preserved Bolt workbench for production teams.</p>
+            <EcodeMarketingLogo />
+            <p>{ECODE_MARKETING_BRAND.description}</p>
             <div className="vc-public-trust-list">
               <span>
-                <CheckCircle2 className="h-4 w-4" /> Audit logs
+                <CheckCircle2 className="h-4 w-4" /> AI governance
               </span>
               <span>
                 <Globe2 className="h-4 w-4" /> Global previews
@@ -414,35 +609,65 @@ function PublicMarketingFooter() {
               </span>
             </div>
           </div>
-          {footerColumns.map((column) => (
+          {publicFooterColumns.map((column) => (
             <nav key={column.title} aria-label={`${column.title} footer links`}>
               <h3>{column.title}</h3>
               {column.links.map(([label, to]) => (
-                <Link key={to} to={to}>
+                <Link key={`${column.title}-${label}-${to}`} to={to}>
                   {label}
                 </Link>
               ))}
             </nav>
           ))}
         </div>
-        <div className="vc-public-footer-bottom">
-          <span>© {new Date().getFullYear()} VibeCore. All rights reserved.</span>
+        <div className="vc-public-footer-compare">
           <div>
-            <a href="https://github.com/openaxcloud/vibecore" target="_blank" rel="noreferrer" aria-label="GitHub">
-              <Github className="h-4 w-4" />
-            </a>
-            <a href="/docs" aria-label="Documentation">
-              <BookOpen className="h-4 w-4" />
-            </a>
-            <a href="/status" aria-label="Status">
-              <Globe2 className="h-4 w-4" />
-            </a>
-            <a href="/templates" aria-label="Templates">
-              <Youtube className="h-4 w-4" />
-            </a>
-            <a href="/contact-sales" aria-label="Contact">
-              <Instagram className="h-4 w-4" />
-            </a>
+            <h3>Compare platforms</h3>
+            <p>See how E-Code stacks up against other development clouds.</p>
+          </div>
+          <div role="list" aria-label="Platform comparisons">
+            {publicCompareLinks.map(([label, to]) => (
+              <Link key={to} to={to}>
+                {label}
+              </Link>
+            ))}
+          </div>
+        </div>
+        <div className="vc-public-footer-trust-row">
+          <span>
+            <ShieldCheck className="h-5 w-5" aria-hidden /> SOC2 Type II, ISO 27001, GDPR &amp; HIPAA ready.
+          </span>
+          <span>
+            <Globe2 className="h-5 w-5" aria-hidden /> 18 global regions with enterprise data residency.
+          </span>
+          <span>
+            <Sparkles className="h-5 w-5" aria-hidden /> AI governance, policy controls and audit logging.
+          </span>
+        </div>
+        <div className="vc-public-footer-bottom">
+          <span>
+            © {new Date().getFullYear()} {ECODE_MARKETING_BRAND.legalName}. All rights reserved.
+          </span>
+          <div>
+            {publicFooterUtilityLinks.map((utilityLink) => {
+              const FooterIcon = utilityLink.icon;
+
+              return utilityLink.external ? (
+                <a
+                  key={utilityLink.to}
+                  href={utilityLink.to}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={utilityLink.label}
+                >
+                  <FooterIcon className="h-4 w-4" />
+                </a>
+              ) : (
+                <Link key={utilityLink.to} to={utilityLink.to} aria-label={utilityLink.label}>
+                  <FooterIcon className="h-4 w-4" />
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -666,7 +891,7 @@ function SidebarHeader({ collapsed }: { collapsed: boolean }) {
       </span>
       {!collapsed ? (
         <span className="vc-sidebar-fade-label min-w-0 flex-1">
-          <span className="block text-sm font-semibold leading-tight">VibeCore</span>
+          <span className="block text-sm font-semibold leading-tight">{ECODE_MARKETING_BRAND.name}</span>
           <span className="block truncate text-[11px] leading-tight text-bolt-elements-textTertiary">
             SaaS workspace
           </span>
@@ -758,7 +983,7 @@ function MobileSidebarDrawer({ open, onClose }: { open: boolean; onClose: () => 
               <Sparkles className="h-4 w-4" />
             </span>
             <span className="min-w-0">
-              <span className="block text-sm font-semibold leading-tight">VibeCore</span>
+              <span className="block text-sm font-semibold leading-tight">{ECODE_MARKETING_BRAND.name}</span>
               <span className="block text-[11px] leading-tight text-bolt-elements-textTertiary">SaaS workspace</span>
             </span>
           </Link>
@@ -1269,7 +1494,7 @@ export function LinkButton({
     <Link
       to={to}
       className={classNames(
-        'inline-flex h-9 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-bolt-elements-borderColor',
+        'inline-flex h-9 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-bolt-elements-borderColor',
         variant === 'default' && 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text',
         variant === 'outline' &&
           'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2',

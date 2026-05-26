@@ -30,7 +30,7 @@ This file lists blockers that remain after the strict repo-local audit. Items he
    - Next action: run Stripe CLI/test-mode drill against staging.
 
 5. **Backup restore is not proven.**
-   - Current proof: fixture checksum dry-run only.
+   - Current repo-local proof: `pnpm sre:validate` runs an encrypted project backup round-trip with manifest hash comparison and tamper rejection.
    - Required proof: Cloud SQL point-in-time restore and project storage restore in staging with measured RTO/RPO.
    - Next action: execute restore drill and attach evidence.
 

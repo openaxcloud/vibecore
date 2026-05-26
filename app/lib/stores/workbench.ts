@@ -11,9 +11,17 @@ import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { description } from '~/lib/persistence';
+import {
+  deleteAgentPatchProposalRemote,
+  fetchOpenAgentPatchProposals,
+  isTerminalAgentPatchStatus,
+  putAgentPatchProposal,
+} from '~/lib/persistence/agentPatchProposalSync';
 import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { ActionRunner } from '~/lib/runtime/action-runner';
+import { hasInstalledPreviewDependencies, type PreviewPackageManifest } from '~/lib/runtime/preview-dependencies';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
+import { writeAcceptedAgentFile } from '~/lib/runtime/agent-file-write';
 import { topologicallySortFileActions } from '~/lib/runtime/topological-apply';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
@@ -29,6 +37,11 @@ import {
   extractRelativePath,
   type ReviewableDiffHunk,
 } from '~/utils/diff';
+import {
+  dropFailedPatchLogsForPath,
+  dropResolvedMissingImportPatchLogs,
+  isResolvedMissingImportPatchFailure,
+} from '~/utils/agent-patch-logs';
 import { createSampler } from '~/utils/sampler';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
 
@@ -53,7 +66,7 @@ type PreviewCommand = {
   setupCommands?: PreviewCommand[];
 };
 export type PreviewServerState = {
-  status: 'idle' | 'starting' | 'running' | 'stopping' | 'error';
+  status: 'idle' | 'static' | 'starting' | 'running' | 'stopping' | 'error';
   command?: string;
   error?: string;
 };
@@ -83,6 +96,15 @@ export interface AgentPatchProposal {
 const WORKSPACE_LOG_LIMIT = 500;
 const ANSI_ESCAPE_SEQUENCE = /\x1B\[[0-?]*[ -/]*[@-~]/g;
 const WORKSPACE_LOG_NOISE_PATTERNS = [/malloc.*stack logging.*not enabled/i];
+
+/*
+ * Sampling window for the AI streaming-action runner. Each token chunk
+ * carries a partial action update; running them all would saturate the
+ * preview filesystem with intermediate writes. 100 ms keeps the UI
+ * responsive (≈10 updates/s feels live) while collapsing the dozens of
+ * chunks that arrive within a single render frame into a single apply.
+ */
+const ACTION_STREAM_SAMPLE_INTERVAL_MS = 100;
 
 const PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES = new Set([
   '.git',
@@ -243,6 +265,17 @@ export class WorkbenchStore {
     import.meta.hot?.data.projectFilesPanelRequest ?? atom<ProjectFilesPanelRequest | undefined>(undefined);
   agentPatchReviewRequired: WritableAtom<boolean> =
     import.meta.hot?.data.agentPatchReviewRequired ?? atom<boolean>(false);
+
+  /*
+   * Per-filePath self-repair progress mirrored from the
+   * `agent:self-repair:progress` workspace event. Keyed by the action's
+   * runtime-relative path; the MessagePatchReview surface looks up
+   * `proposal.relativePath` in this map to surface the "Self-repair
+   * attempt N/M…" banner on the matching InlineFileActionDiff card.
+   */
+  agentPatchSelfRepair: MapStore<Record<string, { attempt: number; maxAttempts: number; errorMessage?: string }>> =
+    import.meta.hot?.data.agentPatchSelfRepair ??
+    map<Record<string, { attempt: number; maxAttempts: number; errorMessage?: string }>>({});
   agentPatchProposals: MapStore<Record<string, AgentPatchProposal>> =
     import.meta.hot?.data.agentPatchProposals ?? map<Record<string, AgentPatchProposal>>({});
   quotaWarning: WritableAtom<string | undefined> =
@@ -251,6 +284,7 @@ export class WorkbenchStore {
     import.meta.hot?.data.billingUpgradePrompt ?? atom<string | undefined>(undefined);
   #snapshottedArtifacts = new Set<string>();
   #agentPatchOriginals = new Map<string, string>();
+  #runtimeFilesLoadedProjectId: string | undefined;
   #globalExecutionQueue = Promise.resolve();
   constructor() {
     if (import.meta.hot) {
@@ -260,6 +294,7 @@ export class WorkbenchStore {
       import.meta.hot.data.currentView = this.currentView;
       import.meta.hot.data.agentPatchReviewRequired = this.agentPatchReviewRequired;
       import.meta.hot.data.agentPatchProposals = this.agentPatchProposals;
+      import.meta.hot.data.agentPatchSelfRepair = this.agentPatchSelfRepair;
       import.meta.hot.data.actionAlert = this.actionAlert;
       import.meta.hot.data.supabaseAlert = this.supabaseAlert;
       import.meta.hot.data.deployAlert = this.deployAlert;
@@ -283,6 +318,19 @@ export class WorkbenchStore {
         }
       }
     }
+
+    workspaceEvents.on('agent:self-repair:progress', ({ filePath, status }) => {
+      if (status) {
+        this.agentPatchSelfRepair.setKey(filePath, status);
+      } else {
+        const current = { ...this.agentPatchSelfRepair.get() };
+
+        if (filePath in current) {
+          delete current[filePath];
+          this.agentPatchSelfRepair.set(current);
+        }
+      }
+    });
   }
 
   requestProjectFilesPanel(open?: boolean) {
@@ -304,12 +352,78 @@ export class WorkbenchStore {
   }
 
   configureProject(projectId?: string) {
+    const changed = this.#projectId !== projectId;
     this.#projectId = projectId;
+
+    if (changed) {
+      this.#runtimeFilesLoadedProjectId = undefined;
+    }
+
+    /*
+     * Hydrate the AgentPatchProposal queue from the server every time the
+     * workbench rebinds to a different project. The fetch is best-effort
+     * (logs + empty list on failure), so a slow or unavailable API doesn't
+     * block the IDE booting; the nanostore remains the source of truth.
+     */
+    if (changed && projectId) {
+      void this.#hydrateAgentPatchProposals(projectId);
+    }
+  }
+
+  async #hydrateAgentPatchProposals(projectId: string) {
+    const proposals = await fetchOpenAgentPatchProposals(projectId);
+
+    if (this.#projectId !== projectId) {
+      // The workbench has been re-bound to another project while we waited.
+      return;
+    }
+
+    for (const proposal of proposals) {
+      const existing = this.agentPatchProposals.get()[proposal.id];
+
+      if (existing && existing.updatedAt >= proposal.updatedAt) {
+        /*
+         * Local copy is at least as fresh — typically because the streaming
+         * action runner re-created the proposal between our fetch firing
+         * and resolving. Don't clobber the more recent local state.
+         */
+        continue;
+      }
+
+      this.agentPatchProposals.setKey(proposal.id, proposal);
+      this.#agentPatchOriginals.set(proposal.actionId, proposal.originalContent);
+    }
+
+    this.#dropResolvedMissingImportFailures();
+  }
+
+  #syncAgentPatchProposalToServer(proposalId: string) {
+    const projectId = this.#projectId;
+
+    if (!projectId) {
+      return;
+    }
+
+    const proposal = this.agentPatchProposals.get()[proposalId];
+
+    if (!proposal) {
+      void deleteAgentPatchProposalRemote(projectId, proposalId);
+      return;
+    }
+
+    if (isTerminalAgentPatchStatus(proposal.status)) {
+      void deleteAgentPatchProposalRemote(projectId, proposalId);
+      return;
+    }
+
+    void putAgentPatchProposal(projectId, proposal);
   }
 
   async loadRuntimeFiles(rootPath = '.') {
     await this.#filesStore.reloadFromRuntime(rootPath);
     this.setDocuments(this.files.get());
+    this.#runtimeFilesLoadedProjectId = this.#projectId;
+    this.#dropResolvedMissingImportFailures();
   }
 
   async refreshRuntimePorts() {
@@ -326,6 +440,13 @@ export class WorkbenchStore {
 
     if (this.#previewStartPromise) {
       return this.#previewStartPromise;
+    }
+
+    if (this.#canUseStaticHtmlPreview()) {
+      this.previewServerState.set({ status: 'static', command: 'static HTML preview' });
+      this.appendWorkspaceLog('Using static HTML preview; dev server is not required for this project.');
+
+      return 'static HTML preview';
     }
 
     if (!this.#findPackageJsonEntry()) {
@@ -563,6 +684,28 @@ export class WorkbenchStore {
     });
   }
 
+  #findIndexHtmlEntry() {
+    return Object.entries(this.files.get()).find(([filePath, dirent]) => {
+      return dirent?.type === 'file' && this.#isIndexHtmlPath(filePath);
+    });
+  }
+
+  #canUseStaticHtmlPreview() {
+    if (this.#findPackageJsonEntry()) {
+      return false;
+    }
+
+    const indexHtmlEntry = this.#findIndexHtmlEntry();
+    const indexHtmlFile = indexHtmlEntry?.[1];
+    const content = indexHtmlFile?.type === 'file' && !indexHtmlFile.isBinary ? indexHtmlFile.content : undefined;
+
+    if (!content) {
+      return false;
+    }
+
+    return !/<script\b[^>]*\bsrc\s*=/i.test(content);
+  }
+
   #isPackageJsonPath(filePath: string) {
     const normalizedPath = filePath.replaceAll('\\', '/').replace(/^\/+/, '');
     const normalizedWorkDir = WORK_DIR.replace(/^\/+/, '');
@@ -571,6 +714,17 @@ export class WorkbenchStore {
       normalizedPath === 'package.json' ||
       normalizedPath === `${normalizedWorkDir}/package.json` ||
       normalizedPath.endsWith('/package.json')
+    );
+  }
+
+  #isIndexHtmlPath(filePath: string) {
+    const normalizedPath = filePath.replaceAll('\\', '/').replace(/^\/+/, '');
+    const normalizedWorkDir = WORK_DIR.replace(/^\/+/, '');
+
+    return (
+      normalizedPath === 'index.html' ||
+      normalizedPath === `${normalizedWorkDir}/index.html` ||
+      normalizedPath.endsWith('/index.html')
     );
   }
 
@@ -613,12 +767,23 @@ export class WorkbenchStore {
     };
   }
 
-  async #previewSetupCommands(packageJsonPath: string, pkg: { packageManager?: string }, forceInstall: boolean) {
-    if (!forceInstall && (await this.#packageDirectoryHasRuntimeDirectory(packageJsonPath, 'node_modules'))) {
+  async #previewSetupCommands(
+    packageJsonPath: string,
+    pkg: PreviewPackageManifest & { packageManager?: string },
+    forceInstall: boolean,
+  ) {
+    if (!forceInstall && (await this.#packageDirectoryHasInstalledPreviewDependencies(packageJsonPath, pkg))) {
       return [];
     }
 
     return [this.#installCommandForPackage(packageJsonPath, pkg)];
+  }
+
+  async #packageDirectoryHasInstalledPreviewDependencies(packageJsonPath: string, pkg: PreviewPackageManifest) {
+    const cwd = this.#runtimeCwdForPackageJson(packageJsonPath);
+    const nodeModulesPath = cwd ? `${cwd}/node_modules` : 'node_modules';
+
+    return hasInstalledPreviewDependencies(pkg, (directory) => this.#runtime.listFiles(directory), nodeModulesPath);
   }
 
   async #packageDirectoryHasRuntimeDirectory(packageJsonPath: string, directoryName: string) {
@@ -707,6 +872,61 @@ export class WorkbenchStore {
     }
 
     this.workspaceLogs.set([...this.workspaceLogs.get(), ...lines].slice(-WORKSPACE_LOG_LIMIT));
+  }
+
+  #dropResolvedAgentPatchLogs(relativePath: string) {
+    const nextLogs = dropFailedPatchLogsForPath(this.workspaceLogs.get(), relativePath);
+
+    if (nextLogs) {
+      this.workspaceLogs.set(nextLogs);
+    }
+  }
+
+  #dropResolvedMissingImportFailures() {
+    const files = this.#workspaceImportValidationFiles();
+    const nextLogs = dropResolvedMissingImportPatchLogs(this.workspaceLogs.get(), files);
+
+    if (nextLogs) {
+      this.workspaceLogs.set(nextLogs);
+    }
+
+    this.#dropResolvedMissingImportProposals(files);
+  }
+
+  #dropResolvedMissingImportProposals(files: ReadonlyMap<string, string>) {
+    const projectId = this.#projectId;
+
+    if (!projectId || this.#runtimeFilesLoadedProjectId !== projectId || files.size === 0) {
+      return;
+    }
+
+    const proposals = this.agentPatchProposals.get();
+    const nextProposals = { ...proposals };
+    const removedIds: string[] = [];
+
+    for (const [proposalId, proposal] of Object.entries(proposals)) {
+      if (proposal.status !== 'failed') {
+        continue;
+      }
+
+      if (!isResolvedMissingImportPatchFailure(proposal.error, files)) {
+        continue;
+      }
+
+      delete nextProposals[proposalId];
+      removedIds.push(proposalId);
+      this.#agentPatchOriginals.delete(proposal.actionId);
+    }
+
+    if (!removedIds.length) {
+      return;
+    }
+
+    this.agentPatchProposals.set(nextProposals);
+
+    for (const proposalId of removedIds) {
+      void deleteAgentPatchProposalRemote(projectId, proposalId);
+    }
   }
 
   addToExecutionQueue(callback: () => Promise<void>) {
@@ -991,6 +1211,7 @@ export class WorkbenchStore {
       status: proposal.status === 'accepted' ? 'accepted' : 'rejected',
       updatedAt: new Date().toISOString(),
     });
+    this.#syncAgentPatchProposalToServer(proposalId);
   }
 
   async rejectAgentPatchProposal(proposalId: string) {
@@ -1009,6 +1230,8 @@ export class WorkbenchStore {
       status: 'rejected',
       updatedAt: new Date().toISOString(),
     });
+    this.#syncAgentPatchProposalToServer(proposalId);
+    this.#dropResolvedAgentPatchLogs(proposal.relativePath);
     this.appendWorkspaceLog(`AI patch rejected: ${proposal.relativePath}`);
   }
 
@@ -1035,14 +1258,9 @@ export class WorkbenchStore {
       updatedAt: new Date().toISOString(),
       error: undefined,
     });
+    this.#syncAgentPatchProposalToServer(proposalId);
 
     try {
-      const artifact = this.#getArtifact(proposal.artifactId);
-
-      if (!artifact) {
-        throw new Error('Artifact no longer exists for this patch.');
-      }
-
       const acceptedContent = applyReviewableDiffHunks({
         originalContent: proposal.originalContent,
         hunks: proposal.hunks,
@@ -1058,19 +1276,33 @@ export class WorkbenchStore {
         await this.saveFile(proposal.filePath);
       }
 
-      await artifact.runner.runAction(
-        {
-          artifactId: proposal.artifactId,
-          messageId: proposal.messageId,
-          actionId: proposal.actionId,
-          action: {
-            type: 'file',
-            filePath: proposal.relativePath,
-            content: acceptedContent,
+      /*
+       * Live proposals route the write through the artifact action runner so
+       * the artifact tracks the action's lifecycle. Hydrated proposals
+       * (reload, server roundtrip) have no live artifact — fall back to a
+       * direct runtime write so accept stays functional. The runtime adapter
+       * is the same surface the runner ultimately calls, so behaviour at the
+       * filesystem level is identical.
+       */
+      const artifact = this.#getArtifact(proposal.artifactId);
+
+      if (artifact) {
+        await artifact.runner.runAction(
+          {
+            artifactId: proposal.artifactId,
+            messageId: proposal.messageId,
+            actionId: proposal.actionId,
+            action: {
+              type: 'file',
+              filePath: proposal.relativePath,
+              content: acceptedContent,
+            },
           },
-        },
-        false,
-      );
+          false,
+        );
+      } else {
+        await writeAcceptedAgentFile(this.#runtime, proposal.relativePath, acceptedContent);
+      }
 
       if (!fileExistsInEditor) {
         await this.loadRuntimeFiles('.').catch((error) => {
@@ -1090,10 +1322,13 @@ export class WorkbenchStore {
         status: 'accepted',
         updatedAt: new Date().toISOString(),
       });
+      this.#syncAgentPatchProposalToServer(proposalId);
       this.#emitFileApplied(proposal.relativePath, 'agent', {
         artifactId: proposal.artifactId,
         actionId: proposal.actionId,
       });
+      this.#dropResolvedAgentPatchLogs(proposal.relativePath);
+      this.#dropResolvedMissingImportFailures();
       this.appendWorkspaceLog(`AI patch accepted: ${proposal.relativePath}`);
 
       await this.#createProjectAgentCheckpoint(`AI accepted ${proposal.relativePath}`).catch((error) => {
@@ -1113,6 +1348,7 @@ export class WorkbenchStore {
         updatedAt: new Date().toISOString(),
         error: message,
       });
+      this.#syncAgentPatchProposalToServer(proposalId);
       this.appendWorkspaceLog(`AI patch failed: ${proposal.relativePath}: ${message}`);
 
       return 'failed';
@@ -1205,6 +1441,7 @@ export class WorkbenchStore {
         status: 'reverted',
         updatedAt: new Date().toISOString(),
       });
+      this.#syncAgentPatchProposalToServer(proposalId);
       this.#emitFileApplied(proposal.relativePath, 'agent', {
         artifactId: proposal.artifactId,
         actionId: `${proposal.actionId}-revert`,
@@ -1570,6 +1807,7 @@ export class WorkbenchStore {
           artifactId: data.artifactId,
           actionId: data.actionId,
         });
+        this.#dropResolvedMissingImportFailures();
       }
     } else {
       await artifact.runner.runAction(data);
@@ -1672,6 +1910,7 @@ export class WorkbenchStore {
           updatedAt: new Date().toISOString(),
           error: message,
         });
+        this.#syncAgentPatchProposalToServer(proposal.id);
         this.appendWorkspaceLog(`AI patch blocked: ${proposal.relativePath}: ${message}`);
       }
     }
@@ -1713,6 +1952,7 @@ export class WorkbenchStore {
       createdAt: previous?.createdAt ?? now,
       updatedAt: now,
     });
+    this.#syncAgentPatchProposalToServer(proposalId);
 
     if (this.selectedFile.value !== fullPath) {
       this.setSelectedFile(fullPath);
@@ -1955,7 +2195,7 @@ export class WorkbenchStore {
 
   actionStreamSampler = createSampler(async (data: ActionCallbackData, isStreaming: boolean = false) => {
     return await this._runAction(data, isStreaming);
-  }, 100); // TODO: remove this magic number to have it configurable
+  }, ACTION_STREAM_SAMPLE_INTERVAL_MS);
 
   #emitFileApplied(
     filePath: string,

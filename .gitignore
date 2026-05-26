@@ -32,6 +32,8 @@ functions/build/
 test-results/
 tmp/
 .claude/
+.playwright-mcp/
+/connected-accounts-fixed.png
 .env.local
 .env
 .env.production

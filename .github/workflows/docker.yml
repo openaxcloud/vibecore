@@ -36,7 +36,7 @@ jobs:
             target: runtime
             build_args: |
               PACKAGE_FILTER=@vibecore/admin
-              START_CMD=pnpm --filter @vibecore/admin dev -- --host 0.0.0.0
+              START_CMD=node serve.mjs
           - image: api
             dockerfile: infra/docker/node-service.Dockerfile
             context: .

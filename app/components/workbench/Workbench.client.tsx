@@ -41,7 +41,7 @@ interface WorkspaceProps {
   };
   updateChatMestaData?: (metadata: any) => void;
   setSelectedElement?: (element: ElementInfo | null) => void;
-  mobilePanel?: 'files' | 'editor' | 'terminal' | 'preview' | 'deploy';
+  mobilePanel?: 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy';
   projectId?: string;
 }
 
@@ -315,7 +315,7 @@ export const Workbench = memo(
 
     const isSmallViewport = useViewport(1024);
     const layout = useResponsiveLayout();
-    const useMobileWorkbench = layout.isMobile || layout.isTabletPortrait;
+    const useMobileWorkbench = layout.isMobile || layout.isTablet;
     const streaming = useStore(streamingState);
     const { exportChat } = useChatHistory();
     const [isSyncing, setIsSyncing] = useState(false);
@@ -443,6 +443,8 @@ export const Workbench = memo(
                 <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1.5 overflow-x-auto">
                   <button
                     className={`${showChat ? 'i-ph:sidebar-simple-fill' : 'i-ph:sidebar-simple'} text-lg text-bolt-elements-textSecondary mr-1`}
+                    aria-label={showChat ? 'Hide agent panel' : 'Show agent panel'}
+                    title={showChat ? 'Hide agent panel' : 'Show agent panel'}
                     disabled={!canHideChat || isSmallViewport}
                     onClick={() => {
                       if (canHideChat) {
@@ -458,13 +460,17 @@ export const Workbench = memo(
                       <span className="truncate">
                         {mobilePanel === 'files'
                           ? 'Files'
-                          : mobilePanel === 'terminal'
-                            ? 'Terminal'
-                            : mobilePanel === 'preview'
-                              ? 'Preview'
-                              : mobilePanel === 'deploy'
-                                ? 'Deploy'
-                                : 'Editor'}
+                          : mobilePanel === 'search'
+                            ? 'Search'
+                            : mobilePanel === 'locks'
+                              ? 'Locks'
+                              : mobilePanel === 'terminal'
+                                ? 'Terminal'
+                                : mobilePanel === 'preview'
+                                  ? 'Preview'
+                                  : mobilePanel === 'deploy'
+                                    ? 'Deploy'
+                                    : 'Editor'}
                       </span>
                     </div>
                   )}
@@ -563,6 +569,7 @@ export const Workbench = memo(
                   )}
                   <IconButton
                     icon="i-ph:x-circle"
+                    title="Close workbench"
                     className="-mr-1"
                     size="xl"
                     onClick={() => {
@@ -584,7 +591,14 @@ export const Workbench = memo(
                       onEditorChange={onEditorChange}
                       onFileSave={onFileSave}
                       onFileReset={onFileReset}
-                      mobilePanel={mobilePanel === 'files' || mobilePanel === 'terminal' ? mobilePanel : 'editor'}
+                      mobilePanel={
+                        mobilePanel === 'files' ||
+                        mobilePanel === 'search' ||
+                        mobilePanel === 'locks' ||
+                        mobilePanel === 'terminal'
+                          ? mobilePanel
+                          : 'editor'
+                      }
                     />
                   </View>
                   <View

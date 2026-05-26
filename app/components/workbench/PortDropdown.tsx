@@ -49,7 +49,11 @@ export const PortDropdown = memo(
       <div className="bolt-preview-port-dropdown relative z-port-dropdown" ref={dropdownRef}>
         {/* Display the active port if available, otherwise show the plug icon */}
         <button
+          type="button"
           className="bolt-preview-port-button flex items-center group-focus-within:text-bolt-elements-preview-addressBar-text bg-white group-focus-within:bg-bolt-elements-preview-addressBar-background dark:bg-bolt-elements-preview-addressBar-backgroundHover rounded-full px-2 py-1 gap-1.5"
+          aria-label="Select preview port"
+          aria-expanded={isDropdownOpen}
+          title="Select preview port"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         >
           <span className="i-ph:plug text-base"></span>

@@ -6,6 +6,7 @@ import { Button } from '~/components/ui/Button';
 import {
   apiRequest,
   firstOrganization,
+  firstOrganizationOrNull,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
@@ -28,7 +29,12 @@ function base64FromArrayBuffer(buffer: ArrayBuffer) {
 }
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  await firstOrganization(request);
+  const organization = await firstOrganizationOrNull(request);
+
+  if (!organization) {
+    return redirect('/');
+  }
+
   return null;
 }
 

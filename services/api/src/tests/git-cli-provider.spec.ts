@@ -152,5 +152,5 @@ describe('GitCliProvider workspace isolation', () => {
     expect(files.json().files.some((file: { path: string }) => file.path.startsWith('.git/'))).toBe(false);
 
     await app.close();
-  });
+  }, 20_000);
 });

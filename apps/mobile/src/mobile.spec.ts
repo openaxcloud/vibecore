@@ -36,10 +36,10 @@ describe('mobile native adapters', () => {
     expect(parseDeepLink('ftp://example.com')).toBeUndefined();
   });
 
-  it('uses the mobile CodeMirror editor fallback on phones and portrait tablets', () => {
+  it('uses the mobile CodeMirror editor fallback on phones and tablets', () => {
     expect(editorKindForLayout(getResponsiveLayoutState(390, 844, { coarsePointer: true }))).toBe('codemirror');
     expect(editorKindForLayout(getResponsiveLayoutState(820, 1180, { coarsePointer: true }))).toBe('codemirror');
-    expect(editorKindForLayout(getResponsiveLayoutState(1024, 768, { coarsePointer: true }))).toBe('monaco');
+    expect(editorKindForLayout(getResponsiveLayoutState(1024, 768, { coarsePointer: true }))).toBe('codemirror');
   });
 
   it('normalizes persisted lock state without storing secrets', () => {

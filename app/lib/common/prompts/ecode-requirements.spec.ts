@@ -13,6 +13,7 @@ const requiredPhrases = [
   'Mobile-first responsive design',
   'Dark mode by default',
   'Multi-agent strategy',
+  'External service behavior must use real typed local/offline adapters',
 ];
 
 describe('VibeCore prompt requirements', () => {
@@ -34,6 +35,9 @@ describe('VibeCore prompt requirements', () => {
       expect(prompt).toContain('ZERO placeholder code');
       expect(prompt).toContain('WebSocket connections must auto-reconnect with exponential backoff');
       expect(prompt).toContain('Dark mode by default');
+      expect(prompt).toContain('never report a successful external workflow');
+      expect(prompt).not.toMatch(/\bsimulate the workflow locally\b/i);
+      expect(prompt).not.toMatch(/\blocal simulated workflow\b/i);
     }
   });
 
@@ -42,5 +46,6 @@ describe('VibeCore prompt requirements', () => {
     expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('preview would be blank');
     expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('phones, tablets, and desktop');
     expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('exponential backoff');
+    expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('Never report successful external-service behavior');
   });
 });

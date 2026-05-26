@@ -1,103 +1,114 @@
-# ---- build stage ----
-FROM node:22-bookworm-slim AS build
+# syntax=docker/dockerfile:1.7
+#
+# Web (Remix + Vite SSR) production image.
+#
+# Two build modes:
+#   - Cloud Build: pass --build-arg DEPS_IMAGE=<artifact-registry deps tag>.
+#     The shared deps base (built once per pipeline) already has
+#     node_modules + workspace metadata, so this build skips `pnpm install`
+#     and goes straight to `pnpm build`.
+#   - Local docker / docker-compose: omit DEPS_IMAGE. The `local-deps`
+#     stage below is selected by default and bootstraps pnpm + installs
+#     dependencies in-tree.
+
+ARG DEPS_IMAGE=local-deps
+
+# ---- local fallback deps stage ----
+# Only built when DEPS_IMAGE is left at its default (i.e. no shared deps
+# image is supplied). Cloud Build skips this stage entirely.
+FROM node:22-bookworm-slim AS local-deps
 WORKDIR /app
 
-# CI-friendly env
 ENV HUSKY=0
 ENV CI=true
 
-# Use pnpm
 RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
-
-# Ensure git is available for build and runtime scripts
-RUN apt-get update && apt-get install -y --no-install-recommends git \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-# Accept (optional) build-time public URL for Remix/Vite (Coolify can pass it)
-ARG VITE_PUBLIC_APP_URL
-ENV VITE_PUBLIC_APP_URL=${VITE_PUBLIC_APP_URL}
-
-# Install deps efficiently
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm fetch
 
-# Copy source and build
-COPY . .
-# install with dev deps (needed to build)
-RUN pnpm install --offline --frozen-lockfile
+# ---- build stage ----
+FROM ${DEPS_IMAGE} AS build
+WORKDIR /app
 
-# Build the Remix app (SSR + client)
+# CI-friendly env. Also set in the shared deps base; repeated here so the
+# Dockerfile is intelligible when read in isolation.
+ENV HUSKY=0
+ENV CI=true
+
+# Accept (optional) build-time public URL for Remix/Vite.
+ARG VITE_PUBLIC_APP_URL
+ENV VITE_PUBLIC_APP_URL=${VITE_PUBLIC_APP_URL}
+
+# Source overlay. When DEPS_IMAGE is the shared deps base, node_modules
+# is already populated and this COPY only adds source. When DEPS_IMAGE
+# is local-deps, node_modules is absent and we run the install below.
+COPY . .
+
+# Install only if the base didn't already provide a linked dependency tree.
+# `pnpm fetch` creates node_modules/.pnpm without root .bin links, so checking
+# only for node_modules would skip the offline install and leave `remix` absent.
+RUN if [ ! -x /app/node_modules/.bin/remix ]; then \
+      pnpm install --offline --frozen-lockfile; \
+    fi
+
+# Build the Remix app (SSR + client). Cap V8 well above the runtime
+# limit since Vite + Remix routinely peak near 3 GiB during SSR bundle.
 RUN NODE_OPTIONS=--max-old-space-size=4096 pnpm run build
 
 # ---- production dependencies stage ----
 FROM build AS prod-deps
-
-# Keep only production deps for runtime
 RUN pnpm prune --prod --ignore-scripts
 
-
 # ---- production stage ----
-FROM prod-deps AS bolt-ai-production
+FROM node:22-bookworm-slim AS bolt-ai-production
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=5173
+ENV PORT=3000
 ENV HOST=0.0.0.0
+# Cap V8 heap to fit a 512Mi Helm limit with headroom for native allocations.
+ENV NODE_OPTIONS="--max-old-space-size=384"
 
-# Non-sensitive build arguments
 ARG VITE_LOG_LEVEL=debug
 ARG DEFAULT_NUM_CTX
 
-# Set non-sensitive environment variables
-ENV WRANGLER_SEND_METRICS=false \
-    VITE_LOG_LEVEL=${VITE_LOG_LEVEL} \
+ENV VITE_LOG_LEVEL=${VITE_LOG_LEVEL} \
     DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX} \
     RUNNING_IN_DOCKER=true
 
-# Note: API keys should be provided at runtime via docker run -e or docker-compose
-# Example: docker run -e OPENAI_API_KEY=your_key_here ...
-
-# Install curl for healthchecks and copy bindings script
+# curl for the Kubernetes /health probe + Docker HEALTHCHECK.
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
   && rm -rf /var/lib/apt/lists/*
 
-# Copy built files and scripts
-COPY --from=prod-deps /app/build /app/build
-COPY --from=prod-deps /app/node_modules /app/node_modules
-COPY --from=prod-deps /app/package.json /app/package.json
-COPY --from=prod-deps /app/bindings.sh /app/bindings.sh
+# `public/` is bundled into `build/client/` by Vite, so it's not copied separately.
+COPY --from=prod-deps --chown=node:node /app/build /app/build
+COPY --from=prod-deps --chown=node:node /app/node_modules /app/node_modules
+COPY --from=prod-deps --chown=node:node /app/package.json /app/package.json
 
-# Pre-configure wrangler to disable metrics
-RUN mkdir -p /root/.config/.wrangler && \
-    echo '{"enabled":false}' > /root/.config/.wrangler/metrics.json
+# Run as non-root to satisfy podSecurity `runAsNonRoot: true`.
+USER node
 
-# Make bindings script executable
-RUN chmod +x /app/bindings.sh
+EXPOSE 3000
 
-EXPOSE 5173
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
+  CMD curl -fsS http://localhost:3000/health || exit 1
 
-# Healthcheck for deployment platforms
-HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=5 \
-  CMD curl -fsS http://localhost:5173/ || exit 1
-
-# Start using dockerstart script with Wrangler
-CMD ["pnpm", "run", "dockerstart"]
+CMD ["node", "./node_modules/@remix-run/serve/dist/cli.js", "./build/server/index.js"]
 
 
 # ---- development stage ----
 FROM build AS development
 
-# Non-sensitive development arguments
 ARG VITE_LOG_LEVEL=debug
 ARG DEFAULT_NUM_CTX
 
-# Set non-sensitive environment variables for development
 ENV VITE_LOG_LEVEL=${VITE_LOG_LEVEL} \
     DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX} \
     RUNNING_IN_DOCKER=true
-
-# Note: API keys should be provided at runtime via docker run -e or docker-compose
-# Example: docker run -e OPENAI_API_KEY=your_key_here ...
 
 RUN mkdir -p /app/run
 CMD ["pnpm", "run", "dev", "--host"]

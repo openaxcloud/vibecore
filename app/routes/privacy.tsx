@@ -1,7 +1,7 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 
-export const meta: MetaFunction = () => [{ title: 'Privacy - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Privacy - E-Code' }];
 
 export default function PrivacyPage() {
   return (
@@ -9,9 +9,11 @@ export default function PrivacyPage() {
       <Policy
         title="Privacy policy"
         sections={[
-          'Workspace metadata is used to operate projects, billing, support and security controls.',
-          'Provider keys, secrets and billing identifiers are handled as confidential platform data.',
-          'Enterprise exports and retention settings are governed by organization policy.',
+          'Project data is used to provide the workspace, AI, deployment and support workflows. Secrets stay server-side.',
+          'Use E-code to build lawful software and keep account credentials secure.',
+          'Enterprise plans may execute a data processing addendum with subprocessors listed here.',
+          'Google Cloud, Stripe, Sentry, email delivery and analytics providers support the service.',
+          'Provider keys, secrets, billing identifiers, enterprise exports, retention settings, DPA terms and subprocessors are governed by organization policy.',
         ]}
       />
     </PublicShell>

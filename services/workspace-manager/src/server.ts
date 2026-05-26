@@ -1,13 +1,41 @@
+import { createDatabaseClient } from '@vibecore/database';
 import { KubectlWorkspaceK8sClient } from '@vibecore/k8s-client';
 import { buildWorkspaceManagerApp } from './app.js';
-import { JsonWorkspaceStore, StructuredLogEventBus, WorkspaceManager } from './manager.js';
+import { JsonWorkspaceStore, StructuredLogEventBus, WorkspaceManager, type WorkspaceStore } from './manager.js';
+import { PrismaWorkspaceStore } from './prisma-store.js';
 
 if (!process.env.WORKSPACE_AGENT_TOKEN_SECRET) {
   throw new Error('WORKSPACE_AGENT_TOKEN_SECRET is required');
 }
 
+// Prod: Postgres-backed store (shared across replicas, survives restarts).
+// Dev/test: file-backed JSON store under .vibecore/workspace-manager/ — keeps
+// `pnpm dev` working without standing up a database. The opt-out switch
+// (WORKSPACE_MANAGER_STORE=json) is here for local debugging only — in prod
+// the absence of DATABASE_URL would mean the api was already broken upstream.
+function resolveStore(): WorkspaceStore {
+  const explicit = (process.env.WORKSPACE_MANAGER_STORE ?? '').toLowerCase();
+
+  if (explicit === 'json') {
+    console.log(JSON.stringify({ level: 'info', service: 'workspace-manager', event: 'store.selected', kind: 'json', reason: 'WORKSPACE_MANAGER_STORE=json' }));
+    return new JsonWorkspaceStore();
+  }
+
+  if (process.env.DATABASE_URL) {
+    console.log(JSON.stringify({ level: 'info', service: 'workspace-manager', event: 'store.selected', kind: 'prisma' }));
+    return new PrismaWorkspaceStore(createDatabaseClient());
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('DATABASE_URL is required to start workspace-manager in production (PrismaWorkspaceStore). Set WORKSPACE_MANAGER_STORE=json only for local debugging.');
+  }
+
+  console.log(JSON.stringify({ level: 'info', service: 'workspace-manager', event: 'store.selected', kind: 'json', reason: 'no DATABASE_URL outside production' }));
+  return new JsonWorkspaceStore();
+}
+
 const app = buildWorkspaceManagerApp(
-  new WorkspaceManager(new JsonWorkspaceStore(), new KubectlWorkspaceK8sClient(), new StructuredLogEventBus(), process.env.WORKSPACE_AGENT_TOKEN_SECRET),
+  new WorkspaceManager(resolveStore(), new KubectlWorkspaceK8sClient(), new StructuredLogEventBus(), process.env.WORKSPACE_AGENT_TOKEN_SECRET),
 );
 const port = Number(process.env.WORKSPACE_MANAGER_PORT ?? 3010);
 

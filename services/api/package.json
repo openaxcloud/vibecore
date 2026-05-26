@@ -16,10 +16,12 @@
     "gpt-tokenizer": "^3.4.0",
     "ioredis": "^5.10.1",
     "jszip": "^3.10.1",
+    "prisma": "^7.8.0",
+    "tsx": "^4.21.0",
     "xml-crypto": "^6.1.2"
   },
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx watch --exclude '.vibecore/**' --exclude '.vibecore-project-storage/**' --exclude '.vibecore-static-deployments/**' src/server.ts",
     "start": "node dist/server.js",
     "build": "tsc --outDir dist --rootDir src --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/server.ts",
     "test": "vitest --run --config vitest.config.ts",

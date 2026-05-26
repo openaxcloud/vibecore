@@ -5,6 +5,27 @@ import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('LLMManager');
+
+/*
+ * Providers throw "Missing Api Key configuration for X provider" when the
+ * user hasn't configured a key — that's a legitimate "skip this provider"
+ * state, not an error. Surfacing it as ERROR spams the dev console on
+ * every refresh. Demote those to `debug`; everything else stays ERROR.
+ *
+ * Some providers (anthropic.ts) `throw 'string'` instead of `throw new
+ * Error(...)`, so the classifier handles both shapes.
+ */
+function logDynamicModelsFailure(providerName: string, err: unknown) {
+  const message = err instanceof Error ? err.message : typeof err === 'string' ? err : '';
+
+  if (message.includes('Missing Api Key')) {
+    logger.debug(`Skipping ${providerName}: no API key configured`);
+    return;
+  }
+
+  logger.error(`Error getting dynamic models ${providerName} :`, err);
+}
+
 export class LLMManager {
   private static _instance: LLMManager;
   private _providers: Map<string, BaseProvider> = new Map();
@@ -114,7 +135,7 @@ export class LLMManager {
               return models;
             })
             .catch((err) => {
-              logger.error(`Error getting dynamic models ${provider.name} :`, err);
+              logDynamicModelsFailure(provider.name, err);
               return [];
             });
 
@@ -181,7 +202,7 @@ export class LLMManager {
         return models;
       })
       .catch((err) => {
-        logger.error(`Error getting dynamic models ${provider.name} :`, err);
+        logDynamicModelsFailure(provider.name, err);
         return [];
       });
 

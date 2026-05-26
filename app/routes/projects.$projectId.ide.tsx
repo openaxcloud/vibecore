@@ -41,6 +41,7 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { apiErrorMessage, apiRequest, json } from '~/lib/enterprise-api.server';
+import { friendlyLabel, pickFriendlyLabel } from '~/lib/labels/friendly-id';
 import { ProjectWorkspaceProvider } from '~/lib/runtime/ProjectWorkspaceProvider';
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -99,6 +100,46 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => [
   { title: data ? `Bolt IDE - ${data.projectId}` : 'Bolt IDE' },
   { name: 'description', content: 'Bolt IDE connected to a persistent project workspace.' },
 ];
+
+const IDE_CLIENT_SEARCH_PARAMS = new Set(['panel', 'commit']);
+
+function routeKeyWithoutClientIdeParams(url: URL) {
+  const searchParams = new URLSearchParams(url.search);
+
+  for (const param of IDE_CLIENT_SEARCH_PARAMS) {
+    searchParams.delete(param);
+  }
+
+  const search = searchParams.toString();
+
+  return `${url.pathname}${search ? `?${search}` : ''}`;
+}
+
+export const shouldRevalidate = ({
+  currentUrl,
+  nextUrl,
+  formMethod,
+  defaultShouldRevalidate,
+}: {
+  currentUrl: URL;
+  nextUrl: URL;
+  formMethod?: string;
+  defaultShouldRevalidate: boolean;
+}) => {
+  if (formMethod && formMethod.toUpperCase() !== 'GET') {
+    return defaultShouldRevalidate;
+  }
+
+  if (
+    currentUrl.origin === nextUrl.origin &&
+    routeKeyWithoutClientIdeParams(currentUrl) === routeKeyWithoutClientIdeParams(nextUrl) &&
+    currentUrl.search !== nextUrl.search
+  ) {
+    return false;
+  }
+
+  return defaultShouldRevalidate;
+};
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   if (!params.projectId) {
@@ -286,15 +327,14 @@ function IdeProjectTopBar({
 
   const visibleCollaborators = collaborators.length ? collaborators : [{ userId: 'you', roleKey: 'owner' }];
 
-  const workspaceLabel =
-    organization?.name ||
-    organization?.slug ||
-    workspace?.name ||
-    workspace?.id ||
-    project.organizationId ||
-    'Workspace';
+  const workspaceLabel = pickFriendlyLabel(
+    [organization?.name, organization?.slug, workspace?.name, workspace?.id, project.organizationId],
+    'Workspace',
+  );
 
-  const branchLabel = git.branch || project.gitDefaultBranch || 'main';
+  const projectLabel = friendlyLabel(displayProjectName, 'Untitled project');
+
+  const branchLabel = pickFriendlyLabel([git.branch, project.gitDefaultBranch], 'main');
 
   useEffect(() => {
     setDisplayProjectName(project.name);
@@ -401,6 +441,16 @@ function IdeProjectTopBar({
     }
   };
 
+  const toggleFilesPanel = (open: boolean) => {
+    const detail = { open };
+
+    workbenchStore.projectFilesPanelOpen.set(open);
+    workbenchStore.requestProjectFilesPanel(open);
+    window.dispatchEvent(new CustomEvent('vibecore:toggle-project-files-panel', { detail }));
+  };
+
+  const filesPanelToggleLabel = filesPanelOpen ? 'Close files panel' : 'Open files panel';
+
   return (
     <header className="bolt-project-topbar fixed left-0 top-0 z-50 flex w-screen items-center justify-between border-b text-[12px]">
       <div className="bolt-project-topbar-left">
@@ -411,11 +461,19 @@ function IdeProjectTopBar({
           <Link
             to="/projects"
             className="bolt-project-breadcrumb-segment bolt-project-breadcrumb-workspace"
-            aria-label={`Workspace ${workspaceLabel}`}
-            title={`Workspace: ${workspaceLabel}`}
+            aria-label={`Workspace ${workspaceLabel.display}${
+              workspaceLabel.isFallback && workspaceLabel.full !== workspaceLabel.display
+                ? ` (id ${workspaceLabel.full})`
+                : ''
+            }`}
+            title={
+              workspaceLabel.isFallback && workspaceLabel.full !== workspaceLabel.display
+                ? `Workspace: ${workspaceLabel.display} (${workspaceLabel.full})`
+                : `Workspace: ${workspaceLabel.display}`
+            }
           >
             <span className="bolt-project-breadcrumb-kicker">Workspace</span>
-            <span className="bolt-project-breadcrumb-value truncate">{workspaceLabel}</span>
+            <span className="bolt-project-breadcrumb-value truncate">{workspaceLabel.display}</span>
           </Link>
           <span className="bolt-project-breadcrumb-separator" aria-hidden>
             /
@@ -445,16 +503,24 @@ function IdeProjectTopBar({
               >
                 <summary
                   className="bolt-project-name-trigger"
-                  title={`Project: ${displayProjectName}`}
-                  aria-label={`Project menu for ${displayProjectName}`}
+                  title={
+                    projectLabel.isFallback && projectLabel.full !== projectLabel.display
+                      ? `Project: ${projectLabel.display} (${projectLabel.full})`
+                      : `Project: ${projectLabel.display}`
+                  }
+                  aria-label={`Project menu for ${projectLabel.display}${
+                    projectLabel.isFallback && projectLabel.full !== projectLabel.display
+                      ? ` (id ${projectLabel.full})`
+                      : ''
+                  }`}
                   onDoubleClick={(event) => {
                     event.preventDefault();
                     startInlineRename();
                   }}
                 >
                   <span className="bolt-project-breadcrumb-kicker">Project</span>
-                  <span className="bolt-project-breadcrumb-value truncate" title={displayProjectName}>
-                    {displayProjectName}
+                  <span className="bolt-project-breadcrumb-value truncate" title={projectLabel.display}>
+                    {projectLabel.display}
                   </span>
                   <ChevronDown className="h-3.5 w-3.5" aria-hidden />
                 </summary>
@@ -530,15 +596,15 @@ function IdeProjectTopBar({
           <Link
             to={`/projects/${projectId}/ide?panel=git`}
             className="bolt-project-breadcrumb-segment bolt-project-breadcrumb-branch"
-            aria-label={`Branch ${branchLabel}. Open Git panel.`}
-            title={`Branch: ${branchLabel}. Open Git panel.`}
+            aria-label={`Branch ${branchLabel.display}. Open Git panel.`}
+            title={`Branch: ${branchLabel.display}. Open Git panel.`}
             onClick={() => {
               window.dispatchEvent(new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'git' } }));
             }}
           >
             <GitBranch className="h-3.5 w-3.5" aria-hidden />
             <span className="bolt-project-breadcrumb-kicker">Branch</span>
-            <span className="bolt-project-breadcrumb-value truncate">{branchLabel}</span>
+            <span className="bolt-project-breadcrumb-value truncate">{branchLabel.display}</span>
           </Link>
         </nav>
       </div>
@@ -549,6 +615,18 @@ function IdeProjectTopBar({
           data-priority="overflow"
           aria-label="More actions"
         >
+          <button
+            type="button"
+            data-testid="ide-files-panel-toggle"
+            className={filesPanelOpen ? 'bolt-project-topbar-icon-button is-active' : 'bolt-project-topbar-icon-button'}
+            aria-label={filesPanelToggleLabel}
+            aria-pressed={filesPanelOpen}
+            title={filesPanelToggleLabel}
+            data-vc-tooltip={filesPanelToggleLabel}
+            onClick={() => toggleFilesPanel(!filesPanelOpen)}
+          >
+            <Files className="h-3.5 w-3.5" aria-hidden />
+          </button>
           <button
             type="button"
             className="bolt-project-topbar-icon-button"
@@ -635,19 +713,6 @@ function IdeProjectTopBar({
                     {visibleCollaborators.length} collaborator{visibleCollaborators.length === 1 ? '' : 's'}
                   </span>
                 </Link>
-                <button
-                  type="button"
-                  className="bolt-project-overflow-item"
-                  onClick={() => {
-                    const detail = { open: !filesPanelOpen };
-                    workbenchStore.requestProjectFilesPanel(detail.open);
-                    window.dispatchEvent(new CustomEvent('vibecore:toggle-project-files-panel', { detail }));
-                    setOverflowMenuOpen(false);
-                  }}
-                >
-                  <Files className="h-3.5 w-3.5" aria-hidden />
-                  <span>{filesPanelOpen ? 'Close files panel' : 'Open files panel'}</span>
-                </button>
                 <Link
                   to="/account-settings"
                   className="bolt-project-overflow-item"
@@ -681,11 +746,19 @@ function IdeProjectTopBar({
               aria-label="Collaborate"
               className="bolt-project-collaborate-popover absolute right-0 top-full z-50 mt-1 w-[220px] rounded-xl border p-2"
             >
-              <Link to={`/projects/${projectId}/ide?panel=collaborators`} className="bolt-project-overflow-item">
+              <Link
+                to={`/projects/${projectId}/ide?panel=collaborators`}
+                className="bolt-project-overflow-item"
+                aria-label="Share project"
+              >
                 <Share2 className="h-3.5 w-3.5" aria-hidden />
                 <span>Share project</span>
               </Link>
-              <Link to={`/projects/${projectId}/ide?panel=collaborators`} className="bolt-project-overflow-item">
+              <Link
+                to={`/projects/${projectId}/ide?panel=collaborators`}
+                className="bolt-project-overflow-item"
+                aria-label="Invite collaborators"
+              >
                 <UserPlus className="h-3.5 w-3.5" aria-hidden />
                 <span>Invite collaborators</span>
               </Link>

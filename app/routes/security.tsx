@@ -2,7 +2,7 @@ import type { MetaFunction } from '@remix-run/cloudflare';
 import { KeyRound, Lock, ShieldCheck } from 'lucide-react';
 import { ActivityList, PublicShell } from '~/components/dashboard/SaaSLayout';
 
-export const meta: MetaFunction = () => [{ title: 'Security - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Security - E-Code' }];
 
 export default function SecurityPage() {
   return (

@@ -7,7 +7,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-bolt-elements-background text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2',
+        default:
+          'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover',
         destructive: 'bg-red-500 text-white hover:bg-red-600',
         outline:
           'border border-bolt-elements-borderColor bg-transparent hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary text-bolt-elements-textPrimary dark:border-bolt-elements-borderColorActive',
@@ -38,7 +39,19 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, _asChild = false, ...props }, ref) => {
-    return <button className={classNames(buttonVariants({ variant, size }), className)} ref={ref} {...props} />;
+    const effectiveVariant = variant ?? 'default';
+    const effectiveSize = size ?? 'default';
+
+    return (
+      <button
+        className={classNames(buttonVariants({ variant: effectiveVariant, size: effectiveSize }), className)}
+        data-vc-button="true"
+        data-variant={effectiveVariant}
+        data-size={effectiveSize}
+        ref={ref}
+        {...props}
+      />
+    );
   },
 );
 Button.displayName = 'Button';

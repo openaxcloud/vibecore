@@ -18,6 +18,12 @@ Plans are seeded into the `Plan` table when the API starts. Stripe product and p
 - `STRIPE_TEAM_PRODUCT_ID`, `STRIPE_TEAM_PRICE_ID`
 - `STRIPE_ENTERPRISE_PRODUCT_ID`, `STRIPE_ENTERPRISE_PRICE_ID`
 
+In production, the live Stripe secret key remains in Secret Manager and
+the non-secret Product/Price IDs are rendered by the Helm chart from
+`infra/helm/platform/values-prod.yaml` at `platformEnv.stripe`. Empty
+catalog IDs are intentionally omitted from the ConfigMap so they do not
+override a separately managed env source.
+
 ## API
 
 - `GET /orgs/:orgId/billing`
@@ -30,6 +36,10 @@ Plans are seeded into the `Plan` table when the API starts. Stripe product and p
 - `POST /admin/quota-overrides`
 
 Checkout and portal routes call Stripe through `StripeBillingClient`. Webhooks verify the Stripe signature before any subscription or invoice state is persisted.
+
+Checkout returns an API 503 when Stripe is not operationally configured:
+`STRIPE_NOT_CONFIGURED` for a missing/expired key and
+`STRIPE_PRICE_NOT_CONFIGURED` for a plan without a price ID.
 
 ## Lifecycle
 

@@ -1,7 +1,23 @@
 import type { RuntimeAdapter } from '@vibecore/runtime-contract';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ActionRunner } from './action-runner';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { validateAndFormatHunkMock, buildSelfRepairPromptMock } = vi.hoisted(() => ({
+  validateAndFormatHunkMock: vi.fn(),
+  buildSelfRepairPromptMock: vi.fn(),
+}));
+
+vi.mock('./hunk-validate', async () => {
+  const actual = await vi.importActual<typeof import('./hunk-validate')>('./hunk-validate');
+  return {
+    ...actual,
+    validateAndFormatHunk: validateAndFormatHunkMock,
+    buildSelfRepairPrompt: buildSelfRepairPromptMock,
+  };
+});
+
+import { ActionRunner, extractSelfRepairContent } from './action-runner';
 import type { ActionCallbackData } from './message-parser';
+import { workspaceEvents } from './workspace-events';
 
 function createActionData(actionId = 'action-1'): ActionCallbackData {
   return {
@@ -38,6 +54,13 @@ function createShell() {
 }
 
 describe('ActionRunner tool timeout handling', () => {
+  beforeEach(() => {
+    validateAndFormatHunkMock.mockReset();
+    validateAndFormatHunkMock.mockResolvedValue({ kind: 'skipped' });
+    buildSelfRepairPromptMock.mockReset();
+    buildSelfRepairPromptMock.mockReturnValue('synthetic-prompt');
+  });
+
   afterEach(() => {
     vi.useRealTimers();
   });
@@ -128,5 +151,201 @@ describe('ActionRunner tool timeout handling', () => {
 
     expect(idleResolved).toBe(true);
     expect(runner.actions.get()[data.actionId]?.status).toBe('complete');
+  });
+});
+
+describe('extractSelfRepairContent', () => {
+  it('strips the boltAction wrapper and the surrounding newlines', () => {
+    const raw = '<boltAction type="file" filePath="src/App.tsx">\nexport default App;\n</boltAction>';
+    expect(extractSelfRepairContent(raw)).toBe('export default App;');
+  });
+
+  it('returns the raw response verbatim when no boltAction wrapper is present', () => {
+    expect(extractSelfRepairContent('plain content')).toBe('plain content');
+  });
+});
+
+describe('ActionRunner self-repair retry loop', () => {
+  const fileAction: ActionCallbackData = {
+    artifactId: 'artifact-1',
+    messageId: 'msg-1',
+    actionId: 'action-self-repair',
+    action: {
+      type: 'file',
+      filePath: 'src/App.tsx',
+      content: 'const broken = ;',
+    },
+  };
+
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  let progressEvents: Array<{
+    filePath: string;
+    status: { attempt: number; maxAttempts: number; errorMessage?: string } | null;
+  }>;
+
+  let unsubscribe: () => void;
+
+  beforeEach(() => {
+    validateAndFormatHunkMock.mockReset();
+    buildSelfRepairPromptMock.mockReset();
+    buildSelfRepairPromptMock.mockReturnValue('synthetic-self-repair-prompt');
+
+    fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    progressEvents = [];
+    unsubscribe = workspaceEvents.on('agent:self-repair:progress', (payload) => {
+      progressEvents.push(payload);
+    });
+  });
+
+  afterEach(() => {
+    unsubscribe();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it('writes the formatted payload when initial validation succeeds without any retries', async () => {
+    validateAndFormatHunkMock.mockResolvedValueOnce({
+      kind: 'ok',
+      language: 'tsx',
+      formatted: 'const x = 1;\n',
+    });
+
+    const writeFile = vi.fn().mockResolvedValue(undefined);
+
+    const runner = new ActionRunner(
+      createRuntime({ writeFile } as Partial<RuntimeAdapter>),
+      () => createShell() as any,
+    );
+
+    runner.addAction(fileAction);
+    await runner.runAction(fileAction, false);
+
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const x = 1;\n');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(progressEvents).toHaveLength(0);
+  });
+
+  it('calls the self-repair endpoint on a parse error and writes the corrected content', async () => {
+    validateAndFormatHunkMock
+      .mockResolvedValueOnce({
+        kind: 'error',
+        language: 'tsx',
+        message: "Unexpected token ';'",
+        line: 1,
+        column: 14,
+      })
+      .mockResolvedValueOnce({
+        kind: 'ok',
+        language: 'tsx',
+        formatted: 'const fixed = 1;\n',
+      });
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ content: '<boltAction type="file" filePath="src/App.tsx">\nconst fixed = 1;\n</boltAction>' }),
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        },
+      ),
+    );
+
+    const writeFile = vi.fn().mockResolvedValue(undefined);
+
+    const runner = new ActionRunner(
+      createRuntime({ writeFile } as Partial<RuntimeAdapter>),
+      () => createShell() as any,
+    );
+
+    runner.addAction(fileAction);
+    await runner.runAction(fileAction, false);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/agent/self-repair');
+
+    expect(writeFile).toHaveBeenCalledTimes(1);
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const fixed = 1;\n');
+
+    // One "attempt 1/2" progress, then a clearing null.
+    expect(progressEvents).toEqual([
+      {
+        filePath: 'src/App.tsx',
+        status: { attempt: 1, maxAttempts: 2, errorMessage: "Unexpected token ';'" },
+      },
+      { filePath: 'src/App.tsx', status: null },
+    ]);
+  });
+
+  it('writes the best-effort payload after exhausting all retries', async () => {
+    vi.useFakeTimers();
+
+    validateAndFormatHunkMock
+      .mockResolvedValueOnce({ kind: 'error', language: 'tsx', message: 'parse error 0' })
+      .mockResolvedValueOnce({ kind: 'error', language: 'tsx', message: 'parse error 1' })
+      .mockResolvedValueOnce({ kind: 'error', language: 'tsx', message: 'parse error 2' });
+
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ content: 'still broken 1' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ content: 'still broken 2' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+
+    const writeFile = vi.fn().mockResolvedValue(undefined);
+
+    const runner = new ActionRunner(
+      createRuntime({ writeFile } as Partial<RuntimeAdapter>),
+      () => createShell() as any,
+    );
+
+    runner.addAction(fileAction);
+
+    const runPromise = runner.runAction(fileAction, false);
+    await vi.advanceTimersByTimeAsync(2_000);
+    await runPromise;
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'still broken 2');
+
+    const clearing = progressEvents.find((event) => event.status === null);
+    expect(clearing).toBeDefined();
+  });
+
+  it('falls back to the last payload when the self-repair endpoint errors', async () => {
+    validateAndFormatHunkMock
+      .mockResolvedValueOnce({ kind: 'error', language: 'tsx', message: 'parse error' })
+      .mockResolvedValueOnce({ kind: 'error', language: 'tsx', message: 'parse error again' });
+
+    fetchMock
+      .mockResolvedValueOnce(new Response('boom', { status: 502 }))
+      .mockResolvedValueOnce(new Response('boom', { status: 502 }));
+
+    const writeFile = vi.fn().mockResolvedValue(undefined);
+
+    const runner = new ActionRunner(
+      createRuntime({ writeFile } as Partial<RuntimeAdapter>),
+      () => createShell() as any,
+    );
+
+    runner.addAction(fileAction);
+
+    vi.useFakeTimers();
+
+    const runPromise = runner.runAction(fileAction, false);
+    await vi.advanceTimersByTimeAsync(2_000);
+    await runPromise;
+
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const broken = ;');
+    expect(progressEvents.some((event) => event.status === null)).toBe(true);
   });
 });

@@ -21,6 +21,7 @@ export interface WorkspaceRuntimeInput {
   plan: WorkspacePlan;
   resourceLimits?: WorkspaceResourceLimits;
   tokenSecret?: string;
+  storageClassName?: string;
 }
 
 export interface WorkspaceResourceLimits {
@@ -101,6 +102,7 @@ export function workspacePvc(input: WorkspaceRuntimeInput): K8sObject {
     metadata: { name: input.pvcName, namespace: input.namespace, labels: labels(input) },
     spec: {
       accessModes: ['ReadWriteOnce'],
+      ...(input.storageClassName ? { storageClassName: input.storageClassName } : {}),
       resources: { requests: { storage: resources.storageRequest } },
     },
   };
@@ -146,7 +148,10 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
         ? {
             runtimeClassName: 'gvisor',
             nodeSelector: { 'vibecore.ai/node-pool': 'sandbox' },
-            tolerations: [{ key: 'vibecore.ai/sandbox', operator: 'Equal', value: 'true', effect: 'NoSchedule' }],
+            tolerations: [
+              { key: 'vibecore.ai/sandbox', operator: 'Equal', value: 'true', effect: 'NoSchedule' },
+              { key: 'sandbox.gke.io/runtime', operator: 'Equal', value: 'gvisor', effect: 'NoSchedule' },
+            ],
           }
         : {}),
       automountServiceAccountToken: false,
@@ -292,7 +297,12 @@ export function controlledEgressNetworkPolicy(namespace: string, additionalBlock
   };
 }
 
-export function managerAndPreviewIngressNetworkPolicy(namespace: string): K8sObject {
+export function managerAndPreviewIngressNetworkPolicy(namespace: string, platformNamespace = 'vibecore'): K8sObject {
+  const platformCaller = (name: string) => ({
+    namespaceSelector: { matchLabels: { 'kubernetes.io/metadata.name': platformNamespace } },
+    podSelector: { matchLabels: { 'app.kubernetes.io/name': name } },
+  });
+
   return {
     apiVersion: 'networking.k8s.io/v1',
     kind: 'NetworkPolicy',
@@ -302,11 +312,16 @@ export function managerAndPreviewIngressNetworkPolicy(namespace: string): K8sObj
       policyTypes: ['Ingress'],
       ingress: [
         {
-          from: [{ podSelector: { matchLabels: { 'app.kubernetes.io/name': 'workspace-manager' } } }],
+          from: [platformCaller('workspace-manager')],
           ports: [{ protocol: 'TCP', port: 8080 }],
         },
         {
-          from: [{ podSelector: { matchLabels: { 'app.kubernetes.io/name': 'preview-proxy' } } }],
+          from: [platformCaller('api')],
+          ports: [{ protocol: 'TCP', port: 8080 }],
+        },
+        {
+          from: [platformCaller('preview-proxy')],
+          ports: [{ protocol: 'TCP', port: 8080 }],
         },
       ],
     },

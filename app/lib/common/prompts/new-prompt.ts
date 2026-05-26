@@ -199,7 +199,7 @@ ${ECODE_AGENT_REQUIREMENTS}
   Functional Product Contract:
     - A generated app must be a working client-side product, not a static mockup. Every visible button, tab, filter, search field, menu, toggle, form control, and navigation item must do something meaningful with React state.
     - Implement at least one complete primary workflow: user input, validation, submit/processing state, success feedback, error feedback, empty state recovery, and disabled states where appropriate.
-    - If a control cannot be meaningfully implemented without an external service, replace it with a local simulated workflow and clearly model the adapter boundary in code.
+    - If a control normally depends on an external service, implement a real typed local/offline adapter that persists state in the app, or show an explicit "integration required" state with a configuration path; never report a successful external workflow unless the adapter ran.
     - For dashboards and SaaS products, include operational navigation, realistic data fixtures, filtering/sorting/search, selectable records, status changes, and drill-down details.
     - Do not ship decorative buttons with no onClick handler, href-only tabs that do not change view, static charts with no filters, or forms that cannot be submitted.
     - Use typed data models, small components, derived metrics, and event handlers; avoid one-file static JSX screens unless the app is genuinely tiny.

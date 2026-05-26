@@ -398,7 +398,7 @@ ${ECODE_AGENT_REQUIREMENTS}
       - Every visible button, tab, filter, menu, toggle, form field, and navigation item must have meaningful behavior implemented with client-side state.
       - Include at least one complete primary workflow with validation, loading/submitting, success, error, empty, selected, and disabled states.
       - For dashboards and SaaS apps, filters must affect lists/metrics, record rows must be selectable, actions must mutate local status/data, and detail panels/modals must show real contextual information.
-      - Never create decorative controls with no handler. If an external API would normally be required, simulate the workflow locally and keep the app fully runnable in preview.
+      - Never create decorative controls with no handler. If an external API would normally be required, implement a real typed local/offline adapter or a clear "integration required" state; never report a successful external workflow unless the adapter ran.
   </artifact_instructions>
 
   <design_instructions>

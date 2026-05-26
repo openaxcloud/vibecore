@@ -1,6 +1,6 @@
 /* eslint-disable import/order */
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
-import { createDataStream, formatDataStreamPart, generateId } from 'ai';
+import { createDataStream, formatDataStreamPart, generateId, type JSONValue } from 'ai';
 import {
   agentMemoryAnnotation,
   persistAgentMemoryCandidate,
@@ -14,6 +14,9 @@ import {
   createAgentExecutionContext,
   executeAgentOrchestration,
 } from '~/lib/.server/llm/agent-orchestration';
+import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
+import { apiRequest } from '~/lib/enterprise-api.server';
+import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
@@ -21,6 +24,7 @@ import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import SwitchableStream from '~/lib/.server/llm/switchable-stream';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
+import { checkChatQuota, recordChatUsage } from '~/lib/.server/ai-usage';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { MCPService } from '~/lib/services/mcpService';
 import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
@@ -101,7 +105,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     }>();
 
   const cookieHeader = request.headers.get('Cookie');
-  const apiKeys = JSON.parse(parseCookies(cookieHeader || '').apiKeys || '{}');
+  const apiKeys: Record<string, string> = JSON.parse(parseCookies(cookieHeader || '').apiKeys || '{}');
 
   const providerSettings: Record<string, IProviderSetting> = JSON.parse(
     parseCookies(cookieHeader || '').providers || '{}',
@@ -129,6 +133,105 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     const dataStream = createDataStream({
       async execute(dataStream) {
         streamRecovery.startMonitoring();
+
+        /*
+         * C1.b.4 — Pre-flight quota check. We over-estimate (×1.2) on
+         * char/4 so a chat that would clip the limit by a hair is
+         * rejected up front rather than mid-stream. Fail-open inside
+         * checkChatQuota when the api is unreachable; the post-stream
+         * recordChatUsage call will still try to charge the ledger.
+         */
+        if (projectId) {
+          const estimatedInputTokens = Math.ceil((totalMessageContent.length / 4) * 1.2);
+
+          const quota = await checkChatQuota({
+            projectId,
+            estimatedInputTokens,
+            cookieHeader: cookieHeader ?? undefined,
+          });
+
+          if (!quota.ok) {
+            logger.warn(
+              JSON.stringify({
+                event: 'chat.quota.blocked',
+                projectId,
+                code: quota.code,
+                statusCode: quota.statusCode,
+              }),
+            );
+            dataStream.writeData({
+              type: 'progress',
+              label: 'quota-exceeded',
+              status: 'complete',
+              order: progressCounter++,
+              message: quota.message,
+            } satisfies ProgressAnnotation);
+            dataStream.writeMessageAnnotation({
+              type: 'error',
+              value: {
+                code: quota.code,
+                statusCode: quota.statusCode,
+                message: quota.message,
+              },
+            });
+            streamRecovery.stop();
+
+            return;
+          }
+
+          /*
+           * C1.b.6 — Force managed keys. When the org plan disallows BYOK,
+           * strip the user-supplied apiKeys cookie so the provider modules
+           * fall back to ANTHROPIC_API_KEY / OPENAI_API_KEY / ... from the
+           * pod env. This closes the loop where a user could paste their
+           * own key into the Bolt UI, consume vibecore's per-org quota,
+           * but pay their own provider — leaving our cost ledger out of
+           * sync with our quotas.
+           */
+          if (quota.byok && !quota.byok.allowed) {
+            const userKeyCount = Object.keys(apiKeys).length;
+
+            if (userKeyCount > 0) {
+              logger.info(
+                JSON.stringify({
+                  event: 'chat.byok.overridden',
+                  projectId,
+                  plan: quota.byok.plan,
+                  reason: quota.byok.reason,
+                  userKeyCount,
+                }),
+              );
+
+              for (const key of Object.keys(apiKeys)) {
+                delete apiKeys[key];
+              }
+            }
+          }
+
+          /*
+           * C1.b.7 — Surface the headroom payload so the front-end can render
+           * "X tokens left" / "Y messages left this month" hints without
+           * making a second round-trip. byok policy is included so the UI
+           * can show a "managed mode" badge or hide the BYOK settings panel.
+           */
+          if (
+            quota.inputTokensRemaining !== undefined ||
+            quota.messagesRemaining !== undefined ||
+            quota.byok !== undefined
+          ) {
+            const byokPayload = quota.byok
+              ? { allowed: quota.byok.allowed, reason: quota.byok.reason, plan: quota.byok.plan }
+              : null;
+            dataStream.writeMessageAnnotation({
+              type: 'quota',
+              value: {
+                inputTokensRemaining: quota.inputTokensRemaining ?? null,
+                messagesRemaining: quota.messagesRemaining ?? null,
+                byok: byokPayload,
+              },
+            });
+          }
+        }
 
         if (shouldUsePortfolioTemplate({ messages, chatMode, files })) {
           const streamChunks = createPortfolioTemplateStreamChunks(messages);
@@ -216,6 +319,24 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         if (agentMemory?.memories.length) {
           dataStream.writeMessageAnnotation(agentMemoryAnnotation(agentMemory.memories) as ContextAnnotation);
         }
+
+        /*
+         * Connector-need detection: scan the latest user message and emit a
+         * connection_request data part for any provider that is referenced
+         * but not yet linked to this project. The chat renderer turns the
+         * data part into an inline Connect card so the builder can
+         * authorize without leaving the conversation. The detection is
+         * additive — the agent continues regardless; if it tries to call
+         * the provider through @e-code/sdk before the connection is in
+         * place, the sidecar returns CONNECTOR_LINK_MISSING and the next
+         * turn surfaces another request.
+         */
+        await emitConnectorConnectionRequests({
+          dataStream,
+          processedMessages,
+          projectId,
+          request,
+        });
 
         let orchestrationPlan = buildAgentOrchestrationPlan({
           messages: processedMessages,
@@ -412,6 +533,48 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
             if (finishReason !== 'length') {
               streamRecovery.stop();
+
+              /*
+               * Structured usage log so the local Cloud Logging metric still
+               * fires even if the api-side ledger call below fails. This is
+               * what C1.a wired; C1.b.3 now also POSTs to services/api so
+               * the AiCostLedger + quota counters get the data.
+               */
+              const lastUserMessageForUsage = processedMessages.filter((x) => x.role === 'user').slice(-1)[0];
+
+              const { provider: completionProvider, model: completionModel } = lastUserMessageForUsage
+                ? extractPropertiesFromMessage(lastUserMessageForUsage)
+                : { provider: 'unknown', model: 'unknown' };
+
+              logger.info(
+                JSON.stringify({
+                  event: 'chat.completion.usage',
+                  projectId,
+                  chatMode,
+                  finishReason,
+                  provider: completionProvider,
+                  model: completionModel,
+                  promptTokens: cumulativeUsage.promptTokens,
+                  completionTokens: cumulativeUsage.completionTokens,
+                  totalTokens: cumulativeUsage.totalTokens,
+                  timestamp: new Date().toISOString(),
+                }),
+              );
+
+              if (projectId) {
+                // Fire-and-log: failures here never crash the chat stream.
+                await recordChatUsage({
+                  projectId,
+                  provider: completionProvider,
+                  model: completionModel,
+                  inputTokens: cumulativeUsage.promptTokens,
+                  outputTokens: cumulativeUsage.completionTokens,
+                  finishReason,
+                  cookieHeader: request.headers.get('Cookie') ?? undefined,
+                  source: 'remix-chat',
+                });
+              }
+
               dataStream.writeMessageAnnotation({
                 type: 'usage',
                 value: {
@@ -601,4 +764,130 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       statusText: 'Error',
     });
   }
+}
+
+interface AccountConnectionResponse {
+  id: string;
+  provider: string;
+  externalAccountLabel: string;
+  scopes: string[];
+  status: 'active' | 'needs_reconnect' | 'revoked';
+}
+
+/**
+ * Detect which connectors the latest user message references and, when
+ * a needed provider is not already covered by an active UserConnection,
+ * emit a connection_request data part into the chat stream so the
+ * client can render an inline Connect card.
+ *
+ * The detection runs against the prompt only (recent generated code is
+ * not yet stitched back into the chat route — the agent orchestration
+ * already has it). Account-level connections are fetched best-effort:
+ * a failed fetch silently disables the surfacing so chat never breaks
+ * because of a connector-side error.
+ */
+async function emitConnectorConnectionRequests(input: {
+  dataStream: { writeMessageAnnotation: (annotation: JSONValue) => void };
+  processedMessages: Messages;
+  projectId?: string;
+  request: Request;
+}): Promise<void> {
+  const latestUserMessage = [...input.processedMessages].reverse().find((message) => message.role === 'user');
+
+  if (!latestUserMessage) {
+    return;
+  }
+
+  const prompt = typeof latestUserMessage.content === 'string' ? latestUserMessage.content : '';
+
+  if (!prompt) {
+    return;
+  }
+
+  const detected = detectConnectorNeeds({ prompt });
+
+  if (detected.length === 0) {
+    return;
+  }
+
+  let accountConnections: AccountConnectionResponse[] = [];
+
+  try {
+    const response = await apiRequest<{ connections: AccountConnectionResponse[] }>(
+      input.request,
+      '/api/account/connections',
+    );
+    accountConnections = response.connections;
+  } catch {
+    /*
+     * Best-effort: the chat continues even if the account-connections
+     * lookup is unreachable. The card will simply not pre-populate
+     * existingAccountConnections.
+     */
+    accountConnections = [];
+  }
+
+  for (const need of detected) {
+    const matchingAccount = accountConnections.find(
+      (connection) => connection.provider === need.provider && connection.status === 'active',
+    );
+
+    /*
+     * The Phase 1 minimum-viable detection emits a request whenever the
+     * provider is mentioned. The client-side card de-duplicates against
+     * the project's actual link state when the user clicks Connect; the
+     * cost of a spurious card is small compared to the cost of missing
+     * one.
+     */
+
+    const existingAccountConnections: ExistingAccountConnection[] = matchingAccount
+      ? [
+          {
+            userConnectionId: matchingAccount.id,
+            accountLabel: matchingAccount.externalAccountLabel,
+            scopes: matchingAccount.scopes,
+            scopesMatch: true,
+          },
+        ]
+      : [];
+
+    let dataPart: ConnectorDataPart;
+
+    try {
+      dataPart = createConnectionRequestDataPart({
+        messageId: generateId(),
+        provider: need.provider,
+        reason: `The request mentions ${need.provider}. Connect it so the agent can read or write ${need.provider} data on your behalf.`,
+        resumeToken: generateId(),
+        existingAccountConnections: existingAccountConnections.length > 0 ? existingAccountConnections : undefined,
+      });
+    } catch {
+      /*
+       * Unknown provider in the catalog — skip silently. The detection
+       * catalog and the data-part catalog can drift while new providers
+       * are being added; the safer behaviour is to fall through rather
+       * than crash the chat.
+       */
+      continue;
+    }
+
+    /*
+     * The connector annotation is not in the typed ContextAnnotation
+     * union because its discriminated payload would break the
+     * JSONObject constraint of writeMessageAnnotation. We cast through
+     * JSONValue so the client renderer (which structurally matches
+     * type === 'connector') still picks it up.
+     */
+    input.dataStream.writeMessageAnnotation({
+      type: 'connector',
+      payload: dataPart.payload as unknown as JSONValue,
+    });
+  }
+
+  /*
+   * projectId is not consumed yet because the per-project link state
+   * ships with the IDE Integrations panel in Phase 3; the parameter
+   * stays here so the call sites already pass it.
+   */
+  void input.projectId;
 }

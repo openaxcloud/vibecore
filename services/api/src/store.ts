@@ -12,6 +12,12 @@ export interface UserRecord {
   mfaEnabled?: boolean;
   mfaSecretEncrypted?: string;
   platformAdmin?: boolean;
+  /**
+   * BCP-47 primary language tag the user picked (e.g. `en`, `fr`). Optional:
+   * existing users default to client-side detection until they touch the
+   * account settings. Slice 2 of the Phase 0 #7 react-i18next migration.
+   */
+  language?: string;
   createdAt: string;
 }
 
@@ -286,6 +292,45 @@ export interface OAuthConnectionRecord {
   createdAt: string;
 }
 
+export type UserConnectionStatus = 'active' | 'needs_reconnect' | 'revoked';
+
+export interface UserConnectionRecord {
+  id: string;
+  userId: string;
+  provider: string;
+  externalAccountId: string;
+  externalAccountLabel: string;
+  /**
+   * AES-256-GCM ciphertext produced by packages/security#encryptJson.
+   * Internal callers (sidecar, github-user / github-stats routes, agent
+   * orchestrator) decrypt it on demand; HTTP responses must never include
+   * this field (route handlers explicitly strip it).
+   */
+  accessTokenEncrypted?: string;
+  refreshTokenEncrypted?: string;
+  apiKeyFieldsEncrypted?: Record<string, string>;
+  scopes: string[];
+  tokenExpiresAt?: string;
+  status: UserConnectionStatus;
+  lastUsedAt?: string;
+  forAgentUse: boolean;
+  oauthAppSource: 'e_code_default' | 'org_override';
+  oauthAppOverrideId?: string;
+  createdByUserId: string;
+  createdAt: string;
+  updatedAt: string;
+  revokedAt?: string;
+}
+
+export interface ProjectConnectionLinkRecord {
+  id: string;
+  projectId: string;
+  userConnectionId: string;
+  linkedByUserId: string;
+  linkedAt: string;
+  unlinkedAt?: string;
+}
+
 export interface AiConversationRecord {
   id: string;
   projectId?: string;
@@ -384,6 +429,30 @@ export interface ProjectShareLinkRecord {
   createdAt: string;
 }
 
+/*
+ * Status enum mirrored from the client-side AgentPatchProposalStatus
+ * (workbench.ts). Terminal statuses (`accepted`, `rejected`, `reverted`) are
+ * never persisted — the client deletes the row after the user decides.
+ */
+export type AgentPatchProposalStatus = 'pending' | 'applying' | 'failed';
+
+export interface AgentPatchProposalRecord {
+  id: string;
+  projectId: string;
+  artifactId: string;
+  messageId: string;
+  actionId: string;
+  filePath: string;
+  relativePath: string;
+  originalContent: string;
+  proposedContent: string;
+  hunks: unknown;
+  status: AgentPatchProposalStatus;
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface BillingCustomerRecord {
   id: string;
   organizationId: string;
@@ -446,6 +515,19 @@ export interface StripeEventRecord {
   payload: unknown;
 }
 
+export interface EmailDeliveryEventRecord {
+  id: string;
+  provider: string;
+  providerEventId: string;
+  type: string;
+  email: string;
+  emailMessageId?: string;
+  subject?: string;
+  fromAddress?: string;
+  payload: unknown;
+  receivedAt: string;
+}
+
 export interface ApiStore {
   createUser(input: {
     email: string;
@@ -462,6 +544,7 @@ export interface ApiStore {
     mfaEnabled?: boolean;
     mfaSecretEncrypted?: string;
     platformAdmin?: boolean;
+    language?: string | null;
   }): Promise<UserRecord>;
   deleteUser(userId: string): Promise<boolean>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;
@@ -577,6 +660,22 @@ export interface ApiStore {
     createdByUserId?: string;
   }): Promise<ProjectShareLinkRecord>;
   listProjectShareLinks(projectId: string): Promise<ProjectShareLinkRecord[]>;
+  upsertAgentPatchProposal(input: {
+    id: string;
+    projectId: string;
+    artifactId: string;
+    messageId: string;
+    actionId: string;
+    filePath: string;
+    relativePath: string;
+    originalContent: string;
+    proposedContent: string;
+    hunks: unknown;
+    status: AgentPatchProposalStatus;
+    error?: string;
+  }): Promise<AgentPatchProposalRecord>;
+  listOpenAgentPatchProposals(projectId: string): Promise<AgentPatchProposalRecord[]>;
+  deleteAgentPatchProposal(projectId: string, id: string): Promise<boolean>;
   createWorkspace(input: {
     id?: string;
     projectId: string;
@@ -705,6 +804,39 @@ export interface ApiStore {
     accessToken: string;
     refreshToken?: string;
   }): Promise<OAuthConnectionRecord>;
+  listOAuthConnections(userId: string): Promise<OAuthConnectionRecord[]>;
+  upsertUserConnection(input: {
+    userId: string;
+    provider: string;
+    externalAccountId: string;
+    externalAccountLabel: string;
+    accessTokenEncrypted: string;
+    refreshTokenEncrypted?: string;
+    apiKeyFieldsEncrypted?: Record<string, string>;
+    scopes: string[];
+    tokenExpiresAt?: Date;
+    forAgentUse?: boolean;
+    oauthAppSource?: 'e_code_default' | 'org_override';
+    oauthAppOverrideId?: string;
+    createdByUserId: string;
+  }): Promise<UserConnectionRecord>;
+  getUserConnectionById(id: string): Promise<UserConnectionRecord | undefined>;
+  listUserConnectionsByUser(userId: string, opts?: { provider?: string }): Promise<UserConnectionRecord[]>;
+  markUserConnectionStatus(input: {
+    id: string;
+    status: UserConnectionStatus;
+    revokedAt?: Date;
+  }): Promise<UserConnectionRecord | undefined>;
+  linkProjectToUserConnection(input: {
+    projectId: string;
+    userConnectionId: string;
+    linkedByUserId: string;
+  }): Promise<ProjectConnectionLinkRecord>;
+  unlinkProjectFromUserConnection(input: {
+    projectId: string;
+    userConnectionId: string;
+  }): Promise<ProjectConnectionLinkRecord | undefined>;
+  listProjectConnectionLinks(projectId: string, opts?: { includeUnlinked?: boolean }): Promise<ProjectConnectionLinkRecord[]>;
   createAiConversation(input: { projectId?: string; userId: string; title?: string }): Promise<AiConversationRecord>;
   getAiConversation(id: string): Promise<AiConversationRecord | undefined>;
   createAiMessage(input: {
@@ -793,6 +925,22 @@ export interface ApiStore {
     type: string;
     payload: unknown;
   }): Promise<{ event: StripeEventRecord; created: boolean }>;
+  recordEmailDeliveryEvent(input: {
+    provider: string;
+    providerEventId: string;
+    type: string;
+    email: string;
+    emailMessageId?: string;
+    subject?: string;
+    fromAddress?: string;
+    payload: unknown;
+  }): Promise<{ event: EmailDeliveryEventRecord; created: boolean }>;
+  listEmailDeliveryEvents(filter?: {
+    email?: string;
+    type?: string;
+    emailMessageId?: string;
+    limit?: number;
+  }): Promise<EmailDeliveryEventRecord[]>;
   recordAudit(event: AuditEvent): Promise<void>;
   listAuditLogs(organizationId?: string): Promise<AuditEvent[]>;
   listAdminUsers(): Promise<UserRecord[]>;

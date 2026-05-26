@@ -1,10 +1,10 @@
 import { cloudflareDevProxyVitePlugin as remixCloudflareDevProxy, vitePlugin as remixVitePlugin } from '@remix-run/dev';
+import * as dotenv from 'dotenv';
 import UnoCSS from 'unocss/vite';
-import { defineConfig, type ViteDevServer } from 'vite';
+import { defineConfig, normalizePath, type ViteDevServer } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import tsconfigPaths from 'vite-tsconfig-paths';
-import * as dotenv from 'dotenv';
 
 // Load environment variables from multiple files
 dotenv.config({ path: '.env.local' });
@@ -16,6 +16,7 @@ export default defineConfig((config) => {
   const devPort = Number(process.env.VITE_DEV_PORT ?? 5173);
   const strictDevPort = process.env.VITE_STRICT_PORT === 'true';
   const nodeEnv = config.mode === 'production' ? 'production' : 'development';
+  const optimizeCssModulesEnabled = process.env.VITE_OPTIMIZE_CSS_MODULES === 'true';
 
   return {
     define: {
@@ -25,6 +26,22 @@ export default defineConfig((config) => {
       host: devHost,
       port: devPort,
       strictPort: strictDevPort,
+      watch: {
+        ignored: [
+          '**/.claude/**',
+          '**/.playwright-mcp/**',
+          '**/.vibecore',
+          '**/.vibecore/**',
+          '**/.vibecore-project-storage',
+          '**/.vibecore-project-storage/**',
+          '**/.vibecore-static-deployments',
+          '**/.vibecore-static-deployments/**',
+          '**/test-results/**',
+          '**/tmp/**',
+          '**/build/**',
+          '**/dist/**',
+        ],
+      },
     },
     build: {
       target: 'esnext',
@@ -65,10 +82,14 @@ export default defineConfig((config) => {
             }
 
             if (id.includes('/@codemirror/') || id.includes('/@lezer/')) {
-              if (id.includes('/@codemirror/lang-') || id.includes('/@lezer/')) {
-                return 'vendor-codemirror-languages';
-              }
-
+              /*
+               * Splitting CodeMirror core from its language packs produced a
+               * circular chunk (lang-* re-imports core helpers that re-import
+               * lang-*), which triggered "Cannot access 'dt' before
+               * initialization" at runtime and left the page on a blank
+               * shell. Keep CodeMirror + Lezer in a single chunk so module
+               * initialization is deterministic.
+               */
               return 'vendor-codemirror';
             }
 
@@ -84,28 +105,29 @@ export default defineConfig((config) => {
               return 'vendor-export-pdf';
             }
 
-            if (id.includes('/jszip/')) {
-              return 'vendor-export-zip';
-            }
-
-            if (id.includes('/@radix-ui/')) {
-              return 'vendor-radix';
-            }
-
             if (id.includes('/lucide-react/')) {
               return 'vendor-icons';
             }
 
-            if (id.includes('/react-dom/')) {
-              return 'vendor-react-dom';
-            }
-
-            if (id.includes('/react/') || id.includes('/scheduler/')) {
+            /*
+             * React, react-dom, scheduler, @remix-run, @radix-ui and jszip
+             * are kept together. Splitting them produced cycles like
+             *   vendor-react -> vendor-radix   -> vendor-react
+             *   vendor-react -> vendor-remix   -> vendor-react
+             *   vendor-react -> vendor-export-zip -> vendor-react
+             * which left react-dom's __SECRET_INTERNALS / radix's forwardRef
+             * in the TDZ at runtime and crashed hydration ("black screen"
+             * on the landing page).
+             */
+            if (
+              id.includes('/react-dom/') ||
+              id.includes('/react/') ||
+              id.includes('/scheduler/') ||
+              id.includes('/@remix-run/') ||
+              id.includes('/@radix-ui/') ||
+              id.includes('/jszip/')
+            ) {
               return 'vendor-react';
-            }
-
-            if (id.includes('/@remix-run/')) {
-              return 'vendor-remix';
             }
 
             return undefined;
@@ -131,6 +153,7 @@ export default defineConfig((config) => {
       },
     },
     plugins: [
+      katexModernFontsPlugin(),
       nodePolyfills({
         include: ['buffer', 'process', 'util', 'stream'],
         globals: {
@@ -142,6 +165,7 @@ export default defineConfig((config) => {
         exclude: ['child_process', 'fs', 'path'],
       }),
       suppressUnoCssLabeledVariantWarning(),
+      suppressGeneratedWorkspaceWatchEvents(),
       {
         name: 'buffer-polyfill',
         transform(code, id) {
@@ -155,7 +179,7 @@ export default defineConfig((config) => {
           return null;
         },
       },
-      config.mode !== 'test' && remixCloudflareDevProxy(),
+      config.command === 'serve' && config.mode !== 'test' && remixCloudflareDevProxy(),
 
       /*
        * The Remix Vite plugin injects a HMR preamble that errors out under
@@ -165,6 +189,15 @@ export default defineConfig((config) => {
        */
       config.mode !== 'test' &&
         remixVitePlugin({
+          /*
+           * Co-located component / route specs (`Foo.spec.ts`,
+           * `Foo.spec.tsx`) live next to the modules they test, including
+           * inside `app/routes/`. Remix's default route discovery would
+           * import them as SSR route modules and explode the moment the
+           * file imports `vitest`. Exclude every spec file from the route
+           * manifest so the dev server only ever loads real routes.
+           */
+          ignoredRouteFiles: ['**/*.spec.ts', '**/*.spec.tsx'],
           future: {
             v3_fetcherPersist: true,
             v3_relativeSplatPath: true,
@@ -174,9 +207,9 @@ export default defineConfig((config) => {
           },
         }),
       UnoCSS(),
-      tsconfigPaths(),
+      tsconfigPaths({ projects: ['./tsconfig.json'] }),
       chrome129IssuePlugin(),
-      config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
+      config.mode === 'production' && optimizeCssModulesEnabled && optimizeCssModules({ apply: 'build' }),
     ],
     envPrefix: [
       'VITE_',
@@ -191,7 +224,7 @@ export default defineConfig((config) => {
     css: {
       preprocessorOptions: {
         scss: {
-          api: 'modern-compiler',
+          api: 'modern',
         },
       },
     },
@@ -205,12 +238,52 @@ export default defineConfig((config) => {
         '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
         '**/tests/preview/**', // Exclude preview tests that require Playwright
         '**/tests/e2e/**',
+
         // service workspaces have their own vitest configs (node env, fastify, etc.)
         'services/preview-proxy/**',
       ],
     },
   };
 });
+
+const GENERATED_WORKSPACE_WATCH_EVENTS = new Set(['add', 'addDir', 'change', 'unlink', 'unlinkDir']);
+
+function suppressGeneratedWorkspaceWatchEvents() {
+  return {
+    name: 'vibecore:suppress-generated-workspace-watch-events',
+    configureServer(server: ViteDevServer) {
+      const ignoredRoots = [
+        'services/api/.vibecore',
+        'services/api/.vibecore-project-storage',
+        'services/api/.vibecore-static-deployments',
+      ].map((relativePath) => normalizePath(`${server.config.root}/${relativePath}`).replace(/\/?$/, '/'));
+
+      const isIgnoredWorkspacePath = (filePath: unknown) => {
+        if (typeof filePath !== 'string') {
+          return false;
+        }
+
+        const absolutePath = normalizePath(filePath.startsWith('/') ? filePath : `${server.config.root}/${filePath}`);
+
+        return ignoredRoots.some((root) => absolutePath === root.slice(0, -1) || absolutePath.startsWith(root));
+      };
+
+      const originalEmit = server.watcher.emit.bind(server.watcher);
+
+      server.watcher.emit = ((eventName: string | symbol, ...args: unknown[]) => {
+        if (
+          typeof eventName === 'string' &&
+          GENERATED_WORKSPACE_WATCH_EVENTS.has(eventName) &&
+          isIgnoredWorkspacePath(args[0])
+        ) {
+          return false;
+        }
+
+        return originalEmit(eventName, ...args);
+      }) as typeof server.watcher.emit;
+    },
+  };
+}
 
 function chrome129IssuePlugin() {
   return {
@@ -234,6 +307,23 @@ function chrome129IssuePlugin() {
 
         next();
       });
+    },
+  };
+}
+
+function katexModernFontsPlugin() {
+  return {
+    name: 'katex-modern-fonts',
+    enforce: 'pre' as const,
+    transform(code: string, id: string) {
+      if (!id.includes('/katex/dist/katex.min.css')) {
+        return null;
+      }
+
+      return {
+        code: code.replace(/,url\(fonts\/[^)]+\.(?:woff|ttf)\) format\("(?:woff|truetype)"\)/g, ''),
+        map: null,
+      };
     },
   };
 }

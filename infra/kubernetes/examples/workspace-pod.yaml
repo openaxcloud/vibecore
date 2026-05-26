@@ -13,6 +13,15 @@ spec:
   runtimeClassName: gvisor
   nodeSelector:
     vibecore.ai/node-pool: sandbox
+  tolerations:
+    - key: vibecore.ai/sandbox
+      operator: Equal
+      value: "true"
+      effect: NoSchedule
+    - key: sandbox.gke.io/runtime
+      operator: Equal
+      value: gvisor
+      effect: NoSchedule
   automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true

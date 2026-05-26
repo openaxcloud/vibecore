@@ -2,8 +2,30 @@ import { json, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from
 
 const sessionCookieName = 'vc_session';
 
+/*
+ * `vite-plugin-node-polyfills` injects a browser process shim into the SSR
+ * bundle (vite.config.ts globals.process=true). That shim ships `env: {}`,
+ * so runtime env vars set by the K8s deployment never reach this module —
+ * `process.env.SAAS_API_URL` evaluates to undefined in production.
+ *
+ * `process.env.NODE_ENV` is the one exception: vite's `define` inlines it as
+ * a literal string at build time, so the conditional below survives the
+ * polyfill. We use it to pick an in-cluster service URL by default so the
+ * web pod can still reach the api pod when env wiring is missing. The
+ * production K8s Service is `<release>-<chart>-api` in namespace `vibecore`
+ * which resolves to `vibecore-vibecore-platform-api.vibecore.svc.cluster.local`.
+ */
+const IN_CLUSTER_API_URL = 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001';
+const LOCAL_DEV_API_URL = 'http://localhost:8787';
+
 export function apiBaseUrl() {
-  return process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://localhost:8787';
+  const fromEnv = process.env.SAAS_API_URL ?? process.env.API_BASE_URL;
+
+  if (fromEnv && fromEnv.length > 0) {
+    return fromEnv;
+  }
+
+  return process.env.NODE_ENV === 'production' ? IN_CLUSTER_API_URL : LOCAL_DEV_API_URL;
 }
 
 export function readSessionToken(request: Request) {
@@ -17,15 +39,37 @@ export function readSessionToken(request: Request) {
   return match ? decodeURIComponent(match.slice(sessionCookieName.length + 1)) : undefined;
 }
 
+/*
+ * `Secure` is gated on NODE_ENV=production because local dev runs on
+ * plain http://localhost — Secure cookies would never be sent, which
+ * silently breaks the dev login flow. In production the Remix SSR pod
+ * is always served over HTTPS, so the bearer-token-bearing session
+ * cookie must be marked Secure to prevent a downgrade attack from
+ * leaking it over an attacker-MITMed plaintext channel.
+ */
+const cookieSecureFlag = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+
 export function sessionCookie(token: string, maxAgeSeconds?: number) {
   const maxAge = typeof maxAgeSeconds === 'number' ? `; Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}` : '';
 
-  return `${sessionCookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax${maxAge}`;
+  return `${sessionCookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax${cookieSecureFlag}${maxAge}`;
 }
 
 export function clearSessionCookie() {
-  return `${sessionCookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+  return `${sessionCookieName}=; Path=/; HttpOnly; SameSite=Lax${cookieSecureFlag}; Max-Age=0`;
 }
+
+/*
+ * Platform-admin accounts created via /auth/register (or promoted via
+ * PLATFORM_ADMIN_EMAILS) are forced to enroll MFA before any non-MFA
+ * endpoint will respond. The API expresses this as a 403 with
+ * `code: 'MFA_REQUIRED'`. Without special handling the dashboard loader
+ * would surface a bare "403" to the user. Instead, transparently
+ * redirect them to /mfa-setup so they can complete enrollment and
+ * resume the request afterwards. The /auth/mfa/* endpoints are exempt
+ * from the gate, so the setup page itself never triggers this branch.
+ */
+const MFA_REQUIRED_REDIRECT_PATH = '/mfa-setup';
 
 export async function apiRequest<T = unknown>(request: Request, path: string, init: RequestInit = {}) {
   const token = readSessionToken(request);
@@ -45,11 +89,20 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
   const payload = contentType.includes('application/json') ? await response.json() : await response.text();
 
   if (!response.ok) {
+    const payloadCode = typeof payload === 'object' && payload ? (payload as { code?: string }).code : undefined;
+
+    if (response.status === 403 && payloadCode === 'MFA_REQUIRED' && !path.startsWith('/auth/mfa')) {
+      throw redirect(MFA_REQUIRED_REDIRECT_PATH);
+    }
+
     throw json(
       {
         ok: false,
-        error: typeof payload === 'object' && payload ? ((payload as any).error ?? 'Request failed') : String(payload),
-        code: typeof payload === 'object' && payload ? (payload as any).code : undefined,
+        error:
+          typeof payload === 'object' && payload
+            ? ((payload as { error?: string }).error ?? 'Request failed')
+            : String(payload),
+        code: payloadCode,
       },
       { status: response.status },
     );
@@ -58,7 +111,7 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
   return payload as T;
 }
 
-export function isApiResponse(error: unknown, status?: number) {
+export function isApiResponse(error: unknown, status?: number): error is Response {
   return error instanceof Response && (typeof status !== 'number' || error.status === status);
 }
 
@@ -92,6 +145,15 @@ export async function firstOrganization(request: Request) {
   }
 
   return organization;
+}
+
+export async function firstOrganizationOrNull(request: Request) {
+  const result = await apiRequest<{ organizations: Array<{ id: string; name?: string; slug?: string }> }>(
+    request,
+    '/orgs',
+  );
+
+  return result.organizations[0] ?? null;
 }
 
 export function formObject(formData: FormData) {

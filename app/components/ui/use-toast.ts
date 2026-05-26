@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { toast as toastify } from 'react-toastify';
+import { themeStore } from '~/lib/stores/theme';
 
 // Configure standard toast settings
 export const configuredToast = {
@@ -30,7 +31,7 @@ export function useToast() {
       pauseOnHover: true,
       draggable: true,
       progress: undefined,
-      theme: 'dark',
+      theme: themeStore.get(),
     });
   }, []);
 

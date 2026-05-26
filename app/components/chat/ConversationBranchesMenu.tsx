@@ -1,0 +1,247 @@
+/**
+ * Header dropdown that lets the user browse and switch between
+ * conversation branches archived in `projectIdeMemory.chat.conversations`
+ * (Sprint 6 wiring).
+ *
+ * The button shows "Branches · N" with the current count. Clicking opens
+ * a small popover with the full branch tree — each entry switches the
+ * active thread on click (via useProjectChatBranches.switchTo) and lets
+ * the user rename or delete via secondary buttons.
+ *
+ * Auto-apply does not affect this surface — branch navigation is a
+ * user-initiated read/write of persisted state. Bolt standalone has no
+ * projectId so this component renders null by design (mount guarded by
+ * the parent passing projectId).
+ */
+
+import { forwardRef, memo, useCallback, useEffect, useRef, useState } from 'react';
+import type { ForwardedRef, MutableRefObject } from 'react';
+import { toast } from 'react-toastify';
+
+import type { BranchedConversation, BranchNode } from '~/lib/chat/chat-branches';
+import { useProjectChatBranches } from '~/lib/hooks/useProjectChatBranches';
+
+export interface ConversationBranchesMenuProps {
+  projectId: string;
+  className?: string;
+}
+
+interface BranchRowProps {
+  node: BranchNode;
+  depth: number;
+  activeId: string | undefined;
+  onSwitch: (conversationId: string) => Promise<void> | void;
+  onRename: (conversationId: string, currentTitle: string | undefined) => Promise<void> | void;
+  onRemove: (conversationId: string) => Promise<void> | void;
+}
+
+const BranchRow = memo(({ node, depth, activeId, onSwitch, onRename, onRemove }: BranchRowProps) => {
+  const isActive = node.conversation.id === activeId;
+  const messageCount = node.conversation.messages.length;
+  const label = node.conversation.title?.trim() || node.conversation.id;
+
+  return (
+    <>
+      <li
+        className="bolt-branches-row"
+        data-active={isActive ? 'true' : 'false'}
+        style={{ paddingLeft: `${10 + depth * 14}px` }}
+      >
+        <button
+          type="button"
+          className="bolt-branches-row-switch"
+          onClick={() => onSwitch(node.conversation.id)}
+          title={`Switch to ${label}`}
+        >
+          <span className="bolt-branches-row-icon i-ph:git-branch" aria-hidden />
+          <span className="bolt-branches-row-label">{label}</span>
+          <span className="bolt-branches-row-count">{messageCount}</span>
+        </button>
+        <span className="bolt-branches-row-actions">
+          <button
+            type="button"
+            className="bolt-branches-row-action"
+            aria-label={`Rename ${label}`}
+            title="Rename branch"
+            onClick={() => onRename(node.conversation.id, node.conversation.title)}
+          >
+            <span className="i-ph:pencil-simple" aria-hidden />
+          </button>
+          <button
+            type="button"
+            className="bolt-branches-row-action"
+            aria-label={`Delete ${label}`}
+            title="Delete branch (and descendants)"
+            onClick={() => onRemove(node.conversation.id)}
+          >
+            <span className="i-ph:trash" aria-hidden />
+          </button>
+        </span>
+      </li>
+      {node.children.map((child) => (
+        <BranchRow
+          key={child.conversation.id}
+          node={child}
+          depth={depth + 1}
+          activeId={activeId}
+          onSwitch={onSwitch}
+          onRename={onRename}
+          onRemove={onRemove}
+        />
+      ))}
+    </>
+  );
+});
+
+BranchRow.displayName = 'ConversationBranchesMenu.BranchRow';
+
+function assignForwardedRef<T>(ref: ForwardedRef<T>, value: T | null) {
+  if (typeof ref === 'function') {
+    ref(value);
+    return;
+  }
+
+  if (ref) {
+    (ref as MutableRefObject<T | null>).current = value;
+  }
+}
+
+export const ConversationBranchesMenu = memo(
+  forwardRef<HTMLDivElement, ConversationBranchesMenuProps>(({ projectId, className }, forwardedRef) => {
+    const { conversations, tree, switchTo, rename, remove } = useProjectChatBranches(projectId);
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef<HTMLDivElement | null>(null);
+
+    const setContainerRef = useCallback(
+      (node: HTMLDivElement | null) => {
+        containerRef.current = node;
+        assignForwardedRef(forwardedRef, node);
+      },
+      [forwardedRef],
+    );
+
+    useEffect(() => {
+      if (!isOpen) {
+        return undefined;
+      }
+
+      const handleDocumentClick = (event: MouseEvent) => {
+        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+          setIsOpen(false);
+        }
+      };
+
+      const handleEscape = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          setIsOpen(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleDocumentClick);
+      document.addEventListener('keydown', handleEscape);
+
+      return () => {
+        document.removeEventListener('mousedown', handleDocumentClick);
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }, [isOpen]);
+
+    /*
+     * "Active" branch detection — we don't have an explicit current-branch
+     * field, but the convention for the live thread is conversation id
+     * `project:${projectId}`. Anything else is an archived branch.
+     */
+    const activeId = `project:${projectId}`;
+
+    const handleSwitch = useCallback(
+      async (conversationId: string) => {
+        const ok = await switchTo(conversationId);
+
+        if (ok) {
+          toast.success('Switched conversation');
+          setIsOpen(false);
+        } else {
+          toast.error('Could not switch — conversation missing');
+        }
+      },
+      [switchTo],
+    );
+
+    const handleRename = useCallback(
+      async (conversationId: string, currentTitle: string | undefined) => {
+        const next = window.prompt('Rename branch', currentTitle ?? '');
+
+        if (next === null) {
+          return;
+        }
+
+        const trimmed = next.trim();
+
+        if (!trimmed) {
+          toast.error('Title cannot be empty');
+          return;
+        }
+
+        await rename(conversationId, trimmed);
+      },
+      [rename],
+    );
+
+    const handleRemove = useCallback(
+      async (conversationId: string) => {
+        const confirmed = window.confirm('Delete this branch and any sub-branches?');
+
+        if (!confirmed) {
+          return;
+        }
+
+        await remove(conversationId);
+        toast.success('Branch deleted');
+      },
+      [remove],
+    );
+
+    if (conversations.length === 0) {
+      return null;
+    }
+
+    return (
+      <div ref={setContainerRef} className={className ? `${className} bolt-branches-menu` : 'bolt-branches-menu'}>
+        <button
+          type="button"
+          className="bolt-branches-menu-trigger"
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
+          aria-label={`Conversation branches (${conversations.length})`}
+          title="Browse conversation branches"
+          onClick={() => setIsOpen((open) => !open)}
+        >
+          <span className="i-ph:git-branch" aria-hidden />
+          <span className="bolt-branches-menu-count">{conversations.length}</span>
+        </button>
+        {isOpen ? (
+          <div className="bolt-branches-menu-popover" role="menu">
+            <ol className="bolt-branches-list">
+              {tree.map((node) => (
+                <BranchRow
+                  key={node.conversation.id}
+                  node={node}
+                  depth={0}
+                  activeId={activeId}
+                  onSwitch={handleSwitch}
+                  onRename={handleRename}
+                  onRemove={handleRemove}
+                />
+              ))}
+            </ol>
+          </div>
+        ) : null}
+      </div>
+    );
+  }),
+);
+
+ConversationBranchesMenu.displayName = 'ConversationBranchesMenu';
+
+// Re-export the underlying types so consumers know what they're rendering.
+export type { BranchedConversation };

@@ -1,11 +1,15 @@
-import { describe, expect, it, vi } from 'vitest';
 import JSZip from 'jszip';
-import { WebContainerRuntimeAdapter, type WebContainerLike, type WebContainerProcessLike } from './index';
+import { describe, expect, it, vi } from 'vitest';
+import { WebContainerRuntimeAdapter, type WebContainerLike, type WebContainerProcessLike } from './index.js';
+
+type WebContainerListener = (...args: unknown[]) => void;
 
 class MemoryFs {
   files = new Map<string, string>();
 
-  async mkdir() {}
+  async mkdir() {
+    return undefined;
+  }
 
   async readFile(path: string) {
     const content = this.files.get(path);
@@ -72,7 +76,7 @@ function createWebContainer(): WebContainerLike & {
   fs: MemoryFs;
   emitPort(port: number, type: 'open' | 'close', url: string): void;
 } {
-  const listeners = new Map<string, Function[]>();
+  const listeners = new Map<string, WebContainerListener[]>();
   const fs = new MemoryFs();
 
   return {
@@ -81,8 +85,8 @@ function createWebContainer(): WebContainerLike & {
     spawn: vi.fn(async (command: string, args?: string[]) =>
       processWithOutput(`${command} ${(args ?? []).join(' ')}`.trim()),
     ),
-    setPreviewScript: vi.fn(async () => {}),
-    on: vi.fn((event: string, listener: Function) => {
+    setPreviewScript: vi.fn(async () => undefined),
+    on: vi.fn((event: string, listener: WebContainerListener) => {
       listeners.set(event, [...(listeners.get(event) ?? []), listener]);
       return () =>
         listeners.set(

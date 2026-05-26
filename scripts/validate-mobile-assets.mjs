@@ -17,6 +17,8 @@ const requiredFiles = [
   'apps/mobile/ios/App/App/App.entitlements',
   'apps/mobile/assets/assetlinks.json',
   'apps/mobile/assets/apple-app-site-association',
+  'public/.well-known/assetlinks.json',
+  'public/.well-known/apple-app-site-association',
   'scripts/generate-mobile-release-assets.mjs',
   'docs/MOBILE_APPS.md',
   'docs/MOBILE_SECURITY.md',
@@ -147,8 +149,12 @@ for (const expected of ['aps-environment', 'com.apple.developer.associated-domai
 }
 
 const assetLinks = JSON.parse(fs.readFileSync('apps/mobile/assets/assetlinks.json', 'utf8'));
+const publicAssetLinks = JSON.parse(fs.readFileSync('public/.well-known/assetlinks.json', 'utf8'));
 if (!Array.isArray(assetLinks) || assetLinks.length === 0) {
   throw new Error('assetlinks.json must contain at least one Android app link declaration.');
+}
+if (JSON.stringify(publicAssetLinks) !== JSON.stringify(assetLinks)) {
+  throw new Error('public/.well-known/assetlinks.json must mirror apps/mobile/assets/assetlinks.json.');
 }
 if (assetLinks[0]?.target?.namespace !== 'android_app' || !assetLinks[0]?.target?.package_name) {
   throw new Error('assetlinks.json must declare an android_app package target.');
@@ -158,8 +164,14 @@ if (!Array.isArray(assetLinks[0]?.target?.sha256_cert_fingerprints)) {
 }
 
 const appleAssociation = JSON.parse(fs.readFileSync('apps/mobile/assets/apple-app-site-association', 'utf8'));
+const publicAppleAssociation = JSON.parse(fs.readFileSync('public/.well-known/apple-app-site-association', 'utf8'));
 if (!Array.isArray(appleAssociation.applinks?.details)) {
   throw new Error('apple-app-site-association must declare applinks.details.');
+}
+if (JSON.stringify(publicAppleAssociation) !== JSON.stringify(appleAssociation)) {
+  throw new Error(
+    'public/.well-known/apple-app-site-association must mirror apps/mobile/assets/apple-app-site-association.',
+  );
 }
 
 if (releaseMode) {
