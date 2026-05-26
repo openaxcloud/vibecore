@@ -83,28 +83,28 @@ jobs:
             target: runtime
             build_args: |
               PACKAGE_FILTER=@vibecore/api
-              START_CMD=node services/api/dist/server.js
+              START_CMD=node dist/server.js
           - image: worker
             dockerfile: infra/docker/node-service.Dockerfile
             context: .
             target: runtime
             build_args: |
               PACKAGE_FILTER=@vibecore/worker
-              START_CMD=node services/worker/dist/index.js
+              START_CMD=node dist/index.js
           - image: ai-gateway
             dockerfile: infra/docker/node-service.Dockerfile
             context: .
             target: runtime
             build_args: |
               PACKAGE_FILTER=@vibecore/ai-gateway
-              START_CMD=node services/ai-gateway/dist/server.js
+              START_CMD=node dist/server.js
           - image: workspace-manager
             dockerfile: infra/docker/node-service.Dockerfile
             context: .
             target: runtime
             build_args: |
               PACKAGE_FILTER=@vibecore/workspace-manager
-              START_CMD=node services/workspace-manager/dist/server.js
+              START_CMD=node dist/server.js
           - image: workspace-agent
             dockerfile: services/workspace-agent/Dockerfile
             context: .
@@ -116,7 +116,7 @@ jobs:
             target: runtime
             build_args: |
               PACKAGE_FILTER=@vibecore/preview-proxy
-              START_CMD=node services/preview-proxy/dist/server.js
+              START_CMD=node dist/server.js
 
     steps:
       - uses: actions/checkout@v4
