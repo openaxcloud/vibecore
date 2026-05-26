@@ -20,6 +20,7 @@ import {
 import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import { hasInstalledPreviewDependencies, type PreviewPackageManifest } from '~/lib/runtime/preview-dependencies';
+import { buildPreviewManifestRepair } from '~/lib/runtime/preview-manifest';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
 import { writeAcceptedAgentFile } from '~/lib/runtime/agent-file-write';
 import { topologicallySortFileActions } from '~/lib/runtime/topological-apply';
@@ -129,55 +130,6 @@ const PROJECT_STORAGE_SYNC_MAX_FILE_BYTES = 512_000;
 const PROJECT_STORAGE_SYNC_MAX_TOTAL_BYTES = 4_000_000;
 const PROJECT_ARCHIVE_TEXT_DECODER = new TextDecoder('utf-8', { fatal: true });
 
-const IMPORT_TO_RUNTIME_DEPENDENCY: Record<string, string> = {
-  '@hookform/resolvers': '@hookform/resolvers',
-  '@radix-ui/react-accordion': '@radix-ui/react-accordion',
-  '@radix-ui/react-alert-dialog': '@radix-ui/react-alert-dialog',
-  '@radix-ui/react-avatar': '@radix-ui/react-avatar',
-  '@radix-ui/react-checkbox': '@radix-ui/react-checkbox',
-  '@radix-ui/react-dialog': '@radix-ui/react-dialog',
-  '@radix-ui/react-dropdown-menu': '@radix-ui/react-dropdown-menu',
-  '@radix-ui/react-label': '@radix-ui/react-label',
-  '@radix-ui/react-popover': '@radix-ui/react-popover',
-  '@radix-ui/react-progress': '@radix-ui/react-progress',
-  '@radix-ui/react-radio-group': '@radix-ui/react-radio-group',
-  '@radix-ui/react-scroll-area': '@radix-ui/react-scroll-area',
-  '@radix-ui/react-select': '@radix-ui/react-select',
-  '@radix-ui/react-separator': '@radix-ui/react-separator',
-  '@radix-ui/react-slot': '@radix-ui/react-slot',
-  '@radix-ui/react-switch': '@radix-ui/react-switch',
-  '@radix-ui/react-tabs': '@radix-ui/react-tabs',
-  '@radix-ui/react-toast': '@radix-ui/react-toast',
-  '@radix-ui/react-toggle': '@radix-ui/react-toggle',
-  '@radix-ui/react-toggle-group': '@radix-ui/react-toggle-group',
-  '@radix-ui/react-tooltip': '@radix-ui/react-tooltip',
-  '@tanstack/react-query': '@tanstack/react-query',
-  '@vitejs/plugin-react': '@vitejs/plugin-react',
-  axios: 'axios',
-  classnames: 'classnames',
-  clsx: 'clsx',
-  'date-fns': 'date-fns',
-  'framer-motion': 'framer-motion',
-  'lucide-react': 'lucide-react',
-  'react-hook-form': 'react-hook-form',
-  'react-icons': 'react-icons',
-  'react-router-dom': 'react-router-dom',
-  recharts: 'recharts',
-  sonner: 'sonner',
-  'tailwind-merge': 'tailwind-merge',
-  vite: 'vite',
-  zod: 'zod',
-};
-const RUNTIME_DEPENDENCY_VERSIONS: Record<string, string> = {
-  '@vitejs/plugin-react': '^4.3.4',
-  vite: '^5.4.19',
-  typescript: '^5.7.2',
-  react: '^18.3.1',
-  'react-dom': '^18.3.1',
-  'lucide-react': '^0.485.0',
-  'react-router-dom': '^6.28.2',
-};
-
 function workspaceLogLines(event: CommandEvent | string) {
   const rawLine = typeof event === 'string' ? event : event.data || event.error?.message || event.type;
 
@@ -189,47 +141,6 @@ function workspaceLogLines(event: CommandEvent | string) {
 
       return normalizedLine.length > 0 && !WORKSPACE_LOG_NOISE_PATTERNS.some((pattern) => pattern.test(normalizedLine));
     });
-}
-
-function inferRuntimeDependenciesFromImports(files: Record<string, string>) {
-  const dependencies = new Set<string>();
-
-  const importPatterns = [
-    /\bimport\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?['"]([^'"]+)['"]/g,
-    /\bexport\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?['"]([^'"]+)['"]/g,
-    /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g,
-    /\brequire\(\s*['"]([^'"]+)['"]\s*\)/g,
-  ];
-
-  for (const [filePath, content] of Object.entries(files)) {
-    if (!/\.(c|m)?(j|t)sx?$/.test(filePath)) {
-      continue;
-    }
-
-    for (const pattern of importPatterns) {
-      pattern.lastIndex = 0;
-
-      for (let match = pattern.exec(content); match; match = pattern.exec(content)) {
-        const dependency = runtimeDependencyForImport(match[1]);
-
-        if (dependency) {
-          dependencies.add(dependency);
-        }
-      }
-    }
-  }
-
-  return dependencies;
-}
-
-function runtimeDependencyForImport(specifier: string) {
-  if (!specifier || specifier.startsWith('.') || specifier.startsWith('/') || specifier.startsWith('node:')) {
-    return undefined;
-  }
-
-  const barePackage = specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0];
-
-  return IMPORT_TO_RUNTIME_DEPENDENCY[specifier] ?? IMPORT_TO_RUNTIME_DEPENDENCY[barePackage];
 }
 
 export class WorkbenchStore {
@@ -556,16 +467,17 @@ export class WorkbenchStore {
 
     let dependenciesChanged = false;
 
-    if (this.#findPackageJsonEntry()) {
-      dependenciesChanged = await this.#syncPackageJsonDependenciesFromRuntimeImports().catch((error) => {
-        this.appendWorkspaceLog(
-          error instanceof Error
-            ? `Dependency sync skipped before preview: ${error.message}`
-            : 'Dependency sync skipped before preview',
-        );
+    dependenciesChanged = await this.#syncPreviewManifestFromRuntime().catch((error) => {
+      this.appendWorkspaceLog(
+        error instanceof Error
+          ? `Dependency sync skipped before preview: ${error.message}`
+          : 'Dependency sync skipped before preview',
+      );
 
-        return false;
-      });
+      return false;
+    });
+
+    if (dependenciesChanged || this.#findPackageJsonEntry()) {
       await this.loadRuntimeFiles('.').catch(() => undefined);
     }
 
@@ -2075,21 +1987,25 @@ export class WorkbenchStore {
       return;
     }
 
-    if (!this.#findPackageJsonEntry()) {
-      await this.#persistRuntimeFilesToProjectStorage(artifactId);
-      return;
-    }
-
-    await this.#syncPackageJsonDependenciesFromRuntimeImports().catch((error) => {
+    const previewManifestChanged = await this.#syncPreviewManifestFromRuntime().catch((error) => {
       this.appendWorkspaceLog(
         error instanceof Error
           ? `Dependency sync skipped after ${artifactId}: ${error.message}`
           : `Dependency sync skipped after ${artifactId}`,
       );
+
+      return false;
     });
 
-    await this.loadRuntimeFiles('.').catch(() => undefined);
+    if (previewManifestChanged) {
+      await this.loadRuntimeFiles('.').catch(() => undefined);
+    }
+
     await this.#persistRuntimeFilesToProjectStorage(artifactId);
+
+    if (!this.#findPackageJsonEntry()) {
+      return;
+    }
 
     await this.restartPreviewServer().catch((error) => {
       this.appendWorkspaceLog(
@@ -2128,80 +2044,42 @@ export class WorkbenchStore {
     }
   }
 
-  async #syncPackageJsonDependenciesFromRuntimeImports() {
-    const packageJsonEntry = this.#findPackageJsonEntry();
-
-    if (!packageJsonEntry) {
-      return false;
-    }
-
-    const [packageJsonFilePath, packageJsonFile] = packageJsonEntry;
-
-    if (!packageJsonFile || packageJsonFile.type !== 'file' || !packageJsonFile.content) {
-      return false;
-    }
-
+  async #syncPreviewManifestFromRuntime() {
     const files = await collectRuntimeTextFiles(this.#runtime, '.', {
       excludeDirectory: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES.has(name),
       excludeFile: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_FILES.has(name),
     });
 
-    const requiredDependencies = inferRuntimeDependenciesFromImports(files);
+    const repair = buildPreviewManifestRepair(files);
 
-    if (!requiredDependencies.size) {
-      return false;
-    }
+    let changed = false;
 
-    const packageJsonPath = packageJsonFilePath.replace(/^\/+/, '');
+    if (repair.packageJson && (repair.packageJson.created || repair.packageJson.changed)) {
+      await this.#runtime.writeFile(repair.packageJson.path, repair.packageJson.content);
+      changed = true;
 
-    const packageJson = JSON.parse(packageJsonFile.content) as {
-      dependencies?: Record<string, string>;
-      devDependencies?: Record<string, string>;
-    };
+      if (repair.packageJson.created) {
+        this.appendWorkspaceLog(`Created preview package manifest at ${repair.packageJson.path}`);
+      }
 
-    const dependencies = { ...(packageJson.dependencies ?? {}) };
-    const devDependencies = packageJson.devDependencies ?? {};
+      if (repair.packageJson.missingDependencies.length) {
+        this.appendWorkspaceLog(
+          `Added missing runtime dependencies: ${repair.packageJson.missingDependencies.join(', ')}`,
+        );
+      }
 
-    const missing = [...requiredDependencies].filter(
-      (dependency) => !dependencies[dependency] && !devDependencies[dependency],
-    );
-
-    let changed = missing.length > 0;
-
-    const normalizedDependencies = { ...dependencies };
-
-    for (const dependency of new Set([...Object.keys(normalizedDependencies), ...requiredDependencies])) {
-      const pinnedVersion = RUNTIME_DEPENDENCY_VERSIONS[dependency];
-
-      if (pinnedVersion && normalizedDependencies[dependency] === 'latest') {
-        normalizedDependencies[dependency] = pinnedVersion;
-        changed = true;
+      if (repair.packageJson.addedScripts.length) {
+        this.appendWorkspaceLog(`Added preview package scripts: ${repair.packageJson.addedScripts.join(', ')}`);
       }
     }
 
-    if (!changed) {
-      return false;
+    for (const file of repair.supplementalFiles) {
+      await this.#runtime.writeFile(file.path, file.content);
+      this.appendWorkspaceLog(`Created preview runtime file ${file.path}`);
+      changed = true;
     }
 
-    const nextPackageJson = {
-      ...packageJson,
-      dependencies: Object.fromEntries(
-        Object.entries({
-          ...normalizedDependencies,
-          ...Object.fromEntries(
-            missing.map((dependency) => [dependency, RUNTIME_DEPENDENCY_VERSIONS[dependency] ?? 'latest']),
-          ),
-        }).sort(([left], [right]) => left.localeCompare(right)),
-      ),
-    };
-
-    await this.#runtime.writeFile(packageJsonPath, `${JSON.stringify(nextPackageJson, null, 2)}\n`);
-
-    if (missing.length) {
-      this.appendWorkspaceLog(`Added missing runtime dependencies: ${missing.join(', ')}`);
-    }
-
-    return true;
+    return changed;
   }
 
   async #persistRuntimeFilesToProjectStorage(artifactId: string) {
