@@ -6293,6 +6293,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       };
     const mobileServiceHeaderTab =
       useMobileIde && mobilePanel === 'deploy' && activeMobileOpenTabId ? mobileHeaderTab : undefined;
+
     const showMobileChrome = useMobileIde && clientHydrated;
 
     const keybindingSections = useMemo(
