@@ -6,7 +6,7 @@ import Cookies from 'js-cookie';
 import JSZip from 'jszip';
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
 import { EditorStore } from './editor';
-import { FilesStore, type FileMap } from './files';
+import { FilesStore, type FileMap, type ProjectStorageFile } from './files';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
@@ -65,6 +65,11 @@ type PreviewCommand = {
   cwd?: string;
   setupCommands?: PreviewCommand[];
 };
+type ProjectExportResponse = {
+  archive?: {
+    base64?: string;
+  };
+};
 export type PreviewServerState = {
   status: 'idle' | 'static' | 'starting' | 'running' | 'stopping' | 'error';
   command?: string;
@@ -122,6 +127,7 @@ const PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES = new Set([
 const PROJECT_STORAGE_SYNC_EXCLUDED_FILES = new Set(['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', '.DS_Store']);
 const PROJECT_STORAGE_SYNC_MAX_FILE_BYTES = 512_000;
 const PROJECT_STORAGE_SYNC_MAX_TOTAL_BYTES = 4_000_000;
+const PROJECT_ARCHIVE_TEXT_DECODER = new TextDecoder('utf-8', { fatal: true });
 
 const IMPORT_TO_RUNTIME_DEPENDENCY: Record<string, string> = {
   '@hookform/resolvers': '@hookform/resolvers',
@@ -420,10 +426,101 @@ export class WorkbenchStore {
   }
 
   async loadRuntimeFiles(rootPath = '.') {
-    await this.#filesStore.reloadFromRuntime(rootPath);
+    let runtimeError: unknown;
+
+    try {
+      await this.#filesStore.reloadFromRuntime(rootPath);
+    } catch (error) {
+      runtimeError = error;
+    }
+
+    if (runtimeError || (this.#projectId && this.#filesStore.filesCount === 0)) {
+      const loadedFromProjectStorage = await this.loadProjectStorageFiles().catch((error) => {
+        if (runtimeError) {
+          throw runtimeError;
+        }
+
+        throw error;
+      });
+
+      if (loadedFromProjectStorage) {
+        return;
+      }
+
+      if (runtimeError) {
+        throw runtimeError;
+      }
+    }
+
     this.setDocuments(this.files.get());
     this.#runtimeFilesLoadedProjectId = this.#projectId;
     this.#dropResolvedMissingImportFailures();
+  }
+
+  async loadProjectStorageFiles() {
+    const projectId = this.#projectId;
+
+    if (!projectId) {
+      return false;
+    }
+
+    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/export/zip`, {
+      credentials: 'include',
+      headers: { accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`project file archive returned ${response.status}`);
+    }
+
+    const payload = (await response.json()) as ProjectExportResponse;
+    const archiveBase64 = payload.archive?.base64;
+
+    if (!archiveBase64) {
+      return false;
+    }
+
+    const files = await this.#projectStorageFilesFromArchive(archiveBase64);
+
+    if (!files.length) {
+      return false;
+    }
+
+    this.#filesStore.replaceWithProjectStorageFiles(files);
+    this.setDocuments(this.files.get());
+    this.#runtimeFilesLoadedProjectId = projectId;
+    this.#dropResolvedMissingImportFailures();
+
+    return true;
+  }
+
+  async #projectStorageFilesFromArchive(archiveBase64: string): Promise<ProjectStorageFile[]> {
+    const zip = await JSZip.loadAsync(archiveBase64, { base64: true });
+    const files: ProjectStorageFile[] = [];
+
+    for (const entry of Object.values(zip.files)) {
+      if (entry.dir) {
+        continue;
+      }
+
+      const bytes = await entry.async('uint8array');
+
+      try {
+        files.push({
+          path: entry.name,
+          content: PROJECT_ARCHIVE_TEXT_DECODER.decode(bytes),
+          isBinary: false,
+        });
+      } catch {
+        files.push({
+          path: entry.name,
+          content: '',
+          isBinary: true,
+        });
+      }
+    }
+
+    return files;
   }
 
   async refreshRuntimePorts() {

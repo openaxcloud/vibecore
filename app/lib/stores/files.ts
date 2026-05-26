@@ -38,6 +38,12 @@ export interface Folder {
   lockedByFolder?: string; // Path of the folder that locked this folder (for nested folders)
 }
 
+export interface ProjectStorageFile {
+  path: string;
+  content: string;
+  isBinary: boolean;
+}
+
 type Dirent = File | Folder;
 
 export type FileMap = Record<string, Dirent | undefined>;
@@ -160,6 +166,38 @@ export class FilesStore {
     nodes.forEach(visit);
     this.#size = fileCount;
     this.files.set(nextFiles);
+    this.#loadLockedFiles();
+  }
+
+  replaceWithProjectStorageFiles(files: ProjectStorageFile[]) {
+    const nextFiles: FileMap = {};
+
+    let fileCount = 0;
+
+    for (const file of files) {
+      const normalizedPath = this.#normalizeProjectStoragePath(file.path);
+
+      if (!normalizedPath) {
+        continue;
+      }
+
+      const workbenchPath = this.#toWorkbenchPath(normalizedPath).replace(/\/+$/g, '');
+
+      if (!workbenchPath || this.#deletedPaths.has(workbenchPath)) {
+        continue;
+      }
+
+      nextFiles[workbenchPath] = {
+        type: 'file',
+        content: file.content,
+        isBinary: file.isBinary,
+      };
+      fileCount++;
+    }
+
+    this.#size = fileCount;
+    this.files.set(nextFiles);
+    this.#cleanupDeletedFiles();
     this.#loadLockedFiles();
   }
 
@@ -983,5 +1021,27 @@ export class FilesStore {
     }
 
     return path.join(WORK_DIR, filePath.replace(/^\/+/, ''));
+  }
+
+  #normalizeProjectStoragePath(filePath: string) {
+    const segments = filePath
+      .replaceAll('\\', '/')
+      .split('/')
+      .filter((segment) => segment && segment !== '.');
+
+    if (!segments.length || segments.some((segment) => segment === '..')) {
+      return undefined;
+    }
+
+    const workDirSegments = WORK_DIR.split('/').filter(Boolean);
+
+    if (
+      segments.length >= workDirSegments.length &&
+      workDirSegments.every((segment, index) => segments[index] === segment)
+    ) {
+      return `/${segments.join('/')}`;
+    }
+
+    return segments.join('/');
   }
 }

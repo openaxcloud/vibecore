@@ -5243,6 +5243,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   pinned: Boolean(tab.pinned),
                 }))}
               changedFiles={projectBackendState.git?.fileStatuses ?? projectBackendState.git?.changedFiles}
+              openFilesOnSelect={useMobileIde}
               onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
               onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
             />
@@ -6504,6 +6505,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                             mobilePanel === 'chat' ? 'editor' : mobilePanel === 'deploy' ? 'editor' : mobilePanel
                           }
                           projectId={projectId}
+                          onMobilePanelChange={(panel) => {
+                            if (panel === 'editor') {
+                              setMobileIdePanel('editor');
+                              setProjectPanelSearchParam('editor');
+                            }
+                          }}
                         />
                       </Suspense>
                     </PanelBoundary>
@@ -8264,6 +8271,7 @@ function ProjectFilesTool({
   unsavedFiles,
   openEditors = [],
   changedFiles = [],
+  openFilesOnSelect = false,
   onFilePreview,
   onFileOpen,
 }: {
@@ -8272,6 +8280,7 @@ function ProjectFilesTool({
   unsavedFiles?: Set<string>;
   openEditors?: Array<{ id: string; filePath?: string; dirty?: boolean; pinned?: boolean }>;
   changedFiles?: unknown[];
+  openFilesOnSelect?: boolean;
   onFilePreview: (filePath: string) => void;
   onFileOpen: (filePath: string) => void;
 }) {
@@ -8366,6 +8375,11 @@ function ProjectFilesTool({
         rootFolder={WORK_DIR}
         selectedFile={selectedFile}
         onFileSelect={(filePath) => {
+          if (openFilesOnSelect) {
+            onFileOpen(filePath);
+            return;
+          }
+
           workbenchStore.setSelectedFile(filePath);
           workbenchStore.currentView.set('code');
           workbenchStore.setShowWorkbench(true);
