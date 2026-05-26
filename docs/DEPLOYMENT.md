@@ -198,6 +198,8 @@ Before declaring billing ready, verify the live API key has not expired
 and that the API pod sees the Pro price ID:
 
 ```bash
+pnpm run production:validate:live
+
 kubectl -n vibecore exec deploy/vibecore-vibecore-platform-api -- sh -lc '
   env | sort | awk -F= "/^STRIPE_/ {
     if ($1 ~ /SECRET/) printf \"%s=<redacted length=%d>\\n\", $1, length($2);

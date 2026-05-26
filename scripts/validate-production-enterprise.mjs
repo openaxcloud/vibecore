@@ -127,6 +127,7 @@ const groups = [
       'STRIPE_SECRET_KEY',
       'STRIPE_WEBHOOK_SECRET',
     ],
+    live: [{ kind: 'stripe-account' }],
   },
   {
     id: 'workspace-sandbox',
@@ -503,7 +504,46 @@ async function liveCheck(check) {
     return { ok: true, target: 'SMTP_HOST' };
   }
 
+  if (check.kind === 'stripe-account') {
+    return stripeAccountLiveCheck();
+  }
+
   return { ok: true, skipped: true };
+}
+
+async function stripeAccountLiveCheck() {
+  const apiKey = valueOf('STRIPE_SECRET_KEY');
+
+  if (!apiKey) {
+    return { ok: false, target: 'STRIPE_SECRET_KEY', reason: 'missing_key' };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+
+  try {
+    const response = await fetch('https://api.stripe.com/v1/account', {
+      headers: { authorization: `Bearer ${apiKey}`, accept: 'application/json' },
+      signal: controller.signal,
+    });
+
+    if (response.ok) {
+      return { ok: true, status: response.status, target: 'Stripe /v1/account' };
+    }
+
+    const body = await response.json().catch(() => ({}));
+    const code = typeof body?.error?.code === 'string' ? body.error.code : undefined;
+    const type = typeof body?.error?.type === 'string' ? body.error.type : undefined;
+
+    return {
+      ok: false,
+      status: response.status,
+      target: 'Stripe /v1/account',
+      reason: code ?? type ?? 'request_failed',
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function runLiveChecks(report) {
@@ -523,7 +563,9 @@ async function runLiveChecks(report) {
 
         if (!result.ok) {
           item.ok = false;
-          item.problems.push(`external connectivity check failed for ${result.target ?? group.label}: ${result.status ?? 'unreachable'}`);
+          item.problems.push(
+            `external connectivity check failed for ${result.target ?? group.label}: ${result.status ?? 'unreachable'}${result.reason ? ` (${result.reason})` : ''}`,
+          );
         }
       } catch (error) {
         item.ok = false;
