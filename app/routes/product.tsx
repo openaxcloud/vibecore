@@ -1,7 +1,6 @@
-import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';
+import { EcodeProductPage, ecodeExactLinks, ecodeProductMeta } from '~/components/marketing/EcodeExactMarketing';
 
-export const meta = makeMarketingMeta(marketingPages.product);
+export const links = ecodeExactLinks;
+export const meta = ecodeProductMeta;
 
-export default function ProductRoute() {
-  return <MarketingStaticPage page={marketingPages.product} />;
-}
+export default EcodeProductPage;
