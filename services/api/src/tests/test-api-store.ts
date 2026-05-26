@@ -37,6 +37,7 @@ import type {
   ProjectRecord,
   ProjectSecretRecord,
   ProjectShareLinkRecord,
+  ProjectStorageObjectRecord,
   ProjectTemplateRecord,
   RecoveryCodeRecord,
   ScimTokenRecord,
@@ -79,6 +80,7 @@ export class TestApiStore implements ApiStore {
   readonly projects = new Map<string, ProjectRecord>();
   readonly workspaces = new Map<string, WorkspaceRecord>();
   readonly snapshots = new Map<string, SnapshotRecord>();
+  readonly projectStorageObjects = new Map<string, ProjectStorageObjectRecord>();
   readonly projectEnvVars = new Map<string, ProjectEnvironmentRecord>();
   readonly projectSecrets = new Map<string, ProjectSecretRecord>();
   readonly projectCollaborators = new Map<string, ProjectCollaboratorRecord>();
@@ -167,7 +169,7 @@ export class TestApiStore implements ApiStore {
       mfaEnabled: input.mfaEnabled ?? user.mfaEnabled,
       mfaSecretEncrypted: input.mfaSecretEncrypted ?? user.mfaSecretEncrypted,
       platformAdmin: input.platformAdmin ?? user.platformAdmin,
-      language: input.language === undefined ? user.language : input.language ?? undefined,
+      language: input.language === undefined ? user.language : (input.language ?? undefined),
     });
 
     return user;
@@ -833,6 +835,29 @@ export class TestApiStore implements ApiStore {
 
   async listSnapshots(projectId: string) {
     return [...this.snapshots.values()].filter((snapshot) => snapshot.projectId === projectId);
+  }
+
+  async putProjectStorageObject(input: {
+    projectId?: string;
+    key: string;
+    kind: ProjectStorageObjectRecord['kind'];
+    contentBase64: string;
+    byteLength: number;
+    contentHash: string;
+  }) {
+    const existing = this.projectStorageObjects.get(input.key);
+    const object: ProjectStorageObjectRecord = {
+      id: existing?.id ?? id('storage_object'),
+      ...input,
+      createdAt: existing?.createdAt ?? now(),
+    };
+    this.projectStorageObjects.set(input.key, object);
+
+    return object;
+  }
+
+  async getProjectStorageObject(key: string) {
+    return this.projectStorageObjects.get(key);
   }
 
   async createDeployment(input: {
@@ -1617,12 +1642,7 @@ export class TestApiStore implements ApiStore {
     return { event, created: true };
   }
 
-  async listEmailDeliveryEvents(filter?: {
-    email?: string;
-    type?: string;
-    emailMessageId?: string;
-    limit?: number;
-  }) {
+  async listEmailDeliveryEvents(filter?: { email?: string; type?: string; emailMessageId?: string; limit?: number }) {
     const limit = Math.min(Math.max(filter?.limit ?? 100, 1), 500);
 
     return this.emailDeliveryEvents

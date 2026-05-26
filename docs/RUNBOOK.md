@@ -16,6 +16,14 @@
 4. If sandbox capacity is exhausted, scale the sandbox node pool.
 5. If PVC provisioning is failing, pause workspace creation and open an incident.
 
+## Project Storage and Snapshots
+
+1. Check `ProjectSnapshotRestoreFailures` and `project_snapshot_restore_failures_total`.
+2. Inspect API logs for `snapshot.local_archive_unavailable`; this means the serving API pod could not read the pod-local archive cache.
+3. Confirm the matching `ProjectStorageObject` row exists for the snapshot `storageKey` and that `contentHash` matches the SHA-256 of `contentBase64`.
+4. If `project_snapshot_restore_fallbacks_total` rises but restores succeed, the durable DB archive fallback is working; investigate pod-local storage churn but do not block users.
+5. If checksum mismatch or missing durable archive occurs, stop snapshot restore for the affected project, export current project files, and open an incident before deleting any project storage rows.
+
 ## AI Provider Degradation
 
 1. Check provider health and `ai_provider_errors_total`.

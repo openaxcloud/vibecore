@@ -8,10 +8,20 @@ class FakeWebSocket implements WebSocketLike {
   sent: Array<string | ArrayBufferLike | Blob | ArrayBufferView> = [];
   listeners = new Map<string, FakeWebSocketListener[]>();
   static instances: FakeWebSocket[] = [];
+  static failNextOpenCount = 0;
 
   constructor(readonly url: string) {
     FakeWebSocket.instances.push(this);
-    queueMicrotask(() => this.emit('open', {}));
+    queueMicrotask(() => {
+      if (FakeWebSocket.failNextOpenCount > 0) {
+        FakeWebSocket.failNextOpenCount -= 1;
+        this.emit('error', {});
+
+        return;
+      }
+
+      this.emit('open', {});
+    });
   }
 
   send(data: string | ArrayBufferLike | Blob | ArrayBufferView) {
@@ -160,6 +170,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
   it('reconnects watch sockets and terminal sockets after disconnects', async () => {
     vi.useFakeTimers();
     FakeWebSocket.instances = [];
+    FakeWebSocket.failNextOpenCount = 0;
 
     const adapter = new RemoteKubernetesRuntimeAdapter({
       baseUrl: 'https://runtime.example.com',
@@ -191,6 +202,72 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
       );
       terminal.kill();
     } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('uses exponential backoff for repeated watch and terminal WebSocket reconnect failures', async () => {
+    vi.useFakeTimers();
+    FakeWebSocket.instances = [];
+    FakeWebSocket.failNextOpenCount = 2;
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token-backoff',
+      workspaceId: 'ws-1',
+      fetchImpl: createFetchMock() as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    try {
+      const changes: string[] = [];
+      const stopWatching = await adapter.watchFiles(['src'], (change) => changes.push(`${change.type}:${change.path}`));
+
+      expect(FakeWebSocket.instances).toHaveLength(1);
+      await vi.advanceTimersByTimeAsync(999);
+      expect(FakeWebSocket.instances).toHaveLength(1);
+      await vi.advanceTimersByTimeAsync(1);
+      await Promise.resolve();
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      await vi.advanceTimersByTimeAsync(1_999);
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      await vi.advanceTimersByTimeAsync(1);
+      await Promise.resolve();
+      expect(FakeWebSocket.instances).toHaveLength(3);
+
+      FakeWebSocket.instances[2].emit('message', { data: JSON.stringify({ type: 'update', path: 'src/App.tsx' }) });
+      expect(changes).toEqual(['update:src/App.tsx']);
+      stopWatching();
+
+      FakeWebSocket.instances = [];
+      FakeWebSocket.failNextOpenCount = 0;
+
+      const terminal = await adapter.openTerminal();
+      expect(FakeWebSocket.instances).toHaveLength(1);
+      FakeWebSocket.failNextOpenCount = 2;
+      FakeWebSocket.instances[0].emit('close', {});
+
+      await vi.advanceTimersByTimeAsync(999);
+      expect(FakeWebSocket.instances).toHaveLength(1);
+      await vi.advanceTimersByTimeAsync(1);
+      await Promise.resolve();
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      await vi.advanceTimersByTimeAsync(1_999);
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      await vi.advanceTimersByTimeAsync(1);
+      await Promise.resolve();
+      expect(FakeWebSocket.instances).toHaveLength(3);
+      await vi.advanceTimersByTimeAsync(3_999);
+      expect(FakeWebSocket.instances).toHaveLength(3);
+      await vi.advanceTimersByTimeAsync(1);
+      await Promise.resolve();
+      expect(FakeWebSocket.instances).toHaveLength(4);
+
+      terminal.write('echo recovered\n');
+      expect(FakeWebSocket.instances[3].sent).toContain(JSON.stringify({ type: 'stdin', data: 'echo recovered\n' }));
+      terminal.kill();
+    } finally {
+      FakeWebSocket.failNextOpenCount = 0;
       vi.useRealTimers();
     }
   });

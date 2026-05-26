@@ -18,13 +18,13 @@ global:
   labels:
     app.kubernetes.io/part-of: vibecore
   workloadIdentity:
-    web: ""
-    admin: ""
-    api: ""
-    worker: ""
-    aiGateway: ""
-    workspaceManager: ""
-    previewProxy: ""
+    web: ''
+    admin: ''
+    api: ''
+    worker: ''
+    aiGateway: ''
+    workspaceManager: ''
+    previewProxy: ''
 
 secrets:
   existingSecret: vibecore-platform-secrets
@@ -69,60 +69,60 @@ secrets:
 # config — none of them are secrets. Mounted via a ConfigMap so they live
 # in version-controlled chart values, not Secret Manager.
 platformEnv:
-  saasApiUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
-  apiBaseUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
-  publicApiBaseUrl: "https://api.e-code.ai"
+  saasApiUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
+  apiBaseUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
+  publicApiBaseUrl: 'https://api.e-code.ai'
   # Comma-separated emails. PlatformAdmin grants global console access
   # (services/api/src/app.ts:2224). Edit cautiously.
-  platformAdminEmails: "avi@snatchbot.me,groupequaliwatt@gmail.com"
+  platformAdminEmails: 'avi@snatchbot.me,groupequaliwatt@gmail.com'
   # Fastify must trust X-Forwarded-* headers because traffic arrives via the
   # GKE ingress (ingress-nginx). Without this, request.ip is always the proxy
   # pod IP, breaking audit logs, rate-limits, and OAuth callback origin checks.
-  trustProxy: "true"
+  trustProxy: 'true'
   # Writable emptyDir mount for API-local project scaffolds and zip/snapshot
   # staging. Durable generated app state lives in workspace PVCs; a shared
   # object-storage backend should replace this for API-local archives.
-  projectStorageDir: "/tmp/vibecore-project-storage"
+  projectStorageDir: '/tmp/vibecore-project-storage'
   # Require TOTP MFA for every PlatformAdmin endpoint. The api defaults to
   # required when the env var is anything other than the string "false"
   # (services/api/src/app.ts:1005), but we set it explicitly here so the
   # policy is auditable from the chart values rather than implicit in code.
-  adminMfaRequired: "true"
+  adminMfaRequired: 'true'
   runtime:
-    mode: "remote-kubernetes"
-    apiBaseUrl: "https://api.e-code.ai/api/runtime"
-    workspaceManagerUrl: "http://vibecore-vibecore-platform-workspace-manager.vibecore.svc:3010"
-    workspaceRuntimeNamespace: "workspaces"
-    workspaceStorageClass: "workspace-standard-rwo"
-    workspaceAgentImage: "europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/workspace-agent:sha-ef77d35"
-    previewUrlTemplate: "https://{workspaceId}-{port}.preview.e-code.ai/p/{workspaceId}/{port}/"
+    mode: 'remote-kubernetes'
+    apiBaseUrl: 'https://api.e-code.ai/api/runtime'
+    workspaceManagerUrl: 'http://vibecore-vibecore-platform-workspace-manager.vibecore.svc:3010'
+    workspaceRuntimeNamespace: 'workspaces'
+    workspaceStorageClass: 'workspace-standard-rwo'
+    workspaceAgentImage: 'europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/workspace-agent:sha-ef77d35'
+    previewUrlTemplate: 'https://{workspaceId}-{port}.preview.e-code.ai/p/{workspaceId}/{port}/'
   email:
-    httpEndpoint: "https://api.resend.com/emails"
-    from: "no-reply@e-code.ai"
+    httpEndpoint: 'https://api.resend.com/emails'
+    from: 'no-reply@e-code.ai'
   # Non-secret Stripe catalog IDs. Populate from `pnpm stripe:seed` after
   # rotating STRIPE_SECRET_KEY; empty values are intentionally omitted from
   # the rendered ConfigMap so they cannot mask Secret-sourced env values.
   stripe:
-    freeProductId: ""
-    freePriceId: ""
-    proProductId: ""
-    proPriceId: ""
-    teamProductId: ""
-    teamPriceId: ""
-    enterpriseProductId: ""
-    enterprisePriceId: ""
+    freeProductId: ''
+    freePriceId: ''
+    proProductId: ''
+    proPriceId: ''
+    teamProductId: ''
+    teamPriceId: ''
+    enterpriseProductId: ''
+    enterprisePriceId: ''
   google:
-    authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth"
-    tokenUrl: "https://oauth2.googleapis.com/token"
-    userinfoUrl: "https://openidconnect.googleapis.com/v1/userinfo"
-    redirectUri: "https://app.e-code.ai/auth/oauth/google/callback"
-    scope: "openid email profile"
+    authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth'
+    tokenUrl: 'https://oauth2.googleapis.com/token'
+    userinfoUrl: 'https://openidconnect.googleapis.com/v1/userinfo'
+    redirectUri: 'https://app.e-code.ai/auth/oauth/google/callback'
+    scope: 'openid email profile'
   github:
-    authorizationUrl: "https://github.com/login/oauth/authorize"
-    tokenUrl: "https://github.com/login/oauth/access_token"
-    userinfoUrl: "https://api.github.com/user"
-    redirectUri: "https://app.e-code.ai/auth/oauth/github/callback"
-    scope: "read:user user:email"
+    authorizationUrl: 'https://github.com/login/oauth/authorize'
+    tokenUrl: 'https://github.com/login/oauth/access_token'
+    userinfoUrl: 'https://api.github.com/user'
+    redirectUri: 'https://app.e-code.ai/auth/oauth/github/callback'
+    scope: 'read:user user:email'
 
 ingress:
   className: nginx
@@ -178,7 +178,7 @@ services:
     # replicas: 1 avoids paying for an idle second worker. Re-evaluate once
     # queue depth justifies a second consumer.
     replicas: 1
-    path: ""
+    path: ''
     # No HTTP listener — background consumer driven by Redis/Postgres.
     # An exec probe keeps liveness honest while the pod has no /health route.
     httpHealth: false
@@ -194,7 +194,7 @@ services:
     path: /ai
     resources:
       requests: { cpu: 250m, memory: 512Mi }
-      limits: { cpu: "1", memory: 1Gi }
+      limits: { cpu: '1', memory: 1Gi }
   workspaceManager:
     enabled: true
     image: workspace-manager
@@ -214,7 +214,7 @@ services:
     port: 3020
     replicas: 2
     path: /
-    host: "*.preview.e-code.ai"
+    host: '*.preview.e-code.ai'
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { cpu: 500m, memory: 512Mi }

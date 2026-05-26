@@ -101,11 +101,13 @@ import {
 } from './mcp-marketplace.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
+  filesFromZipBase64,
   GitCliProvider,
   LocalProjectStorage,
   type GitProvider,
   type ProjectFile,
   type ProjectStorage,
+  type StoredArchive,
 } from './project-storage.js';
 import {
   type ApiStore,
@@ -113,6 +115,7 @@ import {
   type ProjectIdeStateRecord,
   type ProjectRecord,
   type SessionRecord,
+  type SnapshotRecord,
   type WorkspaceRecord,
 } from './store.js';
 
@@ -1601,7 +1604,8 @@ function projectFileManifestFromPersistedInput(input: unknown): {
   exists: boolean;
   files: Array<{ path: string; content: string }>;
 } {
-  const manifest = input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
+  const manifest =
+    input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
   const exists = Array.isArray(manifest.entries);
   return {
     exists,
@@ -1610,7 +1614,8 @@ function projectFileManifestFromPersistedInput(input: unknown): {
 }
 
 function projectFilesFromPersistedFileManifest(input: unknown): Array<{ path: string; content: string }> {
-  const manifest = input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
+  const manifest =
+    input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
   const entries = Array.isArray(manifest.entries) ? manifest.entries : [];
   const files: Array<{ path: string; content: string }> = [];
 
@@ -2311,9 +2316,7 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
 
   let email = profile.email ?? undefined;
   const externalId =
-    profile.id !== undefined && profile.id !== null
-      ? String(profile.id)
-      : profile.sub ?? profile.login;
+    profile.id !== undefined && profile.id !== null ? String(profile.id) : (profile.sub ?? profile.login);
 
   if (!email && provider === 'github' && tokens.access_token) {
     /*
@@ -2333,9 +2336,7 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
         verified?: boolean;
       }>;
       const candidate =
-        emails.find((entry) => entry.primary && entry.verified) ??
-        emails.find((entry) => entry.verified) ??
-        emails[0];
+        emails.find((entry) => entry.primary && entry.verified) ?? emails.find((entry) => entry.verified) ?? emails[0];
 
       if (candidate?.email) {
         email = candidate.email;
@@ -2879,6 +2880,12 @@ async function archiveProjectFiles(projectId: string, files: ProjectFile[]) {
     base64: content.toString('base64'),
     createdAt: new Date().toISOString(),
   };
+}
+
+async function projectFilesFromArchiveBase64(base64: string): Promise<ProjectFile[]> {
+  const updatedAt = new Date().toISOString();
+
+  return (await filesFromZipBase64(base64)).map((file) => ({ ...file, updatedAt }));
 }
 
 type ProjectPackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
@@ -5543,8 +5550,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * filters without a dedicated alert. Everything else (sent,
      * delivered, opened, clicked, delivery_delayed) stays at INFO.
      */
-    const isFailure =
-      eventType === 'email.bounced' || eventType === 'email.complained' || eventType === 'email.failed';
+    const isFailure = eventType === 'email.bounced' || eventType === 'email.complained' || eventType === 'email.failed';
     const logger = isFailure ? request.log.warn.bind(request.log) : request.log.info.bind(request.log);
 
     logger({
@@ -6362,6 +6368,85 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   };
 
+  const persistProjectArchiveObject = async (
+    archive: StoredArchive,
+    input: { projectId: string; kind: 'export' | 'snapshot' | 'before-ai-change' | 'runtime' },
+  ) => {
+    if (!archive.base64) {
+      return undefined;
+    }
+
+    const object = await store.putProjectStorageObject({
+      projectId: input.projectId,
+      key: archive.storageKey,
+      kind: input.kind,
+      contentBase64: archive.base64,
+      byteLength: archive.byteLength,
+      contentHash: createHash('sha256').update(Buffer.from(archive.base64, 'base64')).digest('hex'),
+    });
+
+    metrics.increment('project_archive_objects_total', {
+      operation: 'write',
+      kind: input.kind,
+      backend: 'database',
+    });
+    metrics.increment('project_archive_bytes_total', { kind: input.kind, backend: 'database' }, archive.byteLength);
+
+    return object;
+  };
+
+  const getSnapshotFiles = async (snapshot: SnapshotRecord): Promise<ProjectFile[]> => {
+    if (!snapshot.storageKey) {
+      metrics.increment('project_snapshot_restore_failures_total', { reason: 'missing_storage_key' });
+      throw Object.assign(new Error('Snapshot archive is missing a storage key'), {
+        statusCode: 409,
+        code: 'SNAPSHOT_STORAGE_MISSING',
+      });
+    }
+
+    try {
+      const files = await projectStorage.getSnapshotFiles(snapshot.storageKey);
+
+      if (files.length > 0) {
+        return files;
+      }
+    } catch (error) {
+      app.log.warn(
+        redactSecrets({
+          event: 'snapshot.local_archive_unavailable',
+          snapshotId: snapshot.id,
+          projectId: snapshot.projectId,
+          storageKey: snapshot.storageKey,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+    }
+
+    const object = await store.getProjectStorageObject(snapshot.storageKey);
+
+    if (!object) {
+      metrics.increment('project_snapshot_restore_failures_total', { reason: 'durable_archive_missing' });
+      throw Object.assign(new Error('Snapshot archive is not available on local or durable storage'), {
+        statusCode: 409,
+        code: 'SNAPSHOT_STORAGE_MISSING',
+      });
+    }
+
+    const contentHash = createHash('sha256').update(Buffer.from(object.contentBase64, 'base64')).digest('hex');
+
+    if (contentHash !== object.contentHash) {
+      metrics.increment('project_snapshot_restore_failures_total', { reason: 'checksum_mismatch' });
+      throw Object.assign(new Error('Snapshot archive checksum mismatch'), {
+        statusCode: 409,
+        code: 'SNAPSHOT_STORAGE_CHECKSUM_MISMATCH',
+      });
+    }
+
+    metrics.increment('project_snapshot_restore_fallbacks_total', { backend: 'database' });
+
+    return projectFilesFromArchiveBase64(object.contentBase64);
+  };
+
   const ensureAiQuota = async (request: any, organizationId: string, inputTokens: number, outputTokens = 0) => {
     await ensureQuota(request, organizationId, 'ai.inputTokens', inputTokens);
 
@@ -6373,6 +6458,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const createBeforeAiSnapshot = async (request: any, project: ProjectRecord, reason: string) => {
     const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
     const archive = await projectStorage.createSnapshot({ projectId: project.id, label: reason, files });
+    await persistProjectArchiveObject(archive, { projectId: project.id, kind: 'before-ai-change' });
 
     return store.createSnapshot({
       projectId: project.id,
@@ -8154,7 +8240,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       description: body.description,
       sourceType: 'blank',
     });
-    const files = await projectStorage.writeFiles(project.id, starterFiles({ sourceType: 'blank', name: project.name }));
+    const files = await projectStorage.writeFiles(
+      project.id,
+      starterFiles({ sourceType: 'blank', name: project.name }),
+    );
     await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
@@ -8646,6 +8735,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
     const files = await ensureProjectStorageFromIdeState(store, projectStorage, project.id);
     const archive = await archiveProjectFiles(project.id, files);
+    await persistProjectArchiveObject(archive, { projectId: project.id, kind: 'export' });
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
@@ -9647,6 +9737,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
     const archive = await projectStorage.createSnapshot({ projectId: project.id, label: body.label, files });
+    await persistProjectArchiveObject(archive, {
+      projectId: project.id,
+      kind: body.kind === 'before-ai-change' ? 'before-ai-change' : 'snapshot',
+    });
 
     const snapshot = await store.createSnapshot({
       projectId: project.id,
@@ -9699,6 +9793,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       label: 'Before AI large change',
       files,
     });
+    await persistProjectArchiveObject(archive, { projectId: project.id, kind: 'before-ai-change' });
     const snapshot = await store.createSnapshot({
       projectId: project.id,
       label: 'Before AI large change',
@@ -9745,7 +9840,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       throw Object.assign(new Error('Snapshot not found'), { statusCode: 404, code: 'SNAPSHOT_NOT_FOUND' });
     }
 
-    const snapshotFiles = snapshot.storageKey ? await projectStorage.getSnapshotFiles(snapshot.storageKey) : [];
+    const snapshotFiles = await getSnapshotFiles(snapshot);
     const restored = await projectStorage.restoreSnapshot({ projectId: project.id, files: snapshotFiles });
     await persistProjectFileManifest(store, project.id, restored, request.currentUser!.id, {
       clearRecoveredChatFiles: true,

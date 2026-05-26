@@ -12,9 +12,18 @@
       "type": "timeseries",
       "title": "API latency p50/p95/p99",
       "targets": [
-        { "expr": "histogram_quantile(0.50, sum(rate(api_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p50" },
-        { "expr": "histogram_quantile(0.95, sum(rate(api_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95" },
-        { "expr": "histogram_quantile(0.99, sum(rate(api_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p99" }
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(api_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(api_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(api_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99"
+        }
       ]
     },
     {
@@ -22,7 +31,10 @@
       "type": "timeseries",
       "title": "API error rate",
       "targets": [
-        { "expr": "sum(rate(api_errors_total[5m])) / clamp_min(sum(rate(api_requests_total[5m])), 1)", "legendFormat": "error rate" }
+        {
+          "expr": "sum(rate(api_errors_total[5m])) / clamp_min(sum(rate(api_requests_total[5m])), 1)",
+          "legendFormat": "error rate"
+        }
       ]
     },
     {
@@ -39,7 +51,10 @@
       "type": "timeseries",
       "title": "Workspace start latency",
       "targets": [
-        { "expr": "histogram_quantile(0.95, sum(rate(workspace_start_latency_seconds_bucket[10m])) by (le))", "legendFormat": "p95" }
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(workspace_start_latency_seconds_bucket[10m])) by (le))",
+          "legendFormat": "p95"
+        }
       ]
     },
     {
@@ -62,7 +77,10 @@
       "type": "timeseries",
       "title": "AI tokens and provider errors",
       "targets": [
-        { "expr": "sum(rate(ai_tokens_total[5m])) by (provider, direction)", "legendFormat": "{{provider}} {{direction}}" },
+        {
+          "expr": "sum(rate(ai_tokens_total[5m])) by (provider, direction)",
+          "legendFormat": "{{provider}} {{direction}}"
+        },
         { "expr": "sum(rate(ai_provider_errors_total[5m])) by (provider)", "legendFormat": "{{provider}} errors" }
       ]
     },
@@ -71,8 +89,14 @@
       "type": "timeseries",
       "title": "DB and Redis latency",
       "targets": [
-        { "expr": "histogram_quantile(0.95, sum(rate(db_latency_seconds_bucket[5m])) by (le))", "legendFormat": "db p95" },
-        { "expr": "histogram_quantile(0.95, sum(rate(redis_latency_seconds_bucket[5m])) by (le))", "legendFormat": "redis p95" }
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(db_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "db p95"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(redis_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "redis p95"
+        }
       ]
     },
     {
@@ -92,6 +116,14 @@
         { "expr": "sum(rate(stripe_webhook_failures_total[5m]))", "legendFormat": "stripe webhook failures" },
         { "expr": "sum(rate(abuse_events_total[5m])) by (severity)", "legendFormat": "abuse {{severity}}" },
         { "expr": "sum(storage_usage_bytes)", "legendFormat": "storage bytes" },
+        {
+          "expr": "sum(rate(project_archive_bytes_total[5m])) by (backend, kind)",
+          "legendFormat": "archive bytes {{backend}} {{kind}}"
+        },
+        {
+          "expr": "sum(rate(project_snapshot_restore_fallbacks_total[5m])) by (backend)",
+          "legendFormat": "snapshot fallback {{backend}}"
+        },
         { "expr": "sum(cost_estimate_cents)", "legendFormat": "cost cents" }
       ]
     }
