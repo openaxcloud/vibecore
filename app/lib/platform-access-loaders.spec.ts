@@ -77,7 +77,7 @@ describe('platform access loaders', () => {
       context: {} as never,
     });
 
-    const payload = await response.json();
+    const payload = (await response.json()) as { error?: string };
 
     expect(response.status).toBe(503);
     expect(payload.error).toBe('Stripe price is not configured for this plan');
@@ -107,7 +107,7 @@ describe('platform access loaders', () => {
       context: {} as never,
     });
 
-    const payload = await response.json();
+    const payload = (await response.json()) as { error?: string };
 
     expect(response.status).toBe(503);
     expect(payload.error).toBe('Stripe is not configured');

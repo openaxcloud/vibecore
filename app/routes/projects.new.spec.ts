@@ -119,6 +119,9 @@ describe('projects/new action', () => {
     expect(fromAiBody?.prompt).toEqual(expect.stringContaining('Build a production analytics dashboard'));
 
     const pendingPrompt = ideStateBody?.state?.chat?.pendingPrompt;
+    if (!pendingPrompt) {
+      throw new Error('expected pendingPrompt to be queued in IDE state');
+    }
     expect(pendingPrompt).toMatchObject({
       prompt: fromAiBody?.prompt,
       model: 'gpt-4o',
