@@ -46,6 +46,7 @@ import { FileTree } from '~/components/workbench/FileTree';
 import { Preview } from '~/components/workbench/Preview';
 import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
+import { ProjectEditorToolbar } from '~/components/project-ide/ProjectEditorToolbar';
 import {
   PROJECT_AGENT_PANEL_MIN_WIDTH,
   clampProjectAgentPanelWidth,
@@ -5407,56 +5408,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               className="bolt-project-editor-tool min-h-0 flex-1 overflow-hidden"
               data-testid="responsive-code-editor"
             >
-              <div className="bolt-project-editor-toolbar">
-                <span>{currentDocument?.filePath?.replace(WORK_DIR, '') || 'No file selected'}</span>
-                <button
-                  type="button"
-                  aria-pressed={editorMinimapEnabled}
-                  title={editorMinimapEnabled ? 'Hide minimap' : 'Show minimap'}
-                  onClick={() => setEditorMinimapEnabled((enabled) => !enabled)}
-                  disabled={!currentDocument}
-                >
-                  Minimap
-                </button>
-                <button type="button" onClick={() => workbenchStore.resetCurrentDocument()} disabled={!currentDocument}>
-                  Format
-                </button>
-                <button
-                  type="button"
-                  onClick={() => runProjectEditorCommand('goToDefinition')}
-                  disabled={!currentDocument}
-                  title="Go to definition"
-                >
-                  Definition
-                </button>
-                <button
-                  type="button"
-                  onClick={() => runProjectEditorCommand('findReferences')}
-                  disabled={!currentDocument}
-                  title="Find references"
-                >
-                  References
-                </button>
-                <button
-                  type="button"
-                  onClick={() => runProjectEditorCommand('renameSymbol')}
-                  disabled={!currentDocument}
-                  title="Rename symbol"
-                >
-                  Rename
-                </button>
-                <button
-                  type="button"
-                  onClick={() => runProjectEditorCommand('refactor')}
-                  disabled={!currentDocument}
-                  title="Open refactor menu"
-                >
-                  Refactor
-                </button>
-                <button type="button" onClick={onProjectEditorSave} disabled={!currentDocument}>
-                  Save
-                </button>
-              </div>
+              <ProjectEditorToolbar
+                fileLabel={currentDocument?.filePath?.replace(WORK_DIR, '') || 'No file selected'}
+                hasDocument={Boolean(currentDocument)}
+                minimapEnabled={editorMinimapEnabled}
+                onToggleMinimap={() => setEditorMinimapEnabled((enabled) => !enabled)}
+                onFormat={() => workbenchStore.resetCurrentDocument()}
+                onGoToDefinition={() => runProjectEditorCommand('goToDefinition')}
+                onFindReferences={() => runProjectEditorCommand('findReferences')}
+                onRenameSymbol={() => runProjectEditorCommand('renameSymbol')}
+                onRefactor={() => runProjectEditorCommand('refactor')}
+                onSave={onProjectEditorSave}
+              />
               {currentDocument && !currentDocument.isBinary ? (
                 <EditorAdapter
                   className="bolt-project-editor-adapter"

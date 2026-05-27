@@ -7693,10 +7693,70 @@ body :where(.lucide, svg[data-lucide]) {
   height: 36px;
   min-height: 36px;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   border-bottom: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-panel);
   padding: 0 8px;
+}
+
+.bolt-project-editor-toolbar-actions,
+.bolt-project-editor-toolbar-group,
+.vc-editor-header-actions,
+.vc-editor-header-action-group {
+  display: inline-flex;
+  align-items: center;
+}
+
+.bolt-project-editor-toolbar-actions,
+.vc-editor-header-actions {
+  min-width: 0;
+  flex: 0 1 auto;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.bolt-project-editor-toolbar-actions::-webkit-scrollbar,
+.vc-editor-header-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.bolt-project-editor-toolbar-group,
+.vc-editor-header-action-group {
+  flex: 0 0 auto;
+  gap: 2px;
+}
+
+.bolt-project-editor-toolbar-divider,
+.vc-editor-header-action-divider {
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin: 0 4px;
+  background: color-mix(in srgb, var(--vc-ide-border-visible), transparent 18%);
+}
+
+.bolt-project-editor-save-button,
+.vc-editor-header-save-button {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 58%) !important;
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 90%) !important;
+  color: var(--vc-ide-accent-action) !important;
+  font-weight: 700;
+}
+
+.bolt-project-editor-save-button:hover:not(:disabled),
+.vc-editor-header-save-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 28%) !important;
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 82%) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-editor-save-button:disabled {
+  border-color: transparent !important;
+  background: transparent !important;
+  color: var(--vc-ide-text-muted) !important;
+  font-weight: 600;
 }
 
 .bolt-project-console-header {
@@ -7750,7 +7810,7 @@ body :where(.lucide, svg[data-lucide]) {
   white-space: nowrap;
 }
 
-.bolt-project-editor-toolbar span {
+.bolt-project-editor-toolbar-file {
   min-width: 0;
   flex: 1;
   overflow: hidden;
@@ -12623,6 +12683,17 @@ button.bolt-project-statusbar-pill:focus-visible,
 }
 
 @media (pointer: coarse), (max-width: 768px) {
+  .bolt-project-editor-toolbar {
+    height: 48px;
+    min-height: 48px;
+  }
+
+  .bolt-project-editor-toolbar-divider,
+  .vc-editor-header-action-divider {
+    height: 22px;
+    margin-inline: 2px;
+  }
+
   .bolt-project-ide-shell
     :is(
       .bolt-project-topbar-icon-button,
@@ -12991,7 +13062,7 @@ button.bolt-project-statusbar-pill:focus-visible,
   :where(
     .bolt-project-tab,
     .bolt-project-right-tab,
-    .bolt-project-editor-toolbar span,
+    .bolt-project-editor-toolbar-file,
     .bolt-project-webview-toolbar input,
     .bolt-project-webview-toolbar select,
     .bolt-project-console-header select,
@@ -13003,6 +13074,18 @@ button.bolt-project-statusbar-pill:focus-visible,
   ) {
   border-color: var(--vc-ide-border-subtle) !important;
   color: var(--vc-ide-text-secondary) !important;
+}
+
+.bolt-project-ide-shell .bolt-project-editor-save-button:not(:disabled) {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 58%) !important;
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 90%) !important;
+  color: var(--vc-ide-accent-action) !important;
+}
+
+.bolt-project-ide-shell .bolt-project-editor-save-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 28%) !important;
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 82%) !important;
+  color: var(--vc-ide-text-primary) !important;
 }
 
 .bolt-project-ide-shell :where(.bolt-project-right-panel-content, .bolt-project-files-tool, .bolt-project-file-tree) {

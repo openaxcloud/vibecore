@@ -169,37 +169,45 @@ export const EditorPanel = memo(
           {activeFileSegments?.length && (
             <div className="flex items-center flex-1 text-sm">
               <FileBreadcrumb pathSegments={activeFileSegments} files={files} onFileSelect={onFileSelect} />
-              <div className="flex gap-1 ml-auto -mr-1.5">
+              <div className="vc-editor-header-actions ml-auto -mr-1.5">
                 {!useMobilePanelLayout && (
                   <>
-                    <PanelHeaderButton onClick={() => runEditorCommand('goToDefinition')}>
-                      <div className="i-ph:crosshair-simple-duotone" />
-                      Definition
-                    </PanelHeaderButton>
-                    <PanelHeaderButton onClick={() => runEditorCommand('findReferences')}>
-                      <div className="i-ph:list-magnifying-glass-duotone" />
-                      References
-                    </PanelHeaderButton>
-                    <PanelHeaderButton onClick={() => runEditorCommand('renameSymbol')}>
-                      <div className="i-ph:textbox-duotone" />
-                      Rename
-                    </PanelHeaderButton>
-                    <PanelHeaderButton onClick={() => runEditorCommand('refactor')}>
-                      <div className="i-ph:magic-wand-duotone" />
-                      Refactor
-                    </PanelHeaderButton>
+                    <div className="vc-editor-header-action-group" data-toolbar-group="navigation">
+                      <PanelHeaderButton onClick={() => runEditorCommand('goToDefinition')}>
+                        <div className="i-ph:crosshair-simple-duotone" />
+                        Definition
+                      </PanelHeaderButton>
+                      <PanelHeaderButton onClick={() => runEditorCommand('findReferences')}>
+                        <div className="i-ph:list-magnifying-glass-duotone" />
+                        References
+                      </PanelHeaderButton>
+                    </div>
+                    <span className="vc-editor-header-action-divider" aria-hidden="true" />
+                    <div className="vc-editor-header-action-group" data-toolbar-group="editing">
+                      <PanelHeaderButton onClick={() => runEditorCommand('renameSymbol')}>
+                        <div className="i-ph:textbox-duotone" />
+                        Rename
+                      </PanelHeaderButton>
+                      <PanelHeaderButton onClick={() => runEditorCommand('refactor')}>
+                        <div className="i-ph:magic-wand-duotone" />
+                        Refactor
+                      </PanelHeaderButton>
+                    </div>
                   </>
                 )}
                 {activeFileUnsaved && (
                   <>
-                    <PanelHeaderButton onClick={onFileSave}>
-                      <div className="i-ph:floppy-disk-duotone" />
-                      Save
-                    </PanelHeaderButton>
-                    <PanelHeaderButton onClick={onFileReset}>
-                      <div className="i-ph:clock-counter-clockwise-duotone" />
-                      Reset
-                    </PanelHeaderButton>
+                    {!useMobilePanelLayout && <span className="vc-editor-header-action-divider" aria-hidden="true" />}
+                    <div className="vc-editor-header-action-group" data-toolbar-group="save">
+                      <PanelHeaderButton className="vc-editor-header-save-button" onClick={onFileSave}>
+                        <div className="i-ph:floppy-disk-duotone" />
+                        Save
+                      </PanelHeaderButton>
+                      <PanelHeaderButton onClick={onFileReset}>
+                        <div className="i-ph:clock-counter-clockwise-duotone" />
+                        Reset
+                      </PanelHeaderButton>
+                    </div>
                   </>
                 )}
               </div>
