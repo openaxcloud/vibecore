@@ -5,6 +5,11 @@ import { renderHeadToString } from 'remix-island';
 import { Head } from './root';
 import { themeStore } from '~/lib/stores/theme';
 
+export function applyDocumentIsolationHeaders(responseHeaders: Headers) {
+  responseHeaders.set('Cross-Origin-Embedder-Policy', 'credentialless');
+  responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+}
+
 export default async function handleRequest(
   request: Request,
   responseStatusCode: number,
@@ -75,9 +80,7 @@ export default async function handleRequest(
   });
 
   responseHeaders.set('Content-Type', 'text/html');
-
-  responseHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
-  responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+  applyDocumentIsolationHeaders(responseHeaders);
 
   return new Response(body, {
     headers: responseHeaders,
