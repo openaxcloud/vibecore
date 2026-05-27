@@ -74,7 +74,7 @@ export default function PricingPage() {
                 ))}
               </ul>
               <div className="mt-6">
-                <LinkButton to={plan.name === 'Enterprise' ? '/contact-sales' : '/signup'}>
+                <LinkButton to={plan.name === 'Enterprise' ? '/contact-sales' : 'https://app.e-code.ai/register'}>
                   {plan.name === 'Enterprise' ? 'Contact sales' : 'Start'}
                 </LinkButton>
               </div>

@@ -1,4 +1,5 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
+import type { LoaderFunctionArgs, MetaFunction } from '@remix-run/cloudflare';
+import { redirect } from '@remix-run/cloudflare';
 import { Form, Link } from '@remix-run/react';
 import {
   Activity,
@@ -36,6 +37,22 @@ export const meta: MetaFunction = () => [
       'E-Code combines a VS Code-class cloud IDE, AI agents, Cloud Run deployment, and native mobile workflows on Google Cloud.',
   },
 ];
+
+/*
+ * Host-based routing: `e-code.ai` (and `www.e-code.ai`) serve the marketing
+ * landing page. `app.e-code.ai` is the product surface — visitors landing
+ * on `/` there are sent to the dashboard, whose loader gates auth and
+ * bounces to `/login` when no session is present.
+ */
+export async function loader({ request }: LoaderFunctionArgs) {
+  const host = request.headers.get('host')?.toLowerCase() ?? '';
+
+  if (host === 'app.e-code.ai') {
+    return redirect('/dashboard');
+  }
+
+  return null;
+}
 
 const heroImage = '/assets/hero-image.svg';
 const cloudImage = '/assets/hero-image.svg';
@@ -175,7 +192,7 @@ export default function LandingPage() {
               The GCP-native workspace where teams create, run, review, and deploy real applications with AI agents and
               production controls. Build, run, collaborate, and deploy production apps with AI agents.
             </p>
-            <Form method="get" action="/signup" className="vc-home-builder-form" id="builder">
+            <Form method="get" action="https://app.e-code.ai/register" className="vc-home-builder-form" id="builder">
               <label htmlFor="homepage-prompt">Describe the app you want to build</label>
               <div>
                 <input
@@ -192,7 +209,7 @@ export default function LandingPage() {
               </div>
             </Form>
             <div className="vc-home-hero-actions">
-              <LinkButton to="/signup">Get started</LinkButton>
+              <LinkButton to="https://app.e-code.ai/register">Get started</LinkButton>
               <LinkButton to="/contact-sales" variant="outline">
                 Contact sales
               </LinkButton>
@@ -449,7 +466,7 @@ export default function LandingPage() {
             <p>Start with AI, keep the IDE, validate the preview and move toward deployment without swapping tools.</p>
           </div>
           <div className="vc-home-cta-actions">
-            <LinkButton to="/signup">Start building free</LinkButton>
+            <LinkButton to="https://app.e-code.ai/register">Start building free</LinkButton>
             <LinkButton to="/contact-sales" variant="outline">
               Contact sales
             </LinkButton>
