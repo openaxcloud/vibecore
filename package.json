@@ -351,6 +351,7 @@
       "defu": "^6.1.7",
       "lodash": "^4.18.1",
       "rollup": "^4.59.0",
+      "tmp": "^0.2.6",
       "app-builder-lib": "^26.8.1",
       "dmg-builder": "^26.8.1",
       "electron-builder-squirrel-windows": "^26.8.1"
