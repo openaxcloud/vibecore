@@ -41,6 +41,45 @@ export interface EditorAdapterProps extends EditorAdapterValue {
   onSave?: () => void;
 }
 
+export const editorMinimapPreviewOptions = {
+  autohide: false,
+  side: 'right',
+  size: 'proportional',
+  showSlider: 'always',
+  renderCharacters: true,
+  maxColumn: 140,
+  scale: 1.35,
+} satisfies Omit<MonacoTypes.editor.IEditorMinimapOptions, 'enabled'>;
+
+export function getEditorMinimapOptions({
+  largeFile,
+  minimapEnabled,
+}: {
+  largeFile?: boolean;
+  minimapEnabled?: boolean;
+}): MonacoTypes.editor.IEditorMinimapOptions {
+  const enabled = !largeFile && minimapEnabled !== false;
+
+  return enabled ? { enabled, ...editorMinimapPreviewOptions } : { enabled: false };
+}
+
+const monacoMinimapThemeColors = {
+  dark: {
+    'minimap.background': '#0A0F1C',
+    'minimap.foregroundOpacity': '#F5F9FCCC',
+    'minimapSlider.background': '#0099FF2E',
+    'minimapSlider.hoverBackground': '#0099FF52',
+    'minimapSlider.activeBackground': '#0099FF7A',
+  },
+  light: {
+    'minimap.background': '#F8FAFC',
+    'minimap.foregroundOpacity': '#0F172ACC',
+    'minimapSlider.background': '#006ADC24',
+    'minimapSlider.hoverBackground': '#006ADC42',
+    'minimapSlider.activeBackground': '#006ADC66',
+  },
+} as const;
+
 export interface ResponsiveLayoutState {
   breakpoint: EditorBreakpoint;
   isDesktop: boolean;
@@ -727,6 +766,17 @@ export function DesktopCodeEditor({
           'editorError.foreground': '#F85149',
           'editorWarning.foreground': '#D29922',
           'editorGutter.background': '#0A0F1C',
+          ...monacoMinimapThemeColors.dark,
+        },
+      });
+      monaco.editor.defineTheme('vibecore-vs-light', {
+        base: 'vs',
+        inherit: true,
+        rules: [],
+        colors: {
+          'editor.background': '#FFFFFF',
+          'editor.foreground': '#0F172A',
+          ...monacoMinimapThemeColors.light,
         },
       });
 
@@ -734,7 +784,7 @@ export function DesktopCodeEditor({
         model: currentModel,
         readOnly,
         automaticLayout: true,
-        minimap: { enabled: !largeFile && minimapEnabled },
+        minimap: getEditorMinimapOptions({ largeFile, minimapEnabled }),
         fontSize: 13,
         fontFamily: '"JetBrains Mono", "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace',
         fontLigatures: !largeFile,
@@ -774,7 +824,7 @@ export function DesktopCodeEditor({
         },
         roundedSelection: false,
         overviewRulerBorder: false,
-        theme: theme === 'dark' ? 'vibecore-vs-dark' : 'vs',
+        theme: theme === 'dark' ? 'vibecore-vs-dark' : 'vibecore-vs-light',
         padding: { top: 12, bottom: 12 },
       });
 
@@ -874,7 +924,7 @@ export function DesktopCodeEditor({
 
     editor.updateOptions({
       readOnly,
-      minimap: { enabled: !largeFile && minimapEnabled },
+      minimap: getEditorMinimapOptions({ largeFile, minimapEnabled }),
       wordWrap: largeFile ? 'off' : 'on',
       fontLigatures: !largeFile,
       inlineSuggest: { enabled: !largeFile },
@@ -936,7 +986,7 @@ export function DesktopCodeEditor({
   }, [filePath, language, largeFile, minimapEnabled, projectFiles, readOnly, value]);
 
   useEffect(() => {
-    monacoRef.current?.editor.setTheme(theme === 'dark' ? 'vibecore-vs-dark' : 'vs');
+    monacoRef.current?.editor.setTheme(theme === 'dark' ? 'vibecore-vs-dark' : 'vibecore-vs-light');
   }, [theme]);
 
   useEffect(() => {

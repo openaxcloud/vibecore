@@ -4,6 +4,7 @@ import {
   editorBreakpoints,
   editorKindForLayout,
   extractWorkspaceSymbols,
+  getEditorMinimapOptions,
   getResponsiveLayoutState,
   isWorkspaceSemanticFile,
   languageForPath,
@@ -40,6 +41,21 @@ describe('responsive editor layout', () => {
     expect(editorKindForLayout(getResponsiveLayoutState(1024, 768))).toBe('codemirror');
     expect(editorKindForLayout(getResponsiveLayoutState(820, 1180))).toBe('codemirror');
     expect(editorKindForLayout(getResponsiveLayoutState(390, 844))).toBe('codemirror');
+  });
+
+  it('enables a readable Monaco minimap with a visible viewport slider', () => {
+    expect(getEditorMinimapOptions({ minimapEnabled: true })).toMatchObject({
+      enabled: true,
+      autohide: false,
+      renderCharacters: true,
+      showSlider: 'always',
+      side: 'right',
+      size: 'proportional',
+      maxColumn: 140,
+      scale: 1.35,
+    });
+    expect(getEditorMinimapOptions({ minimapEnabled: false })).toEqual({ enabled: false });
+    expect(getEditorMinimapOptions({ minimapEnabled: true, largeFile: true })).toEqual({ enabled: false });
   });
 });
 
