@@ -47,9 +47,10 @@ jobs:
 
       - name: Start local dependencies
         run: |
+          trap 'docker compose --env-file .env -f docker-compose.dev.yml ps; docker compose --env-file .env -f docker-compose.dev.yml logs --tail=120 postgres redis mailpit' ERR
           touch .env
           docker compose --env-file .env -f docker-compose.dev.yml up -d postgres redis mailpit
-          npx wait-on tcp:127.0.0.1:55432 tcp:127.0.0.1:56379 http://127.0.0.1:8025/api/v1/info
+          npx wait-on --timeout 180000 --interval 1000 tcp:127.0.0.1:55432 tcp:127.0.0.1:56379 tcp:127.0.0.1:8025
 
       - name: Prepare database
         run: |
@@ -60,13 +61,13 @@ jobs:
         run: |
           pnpm --filter @vibecore/api dev > /tmp/vibecore-api.log 2>&1 &
           echo $! > /tmp/vibecore-api.pid
-          npx wait-on http://127.0.0.1:3001/health
+          npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:3001/health
 
       - name: Start web app
         run: |
           VITE_DEV_HOST=127.0.0.1 VITE_DEV_PORT=5173 VITE_STRICT_PORT=true pnpm run dev > /tmp/vibecore-web.log 2>&1 &
           echo $! > /tmp/vibecore-web.pid
-          npx wait-on http://127.0.0.1:5173
+          npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:5173
 
       - name: Playwright auth, project, IDE, terminal, preview, billing mock flows
         run: pnpm exec playwright test tests/e2e --project=chromium
