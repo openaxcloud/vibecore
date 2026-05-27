@@ -77,7 +77,7 @@ export type PreviewServerState = {
   error?: string;
 };
 
-export type WorkbenchViewType = 'code' | 'diff' | 'preview';
+export type WorkbenchViewType = 'code' | 'diff' | 'preview' | 'git';
 export type ProjectFilesPanelRequest = {
   open?: boolean;
   requestId: number;

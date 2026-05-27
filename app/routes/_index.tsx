@@ -1,7 +1,6 @@
 import type { LoaderFunctionArgs, MetaFunction } from '@remix-run/cloudflare';
 import { redirect } from '@remix-run/cloudflare';
 import { Form, Link } from '@remix-run/react';
-import { readSessionToken } from '~/lib/enterprise-api.server';
 import {
   Activity,
   ArrowRight,
@@ -29,6 +28,7 @@ import {
   SiTypescript,
 } from 'react-icons/si';
 import { PublicShell, LinkButton, TemplateGallery } from '~/components/dashboard/SaaSLayout';
+import { readSessionToken } from '~/lib/enterprise-api.server';
 
 export const meta: MetaFunction = () => [
   { title: 'E-Code - Native cloud IDE for AI software teams' },
