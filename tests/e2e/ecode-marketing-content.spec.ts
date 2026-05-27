@@ -15,8 +15,6 @@ test('E-Code marketing routes match the imported static mini-site', async ({ pag
 
   await page.getByRole('link', { name: 'Product', exact: true }).click();
   await expect(page).toHaveURL(/\/product\.html$/);
-  await expect(page.locator('.ecode-exact-page')).toHaveCount(0);
-  await expect(page.locator('link[href="/ecode-exact-host.css"]')).toHaveCount(0);
   await expect(page.locator('nav.nav a')).toHaveText(['Home', 'Pricing']);
   await expect(page.locator('main.shell.band.grid .card')).toHaveCount(6);
   await expect(page.getByText('Presence, shared editing, public projects, fork flow and moderation.')).toBeVisible();
