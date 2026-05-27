@@ -25,7 +25,13 @@ jobs:
       REDIS_PORT: 56379
       API_HOST: 127.0.0.1
       API_PORT: 3001
+      API_BASE_URL: http://127.0.0.1:3001
+      SAAS_API_URL: http://127.0.0.1:3001
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -45,6 +51,13 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Validate AI provider secret for E2E
+        run: |
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            echo "Production E2E requires ANTHROPIC_API_KEY because the default IDE model is Anthropic."
+            exit 1
+          fi
+
       - name: Start local dependencies
         run: |
           trap 'docker compose --env-file .env -f docker-compose.dev.yml ps; docker compose --env-file .env -f docker-compose.dev.yml logs --tail=120 postgres redis mailpit' ERR
@@ -63,9 +76,12 @@ jobs:
           echo $! > /tmp/vibecore-api.pid
           npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:3001/health
 
+      - name: Build web app
+        run: pnpm run build
+
       - name: Start web app
         run: |
-          VITE_DEV_HOST=127.0.0.1 VITE_DEV_PORT=5173 VITE_STRICT_PORT=true pnpm run dev > /tmp/vibecore-web.log 2>&1 &
+          HOST=127.0.0.1 PORT=5173 NODE_ENV=production pnpm run start:node > /tmp/vibecore-web.log 2>&1 &
           echo $! > /tmp/vibecore-web.pid
           npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:5173
 
