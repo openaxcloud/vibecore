@@ -235,4 +235,116 @@ describe('GitCliProvider workspace isolation', () => {
 
     await app.close();
   }, 120_000);
+
+  it('keeps a commit in one workspace out of another workspace of the same project', async () => {
+    const parent = await mkdtemp(join(tmpdir(), 'vibecore-two-workspace-'));
+    const storage = join(parent, '.vibecore-project-storage');
+    process.env.PROJECT_STORAGE_DIR = storage;
+
+    class TestEmailProvider implements EmailProvider {
+      readonly messages: EmailMessage[] = [];
+
+      async send(message: EmailMessage) {
+        this.messages.push(message);
+      }
+    }
+
+    const store = new TestApiStore();
+    const gitProvider = new GitCliProvider();
+    const app = await buildApiApp({
+      store,
+      emailProvider: new TestEmailProvider(),
+      projectStorage: new LocalProjectStorage(),
+      gitProvider,
+    });
+
+    const registered = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: {
+        email: 'two-workspace-isolation@example.com',
+        password: 'password123',
+        name: 'Two Workspace Owner',
+        organizationName: 'Two Workspace Org',
+      },
+    });
+    expect(registered.statusCode).toBe(201);
+
+    const auth = registered.json() as { token: string; organization: { id: string } };
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Two workspace isolation' },
+    });
+    expect(created.statusCode).toBe(201);
+    const projectId = created.json().project.id as string;
+
+    // Workspace A goes through the public endpoint (consumes the free
+    // plan's single-workspace allocation). Workspace B is created
+    // directly on the store to bypass the quota in tests; the resolver
+    // and gitProvider still treat it as a real secondary workspace.
+    const workspaceAResponse = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/workspaces`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Workspace A', runtimeMode: 'remote-kubernetes' },
+    });
+    expect(workspaceAResponse.statusCode).toBe(201);
+    const workspaceA = workspaceAResponse.json().workspace as { id: string; gitPath?: string };
+
+    const workspaceB = await store.createWorkspace({
+      projectId,
+      name: 'Workspace B',
+      runtimeMode: 'remote-kubernetes',
+    });
+    expect(workspaceA.gitPath).toBe(`.vibecore-workspaces/${workspaceA.id}`);
+    expect(workspaceB.gitPath).toBe(`.vibecore-workspaces/${workspaceB.id}`);
+
+    // The first-created workspace (A) is the primary one and is
+    // collapsed onto the project root by resolveGitWorkspaceId. We make
+    // workspace B's tree commit something unique. The commit endpoint
+    // itself re-syncs the project tree from the persisted IDE manifest
+    // (which would wipe B's working copy before staging), so we drive
+    // the gitProvider directly here — the audit's concern is whether
+    // the per-workspace gitPath actually isolates history, not how the
+    // commit endpoint interacts with manifest sync.
+    const workspaceBPath = join(storage, projectId, '.vibecore-workspaces', workspaceB.id);
+    await mkdir(workspaceBPath, { recursive: true });
+    await writeFile(join(workspaceBPath, 'isolation-marker.txt'), 'only-in-workspace-b');
+
+    const commit = await gitProvider.commit({
+      projectId,
+      workspaceId: workspaceB.id,
+      message: 'workspace-b-only-commit',
+      files: [],
+    });
+    expect(commit.message).toBe('workspace-b-only-commit');
+
+    const workspaceBGraph = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/git/graph?workspaceId=${encodeURIComponent(workspaceB.id)}`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(workspaceBGraph.statusCode).toBe(200);
+    expect(JSON.stringify(workspaceBGraph.json())).toContain('workspace-b-only-commit');
+
+    const workspaceAGraph = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/git/graph?workspaceId=${encodeURIComponent(workspaceA.id)}`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(workspaceAGraph.statusCode).toBe(200);
+    expect(JSON.stringify(workspaceAGraph.json())).not.toContain('workspace-b-only-commit');
+
+    const workspaceAStatus = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/git/status?workspaceId=${encodeURIComponent(workspaceA.id)}`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(workspaceAStatus.statusCode).toBe(200);
+    expect(workspaceAStatus.json().status.changedFiles).not.toContain('isolation-marker.txt');
+
+    await app.close();
+  }, 120_000);
 });

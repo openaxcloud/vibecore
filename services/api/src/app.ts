@@ -6632,8 +6632,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         body: JSON.stringify({ snapshotId: input.snapshotId }),
       });
     } else if (toolName === 'commit_to_git') {
+      const gitWorkspaceId = await resolveGitWorkspaceId(store, project.id, input.workspaceId);
       output = await gitProvider.commit({
         projectId: project.id,
+        workspaceId: gitWorkspaceId,
         message: input.message ?? 'AI changes',
         files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id),
       });
