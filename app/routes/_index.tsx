@@ -1,6 +1,7 @@
 import type { LoaderFunctionArgs, MetaFunction } from '@remix-run/cloudflare';
 import { redirect } from '@remix-run/cloudflare';
 import { Form, Link } from '@remix-run/react';
+import { readSessionToken } from '~/lib/enterprise-api.server';
 import {
   Activity,
   ArrowRight,
@@ -41,14 +42,16 @@ export const meta: MetaFunction = () => [
 /*
  * Host-based routing: `e-code.ai` (and `www.e-code.ai`) serve the marketing
  * landing page. `app.e-code.ai` is the product surface — visitors landing
- * on `/` there are sent to the dashboard, whose loader gates auth and
- * bounces to `/login` when no session is present.
+ * on `/` there are sent straight to `/dashboard` if they have a session
+ * cookie, otherwise to `/login`. The dashboard loader itself surfaces a
+ * 401 on missing/invalid sessions rather than redirecting, so we have to
+ * pick the destination here.
  */
 export async function loader({ request }: LoaderFunctionArgs) {
   const host = request.headers.get('host')?.toLowerCase() ?? '';
 
   if (host === 'app.e-code.ai') {
-    return redirect('/dashboard');
+    return redirect(readSessionToken(request) ? '/dashboard' : '/login');
   }
 
   return null;
