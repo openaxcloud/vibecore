@@ -6158,6 +6158,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-ide-icon-button {
+  position: relative;
   display: inline-flex;
   width: 26px;
   height: 26px;
@@ -6181,6 +6182,33 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-ide-icon-button:active {
   transform: scale(0.96);
+}
+
+.bolt-project-ide-icon-button--danger:hover {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-danger, #dc2626) 55%, transparent);
+  background: color-mix(in srgb, var(--vc-ide-accent-danger, #dc2626) 12%, var(--vc-ide-bg-hover));
+  color: var(--vc-ide-accent-danger, #dc2626);
+}
+
+.bolt-project-collaboration-button {
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-project-collaboration-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 14px;
+  height: 14px;
+  border: 1px solid var(--vc-ide-bg-panel);
+  border-radius: 999px;
+  background: var(--vc-ide-accent-action);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 12px;
+  text-align: center;
+  padding: 0 3px;
 }
 
 .bolt-project-agent-shell {

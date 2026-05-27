@@ -11,10 +11,11 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { projectIdePath } from '~/utils/project-url';
 
 export const meta: MetaFunction = () => [{ title: 'Import zip - VibeCore' }];
 
-type Project = { id: string };
+type Project = { id: string; slug?: string };
 
 function base64FromArrayBuffer(buffer: ArrayBuffer) {
   const bytes = new Uint8Array(buffer);
@@ -53,7 +54,9 @@ export async function action({ request }: EnterpriseActionArgs) {
     body: JSON.stringify({ name, zipBase64: base64FromArrayBuffer(await archive.arrayBuffer()) }),
   });
 
-  return redirect(`/projects/${result.project.id}/ide`);
+  return redirect(
+    projectIdePath({ id: result.project.id, slug: result.project.slug, organizationSlug: organization.slug }),
+  );
 }
 
 export default function ImportZipPage() {

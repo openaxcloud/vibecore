@@ -41,7 +41,11 @@ export async function bootstrapMobileApp(options: MobileBootstrapOptions = {}) {
 
   await configureChrome();
   cleanup.push(await configureDeepLinks(options.onDeepLink));
-  cleanup.push(config.allowPushNotifications ? await configurePushNotifications(options.onPushToken, options.onPushAction) : () => undefined);
+  cleanup.push(
+    config.allowPushNotifications
+      ? await configurePushNotifications(options.onPushToken, options.onPushAction)
+      : () => undefined,
+  );
   cleanup.push(configureOfflineState(options.onOfflineChange));
   cleanup.push(configureCrashReporting(options.onCrashReport));
 
@@ -92,6 +96,12 @@ export function parseDeepLink(value: string): URL | undefined {
   }
 
   return undefined;
+}
+
+export function routeFromDeepLink(url: URL) {
+  const path = url.protocol === 'vibecore:' && url.host ? `/${url.host}${url.pathname}` : url.pathname;
+
+  return `${path}${url.search}${url.hash}`;
 }
 
 export async function configurePushNotifications(

@@ -14,6 +14,7 @@ import {
 } from 'chart.js';
 import type { JSONValue, Message } from 'ai';
 import Cookies from 'js-cookie';
+import { Copy, Download, Trash2, Users } from 'lucide-react';
 import React, { lazy, Suspense, type RefCallback, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
@@ -36,7 +37,6 @@ import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-ap
 import GitCloneButton from './GitCloneButton';
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
 import { Messages } from './Messages.client';
-import { PresenceAvatars } from './PresenceAvatars';
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { Menu } from '~/components/sidebar/Menu.client';
@@ -971,6 +971,154 @@ function devServerStatusText(input: {
   }
 
   return 'Dev: idle';
+}
+
+const PRESENCE_STATUS_WEIGHT: Record<string, number> = {
+  online: 3,
+  viewing: 3,
+  editing: 3,
+  typing: 4,
+  idle: 2,
+};
+
+function presenceTimestamp(user: any) {
+  const parsed = Date.parse(String(user?.updatedAt ?? ''));
+
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function presenceIdentity(user: any) {
+  const userId = String(user?.userId ?? '').trim();
+
+  if (userId) {
+    return `user:${userId}`;
+  }
+
+  const sessionId = String(user?.sessionId ?? '').trim();
+
+  return sessionId ? `session:${sessionId}` : 'unknown';
+}
+
+function dedupeCollaborationPresence(presence: any[] = []) {
+  const byIdentity = new Map<string, any>();
+
+  for (const user of presence) {
+    if (!user || user.status === 'offline') {
+      continue;
+    }
+
+    const key = presenceIdentity(user);
+    const existing = byIdentity.get(key);
+
+    if (!existing) {
+      byIdentity.set(key, user);
+      continue;
+    }
+
+    const userWeight = PRESENCE_STATUS_WEIGHT[String(user.status ?? 'online')] ?? 1;
+    const existingWeight = PRESENCE_STATUS_WEIGHT[String(existing.status ?? 'online')] ?? 1;
+
+    if (presenceTimestamp(user) > presenceTimestamp(existing) || userWeight > existingWeight) {
+      byIdentity.set(key, user);
+    }
+  }
+
+  return [...byIdentity.values()].sort((a, b) => presenceTimestamp(b) - presenceTimestamp(a));
+}
+
+function presenceDisplayName(user: any) {
+  return String(user?.name ?? user?.userId ?? user?.sessionId ?? 'Unknown user').trim() || 'Unknown user';
+}
+
+function collaborationPresenceTooltip(presence: any[]) {
+  if (!presence.length) {
+    return 'Collaboration: no one else present';
+  }
+
+  const names = presence
+    .slice(0, 3)
+    .map((user) => {
+      const status = String(user?.status ?? 'online');
+      const mode = String(user?.mode ?? 'editing');
+
+      return `${presenceDisplayName(user)} (${status}, ${mode})`;
+    })
+    .join(', ');
+
+  const overflow = presence.length > 3 ? `, +${presence.length - 3}` : '';
+
+  return `Collaboration: ${presence.length} present - ${names}${overflow}`;
+}
+
+function stringifyMessageContent(value: unknown) {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function messageText(message: Message) {
+  const parts = Array.isArray((message as any).parts) ? (message as any).parts : [];
+
+  if (parts.length) {
+    const text = parts
+      .map((part: any) => {
+        if (typeof part?.text === 'string') {
+          return part.text;
+        }
+
+        if (part?.type === 'image' || part?.image) {
+          return '[image]';
+        }
+
+        if (part?.type === 'tool-invocation' || part?.toolInvocation) {
+          return '[tool invocation]';
+        }
+
+        return stringifyMessageContent(part);
+      })
+      .filter(Boolean)
+      .join('\n');
+
+    if (text.trim()) {
+      return text.trim();
+    }
+  }
+
+  return stringifyMessageContent((message as any).content).trim();
+}
+
+function conversationTranscript(messages: Message[] = [], title?: string) {
+  const heading = title?.trim() || 'Project conversation';
+
+  const body = messages
+    .map((message, index) => {
+      const role = String(message.role ?? 'message');
+      const content = messageText(message) || '[empty message]';
+
+      return `## ${index + 1}. ${role}\n\n${content}`;
+    })
+    .join('\n\n');
+
+  return `# ${heading}\n\n${body}`.trim();
+}
+
+function safeDownloadName(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
 }
 
 function fileTypeLabel(filePath?: string) {
@@ -2007,6 +2155,7 @@ interface BaseChatProps {
   onWebSearchResult?: (result: string) => void;
   projectIdeMode?: boolean;
   projectId?: string;
+  projectUrl?: string;
   initialIdePanels?: Record<string, any>;
 }
 
@@ -2062,6 +2211,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       onWebSearchResult,
       projectIdeMode = false,
       projectId,
+      projectUrl,
       initialIdePanels,
     },
     ref,
@@ -3870,7 +4020,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setMobileMoreOpen(false);
 
           try {
-            await navigator.clipboard?.writeText(`${window.location.origin}/projects/${projectId}`);
+            await navigator.clipboard?.writeText(`${window.location.origin}${projectUrl ?? `/projects/${projectId}`}`);
             toast.success('Project link copied');
           } catch (error) {
             toast.error(`Copy failed: ${(error as Error).message}`);
@@ -3881,7 +4031,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         activateMobileTool(itemId);
       },
-      [activateMobileTool, openCommandPalette, projectId],
+      [activateMobileTool, openCommandPalette, projectId, projectUrl],
     );
 
     const closeMobileOpenTab = useCallback(
@@ -4735,6 +4885,85 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setRollbackBusy(false);
       }
     }, [projectId, rollbackDatabase, rollbackTarget]);
+
+    const headerPresence = useMemo(
+      () => dedupeCollaborationPresence(headerCollaboration.snapshot?.presence ?? []),
+      [headerCollaboration.snapshot?.presence],
+    );
+
+    const headerPresenceTooltip = collaborationPresenceTooltip(headerPresence);
+
+    const copyProjectConversation = useCallback(async () => {
+      const currentMessages = messages ?? [];
+
+      if (!currentMessages.length) {
+        toast.info('Aucune conversation à copier');
+        return;
+      }
+
+      if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+        toast.error('Le presse-papiers est indisponible');
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(conversationTranscript(currentMessages, description));
+        toast.success('Conversation copiée');
+      } catch (error) {
+        toast.error(`Copie impossible: ${(error as Error).message}`);
+      }
+    }, [description, messages]);
+
+    const clearProjectConversation = useCallback(() => {
+      const currentMessages = messages ?? [];
+
+      if (!currentMessages.length) {
+        toast.info('Aucun historique à effacer');
+        return;
+      }
+
+      const confirmed = window.confirm("Effacer l'historique de cette conversation ?");
+
+      if (!confirmed) {
+        return;
+      }
+
+      resetChat?.();
+      toast.success('Historique effacé');
+    }, [messages, resetChat]);
+
+    const exportProjectConversation = useCallback(() => {
+      const currentMessages = messages ?? [];
+
+      if (!currentMessages.length) {
+        toast.info('Aucune conversation à exporter');
+        return;
+      }
+
+      const title = description?.trim() || 'Project conversation';
+      const exportDate = new Date().toISOString();
+
+      const payload = {
+        title,
+        projectId,
+        exportDate,
+        messages: currentMessages,
+        transcript: conversationTranscript(currentMessages, title),
+      };
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      const suffix = safeDownloadName(title) || projectId || 'conversation';
+
+      anchor.href = url;
+      anchor.download = `conversation-${suffix}-${exportDate.replace(/[:.]/g, '-')}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      toast.success('Conversation exportée');
+    }, [description, messages, projectId]);
 
     const agentPanel = (
       <div
@@ -5871,18 +6100,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         <span>{stopAgentLabel}</span>
                       </button>
                     )}
-                    <div className="ml-auto flex items-center gap-1">
-                      <PresenceAvatars
-                        entries={(headerCollaboration.snapshot?.presence ?? [])
-                          .filter((entry: any) => entry?.status !== 'offline')
-                          .map((entry: any) => ({
-                            userId: String(entry.userId ?? entry.sessionId ?? ''),
-                            name: String(entry.userId ?? entry.sessionId ?? '?'),
-                            status: entry.status === 'idle' ? 'idle' : 'viewing',
-                            lastSeenAt: Date.parse(entry.updatedAt ?? '') || Date.now(),
-                          }))}
-                        maxVisible={3}
-                      />
+                    <div className="ml-auto flex min-w-max items-center gap-1">
+                      <HeaderTip label={headerPresenceTooltip}>
+                        <button
+                          type="button"
+                          className="bolt-project-ide-icon-button bolt-project-collaboration-button"
+                          aria-label={headerPresenceTooltip}
+                          onClick={() => openWorkspacePanel('collaborators')}
+                        >
+                          <Users size={15} strokeWidth={2} aria-hidden />
+                          {headerPresence.length ? (
+                            <span className="bolt-project-collaboration-count" aria-hidden>
+                              {headerPresence.length}
+                            </span>
+                          ) : null}
+                        </button>
+                      </HeaderTip>
                       {projectId ? (
                         <HeaderTip label="Browse conversation branches">
                           <ConversationBranchesMenu projectId={projectId} className="bolt-project-ide-icon-button" />
@@ -5900,6 +6133,36 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           />
                         </HeaderTip>
                       ) : null}
+                      <HeaderTip label="Copier la conversation">
+                        <button
+                          type="button"
+                          className="bolt-project-ide-icon-button"
+                          aria-label="Copier la conversation"
+                          onClick={() => void copyProjectConversation()}
+                        >
+                          <Copy size={14} strokeWidth={2} aria-hidden />
+                        </button>
+                      </HeaderTip>
+                      <HeaderTip label="Effacer l'historique">
+                        <button
+                          type="button"
+                          className="bolt-project-ide-icon-button bolt-project-ide-icon-button--danger"
+                          aria-label="Effacer l'historique"
+                          onClick={clearProjectConversation}
+                        >
+                          <Trash2 size={14} strokeWidth={2} aria-hidden />
+                        </button>
+                      </HeaderTip>
+                      <HeaderTip label="Exporter la conversation">
+                        <button
+                          type="button"
+                          className="bolt-project-ide-icon-button"
+                          aria-label="Exporter la conversation"
+                          onClick={exportProjectConversation}
+                        >
+                          <Download size={14} strokeWidth={2} aria-hidden />
+                        </button>
+                      </HeaderTip>
                       <HeaderTip label="Switch light / dark theme">
                         <ThemeSwitch
                           size="lg"
@@ -5916,16 +6179,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           onClick={() => setConversationHistoryOpen((value) => !value)}
                         >
                           <span className="i-ph:clock" aria-hidden />
-                        </button>
-                      </HeaderTip>
-                      <HeaderTip label="Start a new chat">
-                        <button
-                          type="button"
-                          className="bolt-project-ide-icon-button"
-                          aria-label="New chat"
-                          onClick={resetChat}
-                        >
-                          <span className="i-ph:plus" aria-hidden />
                         </button>
                       </HeaderTip>
                       <HeaderTip label="Agent settings">
@@ -7405,7 +7658,9 @@ function ProjectIdeServicePanel({
         ...current,
         data: {
           ...(current.data ?? {}),
-          presence: collaborationRealtime.snapshot?.presence ?? current.data?.presence ?? [],
+          presence: dedupeCollaborationPresence(
+            collaborationRealtime.snapshot?.presence ?? current.data?.presence ?? [],
+          ),
           comments: collaborationRealtime.snapshot?.comments ?? current.data?.comments ?? [],
           realtime: {
             status: collaborationRealtime.snapshot?.status,
@@ -9344,7 +9599,7 @@ function ProjectIdePanelContent({
 
   if (panel === 'collaborators') {
     const collaborators = data.collaborators ?? [];
-    const presence = data.presence ?? [];
+    const presence = dedupeCollaborationPresence(data.presence ?? []);
     const comments = data.comments ?? [];
     const activity = data.activity ?? [];
     const shareLinks = data.shareLinks ?? [];

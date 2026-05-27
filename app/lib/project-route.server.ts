@@ -10,6 +10,7 @@ import {
 export type ProjectRecord = {
   id: string;
   name: string;
+  slug?: string;
   description?: string;
   organizationId: string;
   gitRepositoryUrl?: string;

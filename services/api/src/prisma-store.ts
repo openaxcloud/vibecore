@@ -412,6 +412,17 @@ export class PrismaApiStore implements ApiStore {
     return project ? mapProject(project) : undefined;
   }
 
+  async getProjectBySlugs(input: { organizationSlug: string; projectSlug: string }) {
+    const project = await this.prisma.project.findFirst({
+      where: {
+        slug: input.projectSlug,
+        deletedAt: null,
+        organization: { slug: input.organizationSlug },
+      },
+    });
+    return project ? mapProject(project) : undefined;
+  }
+
   async updateProject(input: {
     projectId: string;
     name?: string;

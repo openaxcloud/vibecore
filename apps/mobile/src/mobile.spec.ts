@@ -9,6 +9,7 @@ import {
   dispatchMobilePushToken,
   extractPushActionData,
   parseDeepLink,
+  routeFromDeepLink,
   shouldRegisterForPush,
 } from './native';
 import { parseSessionLockState } from './session';
@@ -32,8 +33,22 @@ describe('mobile native adapters', () => {
 
   it('parses supported app and universal links', () => {
     expect(parseDeepLink('vibecore://projects/project_123/ide')?.protocol).toBe('vibecore:');
-    expect(parseDeepLink('https://app.example.com/projects/project_123/ide')?.pathname).toBe('/projects/project_123/ide');
+    expect(parseDeepLink('https://app.example.com/projects/project_123/ide')?.pathname).toBe(
+      '/projects/project_123/ide',
+    );
+    expect(parseDeepLink('https://app.example.com/@henri45/voltwatt?panel=preview')?.pathname).toBe(
+      '/@henri45/voltwatt',
+    );
     expect(parseDeepLink('ftp://example.com')).toBeUndefined();
+  });
+
+  it('normalizes custom scheme and canonical project deep-link routes for the web frame', () => {
+    expect(routeFromDeepLink(new URL('vibecore://projects/project_123/ide?panel=security'))).toBe(
+      '/projects/project_123/ide?panel=security',
+    );
+    expect(routeFromDeepLink(new URL('https://app.example.com/@henri45/voltwatt?panel=preview'))).toBe(
+      '/@henri45/voltwatt?panel=preview',
+    );
   });
 
   it('uses the mobile CodeMirror editor fallback on phones and tablets', () => {

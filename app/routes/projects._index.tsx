@@ -4,11 +4,19 @@ import { Grid2X2, List, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { AppShell, ProjectGrid, LinkButton, StatusPill, type ProjectCard } from '~/components/dashboard/SaaSLayout';
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { projectIdePath } from '~/utils/project-url';
 
 export const meta: MetaFunction = () => [{ title: 'Projects - VibeCore' }];
 
-type Organization = { id: string };
-type ApiProject = { id: string; name: string; updatedAt?: string; sourceType?: string; gitRepositoryUrl?: string };
+type Organization = { id: string; slug?: string };
+type ApiProject = {
+  id: string;
+  name: string;
+  slug?: string;
+  updatedAt?: string;
+  sourceType?: string;
+  gitRepositoryUrl?: string;
+};
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const orgs = await apiRequest<{ organizations: Organization[] }>(request, '/orgs');
@@ -28,6 +36,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     stack: project.gitRepositoryUrl ?? project.sourceType ?? 'Bolt project',
     sourceType: project.sourceType,
     previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
+    ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
   }));
 
   return { projects };
@@ -135,7 +144,7 @@ function ProjectList({ projects }: { projects: ProjectCard[] }) {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-bolt-elements-textTertiary">Updated {project.updated ?? 'recently'}</span>
-            <LinkButton to={`/projects/${project.id}/ide`} variant="outline">
+            <LinkButton to={project.ideUrl ?? `/projects/${project.id}/ide`} variant="outline">
               Open IDE
             </LinkButton>
           </div>

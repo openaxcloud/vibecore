@@ -40,50 +40,14 @@ import {
 import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
-import { apiErrorMessage, apiRequest, json } from '~/lib/enterprise-api.server';
 import { friendlyLabel, pickFriendlyLabel } from '~/lib/labels/friendly-id';
+import { loadProjectIdeData, type ProjectLoaderData } from '~/lib/project-ide-loader.server';
 import { ProjectWorkspaceProvider } from '~/lib/runtime/ProjectWorkspaceProvider';
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { projectIdePath, withProjectSearch } from '~/utils/project-url';
 
 const ProjectIdeChat = lazy(() => import('~/components/chat/Chat.client').then((module) => ({ default: module.Chat })));
-
-type ProjectLoaderData = {
-  projectId: string;
-  project: {
-    id: string;
-    name: string;
-    organizationId?: string;
-    gitDefaultBranch?: string;
-  };
-  workspace: {
-    id?: string;
-    name?: string;
-    status?: string;
-    runtimeMode?: string;
-    ports?: Array<{ port?: number; ready?: boolean; url?: string }>;
-  } | null;
-  organization: {
-    id: string;
-    name?: string;
-    slug?: string;
-  } | null;
-  git: {
-    branch?: string;
-  };
-  collaborators: Array<{ id?: string; userId?: string; roleKey?: string }>;
-  notifications: Array<{ id?: string; action: string; createdAt?: string; metadata?: unknown }>;
-  initialIdePanels: Record<
-    string,
-    {
-      panel: string;
-      project: ProjectLoaderData['project'];
-      status: 'ok' | 'empty' | 'error';
-      data: unknown;
-    }
-  >;
-  projectApiError?: string;
-};
 
 type IdeNotificationKind = 'success' | 'warning' | 'error' | 'info';
 type IdeNotification = {
@@ -141,68 +105,8 @@ export const shouldRevalidate = ({
   return defaultShouldRevalidate;
 };
 
-export const loader = async ({ request, params }: LoaderFunctionArgs) => {
-  if (!params.projectId) {
-    throw new Response('Project not found', { status: 404 });
-  }
-
-  const projectId = params.projectId;
-
-  try {
-    const result = await apiRequest<{ project: ProjectLoaderData['project'] }>(request, `/projects/${projectId}`);
-
-    const [collaboratorsResult, dashboardResult, organizationsResult] = await Promise.all([
-      apiRequest<{ collaborators: ProjectLoaderData['collaborators'] }>(
-        request,
-        `/projects/${projectId}/collaborators`,
-      ).catch(() => ({ collaborators: [] })),
-      apiRequest<{
-        workspace?: ProjectLoaderData['workspace'];
-        git?: ProjectLoaderData['git'];
-        recentActivity?: ProjectLoaderData['notifications'];
-      }>(request, `/projects/${projectId}/dashboard`).catch(() => ({ workspace: null, git: {}, recentActivity: [] })),
-      apiRequest<{ organizations: NonNullable<ProjectLoaderData['organization']>[] }>(request, '/orgs').catch(() => ({
-        organizations: [],
-      })),
-    ]);
-    const organization =
-      organizationsResult.organizations.find((item) => item.id === result.project.organizationId) ??
-      organizationsResult.organizations[0] ??
-      null;
-
-    return json<ProjectLoaderData>({
-      projectId,
-      project: result.project,
-      workspace: dashboardResult.workspace ?? null,
-      organization,
-      git: dashboardResult.git ?? {},
-      collaborators: collaboratorsResult.collaborators ?? [],
-      notifications: dashboardResult.recentActivity ?? [],
-      initialIdePanels: {
-        git: {
-          panel: 'git',
-          project: result.project,
-          status: 'ok',
-          data: { status: dashboardResult.git ?? {} },
-        },
-      },
-    });
-  } catch (error) {
-    const message = await apiErrorMessage(error, 'Project API unavailable');
-
-    return json<ProjectLoaderData>({
-      projectId,
-      project: { id: projectId, name: projectId },
-      workspace: null,
-      organization: null,
-      git: {},
-      collaborators: [],
-      notifications: [],
-      initialIdePanels: {},
-      projectApiError: message,
-    });
-  }
-};
+export const loader = async ({ request, params }: LoaderFunctionArgs) =>
+  loadProjectIdeData(request, params.projectId ?? '');
 
 export default function ProjectIdeRoute() {
   const {
@@ -216,8 +120,17 @@ export default function ProjectIdeRoute() {
     initialIdePanels,
     projectApiError,
   } = useLoaderData<typeof loader>();
+
+  const projectUrl = projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization?.slug });
+
   const optimisticShell = (
-    <BaseChat chatStarted projectIdeMode projectId={projectId} initialIdePanels={initialIdePanels} />
+    <BaseChat
+      chatStarted
+      projectIdeMode
+      projectId={projectId}
+      projectUrl={projectUrl}
+      initialIdePanels={initialIdePanels}
+    />
   );
 
   return (
@@ -232,6 +145,7 @@ export default function ProjectIdeRoute() {
           collaborators={collaborators}
           notifications={notifications}
           projectApiError={projectApiError}
+          projectUrl={projectUrl}
         />
         <main className="h-dvh pt-9">
           <ClientOnly fallback={optimisticShell}>
@@ -242,6 +156,7 @@ export default function ProjectIdeRoute() {
                     forceWorkbench
                     projectIdeMode
                     projectId={projectId}
+                    projectUrl={projectUrl}
                     initialIdePanels={initialIdePanels}
                   />
                 </Suspense>
@@ -263,6 +178,7 @@ function IdeProjectTopBar({
   collaborators,
   notifications,
   projectApiError,
+  projectUrl,
 }: {
   projectId: string;
   project: ProjectLoaderData['project'];
@@ -272,6 +188,7 @@ function IdeProjectTopBar({
   collaborators: ProjectLoaderData['collaborators'];
   notifications: ProjectLoaderData['notifications'];
   projectApiError?: string;
+  projectUrl: string;
 }) {
   const loading = useStore(workbenchStore.workspaceLoading);
   const error = useStore(workbenchStore.workspaceError);
@@ -312,14 +229,14 @@ function IdeProjectTopBar({
   const notificationItems = useMemo(
     () =>
       buildIdeNotifications({
-        projectId,
+        projectUrl,
         backendEvents: notifications,
         runtimeState: state,
         runtimeStatusLabel: statusLabel,
         runtimeError: projectApiError ?? error,
         previewPorts: previews.map((preview) => preview.port),
       }),
-    [error, notifications, previews, projectApiError, projectId, state, statusLabel],
+    [error, notifications, previews, projectApiError, projectUrl, state, statusLabel],
   );
   const actionableNotificationCount = notificationItems.filter(
     (item) => item.kind === 'warning' || item.kind === 'error',
@@ -527,7 +444,7 @@ function IdeProjectTopBar({
                 {projectMenuOpen && (
                   <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-[var(--vc-ide-border-visible)] bg-[var(--vc-ide-bg-card)] p-1.5 shadow-[var(--vc-ui-shadow-xl)]">
                     <ProjectMenuItem
-                      to={`/projects/${projectId}/ide?panel=settings`}
+                      to={withProjectSearch(projectUrl, { panel: 'settings' })}
                       icon={<Settings className="h-3.5 w-3.5" />}
                       onClick={() => {
                         setProjectMenuOpen(false);
@@ -594,7 +511,7 @@ function IdeProjectTopBar({
             /
           </span>
           <Link
-            to={`/projects/${projectId}/ide?panel=git`}
+            to={withProjectSearch(projectUrl, { panel: 'git' })}
             className="bolt-project-breadcrumb-segment bolt-project-breadcrumb-branch"
             aria-label={`Branch ${branchLabel.display}. Open Git panel.`}
             title={`Branch: ${branchLabel.display}. Open Git panel.`}
@@ -704,7 +621,7 @@ function IdeProjectTopBar({
                   <span>Help &amp; support</span>
                 </Link>
                 <Link
-                  to={`/projects/${projectId}/ide?panel=collaborators`}
+                  to={withProjectSearch(projectUrl, { panel: 'collaborators' })}
                   className="bolt-project-overflow-item"
                   onClick={() => setOverflowMenuOpen(false)}
                 >
@@ -747,7 +664,7 @@ function IdeProjectTopBar({
               className="bolt-project-collaborate-popover absolute right-0 top-full z-50 mt-1 w-[220px] rounded-xl border p-2"
             >
               <Link
-                to={`/projects/${projectId}/ide?panel=collaborators`}
+                to={withProjectSearch(projectUrl, { panel: 'collaborators' })}
                 className="bolt-project-overflow-item"
                 aria-label="Share project"
               >
@@ -755,7 +672,7 @@ function IdeProjectTopBar({
                 <span>Share project</span>
               </Link>
               <Link
-                to={`/projects/${projectId}/ide?panel=collaborators`}
+                to={withProjectSearch(projectUrl, { panel: 'collaborators' })}
                 className="bolt-project-overflow-item"
                 aria-label="Invite collaborators"
               >
@@ -798,7 +715,7 @@ function IdeProjectTopBar({
               </>
             )}
           </button>
-          <Link to={`/projects/${projectId}/ide?panel=deployments`} className="bolt-project-publish-button">
+          <Link to={withProjectSearch(projectUrl, { panel: 'deployments' })} className="bolt-project-publish-button">
             <Rocket className="h-3 w-3" aria-hidden />
             Publish
           </Link>
@@ -809,14 +726,14 @@ function IdeProjectTopBar({
 }
 
 function buildIdeNotifications({
-  projectId,
+  projectUrl,
   backendEvents,
   runtimeState,
   runtimeStatusLabel,
   runtimeError,
   previewPorts,
 }: {
-  projectId: string;
+  projectUrl: string;
   backendEvents: ProjectLoaderData['notifications'];
   runtimeState: 'building' | 'crashed' | 'running' | 'stopped';
   runtimeStatusLabel: string;
@@ -837,7 +754,7 @@ function buildIdeNotifications({
     timeLabel: 'Live',
     source: 'Runtime',
     kind: runtimeState === 'crashed' ? 'error' : runtimeState === 'building' ? 'warning' : 'info',
-    href: `/projects/${projectId}/ide?panel=logs`,
+    href: withProjectSearch(projectUrl, { panel: 'logs' }),
   };
 
   const previewNotification: IdeNotification | null = previewPorts.length
@@ -848,7 +765,7 @@ function buildIdeNotifications({
         timeLabel: 'Live',
         source: 'Preview',
         kind: 'success',
-        href: `/projects/${projectId}/ide?panel=preview`,
+        href: withProjectSearch(projectUrl, { panel: 'preview' }),
       }
     : null;
 
@@ -862,7 +779,7 @@ function buildIdeNotifications({
       timeLabel: createdAt ? createdAt.toLocaleString() : 'Recorded by API',
       source: 'Backend activity' as const,
       kind: classifyActivityKind(event.action),
-      href: `/projects/${projectId}/ide?panel=activity`,
+      href: withProjectSearch(projectUrl, { panel: 'activity' }),
     };
   });
 

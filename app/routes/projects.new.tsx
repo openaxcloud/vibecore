@@ -55,6 +55,7 @@ import type { ModelInfo } from '~/lib/modules/llm/types';
 import { providersStore } from '~/lib/stores/settings';
 import type { ProviderInfo } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
+import { projectIdePath } from '~/utils/project-url';
 import { categorizeProjectsNewError, type ProjectsNewErrorDescriptor } from '~/utils/projects-new-error';
 import { estimatePromptCost, formatEstimatedCost } from '~/utils/prompt-cost';
 import { detectPromptLanguage } from '~/utils/prompt-language';
@@ -63,7 +64,7 @@ import { PROMPT_MAX_CHARS, validateProjectPrompt } from '~/utils/prompt-validati
 
 export const meta: MetaFunction = () => [{ title: 'Create project - VibeCore' }];
 
-type Project = { id: string };
+type Project = { id: string; slug?: string };
 type ProjectCreationResult = { project: Project };
 type PendingProjectPrompt = {
   id: string;
@@ -705,7 +706,10 @@ export async function action({ request, context }: EnterpriseActionArgs) {
     ideParams.set('promptQueueError', promptQueueError.slice(0, 240));
   }
 
-  const ideUrl = `/projects/${result.project.id}/ide${ideParams.size ? `?${ideParams.toString()}` : ''}`;
+  const ideUrl = projectIdePath(
+    { id: result.project.id, slug: result.project.slug, organizationSlug: organization.slug },
+    { searchParams: ideParams },
+  );
 
   return redirect(ideUrl);
 }

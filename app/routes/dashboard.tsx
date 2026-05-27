@@ -13,9 +13,17 @@ import {
   type ProjectCard,
 } from '~/components/dashboard/SaaSLayout';
 import { apiRequest, isForbiddenApiResponse, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { projectIdePath } from '~/utils/project-url';
 
-type Organization = { id: string };
-type ApiProject = { id: string; name: string; updatedAt?: string; sourceType?: string; gitRepositoryUrl?: string };
+type Organization = { id: string; slug?: string };
+type ApiProject = {
+  id: string;
+  name: string;
+  slug?: string;
+  updatedAt?: string;
+  sourceType?: string;
+  gitRepositoryUrl?: string;
+};
 type BillingState = {
   plan: { name: string };
   usage: Array<{ type: string; quantity: number }>;
@@ -79,6 +87,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       stack: project.gitRepositoryUrl ?? project.sourceType ?? 'Bolt project',
       sourceType: project.sourceType,
       previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
+      ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
     })),
   };
 }

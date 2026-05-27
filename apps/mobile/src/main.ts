@@ -1,6 +1,13 @@
 import { editorKindForLayout, getResponsiveLayoutState } from '@vibecore/editor';
 import { readMobileRuntimeConfig } from './config';
-import { bootstrapMobileApp, openExternalUrl, readNativeAppInfo, shareProjectLink, uploadProjectFile } from './native';
+import {
+  bootstrapMobileApp,
+  openExternalUrl,
+  readNativeAppInfo,
+  routeFromDeepLink,
+  shareProjectLink,
+  uploadProjectFile,
+} from './native';
 import './styles.css';
 
 const config = readMobileRuntimeConfig();
@@ -15,7 +22,7 @@ const upload = document.querySelector<HTMLInputElement>('#file-upload');
 void bootstrapMobileApp({
   config,
   onDeepLink(url) {
-    navigateFrame(url.pathname + url.search + url.hash);
+    navigateFrame(routeFromDeepLink(url));
   },
   onOfflineChange(offline) {
     shell?.setAttribute('data-offline', String(offline));
@@ -96,7 +103,7 @@ function navigateFrame(route: string) {
 }
 
 function titleForRoute(pathname: string) {
-  if (pathname.includes('/ide')) {
+  if (pathname.includes('/ide') || pathname.startsWith('/@')) {
     return 'Project IDE';
   }
 

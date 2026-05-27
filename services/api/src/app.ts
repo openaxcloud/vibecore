@@ -247,6 +247,10 @@ const membershipParams = orgParams.extend({ userId: z.string().min(1) });
 const domainParams = orgParams.extend({ domain: z.string().min(3) });
 const sessionParams = z.object({ sessionId: z.string().min(1) });
 const projectParams = z.object({ projectId: z.string().min(1) });
+const projectResolveQuerySchema = z.object({
+  accountSlug: z.string().min(1).max(120),
+  projectSlug: z.string().min(1).max(160),
+});
 const workspaceParams = z.object({ workspaceId: z.string().min(1) });
 
 const createProjectSchema = z.object({
@@ -1535,6 +1539,15 @@ function normalizeProjectPath(path?: string) {
   }
 
   return normalized;
+}
+
+function slugifyRouteSegment(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/^@+/, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 function ideStateObject(state?: ProjectIdeStateRecord) {
@@ -8417,6 +8430,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return reply.code(201).send({ project, files: publicFiles(files) });
+  });
+  app.get('/projects/resolve', async (request) => {
+    const query = parse(projectResolveQuerySchema, request.query);
+    const organizationSlug = slugifyRouteSegment(query.accountSlug);
+    const projectSlug = slugifyRouteSegment(query.projectSlug);
+
+    if (!organizationSlug || !projectSlug) {
+      throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
+    }
+
+    const project = await store.getProjectBySlugs({ organizationSlug, projectSlug });
+
+    if (!project) {
+      throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
+    }
+
+    const organization = await store.getOrganization(project.organizationId);
+
+    if (!organization || organization.slug !== organizationSlug) {
+      throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
+    }
+
+    await requireOrg(request, store, organization.id, 'projects:read');
+
+    return {
+      project,
+      organization,
+      canonicalPath: `/@${organization.slug}/${project.slug}`,
+    };
   });
   app.get('/projects/:projectId', async (request) => ({
     project: await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read'),

@@ -256,6 +256,12 @@ runPrismaTests('PrismaApiStore integration', () => {
       expect(first.slug).toBe('customer-portal');
       expect(second.slug).toBe('customer-portal-2');
       expect(third.slug).toBe('project');
+      await expect(
+        store.getProjectBySlugs({ organizationSlug: organization.slug, projectSlug: 'customer-portal' }),
+      ).resolves.toMatchObject({ id: first.id });
+      await expect(
+        store.getProjectBySlugs({ organizationSlug: organization.slug, projectSlug: 'missing-project' }),
+      ).resolves.toBeUndefined();
     } finally {
       await prisma.$disconnect();
     }

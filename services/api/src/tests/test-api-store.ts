@@ -426,6 +426,19 @@ export class TestApiStore implements ApiStore {
     return this.projects.get(id);
   }
 
+  async getProjectBySlugs(input: { organizationSlug: string; projectSlug: string }) {
+    const organization = [...this.organizations.values()].find((org) => org.slug === input.organizationSlug);
+
+    if (!organization) {
+      return undefined;
+    }
+
+    return [...this.projects.values()].find(
+      (project) =>
+        project.organizationId === organization.id && project.slug === input.projectSlug && !project.deletedAt,
+    );
+  }
+
   async updateProject(input: {
     projectId: string;
     name?: string;

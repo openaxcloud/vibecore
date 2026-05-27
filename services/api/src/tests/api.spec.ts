@@ -2536,6 +2536,19 @@ describe('SaaS API', () => {
     expect(create.statusCode).toBe(201);
 
     const projectId = create.json().project.id as string;
+    expect(create.json().project.slug).toBe('template-app');
+
+    const canonicalResolve = await app.inject({
+      method: 'GET',
+      url: `/projects/resolve?accountSlug=${encodeURIComponent('@Projects Org')}&projectSlug=${encodeURIComponent(
+        'Template App',
+      )}`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(canonicalResolve.statusCode).toBe(200);
+    expect(canonicalResolve.json().project.id).toBe(projectId);
+    expect(canonicalResolve.json().organization.slug).toBe('projects-org');
+    expect(canonicalResolve.json().canonicalPath).toBe('/@projects-org/template-app');
 
     const dashboard = await app.inject({
       method: 'GET',
@@ -3928,6 +3941,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${outsider.token}` },
     });
     expect(denied.statusCode).toBe(404);
+
+    const deniedCanonicalResolve = await app.inject({
+      method: 'GET',
+      url: '/projects/resolve?accountSlug=project-owner-org&projectSlug=private-project',
+      headers: { authorization: `Bearer ${outsider.token}` },
+    });
+    expect(deniedCanonicalResolve.statusCode).toBe(404);
     await app.close();
   });
 

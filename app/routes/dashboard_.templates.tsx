@@ -10,10 +10,11 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { projectIdePath } from '~/utils/project-url';
 
 export const meta: MetaFunction = () => [{ title: 'Workspace templates - VibeCore' }];
 
-type Project = { id: string };
+type Project = { id: string; slug?: string };
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
@@ -46,7 +47,9 @@ export async function action({ request }: EnterpriseActionArgs) {
     }),
   });
 
-  return redirect(`/projects/${result.project.id}/ide`);
+  return redirect(
+    projectIdePath({ id: result.project.id, slug: result.project.slug, organizationSlug: organization.slug }),
+  );
 }
 
 export default function DashboardTemplatesPage() {

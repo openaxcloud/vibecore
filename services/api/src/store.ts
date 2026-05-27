@@ -596,6 +596,7 @@ export interface ApiStore {
     gitDefaultBranch?: string;
   }): Promise<ProjectRecord>;
   getProject(id: string): Promise<ProjectRecord | undefined>;
+  getProjectBySlugs(input: { organizationSlug: string; projectSlug: string }): Promise<ProjectRecord | undefined>;
   updateProject(input: {
     projectId: string;
     name?: string;
