@@ -251,6 +251,11 @@ function IdeProjectTopBar({
 
   const projectLabel = friendlyLabel(displayProjectName, 'Untitled project');
 
+  const projectTooltip =
+    projectLabel.isFallback && projectLabel.full !== projectLabel.display
+      ? `${projectLabel.display} (${projectLabel.full})`
+      : projectLabel.display;
+
   const branchLabel = pickFriendlyLabel([git.branch, project.gitDefaultBranch], 'main');
 
   useEffect(() => {
@@ -420,11 +425,9 @@ function IdeProjectTopBar({
               >
                 <summary
                   className="bolt-project-name-trigger"
-                  title={
-                    projectLabel.isFallback && projectLabel.full !== projectLabel.display
-                      ? `Project: ${projectLabel.display} (${projectLabel.full})`
-                      : `Project: ${projectLabel.display}`
-                  }
+                  title={projectTooltip}
+                  data-vc-tooltip={projectTooltip}
+                  data-vc-tooltip-locked="true"
                   aria-label={`Project menu for ${projectLabel.display}${
                     projectLabel.isFallback && projectLabel.full !== projectLabel.display
                       ? ` (id ${projectLabel.full})`
@@ -436,7 +439,7 @@ function IdeProjectTopBar({
                   }}
                 >
                   <span className="bolt-project-breadcrumb-kicker">Project</span>
-                  <span className="bolt-project-breadcrumb-value truncate" title={projectLabel.display}>
+                  <span className="bolt-project-breadcrumb-value truncate" title={projectTooltip}>
                     {projectLabel.display}
                   </span>
                   <ChevronDown className="h-3.5 w-3.5" aria-hidden />

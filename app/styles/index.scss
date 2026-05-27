@@ -2808,15 +2808,15 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--vc-ide-accent-action), transparent 78%);
 }
 
-.bolt-responsive-ide
-  :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:not(
+:where(.bolt-responsive-ide, .bolt-project-ide-shell)
+  :where(button, summary, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:not(
     [data-vc-radix-tooltip='true']
   ) {
   position: relative;
 }
 
-.bolt-responsive-ide
-  :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:not(
+:where(.bolt-responsive-ide, .bolt-project-ide-shell)
+  :where(button, summary, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:not(
     [data-vc-radix-tooltip='true']
   ):where(:hover, :focus-visible)::after {
   position: absolute;
@@ -2840,8 +2840,8 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   white-space: normal;
 }
 
-.bolt-responsive-ide
-  :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:not(
+:where(.bolt-responsive-ide, .bolt-project-ide-shell)
+  :where(button, summary, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:not(
     [data-vc-radix-tooltip='true']
   ):where(:hover, :focus-visible)::before {
   position: absolute;
@@ -2856,6 +2856,28 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   background: var(--vc-ui-tooltip-bg);
   content: '';
   pointer-events: none;
+}
+
+.bolt-project-topbar-left:has(:where(button, summary, [role='button'])[data-vc-tooltip]:where(:hover, :focus-visible)) {
+  overflow: visible;
+}
+
+.bolt-project-topbar
+  :where(button, summary, [role='button'])[data-vc-tooltip]:not([data-vc-radix-tooltip='true']):where(
+    :hover,
+    :focus-visible
+  )::after {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+
+.bolt-project-topbar
+  :where(button, summary, [role='button'])[data-vc-tooltip]:not([data-vc-radix-tooltip='true']):where(
+    :hover,
+    :focus-visible
+  )::before {
+  top: calc(100% + 3px);
+  bottom: auto;
 }
 
 [data-vc-tour-active='true'] {
@@ -4635,11 +4657,15 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-breadcrumb-value {
+  display: inline-block;
   min-width: 0;
+  overflow: hidden;
   color: var(--vc-ide-text-primary) !important;
   font-size: 12px !important;
   font-weight: 720;
   letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bolt-project-breadcrumb-workspace .bolt-project-breadcrumb-value {
@@ -4680,6 +4706,15 @@ body :where(.lucide, svg[data-lucide]) {
   transition:
     border-color 120ms ease-out,
     background 120ms ease-out;
+}
+
+.bolt-project-name-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.bolt-project-name-trigger .bolt-project-breadcrumb-value {
+  flex: 1 1 auto;
+  max-width: 100%;
 }
 
 .bolt-project-name-trigger:hover,
