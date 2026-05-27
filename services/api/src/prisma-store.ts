@@ -795,15 +795,17 @@ export class PrismaApiStore implements ApiStore {
     // Persist the created workspace first so Prisma can mint the id when the
     // caller doesn't supply one. Once we have the id, allocate a relative
     // gitPath under the project storage root so each workspace has its own
-    // isolated git working tree. We update in the same transaction so
-    // downstream readers always see a non-null gitPath for new rows.
-    const created = await this.prisma.workspace.create({
-      data: { ...input, status: 'PENDING' },
-    });
-    const gitPath = workspaceRelativeGitPath(created.id);
-    const updated = await this.prisma.workspace.update({
-      where: { id: created.id },
-      data: { gitPath },
+    // isolated git working tree. Both writes share an interactive transaction
+    // so a crash between them can never leave a row with a null gitPath.
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.workspace.create({
+        data: { ...input, status: 'PENDING' },
+      });
+      const gitPath = workspaceRelativeGitPath(created.id);
+      return tx.workspace.update({
+        where: { id: created.id },
+        data: { gitPath },
+      });
     });
 
     return mapWorkspace(updated);

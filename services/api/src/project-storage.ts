@@ -142,13 +142,36 @@ export interface GitProvider {
 }
 
 export interface ProjectStorage {
-  writeFiles(projectId: string, files: Array<{ path: string; content: string }>): Promise<ProjectFile[]>;
-  listFiles(projectId: string): Promise<ProjectFile[]>;
+  writeFiles(
+    projectId: string,
+    files: Array<{ path: string; content: string }>,
+    workspaceId?: string,
+  ): Promise<ProjectFile[]>;
+  listFiles(projectId: string, workspaceId?: string): Promise<ProjectFile[]>;
   exportZip(projectId: string): Promise<StoredArchive & { base64: string }>;
   importZip(projectId: string, base64: string, options?: { replaceExisting?: boolean }): Promise<ProjectFile[]>;
   createSnapshot(input: { projectId: string; label?: string; files: ProjectFile[] }): Promise<StoredArchive>;
   getSnapshotFiles(storageKey: string): Promise<ProjectFile[]>;
-  restoreSnapshot(input: { projectId: string; files: ProjectFile[] }): Promise<ProjectFile[]>;
+  restoreSnapshot(input: { projectId: string; workspaceId?: string; files: ProjectFile[] }): Promise<ProjectFile[]>;
+}
+
+export const SECONDARY_WORKSPACES_DIR = '.vibecore-workspaces';
+const SAFE_WORKSPACE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+
+function workspaceSubpath(workspaceId: string, filePath = '') {
+  if (!SAFE_WORKSPACE_ID.test(workspaceId)) {
+    throw new Error('Invalid workspaceId');
+  }
+
+  return filePath ? `${SECONDARY_WORKSPACES_DIR}/${workspaceId}/${filePath}` : `${SECONDARY_WORKSPACES_DIR}/${workspaceId}`;
+}
+
+function safeWorkspacePath(projectId: string, workspaceId?: string, filePath = '') {
+  if (!workspaceId) {
+    return safeProjectPath(projectId, filePath);
+  }
+
+  return safeProjectPath(projectId, workspaceSubpath(workspaceId, filePath));
 }
 
 function now() {
@@ -197,6 +220,10 @@ async function walkFiles(root: string, current = ''): Promise<ProjectFile[]> {
       continue;
     }
 
+    if (entry.isDirectory() && current === '' && entry.name === SECONDARY_WORKSPACES_DIR) {
+      continue;
+    }
+
     const child = join(current, entry.name);
 
     if (entry.isDirectory()) {
@@ -238,18 +265,18 @@ export async function filesFromZipBase64(base64: string): Promise<Array<{ path: 
 }
 
 export class LocalProjectStorage implements ProjectStorage {
-  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>) {
+  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>, workspaceId?: string) {
     for (const file of files) {
-      const target = safeProjectPath(projectId, file.path);
+      const target = safeWorkspacePath(projectId, workspaceId, file.path);
       await mkdir(dirname(target), { recursive: true });
       await writeFile(target, file.content, 'utf8');
     }
 
-    return this.listFiles(projectId);
+    return this.listFiles(projectId, workspaceId);
   }
 
-  async listFiles(projectId: string) {
-    return walkFiles(safeProjectPath(projectId));
+  async listFiles(projectId: string, workspaceId?: string) {
+    return walkFiles(safeWorkspacePath(projectId, workspaceId));
   }
 
   async exportZip(projectId: string) {
@@ -291,15 +318,38 @@ export class LocalProjectStorage implements ProjectStorage {
     return files.map((file) => ({ ...file, updatedAt }));
   }
 
-  async restoreSnapshot(input: { projectId: string; files: ProjectFile[] }) {
-    await rm(safeProjectPath(input.projectId), { recursive: true, force: true });
+  async restoreSnapshot(input: { projectId: string; workspaceId?: string; files: ProjectFile[] }) {
+    const target = safeWorkspacePath(input.projectId, input.workspaceId);
 
-    return this.writeFiles(input.projectId, input.files);
+    if (input.workspaceId) {
+      await rm(target, { recursive: true, force: true });
+    } else {
+      // Clearing the primary tree must preserve `.vibecore-workspaces/`, or every
+      // secondary workspace's `.git` and working tree would be destroyed.
+      await clearTreePreservingSecondaryWorkspaces(target);
+    }
+
+    return this.writeFiles(input.projectId, input.files, input.workspaceId);
   }
 }
 
-const SECONDARY_WORKSPACES_DIR = '.vibecore-workspaces';
-const SAFE_WORKSPACE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+async function clearTreePreservingSecondaryWorkspaces(target: string) {
+  const entries = await readdir(target, { withFileTypes: true }).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') {
+      return [];
+    }
+
+    throw error;
+  });
+
+  for (const entry of entries) {
+    if (entry.isDirectory() && entry.name === SECONDARY_WORKSPACES_DIR) {
+      continue;
+    }
+
+    await rm(join(target, entry.name), { recursive: true, force: true });
+  }
+}
 
 export class GitCliProvider implements GitProvider {
   private workspacePath(projectId: string, workspaceId?: string) {
