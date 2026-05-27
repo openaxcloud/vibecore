@@ -39,6 +39,7 @@ import {
 } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';
+import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
 import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { friendlyLabel, pickFriendlyLabel } from '~/lib/labels/friendly-id';
 import { loadProjectIdeData, type ProjectLoaderData } from '~/lib/project-ide-loader.server';
@@ -397,9 +398,7 @@ function IdeProjectTopBar({
             <span className="bolt-project-breadcrumb-kicker">Workspace</span>
             <span className="bolt-project-breadcrumb-value truncate">{workspaceLabel.display}</span>
           </Link>
-          <span className="bolt-project-breadcrumb-separator" aria-hidden>
-            /
-          </span>
+          <ProjectBreadcrumbSeparator />
           {renamingProject ? (
             <form className="bolt-project-rename-form" onSubmit={submitInlineRename}>
               <input
@@ -510,9 +509,7 @@ function IdeProjectTopBar({
               </button>
             </div>
           )}
-          <span className="bolt-project-breadcrumb-separator" aria-hidden>
-            /
-          </span>
+          <ProjectBreadcrumbSeparator />
           <Link
             to={withProjectSearch(projectUrl, { panel: 'git' })}
             className="bolt-project-breadcrumb-segment bolt-project-breadcrumb-branch"

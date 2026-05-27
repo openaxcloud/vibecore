@@ -4586,7 +4586,7 @@ body :where(.lucide, svg[data-lucide]) {
   flex: 1 1 auto;
   min-width: 0;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   padding-left: 1px;
   overflow: hidden;
   color: var(--vc-ide-text-muted);
@@ -4673,10 +4673,16 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-breadcrumb-separator {
+  display: inline-flex;
+  width: 12px;
   flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
   color: color-mix(in srgb, var(--vc-ide-text-muted), transparent 20%);
-  font-size: 13px !important;
-  font-weight: 700;
+  font-size: 14px !important;
+  font-weight: 760;
+  line-height: 1;
+  transform: translateY(-0.5px);
 }
 
 .bolt-project-name-shell {
