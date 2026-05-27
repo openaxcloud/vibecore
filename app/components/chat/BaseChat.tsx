@@ -62,6 +62,7 @@ import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
 import { buildGitStatusMap } from '~/utils/fileExplorerMetadata';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
+import { GitBranchSyncControls } from '~/components/git/GitBranchSyncControls';
 import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
 import StarterTemplates from './StarterTemplates';
 import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
@@ -15347,18 +15348,7 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
             <PanelButton disabled={busy || changedFiles.length === 0}>Commit changes</PanelButton>
           </form>
 
-          {['pull', 'push'].map((intent) => (
-            <form key={intent} onSubmit={onSubmit} className="flex gap-2">
-              <input name="intent" value={intent} type="hidden" />
-              <label className="sr-only" htmlFor={`git-${intent}-branch`}>
-                Remote branch for {intent}
-              </label>
-              <PanelInput id={`git-${intent}-branch`} name="branch" defaultValue={branch} />
-              <PanelButton disabled={busy} variant="outline">
-                {intent === 'pull' ? 'Pull' : 'Push'}
-              </PanelButton>
-            </form>
-          ))}
+          <GitBranchSyncControls branch={branch} busy={busy} idPrefix="ide-git" onSubmit={onSubmit} />
 
           <details className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
             <summary className="cursor-pointer text-sm font-semibold text-bolt-elements-textPrimary">

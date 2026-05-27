@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
+import { GitBranchSyncControls } from '~/components/git/GitBranchSyncControls';
 import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
 import { classNames } from '~/utils/classNames';
 
@@ -714,18 +715,7 @@ export function GitTab({ projectId }: GitTabProps) {
               <PanelButton disabled={busy || changedFiles.length === 0}>Commit changes</PanelButton>
             </form>
 
-            {(['pull', 'push'] as const).map((intent) => (
-              <form key={intent} onSubmit={submitAction} className="flex gap-2">
-                <input name="intent" value={intent} type="hidden" />
-                <label className="sr-only" htmlFor={`git-tab-${intent}-branch`}>
-                  Remote branch for {intent}
-                </label>
-                <PanelInput id={`git-tab-${intent}-branch`} name="branch" defaultValue={branch} />
-                <PanelButton disabled={busy} variant="outline">
-                  {intent === 'pull' ? 'Pull' : 'Push'}
-                </PanelButton>
-              </form>
-            ))}
+            <GitBranchSyncControls branch={branch} busy={busy} idPrefix="git-tab" onSubmit={submitAction} />
 
             <details className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
               <summary className="cursor-pointer text-sm font-semibold text-bolt-elements-textPrimary">
