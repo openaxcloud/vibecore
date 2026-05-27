@@ -629,8 +629,19 @@ export class WorkbenchStore {
 
         if (scripts.dev) {
           const devScript = scripts.dev.toLowerCase();
+          const hostArgs = this.#devScriptHostArgs(devScript);
 
           if (devScript.includes('vite') && this.#isSimpleViteDevScript(scripts.dev)) {
+            if (dependencies.vite && !shouldRunViteWithoutInstall) {
+              return {
+                command: 'npm',
+                args: ['run', 'dev', ...hostArgs],
+                label: 'npm run dev',
+                cwd,
+                setupCommands,
+              };
+            }
+
             return {
               command: 'npx',
               args: ['--yes', 'vite', ...this.#viteDevArgsFromScript(scripts.dev)],
@@ -648,13 +659,6 @@ export class WorkbenchStore {
               cwd,
             };
           }
-
-          const hostArgs =
-            devScript.includes('--host') || devScript.includes(' -h ') || devScript.includes(' --hostname ')
-              ? []
-              : devScript.includes('next')
-                ? ['--', '-H', '0.0.0.0']
-                : ['--', '--host', '0.0.0.0'];
 
           return {
             command: 'npm',
@@ -838,6 +842,14 @@ export class WorkbenchStore {
     const hasHost = args.some((arg) => arg === '--host' || arg.startsWith('--host=') || arg === '-h');
 
     return hasHost ? args : [...args, '--host', '0.0.0.0'];
+  }
+
+  #devScriptHostArgs(devScript: string) {
+    if (devScript.includes('--host') || devScript.includes(' -h ') || devScript.includes(' --hostname ')) {
+      return [];
+    }
+
+    return devScript.includes('next') ? ['--', '-H', '0.0.0.0'] : ['--', '--host', '0.0.0.0'];
   }
 
   #packageDirectoryFileContent(packageJsonPath: string, fileName: string) {
