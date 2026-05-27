@@ -8683,22 +8683,42 @@ function ProjectFilesTool({
     }
   }
 
+  const collapseFilesLabel = collapsed ? 'Expand all files' : 'Collapse all files';
+
   return (
     <div className="bolt-project-files-tool">
       <div className="bolt-project-files-header">
         <span className="bolt-project-files-count">{fileCount} files</span>
-        <button type="button" aria-label="New file" onClick={() => void createEntry('file')}>
-          <span className="i-ph:file-plus" aria-hidden />
-        </button>
-        <button type="button" aria-label="New folder" onClick={() => void createEntry('folder')}>
-          <span className="i-ph:folder-plus" aria-hidden />
-        </button>
-        <button type="button" aria-label="Refresh files" onClick={() => void workbenchStore.loadRuntimeFiles('.')}>
-          <span className="i-ph:arrow-clockwise" aria-hidden />
-        </button>
-        <button type="button" aria-label="Collapse all files" onClick={() => setCollapsed((value) => !value)}>
-          <span className="i-ph:caret-double-up" aria-hidden />
-        </button>
+        <HeaderTip label="New file" side="top">
+          <button type="button" aria-label="New file" title="New file" onClick={() => void createEntry('file')}>
+            <span className="i-ph:file-plus" aria-hidden />
+          </button>
+        </HeaderTip>
+        <HeaderTip label="New folder" side="top">
+          <button type="button" aria-label="New folder" title="New folder" onClick={() => void createEntry('folder')}>
+            <span className="i-ph:folder-plus" aria-hidden />
+          </button>
+        </HeaderTip>
+        <HeaderTip label="Refresh files" side="top">
+          <button
+            type="button"
+            aria-label="Refresh files"
+            title="Refresh files"
+            onClick={() => void workbenchStore.loadRuntimeFiles('.')}
+          >
+            <span className="i-ph:arrow-clockwise" aria-hidden />
+          </button>
+        </HeaderTip>
+        <HeaderTip label={collapseFilesLabel} side="top">
+          <button
+            type="button"
+            aria-label={collapseFilesLabel}
+            title={collapseFilesLabel}
+            onClick={() => setCollapsed((value) => !value)}
+          >
+            <span className={collapsed ? 'i-ph:caret-double-down' : 'i-ph:caret-double-up'} aria-hidden />
+          </button>
+        </HeaderTip>
       </div>
       <label className="bolt-project-files-search">
         <span>Search</span>

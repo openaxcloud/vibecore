@@ -1,4 +1,5 @@
 import * as ContextMenu from '@radix-ui/react-context-menu';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import { diffLines, type Change } from 'diff';
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { toast } from 'react-toastify';
@@ -325,33 +326,53 @@ export const FileTree = memo(
         onDrop={(event) => void uploadDroppedFiles(event)}
       >
         {enableWorkspaceViews && (
-          <div className="sticky top-0 z-10 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2/95 px-1.5 py-2 pr-3 backdrop-blur">
-            <div className="grid grid-cols-5 gap-0.5 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 p-0.5">
+          <div className="bolt-file-tree-view-switcher-shell sticky top-0 z-10 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2/95 px-1.5 py-2 pr-3 backdrop-blur">
+            <div
+              className="bolt-file-tree-view-switcher grid grid-cols-5 gap-0.5 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 p-0.5"
+              role="toolbar"
+              aria-label="File explorer views"
+            >
               {[
-                ['files', 'Files', 'i-ph:files'],
+                ['files', 'Files', 'i-ph:file-text'],
                 ['open', 'Open editors', 'i-ph:tabs'],
                 ['outline', 'Outline', 'i-ph:list-bullets'],
                 ['timeline', 'Timeline', 'i-ph:clock-counter-clockwise'],
                 ['bookmarks', 'Bookmarks', 'i-ph:bookmark-simple'],
               ].map(([view, label, icon]) => (
-                <button
-                  key={view}
-                  type="button"
-                  aria-label={label}
-                  title={label}
-                  className={classNames(
-                    'flex h-7 min-w-0 items-center justify-center rounded-md text-bolt-elements-textTertiary',
-                    {
-                      'bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary shadow-sm':
-                        activeView === view,
-                      'hover:bg-bolt-elements-item-backgroundActive hover:text-bolt-elements-textPrimary':
-                        activeView !== view,
-                    },
-                  )}
-                  onClick={() => setActiveView(view as typeof activeView)}
-                >
-                  <span className={classNames('size-4', icon)} aria-hidden />
-                </button>
+                <Tooltip.Root key={view} delayDuration={0}>
+                  <Tooltip.Trigger asChild>
+                    <button
+                      type="button"
+                      aria-label={label}
+                      aria-pressed={activeView === view}
+                      title={label}
+                      data-vc-radix-tooltip="true"
+                      className={classNames(
+                        'flex h-7 min-w-0 items-center justify-center rounded-md text-bolt-elements-textTertiary',
+                        {
+                          'bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary shadow-sm':
+                            activeView === view,
+                          'hover:bg-bolt-elements-item-backgroundActive hover:text-bolt-elements-textPrimary':
+                            activeView !== view,
+                        },
+                      )}
+                      onClick={() => setActiveView(view as typeof activeView)}
+                    >
+                      <span className={classNames('size-4', icon)} aria-hidden />
+                    </button>
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      side="top"
+                      sideOffset={8}
+                      collisionPadding={12}
+                      className="bolt-project-tooltip-content"
+                    >
+                      {label}
+                      <Tooltip.Arrow className="bolt-project-tooltip-arrow" />
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
               ))}
             </div>
           </div>
