@@ -44,7 +44,9 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Start local dependencies
-        run: docker compose --env-file .env -f docker-compose.dev.yml up -d postgres redis mailpit
+        run: |
+          touch .env
+          docker compose --env-file .env -f docker-compose.dev.yml up -d postgres redis mailpit
 
       - name: Prepare database
         run: |
