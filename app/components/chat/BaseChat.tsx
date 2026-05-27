@@ -62,6 +62,7 @@ import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
 import { buildGitStatusMap } from '~/utils/fileExplorerMetadata';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
+import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
 import StarterTemplates from './StarterTemplates';
 import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
 import DeployChatAlert from '~/components/deploy/DeployAlert';
@@ -15008,53 +15009,6 @@ function ProjectSecretsPanel({
   );
 }
 
-function describeGitFileStatus(input: unknown) {
-  const code = String(input ?? 'M').trim() || 'M';
-  const normalized = code.replace(/\s+/g, '');
-  const primary = normalized === '??' ? '??' : normalized[0] || 'M';
-
-  const descriptions: Record<string, { label: string; description: string }> = {
-    '??': {
-      label: 'Untracked file',
-      description:
-        'Untracked file. Git sees this file in the workspace, but it has not been added to the repository yet.',
-    },
-    M: {
-      label: 'Modified file',
-      description: 'Modified file. This file is tracked by Git and has local changes that are not committed yet.',
-    },
-    A: {
-      label: 'Added file',
-      description: 'Added file. This is a new file staged or prepared to become part of the repository.',
-    },
-    D: {
-      label: 'Deleted file',
-      description: 'Deleted file. This tracked file was removed from the workspace.',
-    },
-    R: {
-      label: 'Renamed file',
-      description: 'Renamed file. Git detected that this tracked file moved or changed names.',
-    },
-    C: {
-      label: 'Copied file',
-      description: 'Copied file. Git detected this file as a copy of an existing tracked file.',
-    },
-    U: {
-      label: 'Unmerged file',
-      description: 'Unmerged file. This file has a merge conflict that must be resolved before committing.',
-    },
-  };
-
-  return {
-    code,
-    ...(descriptions[normalized] ??
-      descriptions[primary] ?? {
-        label: 'Changed file',
-        description: 'Changed file. This status comes from Git porcelain output for the workspace repository.',
-      }),
-  };
-}
-
 function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project: any; onSubmit: any; busy: boolean }) {
   const status = data.status ?? data;
   const branch = status.branch ?? project.gitDefaultBranch ?? 'main';
@@ -15210,7 +15164,6 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
             {changedFiles.length ? (
               changedFiles.map((file: any) => {
                 const path = String(file.path ?? file);
-                const status = describeGitFileStatus(file.status ?? 'M');
 
                 return (
                   <label
@@ -15233,14 +15186,7 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
                     >
                       {path}
                     </button>
-                    <span
-                      className="rounded bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary"
-                      title={status.description}
-                      aria-label={`Git status ${status.code}: ${status.label}. ${status.description}`}
-                    >
-                      {status.code}
-                      <span className="sr-only"> {status.label}</span>
-                    </span>
+                    <GitStatusBadge status={file.status ?? 'M'} />
                     <span className="text-xs font-semibold text-bolt-elements-item-contentAccent">
                       {staged.has(path) ? 'Staged' : 'Stage'}
                     </span>
@@ -15250,12 +15196,7 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
             ) : (
               <div className="bolt-project-empty-panel">No changed files.</div>
             )}
-            {changedFiles.length ? (
-              <div className="mt-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-xs text-bolt-elements-textSecondary">
-                <strong className="text-bolt-elements-textPrimary">Status guide:</strong> `??` means untracked file, `M`
-                means modified, `A` means added, `D` means deleted, and `R` means renamed.
-              </div>
-            ) : null}
+            {changedFiles.length ? <GitStatusLegend className="mt-3 bg-bolt-elements-background-depth-1" /> : null}
           </div>
 
           {conflicts.length > 0 && (

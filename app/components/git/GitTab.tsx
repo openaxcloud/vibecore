@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
+import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
 import { classNames } from '~/utils/classNames';
 
 type GitFileStatus = { path: string; status?: string };
@@ -64,34 +65,6 @@ type Envelope = {
 
 interface GitTabProps {
   projectId: string;
-}
-
-function describeGitFileStatus(input: unknown) {
-  const code = String(input ?? 'M').trim() || 'M';
-  const normalized = code.replace(/\s+/g, '');
-  const primary = normalized === '??' ? '??' : normalized[0] || 'M';
-
-  const descriptions: Record<string, { label: string; description: string }> = {
-    '??': {
-      label: 'Untracked file',
-      description: 'Untracked file. Git sees it in the workspace but it has not been added to the repository yet.',
-    },
-    M: { label: 'Modified file', description: 'Modified file. Tracked by Git with uncommitted local changes.' },
-    A: { label: 'Added file', description: 'Added file. Staged or prepared to become part of the repository.' },
-    D: { label: 'Deleted file', description: 'Deleted file. Tracked file that was removed from the workspace.' },
-    R: { label: 'Renamed file', description: 'Renamed file. Git detected this tracked file moved or changed names.' },
-    C: { label: 'Copied file', description: 'Copied file. Detected as a copy of an existing tracked file.' },
-    U: {
-      label: 'Unmerged file',
-      description: 'Unmerged file. A merge conflict that must be resolved before committing.',
-    },
-  };
-
-  return {
-    code,
-    ...(descriptions[normalized] ??
-      descriptions[primary] ?? { label: 'Changed file', description: 'Status from Git porcelain output.' }),
-  };
 }
 
 function timeAgo(value?: string) {
@@ -541,7 +514,6 @@ export function GitTab({ projectId }: GitTabProps) {
               {changedFiles.length ? (
                 changedFiles.map((file) => {
                   const path = String(file.path ?? file);
-                  const statusInfo = describeGitFileStatus(file.status ?? 'M');
 
                   return (
                     <label
@@ -564,14 +536,7 @@ export function GitTab({ projectId }: GitTabProps) {
                       >
                         {path}
                       </button>
-                      <span
-                        className="rounded bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary"
-                        title={statusInfo.description}
-                        aria-label={`Git status ${statusInfo.code}: ${statusInfo.label}. ${statusInfo.description}`}
-                      >
-                        {statusInfo.code}
-                        <span className="sr-only"> {statusInfo.label}</span>
-                      </span>
+                      <GitStatusBadge status={file.status ?? 'M'} />
                       <span className="text-xs font-semibold text-bolt-elements-item-contentAccent">
                         {staged.has(path) ? 'Staged' : 'Stage'}
                       </span>
@@ -583,12 +548,7 @@ export function GitTab({ projectId }: GitTabProps) {
                   No changed files.
                 </div>
               )}
-              {changedFiles.length ? (
-                <div className="mt-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-xs text-bolt-elements-textSecondary">
-                  <strong className="text-bolt-elements-textPrimary">Status guide:</strong> <code>??</code> untracked,{' '}
-                  <code>M</code> modified, <code>A</code> added, <code>D</code> deleted, <code>R</code> renamed.
-                </div>
-              ) : null}
+              {changedFiles.length ? <GitStatusLegend className="mt-3 bg-bolt-elements-background-depth-1" /> : null}
             </div>
 
             {conflicts.length > 0 && (

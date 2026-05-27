@@ -3,6 +3,7 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { diffLines, type Change } from 'diff';
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { toast } from 'react-toastify';
+import { GitStatusBadge } from '~/components/git/GitStatusBadge';
 import type { FileMap } from '~/lib/stores/files';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { FileHistory } from '~/types/actions';
@@ -1194,36 +1195,7 @@ function File({
 }
 
 function GitStatusPill({ status }: { status: GitFileStatus }) {
-  const labelByStatus: Record<GitFileStatus, string> = {
-    modified: 'M',
-    added: 'A',
-    deleted: 'D',
-    renamed: 'R',
-    untracked: '?',
-    conflicted: '!',
-  };
-
-  const toneByStatus: Record<GitFileStatus, string> = {
-    modified: 'text-amber-500 bg-amber-500/10',
-    added: 'text-emerald-500 bg-emerald-500/10',
-    deleted: 'text-red-500 bg-red-500/10',
-    renamed: 'text-sky-500 bg-sky-500/10',
-    untracked: 'text-violet-500 bg-violet-500/10',
-    conflicted: 'text-red-500 bg-red-500/15',
-  };
-
-  return (
-    <span
-      className={classNames(
-        'grid h-4 min-w-4 place-items-center rounded px-1 text-[10px] font-semibold',
-        toneByStatus[status],
-      )}
-      title={`Git status: ${status}`}
-      aria-label={`Git status ${status}`}
-    >
-      {labelByStatus[status]}
-    </span>
-  );
+  return <GitStatusBadge status={status} size="compact" />;
 }
 
 function OutlineView({ symbols, onSelect }: { symbols: OutlineSymbol[]; onSelect: (symbol: OutlineSymbol) => void }) {
