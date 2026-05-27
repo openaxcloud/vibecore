@@ -1,6 +1,7 @@
 import type { RuntimeAdapter } from '@vibecore/runtime-contract';
 
 import { path } from '~/utils/path';
+import { sanitizeFileContent } from '~/utils/sanitize-file-content';
 
 /**
  * Subset of the runtime adapter surface this helper actually touches.
@@ -18,9 +19,9 @@ export type AgentFileWriteRuntime = Pick<RuntimeAdapter, 'createDirectory' | 'wr
  *
  * Mirrors the directory + file write the ActionRunner would otherwise do
  * inside `#runFileAction`, so the filesystem state is identical to a live
- * accept. Sanitisation + Phase 0 #2 validation already ran during the
- * original streaming write, so the proposedContent stored in the proposal
- * is safe to forward verbatim.
+ * accept. We still run the lightweight sanitizer here because review-first
+ * mode queues file actions before `ActionRunner` gets a chance to sanitize
+ * them.
  */
 export async function writeAcceptedAgentFile(
   runtime: AgentFileWriteRuntime,
@@ -33,5 +34,7 @@ export async function writeAcceptedAgentFile(
     await runtime.createDirectory(folder);
   }
 
-  await runtime.writeFile(relativePath, content);
+  const sanitized = sanitizeFileContent(content, relativePath);
+
+  await runtime.writeFile(relativePath, sanitized.sanitized);
 }

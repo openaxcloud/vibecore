@@ -11,16 +11,32 @@ const sessionCookieName = 'vc_session';
  * `process.env.NODE_ENV` is the one exception: vite's `define` inlines it as
  * a literal string at build time, so the conditional below survives the
  * polyfill. We use it to pick an in-cluster service URL by default so the
- * web pod can still reach the api pod when env wiring is missing. The
+ * web pod can still reach the api pod when env wiring is missing. Runtime
+ * lookups below intentionally read globalThis.process.env so the Node SSR
+ * process wins over the injected browser shim. The
  * production K8s Service is `<release>-<chart>-api` in namespace `vibecore`
  * which resolves to `vibecore-vibecore-platform-api.vibecore.svc.cluster.local`.
  */
 const IN_CLUSTER_API_URL = 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001';
 const LOCAL_DEV_API_URL = 'http://localhost:8787';
 
+type RuntimeProcess = {
+  env?: Record<string, string | undefined>;
+};
+
+function runtimeEnv() {
+  const maybeProcess = (globalThis as typeof globalThis & { process?: RuntimeProcess }).process;
+
+  return maybeProcess?.env ?? {};
+}
+
+function envValue(key: string) {
+  return runtimeEnv()[key];
+}
+
 function apiBaseUrlFromHostPort() {
-  const host = process.env.API_HOST?.trim();
-  const port = process.env.API_PORT?.trim();
+  const host = envValue('API_HOST')?.trim();
+  const port = envValue('API_PORT')?.trim();
 
   if (!host && !port) {
     return undefined;
@@ -33,7 +49,7 @@ function apiBaseUrlFromHostPort() {
 }
 
 export function apiBaseUrl() {
-  const fromEnv = process.env.SAAS_API_URL ?? process.env.API_BASE_URL;
+  const fromEnv = envValue('SAAS_API_URL') ?? envValue('API_BASE_URL');
 
   if (fromEnv && fromEnv.length > 0) {
     return fromEnv;
@@ -45,7 +61,7 @@ export function apiBaseUrl() {
     return fromHostPort;
   }
 
-  return process.env.NODE_ENV === 'production' ? IN_CLUSTER_API_URL : LOCAL_DEV_API_URL;
+  return envValue('NODE_ENV') === 'production' ? IN_CLUSTER_API_URL : LOCAL_DEV_API_URL;
 }
 
 export function readSessionToken(request: Request) {
@@ -67,7 +83,7 @@ export function readSessionToken(request: Request) {
  * cookie must be marked Secure to prevent a downgrade attack from
  * leaking it over an attacker-MITMed plaintext channel.
  */
-const cookieSecureFlag = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+const cookieSecureFlag = envValue('NODE_ENV') === 'production' ? '; Secure' : '';
 
 export function sessionCookie(token: string, maxAgeSeconds?: number) {
   const maxAge = typeof maxAgeSeconds === 'number' ? `; Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}` : '';
