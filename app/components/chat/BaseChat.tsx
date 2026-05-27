@@ -48,6 +48,7 @@ import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
 import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
 import { ProjectEditorToolbar } from '~/components/project-ide/ProjectEditorToolbar';
+import { ProjectOverviewPanel } from '~/components/project-ide/ProjectOverviewPanel';
 import {
   PROJECT_AGENT_PANEL_MIN_WIDTH,
   clampProjectAgentPanelWidth,
@@ -810,6 +811,12 @@ type ProjectIdeBackendState = {
   files?: Array<{ path: string; sizeBytes?: number }>;
   recentActivity?: Array<{ action: string; createdAt?: string }>;
   collaborators?: Array<{ id?: string; userId?: string; roleKey?: string }>;
+  overview?: unknown;
+  commits?: unknown[];
+  presence?: unknown[];
+  manifests?: unknown[];
+  dependencies?: unknown[];
+  packageManager?: string;
   workflowsState?: { runs?: any[] };
   terminalState?: { scriptRuns?: any[] };
   packagesState?: { runs?: any[] };
@@ -9247,17 +9254,7 @@ function ProjectIdePanelContent({
   lastLoadedAt?: string;
 }) {
   if (panel === 'overview') {
-    const rows = [
-      ['Project', project.name ?? project.id],
-      [
-        'Workspace',
-        data.workspace ? `${data.workspace.status} / ${data.workspace.runtimeMode}` : 'No workspace record',
-      ],
-      ['Files', String(data.files?.length ?? 0)],
-      ['Branch', data.git?.branch ?? project.gitDefaultBranch ?? 'main'],
-    ];
-
-    return <PanelRows rows={rows} events={data.recentActivity} empty="No project activity yet." />;
+    return <ProjectOverviewPanel data={data} project={project} />;
   }
 
   if (panel === 'database') {

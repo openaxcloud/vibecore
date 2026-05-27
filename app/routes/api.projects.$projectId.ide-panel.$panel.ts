@@ -8,6 +8,7 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 import { defaultProjectKeybindings, serializeKeybindingOverrides } from '~/lib/keybindings';
+import { buildProjectOverviewInsights } from '~/lib/project-overview';
 
 export type IdePanelStatus = 'ok' | 'empty' | 'error';
 
@@ -90,15 +91,35 @@ function panelErrorMessage(error: unknown) {
 
 async function loadOverviewPanelEnvelope(request: Request, projectId: string, project: unknown) {
   try {
-    const [dashboard, collaborators, envVars] = await Promise.all([
+    const [dashboard, packages, collaborators, gitGraph, envVars] = await Promise.all([
       apiRequest(request, `/projects/${projectId}/dashboard`),
+      apiRequest(request, `/projects/${projectId}/packages`).catch(() => null),
       apiRequest(request, `/projects/${projectId}/collaboration`).catch(() => ({ collaborators: [] })),
+      apiRequest(request, `/projects/${projectId}/git/graph`).catch(() => ({ commits: [] })),
       apiRequest(request, `/projects/${projectId}/env-vars`).catch(() => ({ envVars: [] })),
     ]);
 
+    const dashboardData = dashboard as Record<string, any>;
+    const packageData = packages as Record<string, any> | null;
+    const collaborationData = collaborators as Record<string, any>;
+    const gitGraphData = gitGraph as Record<string, any>;
+
     return panelEnvelope('overview', project, {
-      ...(dashboard as any),
-      collaborators: (collaborators as any)?.collaborators ?? [],
+      ...dashboardData,
+      packageManager: packageData?.packageManager,
+      manifests: packageData?.manifests ?? [],
+      dependencies: packageData?.dependencies ?? [],
+      lockfiles: packageData?.lockfiles ?? [],
+      commits: gitGraphData?.commits ?? [],
+      collaborators: collaborationData?.collaborators ?? [],
+      presence: collaborationData?.presence ?? [],
+      overview: buildProjectOverviewInsights({
+        project: project as any,
+        dashboard: dashboardData as any,
+        packages: packageData as any,
+        gitGraph: gitGraphData as any,
+        collaboration: collaborationData as any,
+      }),
       workflowsState: readWorkflowsState(envVars),
       terminalState: readTerminalState(envVars),
       packagesState: readPackagesState(envVars),
