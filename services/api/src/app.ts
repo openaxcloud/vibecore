@@ -1688,12 +1688,17 @@ async function syncProjectStorageWithFileManifest(
   projectId: string,
   existingFiles: ProjectFile[],
   files: Array<{ path: string; content: string }>,
+  workspaceId?: string,
 ) {
   if (projectFilesMatch(existingFiles, files)) {
     return existingFiles;
   }
 
-  return projectStorage.restoreSnapshot({ projectId, files: projectFilesWithUpdatedAt(files) });
+  return projectStorage.restoreSnapshot({
+    projectId,
+    workspaceId,
+    files: projectFilesWithUpdatedAt(files),
+  });
 }
 
 async function persistProjectFileManifest(
@@ -1822,13 +1827,20 @@ async function listProjectFilesIncludingIdeState(
   store: ApiStore,
   projectStorage: ProjectStorage,
   projectId: string,
+  workspaceId?: string,
 ): Promise<ProjectFile[]> {
-  const existingFiles = await projectStorage.listFiles(projectId);
+  const existingFiles = await projectStorage.listFiles(projectId, workspaceId);
   const ideState = await store.getProjectIdeState(projectId);
   const persistedManifest = projectFileManifestFromPersistedIdeState(ideState);
 
   if (persistedManifest.exists) {
-    return syncProjectStorageWithFileManifest(projectStorage, projectId, existingFiles, persistedManifest.files);
+    return syncProjectStorageWithFileManifest(
+      projectStorage,
+      projectId,
+      existingFiles,
+      persistedManifest.files,
+      workspaceId,
+    );
   }
 
   const recoveredFiles = projectFilesFromPersistedIdeState(ideState);
@@ -1847,7 +1859,7 @@ async function listProjectFilesIncludingIdeState(
   }
 
   if (missingFiles.length) {
-    await projectStorage.writeFiles(projectId, missingFiles);
+    await projectStorage.writeFiles(projectId, missingFiles, workspaceId);
   }
 
   return [...mergedFiles.values()];
@@ -6637,7 +6649,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         projectId: project.id,
         workspaceId: gitWorkspaceId,
         message: input.message ?? 'AI changes',
-        files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id),
+        files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id, gitWorkspaceId),
       });
     } else if (toolName === 'deploy_project') {
       await ensureQuota(request, project.organizationId, 'deployments.count');
@@ -11148,7 +11160,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       projectId: project.id,
       workspaceId,
       message: body.message,
-      files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id),
+      files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id, workspaceId),
       selectedFiles: body.files,
     });
     await store.recordProjectActivity({
