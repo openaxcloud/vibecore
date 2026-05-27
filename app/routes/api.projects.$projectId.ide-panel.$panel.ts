@@ -252,27 +252,64 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     try {
       const blameFile = url.searchParams.get('blameFile');
       const diffFile = url.searchParams.get('diffFile');
+      const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
+
+      const workspacesResponse = await apiRequest<{ workspaces: Array<Record<string, unknown>> }>(
+        request,
+        `/projects/${projectId}/workspaces`,
+      ).catch(() => ({ workspaces: [] as Array<Record<string, unknown>> }));
+
+      const workspaceList = Array.isArray(workspacesResponse?.workspaces) ? workspacesResponse.workspaces : [];
+
+      const orderedByCreated = [...workspaceList].sort((a, b) =>
+        String(a?.createdAt ?? '').localeCompare(String(b?.createdAt ?? '')),
+      );
+
+      const primaryWorkspaceId =
+        typeof orderedByCreated[0]?.id === 'string' ? (orderedByCreated[0]!.id as string) : undefined;
+      const activeWorkspaceId =
+        typeof workspaceList[0]?.id === 'string' ? (workspaceList[0]!.id as string) : primaryWorkspaceId;
+
+      const selectedWorkspaceId =
+        requestedWorkspaceId && workspaceList.some((workspace) => workspace?.id === requestedWorkspaceId)
+          ? requestedWorkspaceId
+          : activeWorkspaceId;
+
+      const workspaceQueryParam =
+        selectedWorkspaceId && selectedWorkspaceId !== primaryWorkspaceId
+          ? `workspaceId=${encodeURIComponent(selectedWorkspaceId)}`
+          : '';
+
+      const withWorkspace = (path: string) => {
+        if (!workspaceQueryParam) {
+          return path;
+        }
+
+        return path.includes('?') ? `${path}&${workspaceQueryParam}` : `${path}?${workspaceQueryParam}`;
+      };
 
       const [status, branches, graph, stashes] = await Promise.all([
-        apiRequest(request, `/projects/${projectId}/git/status`),
-        apiRequest(request, `/projects/${projectId}/git/branches`),
-        apiRequest(request, `/projects/${projectId}/git/graph`).catch(() => ({ commits: [] })),
-        apiRequest(request, `/projects/${projectId}/git/stashes`).catch(() => ({ stashes: [] })),
+        apiRequest(request, withWorkspace(`/projects/${projectId}/git/status`)),
+        apiRequest(request, withWorkspace(`/projects/${projectId}/git/branches`)),
+        apiRequest(request, withWorkspace(`/projects/${projectId}/git/graph`)).catch(() => ({ commits: [] })),
+        apiRequest(request, withWorkspace(`/projects/${projectId}/git/stashes`)).catch(() => ({ stashes: [] })),
       ]);
       const [blame, diff] = await Promise.all([
         blameFile
-          ? apiRequest(request, `/projects/${projectId}/git/blame?filePath=${encodeURIComponent(blameFile)}`).catch(
-              () => ({
-                blame: [],
-              }),
-            )
+          ? apiRequest(
+              request,
+              withWorkspace(`/projects/${projectId}/git/blame?filePath=${encodeURIComponent(blameFile)}`),
+            ).catch(() => ({
+              blame: [],
+            }))
           : Promise.resolve({ blame: [] }),
         diffFile
-          ? apiRequest(request, `/projects/${projectId}/git/diff?filePath=${encodeURIComponent(diffFile)}`).catch(
-              () => ({
-                diff: '',
-              }),
-            )
+          ? apiRequest(
+              request,
+              withWorkspace(`/projects/${projectId}/git/diff?filePath=${encodeURIComponent(diffFile)}`),
+            ).catch(() => ({
+              diff: '',
+            }))
           : Promise.resolve({ diff: '' }),
       ]);
 
@@ -284,6 +321,10 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           ...(stashes as any),
           ...(blame as any),
           ...(diff as any),
+          workspaces: workspaceList,
+          activeWorkspaceId,
+          primaryWorkspaceId,
+          selectedWorkspaceId,
         }),
       );
     } catch (error) {
@@ -1687,6 +1728,8 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       body: JSON.stringify({ key: TERMINAL_STATE_ENV_KEY, value: JSON.stringify(normalizeTerminalState(state)) }),
     });
   } else if (panel === 'git') {
+    const workspaceId = body.workspaceId?.trim() || undefined;
+
     if (intent === 'commit') {
       const files = body.stagedFiles
         ?.split(',')
@@ -1695,47 +1738,56 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
       await apiRequest(request, `/projects/${projectId}/git/commit`, {
         method: 'POST',
-        body: JSON.stringify({ message: body.message || 'Update project files', files }),
+        body: JSON.stringify({ message: body.message || 'Update project files', files, workspaceId }),
       });
     } else if (intent === 'push') {
       await apiRequest(request, `/projects/${projectId}/git/push`, {
         method: 'POST',
-        body: JSON.stringify({ branch: body.branch || 'main' }),
+        body: JSON.stringify({ branch: body.branch || 'main', workspaceId }),
       });
     } else if (intent === 'pull') {
       await apiRequest(request, `/projects/${projectId}/git/pull`, {
         method: 'POST',
-        body: JSON.stringify({ branch: body.branch || 'main' }),
+        body: JSON.stringify({ branch: body.branch || 'main', workspaceId }),
       });
     } else if (intent === 'checkout-branch') {
       await apiRequest(request, `/projects/${projectId}/git/branches/checkout`, {
         method: 'POST',
-        body: JSON.stringify({ branch: body.branch || 'main', create: false }),
+        body: JSON.stringify({ branch: body.branch || 'main', create: false, workspaceId }),
       });
     } else if (intent === 'create-branch') {
       await apiRequest(request, `/projects/${projectId}/git/branches/checkout`, {
         method: 'POST',
-        body: JSON.stringify({ branch: body.branch, create: true, startPoint: body.startPoint || undefined }),
+        body: JSON.stringify({
+          branch: body.branch,
+          create: true,
+          startPoint: body.startPoint || undefined,
+          workspaceId,
+        }),
       });
     } else if (intent === 'stash') {
       await apiRequest(request, `/projects/${projectId}/git/stash`, {
         method: 'POST',
-        body: JSON.stringify({ message: body.message || undefined }),
+        body: JSON.stringify({ message: body.message || undefined, workspaceId }),
       });
     } else if (intent === 'apply-stash' || intent === 'pop-stash') {
       await apiRequest(request, `/projects/${projectId}/git/stash/apply`, {
         method: 'POST',
-        body: JSON.stringify({ stashRef: body.stashRef, drop: intent === 'pop-stash' }),
+        body: JSON.stringify({ stashRef: body.stashRef, drop: intent === 'pop-stash', workspaceId }),
       });
     } else if (intent === 'cherry-pick') {
       await apiRequest(request, `/projects/${projectId}/git/cherry-pick`, {
         method: 'POST',
-        body: JSON.stringify({ sha: body.sha }),
+        body: JSON.stringify({ sha: body.sha, workspaceId }),
       });
     } else if (intent === 'resolve-conflict') {
       await apiRequest(request, `/projects/${projectId}/git/conflicts/resolve`, {
         method: 'POST',
-        body: JSON.stringify({ filePath: body.filePath, strategy: body.strategy === 'theirs' ? 'theirs' : 'ours' }),
+        body: JSON.stringify({
+          filePath: body.filePath,
+          strategy: body.strategy === 'theirs' ? 'theirs' : 'ours',
+          workspaceId,
+        }),
       });
     } else if (intent === 'pr') {
       await apiRequest(request, `/projects/${projectId}/git/pull-requests`, {
@@ -1745,6 +1797,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
           sourceBranch: body.sourceBranch || 'main',
           targetBranch: body.targetBranch || 'main',
           body: body.body,
+          workspaceId,
         }),
       });
     }

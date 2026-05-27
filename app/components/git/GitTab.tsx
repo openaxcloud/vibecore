@@ -38,11 +38,27 @@ type GitProject = {
   gitRepositoryUrl?: string | null;
 };
 
+type GitWorkspaceSummary = {
+  id: string;
+  name?: string;
+  status?: string;
+  runtimeMode?: string;
+  createdAt?: string;
+};
+
+type GitPanelData = GitData & {
+  status?: GitData['status'];
+  workspaces?: GitWorkspaceSummary[];
+  activeWorkspaceId?: string;
+  primaryWorkspaceId?: string;
+  selectedWorkspaceId?: string;
+};
+
 type Envelope = {
   panel?: string;
   status?: 'ok' | 'empty' | 'error';
   project?: GitProject;
-  data?: GitData & { status?: GitData['status'] };
+  data?: GitPanelData;
   error?: { code: string; message: string; retryable: boolean };
 };
 
@@ -151,6 +167,8 @@ export function GitTab({ projectId }: GitTabProps) {
   const [error, setError] = useState<string | undefined>();
   const [staged, setStaged] = useState<Set<string>>(new Set());
   const [inspectFile, setInspectFile] = useState('');
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>();
+  const [workspaceTouched, setWorkspaceTouched] = useState(false);
 
   const [inspection, setInspection] = useState<{
     loading: boolean;
@@ -164,7 +182,7 @@ export function GitTab({ projectId }: GitTabProps) {
   });
 
   const project = envelope?.project;
-  const data = envelope?.data ?? {};
+  const data: GitPanelData = envelope?.data ?? {};
   const status = data.status ?? (data as any);
   const branch = status?.branch ?? project?.gitDefaultBranch ?? 'main';
 
@@ -176,9 +194,14 @@ export function GitTab({ projectId }: GitTabProps) {
   const commits = data.commits ?? [];
   const stashes = data.stashes ?? [];
   const hasRemote = Boolean(project?.gitRepositoryUrl);
+  const workspaces: GitWorkspaceSummary[] = data.workspaces ?? [];
+  const activeWorkspaceId = data.activeWorkspaceId;
+  const primaryWorkspaceId = data.primaryWorkspaceId;
+  const envelopeSelectedWorkspaceId = data.selectedWorkspaceId;
+  const resolvedWorkspaceId = selectedWorkspaceId ?? envelopeSelectedWorkspaceId ?? activeWorkspaceId;
 
   const loadPanel = useCallback(
-    async (options?: { silent?: boolean; blameFile?: string; diffFile?: string }) => {
+    async (options?: { silent?: boolean; blameFile?: string; diffFile?: string; workspaceId?: string }) => {
       if (!projectId) {
         return;
       }
@@ -196,6 +219,12 @@ export function GitTab({ projectId }: GitTabProps) {
 
         if (options?.diffFile) {
           params.set('diffFile', options.diffFile);
+        }
+
+        const requestedWorkspaceId = options?.workspaceId ?? selectedWorkspaceId;
+
+        if (requestedWorkspaceId) {
+          params.set('workspaceId', requestedWorkspaceId);
         }
 
         const url = `/api/projects/${encodeURIComponent(projectId)}/ide-panel/git${
@@ -224,14 +253,37 @@ export function GitTab({ projectId }: GitTabProps) {
         }
       }
     },
-    [projectId],
+    [projectId, selectedWorkspaceId],
   );
 
   useEffect(() => {
     void loadPanel();
   }, [loadPanel]);
 
+  useEffect(() => {
+    if (workspaceTouched) {
+      return;
+    }
+
+    if (!selectedWorkspaceId && envelopeSelectedWorkspaceId) {
+      setSelectedWorkspaceId(envelopeSelectedWorkspaceId);
+    }
+  }, [envelopeSelectedWorkspaceId, selectedWorkspaceId, workspaceTouched]);
+
   const stagedFiles = useMemo(() => Array.from(staged), [staged]);
+
+  const handleWorkspaceChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const nextWorkspaceId = event.target.value || undefined;
+      setWorkspaceTouched(true);
+      setSelectedWorkspaceId(nextWorkspaceId);
+      setStaged(new Set());
+      setInspectFile('');
+      setInspection({ loading: false, blame: [], diff: '' });
+      void loadPanel({ workspaceId: nextWorkspaceId });
+    },
+    [loadPanel],
+  );
 
   const submitAction = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
@@ -244,6 +296,12 @@ export function GitTab({ projectId }: GitTabProps) {
       const form = event.currentTarget;
       const formData = new FormData(form);
       const intent = String(formData.get('intent') ?? 'default');
+
+      if (resolvedWorkspaceId) {
+        formData.set('workspaceId', resolvedWorkspaceId);
+      } else {
+        formData.delete('workspaceId');
+      }
 
       setBusy(true);
       setError(undefined);
@@ -272,7 +330,7 @@ export function GitTab({ projectId }: GitTabProps) {
         setBusy(false);
       }
     },
-    [loadPanel, projectId],
+    [loadPanel, projectId, resolvedWorkspaceId],
   );
 
   const loadInspection = useCallback(
@@ -285,6 +343,10 @@ export function GitTab({ projectId }: GitTabProps) {
 
       try {
         const params = new URLSearchParams({ blameFile: filePath, diffFile: filePath });
+
+        if (resolvedWorkspaceId) {
+          params.set('workspaceId', resolvedWorkspaceId);
+        }
 
         const response = await fetch(
           `/api/projects/${encodeURIComponent(projectId)}/ide-panel/git?${params.toString()}`,
@@ -312,7 +374,7 @@ export function GitTab({ projectId }: GitTabProps) {
         });
       }
     },
-    [inspectFile, projectId],
+    [inspectFile, projectId, resolvedWorkspaceId],
   );
 
   function toggleFile(filePath: string) {
@@ -337,6 +399,9 @@ export function GitTab({ projectId }: GitTabProps) {
     );
   }
 
+  const selectedWorkspace = workspaces.find((workspace) => workspace.id === resolvedWorkspaceId);
+  const selectedWorkspaceLabel = selectedWorkspace?.name ?? selectedWorkspace?.id;
+
   return (
     <div className="h-full overflow-auto">
       <div className="grid gap-4 p-4">
@@ -345,6 +410,60 @@ export function GitTab({ projectId }: GitTabProps) {
             {error}
           </div>
         )}
+
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+          <div className="min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+              Workspace
+            </div>
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm text-bolt-elements-textSecondary">
+              <span className="i-ph:terminal-window text-base text-bolt-elements-item-contentAccent" aria-hidden />
+              <strong className="truncate text-bolt-elements-textPrimary">
+                {selectedWorkspaceLabel ?? 'Project workspace'}
+              </strong>
+              {selectedWorkspace?.status ? (
+                <span className="rounded bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs uppercase tracking-wide">
+                  {selectedWorkspace.status.toLowerCase()}
+                </span>
+              ) : null}
+              {resolvedWorkspaceId && primaryWorkspaceId === resolvedWorkspaceId ? (
+                <span className="rounded bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs uppercase tracking-wide">
+                  primary
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+              Each workspace has its own git working directory. Switch workspaces to view a different repository.
+            </p>
+          </div>
+          <div className="flex min-w-[220px] flex-col gap-1">
+            <label
+              className="text-[11px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary"
+              htmlFor="ide-git-tab-workspace-select"
+            >
+              Active workspace
+            </label>
+            <select
+              id="ide-git-tab-workspace-select"
+              value={resolvedWorkspaceId ?? ''}
+              onChange={handleWorkspaceChange}
+              disabled={busy || workspaces.length === 0}
+              className="h-9 min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus disabled:opacity-60"
+            >
+              {workspaces.length === 0 ? (
+                <option value="">No workspaces available</option>
+              ) : (
+                workspaces.map((workspace) => (
+                  <option key={workspace.id} value={workspace.id}>
+                    {workspace.name ?? workspace.id}
+                    {workspace.id === primaryWorkspaceId ? ' (primary)' : ''}
+                    {workspace.id === activeWorkspaceId && workspace.id !== primaryWorkspaceId ? ' (active)' : ''}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+        </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
           <div className="min-w-0">
