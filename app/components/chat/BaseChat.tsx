@@ -108,6 +108,11 @@ import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/worksp
 import { useSearchParams } from '@remix-run/react';
 import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
 import {
+  formatProjectPanelRefreshCadence,
+  formatProjectPanelUpdatedLabel,
+  projectPanelRefreshIntervalMs,
+} from '~/utils/project-panel-refresh';
+import {
   applyKeybindingOverrides,
   defaultProjectKeybindings,
   detectKeybindingConflicts,
@@ -7501,6 +7506,10 @@ function ProjectIdeServicePanel({
   const [payload, setPayload] = useState<any>(() => initialPayload);
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [panelActionsOpen, setPanelActionsOpen] = useState(false);
+  const [refreshLabelNow, setRefreshLabelNow] = useState(() => new Date());
+  const loadingPanelRef = useRef(false);
+  const panelActionsRef = useRef<HTMLDivElement | null>(null);
 
   const [lastLoadedAt, setLastLoadedAt] = useState<string | undefined>(() =>
     initialPayload ? new Date().toISOString() : undefined,
@@ -7517,6 +7526,7 @@ function ProjectIdeServicePanel({
 
   const title = displayTitle ?? panelTitle(panel);
   const icon = displayIcon ?? panelIcon(panel);
+  const refreshIntervalMs = projectPanelRefreshIntervalMs(panel);
 
   const rendersEmptyStateActions =
     panel === 'deployments' ||
@@ -7545,6 +7555,12 @@ function ProjectIdeServicePanel({
       if (!projectId) {
         return;
       }
+
+      if (loadingPanelRef.current) {
+        return;
+      }
+
+      loadingPanelRef.current = true;
 
       if (!options?.silent) {
         setBusy(true);
@@ -7579,6 +7595,8 @@ function ProjectIdeServicePanel({
           setPayload(undefined);
         }
       } finally {
+        loadingPanelRef.current = false;
+
         if (!options?.silent) {
           setBusy(false);
         }
@@ -7597,16 +7615,51 @@ function ProjectIdeServicePanel({
   }, [initialPayload, loadPanel]);
 
   useEffect(() => {
-    if (!['activity', 'logs', 'monitoring'].includes(panel)) {
+    const interval = window.setInterval(() => {
+      void loadPanel({ silent: true });
+    }, refreshIntervalMs);
+
+    return () => window.clearInterval(interval);
+  }, [loadPanel, refreshIntervalMs]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setRefreshLabelNow(new Date());
+    }, 15_000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!panelActionsOpen) {
       return undefined;
     }
 
-    const interval = window.setInterval(() => {
-      void loadPanel({ silent: true });
-    }, 15000);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setPanelActionsOpen(false);
+      }
+    };
 
-    return () => window.clearInterval(interval);
-  }, [loadPanel, panel]);
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+
+      if (target && panelActionsRef.current?.contains(target)) {
+        return;
+      }
+
+      setPanelActionsOpen(false);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('pointerdown', handlePointerDown, true);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+    };
+  }, [panelActionsOpen]);
 
   useEffect(() => {
     if (panel !== 'collaborators' || !collaborationRealtime.snapshot) {
@@ -7680,20 +7733,67 @@ function ProjectIdeServicePanel({
 
   const data = payload?.data ?? {};
   const project = payload?.project ?? {};
+  const updatedLabel = formatProjectPanelUpdatedLabel(lastLoadedAt, refreshLabelNow);
+
+  const updatedTitle = lastLoadedAt
+    ? `Last updated ${new Date(lastLoadedAt).toLocaleString()}`
+    : 'Auto-refresh pending';
+
+  const refreshCadenceLabel = formatProjectPanelRefreshCadence(refreshIntervalMs);
 
   return (
     <div className="bolt-project-service-panel" data-testid="ide-service-panel" data-panel={panel}>
       <div className="bolt-project-ide-panel-header">
         <span className={icon} aria-hidden />
-        <h2 className="m-0 text-sm font-semibold">{title}</h2>
-        <button
-          type="button"
-          className="ml-auto rounded border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary"
-          onClick={() => void loadPanel()}
-          disabled={busy}
-        >
-          {busy ? 'Loading' : 'Refresh'}
-        </button>
+        <h2 className="m-0 min-w-0 truncate text-sm font-semibold">{title}</h2>
+        <div className="relative ml-auto flex min-w-0 items-center gap-2" ref={panelActionsRef}>
+          <span
+            className="hidden max-w-[190px] items-center gap-1.5 truncate rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary sm:inline-flex"
+            data-testid="ide-panel-updated-at"
+            title={updatedTitle}
+            aria-live="polite"
+          >
+            <span className={busy ? 'i-ph:spinner-gap animate-spin' : 'i-ph:clock'} aria-hidden />
+            <span className="truncate">{updatedLabel}</span>
+          </span>
+          <button
+            type="button"
+            className="inline-flex h-7 w-7 items-center justify-center rounded border border-bolt-elements-borderColor text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label={`${title} panel actions`}
+            aria-haspopup="menu"
+            aria-expanded={panelActionsOpen}
+            data-testid="ide-panel-actions"
+            onClick={() => setPanelActionsOpen((value) => !value)}
+            disabled={busy && !payload}
+          >
+            <span className="i-ph:dots-three-vertical-bold" aria-hidden />
+          </button>
+          {panelActionsOpen ? (
+            <div
+              className="absolute right-0 top-[calc(100%+6px)] z-20 w-[192px] max-w-[calc(100vw-1.5rem)] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-1 text-[12px] text-bolt-elements-textPrimary shadow-lg"
+              role="menu"
+              aria-label={`${title} panel actions`}
+            >
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-60"
+                role="menuitem"
+                onClick={() => {
+                  setPanelActionsOpen(false);
+                  void loadPanel();
+                }}
+                disabled={busy}
+              >
+                <span className="i-ph:arrow-clockwise" aria-hidden />
+                Refresh now
+              </button>
+              <div className="flex items-center gap-2 px-2 py-1.5 text-bolt-elements-textTertiary" role="presentation">
+                <span className="i-ph:clock" aria-hidden />
+                Auto-refresh every {refreshCadenceLabel}
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-4">
         {error ? (
