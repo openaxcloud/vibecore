@@ -129,6 +129,7 @@ const PROJECT_STORAGE_SYNC_EXCLUDED_FILES = new Set(['package-lock.json', 'pnpm-
 const PROJECT_STORAGE_SYNC_MAX_FILE_BYTES = 512_000;
 const PROJECT_STORAGE_SYNC_MAX_TOTAL_BYTES = 4_000_000;
 const PROJECT_ARCHIVE_TEXT_DECODER = new TextDecoder('utf-8', { fatal: true });
+const hotData = import.meta.hot?.data ?? {};
 
 function workspaceLogLines(event: CommandEvent | string) {
   const rawLine = typeof event === 'string' ? event : event.data || event.error?.message || event.type;
@@ -156,32 +157,28 @@ export class WorkbenchStore {
   #projectId: string | undefined;
   #autosaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-  artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
+  artifacts: Artifacts = hotData.artifacts ?? map({});
 
-  showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);
-  currentView: WritableAtom<WorkbenchViewType> = import.meta.hot?.data.currentView ?? atom('code');
-  unsavedFiles: WritableAtom<Set<string>> = import.meta.hot?.data.unsavedFiles ?? atom(new Set<string>());
-  actionAlert: WritableAtom<ActionAlert | undefined> =
-    import.meta.hot?.data.actionAlert ?? atom<ActionAlert | undefined>(undefined);
+  showWorkbench: WritableAtom<boolean> = hotData.showWorkbench ?? atom(false);
+  currentView: WritableAtom<WorkbenchViewType> = hotData.currentView ?? atom('code');
+  unsavedFiles: WritableAtom<Set<string>> = hotData.unsavedFiles ?? atom(new Set<string>());
+  actionAlert: WritableAtom<ActionAlert | undefined> = hotData.actionAlert ?? atom<ActionAlert | undefined>(undefined);
   supabaseAlert: WritableAtom<SupabaseAlert | undefined> =
-    import.meta.hot?.data.supabaseAlert ?? atom<SupabaseAlert | undefined>(undefined);
-  deployAlert: WritableAtom<DeployAlert | undefined> =
-    import.meta.hot?.data.deployAlert ?? atom<DeployAlert | undefined>(undefined);
+    hotData.supabaseAlert ?? atom<SupabaseAlert | undefined>(undefined);
+  deployAlert: WritableAtom<DeployAlert | undefined> = hotData.deployAlert ?? atom<DeployAlert | undefined>(undefined);
   modifiedFiles = new Set<string>();
   artifactIdList: string[] = [];
   workspaceStatus: WritableAtom<WorkspaceSession | undefined> =
-    import.meta.hot?.data.workspaceStatus ?? atom<WorkspaceSession | undefined>(undefined);
-  workspaceLoading: WritableAtom<boolean> = import.meta.hot?.data.workspaceLoading ?? atom(false);
-  workspaceError: WritableAtom<string | undefined> =
-    import.meta.hot?.data.workspaceError ?? atom<string | undefined>(undefined);
-  workspaceLogs: WritableAtom<string[]> = import.meta.hot?.data.workspaceLogs ?? atom<string[]>([]);
+    hotData.workspaceStatus ?? atom<WorkspaceSession | undefined>(undefined);
+  workspaceLoading: WritableAtom<boolean> = hotData.workspaceLoading ?? atom(false);
+  workspaceError: WritableAtom<string | undefined> = hotData.workspaceError ?? atom<string | undefined>(undefined);
+  workspaceLogs: WritableAtom<string[]> = hotData.workspaceLogs ?? atom<string[]>([]);
   previewServerState: WritableAtom<PreviewServerState> =
-    import.meta.hot?.data.previewServerState ?? atom<PreviewServerState>({ status: 'idle' });
-  projectFilesPanelOpen: WritableAtom<boolean> = import.meta.hot?.data.projectFilesPanelOpen ?? atom(true);
+    hotData.previewServerState ?? atom<PreviewServerState>({ status: 'idle' });
+  projectFilesPanelOpen: WritableAtom<boolean> = hotData.projectFilesPanelOpen ?? atom(true);
   projectFilesPanelRequest: WritableAtom<ProjectFilesPanelRequest | undefined> =
-    import.meta.hot?.data.projectFilesPanelRequest ?? atom<ProjectFilesPanelRequest | undefined>(undefined);
-  agentPatchReviewRequired: WritableAtom<boolean> =
-    import.meta.hot?.data.agentPatchReviewRequired ?? atom<boolean>(false);
+    hotData.projectFilesPanelRequest ?? atom<ProjectFilesPanelRequest | undefined>(undefined);
+  agentPatchReviewRequired: WritableAtom<boolean> = hotData.agentPatchReviewRequired ?? atom<boolean>(false);
 
   /*
    * Per-filePath self-repair progress mirrored from the
@@ -191,39 +188,41 @@ export class WorkbenchStore {
    * attempt N/M…" banner on the matching InlineFileActionDiff card.
    */
   agentPatchSelfRepair: MapStore<Record<string, { attempt: number; maxAttempts: number; errorMessage?: string }>> =
-    import.meta.hot?.data.agentPatchSelfRepair ??
+    hotData.agentPatchSelfRepair ??
     map<Record<string, { attempt: number; maxAttempts: number; errorMessage?: string }>>({});
   agentPatchProposals: MapStore<Record<string, AgentPatchProposal>> =
-    import.meta.hot?.data.agentPatchProposals ?? map<Record<string, AgentPatchProposal>>({});
-  quotaWarning: WritableAtom<string | undefined> =
-    import.meta.hot?.data.quotaWarning ?? atom<string | undefined>(undefined);
+    hotData.agentPatchProposals ?? map<Record<string, AgentPatchProposal>>({});
+  quotaWarning: WritableAtom<string | undefined> = hotData.quotaWarning ?? atom<string | undefined>(undefined);
   billingUpgradePrompt: WritableAtom<string | undefined> =
-    import.meta.hot?.data.billingUpgradePrompt ?? atom<string | undefined>(undefined);
+    hotData.billingUpgradePrompt ?? atom<string | undefined>(undefined);
   #snapshottedArtifacts = new Set<string>();
   #agentPatchOriginals = new Map<string, string>();
   #runtimeFilesLoadedProjectId: string | undefined;
   #globalExecutionQueue = Promise.resolve();
   constructor() {
     if (import.meta.hot) {
-      import.meta.hot.data.artifacts = this.artifacts;
-      import.meta.hot.data.unsavedFiles = this.unsavedFiles;
-      import.meta.hot.data.showWorkbench = this.showWorkbench;
-      import.meta.hot.data.currentView = this.currentView;
-      import.meta.hot.data.agentPatchReviewRequired = this.agentPatchReviewRequired;
-      import.meta.hot.data.agentPatchProposals = this.agentPatchProposals;
-      import.meta.hot.data.agentPatchSelfRepair = this.agentPatchSelfRepair;
-      import.meta.hot.data.actionAlert = this.actionAlert;
-      import.meta.hot.data.supabaseAlert = this.supabaseAlert;
-      import.meta.hot.data.deployAlert = this.deployAlert;
-      import.meta.hot.data.workspaceStatus = this.workspaceStatus;
-      import.meta.hot.data.workspaceLoading = this.workspaceLoading;
-      import.meta.hot.data.workspaceError = this.workspaceError;
-      import.meta.hot.data.workspaceLogs = this.workspaceLogs;
-      import.meta.hot.data.previewServerState = this.previewServerState;
-      import.meta.hot.data.projectFilesPanelOpen = this.projectFilesPanelOpen;
-      import.meta.hot.data.projectFilesPanelRequest = this.projectFilesPanelRequest;
-      import.meta.hot.data.quotaWarning = this.quotaWarning;
-      import.meta.hot.data.billingUpgradePrompt = this.billingUpgradePrompt;
+      const writableHot = import.meta.hot as unknown as { data?: Record<string, unknown> };
+      const writableHotData = (writableHot.data ??= {});
+
+      writableHotData.artifacts = this.artifacts;
+      writableHotData.unsavedFiles = this.unsavedFiles;
+      writableHotData.showWorkbench = this.showWorkbench;
+      writableHotData.currentView = this.currentView;
+      writableHotData.agentPatchReviewRequired = this.agentPatchReviewRequired;
+      writableHotData.agentPatchProposals = this.agentPatchProposals;
+      writableHotData.agentPatchSelfRepair = this.agentPatchSelfRepair;
+      writableHotData.actionAlert = this.actionAlert;
+      writableHotData.supabaseAlert = this.supabaseAlert;
+      writableHotData.deployAlert = this.deployAlert;
+      writableHotData.workspaceStatus = this.workspaceStatus;
+      writableHotData.workspaceLoading = this.workspaceLoading;
+      writableHotData.workspaceError = this.workspaceError;
+      writableHotData.workspaceLogs = this.workspaceLogs;
+      writableHotData.previewServerState = this.previewServerState;
+      writableHotData.projectFilesPanelOpen = this.projectFilesPanelOpen;
+      writableHotData.projectFilesPanelRequest = this.projectFilesPanelRequest;
+      writableHotData.quotaWarning = this.quotaWarning;
+      writableHotData.billingUpgradePrompt = this.billingUpgradePrompt;
 
       // Ensure binary files are properly preserved across hot reloads
       const filesMap = this.files.get();
@@ -1750,9 +1749,19 @@ export class WorkbenchStore {
       return;
     }
 
+    if (this.#reloadedMessages.has(data.messageId)) {
+      artifact.runner.skipAction(data.actionId);
+      return;
+    }
+
     if (data.action.type === 'file') {
       if (this.agentPatchReviewRequired.get()) {
         this.#queueAgentPatchProposal(data, isStreaming);
+
+        if (!isStreaming) {
+          artifact.runner.skipAction(data.actionId);
+        }
+
         return;
       }
 
@@ -1796,8 +1805,23 @@ export class WorkbenchStore {
         this.#dropResolvedMissingImportFailures();
       }
     } else {
+      if (this.agentPatchReviewRequired.get() && this.#hasOpenAgentPatchProposalsForArtifact(artifactId)) {
+        artifact.runner.skipAction(data.actionId);
+        this.appendWorkspaceLog('AI command skipped until reviewed file changes are accepted or rejected.');
+
+        return;
+      }
+
       await artifact.runner.runAction(data);
     }
+  }
+
+  #hasOpenAgentPatchProposalsForArtifact(artifactId: string) {
+    const proposals = Object.values(this.agentPatchProposals.get());
+
+    return proposals.some(
+      (proposal) => proposal.artifactId === artifactId && !isTerminalAgentPatchStatus(proposal.status),
+    );
   }
 
   #workspaceImportValidationFiles() {

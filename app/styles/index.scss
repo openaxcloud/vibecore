@@ -7,6 +7,11 @@
 @use 'components/editor.scss';
 @use 'components/toast.scss';
 
+:root {
+  --vc-mobile-visual-viewport-height: 100dvh;
+  --vc-mobile-sheet-height: min(calc(var(--vc-mobile-visual-viewport-height) * 0.85), 720px);
+}
+
 html,
 body {
   height: 100%;
@@ -3728,12 +3733,13 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-mobile-more-menu-sheet {
   position: fixed;
   right: 0;
-  bottom: 0;
   left: 0;
+  top: max(env(safe-area-inset-top, 0px), calc(var(--vc-mobile-visual-viewport-height) - var(--vc-mobile-sheet-height)));
+  bottom: auto;
   z-index: 12021;
   display: flex;
-  height: min(85dvh, 720px);
-  max-height: calc(100dvh - env(safe-area-inset-top, 0px));
+  height: var(--vc-mobile-sheet-height);
+  max-height: calc(var(--vc-mobile-visual-viewport-height) - env(safe-area-inset-top, 0px));
   flex-direction: column;
   overflow: hidden;
   border-radius: 16px 16px 0 0;
@@ -3900,12 +3906,13 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-mobile-more-sheet {
   position: fixed;
   right: 0;
-  bottom: 0;
   left: 0;
+  top: max(env(safe-area-inset-top, 0px), calc(var(--vc-mobile-visual-viewport-height) - var(--vc-mobile-sheet-height)));
+  bottom: auto;
   z-index: 12021;
   display: flex;
-  height: min(85dvh, 720px);
-  max-height: calc(100dvh - env(safe-area-inset-top, 0px));
+  height: var(--vc-mobile-sheet-height);
+  max-height: calc(var(--vc-mobile-visual-viewport-height) - env(safe-area-inset-top, 0px));
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--mobile-nav-border);

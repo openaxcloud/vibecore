@@ -164,6 +164,7 @@ const processSampledMessages = createSampler(
     persistMessageHistory: (messages: Message[]) => Promise<void>;
   }) => {
     const { messages, initialMessages, isLoading, parseMessages, persistMessageHistory } = options;
+    workbenchStore.setReloadedMessages(initialMessages.map((message) => message.id));
     parseMessages(messages, isLoading);
 
     if (messages.length > 0 && messages !== initialMessages) {
