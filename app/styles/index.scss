@@ -6144,6 +6144,138 @@ body :where(.lucide, svg[data-lucide]) {
   min-height: 76px;
 }
 
+.bolt-chatbox-toolbar {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--vc-ide-border-subtle), transparent 22%);
+  color: var(--vc-ide-text-secondary);
+  font-size: 13px;
+  padding: 8px 8px 0;
+}
+
+.bolt-chatbox-toolbar-primary,
+.bolt-chatbox-toolbar-secondary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.bolt-chatbox-toolbar-secondary {
+  margin-left: auto;
+}
+
+.bolt-chatbox-toolbar-button {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--vc-ide-text-secondary);
+  padding: 0 !important;
+}
+
+.bolt-chatbox-toolbar-button:hover:not(:disabled),
+.bolt-chatbox-toolbar-button:focus-visible,
+.bolt-chatbox-toolbar-button.is-active {
+  border-color: var(--vc-ide-border-visible);
+  background: var(--vc-ide-bg-card-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-chatbox-toolbar-info {
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-chatbox-tools-menu-anchor {
+  position: relative;
+}
+
+.bolt-chatbox-tools-menu {
+  position: absolute;
+  z-index: 90;
+  bottom: calc(100% + 8px);
+  left: 0;
+  display: flex;
+  min-width: 232px;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-card);
+  box-shadow: var(--vc-ui-shadow-lg);
+  padding: 6px;
+}
+
+.bolt-chatbox-tools-menu > div,
+.bolt-chatbox-tools-menu > div > .flex {
+  width: 100%;
+}
+
+.bolt-chatbox-tools-menu-item {
+  display: flex;
+  width: 100%;
+  min-height: 34px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  border-radius: 7px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 9px !important;
+  text-align: left;
+}
+
+.bolt-chatbox-tools-menu-item:hover:not(:disabled),
+.bolt-chatbox-tools-menu-item:focus-visible,
+.bolt-chatbox-tools-menu-item.is-active {
+  background: var(--vc-ide-bg-card-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-chatbox-tools-menu-item > div[class*='i-'] {
+  flex: 0 0 auto;
+}
+
+.bolt-chatbox-tools-menu-item > span:not(.sr-only) {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-chatbox-tools-menu-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.bolt-chatbox-toolbar-supabase {
+  min-width: 0;
+}
+
+.bolt-chatbox-toolbar-supabase > .relative > .flex {
+  height: 32px;
+  margin-right: 0;
+  border-color: var(--vc-ide-border-subtle);
+}
+
+.bolt-chatbox-toolbar-supabase button {
+  min-height: 30px;
+  border-radius: 7px;
+  padding: 0 8px;
+}
+
+.bolt-chatbox-toolbar-supabase img {
+  width: 16px;
+  height: 16px;
+}
+
 .bolt-project-chatbox .bolt-composer-send-button {
   right: 8px;
   bottom: 8px;

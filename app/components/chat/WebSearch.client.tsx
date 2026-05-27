@@ -6,6 +6,9 @@ import { classNames } from '~/utils/classNames';
 interface WebSearchProps {
   onSearchResult: (result: string) => void;
   disabled?: boolean;
+  triggerClassName?: string;
+  triggerLabel?: string;
+  triggerVariant?: 'icon' | 'menu';
 }
 
 interface WebSearchData {
@@ -37,12 +40,19 @@ function formatSearchResult(data: WebSearchData): string {
   return parts.join('\n');
 }
 
-export function WebSearch({ onSearchResult, disabled = false }: WebSearchProps) {
+export function WebSearch({
+  onSearchResult,
+  disabled = false,
+  triggerClassName,
+  triggerLabel = 'Fetch URL',
+  triggerVariant = 'icon',
+}: WebSearchProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [url, setUrl] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMenuTrigger = triggerVariant === 'menu';
 
   useEffect(() => {
     if (isOpen) {
@@ -100,18 +110,22 @@ export function WebSearch({ onSearchResult, disabled = false }: WebSearchProps) 
   };
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className={classNames('relative', isMenuTrigger ? 'w-full' : undefined)}>
       <IconButton
         title="Fetch URL content"
+        tooltip="Fetch URL content"
         disabled={disabled || isSearching}
         onClick={() => setIsOpen(!isOpen)}
-        className="transition-all"
+        className={classNames(isMenuTrigger ? 'bolt-chatbox-tools-menu-item' : 'transition-all', triggerClassName)}
       >
-        {isSearching ? (
-          <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin" />
-        ) : (
-          <div className="i-ph:globe text-xl" />
-        )}
+        <>
+          {isSearching ? (
+            <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin" />
+          ) : (
+            <div className="i-ph:globe text-xl" />
+          )}
+          {isMenuTrigger ? <span>{triggerLabel}</span> : null}
+        </>
       </IconButton>
       {isOpen && (
         <div

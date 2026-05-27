@@ -1,4 +1,4 @@
-import { memo, forwardRef, type ForwardedRef } from 'react';
+import { memo, forwardRef, type AriaAttributes, type AriaRole, type ForwardedRef } from 'react';
 import { classNames } from '~/utils/classNames';
 
 type IconSize = 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
@@ -9,6 +9,11 @@ interface BaseIconButtonProps {
   iconClassName?: string;
   disabledClassName?: string;
   title?: string;
+  tooltip?: string;
+  tooltipLocked?: boolean;
+  role?: AriaRole;
+  ariaExpanded?: boolean;
+  ariaHasPopup?: AriaAttributes['aria-haspopup'];
   disabled?: boolean;
   onClick?: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
 }
@@ -37,6 +42,11 @@ export const IconButton = memo(
         disabledClassName,
         disabled = false,
         title,
+        tooltip,
+        tooltipLocked,
+        role,
+        ariaExpanded,
+        ariaHasPopup,
         onClick,
         children,
       }: IconButtonProps,
@@ -46,6 +56,7 @@ export const IconButton = memo(
         <button
           type="button"
           ref={ref}
+          role={role}
           className={classNames(
             'flex items-center text-bolt-elements-item-contentDefault bg-transparent enabled:hover:text-bolt-elements-item-contentActive rounded-md p-1 enabled:hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed focus:outline-none',
             {
@@ -55,6 +66,10 @@ export const IconButton = memo(
           )}
           title={title}
           aria-label={title}
+          aria-expanded={ariaExpanded}
+          aria-haspopup={ariaHasPopup}
+          data-vc-tooltip={tooltip ?? title}
+          data-vc-tooltip-locked={tooltipLocked ? 'true' : undefined}
           disabled={disabled}
           onClick={(event) => {
             if (disabled) {

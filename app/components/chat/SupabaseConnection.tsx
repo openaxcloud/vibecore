@@ -83,6 +83,8 @@ export function SupabaseConnection() {
           disabled={connecting}
           onClick={() => setIsDialogOpen(!isDialogOpen)}
           className="hover:bg-bolt-elements-item-backgroundActive !text-white flex items-center gap-2"
+          ariaLabel="Open Supabase connection"
+          tooltip="Supabase connection"
         >
           <img
             className="w-4 h-4"
@@ -318,12 +320,16 @@ interface ButtonProps {
   children?: any;
   onClick?: VoidFunction;
   className?: string;
+  ariaLabel?: string;
+  tooltip?: string;
 }
 
-function Button({ active = false, disabled = false, children, onClick, className }: ButtonProps) {
+function Button({ active = false, disabled = false, children, onClick, className, ariaLabel, tooltip }: ButtonProps) {
   return (
     <button
       type="button"
+      aria-label={ariaLabel}
+      data-vc-tooltip={tooltip}
       className={classNames(
         'flex items-center p-1.5',
         {

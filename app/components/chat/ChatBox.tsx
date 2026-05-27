@@ -102,6 +102,51 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
       ? 'Type a prompt to enable AI prompt enhancement'
       : 'Enhance this prompt with AI before sending';
 
+  const [isToolsMenuOpen, setIsToolsMenuOpen] = React.useState(false);
+  const toolsMenuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!isToolsMenuOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!toolsMenuRef.current?.contains(event.target as Node)) {
+        setIsToolsMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsToolsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isToolsMenuOpen]);
+
+  const enhancePrompt = () => {
+    props.enhancePrompt?.();
+    toast.success('Prompt enhanced!');
+    setIsToolsMenuOpen(false);
+  };
+
+  const toggleChatMode = () => {
+    props.setChatMode?.(props.chatMode === 'discuss' ? 'build' : 'discuss');
+    setIsToolsMenuOpen(false);
+  };
+
+  const toggleModelSettings = () => {
+    props.setIsModelSettingsCollapsed(!props.isModelSettingsCollapsed);
+    setIsToolsMenuOpen(false);
+  };
+
   return (
     <div
       className={classNames(
@@ -326,79 +371,124 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             )}
           </ClientOnly>
         </div>
-        <div className="flex justify-between items-center text-sm p-4 pt-2">
-          <div className="flex gap-1 items-center">
-            <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
-            <McpTools />
-            <IconButton title="Upload file" className="transition-all" onClick={() => props.handleFileUpload()}>
+        <div className="bolt-chatbox-toolbar" data-vc-composer-toolbar>
+          <div className="bolt-chatbox-toolbar-primary">
+            <IconButton
+              title="Upload file"
+              tooltip="Upload file"
+              className="bolt-chatbox-toolbar-button"
+              onClick={() => props.handleFileUpload()}
+            >
               <div className="i-ph:paperclip text-xl"></div>
             </IconButton>
-            <WebSearch onSearchResult={(result) => props.onWebSearchResult?.(result)} disabled={props.isStreaming} />
-            <IconButton
-              title={enhancePromptTitle}
-              disabled={props.input.length === 0 || props.enhancingPrompt}
-              className={classNames('transition-all', props.enhancingPrompt ? 'opacity-100' : '')}
-              onClick={() => {
-                props.enhancePrompt?.();
-                toast.success('Prompt enhanced!');
-              }}
-            >
-              {props.enhancingPrompt ? (
-                <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
-              ) : (
-                <div className="i-bolt:stars text-xl"></div>
-              )}
-            </IconButton>
 
-            <SpeechRecognitionButton
-              isListening={props.isListening}
-              onStart={props.startListening}
-              onStop={props.stopListening}
-              disabled={props.isStreaming}
-            />
-            {props.chatStarted && !props.projectIdeMode && (
+            <div ref={toolsMenuRef} className="bolt-chatbox-tools-menu-anchor">
               <IconButton
-                title="Discuss"
-                className={classNames(
-                  'transition-all flex items-center gap-1 px-1.5',
-                  props.chatMode === 'discuss'
-                    ? '!bg-bolt-elements-item-backgroundAccent !text-bolt-elements-item-contentAccent'
-                    : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault',
-                )}
-                onClick={() => {
-                  props.setChatMode?.(props.chatMode === 'discuss' ? 'build' : 'discuss');
-                }}
+                title="More composer tools"
+                tooltip="More composer tools"
+                className={classNames('bolt-chatbox-toolbar-button', isToolsMenuOpen ? 'is-active' : undefined)}
+                ariaExpanded={isToolsMenuOpen}
+                ariaHasPopup="menu"
+                onClick={() => setIsToolsMenuOpen((open) => !open)}
               >
-                <div className={`i-ph:chats text-xl`} />
-                {props.chatMode === 'discuss' ? <span>Discuss</span> : <span />}
+                <div className="i-ph:dots-three-outline text-xl" />
               </IconButton>
-            )}
-            <IconButton
-              title={settingsToggleTitle}
-              className={classNames('transition-all flex items-center gap-1', {
-                'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
-                  props.isModelSettingsCollapsed,
-                'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault':
-                  !props.isModelSettingsCollapsed,
-              })}
-              onClick={() => props.setIsModelSettingsCollapsed(!props.isModelSettingsCollapsed)}
-              disabled={!props.providerList || props.providerList.length === 0}
-            >
-              <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
-              {props.isModelSettingsCollapsed && !props.projectIdeMode ? (
-                <span className="text-xs">{props.model}</span>
-              ) : (
-                <span className="sr-only">{settingsToggleTitle}</span>
-              )}
-            </IconButton>
-          </div>
-          {props.input.length > 3 ? (
-            <div className="text-xs text-bolt-elements-textTertiary">
-              Use <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Shift</kbd> +{' '}
-              <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Return</kbd> a new line
+
+              {isToolsMenuOpen ? (
+                <div className="bolt-chatbox-tools-menu" role="menu" aria-label="Composer tools">
+                  <ColorSchemeDialog
+                    designScheme={props.designScheme}
+                    setDesignScheme={props.setDesignScheme}
+                    triggerVariant="menu"
+                    triggerLabel="Design palette"
+                  />
+                  <McpTools triggerVariant="menu" triggerLabel="MCP tools" />
+                  <WebSearch
+                    onSearchResult={(result) => props.onWebSearchResult?.(result)}
+                    disabled={props.isStreaming}
+                    triggerVariant="menu"
+                    triggerLabel="Fetch URL"
+                  />
+                  <IconButton
+                    title={enhancePromptTitle}
+                    tooltip={enhancePromptTitle}
+                    disabled={props.input.length === 0 || props.enhancingPrompt}
+                    className={classNames('bolt-chatbox-tools-menu-item', props.enhancingPrompt ? 'opacity-100' : '')}
+                    onClick={enhancePrompt}
+                  >
+                    <>
+                      {props.enhancingPrompt ? (
+                        <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
+                      ) : (
+                        <div className="i-bolt:stars text-xl"></div>
+                      )}
+                      <span>Enhance prompt</span>
+                    </>
+                  </IconButton>
+
+                  <SpeechRecognitionButton
+                    isListening={props.isListening}
+                    onStart={() => {
+                      props.startListening();
+                      setIsToolsMenuOpen(false);
+                    }}
+                    onStop={() => {
+                      props.stopListening();
+                      setIsToolsMenuOpen(false);
+                    }}
+                    disabled={props.isStreaming}
+                    triggerVariant="menu"
+                    triggerLabel={props.isListening ? 'Stop speech' : 'Speech'}
+                  />
+
+                  {props.chatStarted && !props.projectIdeMode ? (
+                    <IconButton
+                      title="Discuss"
+                      tooltip="Discuss"
+                      className={classNames('bolt-chatbox-tools-menu-item', {
+                        'is-active': props.chatMode === 'discuss',
+                      })}
+                      onClick={toggleChatMode}
+                    >
+                      <>
+                        <div className="i-ph:chats text-xl" />
+                        <span>{props.chatMode === 'discuss' ? 'Switch to build' : 'Discuss'}</span>
+                      </>
+                    </IconButton>
+                  ) : null}
+
+                  <IconButton
+                    title={settingsToggleTitle}
+                    tooltip={settingsToggleTitle}
+                    className={classNames('bolt-chatbox-tools-menu-item', {
+                      'is-active': props.isModelSettingsCollapsed,
+                    })}
+                    onClick={toggleModelSettings}
+                    disabled={!props.providerList || props.providerList.length === 0}
+                  >
+                    <>
+                      <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
+                      <span>{settingsToggleTitle}</span>
+                    </>
+                  </IconButton>
+                </div>
+              ) : null}
             </div>
-          ) : null}
-          <SupabaseConnection />
+          </div>
+
+          <div className="bolt-chatbox-toolbar-secondary">
+            <IconButton
+              title="Composer shortcuts"
+              tooltip="Shift + Return inserts a new line"
+              tooltipLocked
+              className="bolt-chatbox-toolbar-button bolt-chatbox-toolbar-info"
+            >
+              <div className="i-ph:info text-lg" />
+            </IconButton>
+            <div className="bolt-chatbox-toolbar-supabase">
+              <SupabaseConnection />
+            </div>
+          </div>
           <ExpoQrModal open={props.qrModalOpen} onClose={() => props.setQrModalOpen(false)} />
         </div>
       </div>

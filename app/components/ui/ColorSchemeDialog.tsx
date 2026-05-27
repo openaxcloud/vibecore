@@ -4,13 +4,23 @@ import { Button } from './Button';
 import { IconButton } from './IconButton';
 import type { DesignScheme } from '~/types/design-scheme';
 import { defaultDesignScheme, designFeatures, designFonts, paletteRoles } from '~/types/design-scheme';
+import { classNames } from '~/utils/classNames';
 
 export interface ColorSchemeDialogProps {
   designScheme?: DesignScheme;
   setDesignScheme?: (scheme: DesignScheme) => void;
+  triggerClassName?: string;
+  triggerLabel?: string;
+  triggerVariant?: 'icon' | 'menu';
 }
 
-export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignScheme, designScheme }) => {
+export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
+  setDesignScheme,
+  designScheme,
+  triggerClassName,
+  triggerLabel = 'Design palette',
+  triggerVariant = 'icon',
+}) => {
   const [palette, setPalette] = useState<{ [key: string]: string }>(() => {
     if (designScheme?.palette) {
       return { ...defaultDesignScheme.palette, ...designScheme.palette };
@@ -58,6 +68,8 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
     setFeatures(defaultDesignScheme.features);
     setFont(defaultDesignScheme.font);
   };
+
+  const isMenuTrigger = triggerVariant === 'menu';
 
   const renderColorSection = () => (
     <div className="space-y-4">
@@ -276,10 +288,14 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
         <RadixPopover.Trigger asChild>
           <IconButton
             title="Design Palette"
-            className="transition-all"
+            tooltip="Design Palette"
+            className={classNames(isMenuTrigger ? 'bolt-chatbox-tools-menu-item' : 'transition-all', triggerClassName)}
             onClick={() => setIsDialogOpen((open) => !open)}
           >
-            <div className="i-ph:palette text-xl"></div>
+            <>
+              <div className="i-ph:palette text-xl"></div>
+              {isMenuTrigger ? <span>{triggerLabel}</span> : null}
+            </>
           </IconButton>
         </RadixPopover.Trigger>
         <RadixPopover.Portal>

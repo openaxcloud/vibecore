@@ -5,7 +5,13 @@ import { IconButton } from '~/components/ui/IconButton';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { classNames } from '~/utils/classNames';
 
-export function McpTools() {
+interface McpToolsProps {
+  triggerClassName?: string;
+  triggerLabel?: string;
+  triggerVariant?: 'icon' | 'menu';
+}
+
+export function McpTools({ triggerClassName, triggerLabel = 'MCP tools', triggerVariant = 'icon' }: McpToolsProps) {
   const isInitialized = useMCPStore((state) => state.isInitialized);
   const serverTools = useMCPStore((state) => state.serverTools);
   const initialize = useMCPStore((state) => state.initialize);
@@ -44,6 +50,7 @@ export function McpTools() {
   };
 
   const serverEntries = useMemo(() => Object.entries(serverTools), [serverTools]);
+  const isMenuTrigger = triggerVariant === 'menu';
 
   return (
     <div className="relative">
@@ -51,14 +58,22 @@ export function McpTools() {
         <IconButton
           onClick={() => setIsDialogOpen(true)}
           title="MCP Tools Available"
+          tooltip="MCP tools"
           disabled={!isInitialized}
-          className="transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {!isInitialized ? (
-            <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
-          ) : (
-            <div className="i-bolt:mcp text-xl"></div>
+          className={classNames(
+            isMenuTrigger ? 'bolt-chatbox-tools-menu-item' : 'transition-all',
+            'disabled:opacity-50 disabled:cursor-not-allowed',
+            triggerClassName,
           )}
+        >
+          <>
+            {!isInitialized ? (
+              <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
+            ) : (
+              <div className="i-bolt:mcp text-xl"></div>
+            )}
+            {isMenuTrigger ? <span>{triggerLabel}</span> : null}
+          </>
         </IconButton>
       </div>
 

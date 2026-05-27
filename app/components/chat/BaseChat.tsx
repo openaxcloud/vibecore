@@ -3629,13 +3629,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           const currentTitle = target.getAttribute('title');
           const autoTitle = target.getAttribute('data-vc-auto-title') === 'true';
+          const lockedTooltip = target.getAttribute('data-vc-tooltip-locked') === 'true';
 
           if (!currentTitle || autoTitle) {
             target.setAttribute('title', tooltip);
             target.setAttribute('data-vc-auto-title', 'true');
           }
 
-          target.setAttribute('data-vc-tooltip', tooltip);
+          if (!lockedTooltip) {
+            target.setAttribute('data-vc-tooltip', tooltip);
+          }
         });
       };
 
