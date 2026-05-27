@@ -48,12 +48,20 @@ describe('writeAcceptedAgentFile', () => {
     expect(runtime.writeFile).toHaveBeenCalledWith('src/deep//file.ts', 'content');
   });
 
-  it('forwards the content verbatim — sanitization already ran on the streaming write', async () => {
-    const content = 'line one\nline two\n  indented\n';
+  it('sanitizes accepted content before writing because review-first mode bypasses the streaming write', async () => {
+    const content = 'line one\n\u0000line two\n  indented\n';
 
     await writeAcceptedAgentFile(runtime, 'src/raw.txt', content);
 
-    expect(runtime.writeFile).toHaveBeenCalledWith('src/raw.txt', content);
+    expect(runtime.writeFile).toHaveBeenCalledWith('src/raw.txt', 'line one\nline two\n  indented\n');
+  });
+
+  it('rejects invalid JSON before writing it to the runtime', async () => {
+    await expect(writeAcceptedAgentFile(runtime, 'package.json', '{')).rejects.toThrow(
+      'Refusing to write invalid JSON to package.json',
+    );
+
+    expect(runtime.writeFile).not.toHaveBeenCalled();
   });
 
   it('propagates a runtime.writeFile rejection so the caller can mark the proposal failed', async () => {
