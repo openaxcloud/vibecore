@@ -806,12 +806,14 @@ export class TestApiStore implements ApiStore {
   }
 
   async createWorkspace(input: { id?: string; projectId: string; name: string; runtimeMode: string }) {
+    const workspaceId = input.id ?? id('workspace');
     const workspace: WorkspaceRecord = {
-      id: input.id ?? id('workspace'),
+      id: workspaceId,
       projectId: input.projectId,
       name: input.name,
       runtimeMode: input.runtimeMode,
       status: 'PENDING',
+      gitPath: `.vibecore-workspaces/${workspaceId}`,
       createdAt: now(),
     };
     this.workspaces.set(workspace.id, workspace);

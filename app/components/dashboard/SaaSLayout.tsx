@@ -281,7 +281,7 @@ export const publicFooterColumns: readonly FooterColumn[] = [
 
 export const publicFooterActionLinks = [
   ['Talk to sales', '/contact-sales'],
-  ['Start building', '/register'],
+  ['Start building', 'https://app.e-code.ai/register'],
 ] as const satisfies readonly FooterLink[];
 
 export const publicCompareLinks = [
@@ -478,10 +478,10 @@ function PublicMarketingHeader() {
           </div>
           <div className="vc-public-actions">
             <PublicThemeToggle />
-            <LinkButton to="/login" variant="ghost">
+            <LinkButton to="https://app.e-code.ai/login" variant="ghost">
               Sign in
             </LinkButton>
-            <LinkButton to="/register">Get started</LinkButton>
+            <LinkButton to="https://app.e-code.ai/register">Get started</LinkButton>
             <details className="vc-public-mobile-menu">
               <summary aria-label="Open mobile menu">
                 <Menu className="h-5 w-5" aria-hidden />
@@ -1491,18 +1491,25 @@ export function LinkButton({
   children: React.ReactNode;
   variant?: 'default' | 'outline' | 'ghost';
 }) {
+  const className = classNames(
+    'inline-flex h-9 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-bolt-elements-borderColor',
+    variant === 'default' && 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text',
+    variant === 'outline' &&
+      'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2',
+    variant === 'ghost' &&
+      'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary',
+  );
+
+  if (/^(https?:)?\/\//.test(to)) {
+    return (
+      <a href={to} className={className}>
+        {children}
+      </a>
+    );
+  }
+
   return (
-    <Link
-      to={to}
-      className={classNames(
-        'inline-flex h-9 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-bolt-elements-borderColor',
-        variant === 'default' && 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text',
-        variant === 'outline' &&
-          'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2',
-        variant === 'ghost' &&
-          'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary',
-      )}
-    >
+    <Link to={to} className={className}>
       {children}
     </Link>
   );

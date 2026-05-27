@@ -469,6 +469,11 @@ model Workspace {
   name        String
   status      WorkspaceStatus    @default(PENDING)
   runtimeMode String
+  // Filesystem path (relative to the project storage root) for this
+  // workspace's isolated git working tree. Allocated when the workspace
+  // is created so each branch / agent run can have its own checkout
+  // without colliding with other workspaces of the same project.
+  gitPath     String?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)

@@ -374,6 +374,7 @@ exports.Prisma.WorkspaceScalarFieldEnum = {
   name: 'name',
   status: 'status',
   runtimeMode: 'runtimeMode',
+  gitPath: 'gitPath',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

@@ -534,36 +534,53 @@ const createSnapshotSchema = z.object({
 });
 
 const snapshotParams = z.object({ snapshotId: z.string().min(1) });
-const gitCommitSchema = z.object({ message: z.string().min(1), files: z.array(z.string().min(1)).optional() });
-const gitBranchSchema = z.object({ branch: z.string().min(1).default('main') });
+const workspaceIdField = z
+  .string()
+  .regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/, 'workspaceId must be alphanumeric (with - or _).')
+  .optional();
+const gitWorkspaceQuerySchema = z.object({ workspaceId: workspaceIdField });
+const gitCommitSchema = z.object({
+  message: z.string().min(1),
+  files: z.array(z.string().min(1)).optional(),
+  workspaceId: workspaceIdField,
+});
+const gitBranchSchema = z.object({ branch: z.string().min(1).default('main'), workspaceId: workspaceIdField });
 
 const gitCheckoutBranchSchema = z.object({
   branch: z.string().min(1),
   create: z.boolean().default(false),
   startPoint: z.string().min(1).optional(),
+  workspaceId: workspaceIdField,
 });
 
-const gitStashSchema = z.object({ message: z.string().optional() });
-const gitStashApplySchema = z.object({ stashRef: z.string().min(1), drop: z.boolean().default(false) });
-const gitCherryPickSchema = z.object({ sha: z.string().min(4) });
+const gitStashSchema = z.object({ message: z.string().optional(), workspaceId: workspaceIdField });
+const gitStashApplySchema = z.object({
+  stashRef: z.string().min(1),
+  drop: z.boolean().default(false),
+  workspaceId: workspaceIdField,
+});
+const gitCherryPickSchema = z.object({ sha: z.string().min(4), workspaceId: workspaceIdField });
 
 const gitConflictResolutionSchema = z.object({
   filePath: z.string().min(1),
   strategy: z.enum(['ours', 'theirs']),
+  workspaceId: workspaceIdField,
 });
 
-const gitDiffQuerySchema = z.object({ filePath: z.string().optional() });
+const gitDiffQuerySchema = z.object({ filePath: z.string().optional(), workspaceId: workspaceIdField });
 
 const gitBlameQuerySchema = z.object({
   filePath: z.string().min(1),
   startLine: z.coerce.number().int().positive().optional(),
   endLine: z.coerce.number().int().positive().optional(),
+  workspaceId: workspaceIdField,
 });
 const pullRequestSchema = z.object({
   title: z.string().min(1),
   body: z.string().optional(),
   sourceBranch: z.string().min(1),
   targetBranch: z.string().min(1).default('main'),
+  workspaceId: workspaceIdField,
 });
 
 const deploymentActionParams = projectParams.extend({ deploymentId: z.string().min(1) });
@@ -2584,6 +2601,32 @@ function starterFiles(input: {
     { path: 'src/App.tsx', content: viteAppTsx(input.name, 'Start building your app with the VibeCore agent.') },
     { path: 'src/styles.css', content: viteStylesCss() },
   ];
+}
+
+async function resolveGitWorkspaceId(
+  store: ApiStore,
+  projectId: string,
+  workspaceId: string | undefined,
+): Promise<string | undefined> {
+  if (!workspaceId) {
+    return undefined;
+  }
+
+  const workspaces = await store.listWorkspaces(projectId);
+  const target = workspaces.find((workspace) => workspace.id === workspaceId);
+
+  if (!target) {
+    throw Object.assign(new Error('Workspace does not belong to this project'), {
+      statusCode: 404,
+      code: 'WORKSPACE_NOT_FOUND',
+    });
+  }
+
+  const primary = [...workspaces].sort((a, b) =>
+    String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? '')),
+  )[0];
+
+  return primary?.id === target.id ? undefined : target.id;
 }
 
 async function commitInitialScaffold(gitProvider: GitProvider, projectId: string) {
@@ -11125,7 +11168,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    return { status: await gitProvider.status(project.id) };
+    const query = parse(gitWorkspaceQuerySchema, request.query ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, query.workspaceId);
+
+    return { status: await gitProvider.status(project.id, workspaceId) };
   });
   app.post('/projects/:projectId/git/commit', async (request) => {
     const project = await requireProject(
@@ -11136,9 +11182,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(gitCommitSchema, request.body);
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
 
     const commit = await gitProvider.commit({
       projectId: project.id,
+      workspaceId,
       message: body.message,
       files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id),
       selectedFiles: body.files,
@@ -11147,14 +11195,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       projectId: project.id,
       actorUserId: request.currentUser!.id,
       action: 'git.commit',
-      metadata: { sha: commit.sha },
+      metadata: { sha: commit.sha, workspaceId: body.workspaceId },
     });
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'git.commit',
       resourceType: 'project',
       resourceId: project.id,
-      metadata: { sha: commit.sha },
+      metadata: { sha: commit.sha, workspaceId: body.workspaceId },
     });
 
     return { commit };
@@ -11169,19 +11217,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(gitBranchSchema, request.body ?? {});
     const branch = body.branch ?? 'main';
-    const result = await gitProvider.push({ projectId: project.id, branch });
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
+    const result = await gitProvider.push({ projectId: project.id, workspaceId, branch });
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
       action: 'git.push',
-      metadata: { branch },
+      metadata: { branch, workspaceId: body.workspaceId },
     });
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'git.push',
       resourceType: 'project',
       resourceId: project.id,
-      metadata: { branch },
+      metadata: { branch, workspaceId: body.workspaceId },
     });
 
     return result;
@@ -11196,19 +11245,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(gitBranchSchema, request.body ?? {});
     const branch = body.branch ?? 'main';
-    const result = await gitProvider.pull({ projectId: project.id, branch });
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
+    const result = await gitProvider.pull({ projectId: project.id, workspaceId, branch });
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
       action: 'git.pull',
-      metadata: { branch },
+      metadata: { branch, workspaceId: body.workspaceId },
     });
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'git.pull',
       resourceType: 'project',
       resourceId: project.id,
-      metadata: { branch },
+      metadata: { branch, workspaceId: body.workspaceId },
     });
 
     return result;
@@ -11221,7 +11271,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    return { branches: await gitProvider.listBranches(project.id), selected: project.gitDefaultBranch ?? 'main' };
+    const query = parse(gitWorkspaceQuerySchema, request.query ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, query.workspaceId);
+
+    return {
+      branches: await gitProvider.listBranches(project.id, workspaceId),
+      selected: project.gitDefaultBranch ?? 'main',
+    };
   });
   app.post('/projects/:projectId/git/branches/checkout', async (request) => {
     const project = await requireProject(
@@ -11232,9 +11288,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(gitCheckoutBranchSchema, request.body ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
 
     const result = await gitProvider.checkoutBranch({
       projectId: project.id,
+      workspaceId,
       branch: body.branch,
       create: body.create,
       startPoint: body.startPoint,
@@ -11243,14 +11301,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       projectId: project.id,
       actorUserId: request.currentUser!.id,
       action: body.create ? 'git.branch.create' : 'git.branch.checkout',
-      metadata: { branch: body.branch },
+      metadata: { branch: body.branch, workspaceId: body.workspaceId },
     });
     await audit(request, store, {
       organizationId: project.organizationId,
       action: body.create ? 'git.branch.create' : 'git.branch.checkout',
       resourceType: 'project',
       resourceId: project.id,
-      metadata: { branch: body.branch },
+      metadata: { branch: body.branch, workspaceId: body.workspaceId },
     });
 
     return result;
@@ -11263,7 +11321,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    return { commits: await gitProvider.logGraph(project.id, 40) };
+    const query = parse(gitWorkspaceQuerySchema, request.query ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, query.workspaceId);
+
+    return { commits: await gitProvider.logGraph(project.id, 40, workspaceId) };
   });
   app.get('/projects/:projectId/git/stashes', async (request) => {
     const project = await requireProject(
@@ -11273,7 +11334,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    return { stashes: await gitProvider.stashList(project.id) };
+    const query = parse(gitWorkspaceQuerySchema, request.query ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, query.workspaceId);
+
+    return { stashes: await gitProvider.stashList(project.id, workspaceId) };
   });
   app.post('/projects/:projectId/git/stash', async (request) => {
     const project = await requireProject(
@@ -11284,12 +11348,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(gitStashSchema, request.body ?? {});
-    const result = await gitProvider.stashPush({ projectId: project.id, message: body.message });
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
+    const result = await gitProvider.stashPush({ projectId: project.id, workspaceId, message: body.message });
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
       action: 'git.stash.push',
-      metadata: { message: body.message },
+      metadata: { message: body.message, workspaceId: body.workspaceId },
     });
 
     return result;
@@ -11303,9 +11368,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(gitStashApplySchema, request.body ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
 
     const result = await gitProvider.stashApply({
       projectId: project.id,
+      workspaceId,
       stashRef: body.stashRef,
       drop: body.drop,
     });
@@ -11313,7 +11380,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       projectId: project.id,
       actorUserId: request.currentUser!.id,
       action: body.drop ? 'git.stash.pop' : 'git.stash.apply',
-      metadata: { stashRef: body.stashRef },
+      metadata: { stashRef: body.stashRef, workspaceId: body.workspaceId },
     });
 
     return result;
@@ -11327,12 +11394,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(gitCherryPickSchema, request.body ?? {});
-    const result = await gitProvider.cherryPick({ projectId: project.id, sha: body.sha });
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
+    const result = await gitProvider.cherryPick({ projectId: project.id, workspaceId, sha: body.sha });
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
       action: 'git.cherry-pick',
-      metadata: { sha: body.sha },
+      metadata: { sha: body.sha, workspaceId: body.workspaceId },
     });
 
     return result;
@@ -11346,9 +11414,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(gitConflictResolutionSchema, request.body ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
 
     const result = await gitProvider.resolveConflict({
       projectId: project.id,
+      workspaceId,
       filePath: body.filePath,
       strategy: body.strategy,
     });
@@ -11356,14 +11426,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       projectId: project.id,
       actorUserId: request.currentUser!.id,
       action: 'git.conflict.resolve',
-      metadata: { filePath: body.filePath, strategy: body.strategy },
+      metadata: { filePath: body.filePath, strategy: body.strategy, workspaceId: body.workspaceId },
     });
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'git.conflict.resolve',
       resourceType: 'project',
       resourceId: project.id,
-      metadata: { filePath: body.filePath, strategy: body.strategy },
+      metadata: { filePath: body.filePath, strategy: body.strategy, workspaceId: body.workspaceId },
     });
 
     return result;
@@ -11377,8 +11447,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const query = parse(gitDiffQuerySchema, request.query ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, query.workspaceId);
 
-    return { diff: await gitProvider.diff(project.id, query.filePath) };
+    return { diff: await gitProvider.diff(project.id, query.filePath, workspaceId) };
   });
   app.get('/projects/:projectId/git/blame', async (request) => {
     const project = await requireProject(
@@ -11389,10 +11460,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const query = parse(gitBlameQuerySchema, request.query ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, query.workspaceId);
 
     return {
       blame: await gitProvider.blame({
         projectId: project.id,
+        workspaceId,
         filePath: query.filePath,
         startLine: query.startLine,
         endLine: query.endLine,
@@ -11408,9 +11481,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(pullRequestSchema, request.body);
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
 
     const pullRequest = await gitProvider.createPullRequest({
       projectId: project.id,
+      workspaceId,
       title: body.title,
       body: body.body,
       sourceBranch: body.sourceBranch,

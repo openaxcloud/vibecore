@@ -14,6 +14,7 @@ import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
 import { EditorPanel } from './EditorPanel';
 import { Preview } from './Preview';
+import { GitTab } from '~/components/git/GitTab';
 import { PanelBoundary } from '~/components/ui/PanelBoundary';
 import useViewport from '~/lib/hooks';
 
@@ -26,7 +27,6 @@ import {
   type OnScrollCallback as OnEditorScroll,
 } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { IconButton } from '~/components/ui/IconButton';
-import { Slider, type SliderOptions } from '~/components/ui/Slider';
 import { useChatHistory } from '~/lib/persistence';
 import { streamingState } from '~/lib/stores/streaming';
 import type { FileHistory } from '~/types/actions';
@@ -50,20 +50,42 @@ interface WorkspaceProps {
 
 const viewTransition = { ease: cubicEasingFn };
 
-const sliderOptions: SliderOptions<WorkbenchViewType> = {
-  left: {
-    value: 'code',
-    text: 'Code',
+const workbenchTabs: ReadonlyArray<{ value: WorkbenchViewType; label: string; icon: string }> = [
+  { value: 'code', label: 'Code', icon: 'i-ph:code' },
+  { value: 'diff', label: 'Diff', icon: 'i-ph:git-diff' },
+  { value: 'preview', label: 'Preview', icon: 'i-ph:browser' },
+  { value: 'git', label: 'Git', icon: 'i-ph:git-branch' },
+];
+
+const WorkbenchTabBar = memo(
+  ({ selected, onSelect }: { selected: WorkbenchViewType; onSelect: (value: WorkbenchViewType) => void }) => {
+    return (
+      <div className="flex flex-wrap items-center gap-1 rounded-full bg-bolt-elements-background-depth-1 p-1">
+        {workbenchTabs.map((tab) => {
+          const active = selected === tab.value;
+
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => onSelect(tab.value)}
+              className={classNames(
+                'relative inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm transition-colors',
+                active
+                  ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+                  : 'text-bolt-elements-item-contentDefault hover:text-bolt-elements-item-contentActive',
+              )}
+              aria-pressed={active}
+            >
+              <span className={classNames(tab.icon, 'text-base')} aria-hidden />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
   },
-  middle: {
-    value: 'diff',
-    text: 'Diff',
-  },
-  right: {
-    value: 'preview',
-    text: 'Preview',
-  },
-};
+);
 
 const workbenchVariants = {
   closed: {
@@ -339,6 +361,20 @@ export const Workbench = memo(
     }, [hasPreview, useMobileWorkbench]);
 
     useEffect(() => {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const requested = params.get('view');
+
+      if (requested === 'git' || requested === 'code' || requested === 'diff' || requested === 'preview') {
+        workbenchStore.currentView.set(requested);
+        workbenchStore.showWorkbench.set(true);
+      }
+    }, []);
+
+    useEffect(() => {
       workbenchStore.setDocuments(files);
     }, [files]);
 
@@ -464,9 +500,7 @@ export const Workbench = memo(
                       }
                     }}
                   />
-                  {!useMobileWorkbench && (
-                    <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
-                  )}
+                  {!useMobileWorkbench && <WorkbenchTabBar selected={selectedView} onSelect={setSelectedView} />}
                   {useMobileWorkbench && (
                     <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
                       <span className="truncate">
@@ -630,6 +664,17 @@ export const Workbench = memo(
                         projectId={projectId}
                         autoStart={activeWorkbenchView === 'preview'}
                       />
+                    </PanelBoundary>
+                  </View>
+                  <View initial={{ x: '100%' }} animate={{ x: activeWorkbenchView === 'git' ? '0%' : '100%' }}>
+                    <PanelBoundary title="Git">
+                      {projectId ? (
+                        <GitTab projectId={projectId} />
+                      ) : (
+                        <div className="flex h-full items-center justify-center p-4 text-sm text-bolt-elements-textSecondary">
+                          Open a project workspace to use Git tools.
+                        </div>
+                      )}
                     </PanelBoundary>
                   </View>
                 </div>

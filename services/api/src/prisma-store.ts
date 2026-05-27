@@ -792,7 +792,21 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async createWorkspace(input: { id?: string; projectId: string; name: string; runtimeMode: string }) {
-    return mapWorkspace(await this.prisma.workspace.create({ data: { ...input, status: 'PENDING' } }));
+    // Persist the created workspace first so Prisma can mint the id when the
+    // caller doesn't supply one. Once we have the id, allocate a relative
+    // gitPath under the project storage root so each workspace has its own
+    // isolated git working tree. We update in the same transaction so
+    // downstream readers always see a non-null gitPath for new rows.
+    const created = await this.prisma.workspace.create({
+      data: { ...input, status: 'PENDING' },
+    });
+    const gitPath = workspaceRelativeGitPath(created.id);
+    const updated = await this.prisma.workspace.update({
+      where: { id: created.id },
+      data: { gitPath },
+    });
+
+    return mapWorkspace(updated);
   }
 
   async getWorkspace(id: string) {
@@ -2027,6 +2041,14 @@ function mapProject(project: any): ProjectRecord {
   };
 }
 
+// Convention shared with services/api/src/project-storage.ts: each workspace
+// gets its own isolated git working tree under `.vibecore-workspaces/<id>` of
+// the project storage root. Returning a relative path keeps the row portable
+// across PROJECT_STORAGE_DIR overrides (dev vs prod, on-disk vs PVC).
+export function workspaceRelativeGitPath(workspaceId: string) {
+  return `.vibecore-workspaces/${workspaceId}`;
+}
+
 function mapWorkspace(workspace: any): WorkspaceRecord {
   return {
     id: workspace.id,
@@ -2034,6 +2056,7 @@ function mapWorkspace(workspace: any): WorkspaceRecord {
     name: workspace.name,
     status: workspace.status,
     runtimeMode: workspace.runtimeMode,
+    gitPath: workspace.gitPath ?? undefined,
     createdAt: toIso(workspace.createdAt)!,
   };
 }

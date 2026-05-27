@@ -60,7 +60,10 @@ export interface GitProvider {
     repositoryUrl: string;
     branch?: string;
   }): Promise<{ files: ProjectFile[]; defaultBranch: string; remoteUrl: string }>;
-  status(projectId: string): Promise<{
+  status(
+    projectId: string,
+    workspaceId?: string,
+  ): Promise<{
     branch: string;
     changedFiles: string[];
     fileStatuses?: Array<{ path: string; status: string }>;
@@ -70,40 +73,67 @@ export interface GitProvider {
   }>;
   commit(input: {
     projectId: string;
+    workspaceId?: string;
     message: string;
     files: ProjectFile[];
     selectedFiles?: string[];
   }): Promise<{ sha: string; message: string }>;
-  push(input: { projectId: string; branch: string }): Promise<{ pushed: boolean; branch: string }>;
+  push(input: {
+    projectId: string;
+    workspaceId?: string;
+    branch: string;
+  }): Promise<{ pushed: boolean; branch: string }>;
   pull(input: {
     projectId: string;
+    workspaceId?: string;
     branch: string;
   }): Promise<{ pulled: boolean; branch: string; changedFiles: string[] }>;
-  listBranches(projectId: string): Promise<string[]>;
+  listBranches(projectId: string, workspaceId?: string): Promise<string[]>;
   checkoutBranch(input: {
     projectId: string;
+    workspaceId?: string;
     branch: string;
     create?: boolean;
     startPoint?: string;
   }): Promise<{ branch: string }>;
-  stashPush(input: { projectId: string; message?: string }): Promise<{ stashed: boolean; output: string }>;
-  stashList(projectId: string): Promise<Array<{ id: string; branch?: string; message: string }>>;
+  stashPush(input: {
+    projectId: string;
+    workspaceId?: string;
+    message?: string;
+  }): Promise<{ stashed: boolean; output: string }>;
+  stashList(
+    projectId: string,
+    workspaceId?: string,
+  ): Promise<Array<{ id: string; branch?: string; message: string }>>;
   stashApply(input: {
     projectId: string;
+    workspaceId?: string;
     stashRef: string;
     drop?: boolean;
   }): Promise<{ applied: boolean; output: string }>;
-  cherryPick(input: { projectId: string; sha: string }): Promise<{ picked: boolean; output: string }>;
+  cherryPick(input: {
+    projectId: string;
+    workspaceId?: string;
+    sha: string;
+  }): Promise<{ picked: boolean; output: string }>;
   resolveConflict(input: {
     projectId: string;
+    workspaceId?: string;
     filePath: string;
     strategy: 'ours' | 'theirs';
   }): Promise<{ resolved: boolean; filePath: string; strategy: 'ours' | 'theirs' }>;
-  logGraph(projectId: string, limit?: number): Promise<GitCommitNode[]>;
-  diff(projectId: string, filePath?: string): Promise<string>;
-  blame(input: { projectId: string; filePath: string; startLine?: number; endLine?: number }): Promise<GitBlameLine[]>;
+  logGraph(projectId: string, limit?: number, workspaceId?: string): Promise<GitCommitNode[]>;
+  diff(projectId: string, filePath?: string, workspaceId?: string): Promise<string>;
+  blame(input: {
+    projectId: string;
+    workspaceId?: string;
+    filePath: string;
+    startLine?: number;
+    endLine?: number;
+  }): Promise<GitBlameLine[]>;
   createPullRequest(input: {
     projectId: string;
+    workspaceId?: string;
     title: string;
     body?: string;
     sourceBranch: string;
@@ -268,13 +298,24 @@ export class LocalProjectStorage implements ProjectStorage {
   }
 }
 
+const SECONDARY_WORKSPACES_DIR = '.vibecore-workspaces';
+const SAFE_WORKSPACE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+
 export class GitCliProvider implements GitProvider {
-  private workspacePath(projectId: string) {
-    return safeProjectPath(projectId);
+  private workspacePath(projectId: string, workspaceId?: string) {
+    if (!workspaceId) {
+      return safeProjectPath(projectId);
+    }
+
+    if (!SAFE_WORKSPACE_ID.test(workspaceId)) {
+      throw new Error('Invalid workspaceId');
+    }
+
+    return safeProjectPath(projectId, `${SECONDARY_WORKSPACES_DIR}/${workspaceId}`);
   }
 
-  private gitDir(projectId: string) {
-    return join(this.workspacePath(projectId), '.git');
+  private gitDir(projectId: string, workspaceId?: string) {
+    return join(this.workspacePath(projectId, workspaceId), '.git');
   }
 
   private gitEnv() {
@@ -284,9 +325,27 @@ export class GitCliProvider implements GitProvider {
     };
   }
 
-  private async ensureRepository(projectId: string) {
-    const target = this.workspacePath(projectId);
-    const gitDir = this.gitDir(projectId);
+  private async excludeSecondaryWorkspaceDir(projectId: string) {
+    const excludePath = join(safeProjectPath(projectId), '.git', 'info', 'exclude');
+    const marker = `/${SECONDARY_WORKSPACES_DIR}/`;
+
+    try {
+      const existing = await readFile(excludePath, 'utf8').catch(() => '');
+
+      if (existing.split('\n').some((line) => line.trim() === marker)) {
+        return;
+      }
+
+      await mkdir(dirname(excludePath), { recursive: true });
+      await writeFile(excludePath, `${existing.replace(/\n*$/, '')}\n${marker}\n`, 'utf8');
+    } catch {
+      // Best-effort: failure to update the exclude file should not block git operations.
+    }
+  }
+
+  private async ensureRepository(projectId: string, workspaceId?: string) {
+    const target = this.workspacePath(projectId, workspaceId);
+    const gitDir = this.gitDir(projectId, workspaceId);
 
     await mkdir(target, { recursive: true });
 
@@ -303,6 +362,11 @@ export class GitCliProvider implements GitProvider {
           env: this.gitEnv(),
         },
       ).catch(() => undefined);
+
+      if (!workspaceId) {
+        await this.excludeSecondaryWorkspaceDir(projectId);
+      }
+
       return;
     }
 
@@ -312,16 +376,26 @@ export class GitCliProvider implements GitProvider {
     });
     await execFile('git', ['config', 'user.name', 'You'], { cwd: target, env: this.gitEnv() });
     await execFile('git', ['config', 'user.email', 'you@vibecore.local'], { cwd: target, env: this.gitEnv() });
+
+    if (!workspaceId) {
+      await this.excludeSecondaryWorkspaceDir(projectId);
+    }
   }
 
-  private async git(projectId: string, args: string[]) {
-    await this.ensureRepository(projectId);
+  private async git(projectId: string, args: string[], workspaceId?: string) {
+    await this.ensureRepository(projectId, workspaceId);
 
     const result = await execFile(
       'git',
-      ['--git-dir', this.gitDir(projectId), '--work-tree', this.workspacePath(projectId), ...args],
+      [
+        '--git-dir',
+        this.gitDir(projectId, workspaceId),
+        '--work-tree',
+        this.workspacePath(projectId, workspaceId),
+        ...args,
+      ],
       {
-        cwd: this.workspacePath(projectId),
+        cwd: this.workspacePath(projectId, workspaceId),
         env: this.gitEnv(),
       },
     );
@@ -351,9 +425,9 @@ export class GitCliProvider implements GitProvider {
     return { files, defaultBranch, remoteUrl: input.repositoryUrl };
   }
 
-  async status(projectId: string) {
-    const branch = await this.git(projectId, ['symbolic-ref', '--short', 'HEAD']).catch(() => 'main');
-    const porcelain = await this.git(projectId, ['status', '--porcelain=v1', '-uall']);
+  async status(projectId: string, workspaceId?: string) {
+    const branch = await this.git(projectId, ['symbolic-ref', '--short', 'HEAD'], workspaceId).catch(() => 'main');
+    const porcelain = await this.git(projectId, ['status', '--porcelain=v1', '-uall'], workspaceId);
     const statusLines = porcelain.split('\n').filter(Boolean);
     const changedFiles = statusLines.map((line) => line.slice(3));
     const fileStatuses = statusLines.map((line) => ({ path: line.slice(3), status: line.slice(0, 2).trim() || 'M' }));
@@ -361,44 +435,52 @@ export class GitCliProvider implements GitProvider {
       .filter((line) => ['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU'].includes(line.slice(0, 2)))
       .map((line) => ({ path: line.slice(3), status: line.slice(0, 2) }));
 
-    const aheadBehind = await this.git(projectId, ['rev-list', '--left-right', '--count', '@{upstream}...HEAD']).catch(
-      () => '0\t0',
-    );
+    const aheadBehind = await this.git(
+      projectId,
+      ['rev-list', '--left-right', '--count', '@{upstream}...HEAD'],
+      workspaceId,
+    ).catch(() => '0\t0');
 
     const [behind, ahead] = aheadBehind.split(/\s+/).map((value) => Number(value) || 0);
 
     return { branch, changedFiles, fileStatuses, conflicts, ahead, behind };
   }
 
-  async commit(input: { projectId: string; message: string; files: ProjectFile[]; selectedFiles?: string[] }) {
-    await this.ensureRepository(input.projectId);
+  async commit(input: {
+    projectId: string;
+    workspaceId?: string;
+    message: string;
+    files: ProjectFile[];
+    selectedFiles?: string[];
+  }) {
+    await this.ensureRepository(input.projectId, input.workspaceId);
     const selectedFiles = input.selectedFiles?.map((filePath) => filePath.replace(/^\/+/, '')).filter(Boolean) ?? [];
     const addArgs = selectedFiles.length ? ['add', '--', ...selectedFiles] : ['add', '--all'];
 
-    await this.git(input.projectId, addArgs);
-    await this.git(input.projectId, ['commit', '-m', input.message]);
+    await this.git(input.projectId, addArgs, input.workspaceId);
+    await this.git(input.projectId, ['commit', '-m', input.message], input.workspaceId);
 
-    const sha = await this.git(input.projectId, ['rev-parse', 'HEAD']);
+    const sha = await this.git(input.projectId, ['rev-parse', 'HEAD'], input.workspaceId);
 
     return { sha, message: input.message };
   }
 
-  async push(input: { projectId: string; branch: string }) {
-    await this.git(input.projectId, ['push', 'origin', input.branch]);
+  async push(input: { projectId: string; workspaceId?: string; branch: string }) {
+    await this.git(input.projectId, ['push', 'origin', input.branch], input.workspaceId);
 
     return { pushed: true, branch: input.branch };
   }
 
-  async pull(input: { projectId: string; branch: string }) {
-    await this.git(input.projectId, ['pull', 'origin', input.branch]);
+  async pull(input: { projectId: string; workspaceId?: string; branch: string }) {
+    await this.git(input.projectId, ['pull', 'origin', input.branch], input.workspaceId);
 
-    const status = await this.status(input.projectId);
+    const status = await this.status(input.projectId, input.workspaceId);
 
     return { pulled: true, branch: input.branch, changedFiles: status.changedFiles };
   }
 
-  async listBranches(projectId: string) {
-    const output = await this.git(projectId, ['branch', '--all', '--format=%(refname:short)']);
+  async listBranches(projectId: string, workspaceId?: string) {
+    const output = await this.git(projectId, ['branch', '--all', '--format=%(refname:short)'], workspaceId);
 
     return [
       ...new Set(
@@ -410,30 +492,36 @@ export class GitCliProvider implements GitProvider {
     ];
   }
 
-  async checkoutBranch(input: { projectId: string; branch: string; create?: boolean; startPoint?: string }) {
+  async checkoutBranch(input: {
+    projectId: string;
+    workspaceId?: string;
+    branch: string;
+    create?: boolean;
+    startPoint?: string;
+  }) {
     if (input.create) {
-      await this.git(input.projectId, ['checkout', '-b', input.branch, input.startPoint ?? 'HEAD']);
+      await this.git(input.projectId, ['checkout', '-b', input.branch, input.startPoint ?? 'HEAD'], input.workspaceId);
     } else {
-      await this.git(input.projectId, ['checkout', input.branch]);
+      await this.git(input.projectId, ['checkout', input.branch], input.workspaceId);
     }
 
     return { branch: input.branch };
   }
 
-  async stashPush(input: { projectId: string; message?: string }) {
+  async stashPush(input: { projectId: string; workspaceId?: string; message?: string }) {
     const args = ['stash', 'push', '--include-untracked'];
 
     if (input.message) {
       args.push('-m', input.message);
     }
 
-    const output = await this.git(input.projectId, args);
+    const output = await this.git(input.projectId, args, input.workspaceId);
 
     return { stashed: !/No local changes/i.test(output), output };
   }
 
-  async stashList(projectId: string) {
-    const output = await this.git(projectId, ['stash', 'list', '--format=%gd%x09%gs']);
+  async stashList(projectId: string, workspaceId?: string) {
+    const output = await this.git(projectId, ['stash', 'list', '--format=%gd%x09%gs'], workspaceId);
 
     return output
       .split('\n')
@@ -446,34 +534,47 @@ export class GitCliProvider implements GitProvider {
       });
   }
 
-  async stashApply(input: { projectId: string; stashRef: string; drop?: boolean }) {
-    const output = await this.git(input.projectId, ['stash', input.drop ? 'pop' : 'apply', input.stashRef]);
+  async stashApply(input: { projectId: string; workspaceId?: string; stashRef: string; drop?: boolean }) {
+    const output = await this.git(
+      input.projectId,
+      ['stash', input.drop ? 'pop' : 'apply', input.stashRef],
+      input.workspaceId,
+    );
 
     return { applied: true, output };
   }
 
-  async cherryPick(input: { projectId: string; sha: string }) {
-    const output = await this.git(input.projectId, ['cherry-pick', input.sha]);
+  async cherryPick(input: { projectId: string; workspaceId?: string; sha: string }) {
+    const output = await this.git(input.projectId, ['cherry-pick', input.sha], input.workspaceId);
 
     return { picked: true, output };
   }
 
-  async resolveConflict(input: { projectId: string; filePath: string; strategy: 'ours' | 'theirs' }) {
+  async resolveConflict(input: {
+    projectId: string;
+    workspaceId?: string;
+    filePath: string;
+    strategy: 'ours' | 'theirs';
+  }) {
     const filePath = input.filePath.replace(/^\/+/, '');
 
-    await this.git(input.projectId, ['checkout', `--${input.strategy}`, '--', filePath]);
-    await this.git(input.projectId, ['add', '--', filePath]);
+    await this.git(input.projectId, ['checkout', `--${input.strategy}`, '--', filePath], input.workspaceId);
+    await this.git(input.projectId, ['add', '--', filePath], input.workspaceId);
 
     return { resolved: true, filePath, strategy: input.strategy };
   }
 
-  async logGraph(projectId: string, limit = 30) {
-    const output = await this.git(projectId, [
-      'log',
-      `--max-count=${Math.max(1, Math.min(limit, 100))}`,
-      '--date=iso-strict',
-      '--pretty=format:%H%x09%h%x09%P%x09%an%x09%ad%x09%D%x09%s',
-    ]).catch((error: any) => {
+  async logGraph(projectId: string, limit = 30, workspaceId?: string) {
+    const output = await this.git(
+      projectId,
+      [
+        'log',
+        `--max-count=${Math.max(1, Math.min(limit, 100))}`,
+        '--date=iso-strict',
+        '--pretty=format:%H%x09%h%x09%P%x09%an%x09%ad%x09%D%x09%s',
+      ],
+      workspaceId,
+    ).catch((error: any) => {
       const message = String(error?.stderr ?? error?.message ?? '');
 
       if (/does not have any commits yet|bad revision|unknown revision|ambiguous argument/i.test(message)) {
@@ -501,8 +602,8 @@ export class GitCliProvider implements GitProvider {
       });
   }
 
-  async diff(projectId: string, filePath?: string) {
-    return this.git(projectId, ['diff', '--', ...(filePath ? [filePath] : [])]).catch((error: any) => {
+  async diff(projectId: string, filePath?: string, workspaceId?: string) {
+    return this.git(projectId, ['diff', '--', ...(filePath ? [filePath] : [])], workspaceId).catch((error: any) => {
       const message = String(error?.stderr ?? error?.message ?? '');
 
       if (/bad revision|unknown revision|ambiguous argument/i.test(message)) {
@@ -513,18 +614,22 @@ export class GitCliProvider implements GitProvider {
     });
   }
 
-  async blame(input: { projectId: string; filePath: string; startLine?: number; endLine?: number }) {
+  async blame(input: {
+    projectId: string;
+    workspaceId?: string;
+    filePath: string;
+    startLine?: number;
+    endLine?: number;
+  }) {
     const range =
       input.startLine && input.endLine
         ? [`-L`, `${Math.max(1, input.startLine)},${Math.max(input.startLine, input.endLine)}`]
         : [];
-    const output = await this.git(input.projectId, [
-      'blame',
-      '--line-porcelain',
-      ...range,
-      '--',
-      input.filePath.replace(/^\/+/, ''),
-    ]);
+    const output = await this.git(
+      input.projectId,
+      ['blame', '--line-porcelain', ...range, '--', input.filePath.replace(/^\/+/, '')],
+      input.workspaceId,
+    );
     const lines: GitBlameLine[] = [];
     let current: Partial<GitBlameLine> = {};
 
@@ -550,7 +655,15 @@ export class GitCliProvider implements GitProvider {
     return lines;
   }
 
-  async createPullRequest(): Promise<{ url: string; number: number }> {
+  async createPullRequest(_input: {
+    projectId: string;
+    workspaceId?: string;
+    title: string;
+    body?: string;
+    sourceBranch: string;
+    targetBranch: string;
+  }): Promise<{ url: string; number: number }> {
+    void _input;
     throw new Error(
       'Pull request creation requires a GitHub integration provider; GitCliProvider does not create remote PRs.',
     );

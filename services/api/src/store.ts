@@ -69,6 +69,10 @@ export interface WorkspaceRecord {
   name: string;
   status: 'PENDING' | 'STARTING' | 'RUNNING' | 'STOPPED' | 'FAILED';
   runtimeMode: string;
+  // Filesystem path (relative to the project storage root) for this
+  // workspace's isolated git working tree. Allocated when the workspace
+  // is created so each branch / agent run has its own checkout.
+  gitPath?: string;
   createdAt: string;
 }
 

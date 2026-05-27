@@ -98,7 +98,9 @@ test.describe('public homepage', () => {
         const heroHeading = document.querySelector<HTMLElement>('[data-testid="section-hero"] h1')!;
         const navSummary = document.querySelector<HTMLElement>('.vc-marketing-menu summary')!;
         const builderButton = document.querySelector<HTMLElement>('[data-testid="button-homepage-build"]')!;
-        const primaryNavAction = document.querySelector<HTMLAnchorElement>('.vc-public-actions a[href="/register"]')!;
+        const primaryNavAction = document.querySelector<HTMLAnchorElement>(
+          '.vc-public-actions a[href="https://app.e-code.ai/register"]',
+        )!;
 
         const read = (element: HTMLElement) => {
           const style = window.getComputedStyle(element);
