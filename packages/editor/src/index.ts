@@ -1080,6 +1080,10 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
   const viewRef = useRef<EditorView | null>(null);
   const editableCompartmentRef = useRef(new Compartment());
   const readOnlyCompartmentRef = useRef(new Compartment());
+  const localDocumentChangedRef = useRef(false);
+  const localDocumentFilePathRef = useRef(props.filePath);
+  const lastAppliedValueRef = useRef(props.value);
+  const lastFilePathRef = useRef(props.filePath);
   const propsRef = useRef(props);
 
   propsRef.current = props;
@@ -1096,7 +1100,11 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
         extensions: codeMirrorExtensions(
           {
             ...propsRef.current,
-            onChange: (change) => propsRef.current.onChange?.(change),
+            onChange: (change) => {
+              localDocumentChangedRef.current = true;
+              localDocumentFilePathRef.current = propsRef.current.filePath;
+              propsRef.current.onChange?.(change);
+            },
             onSave: () => propsRef.current.onSave?.(),
           },
           { editable: editableCompartmentRef.current, readOnly: readOnlyCompartmentRef.current },
@@ -1124,9 +1132,41 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
     }
 
     const current = view.state.doc.toString();
+    const filePathChanged = lastFilePathRef.current !== props.filePath;
+    const upstreamChanged = lastAppliedValueRef.current !== props.value;
+    const hasUnappliedLocalChange =
+      localDocumentChangedRef.current && current !== lastAppliedValueRef.current && current !== props.value;
+    const switchedAwayFromLocallyEditedFile =
+      filePathChanged &&
+      Boolean(props.filePath) &&
+      Boolean(localDocumentFilePathRef.current) &&
+      props.filePath !== localDocumentFilePathRef.current;
 
-    if (current !== props.value) {
+    if (!filePathChanged && !upstreamChanged) {
+      return;
+    }
+
+    if (current === props.value) {
+      localDocumentChangedRef.current = false;
+      localDocumentFilePathRef.current = props.filePath;
+      lastAppliedValueRef.current = props.value;
+      lastFilePathRef.current = props.filePath;
+
+      return;
+    }
+
+    if (hasUnappliedLocalChange && !switchedAwayFromLocallyEditedFile) {
+      lastFilePathRef.current = props.filePath;
+
+      return;
+    }
+
+    if (filePathChanged || !localDocumentChangedRef.current || current === lastAppliedValueRef.current) {
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: props.value } });
+      localDocumentChangedRef.current = false;
+      localDocumentFilePathRef.current = props.filePath;
+      lastAppliedValueRef.current = props.value;
+      lastFilePathRef.current = props.filePath;
     }
   }, [props.value, props.filePath]);
 

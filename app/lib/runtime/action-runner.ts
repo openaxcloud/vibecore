@@ -184,6 +184,12 @@ export class ActionRunner {
     });
 
     this.#currentExecutionPromise.then(() => {
+      const current = this.actions.get()[actionId];
+
+      if (!current || current.executed || current.status === 'complete' || current.status === 'failed') {
+        return;
+      }
+
       this.#updateAction(actionId, { status: 'running' });
     });
   }

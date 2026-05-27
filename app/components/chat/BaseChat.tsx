@@ -2253,6 +2253,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setClientHydrated(true);
     }, []);
 
+    useEffect(() => {
+      if (!useMobileIde || typeof window === 'undefined') {
+        return undefined;
+      }
+
+      const updateVisualViewportHeight = () => {
+        const height = window.visualViewport?.height ?? window.innerHeight;
+        document.documentElement.style.setProperty('--vc-mobile-visual-viewport-height', `${Math.round(height)}px`);
+      };
+
+      updateVisualViewportHeight();
+      window.addEventListener('resize', updateVisualViewportHeight);
+      window.visualViewport?.addEventListener('resize', updateVisualViewportHeight);
+      window.visualViewport?.addEventListener('scroll', updateVisualViewportHeight);
+
+      return () => {
+        window.removeEventListener('resize', updateVisualViewportHeight);
+        window.visualViewport?.removeEventListener('resize', updateVisualViewportHeight);
+        window.visualViewport?.removeEventListener('scroll', updateVisualViewportHeight);
+        document.documentElement.style.removeProperty('--vc-mobile-visual-viewport-height');
+      };
+    }, [useMobileIde]);
+
     const closeMobileOverlays = useCallback(() => {
       setMobileMoreOpen(false);
       setMobileToolsSheetOpen(false);
