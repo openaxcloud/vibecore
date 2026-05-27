@@ -46,6 +46,7 @@ import { FileTree } from '~/components/workbench/FileTree';
 import { Preview } from '~/components/workbench/Preview';
 import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
+import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
 import { ProjectEditorToolbar } from '~/components/project-ide/ProjectEditorToolbar';
 import {
   PROJECT_AGENT_PANEL_MIN_WIDTH,
@@ -6055,19 +6056,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <span className="bolt-project-agent-title" title={description?.trim() || 'New chat'}>
                       {description?.trim() || 'New chat'}
                     </span>
-                    {isAgentRunning && (
-                      <button
-                        type="button"
-                        className="bolt-project-agent-stop-button"
-                        aria-label={stopAgentLabel}
-                        title={stopAgentLabel}
-                        disabled={!handleStop}
-                        onClick={() => handleStop?.()}
-                      >
-                        <span className="i-ph:stop-circle-bold" aria-hidden />
-                        <span>{stopAgentLabel}</span>
-                      </button>
-                    )}
                     <div className="ml-auto flex min-w-max items-center gap-1">
                       <HeaderTip label={headerPresenceTooltip}>
                         <button
@@ -6259,6 +6247,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       </div>
                     );
                   })()}
+                  {isAgentRunning && <ProjectAgentRunStatus stopLabel={stopAgentLabel} onStop={handleStop} />}
                   {conversationHistoryOpen && (
                     <div className="bolt-project-conversation-history" role="dialog" aria-label="Project agent history">
                       <div className="bolt-project-conversation-history-head">

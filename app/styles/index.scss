@@ -6706,6 +6706,79 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 10px 12px;
 }
 
+.bolt-project-agent-run-status {
+  display: flex;
+  min-height: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--vc-ide-accent-error), transparent 92%),
+      color-mix(in srgb, var(--vc-ide-bg-panel), transparent 0%)
+    ),
+    var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-secondary);
+  padding: 6px 10px 6px 12px;
+}
+
+.bolt-project-agent-run-status-copy {
+  display: inline-flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.bolt-project-agent-run-status-copy > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.bolt-project-agent-run-status-copy strong,
+.bolt-project-agent-run-status-copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-agent-run-status-copy strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.bolt-project-agent-run-status-copy small {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.bolt-project-agent-run-status-indicator {
+  display: inline-flex;
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  color: var(--vc-ide-accent-error);
+}
+
+@container (max-width: 320px) {
+  .bolt-project-agent-run-status {
+    gap: 8px;
+    padding-inline: 8px;
+  }
+
+  .bolt-project-agent-run-status-copy small {
+    display: none;
+  }
+}
+
 .bolt-project-agent-avatar {
   display: inline-flex;
   width: 28px;
@@ -6732,7 +6805,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-agent-stop-button {
   display: inline-flex;
   min-width: max-content;
-  height: 28px;
+  height: 30px;
   align-items: center;
   gap: 6px;
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error), transparent 34%);
@@ -6741,7 +6814,7 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-accent-error);
   font-size: 12px;
   font-weight: 700;
-  padding: 0 9px;
+  padding: 0 10px;
   transition:
     background 140ms ease,
     border-color 140ms ease,
