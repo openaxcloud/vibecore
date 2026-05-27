@@ -85,6 +85,12 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
   const modelList = normalizeModelList(props.modelList);
   const providerList = Array.isArray(props.providerList) ? props.providerList : (PROVIDER_LIST as ProviderInfo[]);
 
+  const hasComposerPayload = props.input.trim().length > 0 || props.uploadedFiles.length > 0;
+  const showSendButton = props.projectIdeMode ? !props.isStreaming : hasComposerPayload || props.isStreaming;
+
+  const isSendButtonDisabled =
+    !props.providerList || props.providerList.length === 0 || (!props.isStreaming && !hasComposerPayload);
+
   const settingsToggleTitle = props.projectIdeMode
     ? props.isModelSettingsCollapsed
       ? 'Show agent settings'
@@ -202,126 +208,124 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
       <div
         className={classNames('relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg')}
       >
-        <textarea
-          ref={props.textareaRef}
-          aria-label={props.projectIdeMode ? 'Agent prompt' : 'Chat prompt'}
-          className={classNames(
-            'w-full pl-4 pt-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
-            'transition-all duration-200',
-            'hover:border-bolt-elements-focus',
-          )}
-          onDragEnter={(e) => {
-            e.preventDefault();
-            e.currentTarget.style.border = '2px solid #1488fc';
-          }}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.currentTarget.style.border = '2px solid #1488fc';
-          }}
-          onDragLeave={(e) => {
-            e.preventDefault();
-            e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-
-            const files = Array.from(e.dataTransfer.files);
-            files.forEach((file) => {
-              if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-
-                reader.onload = (e) => {
-                  const base64Image = e.target?.result as string;
-                  props.setUploadedFiles?.([...props.uploadedFiles, file]);
-                  props.setImageDataList?.([...props.imageDataList, base64Image]);
-                };
-                reader.readAsDataURL(file);
-              }
-            });
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              if (event.shiftKey) {
-                return;
-              }
-
-              event.preventDefault();
-
-              if (props.isStreaming) {
-                props.handleStop?.();
-                return;
-              }
-
-              // ignore if using input method engine
-              if (event.nativeEvent.isComposing) {
-                return;
-              }
-
-              props.handleSendMessage?.(event);
-            }
-          }}
-          value={props.input}
-          onChange={(event) => {
-            props.handleInputChange?.(event);
-          }}
-          onPaste={props.handlePaste}
-          style={{
-            minHeight: props.TEXTAREA_MIN_HEIGHT,
-            maxHeight: props.TEXTAREA_MAX_HEIGHT,
-          }}
-          placeholder={
-            props.placeholder ??
-            (props.chatMode === 'build' ? 'How can Bolt help you today?' : 'What would you like to discuss?')
-          }
-          translate="no"
-        />
-        {props.textareaRef ? (
-          <ComposerMentionsOverlay
-            textareaRef={props.textareaRef}
-            input={props.input}
-            handleInputChange={props.handleInputChange}
-            recentMentionedFilePaths={props.recentMentionedFilePaths}
-            projectId={props.projectId}
-          />
-        ) : null}
-        {props.textareaRef ? (
-          <ComposerSlashOverlay
-            textareaRef={props.textareaRef}
-            input={props.input}
-            handleInputChange={props.handleInputChange}
-            context={{
-              chatMode: props.chatMode,
-              setChatMode: props.setChatMode,
-              ...(props.slashContext ?? {}),
+        <div className="bolt-chatbox-input-frame relative">
+          <textarea
+            ref={props.textareaRef}
+            aria-label={props.projectIdeMode ? 'Agent prompt' : 'Chat prompt'}
+            className={classNames(
+              'block w-full pl-4 pt-4 pr-16 pb-14 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
+              'transition-all duration-200',
+              'hover:border-bolt-elements-focus',
+            )}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.border = '2px solid #1488fc';
             }}
-            recentSlashCommandIds={props.recentSlashCommandIds}
-            projectId={props.projectId}
-          />
-        ) : null}
-        <ClientOnly>
-          {() => (
-            <SendButton
-              show={
-                props.projectIdeMode && props.isStreaming
-                  ? false
-                  : props.input.length > 0 || props.isStreaming || props.uploadedFiles.length > 0
-              }
-              isStreaming={props.isStreaming}
-              disabled={!props.providerList || props.providerList.length === 0}
-              onClick={(event) => {
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.border = '2px solid #1488fc';
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
+
+              const files = Array.from(e.dataTransfer.files);
+              files.forEach((file) => {
+                if (file.type.startsWith('image/')) {
+                  const reader = new FileReader();
+
+                  reader.onload = (e) => {
+                    const base64Image = e.target?.result as string;
+                    props.setUploadedFiles?.([...props.uploadedFiles, file]);
+                    props.setImageDataList?.([...props.imageDataList, base64Image]);
+                  };
+                  reader.readAsDataURL(file);
+                }
+              });
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                if (event.shiftKey) {
+                  return;
+                }
+
+                event.preventDefault();
+
                 if (props.isStreaming) {
                   props.handleStop?.();
                   return;
                 }
 
-                if (props.input.length > 0 || props.uploadedFiles.length > 0) {
-                  props.handleSendMessage?.(event);
+                // ignore if using input method engine
+                if (event.nativeEvent.isComposing) {
+                  return;
                 }
-              }}
+
+                props.handleSendMessage?.(event);
+              }
+            }}
+            value={props.input}
+            onChange={(event) => {
+              props.handleInputChange?.(event);
+            }}
+            onPaste={props.handlePaste}
+            style={{
+              minHeight: props.TEXTAREA_MIN_HEIGHT,
+              maxHeight: props.TEXTAREA_MAX_HEIGHT,
+            }}
+            placeholder={
+              props.placeholder ??
+              (props.chatMode === 'build' ? 'How can Bolt help you today?' : 'What would you like to discuss?')
+            }
+            translate="no"
+          />
+          {props.textareaRef ? (
+            <ComposerMentionsOverlay
+              textareaRef={props.textareaRef}
+              input={props.input}
+              handleInputChange={props.handleInputChange}
+              recentMentionedFilePaths={props.recentMentionedFilePaths}
+              projectId={props.projectId}
             />
-          )}
-        </ClientOnly>
+          ) : null}
+          {props.textareaRef ? (
+            <ComposerSlashOverlay
+              textareaRef={props.textareaRef}
+              input={props.input}
+              handleInputChange={props.handleInputChange}
+              context={{
+                chatMode: props.chatMode,
+                setChatMode: props.setChatMode,
+                ...(props.slashContext ?? {}),
+              }}
+              recentSlashCommandIds={props.recentSlashCommandIds}
+              projectId={props.projectId}
+            />
+          ) : null}
+          <ClientOnly>
+            {() => (
+              <SendButton
+                show={showSendButton}
+                isStreaming={props.isStreaming}
+                disabled={isSendButtonDisabled}
+                onClick={(event) => {
+                  if (props.isStreaming) {
+                    props.handleStop?.();
+                    return;
+                  }
+
+                  if (props.input.length > 0 || props.uploadedFiles.length > 0) {
+                    props.handleSendMessage?.(event);
+                  }
+                }}
+              />
+            )}
+          </ClientOnly>
+        </div>
         <div className="flex justify-between items-center text-sm p-4 pt-2">
           <div className="flex gap-1 items-center">
             <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />

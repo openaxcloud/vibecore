@@ -3734,7 +3734,10 @@ body :where(.lucide, svg[data-lucide]) {
   position: fixed;
   right: 0;
   left: 0;
-  top: max(env(safe-area-inset-top, 0px), calc(var(--vc-mobile-visual-viewport-height) - var(--vc-mobile-sheet-height)));
+  top: max(
+    env(safe-area-inset-top, 0px),
+    calc(var(--vc-mobile-visual-viewport-height) - var(--vc-mobile-sheet-height))
+  );
   bottom: auto;
   z-index: 12021;
   display: flex;
@@ -3907,7 +3910,10 @@ body :where(.lucide, svg[data-lucide]) {
   position: fixed;
   right: 0;
   left: 0;
-  top: max(env(safe-area-inset-top, 0px), calc(var(--vc-mobile-visual-viewport-height) - var(--vc-mobile-sheet-height)));
+  top: max(
+    env(safe-area-inset-top, 0px),
+    calc(var(--vc-mobile-visual-viewport-height) - var(--vc-mobile-sheet-height))
+  );
   bottom: auto;
   z-index: 12021;
   display: flex;
@@ -6098,13 +6104,49 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-chatbox textarea {
   min-height: 76px;
-  padding: 8px 44px 8px 8px !important;
+  padding: 8px 56px 50px 8px !important;
   color: var(--vc-ide-text-primary);
   font-size: 13px !important;
 }
 
 .bolt-project-chatbox textarea::placeholder {
   color: var(--vc-ide-text-muted);
+}
+
+.bolt-chatbox-input-frame .bolt-composer-send-button {
+  position: absolute !important;
+  right: 8px !important;
+  bottom: 8px !important;
+  z-index: 20;
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: var(--vc-ide-accent-action, #1488fc);
+  color: #fff;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.28);
+  padding: 4px;
+}
+
+.bolt-chatbox-input-frame .bolt-composer-send-button:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+.bolt-chatbox-input-frame .bolt-composer-send-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.bolt-project-chatbox .bolt-chatbox-input-frame {
+  min-height: 76px;
+}
+
+.bolt-project-chatbox .bolt-composer-send-button {
+  right: 8px;
+  bottom: 8px;
 }
 
 .bolt-project-chatbox > div {
@@ -15614,6 +15656,16 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer {
     padding-bottom: calc(var(--mobile-nav-height) + 58px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-chatbox textarea {
+    padding-right: 62px !important;
+    padding-bottom: 54px !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-chatbox .bolt-composer-send-button {
+    width: 44px;
+    height: 44px;
   }
 
   .bolt-project-action-group--overflow .bolt-project-overflow-popover {
