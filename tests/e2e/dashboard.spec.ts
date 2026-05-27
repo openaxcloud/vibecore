@@ -566,14 +566,17 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
       padding: style.paddingTop,
     };
   });
-  expect(toolMenuMetrics.width).toBeGreaterThanOrEqual(300);
-  expect(toolMenuMetrics.width).toBeLessThanOrEqual(940);
-  expect(toolMenuMetrics.maxHeight).toBe('430px');
+  expect(toolMenuMetrics.width).toBeGreaterThanOrEqual(560);
+  expect(toolMenuMetrics.width).toBeLessThanOrEqual(680);
+  expect(toolMenuMetrics.maxHeight).toBe('620px');
   expect(toolMenuMetrics.background).toBe('rgb(26, 32, 48)');
   expect(toolMenuMetrics.border).toBe('rgb(43, 50, 69)');
-  expect(toolMenuMetrics.borderRadius).toBe('0px');
+  expect(toolMenuMetrics.borderRadius).toBe('12px');
   expect(toolMenuMetrics.padding).toBe('8px');
-  await expect(toolMenu.getByPlaceholder('Search tools and files...')).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Add tab command palette' })).toBeVisible();
+  await expect(toolMenu.getByText('Add tab')).toBeVisible();
+  await expect(toolMenu.locator('kbd').filter({ hasText: /K/ }).first()).toBeVisible();
+  await expect(toolMenu.getByPlaceholder('Search commands, tools, or files...')).toBeVisible();
   await expect(toolMenu.locator('.bolt-project-tool-section', { hasText: 'RECENT FILES' })).toBeVisible();
   await expect(toolMenu.locator('.bolt-project-tool-section', { hasText: 'TOOLS' })).toBeVisible();
   await expect(toolMenu.getByRole('button', { name: /Files Browse project files/ })).toBeVisible();
@@ -586,6 +589,11 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
     timeout: 15000,
   });
+  await expect(page.getByRole('dialog', { name: 'Add tab command palette' })).toBeHidden();
+
+  const dismissibleToolMenu = await openVisibleIdeToolMenu(page);
+  await page.locator('.bolt-project-tabbar:visible .bolt-project-tab-main').first().click();
+  await expect(dismissibleToolMenu).toBeHidden();
 
   const filesToolMenu = await openVisibleIdeToolMenu(page);
   const filesToolButton = filesToolMenu.getByRole('button', { name: /Files/ });

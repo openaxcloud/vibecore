@@ -7401,11 +7401,75 @@ body :where(.lucide, svg[data-lucide]) {
   box-shadow: none;
 }
 
+.bolt-project-tool-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 125;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: clamp(72px, 12dvh, 124px) 16px 24px;
+  background: color-mix(in srgb, #010409, transparent 42%);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.bolt-project-tool-menu--modal {
+  position: relative;
+  inline-size: min(640px, calc(100vw - 32px));
+  min-width: 0;
+  max-height: min(620px, calc(100dvh - 96px));
+  border-radius: 12px;
+  box-shadow: var(--vc-ui-shadow-xl);
+  pointer-events: auto;
+}
+
 .bolt-project-tool-menu-header {
   flex: 0 0 auto;
   border-bottom: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-panel);
   padding: 10px;
+}
+
+.bolt-project-tool-menu-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.bolt-project-tool-menu-title strong,
+.bolt-project-tool-menu-title small {
+  display: block;
+}
+
+.bolt-project-tool-menu-title strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.bolt-project-tool-menu-title small {
+  margin-top: 2px;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.bolt-project-tool-menu-title kbd,
+.bolt-project-tool-footer kbd {
+  display: inline-flex;
+  min-height: 20px;
+  align-items: center;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 5px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  white-space: nowrap;
 }
 
 .bolt-project-tool-menu-body {
@@ -7416,13 +7480,23 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-tool-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   flex: 0 0 auto;
   border-top: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-panel);
   color: var(--vc-ide-text-muted);
   font-size: 11px;
   padding: 8px 10px;
-  text-align: center;
+}
+
+.bolt-project-tool-footer > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bolt-project-tool-search {

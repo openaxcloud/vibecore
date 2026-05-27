@@ -8906,6 +8906,57 @@ function IdeTabBar({
   const [open, setOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [toolQuery, setToolQuery] = useState('');
+  const addTabButtonRef = useRef<HTMLButtonElement | null>(null);
+  const toolMenuRef = useRef<HTMLDivElement | null>(null);
+  const commandPaletteShortcut = formatKeybindingCombo('cmd+k');
+
+  const closeToolMenu = useCallback((options: { restoreFocus?: boolean } = {}) => {
+    setOpen(false);
+    setToolQuery('');
+
+    if (options.restoreFocus) {
+      window.requestAnimationFrame(() => addTabButtonRef.current?.focus());
+    }
+  }, []);
+
+  const openToolMenu = useCallback(() => {
+    setActionsOpen(false);
+    setToolQuery('');
+    setOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeToolMenu({ restoreFocus: true });
+      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        closeToolMenu();
+      }
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+
+      if (target && (toolMenuRef.current?.contains(target) || addTabButtonRef.current?.contains(target))) {
+        return;
+      }
+
+      closeToolMenu();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('pointerdown', handlePointerDown, true);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+    };
+  }, [closeToolMenu, open]);
 
   const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> = [
     ['overview', 'Overview', 'Project summary', 'i-ph:gauge', 'var(--vc-ide-accent-action)', 'Workspace'],
@@ -8981,89 +9032,108 @@ function IdeTabBar({
   );
 
   const toolMenu = open ? (
-    <div className="bolt-project-tool-menu bolt-project-tool-menu--anchored">
-      <div className="bolt-project-tool-menu-header">
-        <div className="bolt-project-tool-search">
-          <span className="i-ph:magnifying-glass" aria-hidden />
-          <input
-            autoFocus
-            placeholder="Search tools and files..."
-            aria-label="Search tools and files"
-            value={toolQuery}
-            onChange={(event) => setToolQuery(event.target.value)}
-          />
-          <button
-            type="button"
-            aria-label="Close tools and files search"
-            title="Close"
-            className="bolt-project-tool-search-close"
-            onClick={() => setOpen(false)}
-          >
-            <span className="i-ph:x" aria-hidden />
-          </button>
+    <div className="bolt-project-tool-modal" data-testid="ide-add-tab-command-palette">
+      <div
+        ref={toolMenuRef}
+        className="bolt-project-tool-menu bolt-project-tool-menu--modal"
+        role="dialog"
+        aria-label="Add tab command palette"
+      >
+        <div className="bolt-project-tool-menu-header">
+          <div className="bolt-project-tool-menu-title">
+            <span>
+              <strong>Add tab</strong>
+              <small>Open a tool, project file, or command in this workspace.</small>
+            </span>
+            <kbd>{commandPaletteShortcut}</kbd>
+          </div>
+          <div className="bolt-project-tool-search">
+            <span className="i-ph:magnifying-glass" aria-hidden />
+            <input
+              autoFocus
+              placeholder="Search commands, tools, or files..."
+              aria-label="Search commands, tools, or files"
+              value={toolQuery}
+              onChange={(event) => setToolQuery(event.target.value)}
+            />
+            <button
+              type="button"
+              aria-label="Close add tab command palette"
+              title="Close"
+              className="bolt-project-tool-search-close"
+              onClick={() => closeToolMenu({ restoreFocus: true })}
+            >
+              <span className="i-ph:x" aria-hidden />
+            </button>
+          </div>
         </div>
-      </div>
-      <div className="bolt-project-tool-menu-body">
-        {!normalizedToolQuery && (
-          <>
-            <div className="bolt-project-tool-section">RECENT FILES</div>
-            {filteredRecentFiles.map((filePath) => (
-              <button
-                key={`recent-file-${filePath}`}
-                type="button"
-                className="bolt-project-tool-item"
-                onClick={() => {
-                  onOpenFile?.(filePath, false);
-                  setOpen(false);
-                }}
-              >
-                <span className="i-ph:file-code" aria-hidden />
-                <span>
-                  <strong>{filePath.split('/').pop() || filePath}</strong>
-                  <small>{filePath.replace(WORK_DIR, '')}</small>
-                </span>
-                <span className="bolt-project-tool-item-chevron i-ph:caret-right" aria-hidden />
-              </button>
-            ))}
-          </>
-        )}
-        <div className="bolt-project-tool-section">TOOLS</div>
-        {toolGroups.map(([category, groupTools]) => (
-          <div key={category} className="bolt-project-tool-group">
-            <div className="bolt-project-tool-section">{category}</div>
-            {groupTools.map(([id, title, description, icon, color]) => (
-              <button
-                key={id}
-                type="button"
-                className="bolt-project-tool-item"
-                data-testid={`feature-${id}`}
-                onClick={() => {
-                  onOpenTool?.(id);
-                  setOpen(false);
-                }}
-              >
-                <span className={icon} style={{ color }} aria-hidden />
-                <span>
-                  <strong>{title}</strong>
-                  <small>{description}</small>
-                </span>
-                {tabs.some((tab) => tab.panel === id) && <em>Open</em>}
-                <span className="bolt-project-tool-item-chevron i-ph:caret-right" aria-hidden />
-              </button>
-            ))}
-          </div>
-        ))}
-        {!filteredTools.length && (
-          <div className="bolt-project-tool-empty">
-            <span className="i-ph:sparkle" aria-hidden />
-            <strong>No features found</strong>
-            <small>Try a different search term.</small>
-          </div>
-        )}
-      </div>
-      <div className="bolt-project-tool-footer">
-        {filteredTools.length} feature{filteredTools.length === 1 ? '' : 's'} available
-        {normalizedToolQuery ? ` matching "${toolQuery.trim()}"` : ''}
+        <div className="bolt-project-tool-menu-body">
+          {!normalizedToolQuery && (
+            <>
+              <div className="bolt-project-tool-section">RECENT FILES</div>
+              {filteredRecentFiles.map((filePath) => (
+                <button
+                  key={`recent-file-${filePath}`}
+                  type="button"
+                  className="bolt-project-tool-item"
+                  onClick={() => {
+                    onOpenFile?.(filePath, false);
+                    closeToolMenu();
+                  }}
+                >
+                  <span className="i-ph:file-code" aria-hidden />
+                  <span>
+                    <strong>{filePath.split('/').pop() || filePath}</strong>
+                    <small>{filePath.replace(WORK_DIR, '')}</small>
+                  </span>
+                  <span className="bolt-project-tool-item-chevron i-ph:caret-right" aria-hidden />
+                </button>
+              ))}
+            </>
+          )}
+          <div className="bolt-project-tool-section">TOOLS</div>
+          {toolGroups.map(([category, groupTools]) => (
+            <div key={category} className="bolt-project-tool-group">
+              <div className="bolt-project-tool-section">{category}</div>
+              {groupTools.map(([id, title, description, icon, color]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className="bolt-project-tool-item"
+                  data-testid={`feature-${id}`}
+                  onClick={() => {
+                    onOpenTool?.(id);
+                    closeToolMenu();
+                  }}
+                >
+                  <span className={icon} style={{ color }} aria-hidden />
+                  <span>
+                    <strong>{title}</strong>
+                    <small>{description}</small>
+                  </span>
+                  {tabs.some((tab) => tab.panel === id) && <em>Open</em>}
+                  <span className="bolt-project-tool-item-chevron i-ph:caret-right" aria-hidden />
+                </button>
+              ))}
+            </div>
+          ))}
+          {!filteredTools.length && (
+            <div className="bolt-project-tool-empty">
+              <span className="i-ph:sparkle" aria-hidden />
+              <strong>No features found</strong>
+              <small>Try a different search term.</small>
+            </div>
+          )}
+        </div>
+        <div className="bolt-project-tool-footer">
+          <span>
+            {filteredTools.length} feature{filteredTools.length === 1 ? '' : 's'} available
+            {normalizedToolQuery ? ` matching "${toolQuery.trim()}"` : ''}
+          </span>
+          <span>
+            <kbd>Esc</kbd> close · <kbd>{commandPaletteShortcut}</kbd> full palette
+          </span>
+        </div>
       </div>
     </div>
   ) : null;
@@ -9136,7 +9206,10 @@ function IdeTabBar({
                 type="button"
                 className="bolt-project-tab-main"
                 title={tab.label}
-                onClick={() => onSelect(tab.id, tab.panel)}
+                onClick={() => {
+                  closeToolMenu();
+                  onSelect(tab.id, tab.panel);
+                }}
               >
                 <span className={classNames('bolt-project-tab-icon', tab.icon)} aria-hidden />
                 <span className={classNames('bolt-project-tab-label', tab.preview || tab.dirty ? 'italic' : '')}>
@@ -9195,14 +9268,22 @@ function IdeTabBar({
         {trailing}
         <div className="bolt-project-tool-popover">
           <button
+            ref={addTabButtonRef}
             type="button"
             className="bolt-project-tab-action bolt-project-add-tab-action"
-            aria-label="Add tab"
-            title="Add tab"
+            aria-label="Add tab with command palette"
+            title={`Add tab (${commandPaletteShortcut})`}
             data-testid="tab-add"
+            aria-haspopup="dialog"
             aria-expanded={open}
             onMouseDown={(event) => event.stopPropagation()}
-            onClick={() => setOpen((value) => !value)}
+            onClick={() => {
+              if (open) {
+                closeToolMenu({ restoreFocus: true });
+              } else {
+                openToolMenu();
+              }
+            }}
           >
             <span className="i-ph:plus" aria-hidden />
           </button>
@@ -9215,7 +9296,10 @@ function IdeTabBar({
             title="Tab actions"
             aria-expanded={actionsOpen}
             onMouseDown={(event) => event.stopPropagation()}
-            onClick={() => setActionsOpen((value) => !value)}
+            onClick={() => {
+              closeToolMenu();
+              setActionsOpen((value) => !value);
+            }}
           >
             <span className="i-ph:dots-three" aria-hidden />
           </button>
