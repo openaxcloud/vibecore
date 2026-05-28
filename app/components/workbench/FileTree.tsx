@@ -34,9 +34,9 @@ function FileTreeName({ name, className }: { name: string; className?: string })
 }
 
 const DEFAULT_HIDDEN_FILES = [
-  /\/node_modules\//,
-  /\/\.next/,
-  /\/\.astro/,
+  /\/node_modules(?:\/|$)/,
+  /\/\.next(?:\/|$)/,
+  /\/\.astro(?:\/|$)/,
   /\/\.vite(?:\/|$)/,
   /\/deps_temp_[^/]+(?:\/|$)/,
 ];
@@ -58,6 +58,7 @@ interface Props {
   enableWorkspaceViews?: boolean;
   openEditors?: OpenEditorEntry[];
   gitStatusByPath?: Record<string, GitFileStatus | string | undefined>;
+  showHiddenFiles?: boolean;
 }
 
 interface OpenEditorEntry {
@@ -94,10 +95,14 @@ export const FileTree = memo(
     enableWorkspaceViews = false,
     openEditors = [],
     gitStatusByPath,
+    showHiddenFiles = false,
   }: Props) => {
     renderLogger.trace('FileTree');
 
-    const computedHiddenFiles = useMemo(() => [...DEFAULT_HIDDEN_FILES, ...(hiddenFiles ?? [])], [hiddenFiles]);
+    const computedHiddenFiles = useMemo(
+      () => (showHiddenFiles ? [] : [...DEFAULT_HIDDEN_FILES, ...(hiddenFiles ?? [])]),
+      [hiddenFiles, showHiddenFiles],
+    );
 
     const fileList = useMemo(() => {
       return buildFileList(files, rootFolder, hideRoot, computedHiddenFiles);

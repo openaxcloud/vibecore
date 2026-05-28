@@ -594,9 +594,9 @@ const ECODE_MOBILE_MORE_MENU_ITEMS = [
 ] as const;
 
 const IDE_FILE_TREE_HIDDEN_PATTERNS = [
-  /\/node_modules\//,
-  /\/\.next/,
-  /\/\.astro/,
+  /\/node_modules(?:\/|$)/,
+  /\/\.next(?:\/|$)/,
+  /\/\.astro(?:\/|$)/,
   /\/\.vite(?:\/|$)/,
   /\/deps_temp_[^/]+(?:\/|$)/,
 ];
@@ -6752,7 +6752,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <button
                       key={tab.id}
                       type="button"
-                      className="bolt-mobile-replit-icon-tab"
+                      className="bolt-mobile-replit-icon-tab bolt-mobile-replit-panel-tab"
                       aria-label={`Switch to ${tab.name} tab`}
                       aria-pressed={isActive}
                       aria-current={isActive ? 'page' : undefined}
@@ -6760,7 +6760,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       onClick={() => activateMobileTool(tab.id)}
                     >
                       {tab.icon === 'agent' ? <MobileReplitAgentIcon /> : <span className={tab.icon} aria-hidden />}
-                      {isActive ? <i aria-hidden /> : null}
+                      <span className="bolt-mobile-replit-tab-label">{tab.name}</span>
+                      {isActive ? <span className="bolt-mobile-replit-tab-indicator" aria-hidden /> : null}
                     </button>
                   );
                 })}
@@ -8653,6 +8654,7 @@ function ProjectFilesTool({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState('');
+  const [showHiddenFiles, setShowHiddenFiles] = useState(false);
   const gitStatusByPath = useMemo(() => buildGitStatusMap(changedFiles), [changedFiles]);
 
   const fileOpenEditors = useMemo(
@@ -8668,9 +8670,30 @@ function ProjectFilesTool({
     [openEditors],
   );
 
-  const fileCount = Object.entries(files ?? {}).filter(
-    ([filePath, entry]: [string, any]) => entry?.type === 'file' && !isIdeHiddenPath(filePath),
-  ).length;
+  const { fileCount, hiddenSystemFileCount } = useMemo(() => {
+    let visible = 0;
+    let hidden = 0;
+
+    for (const [filePath, entry] of Object.entries(files ?? {}) as Array<[string, any]>) {
+      if (entry?.type !== 'file') {
+        continue;
+      }
+
+      if (isIdeHiddenPath(filePath)) {
+        hidden++;
+
+        if (showHiddenFiles) {
+          visible++;
+        }
+
+        continue;
+      }
+
+      visible++;
+    }
+
+    return { fileCount: visible, hiddenSystemFileCount: hidden };
+  }, [files, showHiddenFiles]);
 
   const filteredFiles = useMemo(() => {
     const trimmedQuery = query.trim().toLowerCase();
@@ -8703,11 +8726,18 @@ function ProjectFilesTool({
   }
 
   const collapseFilesLabel = collapsed ? 'Expand all files' : 'Collapse all files';
+  const systemFilesLabel = showHiddenFiles ? 'Hide hidden/system files' : 'Show hidden/system files';
+
+  const hiddenFilesSummary = hiddenSystemFileCount
+    ? `${hiddenSystemFileCount} hidden/system files ${showHiddenFiles ? 'shown' : 'hidden'}`
+    : 'No hidden/system files detected';
 
   return (
     <div className="bolt-project-files-tool">
       <div className="bolt-project-files-header">
-        <span className="bolt-project-files-count">{fileCount} files</span>
+        <span className="bolt-project-files-count" title={hiddenFilesSummary}>
+          {fileCount} files
+        </span>
         <HeaderTip label="New file" side="top">
           <button type="button" aria-label="New file" title="New file" onClick={() => void createEntry('file')}>
             <span className="i-ph:file-plus" aria-hidden />
@@ -8738,6 +8768,17 @@ function ProjectFilesTool({
             <span className={collapsed ? 'i-ph:caret-double-down' : 'i-ph:caret-double-up'} aria-hidden />
           </button>
         </HeaderTip>
+        <HeaderTip label={systemFilesLabel} side="top">
+          <button
+            type="button"
+            aria-label={systemFilesLabel}
+            aria-pressed={showHiddenFiles}
+            title={systemFilesLabel}
+            onClick={() => setShowHiddenFiles((value) => !value)}
+          >
+            <span className={showHiddenFiles ? 'i-ph:eye' : 'i-ph:eye-slash'} aria-hidden />
+          </button>
+        </HeaderTip>
       </div>
       <label className="bolt-project-files-search">
         <span>Search</span>
@@ -8755,6 +8796,7 @@ function ProjectFilesTool({
         hideRoot
         collapsed={collapsed}
         hiddenFiles={IDE_FILE_TREE_HIDDEN_PATTERNS}
+        showHiddenFiles={showHiddenFiles}
         unsavedFiles={unsavedFiles}
         openEditors={fileOpenEditors}
         gitStatusByPath={gitStatusByPath}
