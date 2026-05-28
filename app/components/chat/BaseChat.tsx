@@ -6759,23 +6759,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     +{mobileOpenTabs.length - 3}
                   </button>
                 ) : null}
-                {mobileOpenTabs.length < 4 ? (
-                  <>
-                    <span className="bolt-mobile-replit-divider" aria-hidden />
-                    <button
-                      type="button"
-                      className="bolt-mobile-replit-icon-tab"
-                      aria-label="Open tools"
-                      aria-haspopup="dialog"
-                      aria-expanded={mobileToolsSheetOpen}
-                      data-testid="button-add-tab"
-                      onClick={openMobileToolsSheet}
-                    >
-                      <span className="i-ph:plus" aria-hidden />
-                    </button>
-                  </>
-                ) : null}
               </div>
+
+              <button
+                type="button"
+                className="bolt-mobile-replit-tools"
+                aria-label="Open tools"
+                aria-haspopup="dialog"
+                aria-expanded={mobileToolsSheetOpen}
+                data-testid="button-add-tab"
+                onClick={openMobileToolsSheet}
+              >
+                <span className="i-ph:plus" aria-hidden />
+              </button>
             </div>
           </nav>
         )}

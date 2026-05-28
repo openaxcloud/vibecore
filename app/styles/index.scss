@@ -3409,7 +3409,8 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 0 12px;
 }
 
-.bolt-mobile-replit-run {
+.bolt-mobile-replit-run,
+.bolt-mobile-replit-tools {
   display: inline-flex;
   width: 44px;
   height: 44px;
@@ -3442,7 +3443,17 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 20px;
 }
 
+.bolt-mobile-replit-tools {
+  background: transparent;
+  color: #9ca3af;
+}
+
+.bolt-mobile-replit-tools span {
+  font-size: 22px;
+}
+
 .bolt-mobile-replit-run:active,
+.bolt-mobile-replit-tools:active,
 .bolt-mobile-replit-icon-tab:active {
   transform: scale(0.95);
 }
@@ -15917,7 +15928,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     padding-inline: 8px;
   }
 
-  .bolt-mobile-replit-run {
+  .bolt-mobile-replit-run,
+  .bolt-mobile-replit-tools {
     width: 40px;
     height: 40px;
     flex-basis: 40px;
