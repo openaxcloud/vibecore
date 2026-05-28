@@ -59,6 +59,40 @@ describe('agent post-generation import validation', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('does not validate dependency internals copied into the runtime file tree', async () => {
+    await expect(
+      validateGeneratedFiles([
+        {
+          path: 'node_modules/@babel/core/src/config/files/index-browser.ts',
+          content: "import type { Handler } from './types.ts';\nexport const handler = {} as Handler;\n",
+        },
+        {
+          path: 'node_modules/@babel/core/package.json',
+          content: '{ invalid vendor package json',
+        },
+        {
+          path: 'src/App.tsx',
+          content: 'export default function App() { return <main />; }\n',
+        },
+      ]),
+    ).resolves.toBeUndefined();
+  });
+
+  it('still validates generated app imports when dependency folders are present', async () => {
+    await expect(
+      validateGeneratedFiles([
+        {
+          path: 'node_modules/@babel/core/src/config/files/index-browser.ts',
+          content: "import type { Handler } from './types.ts';\nexport const handler = {} as Handler;\n",
+        },
+        {
+          path: 'src/main.tsx',
+          content: "import App from './MissingApp';\nconsole.log(App);\n",
+        },
+      ]),
+    ).rejects.toBeInstanceOf(MissingImportError);
+  });
+
   describe('fail-open on parser errors (Replit/Cursor parity)', () => {
     /*
      * `@babel/parser` lags TC39 + TypeScript feature flags, so a syntactically

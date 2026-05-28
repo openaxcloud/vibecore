@@ -29,7 +29,21 @@ export class GeneratedFileJsonError extends Error {
 }
 
 const SOURCE_FILE_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs']);
+
 const JSON_FILE_EXTENSIONS = new Set(['.json']);
+
+const VALIDATION_IGNORED_DIRECTORIES = new Set([
+  '.cache',
+  '.git',
+  '.next',
+  '.turbo',
+  '.vite',
+  'build',
+  'coverage',
+  'dist',
+  'node_modules',
+  'out',
+]);
 
 const RESOLVABLE_EXTENSIONS = [
   '',
@@ -90,6 +104,12 @@ function extensionOf(filePath: string) {
   const dotIndex = basename.lastIndexOf('.');
 
   return dotIndex === -1 ? '' : basename.slice(dotIndex);
+}
+
+function isIgnoredValidationPath(filePath: string) {
+  return normalizeGeneratedPath(filePath)
+    .split('/')
+    .some((segment) => VALIDATION_IGNORED_DIRECTORIES.has(segment));
 }
 
 function isSourceFile(filePath: string) {
@@ -207,6 +227,10 @@ export async function validateImports(file: GeneratedFile, allFiles: Map<string,
 
 export async function validateGeneratedFile(file: GeneratedFile, allFiles: Map<string, string>) {
   const normalizedPath = normalizeGeneratedPath(file.path);
+
+  if (isIgnoredValidationPath(normalizedPath)) {
+    return;
+  }
 
   if (isJsonFile(normalizedPath)) {
     try {
