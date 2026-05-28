@@ -5,8 +5,15 @@ Renders nothing when `.Values.storage.enabled` is false (single-replica dev).
 
 When enabled:
  - If `pv.create` is true, renders a PersistentVolume bound to an external
-   NFS server (e.g. GCP Filestore). reclaimPolicy=Retain so deleting the
-   PVC never destroys the underlying Filestore data.
+   NFS server. `pv.driver` chooses between two backends:
+     * `nfs` (default) — Kubernetes in-tree NFS plugin. No fsGroup chown,
+       so the share root must already be writable by the API pod's uid/gid.
+     * `csi-filestore` — GKE-managed `filestore.csi.storage.gke.io` driver.
+       Honors fsGroup (fsGroupPolicy: File), so kubelet chowns the mount
+       root to the pod's fsGroup on attach. Requires enabling the
+       GcpFilestoreCsiDriver add-on on the GKE cluster.
+   reclaimPolicy=Retain so deleting the PVC never destroys the underlying
+   Filestore data.
  - Always renders a PersistentVolumeClaim that the API deployment mounts
    at `mountPath`. Defaults to ReadWriteMany so every API replica reads
    and writes the same volume concurrently.
@@ -16,6 +23,7 @@ Retain the PV stays Released until an operator deletes it manually, which
 is intentional — the Filestore instance must survive a chart re-install.
 */ -}}
 {{- if .Values.storage.enabled }}
+{{- $driver := .Values.storage.pv.driver | default "nfs" }}
 {{- if .Values.storage.pv.create }}
 apiVersion: v1
 kind: PersistentVolume
@@ -44,10 +52,19 @@ spec:
     - wsize=1048576
     - timeo=600
     - retrans=2
+  {{- if eq $driver "csi-filestore" }}
+  csi:
+    driver: filestore.csi.storage.gke.io
+    volumeHandle: {{ required "storage.pv.csi.volumeHandle is required when driver=csi-filestore" .Values.storage.pv.csi.volumeHandle | quote }}
+    volumeAttributes:
+      ip: {{ required "storage.pv.csi.ip is required when driver=csi-filestore" .Values.storage.pv.csi.ip | quote }}
+      volume: {{ required "storage.pv.csi.volume is required when driver=csi-filestore" .Values.storage.pv.csi.volume | quote }}
+  {{- else }}
   nfs:
-    server: {{ required "storage.pv.nfs.server is required when pv.create=true" .Values.storage.pv.nfs.server | quote }}
+    server: {{ required "storage.pv.nfs.server is required when driver=nfs" .Values.storage.pv.nfs.server | quote }}
     path: {{ .Values.storage.pv.nfs.path | quote }}
     readOnly: {{ .Values.storage.pv.nfs.readOnly | default false }}
+  {{- end }}
   {{- if .Values.storage.pv.bindToClaim }}
   claimRef:
     namespace: {{ .Release.Namespace }}

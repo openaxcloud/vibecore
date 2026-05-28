@@ -194,10 +194,21 @@ storage:
     # external resource (Filestore, NetApp, etc.). Delete would orphan the
     # bound external volume the moment the PVC is removed.
     reclaimPolicy: Retain
+    # `nfs` uses the in-tree NFS plugin; `csi-filestore` uses the
+    # GKE-managed Filestore CSI driver (required for fsGroup chown so
+    # non-root pods can write to the share root).
+    driver: nfs
     nfs:
       server: ''
       path: /vibecore_data
       readOnly: false
+    # Only consulted when driver=csi-filestore.
+    csi:
+      ip: ''
+      volume: ''
+      # `volumeHandle` is the canonical CSI Filestore handle, format:
+      # modeInstance/<zone>/<instance-name>/<file-share-name>
+      volumeHandle: ''
     # Optional: bind the PV exclusively to the PVC below. Required when
     # `pv.create=true` so dynamic claims can't accidentally grab it.
     bindToClaim: true
