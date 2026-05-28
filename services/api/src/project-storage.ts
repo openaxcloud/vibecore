@@ -1,5 +1,6 @@
 import { execFile as execFileCallback } from 'node:child_process';
-import { access, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { access, link, mkdir, readFile, readdir, rm, stat, unlink, writeFile } from 'node:fs/promises';
+import { hostname } from 'node:os';
 import { dirname, join, normalize, relative } from 'node:path';
 import { promisify } from 'node:util';
 import JSZip from 'jszip';
@@ -202,6 +203,118 @@ function safeProjectPath(projectId: string, filePath = '') {
   return target;
 }
 
+/*
+ * Cross-replica advisory locking for project mutations.
+ *
+ * Two coordination layers compose here:
+ *
+ *  1. In-memory promise chain (`PROJECT_MUTATION_QUEUE`). Serializes all
+ *     mutations for a given projectId inside a single Node process so the
+ *     hot path never sleeps on filesystem syscalls.
+ *  2. NFS-safe file lock (`acquireFileLock`). When multiple API replicas
+ *     race for the same project, one wins the link(2) and the others
+ *     spin-wait. Filestore BASIC mounts with `nolock` (no NLM daemon),
+ *     so flock(2) is a no-op there — link(2) on a unique temp file is
+ *     the canonical NFSv3-safe primitive (see Filestore docs § locking).
+ *
+ * Reads (status, log, listFiles, …) intentionally skip the lock: git
+ * reads tolerate writer races (worst case is a stale view that the next
+ * refresh corrects) and serializing them would tank perceived latency.
+ */
+const PROJECT_MUTATION_QUEUE = new Map<string, Promise<unknown>>();
+const PROJECT_LOCK_OWNER = `${hostname()}-${process.pid}`;
+const PROJECT_LOCK_STALE_MS = 90_000;
+const PROJECT_LOCK_ACQUIRE_TIMEOUT_MS = 60_000;
+const PROJECT_LOCK_RETRY_BASE_MS = 25;
+const PROJECT_LOCK_RETRY_MAX_MS = 500;
+
+function locksRoot() {
+  return join(storageRoot(), '_locks');
+}
+
+const SAFE_PROJECT_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+
+async function acquireFileLock(projectId: string): Promise<() => Promise<void>> {
+  if (!SAFE_PROJECT_ID.test(projectId)) {
+    throw new Error('Invalid projectId');
+  }
+
+  const root = locksRoot();
+  await mkdir(root, { recursive: true });
+
+  const lockPath = join(root, `${projectId}.lock`);
+  const sentinelPath = join(root, `${projectId}.${PROJECT_LOCK_OWNER}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`);
+
+  await writeFile(sentinelPath, `${PROJECT_LOCK_OWNER}\n${new Date().toISOString()}\n`, 'utf8');
+
+  const startedAt = Date.now();
+
+  while (true) {
+    try {
+      await link(sentinelPath, lockPath);
+      await unlink(sentinelPath).catch(() => undefined);
+
+      return async () => {
+        await unlink(lockPath).catch(() => undefined);
+      };
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+
+      if (code !== 'EEXIST') {
+        await unlink(sentinelPath).catch(() => undefined);
+        throw error;
+      }
+
+      const stats = await stat(lockPath).catch(() => undefined);
+      if (stats && Date.now() - stats.mtimeMs > PROJECT_LOCK_STALE_MS) {
+        await unlink(lockPath).catch(() => undefined);
+        continue;
+      }
+
+      if (Date.now() - startedAt > PROJECT_LOCK_ACQUIRE_TIMEOUT_MS) {
+        await unlink(sentinelPath).catch(() => undefined);
+        throw new Error(`Timed out acquiring project lock for ${projectId}`);
+      }
+
+      const delay = Math.min(
+        PROJECT_LOCK_RETRY_MAX_MS,
+        PROJECT_LOCK_RETRY_BASE_MS + Math.floor(Math.random() * PROJECT_LOCK_RETRY_MAX_MS),
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+}
+
+export async function withProjectLock<T>(projectId: string, fn: () => Promise<T>): Promise<T> {
+  // Disable cross-replica file locking in unit tests, which run many parallel
+  // workers against tmp dirs. The in-memory queue still serializes per-process.
+  const enableFileLock =
+    process.env.VIBECORE_PROJECT_LOCK !== 'disabled' && process.env.NODE_ENV !== 'test';
+
+  const previous = PROJECT_MUTATION_QUEUE.get(projectId) ?? Promise.resolve();
+
+  const next = previous
+    .catch(() => undefined)
+    .then(async () => {
+      const release = enableFileLock ? await acquireFileLock(projectId) : async () => undefined;
+      try {
+        return await fn();
+      } finally {
+        await release();
+      }
+    });
+
+  PROJECT_MUTATION_QUEUE.set(projectId, next);
+
+  try {
+    return (await next) as T;
+  } finally {
+    if (PROJECT_MUTATION_QUEUE.get(projectId) === next) {
+      PROJECT_MUTATION_QUEUE.delete(projectId);
+    }
+  }
+}
+
 async function walkFiles(root: string, current = ''): Promise<ProjectFile[]> {
   const dir = join(root, current);
 
@@ -266,13 +379,15 @@ export async function filesFromZipBase64(base64: string): Promise<Array<{ path: 
 
 export class LocalProjectStorage implements ProjectStorage {
   async writeFiles(projectId: string, files: Array<{ path: string; content: string }>, workspaceId?: string) {
-    for (const file of files) {
-      const target = safeWorkspacePath(projectId, workspaceId, file.path);
-      await mkdir(dirname(target), { recursive: true });
-      await writeFile(target, file.content, 'utf8');
-    }
+    return withProjectLock(projectId, async () => {
+      for (const file of files) {
+        const target = safeWorkspacePath(projectId, workspaceId, file.path);
+        await mkdir(dirname(target), { recursive: true });
+        await writeFile(target, file.content, 'utf8');
+      }
 
-    return this.listFiles(projectId, workspaceId);
+      return walkFiles(safeWorkspacePath(projectId, workspaceId));
+    });
   }
 
   async listFiles(projectId: string, workspaceId?: string) {
@@ -280,33 +395,45 @@ export class LocalProjectStorage implements ProjectStorage {
   }
 
   async exportZip(projectId: string) {
-    const content = await archiveFiles(await this.listFiles(projectId));
-    const storageKey = archiveKey('exports', projectId);
-    const target = safeProjectPath('_objects', storageKey);
-    await mkdir(dirname(target), { recursive: true });
-    await writeFile(target, content);
+    return withProjectLock(projectId, async () => {
+      const content = await archiveFiles(await walkFiles(safeProjectPath(projectId)));
+      const storageKey = archiveKey('exports', projectId);
+      const target = safeProjectPath('_objects', storageKey);
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, content);
 
-    return { storageKey, byteLength: content.byteLength, base64: content.toString('base64'), createdAt: now() };
+      return { storageKey, byteLength: content.byteLength, base64: content.toString('base64'), createdAt: now() };
+    });
   }
 
   async importZip(projectId: string, base64: string, options: { replaceExisting?: boolean } = {}) {
-    const files = await filesFromZipBase64(base64);
+    return withProjectLock(projectId, async () => {
+      const files = await filesFromZipBase64(base64);
 
-    if (options.replaceExisting) {
-      await rm(safeProjectPath(projectId), { recursive: true, force: true });
-    }
+      if (options.replaceExisting) {
+        await rm(safeProjectPath(projectId), { recursive: true, force: true });
+      }
 
-    return this.writeFiles(projectId, files);
+      for (const file of files) {
+        const target = safeProjectPath(projectId, file.path);
+        await mkdir(dirname(target), { recursive: true });
+        await writeFile(target, file.content, 'utf8');
+      }
+
+      return walkFiles(safeProjectPath(projectId));
+    });
   }
 
   async createSnapshot(input: { projectId: string; label?: string; files: ProjectFile[] }) {
-    const content = await archiveFiles(input.files);
-    const storageKey = archiveKey('snapshots', input.projectId);
-    const target = safeProjectPath('_objects', storageKey);
-    await mkdir(dirname(target), { recursive: true });
-    await writeFile(target, content);
+    return withProjectLock(input.projectId, async () => {
+      const content = await archiveFiles(input.files);
+      const storageKey = archiveKey('snapshots', input.projectId);
+      const target = safeProjectPath('_objects', storageKey);
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, content);
 
-    return { storageKey, byteLength: content.byteLength, base64: content.toString('base64'), createdAt: now() };
+      return { storageKey, byteLength: content.byteLength, base64: content.toString('base64'), createdAt: now() };
+    });
   }
 
   async getSnapshotFiles(storageKey: string) {
@@ -319,17 +446,25 @@ export class LocalProjectStorage implements ProjectStorage {
   }
 
   async restoreSnapshot(input: { projectId: string; workspaceId?: string; files: ProjectFile[] }) {
-    const target = safeWorkspacePath(input.projectId, input.workspaceId);
+    return withProjectLock(input.projectId, async () => {
+      const target = safeWorkspacePath(input.projectId, input.workspaceId);
 
-    if (input.workspaceId) {
-      await rm(target, { recursive: true, force: true });
-    } else {
-      // Clearing the primary tree must preserve `.vibecore-workspaces/`, or every
-      // secondary workspace's `.git` and working tree would be destroyed.
-      await clearTreePreservingSecondaryWorkspaces(target);
-    }
+      if (input.workspaceId) {
+        await rm(target, { recursive: true, force: true });
+      } else {
+        // Clearing the primary tree must preserve `.vibecore-workspaces/`, or every
+        // secondary workspace's `.git` and working tree would be destroyed.
+        await clearTreePreservingSecondaryWorkspaces(target);
+      }
 
-    return this.writeFiles(input.projectId, input.files, input.workspaceId);
+      for (const file of input.files) {
+        const writeTarget = safeWorkspacePath(input.projectId, input.workspaceId, file.path);
+        await mkdir(dirname(writeTarget), { recursive: true });
+        await writeFile(writeTarget, file.content, 'utf8');
+      }
+
+      return walkFiles(safeWorkspacePath(input.projectId, input.workspaceId));
+    });
   }
 }
 
@@ -454,25 +589,29 @@ export class GitCliProvider implements GitProvider {
   }
 
   async importRepository(input: { repositoryUrl: string; branch?: string }) {
-    const projectId = `import-${Date.now().toString(36)}`;
-    const target = safeProjectPath(projectId);
-    await execFile(
-      'git',
-      ['clone', '--depth=1', ...(input.branch ? ['--branch', input.branch] : []), input.repositoryUrl, target],
-      {
-        env: this.gitEnv(),
-      },
-    );
+    const projectId = `import-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
-    const files = await walkFiles(target);
+    return withProjectLock(projectId, async () => {
+      const target = safeProjectPath(projectId);
+      await mkdir(dirname(target), { recursive: true });
+      await execFile(
+        'git',
+        ['clone', '--depth=1', ...(input.branch ? ['--branch', input.branch] : []), input.repositoryUrl, target],
+        {
+          env: this.gitEnv(),
+        },
+      );
 
-    const defaultBranch =
-      input.branch ??
-      commandStdout(
-        await execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: target, env: this.gitEnv() }),
-      ).trim();
+      const files = await walkFiles(target);
 
-    return { files, defaultBranch, remoteUrl: input.repositoryUrl };
+      const defaultBranch =
+        input.branch ??
+        commandStdout(
+          await execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: target, env: this.gitEnv() }),
+        ).trim();
+
+      return { files, defaultBranch, remoteUrl: input.repositoryUrl };
+    });
   }
 
   async status(projectId: string, workspaceId?: string) {
@@ -503,30 +642,36 @@ export class GitCliProvider implements GitProvider {
     files: ProjectFile[];
     selectedFiles?: string[];
   }) {
-    await this.ensureRepository(input.projectId, input.workspaceId);
-    const selectedFiles = input.selectedFiles?.map((filePath) => filePath.replace(/^\/+/, '')).filter(Boolean) ?? [];
-    const addArgs = selectedFiles.length ? ['add', '--', ...selectedFiles] : ['add', '--all'];
+    return withProjectLock(input.projectId, async () => {
+      await this.ensureRepository(input.projectId, input.workspaceId);
+      const selectedFiles = input.selectedFiles?.map((filePath) => filePath.replace(/^\/+/, '')).filter(Boolean) ?? [];
+      const addArgs = selectedFiles.length ? ['add', '--', ...selectedFiles] : ['add', '--all'];
 
-    await this.git(input.projectId, addArgs, input.workspaceId);
-    await this.git(input.projectId, ['commit', '-m', input.message], input.workspaceId);
+      await this.git(input.projectId, addArgs, input.workspaceId);
+      await this.git(input.projectId, ['commit', '-m', input.message], input.workspaceId);
 
-    const sha = await this.git(input.projectId, ['rev-parse', 'HEAD'], input.workspaceId);
+      const sha = await this.git(input.projectId, ['rev-parse', 'HEAD'], input.workspaceId);
 
-    return { sha, message: input.message };
+      return { sha, message: input.message };
+    });
   }
 
   async push(input: { projectId: string; workspaceId?: string; branch: string }) {
-    await this.git(input.projectId, ['push', 'origin', input.branch], input.workspaceId);
+    return withProjectLock(input.projectId, async () => {
+      await this.git(input.projectId, ['push', 'origin', input.branch], input.workspaceId);
 
-    return { pushed: true, branch: input.branch };
+      return { pushed: true, branch: input.branch };
+    });
   }
 
   async pull(input: { projectId: string; workspaceId?: string; branch: string }) {
-    await this.git(input.projectId, ['pull', 'origin', input.branch], input.workspaceId);
+    return withProjectLock(input.projectId, async () => {
+      await this.git(input.projectId, ['pull', 'origin', input.branch], input.workspaceId);
 
-    const status = await this.status(input.projectId, input.workspaceId);
+      const status = await this.status(input.projectId, input.workspaceId);
 
-    return { pulled: true, branch: input.branch, changedFiles: status.changedFiles };
+      return { pulled: true, branch: input.branch, changedFiles: status.changedFiles };
+    });
   }
 
   async listBranches(projectId: string, workspaceId?: string) {
@@ -549,25 +694,29 @@ export class GitCliProvider implements GitProvider {
     create?: boolean;
     startPoint?: string;
   }) {
-    if (input.create) {
-      await this.git(input.projectId, ['checkout', '-b', input.branch, input.startPoint ?? 'HEAD'], input.workspaceId);
-    } else {
-      await this.git(input.projectId, ['checkout', input.branch], input.workspaceId);
-    }
+    return withProjectLock(input.projectId, async () => {
+      if (input.create) {
+        await this.git(input.projectId, ['checkout', '-b', input.branch, input.startPoint ?? 'HEAD'], input.workspaceId);
+      } else {
+        await this.git(input.projectId, ['checkout', input.branch], input.workspaceId);
+      }
 
-    return { branch: input.branch };
+      return { branch: input.branch };
+    });
   }
 
   async stashPush(input: { projectId: string; workspaceId?: string; message?: string }) {
-    const args = ['stash', 'push', '--include-untracked'];
+    return withProjectLock(input.projectId, async () => {
+      const args = ['stash', 'push', '--include-untracked'];
 
-    if (input.message) {
-      args.push('-m', input.message);
-    }
+      if (input.message) {
+        args.push('-m', input.message);
+      }
 
-    const output = await this.git(input.projectId, args, input.workspaceId);
+      const output = await this.git(input.projectId, args, input.workspaceId);
 
-    return { stashed: !/No local changes/i.test(output), output };
+      return { stashed: !/No local changes/i.test(output), output };
+    });
   }
 
   async stashList(projectId: string, workspaceId?: string) {
@@ -585,19 +734,23 @@ export class GitCliProvider implements GitProvider {
   }
 
   async stashApply(input: { projectId: string; workspaceId?: string; stashRef: string; drop?: boolean }) {
-    const output = await this.git(
-      input.projectId,
-      ['stash', input.drop ? 'pop' : 'apply', input.stashRef],
-      input.workspaceId,
-    );
+    return withProjectLock(input.projectId, async () => {
+      const output = await this.git(
+        input.projectId,
+        ['stash', input.drop ? 'pop' : 'apply', input.stashRef],
+        input.workspaceId,
+      );
 
-    return { applied: true, output };
+      return { applied: true, output };
+    });
   }
 
   async cherryPick(input: { projectId: string; workspaceId?: string; sha: string }) {
-    const output = await this.git(input.projectId, ['cherry-pick', input.sha], input.workspaceId);
+    return withProjectLock(input.projectId, async () => {
+      const output = await this.git(input.projectId, ['cherry-pick', input.sha], input.workspaceId);
 
-    return { picked: true, output };
+      return { picked: true, output };
+    });
   }
 
   async resolveConflict(input: {
@@ -606,12 +759,14 @@ export class GitCliProvider implements GitProvider {
     filePath: string;
     strategy: 'ours' | 'theirs';
   }) {
-    const filePath = input.filePath.replace(/^\/+/, '');
+    return withProjectLock(input.projectId, async () => {
+      const filePath = input.filePath.replace(/^\/+/, '');
 
-    await this.git(input.projectId, ['checkout', `--${input.strategy}`, '--', filePath], input.workspaceId);
-    await this.git(input.projectId, ['add', '--', filePath], input.workspaceId);
+      await this.git(input.projectId, ['checkout', `--${input.strategy}`, '--', filePath], input.workspaceId);
+      await this.git(input.projectId, ['add', '--', filePath], input.workspaceId);
 
-    return { resolved: true, filePath, strategy: input.strategy };
+      return { resolved: true, filePath, strategy: input.strategy };
+    });
   }
 
   async logGraph(projectId: string, limit = 30, workspaceId?: string) {
