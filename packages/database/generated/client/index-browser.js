@@ -444,6 +444,7 @@ exports.Prisma.ProjectStorageObjectScalarFieldEnum = {
 exports.Prisma.DeploymentScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
+  workspaceId: 'workspaceId',
   environmentId: 'environmentId',
   environmentName: 'environmentName',
   status: 'status',

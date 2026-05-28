@@ -29,6 +29,7 @@ const dangerousBuildPatterns = [
 export const createDeploymentSchema = z.object({
   provider: z.enum(deploymentProviders).default('static'),
   environment: z.enum(['preview', 'staging', 'production']).default('preview'),
+  workspaceId: z.string().trim().min(1).max(128).optional(),
   buildCommand: z.string().trim().min(1).max(220).default('npm run build'),
   outputDirectory: z.string().trim().min(1).max(160).default('dist'),
   framework: z.string().trim().min(1).max(80).optional(),
@@ -488,6 +489,24 @@ export function projectStorageDir(projectId: string) {
   return join(projectStorageRoot(), projectId);
 }
 
+const SAFE_WORKSPACE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+
+/**
+ * Build directory for a secondary workspace. Mirrors the layout used by the
+ * project-storage module (`.vibecore-workspaces/<workspaceId>/`) so deployments
+ * can build from a per-workspace checkout instead of the project root.
+ */
+export function workspaceStorageDir(projectId: string, workspaceId: string) {
+  if (!SAFE_WORKSPACE_ID.test(workspaceId)) {
+    throw Object.assign(new Error('Invalid workspaceId'), {
+      statusCode: 400,
+      code: 'INVALID_WORKSPACE_ID',
+    });
+  }
+
+  return join(projectStorageRoot(), projectId, '.vibecore-workspaces', workspaceId);
+}
+
 export function staticDeploymentStorageRoot() {
   return process.env.STATIC_DEPLOY_STORAGE_DIR ?? join(process.cwd(), '.vibecore-static-deployments');
 }
@@ -593,6 +612,13 @@ export interface StaticBuildLog {
 
 export interface RunStaticBuildOptions {
   projectId: string;
+  /**
+   * Optional workspace scope. When set, the build runs from the workspace's
+   * checkout under `<projectStorage>/<projectId>/.vibecore-workspaces/<workspaceId>/`
+   * instead of the project root. The caller is responsible for validating that
+   * the workspaceId belongs to the project (see resolveGitWorkspaceId in app.ts).
+   */
+  workspaceId?: string;
   buildCommand: string;
   outputDirectory: string;
   envVars: Record<string, string>;
@@ -754,7 +780,9 @@ function buildEnvForRun(envVars: Record<string, string>): NodeJS.ProcessEnv {
 export async function runStaticBuild(options: RunStaticBuildOptions): Promise<RunStaticBuildResult> {
   const log = makeLogger();
   const timeoutMs = Math.max(1, options.timeoutSeconds) * 1000;
-  const projectDir = projectStorageDir(options.projectId);
+  const projectDir = options.workspaceId
+    ? workspaceStorageDir(options.projectId, options.workspaceId)
+    : projectStorageDir(options.projectId);
 
   if (!(await pathExists(projectDir))) {
     log.push('error', `Project storage directory not found at ${projectDir}.`);

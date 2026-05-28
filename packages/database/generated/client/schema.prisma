@@ -583,6 +583,7 @@ model ProjectStorageObject {
 model Deployment {
   id               String                 @id @default(cuid())
   projectId        String
+  workspaceId      String?
   environmentId    String?
   environmentName  String                 @default("preview")
   status           DeploymentStatus       @default(QUEUED)
@@ -608,6 +609,7 @@ model Deployment {
   environment      DeploymentEnvironment? @relation(fields: [environmentId], references: [id])
 
   @@index([projectId])
+  @@index([projectId, workspaceId])
   @@index([projectId, environmentName])
   @@index([projectId, status])
 }

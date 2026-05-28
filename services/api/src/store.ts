@@ -159,6 +159,7 @@ export interface ProjectTemplateRecord {
 export interface DeploymentRecord {
   id: string;
   projectId: string;
+  workspaceId?: string;
   provider: string;
   environment: 'preview' | 'staging' | 'production';
   status: 'QUEUED' | 'BUILDING' | 'READY' | 'FAILED' | 'CANCELED';
@@ -748,6 +749,7 @@ export interface ApiStore {
   getProjectStorageObject(key: string): Promise<ProjectStorageObjectRecord | undefined>;
   createDeployment(input: {
     projectId: string;
+    workspaceId?: string;
     provider: string;
     environment?: DeploymentRecord['environment'];
     status?: DeploymentRecord['status'];

@@ -921,6 +921,7 @@ export class PrismaApiStore implements ApiStore {
 
   async createDeployment(input: {
     projectId: string;
+    workspaceId?: string;
     provider: string;
     environment?: DeploymentRecord['environment'];
     status?: DeploymentRecord['status'];
@@ -944,6 +945,7 @@ export class PrismaApiStore implements ApiStore {
       await this.prisma.deployment.create({
         data: {
           projectId: input.projectId,
+          workspaceId: input.workspaceId,
           provider: input.provider,
           environmentName: input.environment ?? 'preview',
           status: input.status ?? 'QUEUED',
@@ -2256,6 +2258,7 @@ function mapDeployment(deployment: any): DeploymentRecord {
   return {
     id: deployment.id,
     projectId: deployment.projectId,
+    workspaceId: deployment.workspaceId ?? undefined,
     provider: deployment.provider,
     environment: deployment.environmentName ?? 'preview',
     status: deployment.status,

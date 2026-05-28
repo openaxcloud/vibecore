@@ -914,6 +914,7 @@ export class TestApiStore implements ApiStore {
 
   async createDeployment(input: {
     projectId: string;
+    workspaceId?: string;
     provider: string;
     environment?: DeploymentRecord['environment'];
     status?: DeploymentRecord['status'];
@@ -936,6 +937,7 @@ export class TestApiStore implements ApiStore {
     const deployment: DeploymentRecord = {
       id: id('deployment'),
       projectId: input.projectId,
+      workspaceId: input.workspaceId,
       provider: input.provider,
       environment: input.environment ?? 'preview',
       status: input.status ?? 'QUEUED',

@@ -11738,8 +11738,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     assertDeploymentRequestAllowed(body, subscription?.planKey ?? 'free');
     await ensureQuota(request, project.organizationId, 'deployments.count');
 
+    /*
+     * If the caller supplied a workspaceId, resolve it against the project's
+     * workspaces. resolveGitWorkspaceId returns undefined for the primary
+     * (oldest) workspace — that one builds from the project root just like
+     * pre-isolation deployments. Secondary workspaces build from their own
+     * `.vibecore-workspaces/<workspaceId>/` checkout.
+     */
+    const secondaryWorkspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
+    const persistedWorkspaceId = body.workspaceId ?? undefined;
+
     const queued = await store.createDeployment({
       projectId: project.id,
+      workspaceId: persistedWorkspaceId,
       provider: body.provider,
       environment: body.environment,
       status: 'QUEUED',
@@ -11768,6 +11779,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (body.provider === 'static') {
       const staticBuild = await staticBuildRunner({
         projectId: project.id,
+        workspaceId: secondaryWorkspaceId,
         buildCommand: body.buildCommand,
         outputDirectory: body.outputDirectory,
         envVars: body.envVars,
@@ -11898,6 +11910,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const redeploy = await store.createDeployment({
       projectId: project.id,
+      workspaceId: source.workspaceId,
       provider: source.provider,
       environment: source.environment,
       status: 'READY',
@@ -11942,6 +11955,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const rollback = await store.createDeployment({
       projectId: project.id,
+      workspaceId: target.workspaceId,
       provider: target.provider,
       environment: target.environment,
       status: 'READY',

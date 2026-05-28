@@ -44458,6 +44458,7 @@ export namespace Prisma {
   export type DeploymentMinAggregateOutputType = {
     id: string | null
     projectId: string | null
+    workspaceId: string | null
     environmentId: string | null
     environmentName: string | null
     status: $Enums.DeploymentStatus | null
@@ -44482,6 +44483,7 @@ export namespace Prisma {
   export type DeploymentMaxAggregateOutputType = {
     id: string | null
     projectId: string | null
+    workspaceId: string | null
     environmentId: string | null
     environmentName: string | null
     status: $Enums.DeploymentStatus | null
@@ -44506,6 +44508,7 @@ export namespace Prisma {
   export type DeploymentCountAggregateOutputType = {
     id: number
     projectId: number
+    workspaceId: number
     environmentId: number
     environmentName: number
     status: number
@@ -44534,6 +44537,7 @@ export namespace Prisma {
   export type DeploymentMinAggregateInputType = {
     id?: true
     projectId?: true
+    workspaceId?: true
     environmentId?: true
     environmentName?: true
     status?: true
@@ -44558,6 +44562,7 @@ export namespace Prisma {
   export type DeploymentMaxAggregateInputType = {
     id?: true
     projectId?: true
+    workspaceId?: true
     environmentId?: true
     environmentName?: true
     status?: true
@@ -44582,6 +44587,7 @@ export namespace Prisma {
   export type DeploymentCountAggregateInputType = {
     id?: true
     projectId?: true
+    workspaceId?: true
     environmentId?: true
     environmentName?: true
     status?: true
@@ -44681,6 +44687,7 @@ export namespace Prisma {
   export type DeploymentGroupByOutputType = {
     id: string
     projectId: string
+    workspaceId: string | null
     environmentId: string | null
     environmentName: string
     status: $Enums.DeploymentStatus
@@ -44724,6 +44731,7 @@ export namespace Prisma {
   export type DeploymentSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     projectId?: boolean
+    workspaceId?: boolean
     environmentId?: boolean
     environmentName?: boolean
     status?: boolean
@@ -44752,6 +44760,7 @@ export namespace Prisma {
   export type DeploymentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     projectId?: boolean
+    workspaceId?: boolean
     environmentId?: boolean
     environmentName?: boolean
     status?: boolean
@@ -44780,6 +44789,7 @@ export namespace Prisma {
   export type DeploymentSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     projectId?: boolean
+    workspaceId?: boolean
     environmentId?: boolean
     environmentName?: boolean
     status?: boolean
@@ -44808,6 +44818,7 @@ export namespace Prisma {
   export type DeploymentSelectScalar = {
     id?: boolean
     projectId?: boolean
+    workspaceId?: boolean
     environmentId?: boolean
     environmentName?: boolean
     status?: boolean
@@ -44831,7 +44842,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type DeploymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "environmentId" | "environmentName" | "status" | "provider" | "url" | "previewUrl" | "productionUrl" | "framework" | "buildCommand" | "outputDirectory" | "branch" | "commitSha" | "customDomain" | "logs" | "metadata" | "rolledBackFromId" | "startedAt" | "finishedAt" | "canceledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["deployment"]>
+  export type DeploymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "workspaceId" | "environmentId" | "environmentName" | "status" | "provider" | "url" | "previewUrl" | "productionUrl" | "framework" | "buildCommand" | "outputDirectory" | "branch" | "commitSha" | "customDomain" | "logs" | "metadata" | "rolledBackFromId" | "startedAt" | "finishedAt" | "canceledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["deployment"]>
   export type DeploymentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     environment?: boolean | Deployment$environmentArgs<ExtArgs>
@@ -44854,6 +44865,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       projectId: string
+      workspaceId: string | null
       environmentId: string | null
       environmentName: string
       status: $Enums.DeploymentStatus
@@ -45302,6 +45314,7 @@ export namespace Prisma {
   interface DeploymentFieldRefs {
     readonly id: FieldRef<"Deployment", 'String'>
     readonly projectId: FieldRef<"Deployment", 'String'>
+    readonly workspaceId: FieldRef<"Deployment", 'String'>
     readonly environmentId: FieldRef<"Deployment", 'String'>
     readonly environmentName: FieldRef<"Deployment", 'String'>
     readonly status: FieldRef<"Deployment", 'DeploymentStatus'>
@@ -95702,6 +95715,7 @@ export namespace Prisma {
   export const DeploymentScalarFieldEnum: {
     id: 'id',
     projectId: 'projectId',
+    workspaceId: 'workspaceId',
     environmentId: 'environmentId',
     environmentName: 'environmentName',
     status: 'status',
@@ -99022,6 +99036,7 @@ export namespace Prisma {
     NOT?: DeploymentWhereInput | DeploymentWhereInput[]
     id?: StringFilter<"Deployment"> | string
     projectId?: StringFilter<"Deployment"> | string
+    workspaceId?: StringNullableFilter<"Deployment"> | string | null
     environmentId?: StringNullableFilter<"Deployment"> | string | null
     environmentName?: StringFilter<"Deployment"> | string
     status?: EnumDeploymentStatusFilter<"Deployment"> | $Enums.DeploymentStatus
@@ -99050,6 +99065,7 @@ export namespace Prisma {
   export type DeploymentOrderByWithRelationInput = {
     id?: SortOrder
     projectId?: SortOrder
+    workspaceId?: SortOrderInput | SortOrder
     environmentId?: SortOrderInput | SortOrder
     environmentName?: SortOrder
     status?: SortOrder
@@ -99081,6 +99097,7 @@ export namespace Prisma {
     OR?: DeploymentWhereInput[]
     NOT?: DeploymentWhereInput | DeploymentWhereInput[]
     projectId?: StringFilter<"Deployment"> | string
+    workspaceId?: StringNullableFilter<"Deployment"> | string | null
     environmentId?: StringNullableFilter<"Deployment"> | string | null
     environmentName?: StringFilter<"Deployment"> | string
     status?: EnumDeploymentStatusFilter<"Deployment"> | $Enums.DeploymentStatus
@@ -99109,6 +99126,7 @@ export namespace Prisma {
   export type DeploymentOrderByWithAggregationInput = {
     id?: SortOrder
     projectId?: SortOrder
+    workspaceId?: SortOrderInput | SortOrder
     environmentId?: SortOrderInput | SortOrder
     environmentName?: SortOrder
     status?: SortOrder
@@ -99141,6 +99159,7 @@ export namespace Prisma {
     NOT?: DeploymentScalarWhereWithAggregatesInput | DeploymentScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"Deployment"> | string
     projectId?: StringWithAggregatesFilter<"Deployment"> | string
+    workspaceId?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
     environmentId?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
     environmentName?: StringWithAggregatesFilter<"Deployment"> | string
     status?: EnumDeploymentStatusWithAggregatesFilter<"Deployment"> | $Enums.DeploymentStatus
@@ -104934,6 +104953,7 @@ export namespace Prisma {
 
   export type DeploymentCreateInput = {
     id?: string
+    workspaceId?: string | null
     environmentName?: string
     status?: $Enums.DeploymentStatus
     provider: string
@@ -104961,6 +104981,7 @@ export namespace Prisma {
   export type DeploymentUncheckedCreateInput = {
     id?: string
     projectId: string
+    workspaceId?: string | null
     environmentId?: string | null
     environmentName?: string
     status?: $Enums.DeploymentStatus
@@ -104986,6 +105007,7 @@ export namespace Prisma {
 
   export type DeploymentUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    workspaceId?: NullableStringFieldUpdateOperationsInput | string | null
     environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
@@ -105013,6 +105035,7 @@ export namespace Prisma {
   export type DeploymentUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
+    workspaceId?: NullableStringFieldUpdateOperationsInput | string | null
     environmentId?: NullableStringFieldUpdateOperationsInput | string | null
     environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
@@ -105039,6 +105062,7 @@ export namespace Prisma {
   export type DeploymentCreateManyInput = {
     id?: string
     projectId: string
+    workspaceId?: string | null
     environmentId?: string | null
     environmentName?: string
     status?: $Enums.DeploymentStatus
@@ -105064,6 +105088,7 @@ export namespace Prisma {
 
   export type DeploymentUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    workspaceId?: NullableStringFieldUpdateOperationsInput | string | null
     environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
@@ -105089,6 +105114,7 @@ export namespace Prisma {
   export type DeploymentUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
+    workspaceId?: NullableStringFieldUpdateOperationsInput | string | null
     environmentId?: NullableStringFieldUpdateOperationsInput | string | null
     environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
@@ -110713,6 +110739,7 @@ export namespace Prisma {
   export type DeploymentCountOrderByAggregateInput = {
     id?: SortOrder
     projectId?: SortOrder
+    workspaceId?: SortOrder
     environmentId?: SortOrder
     environmentName?: SortOrder
     status?: SortOrder
@@ -110739,6 +110766,7 @@ export namespace Prisma {
   export type DeploymentMaxOrderByAggregateInput = {
     id?: SortOrder
     projectId?: SortOrder
+    workspaceId?: SortOrder
     environmentId?: SortOrder
     environmentName?: SortOrder
     status?: SortOrder
@@ -110763,6 +110791,7 @@ export namespace Prisma {
   export type DeploymentMinOrderByAggregateInput = {
     id?: SortOrder
     projectId?: SortOrder
+    workspaceId?: SortOrder
     environmentId?: SortOrder
     environmentName?: SortOrder
     status?: SortOrder
@@ -123262,6 +123291,7 @@ export namespace Prisma {
 
   export type DeploymentCreateWithoutProjectInput = {
     id?: string
+    workspaceId?: string | null
     environmentName?: string
     status?: $Enums.DeploymentStatus
     provider: string
@@ -123287,6 +123317,7 @@ export namespace Prisma {
 
   export type DeploymentUncheckedCreateWithoutProjectInput = {
     id?: string
+    workspaceId?: string | null
     environmentId?: string | null
     environmentName?: string
     status?: $Enums.DeploymentStatus
@@ -123906,6 +123937,7 @@ export namespace Prisma {
     NOT?: DeploymentScalarWhereInput | DeploymentScalarWhereInput[]
     id?: StringFilter<"Deployment"> | string
     projectId?: StringFilter<"Deployment"> | string
+    workspaceId?: StringNullableFilter<"Deployment"> | string | null
     environmentId?: StringNullableFilter<"Deployment"> | string | null
     environmentName?: StringFilter<"Deployment"> | string
     status?: EnumDeploymentStatusFilter<"Deployment"> | $Enums.DeploymentStatus
@@ -129544,6 +129576,7 @@ export namespace Prisma {
 
   export type DeploymentCreateWithoutEnvironmentInput = {
     id?: string
+    workspaceId?: string | null
     environmentName?: string
     status?: $Enums.DeploymentStatus
     provider: string
@@ -129570,6 +129603,7 @@ export namespace Prisma {
   export type DeploymentUncheckedCreateWithoutEnvironmentInput = {
     id?: string
     projectId: string
+    workspaceId?: string | null
     environmentName?: string
     status?: $Enums.DeploymentStatus
     provider: string
@@ -140069,6 +140103,7 @@ export namespace Prisma {
 
   export type DeploymentCreateManyProjectInput = {
     id?: string
+    workspaceId?: string | null
     environmentId?: string | null
     environmentName?: string
     status?: $Enums.DeploymentStatus
@@ -140421,6 +140456,7 @@ export namespace Prisma {
 
   export type DeploymentUpdateWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
+    workspaceId?: NullableStringFieldUpdateOperationsInput | string | null
     environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
@@ -140446,6 +140482,7 @@ export namespace Prisma {
 
   export type DeploymentUncheckedUpdateWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
+    workspaceId?: NullableStringFieldUpdateOperationsInput | string | null
     environmentId?: NullableStringFieldUpdateOperationsInput | string | null
     environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
@@ -140471,6 +140508,7 @@ export namespace Prisma {
 
   export type DeploymentUncheckedUpdateManyWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
+    workspaceId?: NullableStringFieldUpdateOperationsInput | string | null
     environmentId?: NullableStringFieldUpdateOperationsInput | string | null
     environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
@@ -140930,6 +140968,7 @@ export namespace Prisma {
   export type DeploymentCreateManyEnvironmentInput = {
     id?: string
     projectId: string
+    workspaceId?: string | null
     environmentName?: string
     status?: $Enums.DeploymentStatus
     provider: string
@@ -140954,6 +140993,7 @@ export namespace Prisma {
 
   export type DeploymentUpdateWithoutEnvironmentInput = {
     id?: StringFieldUpdateOperationsInput | string
+    workspaceId?: NullableStringFieldUpdateOperationsInput | string | null
     environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
@@ -140980,6 +141020,7 @@ export namespace Prisma {
   export type DeploymentUncheckedUpdateWithoutEnvironmentInput = {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
+    workspaceId?: NullableStringFieldUpdateOperationsInput | string | null
     environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
@@ -141005,6 +141046,7 @@ export namespace Prisma {
   export type DeploymentUncheckedUpdateManyWithoutEnvironmentInput = {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
+    workspaceId?: NullableStringFieldUpdateOperationsInput | string | null
     environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
