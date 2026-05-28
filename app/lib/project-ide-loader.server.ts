@@ -1,5 +1,14 @@
 import { apiErrorMessage, apiRequest, json } from '~/lib/enterprise-api.server';
 
+export type ProjectWorkspaceSummary = {
+  id: string;
+  name?: string;
+  status?: string;
+  runtimeMode?: string;
+  createdAt?: string;
+  gitRepositoryUrl?: string | null;
+};
+
 export type ProjectLoaderData = {
   projectId: string;
   project: {
@@ -35,6 +44,17 @@ export type ProjectLoaderData = {
       data: unknown;
     }
   >;
+
+  /*
+   * The list of workspaces the project owns, plus the resolved selection. The
+   * current workspace defaults to the primary (oldest) one and is overridden
+   * when the IDE URL carries `?workspace=<id>`. UI tabs read this id via the
+   * CurrentWorkspaceContext so per-workspace scoping stays consistent without
+   * each tab fetching the workspace list on its own.
+   */
+  workspaces: ProjectWorkspaceSummary[];
+  currentWorkspaceId?: string;
+  primaryWorkspaceId?: string;
   projectApiError?: string;
 };
 
@@ -43,10 +63,18 @@ export async function loadProjectIdeData(request: Request, projectId: string) {
     throw new Response('Project not found', { status: 404 });
   }
 
+  const url = new URL(request.url);
+
+  /*
+   * `?workspace=` is the canonical name; `?workspaceId=` is accepted as a
+   * tolerant alias so links forwarded from API responses keep working.
+   */
+  const requestedWorkspaceId = url.searchParams.get('workspace') ?? url.searchParams.get('workspaceId') ?? undefined;
+
   try {
     const result = await apiRequest<{ project: ProjectLoaderData['project'] }>(request, `/projects/${projectId}`);
 
-    const [collaboratorsResult, dashboardResult, organizationsResult] = await Promise.all([
+    const [collaboratorsResult, dashboardResult, organizationsResult, workspacesResult] = await Promise.all([
       apiRequest<{ collaborators: ProjectLoaderData['collaborators'] }>(
         request,
         `/projects/${projectId}/collaborators`,
@@ -59,12 +87,18 @@ export async function loadProjectIdeData(request: Request, projectId: string) {
       apiRequest<{ organizations: NonNullable<ProjectLoaderData['organization']>[] }>(request, '/orgs').catch(() => ({
         organizations: [],
       })),
+      apiRequest<{ workspaces: ProjectWorkspaceSummary[] }>(request, `/projects/${projectId}/workspaces`).catch(() => ({
+        workspaces: [] as ProjectWorkspaceSummary[],
+      })),
     ]);
 
     const organization =
       organizationsResult.organizations.find((item) => item.id === result.project.organizationId) ??
       organizationsResult.organizations[0] ??
       null;
+
+    const workspaces = Array.isArray(workspacesResult.workspaces) ? workspacesResult.workspaces : [];
+    const { currentWorkspaceId, primaryWorkspaceId } = resolveWorkspaceSelection(workspaces, requestedWorkspaceId);
 
     return json<ProjectLoaderData>({
       projectId,
@@ -82,6 +116,9 @@ export async function loadProjectIdeData(request: Request, projectId: string) {
           data: { status: dashboardResult.git ?? {} },
         },
       },
+      workspaces,
+      currentWorkspaceId,
+      primaryWorkspaceId,
     });
   } catch (error) {
     const message = await apiErrorMessage(error, 'Project API unavailable');
@@ -95,7 +132,29 @@ export async function loadProjectIdeData(request: Request, projectId: string) {
       collaborators: [],
       notifications: [],
       initialIdePanels: {},
+      workspaces: [],
       projectApiError: message,
     });
   }
+}
+
+function resolveWorkspaceSelection(workspaces: ProjectWorkspaceSummary[], requestedWorkspaceId: string | undefined) {
+  /*
+   * Workspaces from /workspaces come back DESC by createdAt. The primary is the
+   * oldest, so we sort ascending and take the first entry. Picking the primary
+   * by default means freshly opening the IDE lands on the canonical working
+   * tree rather than whatever experimental branch was created last.
+   */
+  const orderedByCreated = [...workspaces].sort((a, b) =>
+    String(a?.createdAt ?? '').localeCompare(String(b?.createdAt ?? '')),
+  );
+
+  const primaryWorkspaceId = orderedByCreated[0]?.id;
+
+  const requestedIsKnown =
+    requestedWorkspaceId && workspaces.some((workspace) => workspace?.id === requestedWorkspaceId);
+
+  const currentWorkspaceId = requestedIsKnown ? requestedWorkspaceId : primaryWorkspaceId;
+
+  return { currentWorkspaceId, primaryWorkspaceId };
 }

@@ -43,6 +43,7 @@ import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBrea
 import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { friendlyLabel, pickFriendlyLabel } from '~/lib/labels/friendly-id';
 import { loadProjectIdeData, type ProjectLoaderData } from '~/lib/project-ide-loader.server';
+import { CurrentWorkspaceProvider } from '~/lib/runtime/CurrentWorkspaceContext';
 import { ProjectWorkspaceProvider } from '~/lib/runtime/ProjectWorkspaceProvider';
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -120,6 +121,9 @@ export default function ProjectIdeRoute() {
     notifications,
     initialIdePanels,
     projectApiError,
+    workspaces,
+    currentWorkspaceId,
+    primaryWorkspaceId,
   } = useLoaderData<typeof loader>();
 
   const projectUrl = projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization?.slug });
@@ -135,38 +139,44 @@ export default function ProjectIdeRoute() {
   );
 
   return (
-    <ProjectWorkspaceProvider projectId={projectId} initialError={projectApiError}>
-      <div className="bolt-project-ide-shell h-dvh w-screen overflow-hidden">
-        <IdeProjectTopBar
-          projectId={projectId}
-          project={project}
-          workspace={workspace}
-          organization={organization}
-          git={git}
-          collaborators={collaborators}
-          notifications={notifications}
-          projectApiError={projectApiError}
-          projectUrl={projectUrl}
-        />
-        <main className="h-dvh pt-9">
-          <ClientOnly fallback={optimisticShell}>
-            {() => (
-              <ZoneErrorBoundary zone="editor" title="Bolt IDE" boundaryId={`project:${projectId}:ide`}>
-                <Suspense fallback={optimisticShell}>
-                  <ProjectIdeChat
-                    forceWorkbench
-                    projectIdeMode
-                    projectId={projectId}
-                    projectUrl={projectUrl}
-                    initialIdePanels={initialIdePanels}
-                  />
-                </Suspense>
-              </ZoneErrorBoundary>
-            )}
-          </ClientOnly>
-        </main>
-      </div>
-    </ProjectWorkspaceProvider>
+    <CurrentWorkspaceProvider
+      currentWorkspaceId={currentWorkspaceId}
+      primaryWorkspaceId={primaryWorkspaceId}
+      workspaces={workspaces}
+    >
+      <ProjectWorkspaceProvider projectId={projectId} workspaceId={currentWorkspaceId} initialError={projectApiError}>
+        <div className="bolt-project-ide-shell h-dvh w-screen overflow-hidden">
+          <IdeProjectTopBar
+            projectId={projectId}
+            project={project}
+            workspace={workspace}
+            organization={organization}
+            git={git}
+            collaborators={collaborators}
+            notifications={notifications}
+            projectApiError={projectApiError}
+            projectUrl={projectUrl}
+          />
+          <main className="h-dvh pt-9">
+            <ClientOnly fallback={optimisticShell}>
+              {() => (
+                <ZoneErrorBoundary zone="editor" title="Bolt IDE" boundaryId={`project:${projectId}:ide`}>
+                  <Suspense fallback={optimisticShell}>
+                    <ProjectIdeChat
+                      forceWorkbench
+                      projectIdeMode
+                      projectId={projectId}
+                      projectUrl={projectUrl}
+                      initialIdePanels={initialIdePanels}
+                    />
+                  </Suspense>
+                </ZoneErrorBoundary>
+              )}
+            </ClientOnly>
+          </main>
+        </div>
+      </ProjectWorkspaceProvider>
+    </CurrentWorkspaceProvider>
   );
 }
 

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { GitBranchSyncControls } from '~/components/git/GitBranchSyncControls';
+import { GitProviderConnectPanel } from '~/components/git/GitProviderConnectPanel';
 import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
+import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
 import { classNames } from '~/utils/classNames';
 
 type GitFileStatus = { path: string; status?: string };
@@ -135,13 +137,20 @@ function PanelButton({
 }
 
 export function GitTab({ projectId }: GitTabProps) {
+  /*
+   * The IDE shell wires a CurrentWorkspaceContext from the loader so every tab
+   * shares the same workspace selection. We seed the tab's local state from it
+   * instead of always falling back to the most-recent workspace returned by
+   * /workspaces, so Git scopes to the workspace the IDE URL points to.
+   */
+  const { currentWorkspaceId: contextWorkspaceId } = useCurrentWorkspace();
   const [envelope, setEnvelope] = useState<Envelope | undefined>();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [staged, setStaged] = useState<Set<string>>(new Set());
   const [inspectFile, setInspectFile] = useState('');
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>();
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>(contextWorkspaceId);
   const [workspaceTouched, setWorkspaceTouched] = useState(false);
 
   const [inspection, setInspection] = useState<{
@@ -239,10 +248,17 @@ export function GitTab({ projectId }: GitTabProps) {
       return;
     }
 
-    if (!selectedWorkspaceId && envelopeSelectedWorkspaceId) {
-      setSelectedWorkspaceId(envelopeSelectedWorkspaceId);
+    /*
+     * Prefer the IDE-wide context selection. Fall back to whatever the server
+     * resolved for us in the envelope so projects without a CurrentWorkspaceContext
+     * still render correctly.
+     */
+    const next = contextWorkspaceId ?? envelopeSelectedWorkspaceId;
+
+    if (next && next !== selectedWorkspaceId) {
+      setSelectedWorkspaceId(next);
     }
-  }, [envelopeSelectedWorkspaceId, selectedWorkspaceId, workspaceTouched]);
+  }, [contextWorkspaceId, envelopeSelectedWorkspaceId, selectedWorkspaceId, workspaceTouched]);
 
   const stagedFiles = useMemo(() => Array.from(staged), [staged]);
 
@@ -479,27 +495,17 @@ export function GitTab({ projectId }: GitTabProps) {
           </form>
         </div>
 
-        {!hasRemote && (
-          <div className="grid gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <strong className="block text-amber-700 dark:text-amber-200">No remote connected yet</strong>
-                <p className="mt-1 max-w-2xl text-amber-700/85 dark:text-amber-100/85">
-                  A remote is the hosted copy of this repository. Connect one when you want to push commits, pull
-                  updates, or open pull/merge requests from this workspace.
-                </p>
-              </div>
-              {project?.id ? (
-                <a
-                  href={`/projects/${project.id}/settings`}
-                  className="rounded-md border border-amber-500/40 px-3 py-1.5 font-semibold text-amber-700 hover:bg-amber-500/15 dark:text-amber-200"
-                >
-                  Configure remote
-                </a>
-              ) : null}
-            </div>
-          </div>
-        )}
+        {!hasRemote && project?.id ? (
+          <GitProviderConnectPanel
+            projectId={project.id}
+            gitRepositoryUrl={project.gitRepositoryUrl}
+            defaultBranch={project.gitDefaultBranch}
+            workspaceId={resolvedWorkspaceId}
+            busy={busy}
+            onConnected={() => loadPanel({ silent: true })}
+            onRemoteConfigured={() => loadPanel({ silent: true })}
+          />
+        ) : null}
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
           <section className="grid gap-4">

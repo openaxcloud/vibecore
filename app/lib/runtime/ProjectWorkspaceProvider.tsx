@@ -6,17 +6,29 @@ import { workbenchStore } from '~/lib/stores/workbench';
 
 export interface ProjectWorkspaceProviderProps extends PropsWithChildren {
   projectId: string;
+
+  /*
+   * The workspace the IDE is currently scoped to. When provided we seed the
+   * runtime adapter with this id so every runtime call is bound to the correct
+   * working tree. Falling back to projectId keeps the legacy single-workspace
+   * assumption intact for callers that have not migrated yet.
+   */
+  workspaceId?: string;
   adapter?: RuntimeAdapter;
   initialError?: string;
 }
 
 export function ProjectWorkspaceProvider({
   projectId,
+  workspaceId,
   adapter,
   initialError,
   children,
 }: ProjectWorkspaceProviderProps) {
-  const runtime = useMemo(() => adapter ?? createRuntimeAdapter(getRuntimeMode(), { projectId }), [adapter, projectId]);
+  const runtime = useMemo(
+    () => adapter ?? createRuntimeAdapter(getRuntimeMode(), { projectId, workspaceId }),
+    [adapter, projectId, workspaceId],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -47,7 +59,17 @@ export function ProjectWorkspaceProvider({
       try {
         await runtime.boot();
 
-        const session = await runtime.startWorkspace({ id: projectId, metadata: { projectId } });
+        /*
+         * When the IDE is scoped to a specific workspace, key the runtime
+         * session on the workspace id so its files, ports, and logs come from
+         * the matching working tree instead of the project's default checkout.
+         */
+        const sessionId = workspaceId ?? projectId;
+
+        const session = await runtime.startWorkspace({
+          id: sessionId,
+          metadata: { projectId, workspaceId },
+        });
         activeWorkspaceId = session.id;
 
         if (cancelled) {
@@ -123,10 +145,10 @@ export function ProjectWorkspaceProvider({
       cancelled = true;
       stopLogs?.();
       void workbenchStore.stopPreviewServer().catch(() => undefined);
-      void stopRemoteWorkspace(runtime, activeWorkspaceId ?? projectId);
+      void stopRemoteWorkspace(runtime, activeWorkspaceId ?? workspaceId ?? projectId);
       workbenchStore.configureProject(undefined);
     };
-  }, [initialError, projectId, runtime]);
+  }, [initialError, projectId, workspaceId, runtime]);
 
   return (
     <RuntimeAdapterProvider adapter={runtime} projectId={projectId}>
