@@ -6,6 +6,13 @@ import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge
 import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
 import { classNames } from '~/utils/classNames';
 
+/*
+ * The IDE shell wires a CurrentWorkspaceContext from the loader so every tab
+ * shares the same workspace selection (resolved from ?workspace= or the project's
+ * primary workspace). Git scopes its requests to that workspace — no inline
+ * dropdown, no local override.
+ */
+
 type GitFileStatus = { path: string; status?: string };
 type GitCommit = {
   sha: string;
@@ -55,7 +62,6 @@ type GitPanelData = GitData & {
   workspaces?: GitWorkspaceSummary[];
   activeWorkspaceId?: string;
   primaryWorkspaceId?: string;
-  selectedWorkspaceId?: string;
 };
 
 type Envelope = {
@@ -137,21 +143,13 @@ function PanelButton({
 }
 
 export function GitTab({ projectId }: GitTabProps) {
-  /*
-   * The IDE shell wires a CurrentWorkspaceContext from the loader so every tab
-   * shares the same workspace selection. We seed the tab's local state from it
-   * instead of always falling back to the most-recent workspace returned by
-   * /workspaces, so Git scopes to the workspace the IDE URL points to.
-   */
-  const { currentWorkspaceId: contextWorkspaceId } = useCurrentWorkspace();
+  const { currentWorkspaceId, primaryWorkspaceId: contextPrimaryWorkspaceId } = useCurrentWorkspace();
   const [envelope, setEnvelope] = useState<Envelope | undefined>();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [staged, setStaged] = useState<Set<string>>(new Set());
   const [inspectFile, setInspectFile] = useState('');
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>(contextWorkspaceId);
-  const [workspaceTouched, setWorkspaceTouched] = useState(false);
 
   const [inspection, setInspection] = useState<{
     loading: boolean;
@@ -179,12 +177,11 @@ export function GitTab({ projectId }: GitTabProps) {
   const hasRemote = Boolean(project?.gitRepositoryUrl);
   const workspaces: GitWorkspaceSummary[] = data.workspaces ?? [];
   const activeWorkspaceId = data.activeWorkspaceId;
-  const primaryWorkspaceId = data.primaryWorkspaceId;
-  const envelopeSelectedWorkspaceId = data.selectedWorkspaceId;
-  const resolvedWorkspaceId = selectedWorkspaceId ?? envelopeSelectedWorkspaceId ?? activeWorkspaceId;
+  const primaryWorkspaceId = contextPrimaryWorkspaceId ?? data.primaryWorkspaceId;
+  const resolvedWorkspaceId = currentWorkspaceId ?? activeWorkspaceId;
 
   const loadPanel = useCallback(
-    async (options?: { silent?: boolean; blameFile?: string; diffFile?: string; workspaceId?: string }) => {
+    async (options?: { silent?: boolean; blameFile?: string; diffFile?: string }) => {
       if (!projectId) {
         return;
       }
@@ -204,10 +201,8 @@ export function GitTab({ projectId }: GitTabProps) {
           params.set('diffFile', options.diffFile);
         }
 
-        const requestedWorkspaceId = options?.workspaceId ?? selectedWorkspaceId;
-
-        if (requestedWorkspaceId) {
-          params.set('workspaceId', requestedWorkspaceId);
+        if (currentWorkspaceId) {
+          params.set('workspaceId', currentWorkspaceId);
         }
 
         const url = `/api/projects/${encodeURIComponent(projectId)}/ide-panel/git${
@@ -236,44 +231,24 @@ export function GitTab({ projectId }: GitTabProps) {
         }
       }
     },
-    [projectId, selectedWorkspaceId],
+    [projectId, currentWorkspaceId],
   );
+
+  useEffect(() => {
+    /*
+     * Reset per-file inspection state when the IDE-wide workspace changes; the
+     * staged paths/blame/diff belong to the previous workspace's working tree.
+     */
+    setStaged(new Set());
+    setInspectFile('');
+    setInspection({ loading: false, blame: [], diff: '' });
+  }, [currentWorkspaceId]);
 
   useEffect(() => {
     void loadPanel();
   }, [loadPanel]);
 
-  useEffect(() => {
-    if (workspaceTouched) {
-      return;
-    }
-
-    /*
-     * Prefer the IDE-wide context selection. Fall back to whatever the server
-     * resolved for us in the envelope so projects without a CurrentWorkspaceContext
-     * still render correctly.
-     */
-    const next = contextWorkspaceId ?? envelopeSelectedWorkspaceId;
-
-    if (next && next !== selectedWorkspaceId) {
-      setSelectedWorkspaceId(next);
-    }
-  }, [contextWorkspaceId, envelopeSelectedWorkspaceId, selectedWorkspaceId, workspaceTouched]);
-
   const stagedFiles = useMemo(() => Array.from(staged), [staged]);
-
-  const handleWorkspaceChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const nextWorkspaceId = event.target.value || undefined;
-      setWorkspaceTouched(true);
-      setSelectedWorkspaceId(nextWorkspaceId);
-      setStaged(new Set());
-      setInspectFile('');
-      setInspection({ loading: false, blame: [], diff: '' });
-      void loadPanel({ workspaceId: nextWorkspaceId });
-    },
-    [loadPanel],
-  );
 
   const submitAction = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
@@ -404,7 +379,7 @@ export function GitTab({ projectId }: GitTabProps) {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
           <div className="min-w-0">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-              Workspace
+              Workspace repository
             </div>
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm text-bolt-elements-textSecondary">
               <span className="i-ph:terminal-window text-base text-bolt-elements-item-contentAccent" aria-hidden />
@@ -422,45 +397,7 @@ export function GitTab({ projectId }: GitTabProps) {
                 </span>
               ) : null}
             </div>
-            <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-              Each workspace has its own git working directory. Switch workspaces to view a different repository.
-            </p>
-          </div>
-          <div className="flex min-w-[220px] flex-col gap-1">
-            <label
-              className="text-[11px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary"
-              htmlFor="ide-git-tab-workspace-select"
-            >
-              Active workspace
-            </label>
-            <select
-              id="ide-git-tab-workspace-select"
-              value={resolvedWorkspaceId ?? ''}
-              onChange={handleWorkspaceChange}
-              disabled={busy || workspaces.length === 0}
-              className="h-9 min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus disabled:opacity-60"
-            >
-              {workspaces.length === 0 ? (
-                <option value="">No workspaces available</option>
-              ) : (
-                workspaces.map((workspace) => (
-                  <option key={workspace.id} value={workspace.id}>
-                    {workspace.name ?? workspace.id}
-                    {workspace.id === primaryWorkspaceId ? ' (primary)' : ''}
-                    {workspace.id === activeWorkspaceId && workspace.id !== primaryWorkspaceId ? ' (active)' : ''}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-          <div className="min-w-0">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-              Workspace repository
-            </div>
-            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm text-bolt-elements-textSecondary">
+            <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 text-sm text-bolt-elements-textSecondary">
               <span className="i-ph:git-branch text-base text-bolt-elements-item-contentAccent" aria-hidden />
               <strong className="truncate text-bolt-elements-textPrimary">{branch}</strong>
               <span>{status?.ahead ?? 0} ahead</span>
