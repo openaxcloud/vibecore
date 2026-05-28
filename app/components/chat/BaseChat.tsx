@@ -562,35 +562,22 @@ const ECODE_MOBILE_TOOLS = [
     description: 'Custom domains',
     icon: 'i-ph:globe',
   },
-] as const;
-
-const ECODE_MOBILE_MORE_MENU_ITEMS = [
-  { id: 'overview', label: 'Overview', icon: 'i-ph:gauge' },
-  { id: 'preview', label: 'Webview', icon: 'i-ph:monitor' },
-  { id: 'deployments', label: 'Deployments', icon: 'i-ph:rocket-launch' },
-  { id: 'git', label: 'Git', icon: 'i-ph:git-branch' },
-  { id: 'packages', label: 'Packages', icon: 'i-ph:package' },
-  { id: 'database', label: 'Database', icon: 'i-ph:database' },
-  { id: 'object-storage', label: 'Object Storage', icon: 'i-ph:hard-drives' },
-  { id: 'debugger', label: 'Debugger', icon: 'i-ph:bug' },
-  { id: 'activity', label: 'Activity', icon: 'i-ph:activity' },
-  { id: 'locks', label: 'Locks', icon: 'i-ph:lock' },
-  { id: 'secrets', label: 'Secrets', icon: 'i-ph:key' },
-  { id: 'env', label: 'Environment variables', icon: 'i-ph:brackets-curly' },
-  { id: 'terminal', label: 'Terminal', icon: 'i-ph:terminal-window' },
-  { id: 'logs', label: 'Logs', icon: 'i-ph:list-magnifying-glass' },
-  { id: 'search', label: 'Search', icon: 'i-ph:magnifying-glass' },
-  { id: 'commands', label: 'Commands', icon: 'i-ph:command' },
-  { id: 'workflows', label: 'Workflows', icon: 'i-ph:git-branch' },
-  { id: 'integrations', label: 'Integrations', icon: 'i-ph:package' },
-  { id: 'collaborators', label: 'Collaborators', icon: 'i-ph:users' },
-  { id: 'share', label: 'Share', icon: 'i-ph:share-network' },
-  { id: 'snapshots', label: 'Snapshots', icon: 'i-ph:stack' },
-  { id: 'extensions', label: 'Extensions', icon: 'i-ph:puzzle-piece' },
-  { id: 'monitoring', label: 'Monitoring', icon: 'i-ph:chart-line' },
-  { id: 'domains', label: 'Domains', icon: 'i-ph:globe' },
-  { id: 'security', label: 'Security', icon: 'i-ph:shield-check' },
-  { id: 'settings', label: 'Settings', icon: 'i-ph:gear' },
+  {
+    id: 'commands',
+    section: 'tools',
+    title: 'Commands',
+    description: 'Open command palette',
+    icon: 'i-ph:command',
+    tone: 'info',
+  },
+  {
+    id: 'share',
+    section: 'tools',
+    title: 'Share',
+    description: 'Copy project link',
+    icon: 'i-ph:share-network',
+    tone: 'info',
+  },
 ] as const;
 
 const IDE_FILE_TREE_HIDDEN_PATTERNS = [
@@ -2409,7 +2396,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       'chat' | 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy'
     >('chat');
 
-    const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
     const [mobileToolsSheetOpen, setMobileToolsSheetOpen] = useState(false);
     const [mobileToolsQuery, setMobileToolsQuery] = useState('');
 
@@ -2443,7 +2429,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [useMobileIde]);
 
     const closeMobileOverlays = useCallback(() => {
-      setMobileMoreOpen(false);
       setMobileToolsSheetOpen(false);
       setMobileTabSwitcherOpen(false);
       setMobileToolsQuery('');
@@ -2455,21 +2440,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, []);
 
     const openMobileToolsSheet = useCallback(() => {
-      setMobileMoreOpen(false);
       setMobileTabSwitcherOpen(false);
       setMobileToolsQuery('');
       setMobileToolsSheetOpen(true);
     }, []);
 
-    const openMobileMoreMenu = useCallback(() => {
-      setMobileToolsSheetOpen(false);
-      setMobileToolsQuery('');
-      setMobileTabSwitcherOpen(false);
-      setMobileMoreOpen(true);
-    }, []);
-
     const openMobileTabSwitcher = useCallback(() => {
-      setMobileMoreOpen(false);
       setMobileToolsSheetOpen(false);
       setMobileToolsQuery('');
       setMobileTabSwitcherOpen(true);
@@ -2554,7 +2530,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [closeMobileOverlays, useMobileIde]);
 
     useEffect(() => {
-      if (!useMobileIde || (!mobileMoreOpen && !mobileToolsSheetOpen && !mobileTabSwitcherOpen)) {
+      if (!useMobileIde || (!mobileToolsSheetOpen && !mobileTabSwitcherOpen)) {
         return undefined;
       }
 
@@ -2569,7 +2545,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.addEventListener('keydown', handleMobileOverlayEscape);
 
       return () => window.removeEventListener('keydown', handleMobileOverlayEscape);
-    }, [closeMobileOverlays, mobileMoreOpen, mobileTabSwitcherOpen, mobileToolsSheetOpen, useMobileIde]);
+    }, [closeMobileOverlays, mobileTabSwitcherOpen, mobileToolsSheetOpen, useMobileIde]);
 
     const [isOnline, setIsOnline] = useState(true);
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
@@ -3962,6 +3938,36 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         const normalizedToolId = toolId === 'deployment' ? 'deployments' : toolId;
 
+        if (normalizedToolId === 'commands') {
+          openCommandPalette('all');
+          setMobileToolsSheetOpen(false);
+          setMobileToolsQuery('');
+          setMobileTabSwitcherOpen(false);
+
+          return;
+        }
+
+        if (normalizedToolId === 'share') {
+          setMobileToolsSheetOpen(false);
+          setMobileToolsQuery('');
+          setMobileTabSwitcherOpen(false);
+
+          const projectLink = `${window.location.origin}${projectUrl ?? `/projects/${projectId}`}`;
+
+          if (!navigator.clipboard?.writeText) {
+            toast.error('Clipboard unavailable');
+
+            return;
+          }
+
+          void navigator.clipboard
+            .writeText(projectLink)
+            .then(() => toast.success('Project link copied'))
+            .catch((error) => toast.error(`Copy failed: ${(error as Error).message}`));
+
+          return;
+        }
+
         if (
           normalizedToolId === 'agent' ||
           normalizedToolId === 'assistant' ||
@@ -3997,39 +4003,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           }
         }
 
-        setMobileMoreOpen(false);
         setMobileToolsSheetOpen(false);
         setMobileToolsQuery('');
         setMobileTabSwitcherOpen(false);
       },
-      [ensureMobileOpenTab, openWorkspacePanel, setMobileIdePanel, setProjectPanelSearchParam],
-    );
-
-    const activateMobileMoreMenuItem = useCallback(
-      async (itemId: (typeof ECODE_MOBILE_MORE_MENU_ITEMS)[number]['id']) => {
-        if (itemId === 'commands') {
-          setMobileMoreOpen(false);
-          openCommandPalette('all');
-
-          return;
-        }
-
-        if (itemId === 'share') {
-          setMobileMoreOpen(false);
-
-          try {
-            await navigator.clipboard?.writeText(`${window.location.origin}${projectUrl ?? `/projects/${projectId}`}`);
-            toast.success('Project link copied');
-          } catch (error) {
-            toast.error(`Copy failed: ${(error as Error).message}`);
-          }
-
-          return;
-        }
-
-        activateMobileTool(itemId);
-      },
-      [activateMobileTool, openCommandPalette, projectId, projectUrl],
+      [
+        ensureMobileOpenTab,
+        openCommandPalette,
+        openWorkspacePanel,
+        projectId,
+        projectUrl,
+        setMobileIdePanel,
+        setProjectPanelSearchParam,
+      ],
     );
 
     const closeMobileOpenTab = useCallback(
@@ -6521,18 +6507,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </div>
 
               <div className="bolt-mobile-ecode-header-side bolt-mobile-ecode-header-side--right">
-                <button type="button" aria-label="New tab" data-testid="button-new-tab" onClick={openMobileToolsSheet}>
-                  <span className="i-ph:plus" aria-hidden />
-                </button>
                 <button
                   type="button"
-                  aria-label="More options"
+                  aria-label="Open tools"
                   aria-haspopup="dialog"
-                  aria-expanded={mobileMoreOpen}
-                  data-testid="button-more"
-                  onClick={openMobileMoreMenu}
+                  aria-expanded={mobileToolsSheetOpen}
+                  data-testid="button-new-tab"
+                  onClick={openMobileToolsSheet}
                 >
-                  <span className="i-ph:dots-three-vertical" aria-hidden />
+                  <span className="i-ph:plus" aria-hidden />
                 </button>
               </div>
             </div>
@@ -6752,7 +6735,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <button
                       key={tab.id}
                       type="button"
-                      className="bolt-mobile-replit-icon-tab"
+                      className="bolt-mobile-replit-icon-tab bolt-mobile-replit-panel-tab"
                       aria-label={`Switch to ${tab.name} tab`}
                       aria-pressed={isActive}
                       aria-current={isActive ? 'page' : undefined}
@@ -6760,7 +6743,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       onClick={() => activateMobileTool(tab.id)}
                     >
                       {tab.icon === 'agent' ? <MobileReplitAgentIcon /> : <span className={tab.icon} aria-hidden />}
-                      {isActive ? <i aria-hidden /> : null}
+                      <span className="bolt-mobile-replit-tab-label">{tab.name}</span>
+                      {isActive ? <span className="bolt-mobile-replit-tab-indicator" aria-hidden /> : null}
                     </button>
                   );
                 })}
@@ -6781,7 +6765,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <button
                       type="button"
                       className="bolt-mobile-replit-icon-tab"
-                      aria-label="Add new tab"
+                      aria-label="Open tools"
+                      aria-haspopup="dialog"
+                      aria-expanded={mobileToolsSheetOpen}
                       data-testid="button-add-tab"
                       onClick={openMobileToolsSheet}
                     >
@@ -6790,18 +6776,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   </>
                 ) : null}
               </div>
-
-              <button
-                type="button"
-                className="bolt-mobile-replit-more"
-                aria-label="More options"
-                aria-haspopup="dialog"
-                aria-expanded={mobileMoreOpen}
-                data-testid="button-more"
-                onClick={openMobileMoreMenu}
-              >
-                <span className="i-ph:dots-three-vertical" aria-hidden />
-              </button>
             </div>
           </nav>
         )}
@@ -6903,56 +6877,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </div>
             </div>
           </section>
-        )}
-        {showMobileChrome && mobileMoreOpen && (
-          <>
-            <button
-              type="button"
-              className="bolt-mobile-more-menu-backdrop"
-              aria-label="Close more menu"
-              onClick={() => setMobileMoreOpen(false)}
-              data-testid="mobile-more-menu-backdrop"
-            />
-            <section
-              className="bolt-mobile-more-menu-sheet"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Tools"
-              data-testid="mobile-more-menu-sheet"
-            >
-              <div className="bolt-mobile-more-menu-handle" aria-hidden />
-              <header className="bolt-mobile-more-menu-header">
-                <h2>Tools</h2>
-                <button
-                  type="button"
-                  aria-label="Close more menu"
-                  data-testid="mobile-more-menu-close"
-                  onClick={() => setMobileMoreOpen(false)}
-                >
-                  <span className="i-ph:x" aria-hidden />
-                </button>
-              </header>
-              <div className="bolt-mobile-more-menu-grid">
-                {ECODE_MOBILE_MORE_MENU_ITEMS.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="bolt-mobile-more-menu-item"
-                    data-testid={`mobile-more-menu-${item.id}`}
-                    onClick={() => void activateMobileMoreMenuItem(item.id)}
-                  >
-                    <span className="bolt-mobile-more-menu-icon" aria-hidden>
-                      <span className={item.icon} />
-                      {item.id === 'debug' && statusbarDiagnostics.errors > 0 ? (
-                        <strong>{statusbarDiagnostics.errors}</strong>
-                      ) : null}
-                    </span>
-                    <span>{item.label}</span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          </>
         )}
         {showMobileChrome && mobileToolsSheetOpen && (
           <>

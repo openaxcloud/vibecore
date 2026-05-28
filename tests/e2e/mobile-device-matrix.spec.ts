@@ -85,7 +85,7 @@ const compactIdePanels = [
   'deployments',
 ] as const;
 
-const compactMoreMenuItems = [
+const compactToolsPaletteItems = [
   { id: 'overview', label: 'Overview' },
   { id: 'preview', label: 'Webview' },
   { id: 'deployments', label: 'Deployments' },
@@ -185,7 +185,9 @@ async function createProject(request: APIRequestContext, auth: AuthPayload) {
 
   expect(listedFiles.ok(), listedFilesBody).toBeTruthy();
   expect(
-    (JSON.parse(listedFilesBody) as { files: Array<{ path: string }> }).files.some((file) => file.path === 'src/App.tsx'),
+    (JSON.parse(listedFilesBody) as { files: Array<{ path: string }> }).files.some(
+      (file) => file.path === 'src/App.tsx',
+    ),
     'imported project file should be persisted by the real project files API',
   ).toBe(true);
 
@@ -208,59 +210,6 @@ async function clickFirstVisible(candidates: import('@playwright/test').Locator[
   }
 
   await candidates[0].click({ force: true });
-}
-
-async function openMobileMoreMenu(page: import('@playwright/test').Page, profileName: string) {
-  const moreMenu = page.getByTestId('mobile-more-menu-sheet');
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    await clickFirstVisible([
-      page.getByTestId('mobile-bottom-navigation').getByTestId('button-more'),
-      page.getByTestId('mobile-ide-header').getByTestId('button-more'),
-    ]);
-
-    try {
-      await expect(moreMenu, `${profileName} more menu`).toBeVisible({ timeout: 5_000 });
-      await expect(moreMenu.getByTestId('mobile-more-menu-overview'), `${profileName} more menu content`).toBeVisible({
-        timeout: 5_000,
-      });
-
-      return moreMenu;
-    } catch {
-      await page
-        .getByTestId('mobile-more-menu-backdrop')
-        .click({ force: true })
-        .catch(() => undefined);
-      await expect(moreMenu)
-        .toBeHidden({ timeout: 5_000 })
-        .catch(() => undefined);
-    }
-  }
-
-  await expect(moreMenu, `${profileName} more menu`).toBeVisible({ timeout: 15_000 });
-  await expect(moreMenu.getByTestId('mobile-more-menu-overview'), `${profileName} more menu content`).toBeVisible({
-    timeout: 15_000,
-  });
-
-  return moreMenu;
-}
-
-async function closeMobileMoreMenu(page: import('@playwright/test').Page) {
-  const moreMenu = page.getByTestId('mobile-more-menu-sheet');
-
-  await page
-    .getByTestId('mobile-more-menu-close')
-    .click({ timeout: 5_000 })
-    .catch(() => undefined);
-  await expect(moreMenu)
-    .toBeHidden({ timeout: 2_000 })
-    .catch(async () => {
-      await page
-        .getByTestId('mobile-more-menu-backdrop')
-        .click({ force: true, timeout: 5_000 })
-        .catch(() => undefined);
-    });
-  await expect(moreMenu).toBeHidden({ timeout: 10_000 });
 }
 
 async function openMobileToolsSheet(page: import('@playwright/test').Page, profileName: string) {
@@ -404,28 +353,26 @@ async function assertCompactShellForProfile(
     expect(layout.overflowX, `${profile.name} horizontal overflow`).toBe(false);
     expect(layout.overlaps, `${profile.name} status/nav overlap`).toBe(false);
 
-    const moreMenu = await openMobileMoreMenu(page, profile.name);
-    const renderedMoreMenuItems = await moreMenu.evaluate((sheet) =>
-      Array.from(sheet.querySelectorAll('[data-testid^="mobile-more-menu-"]')).map((element) => ({
-        id: element.getAttribute('data-testid')?.replace('mobile-more-menu-', ''),
+    await expect(page.getByTestId('mobile-bottom-navigation').getByTestId('button-more')).toHaveCount(0);
+    await expect(page.getByTestId('mobile-ide-header').getByTestId('button-more')).toHaveCount(0);
+    await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
+
+    const toolsSheet = await openMobileToolsSheet(page, profile.name);
+    const renderedToolItems = await toolsSheet.evaluate((sheet) =>
+      Array.from(sheet.querySelectorAll('[data-testid^="tool-item-"]')).map((element) => ({
+        id: element.getAttribute('data-testid')?.replace('tool-item-', ''),
         label: (element.textContent ?? '').replace(/\s+/g, ' ').trim(),
       })),
     );
 
-    for (const item of compactMoreMenuItems) {
-      const renderedItem = renderedMoreMenuItems.find((candidate) => candidate.id === item.id);
+    for (const item of compactToolsPaletteItems) {
+      const renderedItem = renderedToolItems.find((candidate) => candidate.id === item.id);
 
-      expect(renderedItem, `${profile.name} more menu ${item.label}`).toBeTruthy();
-      expect(renderedItem?.label, `${profile.name} more menu ${item.label} label`).toContain(item.label);
+      expect(renderedItem, `${profile.name} tools palette ${item.label}`).toBeTruthy();
+      expect(renderedItem?.label, `${profile.name} tools palette ${item.label} label`).toContain(item.label);
     }
 
-    await closeMobileMoreMenu(page);
-    const toolsSheet = await openMobileToolsSheet(page, profile.name);
-    const renderedToolIds = await toolsSheet.evaluate((sheet) =>
-      Array.from(sheet.querySelectorAll('[data-testid^="tool-item-"]')).map((element) =>
-        element.getAttribute('data-testid')?.replace('tool-item-', ''),
-      ),
-    );
+    const renderedToolIds = renderedToolItems.map((item) => item.id);
 
     for (const toolId of ['editor', 'files', 'terminal', 'deployments', 'object-storage', 'settings']) {
       expect(renderedToolIds, `${profile.name} tool ${toolId}`).toContain(toolId);

@@ -80,39 +80,6 @@ async function waitForRateLimitReset(responseText: string, fallbackMs = 10_000) 
   await new Promise((resolve) => setTimeout(resolve, waitMs));
 }
 
-async function openMobileMoreMenu(page: import('@playwright/test').Page) {
-  const moreMenu = page.getByTestId('mobile-more-menu-sheet');
-  const overviewItem = page.getByTestId('mobile-more-menu-overview');
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    if ((await moreMenu.isVisible().catch(() => false)) && (await overviewItem.isVisible().catch(() => false))) {
-      return moreMenu;
-    }
-
-    await clickFirstVisible([
-      mobileBottomNavigation(page).getByTestId('button-more'),
-      page.getByTestId('mobile-ide-header').getByTestId('button-more'),
-    ]);
-
-    try {
-      await expect(moreMenu).toBeVisible({ timeout: 5000 });
-      await expect(overviewItem).toBeVisible({ timeout: 5000 });
-
-      return moreMenu;
-    } catch {
-      await page
-        .getByTestId('mobile-more-menu-backdrop')
-        .click({ force: true })
-        .catch(() => undefined);
-    }
-  }
-
-  await expect(moreMenu).toBeVisible({ timeout: 15000 });
-  await expect(overviewItem).toBeVisible({ timeout: 15000 });
-
-  return moreMenu;
-}
-
 async function openMobileToolsSheet(page: import('@playwright/test').Page) {
   const toolsSheet = page.getByTestId('tools-sheet');
   const overviewItem = page.getByTestId('tool-item-overview');
@@ -371,7 +338,40 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByTestId('tab-preview')).toBeVisible();
     await expect(page.getByTestId('tab-agent')).toBeVisible();
     await expect(page.getByTestId('tab-deployments')).toBeVisible();
-    await expect(mobileNav.getByTestId('button-more')).toBeVisible();
+    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-preview')).toContainText('Webview');
+    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-agent')).toContainText('AI Agent');
+    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-deployments')).toContainText('Deployments');
+    await expect(mobileNav.getByTestId('button-add-tab')).toBeVisible();
+    await expect(mobileNav.getByTestId('button-more')).toHaveCount(0);
+  });
+
+  test('tablet exposes named tab navigation and one tools entry point', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'tablet', 'tablet-only assertion');
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width: 1024, height: 768 });
+
+    const projectId = await createTestProject(page, 'Responsive tablet named tabs project');
+
+    await page.goto(`/projects/${projectId}/ide?panel=database`, { waitUntil: 'domcontentloaded' });
+
+    const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
+    await expect(mobileNav).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-preview')).toContainText('Webview');
+    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-agent')).toContainText('AI Agent');
+    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-deployments')).toContainText('Deployments');
+    await expect(mobileNav.getByTestId('button-add-tab')).toBeVisible();
+    await expect(mobileNav.getByTestId('button-more')).toHaveCount(0);
+
+    const toolsSheet = await openMobileToolsSheet(page);
+    await expect(toolsSheet).toBeVisible({ timeout: 15_000 });
+    await expect(toolsSheet.getByTestId('tool-item-deployments')).toContainText('Deployments');
+    await expect(toolsSheet.getByTestId('tool-item-object-storage')).toContainText('Object Storage');
+    await expect(toolsSheet.getByTestId('tool-item-commands')).toContainText('Commands');
+    await expect(toolsSheet.getByTestId('tool-item-share')).toContainText('Share');
+    await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
+
+    const overflowX = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+    expect(overflowX).toBe(false);
   });
 
   test('mobile keeps runtime status above navigation without overlap', async ({ page, isMobile }) => {
@@ -561,10 +561,10 @@ test.describe('responsive IDE shell', () => {
     await expectMobileServicePanel(page, 'database');
     await expect(page.getByTestId('mobile-ide-header')).toContainText('Database');
 
-    const moreMenu = await openMobileMoreMenu(page);
-    await expect(moreMenu.getByRole('button', { name: 'Deployments', exact: true })).toBeVisible();
-    await expect(moreMenu.getByRole('button', { name: 'Object Storage', exact: true })).toBeVisible();
-    await expect(moreMenu.getByText('Publishing', { exact: true })).toHaveCount(0);
+    const toolsSheet = await openMobileToolsSheet(page);
+    await expect(toolsSheet.getByTestId('tool-item-deployments')).toContainText('Deployments');
+    await expect(toolsSheet.getByTestId('tool-item-object-storage')).toContainText('Object Storage');
+    await expect(toolsSheet.getByText('Publishing', { exact: true })).toHaveCount(0);
     await page.keyboard.press('Escape');
 
     const metrics = await page.evaluate(() => {
@@ -626,12 +626,12 @@ test.describe('responsive IDE shell', () => {
     await expectMobileServicePanel(page, 'database');
     await expect(page.getByTestId('mobile-ide-header')).toContainText('Database');
 
-    const moreMenu = await openMobileMoreMenu(page);
-    await expect(moreMenu.getByRole('button', { name: 'Deployments', exact: true })).toBeVisible();
-    await expect(moreMenu.getByRole('button', { name: 'Object Storage', exact: true })).toBeVisible();
-    await expect(moreMenu.getByRole('button', { name: 'Debugger', exact: true })).toBeVisible();
-    await expect(moreMenu.getByRole('button', { name: 'Activity', exact: true })).toBeVisible();
-    await expect(moreMenu.getByText('Publishing', { exact: true })).toHaveCount(0);
+    const toolsSheet = await openMobileToolsSheet(page);
+    await expect(toolsSheet.getByTestId('tool-item-deployments')).toContainText('Deployments');
+    await expect(toolsSheet.getByTestId('tool-item-object-storage')).toContainText('Object Storage');
+    await expect(toolsSheet.getByTestId('tool-item-debugger')).toContainText('Debugger');
+    await expect(toolsSheet.getByTestId('tool-item-activity')).toContainText('Activity');
+    await expect(toolsSheet.getByText('Publishing', { exact: true })).toHaveCount(0);
     await page.keyboard.press('Escape');
 
     const metrics = await page.evaluate(() => {
@@ -659,7 +659,7 @@ test.describe('responsive IDE shell', () => {
     await expect(page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="monaco"]')).toHaveCount(0);
   });
 
-  test('mobile and tablet use canonical web panel names in More and tools sheets', async ({ page }, testInfo) => {
+  test('mobile and tablet use one canonical tools palette', async ({ page }, testInfo) => {
     test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
     test.setTimeout(240_000);
 
@@ -668,8 +668,12 @@ test.describe('responsive IDE shell', () => {
     await page.goto(`/projects/${projectId}/ide?panel=preview`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 45_000 });
 
-    const moreMenu = await openMobileMoreMenu(page);
-    await expect(moreMenu).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('mobile-bottom-navigation').getByTestId('button-more')).toHaveCount(0);
+    await expect(page.getByTestId('mobile-ide-header').getByTestId('button-more')).toHaveCount(0);
+    await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
+
+    const toolsSheet = await openMobileToolsSheet(page);
+    await expect(toolsSheet).toBeVisible({ timeout: 15_000 });
 
     for (const [itemId, label] of [
       ['overview', 'Overview'],
@@ -683,39 +687,36 @@ test.describe('responsive IDE shell', () => {
       ['activity', 'Activity'],
       ['extensions', 'Extensions'],
       ['snapshots', 'Snapshots'],
+      ['commands', 'Commands'],
+      ['share', 'Share'],
     ] as const) {
-      await expect(moreMenu.getByTestId(`mobile-more-menu-${itemId}`)).toContainText(label, { timeout: 15_000 });
+      await expect(toolsSheet.getByTestId(`tool-item-${itemId}`)).toContainText(label, { timeout: 15_000 });
     }
 
     for (const legacyLabel of ['Publishing', 'App Storage', 'Debug', 'History', 'Checkpoints', 'Multiplayer']) {
-      await expect(moreMenu.getByText(legacyLabel, { exact: true })).toHaveCount(0);
+      await expect(toolsSheet.getByText(legacyLabel, { exact: true })).toHaveCount(0);
     }
 
-    await page.getByTestId('mobile-more-menu-close').click();
-    await expect(moreMenu).toBeHidden({ timeout: 10_000 });
-
-    const firstToolsSheet = await openMobileToolsSheet(page);
-    await expect(firstToolsSheet).toBeVisible({ timeout: 10_000 });
     await page.getByTestId('tools-search-input').fill('database');
     await expect(page.getByTestId('tool-item-database')).toBeVisible({ timeout: 10_000 });
     await page.keyboard.press('Escape');
-    await expect(firstToolsSheet).toBeHidden({ timeout: 10_000 });
+    await expect(toolsSheet).toBeHidden({ timeout: 10_000 });
 
     const resetToolsSheet = await openMobileToolsSheet(page);
     await expect(page.getByTestId('tools-search-input')).toHaveValue('');
     await page.getByTestId('tools-sheet-close').click();
     await expect(resetToolsSheet).toBeHidden({ timeout: 10_000 });
 
-    const reopenedMoreMenu = await openMobileMoreMenu(page);
-    const deploymentsMenuItem = reopenedMoreMenu.getByTestId('mobile-more-menu-deployments');
+    const reopenedToolsSheet = await openMobileToolsSheet(page);
+    const deploymentsToolItem = reopenedToolsSheet.getByTestId('tool-item-deployments');
 
-    await expect(deploymentsMenuItem).toBeVisible({ timeout: 15_000 });
-    await expect(deploymentsMenuItem).toContainText('Deployments');
-    await deploymentsMenuItem.click();
+    await expect(deploymentsToolItem).toBeVisible({ timeout: 15_000 });
+    await expect(deploymentsToolItem).toContainText('Deployments');
+    await deploymentsToolItem.click();
     await expectMobileServicePanel(page, 'deployments');
     await expect(page.getByTestId('mobile-ide-header')).toContainText('Deployments');
 
-    const toolsSheet = await openMobileToolsSheet(page);
+    const finalToolsSheet = await openMobileToolsSheet(page);
 
     for (const toolId of [
       'overview',
@@ -733,7 +734,7 @@ test.describe('responsive IDE shell', () => {
     }
 
     for (const legacyLabel of ['Publishing', 'App Storage', 'Auth', 'Console', 'Shell', 'Key-Value Store']) {
-      await expect(toolsSheet.getByText(legacyLabel, { exact: true })).toHaveCount(0);
+      await expect(finalToolsSheet.getByText(legacyLabel, { exact: true })).toHaveCount(0);
     }
   });
 });
