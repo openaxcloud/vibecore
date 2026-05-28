@@ -73,6 +73,9 @@ export interface WorkspaceRecord {
   // workspace's isolated git working tree. Allocated when the workspace
   // is created so each branch / agent run has its own checkout.
   gitPath?: string;
+  // Remote URL configured for this workspace specifically. Nullable: callers
+  // should fall back to Project.gitRepositoryUrl when this is undefined.
+  gitRepositoryUrl?: string;
   createdAt: string;
 }
 
@@ -406,6 +409,15 @@ export interface ProjectIdeStateRecord {
   createdAt: string;
 }
 
+export interface WorkspaceIdeStateRecord {
+  workspaceId: string;
+  state: unknown;
+  version: number;
+  updatedByUserId?: string;
+  updatedAt: string;
+  createdAt: string;
+}
+
 export interface CollaborationPresenceRecord {
   id: string;
   projectId: string;
@@ -646,6 +658,20 @@ export interface ApiStore {
     state: unknown;
     updatedByUserId?: string;
   }): Promise<ProjectIdeStateRecord>;
+  // Workspace-scoped IDE state. Callers that pass a workspaceId can read the
+  // working tree's own editor state; when nothing is persisted yet they should
+  // fall back to getProjectIdeState for backward compatibility with workspaces
+  // created before the per-workspace state existed.
+  getWorkspaceIdeState(workspaceId: string): Promise<WorkspaceIdeStateRecord | undefined>;
+  upsertWorkspaceIdeState(input: {
+    workspaceId: string;
+    state: unknown;
+    updatedByUserId?: string;
+  }): Promise<WorkspaceIdeStateRecord>;
+  updateWorkspaceGitRepositoryUrl(input: {
+    workspaceId: string;
+    gitRepositoryUrl: string | null;
+  }): Promise<WorkspaceRecord>;
   upsertCollaborationPresence(input: {
     projectId: string;
     userId: string;

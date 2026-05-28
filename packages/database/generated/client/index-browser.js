@@ -375,8 +375,18 @@ exports.Prisma.WorkspaceScalarFieldEnum = {
   status: 'status',
   runtimeMode: 'runtimeMode',
   gitPath: 'gitPath',
+  gitRepositoryUrl: 'gitRepositoryUrl',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.WorkspaceIdeStateScalarFieldEnum = {
+  workspaceId: 'workspaceId',
+  state: 'state',
+  version: 'version',
+  updatedByUserId: 'updatedByUserId',
+  updatedAt: 'updatedAt',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.WorkspaceSessionScalarFieldEnum = {
@@ -1105,6 +1115,7 @@ exports.Prisma.ModelName = {
   ProjectShareLink: 'ProjectShareLink',
   ProjectTemplate: 'ProjectTemplate',
   Workspace: 'Workspace',
+  WorkspaceIdeState: 'WorkspaceIdeState',
   WorkspaceSession: 'WorkspaceSession',
   WorkspacePort: 'WorkspacePort',
   FileSnapshot: 'FileSnapshot',

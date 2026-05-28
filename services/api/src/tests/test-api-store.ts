@@ -51,6 +51,7 @@ import type {
   SystemSettingRecord,
   UserRecord,
   UsageEventRecord,
+  WorkspaceIdeStateRecord,
   WorkspaceRecord,
   QuotaOverrideRecord,
   AdminAuditLogRecord,
@@ -86,6 +87,7 @@ export class TestApiStore implements ApiStore {
   readonly projectCollaborators = new Map<string, ProjectCollaboratorRecord>();
   readonly projectActivity = new Map<string, ProjectActivityRecord>();
   readonly projectIdeStates = new Map<string, ProjectIdeStateRecord>();
+  readonly workspaceIdeStates = new Map<string, WorkspaceIdeStateRecord>();
   readonly collaborationPresence = new Map<string, CollaborationPresenceRecord>();
   readonly collaborationComments = new Map<string, CollaborationCommentRecord>();
   readonly projectShareLinks = new Map<string, ProjectShareLinkRecord>();
@@ -661,6 +663,41 @@ export class TestApiStore implements ApiStore {
     };
     this.projectIdeStates.set(input.projectId, record);
     return record;
+  }
+
+  async getWorkspaceIdeState(workspaceId: string) {
+    return this.workspaceIdeStates.get(workspaceId);
+  }
+
+  async upsertWorkspaceIdeState(input: { workspaceId: string; state: unknown; updatedByUserId?: string }) {
+    const existing = this.workspaceIdeStates.get(input.workspaceId);
+    const record: WorkspaceIdeStateRecord = {
+      workspaceId: input.workspaceId,
+      state: input.state,
+      version: existing ? existing.version + 1 : 1,
+      updatedByUserId: input.updatedByUserId,
+      updatedAt: now(),
+      createdAt: existing?.createdAt ?? now(),
+    };
+    this.workspaceIdeStates.set(input.workspaceId, record);
+
+    return record;
+  }
+
+  async updateWorkspaceGitRepositoryUrl(input: { workspaceId: string; gitRepositoryUrl: string | null }) {
+    const workspace = this.workspaces.get(input.workspaceId);
+
+    if (!workspace) {
+      throw Object.assign(new Error('Workspace not found'), { statusCode: 404, code: 'WORKSPACE_NOT_FOUND' });
+    }
+
+    const updated: WorkspaceRecord = {
+      ...workspace,
+      gitRepositoryUrl: input.gitRepositoryUrl ?? undefined,
+    };
+    this.workspaces.set(workspace.id, updated);
+
+    return updated;
   }
 
   async upsertCollaborationPresence(input: {

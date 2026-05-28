@@ -464,24 +464,48 @@ model ProjectTemplate {
 }
 
 model Workspace {
-  id          String             @id @default(cuid())
-  projectId   String
-  name        String
-  status      WorkspaceStatus    @default(PENDING)
-  runtimeMode String
+  id               String             @id @default(cuid())
+  projectId        String
+  name             String
+  status           WorkspaceStatus    @default(PENDING)
+  runtimeMode      String
   // Filesystem path (relative to the project storage root) for this
   // workspace's isolated git working tree. Allocated when the workspace
   // is created so each branch / agent run can have its own checkout
   // without colliding with other workspaces of the same project.
-  gitPath     String?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sessions    WorkspaceSession[]
-  ports       WorkspacePort[]
-  snapshots   FileSnapshot[]
+  gitPath          String?
+  // Remote URL for this workspace's git working tree. Workspaces can point
+  // at different remotes (e.g. an agent run targets a personal fork while
+  // the primary workspace tracks the upstream project), so we store the
+  // remote here instead of falling back to Project.gitRepositoryUrl for
+  // every workspace. Nullable: a fresh workspace inherits the project-level
+  // remote until the user explicitly configures one.
+  gitRepositoryUrl String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  project          Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sessions         WorkspaceSession[]
+  ports            WorkspacePort[]
+  snapshots        FileSnapshot[]
+  ideState         WorkspaceIdeState?
 
   @@index([projectId])
+}
+
+// Workspace-scoped IDE state (open tabs, file manifest, scroll positions, …).
+// Mirrors ProjectIdeState 1:1 but keyed by workspace so each working tree can
+// keep its own editor cursor, file tree, and unsaved buffers. listFiles falls
+// back to the project-level state when a workspace has no entry yet, which
+// keeps backward compatibility with workspaces created before this table
+// existed.
+model WorkspaceIdeState {
+  workspaceId     String    @id
+  state           Json
+  version         Int       @default(1)
+  updatedByUserId String?
+  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime  @default(now())
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }
 
 model WorkspaceSession {

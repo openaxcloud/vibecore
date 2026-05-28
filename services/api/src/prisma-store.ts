@@ -51,6 +51,7 @@ import type {
   UserConnectionStatus,
   UserRecord,
   UsageEventRecord,
+  WorkspaceIdeStateRecord,
   WorkspaceRecord,
   QuotaOverrideRecord,
   AdminAuditLogRecord,
@@ -647,6 +648,38 @@ export class PrismaApiStore implements ApiStore {
           updatedByUserId: input.updatedByUserId,
           version: { increment: 1 },
         },
+      }),
+    );
+  }
+
+  async getWorkspaceIdeState(workspaceId: string) {
+    const state = await this.prisma.workspaceIdeState.findUnique({ where: { workspaceId } });
+    return state ? mapWorkspaceIdeState(state) : undefined;
+  }
+
+  async upsertWorkspaceIdeState(input: { workspaceId: string; state: unknown; updatedByUserId?: string }) {
+    return mapWorkspaceIdeState(
+      await this.prisma.workspaceIdeState.upsert({
+        where: { workspaceId: input.workspaceId },
+        create: {
+          workspaceId: input.workspaceId,
+          state: input.state as any,
+          updatedByUserId: input.updatedByUserId,
+        },
+        update: {
+          state: input.state as any,
+          updatedByUserId: input.updatedByUserId,
+          version: { increment: 1 },
+        },
+      }),
+    );
+  }
+
+  async updateWorkspaceGitRepositoryUrl(input: { workspaceId: string; gitRepositoryUrl: string | null }) {
+    return mapWorkspace(
+      await this.prisma.workspace.update({
+        where: { id: input.workspaceId },
+        data: { gitRepositoryUrl: input.gitRepositoryUrl },
       }),
     );
   }
@@ -2059,7 +2092,19 @@ function mapWorkspace(workspace: any): WorkspaceRecord {
     status: workspace.status,
     runtimeMode: workspace.runtimeMode,
     gitPath: workspace.gitPath ?? undefined,
+    gitRepositoryUrl: workspace.gitRepositoryUrl ?? undefined,
     createdAt: toIso(workspace.createdAt)!,
+  };
+}
+
+function mapWorkspaceIdeState(state: any): WorkspaceIdeStateRecord {
+  return {
+    workspaceId: state.workspaceId,
+    state: state.state,
+    version: state.version,
+    updatedByUserId: state.updatedByUserId ?? undefined,
+    updatedAt: toIso(state.updatedAt)!,
+    createdAt: toIso(state.createdAt)!,
   };
 }
 

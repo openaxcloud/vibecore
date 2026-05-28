@@ -134,6 +134,11 @@ export type ProjectTemplate = $Result.DefaultSelection<Prisma.$ProjectTemplatePa
  */
 export type Workspace = $Result.DefaultSelection<Prisma.$WorkspacePayload>
 /**
+ * Model WorkspaceIdeState
+ * 
+ */
+export type WorkspaceIdeState = $Result.DefaultSelection<Prisma.$WorkspaceIdeStatePayload>
+/**
  * Model WorkspaceSession
  * 
  */
@@ -913,6 +918,16 @@ export class PrismaClient<
     * ```
     */
   get workspace(): Prisma.WorkspaceDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.workspaceIdeState`: Exposes CRUD operations for the **WorkspaceIdeState** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more WorkspaceIdeStates
+    * const workspaceIdeStates = await prisma.workspaceIdeState.findMany()
+    * ```
+    */
+  get workspaceIdeState(): Prisma.WorkspaceIdeStateDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.workspaceSession`: Exposes CRUD operations for the **WorkspaceSession** model.
@@ -1871,6 +1886,7 @@ export namespace Prisma {
     ProjectShareLink: 'ProjectShareLink',
     ProjectTemplate: 'ProjectTemplate',
     Workspace: 'Workspace',
+    WorkspaceIdeState: 'WorkspaceIdeState',
     WorkspaceSession: 'WorkspaceSession',
     WorkspacePort: 'WorkspacePort',
     FileSnapshot: 'FileSnapshot',
@@ -1936,7 +1952,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest" | "emailDeliveryEvent"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest" | "emailDeliveryEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3697,6 +3713,80 @@ export namespace Prisma {
           count: {
             args: Prisma.WorkspaceCountArgs<ExtArgs>
             result: $Utils.Optional<WorkspaceCountAggregateOutputType> | number
+          }
+        }
+      }
+      WorkspaceIdeState: {
+        payload: Prisma.$WorkspaceIdeStatePayload<ExtArgs>
+        fields: Prisma.WorkspaceIdeStateFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.WorkspaceIdeStateFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceIdeStatePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.WorkspaceIdeStateFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceIdeStatePayload>
+          }
+          findFirst: {
+            args: Prisma.WorkspaceIdeStateFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceIdeStatePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.WorkspaceIdeStateFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceIdeStatePayload>
+          }
+          findMany: {
+            args: Prisma.WorkspaceIdeStateFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceIdeStatePayload>[]
+          }
+          create: {
+            args: Prisma.WorkspaceIdeStateCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceIdeStatePayload>
+          }
+          createMany: {
+            args: Prisma.WorkspaceIdeStateCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.WorkspaceIdeStateCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceIdeStatePayload>[]
+          }
+          delete: {
+            args: Prisma.WorkspaceIdeStateDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceIdeStatePayload>
+          }
+          update: {
+            args: Prisma.WorkspaceIdeStateUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceIdeStatePayload>
+          }
+          deleteMany: {
+            args: Prisma.WorkspaceIdeStateDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.WorkspaceIdeStateUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.WorkspaceIdeStateUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceIdeStatePayload>[]
+          }
+          upsert: {
+            args: Prisma.WorkspaceIdeStateUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceIdeStatePayload>
+          }
+          aggregate: {
+            args: Prisma.WorkspaceIdeStateAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateWorkspaceIdeState>
+          }
+          groupBy: {
+            args: Prisma.WorkspaceIdeStateGroupByArgs<ExtArgs>
+            result: $Utils.Optional<WorkspaceIdeStateGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.WorkspaceIdeStateCountArgs<ExtArgs>
+            result: $Utils.Optional<WorkspaceIdeStateCountAggregateOutputType> | number
           }
         }
       }
@@ -7532,6 +7622,7 @@ export namespace Prisma {
     projectShareLink?: ProjectShareLinkOmit
     projectTemplate?: ProjectTemplateOmit
     workspace?: WorkspaceOmit
+    workspaceIdeState?: WorkspaceIdeStateOmit
     workspaceSession?: WorkspaceSessionOmit
     workspacePort?: WorkspacePortOmit
     fileSnapshot?: FileSnapshotOmit
@@ -36369,6 +36460,7 @@ export namespace Prisma {
     status: $Enums.WorkspaceStatus | null
     runtimeMode: string | null
     gitPath: string | null
+    gitRepositoryUrl: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -36380,6 +36472,7 @@ export namespace Prisma {
     status: $Enums.WorkspaceStatus | null
     runtimeMode: string | null
     gitPath: string | null
+    gitRepositoryUrl: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -36391,6 +36484,7 @@ export namespace Prisma {
     status: number
     runtimeMode: number
     gitPath: number
+    gitRepositoryUrl: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -36404,6 +36498,7 @@ export namespace Prisma {
     status?: true
     runtimeMode?: true
     gitPath?: true
+    gitRepositoryUrl?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -36415,6 +36510,7 @@ export namespace Prisma {
     status?: true
     runtimeMode?: true
     gitPath?: true
+    gitRepositoryUrl?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -36426,6 +36522,7 @@ export namespace Prisma {
     status?: true
     runtimeMode?: true
     gitPath?: true
+    gitRepositoryUrl?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -36510,6 +36607,7 @@ export namespace Prisma {
     status: $Enums.WorkspaceStatus
     runtimeMode: string
     gitPath: string | null
+    gitRepositoryUrl: string | null
     createdAt: Date
     updatedAt: Date
     _count: WorkspaceCountAggregateOutputType | null
@@ -36538,12 +36636,14 @@ export namespace Prisma {
     status?: boolean
     runtimeMode?: boolean
     gitPath?: boolean
+    gitRepositoryUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     sessions?: boolean | Workspace$sessionsArgs<ExtArgs>
     ports?: boolean | Workspace$portsArgs<ExtArgs>
     snapshots?: boolean | Workspace$snapshotsArgs<ExtArgs>
+    ideState?: boolean | Workspace$ideStateArgs<ExtArgs>
     _count?: boolean | WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["workspace"]>
 
@@ -36554,6 +36654,7 @@ export namespace Prisma {
     status?: boolean
     runtimeMode?: boolean
     gitPath?: boolean
+    gitRepositoryUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -36566,6 +36667,7 @@ export namespace Prisma {
     status?: boolean
     runtimeMode?: boolean
     gitPath?: boolean
+    gitRepositoryUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -36578,16 +36680,18 @@ export namespace Prisma {
     status?: boolean
     runtimeMode?: boolean
     gitPath?: boolean
+    gitRepositoryUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type WorkspaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "name" | "status" | "runtimeMode" | "gitPath" | "createdAt" | "updatedAt", ExtArgs["result"]["workspace"]>
+  export type WorkspaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "name" | "status" | "runtimeMode" | "gitPath" | "gitRepositoryUrl" | "createdAt" | "updatedAt", ExtArgs["result"]["workspace"]>
   export type WorkspaceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     sessions?: boolean | Workspace$sessionsArgs<ExtArgs>
     ports?: boolean | Workspace$portsArgs<ExtArgs>
     snapshots?: boolean | Workspace$snapshotsArgs<ExtArgs>
+    ideState?: boolean | Workspace$ideStateArgs<ExtArgs>
     _count?: boolean | WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type WorkspaceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -36604,6 +36708,7 @@ export namespace Prisma {
       sessions: Prisma.$WorkspaceSessionPayload<ExtArgs>[]
       ports: Prisma.$WorkspacePortPayload<ExtArgs>[]
       snapshots: Prisma.$FileSnapshotPayload<ExtArgs>[]
+      ideState: Prisma.$WorkspaceIdeStatePayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -36612,6 +36717,7 @@ export namespace Prisma {
       status: $Enums.WorkspaceStatus
       runtimeMode: string
       gitPath: string | null
+      gitRepositoryUrl: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["workspace"]>
@@ -37012,6 +37118,7 @@ export namespace Prisma {
     sessions<T extends Workspace$sessionsArgs<ExtArgs> = {}>(args?: Subset<T, Workspace$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspaceSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     ports<T extends Workspace$portsArgs<ExtArgs> = {}>(args?: Subset<T, Workspace$portsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspacePortPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     snapshots<T extends Workspace$snapshotsArgs<ExtArgs> = {}>(args?: Subset<T, Workspace$snapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FileSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    ideState<T extends Workspace$ideStateArgs<ExtArgs> = {}>(args?: Subset<T, Workspace$ideStateArgs<ExtArgs>>): Prisma__WorkspaceIdeStateClient<$Result.GetResult<Prisma.$WorkspaceIdeStatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -37047,6 +37154,7 @@ export namespace Prisma {
     readonly status: FieldRef<"Workspace", 'WorkspaceStatus'>
     readonly runtimeMode: FieldRef<"Workspace", 'String'>
     readonly gitPath: FieldRef<"Workspace", 'String'>
+    readonly gitRepositoryUrl: FieldRef<"Workspace", 'String'>
     readonly createdAt: FieldRef<"Workspace", 'DateTime'>
     readonly updatedAt: FieldRef<"Workspace", 'DateTime'>
   }
@@ -37522,6 +37630,25 @@ export namespace Prisma {
   }
 
   /**
+   * Workspace.ideState
+   */
+  export type Workspace$ideStateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceIdeState
+     */
+    select?: WorkspaceIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceIdeState
+     */
+    omit?: WorkspaceIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceIdeStateInclude<ExtArgs> | null
+    where?: WorkspaceIdeStateWhereInput
+  }
+
+  /**
    * Workspace without action
    */
   export type WorkspaceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -37537,6 +37664,1112 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: WorkspaceInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model WorkspaceIdeState
+   */
+
+  export type AggregateWorkspaceIdeState = {
+    _count: WorkspaceIdeStateCountAggregateOutputType | null
+    _avg: WorkspaceIdeStateAvgAggregateOutputType | null
+    _sum: WorkspaceIdeStateSumAggregateOutputType | null
+    _min: WorkspaceIdeStateMinAggregateOutputType | null
+    _max: WorkspaceIdeStateMaxAggregateOutputType | null
+  }
+
+  export type WorkspaceIdeStateAvgAggregateOutputType = {
+    version: number | null
+  }
+
+  export type WorkspaceIdeStateSumAggregateOutputType = {
+    version: number | null
+  }
+
+  export type WorkspaceIdeStateMinAggregateOutputType = {
+    workspaceId: string | null
+    version: number | null
+    updatedByUserId: string | null
+    updatedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type WorkspaceIdeStateMaxAggregateOutputType = {
+    workspaceId: string | null
+    version: number | null
+    updatedByUserId: string | null
+    updatedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type WorkspaceIdeStateCountAggregateOutputType = {
+    workspaceId: number
+    state: number
+    version: number
+    updatedByUserId: number
+    updatedAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type WorkspaceIdeStateAvgAggregateInputType = {
+    version?: true
+  }
+
+  export type WorkspaceIdeStateSumAggregateInputType = {
+    version?: true
+  }
+
+  export type WorkspaceIdeStateMinAggregateInputType = {
+    workspaceId?: true
+    version?: true
+    updatedByUserId?: true
+    updatedAt?: true
+    createdAt?: true
+  }
+
+  export type WorkspaceIdeStateMaxAggregateInputType = {
+    workspaceId?: true
+    version?: true
+    updatedByUserId?: true
+    updatedAt?: true
+    createdAt?: true
+  }
+
+  export type WorkspaceIdeStateCountAggregateInputType = {
+    workspaceId?: true
+    state?: true
+    version?: true
+    updatedByUserId?: true
+    updatedAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type WorkspaceIdeStateAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkspaceIdeState to aggregate.
+     */
+    where?: WorkspaceIdeStateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkspaceIdeStates to fetch.
+     */
+    orderBy?: WorkspaceIdeStateOrderByWithRelationInput | WorkspaceIdeStateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: WorkspaceIdeStateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkspaceIdeStates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkspaceIdeStates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned WorkspaceIdeStates
+    **/
+    _count?: true | WorkspaceIdeStateCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: WorkspaceIdeStateAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: WorkspaceIdeStateSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: WorkspaceIdeStateMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: WorkspaceIdeStateMaxAggregateInputType
+  }
+
+  export type GetWorkspaceIdeStateAggregateType<T extends WorkspaceIdeStateAggregateArgs> = {
+        [P in keyof T & keyof AggregateWorkspaceIdeState]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateWorkspaceIdeState[P]>
+      : GetScalarType<T[P], AggregateWorkspaceIdeState[P]>
+  }
+
+
+
+
+  export type WorkspaceIdeStateGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WorkspaceIdeStateWhereInput
+    orderBy?: WorkspaceIdeStateOrderByWithAggregationInput | WorkspaceIdeStateOrderByWithAggregationInput[]
+    by: WorkspaceIdeStateScalarFieldEnum[] | WorkspaceIdeStateScalarFieldEnum
+    having?: WorkspaceIdeStateScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: WorkspaceIdeStateCountAggregateInputType | true
+    _avg?: WorkspaceIdeStateAvgAggregateInputType
+    _sum?: WorkspaceIdeStateSumAggregateInputType
+    _min?: WorkspaceIdeStateMinAggregateInputType
+    _max?: WorkspaceIdeStateMaxAggregateInputType
+  }
+
+  export type WorkspaceIdeStateGroupByOutputType = {
+    workspaceId: string
+    state: JsonValue
+    version: number
+    updatedByUserId: string | null
+    updatedAt: Date
+    createdAt: Date
+    _count: WorkspaceIdeStateCountAggregateOutputType | null
+    _avg: WorkspaceIdeStateAvgAggregateOutputType | null
+    _sum: WorkspaceIdeStateSumAggregateOutputType | null
+    _min: WorkspaceIdeStateMinAggregateOutputType | null
+    _max: WorkspaceIdeStateMaxAggregateOutputType | null
+  }
+
+  type GetWorkspaceIdeStateGroupByPayload<T extends WorkspaceIdeStateGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<WorkspaceIdeStateGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof WorkspaceIdeStateGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], WorkspaceIdeStateGroupByOutputType[P]>
+            : GetScalarType<T[P], WorkspaceIdeStateGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type WorkspaceIdeStateSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    workspaceId?: boolean
+    state?: boolean
+    version?: boolean
+    updatedByUserId?: boolean
+    updatedAt?: boolean
+    createdAt?: boolean
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["workspaceIdeState"]>
+
+  export type WorkspaceIdeStateSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    workspaceId?: boolean
+    state?: boolean
+    version?: boolean
+    updatedByUserId?: boolean
+    updatedAt?: boolean
+    createdAt?: boolean
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["workspaceIdeState"]>
+
+  export type WorkspaceIdeStateSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    workspaceId?: boolean
+    state?: boolean
+    version?: boolean
+    updatedByUserId?: boolean
+    updatedAt?: boolean
+    createdAt?: boolean
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["workspaceIdeState"]>
+
+  export type WorkspaceIdeStateSelectScalar = {
+    workspaceId?: boolean
+    state?: boolean
+    version?: boolean
+    updatedByUserId?: boolean
+    updatedAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type WorkspaceIdeStateOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"workspaceId" | "state" | "version" | "updatedByUserId" | "updatedAt" | "createdAt", ExtArgs["result"]["workspaceIdeState"]>
+  export type WorkspaceIdeStateInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }
+  export type WorkspaceIdeStateIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }
+  export type WorkspaceIdeStateIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }
+
+  export type $WorkspaceIdeStatePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "WorkspaceIdeState"
+    objects: {
+      workspace: Prisma.$WorkspacePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      workspaceId: string
+      state: Prisma.JsonValue
+      version: number
+      updatedByUserId: string | null
+      updatedAt: Date
+      createdAt: Date
+    }, ExtArgs["result"]["workspaceIdeState"]>
+    composites: {}
+  }
+
+  type WorkspaceIdeStateGetPayload<S extends boolean | null | undefined | WorkspaceIdeStateDefaultArgs> = $Result.GetResult<Prisma.$WorkspaceIdeStatePayload, S>
+
+  type WorkspaceIdeStateCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<WorkspaceIdeStateFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: WorkspaceIdeStateCountAggregateInputType | true
+    }
+
+  export interface WorkspaceIdeStateDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['WorkspaceIdeState'], meta: { name: 'WorkspaceIdeState' } }
+    /**
+     * Find zero or one WorkspaceIdeState that matches the filter.
+     * @param {WorkspaceIdeStateFindUniqueArgs} args - Arguments to find a WorkspaceIdeState
+     * @example
+     * // Get one WorkspaceIdeState
+     * const workspaceIdeState = await prisma.workspaceIdeState.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends WorkspaceIdeStateFindUniqueArgs>(args: SelectSubset<T, WorkspaceIdeStateFindUniqueArgs<ExtArgs>>): Prisma__WorkspaceIdeStateClient<$Result.GetResult<Prisma.$WorkspaceIdeStatePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one WorkspaceIdeState that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {WorkspaceIdeStateFindUniqueOrThrowArgs} args - Arguments to find a WorkspaceIdeState
+     * @example
+     * // Get one WorkspaceIdeState
+     * const workspaceIdeState = await prisma.workspaceIdeState.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends WorkspaceIdeStateFindUniqueOrThrowArgs>(args: SelectSubset<T, WorkspaceIdeStateFindUniqueOrThrowArgs<ExtArgs>>): Prisma__WorkspaceIdeStateClient<$Result.GetResult<Prisma.$WorkspaceIdeStatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first WorkspaceIdeState that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceIdeStateFindFirstArgs} args - Arguments to find a WorkspaceIdeState
+     * @example
+     * // Get one WorkspaceIdeState
+     * const workspaceIdeState = await prisma.workspaceIdeState.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends WorkspaceIdeStateFindFirstArgs>(args?: SelectSubset<T, WorkspaceIdeStateFindFirstArgs<ExtArgs>>): Prisma__WorkspaceIdeStateClient<$Result.GetResult<Prisma.$WorkspaceIdeStatePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first WorkspaceIdeState that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceIdeStateFindFirstOrThrowArgs} args - Arguments to find a WorkspaceIdeState
+     * @example
+     * // Get one WorkspaceIdeState
+     * const workspaceIdeState = await prisma.workspaceIdeState.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends WorkspaceIdeStateFindFirstOrThrowArgs>(args?: SelectSubset<T, WorkspaceIdeStateFindFirstOrThrowArgs<ExtArgs>>): Prisma__WorkspaceIdeStateClient<$Result.GetResult<Prisma.$WorkspaceIdeStatePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more WorkspaceIdeStates that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceIdeStateFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all WorkspaceIdeStates
+     * const workspaceIdeStates = await prisma.workspaceIdeState.findMany()
+     * 
+     * // Get first 10 WorkspaceIdeStates
+     * const workspaceIdeStates = await prisma.workspaceIdeState.findMany({ take: 10 })
+     * 
+     * // Only select the `workspaceId`
+     * const workspaceIdeStateWithWorkspaceIdOnly = await prisma.workspaceIdeState.findMany({ select: { workspaceId: true } })
+     * 
+     */
+    findMany<T extends WorkspaceIdeStateFindManyArgs>(args?: SelectSubset<T, WorkspaceIdeStateFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspaceIdeStatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a WorkspaceIdeState.
+     * @param {WorkspaceIdeStateCreateArgs} args - Arguments to create a WorkspaceIdeState.
+     * @example
+     * // Create one WorkspaceIdeState
+     * const WorkspaceIdeState = await prisma.workspaceIdeState.create({
+     *   data: {
+     *     // ... data to create a WorkspaceIdeState
+     *   }
+     * })
+     * 
+     */
+    create<T extends WorkspaceIdeStateCreateArgs>(args: SelectSubset<T, WorkspaceIdeStateCreateArgs<ExtArgs>>): Prisma__WorkspaceIdeStateClient<$Result.GetResult<Prisma.$WorkspaceIdeStatePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many WorkspaceIdeStates.
+     * @param {WorkspaceIdeStateCreateManyArgs} args - Arguments to create many WorkspaceIdeStates.
+     * @example
+     * // Create many WorkspaceIdeStates
+     * const workspaceIdeState = await prisma.workspaceIdeState.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends WorkspaceIdeStateCreateManyArgs>(args?: SelectSubset<T, WorkspaceIdeStateCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many WorkspaceIdeStates and returns the data saved in the database.
+     * @param {WorkspaceIdeStateCreateManyAndReturnArgs} args - Arguments to create many WorkspaceIdeStates.
+     * @example
+     * // Create many WorkspaceIdeStates
+     * const workspaceIdeState = await prisma.workspaceIdeState.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many WorkspaceIdeStates and only return the `workspaceId`
+     * const workspaceIdeStateWithWorkspaceIdOnly = await prisma.workspaceIdeState.createManyAndReturn({
+     *   select: { workspaceId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends WorkspaceIdeStateCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkspaceIdeStateCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspaceIdeStatePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a WorkspaceIdeState.
+     * @param {WorkspaceIdeStateDeleteArgs} args - Arguments to delete one WorkspaceIdeState.
+     * @example
+     * // Delete one WorkspaceIdeState
+     * const WorkspaceIdeState = await prisma.workspaceIdeState.delete({
+     *   where: {
+     *     // ... filter to delete one WorkspaceIdeState
+     *   }
+     * })
+     * 
+     */
+    delete<T extends WorkspaceIdeStateDeleteArgs>(args: SelectSubset<T, WorkspaceIdeStateDeleteArgs<ExtArgs>>): Prisma__WorkspaceIdeStateClient<$Result.GetResult<Prisma.$WorkspaceIdeStatePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one WorkspaceIdeState.
+     * @param {WorkspaceIdeStateUpdateArgs} args - Arguments to update one WorkspaceIdeState.
+     * @example
+     * // Update one WorkspaceIdeState
+     * const workspaceIdeState = await prisma.workspaceIdeState.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends WorkspaceIdeStateUpdateArgs>(args: SelectSubset<T, WorkspaceIdeStateUpdateArgs<ExtArgs>>): Prisma__WorkspaceIdeStateClient<$Result.GetResult<Prisma.$WorkspaceIdeStatePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more WorkspaceIdeStates.
+     * @param {WorkspaceIdeStateDeleteManyArgs} args - Arguments to filter WorkspaceIdeStates to delete.
+     * @example
+     * // Delete a few WorkspaceIdeStates
+     * const { count } = await prisma.workspaceIdeState.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends WorkspaceIdeStateDeleteManyArgs>(args?: SelectSubset<T, WorkspaceIdeStateDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WorkspaceIdeStates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceIdeStateUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many WorkspaceIdeStates
+     * const workspaceIdeState = await prisma.workspaceIdeState.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends WorkspaceIdeStateUpdateManyArgs>(args: SelectSubset<T, WorkspaceIdeStateUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WorkspaceIdeStates and returns the data updated in the database.
+     * @param {WorkspaceIdeStateUpdateManyAndReturnArgs} args - Arguments to update many WorkspaceIdeStates.
+     * @example
+     * // Update many WorkspaceIdeStates
+     * const workspaceIdeState = await prisma.workspaceIdeState.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more WorkspaceIdeStates and only return the `workspaceId`
+     * const workspaceIdeStateWithWorkspaceIdOnly = await prisma.workspaceIdeState.updateManyAndReturn({
+     *   select: { workspaceId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends WorkspaceIdeStateUpdateManyAndReturnArgs>(args: SelectSubset<T, WorkspaceIdeStateUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspaceIdeStatePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one WorkspaceIdeState.
+     * @param {WorkspaceIdeStateUpsertArgs} args - Arguments to update or create a WorkspaceIdeState.
+     * @example
+     * // Update or create a WorkspaceIdeState
+     * const workspaceIdeState = await prisma.workspaceIdeState.upsert({
+     *   create: {
+     *     // ... data to create a WorkspaceIdeState
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the WorkspaceIdeState we want to update
+     *   }
+     * })
+     */
+    upsert<T extends WorkspaceIdeStateUpsertArgs>(args: SelectSubset<T, WorkspaceIdeStateUpsertArgs<ExtArgs>>): Prisma__WorkspaceIdeStateClient<$Result.GetResult<Prisma.$WorkspaceIdeStatePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of WorkspaceIdeStates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceIdeStateCountArgs} args - Arguments to filter WorkspaceIdeStates to count.
+     * @example
+     * // Count the number of WorkspaceIdeStates
+     * const count = await prisma.workspaceIdeState.count({
+     *   where: {
+     *     // ... the filter for the WorkspaceIdeStates we want to count
+     *   }
+     * })
+    **/
+    count<T extends WorkspaceIdeStateCountArgs>(
+      args?: Subset<T, WorkspaceIdeStateCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], WorkspaceIdeStateCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a WorkspaceIdeState.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceIdeStateAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends WorkspaceIdeStateAggregateArgs>(args: Subset<T, WorkspaceIdeStateAggregateArgs>): Prisma.PrismaPromise<GetWorkspaceIdeStateAggregateType<T>>
+
+    /**
+     * Group by WorkspaceIdeState.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceIdeStateGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends WorkspaceIdeStateGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: WorkspaceIdeStateGroupByArgs['orderBy'] }
+        : { orderBy?: WorkspaceIdeStateGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, WorkspaceIdeStateGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetWorkspaceIdeStateGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the WorkspaceIdeState model
+   */
+  readonly fields: WorkspaceIdeStateFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for WorkspaceIdeState.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__WorkspaceIdeStateClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    workspace<T extends WorkspaceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, WorkspaceDefaultArgs<ExtArgs>>): Prisma__WorkspaceClient<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the WorkspaceIdeState model
+   */
+  interface WorkspaceIdeStateFieldRefs {
+    readonly workspaceId: FieldRef<"WorkspaceIdeState", 'String'>
+    readonly state: FieldRef<"WorkspaceIdeState", 'Json'>
+    readonly version: FieldRef<"WorkspaceIdeState", 'Int'>
+    readonly updatedByUserId: FieldRef<"WorkspaceIdeState", 'String'>
+    readonly updatedAt: FieldRef<"WorkspaceIdeState", 'DateTime'>
+    readonly createdAt: FieldRef<"WorkspaceIdeState", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * WorkspaceIdeState findUnique
+   */
+  export type WorkspaceIdeStateFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceIdeState
+     */
+    select?: WorkspaceIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceIdeState
+     */
+    omit?: WorkspaceIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceIdeStateInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkspaceIdeState to fetch.
+     */
+    where: WorkspaceIdeStateWhereUniqueInput
+  }
+
+  /**
+   * WorkspaceIdeState findUniqueOrThrow
+   */
+  export type WorkspaceIdeStateFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceIdeState
+     */
+    select?: WorkspaceIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceIdeState
+     */
+    omit?: WorkspaceIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceIdeStateInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkspaceIdeState to fetch.
+     */
+    where: WorkspaceIdeStateWhereUniqueInput
+  }
+
+  /**
+   * WorkspaceIdeState findFirst
+   */
+  export type WorkspaceIdeStateFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceIdeState
+     */
+    select?: WorkspaceIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceIdeState
+     */
+    omit?: WorkspaceIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceIdeStateInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkspaceIdeState to fetch.
+     */
+    where?: WorkspaceIdeStateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkspaceIdeStates to fetch.
+     */
+    orderBy?: WorkspaceIdeStateOrderByWithRelationInput | WorkspaceIdeStateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkspaceIdeStates.
+     */
+    cursor?: WorkspaceIdeStateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkspaceIdeStates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkspaceIdeStates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkspaceIdeStates.
+     */
+    distinct?: WorkspaceIdeStateScalarFieldEnum | WorkspaceIdeStateScalarFieldEnum[]
+  }
+
+  /**
+   * WorkspaceIdeState findFirstOrThrow
+   */
+  export type WorkspaceIdeStateFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceIdeState
+     */
+    select?: WorkspaceIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceIdeState
+     */
+    omit?: WorkspaceIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceIdeStateInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkspaceIdeState to fetch.
+     */
+    where?: WorkspaceIdeStateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkspaceIdeStates to fetch.
+     */
+    orderBy?: WorkspaceIdeStateOrderByWithRelationInput | WorkspaceIdeStateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkspaceIdeStates.
+     */
+    cursor?: WorkspaceIdeStateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkspaceIdeStates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkspaceIdeStates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkspaceIdeStates.
+     */
+    distinct?: WorkspaceIdeStateScalarFieldEnum | WorkspaceIdeStateScalarFieldEnum[]
+  }
+
+  /**
+   * WorkspaceIdeState findMany
+   */
+  export type WorkspaceIdeStateFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceIdeState
+     */
+    select?: WorkspaceIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceIdeState
+     */
+    omit?: WorkspaceIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceIdeStateInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkspaceIdeStates to fetch.
+     */
+    where?: WorkspaceIdeStateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkspaceIdeStates to fetch.
+     */
+    orderBy?: WorkspaceIdeStateOrderByWithRelationInput | WorkspaceIdeStateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing WorkspaceIdeStates.
+     */
+    cursor?: WorkspaceIdeStateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkspaceIdeStates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkspaceIdeStates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkspaceIdeStates.
+     */
+    distinct?: WorkspaceIdeStateScalarFieldEnum | WorkspaceIdeStateScalarFieldEnum[]
+  }
+
+  /**
+   * WorkspaceIdeState create
+   */
+  export type WorkspaceIdeStateCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceIdeState
+     */
+    select?: WorkspaceIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceIdeState
+     */
+    omit?: WorkspaceIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceIdeStateInclude<ExtArgs> | null
+    /**
+     * The data needed to create a WorkspaceIdeState.
+     */
+    data: XOR<WorkspaceIdeStateCreateInput, WorkspaceIdeStateUncheckedCreateInput>
+  }
+
+  /**
+   * WorkspaceIdeState createMany
+   */
+  export type WorkspaceIdeStateCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many WorkspaceIdeStates.
+     */
+    data: WorkspaceIdeStateCreateManyInput | WorkspaceIdeStateCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * WorkspaceIdeState createManyAndReturn
+   */
+  export type WorkspaceIdeStateCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceIdeState
+     */
+    select?: WorkspaceIdeStateSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceIdeState
+     */
+    omit?: WorkspaceIdeStateOmit<ExtArgs> | null
+    /**
+     * The data used to create many WorkspaceIdeStates.
+     */
+    data: WorkspaceIdeStateCreateManyInput | WorkspaceIdeStateCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceIdeStateIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * WorkspaceIdeState update
+   */
+  export type WorkspaceIdeStateUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceIdeState
+     */
+    select?: WorkspaceIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceIdeState
+     */
+    omit?: WorkspaceIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceIdeStateInclude<ExtArgs> | null
+    /**
+     * The data needed to update a WorkspaceIdeState.
+     */
+    data: XOR<WorkspaceIdeStateUpdateInput, WorkspaceIdeStateUncheckedUpdateInput>
+    /**
+     * Choose, which WorkspaceIdeState to update.
+     */
+    where: WorkspaceIdeStateWhereUniqueInput
+  }
+
+  /**
+   * WorkspaceIdeState updateMany
+   */
+  export type WorkspaceIdeStateUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update WorkspaceIdeStates.
+     */
+    data: XOR<WorkspaceIdeStateUpdateManyMutationInput, WorkspaceIdeStateUncheckedUpdateManyInput>
+    /**
+     * Filter which WorkspaceIdeStates to update
+     */
+    where?: WorkspaceIdeStateWhereInput
+    /**
+     * Limit how many WorkspaceIdeStates to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * WorkspaceIdeState updateManyAndReturn
+   */
+  export type WorkspaceIdeStateUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceIdeState
+     */
+    select?: WorkspaceIdeStateSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceIdeState
+     */
+    omit?: WorkspaceIdeStateOmit<ExtArgs> | null
+    /**
+     * The data used to update WorkspaceIdeStates.
+     */
+    data: XOR<WorkspaceIdeStateUpdateManyMutationInput, WorkspaceIdeStateUncheckedUpdateManyInput>
+    /**
+     * Filter which WorkspaceIdeStates to update
+     */
+    where?: WorkspaceIdeStateWhereInput
+    /**
+     * Limit how many WorkspaceIdeStates to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceIdeStateIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * WorkspaceIdeState upsert
+   */
+  export type WorkspaceIdeStateUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceIdeState
+     */
+    select?: WorkspaceIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceIdeState
+     */
+    omit?: WorkspaceIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceIdeStateInclude<ExtArgs> | null
+    /**
+     * The filter to search for the WorkspaceIdeState to update in case it exists.
+     */
+    where: WorkspaceIdeStateWhereUniqueInput
+    /**
+     * In case the WorkspaceIdeState found by the `where` argument doesn't exist, create a new WorkspaceIdeState with this data.
+     */
+    create: XOR<WorkspaceIdeStateCreateInput, WorkspaceIdeStateUncheckedCreateInput>
+    /**
+     * In case the WorkspaceIdeState was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<WorkspaceIdeStateUpdateInput, WorkspaceIdeStateUncheckedUpdateInput>
+  }
+
+  /**
+   * WorkspaceIdeState delete
+   */
+  export type WorkspaceIdeStateDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceIdeState
+     */
+    select?: WorkspaceIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceIdeState
+     */
+    omit?: WorkspaceIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceIdeStateInclude<ExtArgs> | null
+    /**
+     * Filter which WorkspaceIdeState to delete.
+     */
+    where: WorkspaceIdeStateWhereUniqueInput
+  }
+
+  /**
+   * WorkspaceIdeState deleteMany
+   */
+  export type WorkspaceIdeStateDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkspaceIdeStates to delete
+     */
+    where?: WorkspaceIdeStateWhereInput
+    /**
+     * Limit how many WorkspaceIdeStates to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * WorkspaceIdeState without action
+   */
+  export type WorkspaceIdeStateDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceIdeState
+     */
+    select?: WorkspaceIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceIdeState
+     */
+    omit?: WorkspaceIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceIdeStateInclude<ExtArgs> | null
   }
 
 
@@ -94379,11 +95612,24 @@ export namespace Prisma {
     status: 'status',
     runtimeMode: 'runtimeMode',
     gitPath: 'gitPath',
+    gitRepositoryUrl: 'gitRepositoryUrl',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
 
   export type WorkspaceScalarFieldEnum = (typeof WorkspaceScalarFieldEnum)[keyof typeof WorkspaceScalarFieldEnum]
+
+
+  export const WorkspaceIdeStateScalarFieldEnum: {
+    workspaceId: 'workspaceId',
+    state: 'state',
+    version: 'version',
+    updatedByUserId: 'updatedByUserId',
+    updatedAt: 'updatedAt',
+    createdAt: 'createdAt'
+  };
+
+  export type WorkspaceIdeStateScalarFieldEnum = (typeof WorkspaceIdeStateScalarFieldEnum)[keyof typeof WorkspaceIdeStateScalarFieldEnum]
 
 
   export const WorkspaceSessionScalarFieldEnum: {
@@ -97281,12 +98527,14 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFilter<"Workspace"> | $Enums.WorkspaceStatus
     runtimeMode?: StringFilter<"Workspace"> | string
     gitPath?: StringNullableFilter<"Workspace"> | string | null
+    gitRepositoryUrl?: StringNullableFilter<"Workspace"> | string | null
     createdAt?: DateTimeFilter<"Workspace"> | Date | string
     updatedAt?: DateTimeFilter<"Workspace"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
     sessions?: WorkspaceSessionListRelationFilter
     ports?: WorkspacePortListRelationFilter
     snapshots?: FileSnapshotListRelationFilter
+    ideState?: XOR<WorkspaceIdeStateNullableScalarRelationFilter, WorkspaceIdeStateWhereInput> | null
   }
 
   export type WorkspaceOrderByWithRelationInput = {
@@ -97296,12 +98544,14 @@ export namespace Prisma {
     status?: SortOrder
     runtimeMode?: SortOrder
     gitPath?: SortOrderInput | SortOrder
+    gitRepositoryUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     project?: ProjectOrderByWithRelationInput
     sessions?: WorkspaceSessionOrderByRelationAggregateInput
     ports?: WorkspacePortOrderByRelationAggregateInput
     snapshots?: FileSnapshotOrderByRelationAggregateInput
+    ideState?: WorkspaceIdeStateOrderByWithRelationInput
   }
 
   export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
@@ -97314,12 +98564,14 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFilter<"Workspace"> | $Enums.WorkspaceStatus
     runtimeMode?: StringFilter<"Workspace"> | string
     gitPath?: StringNullableFilter<"Workspace"> | string | null
+    gitRepositoryUrl?: StringNullableFilter<"Workspace"> | string | null
     createdAt?: DateTimeFilter<"Workspace"> | Date | string
     updatedAt?: DateTimeFilter<"Workspace"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
     sessions?: WorkspaceSessionListRelationFilter
     ports?: WorkspacePortListRelationFilter
     snapshots?: FileSnapshotListRelationFilter
+    ideState?: XOR<WorkspaceIdeStateNullableScalarRelationFilter, WorkspaceIdeStateWhereInput> | null
   }, "id">
 
   export type WorkspaceOrderByWithAggregationInput = {
@@ -97329,6 +98581,7 @@ export namespace Prisma {
     status?: SortOrder
     runtimeMode?: SortOrder
     gitPath?: SortOrderInput | SortOrder
+    gitRepositoryUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: WorkspaceCountOrderByAggregateInput
@@ -97346,8 +98599,71 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusWithAggregatesFilter<"Workspace"> | $Enums.WorkspaceStatus
     runtimeMode?: StringWithAggregatesFilter<"Workspace"> | string
     gitPath?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    gitRepositoryUrl?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Workspace"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Workspace"> | Date | string
+  }
+
+  export type WorkspaceIdeStateWhereInput = {
+    AND?: WorkspaceIdeStateWhereInput | WorkspaceIdeStateWhereInput[]
+    OR?: WorkspaceIdeStateWhereInput[]
+    NOT?: WorkspaceIdeStateWhereInput | WorkspaceIdeStateWhereInput[]
+    workspaceId?: StringFilter<"WorkspaceIdeState"> | string
+    state?: JsonFilter<"WorkspaceIdeState">
+    version?: IntFilter<"WorkspaceIdeState"> | number
+    updatedByUserId?: StringNullableFilter<"WorkspaceIdeState"> | string | null
+    updatedAt?: DateTimeFilter<"WorkspaceIdeState"> | Date | string
+    createdAt?: DateTimeFilter<"WorkspaceIdeState"> | Date | string
+    workspace?: XOR<WorkspaceScalarRelationFilter, WorkspaceWhereInput>
+  }
+
+  export type WorkspaceIdeStateOrderByWithRelationInput = {
+    workspaceId?: SortOrder
+    state?: SortOrder
+    version?: SortOrder
+    updatedByUserId?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+    createdAt?: SortOrder
+    workspace?: WorkspaceOrderByWithRelationInput
+  }
+
+  export type WorkspaceIdeStateWhereUniqueInput = Prisma.AtLeast<{
+    workspaceId?: string
+    AND?: WorkspaceIdeStateWhereInput | WorkspaceIdeStateWhereInput[]
+    OR?: WorkspaceIdeStateWhereInput[]
+    NOT?: WorkspaceIdeStateWhereInput | WorkspaceIdeStateWhereInput[]
+    state?: JsonFilter<"WorkspaceIdeState">
+    version?: IntFilter<"WorkspaceIdeState"> | number
+    updatedByUserId?: StringNullableFilter<"WorkspaceIdeState"> | string | null
+    updatedAt?: DateTimeFilter<"WorkspaceIdeState"> | Date | string
+    createdAt?: DateTimeFilter<"WorkspaceIdeState"> | Date | string
+    workspace?: XOR<WorkspaceScalarRelationFilter, WorkspaceWhereInput>
+  }, "workspaceId">
+
+  export type WorkspaceIdeStateOrderByWithAggregationInput = {
+    workspaceId?: SortOrder
+    state?: SortOrder
+    version?: SortOrder
+    updatedByUserId?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+    createdAt?: SortOrder
+    _count?: WorkspaceIdeStateCountOrderByAggregateInput
+    _avg?: WorkspaceIdeStateAvgOrderByAggregateInput
+    _max?: WorkspaceIdeStateMaxOrderByAggregateInput
+    _min?: WorkspaceIdeStateMinOrderByAggregateInput
+    _sum?: WorkspaceIdeStateSumOrderByAggregateInput
+  }
+
+  export type WorkspaceIdeStateScalarWhereWithAggregatesInput = {
+    AND?: WorkspaceIdeStateScalarWhereWithAggregatesInput | WorkspaceIdeStateScalarWhereWithAggregatesInput[]
+    OR?: WorkspaceIdeStateScalarWhereWithAggregatesInput[]
+    NOT?: WorkspaceIdeStateScalarWhereWithAggregatesInput | WorkspaceIdeStateScalarWhereWithAggregatesInput[]
+    workspaceId?: StringWithAggregatesFilter<"WorkspaceIdeState"> | string
+    state?: JsonWithAggregatesFilter<"WorkspaceIdeState">
+    version?: IntWithAggregatesFilter<"WorkspaceIdeState"> | number
+    updatedByUserId?: StringNullableWithAggregatesFilter<"WorkspaceIdeState"> | string | null
+    updatedAt?: DateTimeWithAggregatesFilter<"WorkspaceIdeState"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"WorkspaceIdeState"> | Date | string
   }
 
   export type WorkspaceSessionWhereInput = {
@@ -103104,12 +104420,14 @@ export namespace Prisma {
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
     gitPath?: string | null
+    gitRepositoryUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutWorkspacesInput
     sessions?: WorkspaceSessionCreateNestedManyWithoutWorkspaceInput
     ports?: WorkspacePortCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateCreateNestedOneWithoutWorkspaceInput
   }
 
   export type WorkspaceUncheckedCreateInput = {
@@ -103119,11 +104437,13 @@ export namespace Prisma {
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
     gitPath?: string | null
+    gitRepositoryUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkspaceSessionUncheckedCreateNestedManyWithoutWorkspaceInput
     ports?: WorkspacePortUncheckedCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotUncheckedCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateUncheckedCreateNestedOneWithoutWorkspaceInput
   }
 
   export type WorkspaceUpdateInput = {
@@ -103132,12 +104452,14 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutWorkspacesNestedInput
     sessions?: WorkspaceSessionUpdateManyWithoutWorkspaceNestedInput
     ports?: WorkspacePortUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUpdateOneWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceUncheckedUpdateInput = {
@@ -103147,11 +104469,13 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkspaceSessionUncheckedUpdateManyWithoutWorkspaceNestedInput
     ports?: WorkspacePortUncheckedUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUncheckedUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUncheckedUpdateOneWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceCreateManyInput = {
@@ -103161,6 +104485,7 @@ export namespace Prisma {
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
     gitPath?: string | null
+    gitRepositoryUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -103171,6 +104496,7 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -103182,8 +104508,71 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspaceIdeStateCreateInput = {
+    state: JsonNullValueInput | InputJsonValue
+    version?: number
+    updatedByUserId?: string | null
+    updatedAt?: Date | string
+    createdAt?: Date | string
+    workspace: WorkspaceCreateNestedOneWithoutIdeStateInput
+  }
+
+  export type WorkspaceIdeStateUncheckedCreateInput = {
+    workspaceId: string
+    state: JsonNullValueInput | InputJsonValue
+    version?: number
+    updatedByUserId?: string | null
+    updatedAt?: Date | string
+    createdAt?: Date | string
+  }
+
+  export type WorkspaceIdeStateUpdateInput = {
+    state?: JsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    updatedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    workspace?: WorkspaceUpdateOneRequiredWithoutIdeStateNestedInput
+  }
+
+  export type WorkspaceIdeStateUncheckedUpdateInput = {
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    state?: JsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    updatedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspaceIdeStateCreateManyInput = {
+    workspaceId: string
+    state: JsonNullValueInput | InputJsonValue
+    version?: number
+    updatedByUserId?: string | null
+    updatedAt?: Date | string
+    createdAt?: Date | string
+  }
+
+  export type WorkspaceIdeStateUpdateManyMutationInput = {
+    state?: JsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    updatedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspaceIdeStateUncheckedUpdateManyInput = {
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    state?: JsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    updatedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type WorkspaceSessionCreateInput = {
@@ -109018,6 +110407,11 @@ export namespace Prisma {
     none?: WorkspacePortWhereInput
   }
 
+  export type WorkspaceIdeStateNullableScalarRelationFilter = {
+    is?: WorkspaceIdeStateWhereInput | null
+    isNot?: WorkspaceIdeStateWhereInput | null
+  }
+
   export type WorkspaceSessionOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -109033,6 +110427,7 @@ export namespace Prisma {
     status?: SortOrder
     runtimeMode?: SortOrder
     gitPath?: SortOrder
+    gitRepositoryUrl?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -109044,6 +110439,7 @@ export namespace Prisma {
     status?: SortOrder
     runtimeMode?: SortOrder
     gitPath?: SortOrder
+    gitRepositoryUrl?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -109055,6 +110451,7 @@ export namespace Prisma {
     status?: SortOrder
     runtimeMode?: SortOrder
     gitPath?: SortOrder
+    gitRepositoryUrl?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -109072,6 +110469,39 @@ export namespace Prisma {
   export type WorkspaceScalarRelationFilter = {
     is?: WorkspaceWhereInput
     isNot?: WorkspaceWhereInput
+  }
+
+  export type WorkspaceIdeStateCountOrderByAggregateInput = {
+    workspaceId?: SortOrder
+    state?: SortOrder
+    version?: SortOrder
+    updatedByUserId?: SortOrder
+    updatedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WorkspaceIdeStateAvgOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type WorkspaceIdeStateMaxOrderByAggregateInput = {
+    workspaceId?: SortOrder
+    version?: SortOrder
+    updatedByUserId?: SortOrder
+    updatedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WorkspaceIdeStateMinOrderByAggregateInput = {
+    workspaceId?: SortOrder
+    version?: SortOrder
+    updatedByUserId?: SortOrder
+    updatedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WorkspaceIdeStateSumOrderByAggregateInput = {
+    version?: SortOrder
   }
 
   export type WorkspaceSessionCountOrderByAggregateInput = {
@@ -115060,6 +116490,12 @@ export namespace Prisma {
     connect?: FileSnapshotWhereUniqueInput | FileSnapshotWhereUniqueInput[]
   }
 
+  export type WorkspaceIdeStateCreateNestedOneWithoutWorkspaceInput = {
+    create?: XOR<WorkspaceIdeStateCreateWithoutWorkspaceInput, WorkspaceIdeStateUncheckedCreateWithoutWorkspaceInput>
+    connectOrCreate?: WorkspaceIdeStateCreateOrConnectWithoutWorkspaceInput
+    connect?: WorkspaceIdeStateWhereUniqueInput
+  }
+
   export type WorkspaceSessionUncheckedCreateNestedManyWithoutWorkspaceInput = {
     create?: XOR<WorkspaceSessionCreateWithoutWorkspaceInput, WorkspaceSessionUncheckedCreateWithoutWorkspaceInput> | WorkspaceSessionCreateWithoutWorkspaceInput[] | WorkspaceSessionUncheckedCreateWithoutWorkspaceInput[]
     connectOrCreate?: WorkspaceSessionCreateOrConnectWithoutWorkspaceInput | WorkspaceSessionCreateOrConnectWithoutWorkspaceInput[]
@@ -115079,6 +116515,12 @@ export namespace Prisma {
     connectOrCreate?: FileSnapshotCreateOrConnectWithoutWorkspaceInput | FileSnapshotCreateOrConnectWithoutWorkspaceInput[]
     createMany?: FileSnapshotCreateManyWorkspaceInputEnvelope
     connect?: FileSnapshotWhereUniqueInput | FileSnapshotWhereUniqueInput[]
+  }
+
+  export type WorkspaceIdeStateUncheckedCreateNestedOneWithoutWorkspaceInput = {
+    create?: XOR<WorkspaceIdeStateCreateWithoutWorkspaceInput, WorkspaceIdeStateUncheckedCreateWithoutWorkspaceInput>
+    connectOrCreate?: WorkspaceIdeStateCreateOrConnectWithoutWorkspaceInput
+    connect?: WorkspaceIdeStateWhereUniqueInput
   }
 
   export type EnumWorkspaceStatusFieldUpdateOperationsInput = {
@@ -115135,6 +116577,16 @@ export namespace Prisma {
     deleteMany?: FileSnapshotScalarWhereInput | FileSnapshotScalarWhereInput[]
   }
 
+  export type WorkspaceIdeStateUpdateOneWithoutWorkspaceNestedInput = {
+    create?: XOR<WorkspaceIdeStateCreateWithoutWorkspaceInput, WorkspaceIdeStateUncheckedCreateWithoutWorkspaceInput>
+    connectOrCreate?: WorkspaceIdeStateCreateOrConnectWithoutWorkspaceInput
+    upsert?: WorkspaceIdeStateUpsertWithoutWorkspaceInput
+    disconnect?: WorkspaceIdeStateWhereInput | boolean
+    delete?: WorkspaceIdeStateWhereInput | boolean
+    connect?: WorkspaceIdeStateWhereUniqueInput
+    update?: XOR<XOR<WorkspaceIdeStateUpdateToOneWithWhereWithoutWorkspaceInput, WorkspaceIdeStateUpdateWithoutWorkspaceInput>, WorkspaceIdeStateUncheckedUpdateWithoutWorkspaceInput>
+  }
+
   export type WorkspaceSessionUncheckedUpdateManyWithoutWorkspaceNestedInput = {
     create?: XOR<WorkspaceSessionCreateWithoutWorkspaceInput, WorkspaceSessionUncheckedCreateWithoutWorkspaceInput> | WorkspaceSessionCreateWithoutWorkspaceInput[] | WorkspaceSessionUncheckedCreateWithoutWorkspaceInput[]
     connectOrCreate?: WorkspaceSessionCreateOrConnectWithoutWorkspaceInput | WorkspaceSessionCreateOrConnectWithoutWorkspaceInput[]
@@ -115175,6 +116627,30 @@ export namespace Prisma {
     update?: FileSnapshotUpdateWithWhereUniqueWithoutWorkspaceInput | FileSnapshotUpdateWithWhereUniqueWithoutWorkspaceInput[]
     updateMany?: FileSnapshotUpdateManyWithWhereWithoutWorkspaceInput | FileSnapshotUpdateManyWithWhereWithoutWorkspaceInput[]
     deleteMany?: FileSnapshotScalarWhereInput | FileSnapshotScalarWhereInput[]
+  }
+
+  export type WorkspaceIdeStateUncheckedUpdateOneWithoutWorkspaceNestedInput = {
+    create?: XOR<WorkspaceIdeStateCreateWithoutWorkspaceInput, WorkspaceIdeStateUncheckedCreateWithoutWorkspaceInput>
+    connectOrCreate?: WorkspaceIdeStateCreateOrConnectWithoutWorkspaceInput
+    upsert?: WorkspaceIdeStateUpsertWithoutWorkspaceInput
+    disconnect?: WorkspaceIdeStateWhereInput | boolean
+    delete?: WorkspaceIdeStateWhereInput | boolean
+    connect?: WorkspaceIdeStateWhereUniqueInput
+    update?: XOR<XOR<WorkspaceIdeStateUpdateToOneWithWhereWithoutWorkspaceInput, WorkspaceIdeStateUpdateWithoutWorkspaceInput>, WorkspaceIdeStateUncheckedUpdateWithoutWorkspaceInput>
+  }
+
+  export type WorkspaceCreateNestedOneWithoutIdeStateInput = {
+    create?: XOR<WorkspaceCreateWithoutIdeStateInput, WorkspaceUncheckedCreateWithoutIdeStateInput>
+    connectOrCreate?: WorkspaceCreateOrConnectWithoutIdeStateInput
+    connect?: WorkspaceWhereUniqueInput
+  }
+
+  export type WorkspaceUpdateOneRequiredWithoutIdeStateNestedInput = {
+    create?: XOR<WorkspaceCreateWithoutIdeStateInput, WorkspaceUncheckedCreateWithoutIdeStateInput>
+    connectOrCreate?: WorkspaceCreateOrConnectWithoutIdeStateInput
+    upsert?: WorkspaceUpsertWithoutIdeStateInput
+    connect?: WorkspaceWhereUniqueInput
+    update?: XOR<XOR<WorkspaceUpdateToOneWithWhereWithoutIdeStateInput, WorkspaceUpdateWithoutIdeStateInput>, WorkspaceUncheckedUpdateWithoutIdeStateInput>
   }
 
   export type WorkspaceCreateNestedOneWithoutSessionsInput = {
@@ -121688,11 +123164,13 @@ export namespace Prisma {
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
     gitPath?: string | null
+    gitRepositoryUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkspaceSessionCreateNestedManyWithoutWorkspaceInput
     ports?: WorkspacePortCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateCreateNestedOneWithoutWorkspaceInput
   }
 
   export type WorkspaceUncheckedCreateWithoutProjectInput = {
@@ -121701,11 +123179,13 @@ export namespace Prisma {
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
     gitPath?: string | null
+    gitRepositoryUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkspaceSessionUncheckedCreateNestedManyWithoutWorkspaceInput
     ports?: WorkspacePortUncheckedCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotUncheckedCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateUncheckedCreateNestedOneWithoutWorkspaceInput
   }
 
   export type WorkspaceCreateOrConnectWithoutProjectInput = {
@@ -122353,6 +123833,7 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFilter<"Workspace"> | $Enums.WorkspaceStatus
     runtimeMode?: StringFilter<"Workspace"> | string
     gitPath?: StringNullableFilter<"Workspace"> | string | null
+    gitRepositoryUrl?: StringNullableFilter<"Workspace"> | string | null
     createdAt?: DateTimeFilter<"Workspace"> | Date | string
     updatedAt?: DateTimeFilter<"Workspace"> | Date | string
   }
@@ -126720,6 +128201,27 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type WorkspaceIdeStateCreateWithoutWorkspaceInput = {
+    state: JsonNullValueInput | InputJsonValue
+    version?: number
+    updatedByUserId?: string | null
+    updatedAt?: Date | string
+    createdAt?: Date | string
+  }
+
+  export type WorkspaceIdeStateUncheckedCreateWithoutWorkspaceInput = {
+    state: JsonNullValueInput | InputJsonValue
+    version?: number
+    updatedByUserId?: string | null
+    updatedAt?: Date | string
+    createdAt?: Date | string
+  }
+
+  export type WorkspaceIdeStateCreateOrConnectWithoutWorkspaceInput = {
+    where: WorkspaceIdeStateWhereUniqueInput
+    create: XOR<WorkspaceIdeStateCreateWithoutWorkspaceInput, WorkspaceIdeStateUncheckedCreateWithoutWorkspaceInput>
+  }
+
   export type ProjectUpsertWithoutWorkspacesInput = {
     update: XOR<ProjectUpdateWithoutWorkspacesInput, ProjectUncheckedUpdateWithoutWorkspacesInput>
     create: XOR<ProjectCreateWithoutWorkspacesInput, ProjectUncheckedCreateWithoutWorkspacesInput>
@@ -126873,17 +128375,122 @@ export namespace Prisma {
     data: XOR<FileSnapshotUpdateManyMutationInput, FileSnapshotUncheckedUpdateManyWithoutWorkspaceInput>
   }
 
+  export type WorkspaceIdeStateUpsertWithoutWorkspaceInput = {
+    update: XOR<WorkspaceIdeStateUpdateWithoutWorkspaceInput, WorkspaceIdeStateUncheckedUpdateWithoutWorkspaceInput>
+    create: XOR<WorkspaceIdeStateCreateWithoutWorkspaceInput, WorkspaceIdeStateUncheckedCreateWithoutWorkspaceInput>
+    where?: WorkspaceIdeStateWhereInput
+  }
+
+  export type WorkspaceIdeStateUpdateToOneWithWhereWithoutWorkspaceInput = {
+    where?: WorkspaceIdeStateWhereInput
+    data: XOR<WorkspaceIdeStateUpdateWithoutWorkspaceInput, WorkspaceIdeStateUncheckedUpdateWithoutWorkspaceInput>
+  }
+
+  export type WorkspaceIdeStateUpdateWithoutWorkspaceInput = {
+    state?: JsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    updatedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspaceIdeStateUncheckedUpdateWithoutWorkspaceInput = {
+    state?: JsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    updatedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspaceCreateWithoutIdeStateInput = {
+    id?: string
+    name: string
+    status?: $Enums.WorkspaceStatus
+    runtimeMode: string
+    gitPath?: string | null
+    gitRepositoryUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutWorkspacesInput
+    sessions?: WorkspaceSessionCreateNestedManyWithoutWorkspaceInput
+    ports?: WorkspacePortCreateNestedManyWithoutWorkspaceInput
+    snapshots?: FileSnapshotCreateNestedManyWithoutWorkspaceInput
+  }
+
+  export type WorkspaceUncheckedCreateWithoutIdeStateInput = {
+    id?: string
+    projectId: string
+    name: string
+    status?: $Enums.WorkspaceStatus
+    runtimeMode: string
+    gitPath?: string | null
+    gitRepositoryUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: WorkspaceSessionUncheckedCreateNestedManyWithoutWorkspaceInput
+    ports?: WorkspacePortUncheckedCreateNestedManyWithoutWorkspaceInput
+    snapshots?: FileSnapshotUncheckedCreateNestedManyWithoutWorkspaceInput
+  }
+
+  export type WorkspaceCreateOrConnectWithoutIdeStateInput = {
+    where: WorkspaceWhereUniqueInput
+    create: XOR<WorkspaceCreateWithoutIdeStateInput, WorkspaceUncheckedCreateWithoutIdeStateInput>
+  }
+
+  export type WorkspaceUpsertWithoutIdeStateInput = {
+    update: XOR<WorkspaceUpdateWithoutIdeStateInput, WorkspaceUncheckedUpdateWithoutIdeStateInput>
+    create: XOR<WorkspaceCreateWithoutIdeStateInput, WorkspaceUncheckedCreateWithoutIdeStateInput>
+    where?: WorkspaceWhereInput
+  }
+
+  export type WorkspaceUpdateToOneWithWhereWithoutIdeStateInput = {
+    where?: WorkspaceWhereInput
+    data: XOR<WorkspaceUpdateWithoutIdeStateInput, WorkspaceUncheckedUpdateWithoutIdeStateInput>
+  }
+
+  export type WorkspaceUpdateWithoutIdeStateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
+    runtimeMode?: StringFieldUpdateOperationsInput | string
+    gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutWorkspacesNestedInput
+    sessions?: WorkspaceSessionUpdateManyWithoutWorkspaceNestedInput
+    ports?: WorkspacePortUpdateManyWithoutWorkspaceNestedInput
+    snapshots?: FileSnapshotUpdateManyWithoutWorkspaceNestedInput
+  }
+
+  export type WorkspaceUncheckedUpdateWithoutIdeStateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
+    runtimeMode?: StringFieldUpdateOperationsInput | string
+    gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: WorkspaceSessionUncheckedUpdateManyWithoutWorkspaceNestedInput
+    ports?: WorkspacePortUncheckedUpdateManyWithoutWorkspaceNestedInput
+    snapshots?: FileSnapshotUncheckedUpdateManyWithoutWorkspaceNestedInput
+  }
+
   export type WorkspaceCreateWithoutSessionsInput = {
     id?: string
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
     gitPath?: string | null
+    gitRepositoryUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutWorkspacesInput
     ports?: WorkspacePortCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateCreateNestedOneWithoutWorkspaceInput
   }
 
   export type WorkspaceUncheckedCreateWithoutSessionsInput = {
@@ -126893,10 +128500,12 @@ export namespace Prisma {
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
     gitPath?: string | null
+    gitRepositoryUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     ports?: WorkspacePortUncheckedCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotUncheckedCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateUncheckedCreateNestedOneWithoutWorkspaceInput
   }
 
   export type WorkspaceCreateOrConnectWithoutSessionsInput = {
@@ -126921,11 +128530,13 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutWorkspacesNestedInput
     ports?: WorkspacePortUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUpdateOneWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceUncheckedUpdateWithoutSessionsInput = {
@@ -126935,10 +128546,12 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ports?: WorkspacePortUncheckedUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUncheckedUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUncheckedUpdateOneWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceCreateWithoutPortsInput = {
@@ -126947,11 +128560,13 @@ export namespace Prisma {
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
     gitPath?: string | null
+    gitRepositoryUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutWorkspacesInput
     sessions?: WorkspaceSessionCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateCreateNestedOneWithoutWorkspaceInput
   }
 
   export type WorkspaceUncheckedCreateWithoutPortsInput = {
@@ -126961,10 +128576,12 @@ export namespace Prisma {
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
     gitPath?: string | null
+    gitRepositoryUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkspaceSessionUncheckedCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotUncheckedCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateUncheckedCreateNestedOneWithoutWorkspaceInput
   }
 
   export type WorkspaceCreateOrConnectWithoutPortsInput = {
@@ -126989,11 +128606,13 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutWorkspacesNestedInput
     sessions?: WorkspaceSessionUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUpdateOneWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceUncheckedUpdateWithoutPortsInput = {
@@ -127003,10 +128622,12 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkspaceSessionUncheckedUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUncheckedUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUncheckedUpdateOneWithoutWorkspaceNestedInput
   }
 
   export type ProjectCreateWithoutFileSnapshotsInput = {
@@ -127090,11 +128711,13 @@ export namespace Prisma {
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
     gitPath?: string | null
+    gitRepositoryUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutWorkspacesInput
     sessions?: WorkspaceSessionCreateNestedManyWithoutWorkspaceInput
     ports?: WorkspacePortCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateCreateNestedOneWithoutWorkspaceInput
   }
 
   export type WorkspaceUncheckedCreateWithoutSnapshotsInput = {
@@ -127104,10 +128727,12 @@ export namespace Prisma {
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
     gitPath?: string | null
+    gitRepositoryUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: WorkspaceSessionUncheckedCreateNestedManyWithoutWorkspaceInput
     ports?: WorkspacePortUncheckedCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateUncheckedCreateNestedOneWithoutWorkspaceInput
   }
 
   export type WorkspaceCreateOrConnectWithoutSnapshotsInput = {
@@ -127213,11 +128838,13 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutWorkspacesNestedInput
     sessions?: WorkspaceSessionUpdateManyWithoutWorkspaceNestedInput
     ports?: WorkspacePortUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUpdateOneWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceUncheckedUpdateWithoutSnapshotsInput = {
@@ -127227,10 +128854,12 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkspaceSessionUncheckedUpdateManyWithoutWorkspaceNestedInput
     ports?: WorkspacePortUncheckedUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUncheckedUpdateOneWithoutWorkspaceNestedInput
   }
 
   export type ProjectCreateWithoutSnapshotsInput = {
@@ -138412,6 +140041,7 @@ export namespace Prisma {
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
     gitPath?: string | null
+    gitRepositoryUrl?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -138691,11 +140321,13 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkspaceSessionUpdateManyWithoutWorkspaceNestedInput
     ports?: WorkspacePortUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUpdateOneWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceUncheckedUpdateWithoutProjectInput = {
@@ -138704,11 +140336,13 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: WorkspaceSessionUncheckedUpdateManyWithoutWorkspaceNestedInput
     ports?: WorkspacePortUncheckedUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUncheckedUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUncheckedUpdateOneWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceUncheckedUpdateManyWithoutProjectInput = {
@@ -138717,6 +140351,7 @@ export namespace Prisma {
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
