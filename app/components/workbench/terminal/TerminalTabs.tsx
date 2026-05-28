@@ -13,6 +13,8 @@ const logger = createScopedLogger('Terminal');
 
 const MAX_TERMINALS = 4;
 const TERMINAL_UI_STORAGE_KEY = 'vibecore-terminal-ui-v1';
+const TERMINAL_PANEL_LABEL = 'Shell (Terminal)';
+const TERMINAL_WORKSPACE_LABEL = '~/workspace';
 export const DEFAULT_TERMINAL_SIZE = 34;
 
 type TerminalProfile = 'managed' | 'bash' | 'zsh' | 'sh';
@@ -71,18 +73,35 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
   const [profile, setProfile] = useState<TerminalProfile>(initialUiState.profile);
   const [splitView, setSplitView] = useState(initialUiState.splitView);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [sessionMenuOpen, setSessionMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const sessionMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
   const activeProfile = terminalProfiles.find((item) => item.id === profile) ?? terminalProfiles[0];
+  const activeShellName = activeProfile.id === 'managed' ? 'bash' : activeProfile.label;
 
-  const addTerminal = () => {
+  const getSessionLabel = useCallback(
+    (index: number) => {
+      const baseLabel = `${TERMINAL_WORKSPACE_LABEL}: ${activeShellName}`;
+
+      return index === 0 ? baseLabel : `${baseLabel} #${index + 1}`;
+    },
+    [activeShellName],
+  );
+
+  const activeSessionLabel = getSessionLabel(activeTerminal);
+
+  const addTerminal = useCallback(() => {
     if (terminalCount < MAX_TERMINALS) {
       const nextCount = terminalCount + 1;
       setTerminalCount(nextCount);
       setActiveTerminal(nextCount);
+      setSessionMenuOpen(false);
     }
-  };
+  }, [terminalCount]);
 
   const closeTerminal = useCallback(
     (index: number) => {
@@ -195,6 +214,23 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
     terminalRefs.current.get(activeTerminal)?.getTerminal()?.focus();
   }, [activeTerminal]);
 
+  const closeActiveShellTab = useCallback(() => {
+    setMoreMenuOpen(false);
+
+    if (activeTerminal > 0) {
+      closeTerminal(activeTerminal);
+
+      return;
+    }
+
+    workbenchStore.toggleTerminal(false);
+  }, [activeTerminal, closeTerminal]);
+
+  const openSearch = useCallback(() => {
+    setMoreMenuOpen(false);
+    setSearchOpen(true);
+  }, []);
+
   const findInActiveTerminal = useCallback(
     (direction: 'next' | 'previous' = 'next') => {
       const query = searchQuery.trim();
@@ -260,19 +296,39 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
   }, []);
 
   useEffect(() => {
-    if (!moreMenuOpen) {
+    if (!searchOpen) {
+      return undefined;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (!moreMenuOpen && !sessionMenuOpen) {
       return undefined;
     }
 
     const closeOnOutsidePointer = (event: PointerEvent) => {
-      if (!moreMenuRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+
+      if (moreMenuOpen && !moreMenuRef.current?.contains(target)) {
         setMoreMenuOpen(false);
+      }
+
+      if (sessionMenuOpen && !sessionMenuRef.current?.contains(target)) {
+        setSessionMenuOpen(false);
       }
     };
 
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setMoreMenuOpen(false);
+        setSessionMenuOpen(false);
       }
     };
 
@@ -283,7 +339,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
       document.removeEventListener('pointerdown', closeOnOutsidePointer);
       document.removeEventListener('keydown', closeOnEscape);
     };
-  }, [moreMenuOpen]);
+  }, [moreMenuOpen, sessionMenuOpen]);
 
   return (
     <Panel
@@ -304,251 +360,297 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
     >
       <div className="h-full">
         <div className="bolt-terminal-tabs-shell bg-bolt-elements-terminals-background h-full flex flex-col">
-          <div className="bolt-terminal-tabs-bar" data-testid="terminal-tabs-bar">
-            <div className="bolt-terminal-tabs-strip" aria-label="Terminal sessions">
-              {Array.from({ length: terminalCount + 1 }, (_, index) => {
-                const isActive = activeTerminal === index;
+          <div className="bolt-terminal-tabs-bar" data-testid="terminal-tabs-bar" aria-label={TERMINAL_PANEL_LABEL}>
+            <div className="bolt-terminal-session-switcher" ref={sessionMenuRef}>
+              <button
+                type="button"
+                className="bolt-terminal-session-button"
+                aria-haspopup="menu"
+                aria-expanded={sessionMenuOpen}
+                aria-label={`Open shell sessions. Active session ${activeSessionLabel}.`}
+                title="Shell sessions"
+                onClick={() => {
+                  setMoreMenuOpen(false);
+                  setSessionMenuOpen((value) => !value);
+                }}
+              >
+                <span className="i-ph:caret-down" aria-hidden />
+                <span className="bolt-terminal-session-label">{activeSessionLabel}</span>
+              </button>
+              {sessionMenuOpen ? (
+                <div className="bolt-terminal-session-menu" role="menu" aria-label="Shell sessions">
+                  {Array.from({ length: terminalCount + 1 }, (_, index) => {
+                    const isActive = activeTerminal === index;
+                    const terminalLabel = getSessionLabel(index);
 
-                const terminalLabel =
-                  index === 0 ? 'Vibecore Terminal' : `Terminal ${terminalCount > 1 ? index : ''}`.trim();
-
-                return (
-                  <div
-                    key={index}
-                    className={classNames('bolt-terminal-tab-item', {
-                      'is-active': isActive,
-                    })}
-                    data-terminal-kind={index === 0 ? 'agent' : 'shell'}
-                  >
+                    return (
+                      <div key={index} className="bolt-terminal-session-row" role="none">
+                        <button
+                          type="button"
+                          className="bolt-terminal-session-menu-item"
+                          role="menuitemradio"
+                          aria-checked={isActive}
+                          onClick={() => {
+                            setActiveTerminal(index);
+                            setSessionMenuOpen(false);
+                          }}
+                        >
+                          <span className={isActive ? 'i-ph:check' : 'i-ph:terminal-window'} aria-hidden />
+                          <span>{terminalLabel}</span>
+                        </button>
+                        {index > 0 ? (
+                          <button
+                            type="button"
+                            className="bolt-terminal-session-close"
+                            aria-label={`Close ${terminalLabel}`}
+                            onClick={() => closeTerminal(index)}
+                          >
+                            <span className="i-ph:x" aria-hidden />
+                          </button>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                  {terminalCount < MAX_TERMINALS ? (
+                    <button type="button" className="bolt-terminal-session-new" role="menuitem" onClick={addTerminal}>
+                      <span className="i-ph:plus" aria-hidden />
+                      <span>New Shell</span>
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+            <div className="bolt-terminal-primary-actions" aria-label="Shell actions">
+              <button
+                type="button"
+                className="bolt-terminal-icon-button"
+                aria-label="Find in Shell"
+                title="Find in Shell"
+                onClick={openSearch}
+              >
+                <span className="i-ph:magnifying-glass" aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="bolt-terminal-icon-button"
+                aria-label="Clear conversation"
+                title="Clear conversation"
+                onClick={clearActiveTerminal}
+              >
+                <span className="i-ph:trash" aria-hidden />
+              </button>
+              <div className="bolt-terminal-more" ref={moreMenuRef}>
+                <button
+                  type="button"
+                  className="bolt-terminal-more-button"
+                  aria-haspopup="menu"
+                  aria-expanded={moreMenuOpen}
+                  aria-label="More Shell actions"
+                  title="More Shell actions"
+                  onClick={() => {
+                    setSessionMenuOpen(false);
+                    setMoreMenuOpen((value) => !value);
+                  }}
+                >
+                  <span className="i-ph:dots-three-vertical-bold" aria-hidden />
+                </button>
+                {moreMenuOpen ? (
+                  <div className="bolt-terminal-more-menu" role="menu" aria-label="More Shell actions">
+                    <div className="bolt-terminal-menu-heading">
+                      <span className="i-ph:terminal-window" aria-hidden />
+                      <div>
+                        <strong>{TERMINAL_PANEL_LABEL}</strong>
+                        <small>{activeSessionLabel}</small>
+                      </div>
+                    </div>
                     <button
                       type="button"
-                      className="bolt-terminal-tab-button"
-                      aria-current={isActive ? 'page' : undefined}
-                      aria-label={terminalLabel}
-                      onClick={() => setActiveTerminal(index)}
+                      className="bolt-terminal-menu-item"
+                      role="menuitem"
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        killActiveTerminal();
+                      }}
                     >
-                      <span className={index === 0 ? 'i-ph:sparkle-duotone' : 'i-ph:terminal-window'} aria-hidden />
-                      <span>{terminalLabel}</span>
+                      <span className="i-ph:stop" aria-hidden />
+                      <span>Kill Shell</span>
                     </button>
-                    {index > 0 ? (
-                      <button
-                        type="button"
-                        className="bolt-terminal-tab-close"
-                        aria-label={`Close ${terminalLabel}`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          closeTerminal(index);
-                        }}
+                    <button
+                      type="button"
+                      className="bolt-terminal-menu-item"
+                      role="menuitem"
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        clearActiveTerminal();
+                      }}
+                    >
+                      <span className="i-ph:trash" aria-hidden />
+                      <span>Clear conversation</span>
+                    </button>
+                    <button type="button" className="bolt-terminal-menu-item" role="menuitem" onClick={openSearch}>
+                      <span className="i-ph:magnifying-glass" aria-hidden />
+                      <span>Find in Shell</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="bolt-terminal-menu-item"
+                      role="menuitem"
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        restartActiveTerminal();
+                      }}
+                    >
+                      <span className="i-ph:arrow-clockwise" aria-hidden />
+                      <span>Restart Shell</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="bolt-terminal-menu-item"
+                      role="menuitem"
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        setSplitView((value) => !value);
+                      }}
+                    >
+                      <span className="i-ph:columns" aria-hidden />
+                      <span>{splitView ? 'Single view' : 'Split view'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="bolt-terminal-menu-item"
+                      role="menuitem"
+                      onClick={closeActiveShellTab}
+                    >
+                      <span className="i-ph:x" aria-hidden />
+                      <span>Close tab</span>
+                    </button>
+                    <label className="bolt-terminal-profile-select">
+                      <span>Profile</span>
+                      <select
+                        aria-label="Shell profile"
+                        value={profile}
+                        onChange={(event) => setProfile(event.target.value as TerminalProfile)}
                       >
-                        <span className="i-ph:x" aria-hidden />
-                      </button>
-                    ) : null}
+                        {terminalProfiles.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div
+                      className="bolt-terminal-runtime-meta"
+                      aria-label="Shell PTY size"
+                      title="Shell PTY size. Shows the current pseudo-terminal columns and rows."
+                    >
+                      <span className="bolt-terminal-runtime-dot" aria-hidden />
+                      <span>PTY size</span>
+                      <strong>
+                        {terminalSize.cols > 0 && terminalSize.rows > 0
+                          ? `${terminalSize.cols}x${terminalSize.rows}`
+                          : 'Detecting'}
+                      </strong>
+                    </div>
                   </div>
-                );
-              })}
+                ) : null}
+              </div>
+              <button
+                type="button"
+                className="bolt-terminal-icon-button"
+                aria-label="Close tab"
+                title="Close tab"
+                onClick={closeActiveShellTab}
+              >
+                <span className="i-ph:x" aria-hidden />
+              </button>
             </div>
-            <div
-              className="bolt-terminal-toolbar-section"
-              data-section="search"
-              role="search"
-              aria-label="Search terminal"
-            >
-              <span className="bolt-terminal-toolbar-label">Search</span>
-              <div className="bolt-terminal-search">
+          </div>
+          <div className="bolt-terminal-content-frame">
+            {searchOpen ? (
+              <div className="bolt-terminal-find-row" role="search" aria-label="Find in Shell">
                 <input
-                  aria-label="Search terminal scrollback"
+                  ref={searchInputRef}
+                  aria-label="Find in Shell"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') {
                       findInActiveTerminal(event.shiftKey ? 'previous' : 'next');
+                    } else if (event.key === 'Escape') {
+                      setSearchOpen(false);
                     }
                   }}
-                  placeholder="Find in terminal"
+                  placeholder="Find"
                 />
-                <button
-                  type="button"
-                  aria-label="Find previous terminal match"
-                  onClick={() => findInActiveTerminal('previous')}
-                >
-                  <span className="i-ph:caret-up" aria-hidden />
+                <button type="button" onClick={() => findInActiveTerminal('next')} disabled={!searchQuery.trim()}>
+                  Next
                 </button>
-                <button
-                  type="button"
-                  aria-label="Find next terminal match"
-                  onClick={() => findInActiveTerminal('next')}
-                >
-                  <span className="i-ph:caret-down" aria-hidden />
+                <button type="button" onClick={() => findInActiveTerminal('previous')} disabled={!searchQuery.trim()}>
+                  Previous
+                </button>
+                <button type="button" onClick={() => setSearchOpen(false)}>
+                  Exit
                 </button>
               </div>
-            </div>
-            <div className="bolt-terminal-toolbar-section" data-section="process" aria-label="Terminal process actions">
-              <span className="bolt-terminal-toolbar-label">Process</span>
-              {terminalCount < MAX_TERMINALS && (
-                <button
-                  type="button"
-                  className="bolt-terminal-action-button"
-                  title="New terminal. Open another shell session."
-                  onClick={addTerminal}
-                >
-                  <span className="i-ph:plus" aria-hidden />
-                  New
-                </button>
-              )}
-              <button
-                type="button"
-                className="bolt-terminal-action-button"
-                title="Kill terminal. Stop the active shell process."
-                onClick={killActiveTerminal}
-              >
-                <span className="i-ph:stop" aria-hidden />
-                Kill
-              </button>
-              <button
-                type="button"
-                className="bolt-terminal-action-button"
-                title="Restart terminal. Kill and recreate the active shell session."
-                onClick={restartActiveTerminal}
-              >
-                <span className="i-ph:arrow-clockwise" aria-hidden />
-                Restart
-              </button>
-            </div>
-            <div className="bolt-terminal-toolbar-section" data-section="view" aria-label="Terminal view actions">
-              <span className="bolt-terminal-toolbar-label">View</span>
-              <button
-                type="button"
-                className="bolt-terminal-action-button"
-                title="Split terminal. Show two terminal sessions side by side."
-                onClick={() => setSplitView((value) => !value)}
-              >
-                <span className="i-ph:columns" aria-hidden />
-                {splitView ? 'Unsplit' : 'Split'}
-              </button>
-              <button
-                type="button"
-                className="bolt-terminal-action-button"
-                title="Clear terminal. Remove visible scrollback for the active shell."
-                onClick={clearActiveTerminal}
-              >
-                <span className="i-ph:eraser" aria-hidden />
-                Clear
-              </button>
-            </div>
-            <div className="bolt-terminal-more" ref={moreMenuRef}>
-              <button
-                type="button"
-                className="bolt-terminal-more-button"
-                aria-haspopup="dialog"
-                aria-expanded={moreMenuOpen}
-                aria-label="More terminal options"
-                title="More terminal options"
-                onClick={() => setMoreMenuOpen((value) => !value)}
-              >
-                <span className="i-ph:dots-three-vertical-bold" aria-hidden />
-                More
-              </button>
-              {moreMenuOpen ? (
-                <div className="bolt-terminal-more-menu" role="group" aria-label="More terminal options">
-                  <label className="bolt-terminal-profile-select">
-                    <span>Profile</span>
-                    <select
-                      aria-label="Terminal profile"
-                      value={profile}
-                      onChange={(event) => setProfile(event.target.value as TerminalProfile)}
-                    >
-                      {terminalProfiles.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div
-                    className="bolt-terminal-runtime-meta"
-                    aria-label="Terminal PTY size"
-                    title="Terminal PTY size. Shows the current pseudo-terminal columns and rows."
-                  >
-                    <span className="bolt-terminal-runtime-dot" aria-hidden />
-                    <span>PTY size</span>
-                    <strong>
-                      {terminalSize.cols > 0 && terminalSize.rows > 0
-                        ? `${terminalSize.cols}x${terminalSize.rows}`
-                        : 'Detecting'}
-                    </strong>
-                  </div>
-                  <button
-                    type="button"
-                    className="bolt-terminal-menu-item"
-                    onClick={() => {
-                      setMoreMenuOpen(false);
-                      workbenchStore.toggleTerminal(false);
-                    }}
-                  >
-                    <span className="i-ph:caret-down" aria-hidden />
-                    Close terminal
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </div>
-          <div className={classNames('bolt-terminal-viewports', { 'is-split': splitView })}>
-            {Array.from({ length: terminalCount + 1 }, (_, index) => {
-              const isActive = visibleTerminalIndexes.includes(index);
+            ) : null}
+            <div className={classNames('bolt-terminal-viewports', { 'is-split': splitView })}>
+              {Array.from({ length: terminalCount + 1 }, (_, index) => {
+                const isActive = visibleTerminalIndexes.includes(index);
 
-              logger.debug(`Starting bolt terminal [${index}]`);
+                logger.debug(`Starting bolt terminal [${index}]`);
 
-              if (index == 0) {
-                return (
-                  <Terminal
-                    key={`terminal-${index}`}
-                    id={`terminal_${index}`}
-                    className={classNames(
-                      'bolt-terminal-viewport-frame h-full overflow-hidden modern-scrollbar-invert',
-                      {
+                if (index == 0) {
+                  return (
+                    <Terminal
+                      key={`terminal-${index}`}
+                      id={`terminal_${index}`}
+                      className={classNames(
+                        'bolt-terminal-viewport-frame h-full overflow-hidden modern-scrollbar-invert',
+                        {
+                          hidden: !isActive,
+                        },
+                      )}
+                      ref={(ref) => {
+                        if (ref) {
+                          terminalRefs.current.set(index, ref);
+                        } else {
+                          terminalRefs.current.delete(index);
+                        }
+                      }}
+                      onTerminalReady={(terminal) => workbenchStore.attachBoltTerminal(terminal)}
+                      onTerminalResize={(cols, rows) => {
+                        setTerminalSize({ cols, rows });
+                        workbenchStore.onTerminalResize(cols, rows);
+                      }}
+                      theme={theme}
+                    />
+                  );
+                } else {
+                  return (
+                    <Terminal
+                      key={`terminal-${index}`}
+                      id={`terminal_${index}`}
+                      className={classNames('bolt-terminal-viewport-frame modern-scrollbar h-full overflow-hidden', {
                         hidden: !isActive,
-                      },
-                    )}
-                    ref={(ref) => {
-                      if (ref) {
-                        terminalRefs.current.set(index, ref);
-                      } else {
-                        terminalRefs.current.delete(index);
-                      }
-                    }}
-                    onTerminalReady={(terminal) => workbenchStore.attachBoltTerminal(terminal)}
-                    onTerminalResize={(cols, rows) => {
-                      setTerminalSize({ cols, rows });
-                      workbenchStore.onTerminalResize(cols, rows);
-                    }}
-                    theme={theme}
-                  />
-                );
-              } else {
-                return (
-                  <Terminal
-                    key={`terminal-${index}`}
-                    id={`terminal_${index}`}
-                    className={classNames('bolt-terminal-viewport-frame modern-scrollbar h-full overflow-hidden', {
-                      hidden: !isActive,
-                    })}
-                    ref={(ref) => {
-                      if (ref) {
-                        terminalRefs.current.set(index, ref);
-                      } else {
-                        terminalRefs.current.delete(index);
-                      }
-                    }}
-                    onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal, activeProfile.command)}
-                    onTerminalResize={(cols, rows) => {
-                      setTerminalSize({ cols, rows });
-                      workbenchStore.onTerminalResize(cols, rows);
-                    }}
-                    theme={theme}
-                  />
-                );
-              }
-            })}
+                      })}
+                      ref={(ref) => {
+                        if (ref) {
+                          terminalRefs.current.set(index, ref);
+                        } else {
+                          terminalRefs.current.delete(index);
+                        }
+                      }}
+                      onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal, activeProfile.command)}
+                      onTerminalResize={(cols, rows) => {
+                        setTerminalSize({ cols, rows });
+                        workbenchStore.onTerminalResize(cols, rows);
+                      }}
+                      theme={theme}
+                    />
+                  );
+                }
+              })}
+            </div>
           </div>
           {Array.from({ length: terminalCount + 1 }, (_, index) => (
             <TerminalManager

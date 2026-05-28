@@ -4,6 +4,18 @@ The IDE terminal is backed by StackBlitz's WebContainer and its bundled
 `/bin/jsh` shell. jsh is wired to a minimal BusyBox userland that runs entirely
 inside the browser sandbox; we don't control its argument-parsing rules.
 
+## UI contract
+
+The user-facing panel name is `Shell (Terminal)`. The panel keeps the shell
+surface compact: it renders the active session selector as `~/workspace: bash`,
+exposes find through a search icon that opens the inline `Find / Next /
+Previous / Exit` controls, and groups destructive or session-level actions
+behind the Shell actions menu (`Kill Shell`, `Clear conversation`,
+`Restart Shell`, split toggle, and close tab).
+
+Do not reintroduce a permanent `Vibecore Terminal` tab label inside the panel;
+the terminal content should start directly below the compact shell toolbar.
+
 ## Known quirk: obsolete short flags
 
 `head` and `tail` ship without support for the deprecated obsolete short

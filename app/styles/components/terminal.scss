@@ -18,24 +18,25 @@
 }
 
 .bolt-terminal-tabs-bar {
+  position: relative;
+  z-index: 20;
   display: flex;
-  min-height: 76px;
+  min-height: 36px;
   align-items: center;
-  align-content: center;
-  flex-wrap: wrap;
+  justify-content: space-between;
   gap: 8px;
   overflow: visible;
-  border-color: var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
+  border-bottom: 1px solid var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--vc-ide-bg-panel, #0e1525), white 3%),
     var(--vc-ide-bg-panel, var(--bolt-elements-background-depth-2))
   );
-  padding: 6px 8px;
+  padding: 0 8px;
 }
 
-.bolt-terminal-tabs-strip,
-.bolt-terminal-toolbar-section,
+.bolt-terminal-session-switcher,
+.bolt-terminal-primary-actions,
 .bolt-terminal-more,
 .bolt-terminal-runtime-meta {
   display: inline-flex;
@@ -43,55 +44,209 @@
   align-items: center;
 }
 
-.bolt-terminal-tabs-strip {
-  flex: 1 1 100%;
-  overflow-x: auto;
-}
-
-.bolt-terminal-toolbar-section {
+.bolt-terminal-session-switcher,
+.bolt-terminal-more {
   position: relative;
+}
+
+.bolt-terminal-session-switcher {
+  flex: 1 1 auto;
+}
+
+.bolt-terminal-primary-actions {
   flex: 0 0 auto;
-  flex-wrap: wrap;
-  gap: 5px;
-  border: 1px solid var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--vc-ide-bg-card, var(--bolt-elements-background-depth-3)), transparent 18%);
-  padding: 5px;
+  gap: 3px;
 }
 
-.bolt-terminal-toolbar-section::before {
-  content: '';
-  align-self: stretch;
-  border-left: 1px solid var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
-  order: 1;
-}
-
-.bolt-terminal-toolbar-section[data-section='search']::before {
-  content: none;
-}
-
-.bolt-terminal-toolbar-label {
-  order: 0;
-  color: var(--vc-ide-text-muted, var(--bolt-elements-textTertiary));
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.08em;
+.bolt-terminal-session-button,
+.bolt-terminal-icon-button,
+.bolt-terminal-more-button,
+.bolt-terminal-session-menu-item,
+.bolt-terminal-session-new,
+.bolt-terminal-session-close,
+.bolt-terminal-menu-item {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--vc-ide-text-secondary, var(--bolt-elements-textSecondary));
+  font-size: 12px;
   line-height: 1;
-  padding: 0 4px;
-  text-transform: uppercase;
+  transition:
+    background-color var(--vc-ui-transition-hover, 150ms ease-out),
+    border-color var(--vc-ui-transition-hover, 150ms ease-out),
+    color var(--vc-ui-transition-hover, 150ms ease-out);
 }
 
-.bolt-terminal-toolbar-section > :not(.bolt-terminal-toolbar-label) {
-  order: 2;
+.bolt-terminal-session-button {
+  max-width: min(360px, 50vw);
+  height: 28px;
+  justify-content: flex-start;
+  gap: 6px;
+  border-radius: 5px;
+  padding: 0 8px;
+  color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
+}
+
+.bolt-terminal-session-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-terminal-icon-button,
+.bolt-terminal-more-button,
+.bolt-terminal-session-close {
+  width: 30px;
+  height: 28px;
+  border-radius: 5px;
+  padding: 0;
+}
+
+.bolt-terminal-session-menu,
+.bolt-terminal-more-menu {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 5px);
+  display: grid;
+  border: 1px solid var(--vc-ide-border-visible, var(--bolt-elements-borderColor));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vc-ide-bg-panel, var(--bolt-elements-background-depth-2)), transparent 2%);
+  box-shadow: 0 18px 42px color-mix(in srgb, black, transparent 60%);
+  padding: 6px;
+  backdrop-filter: blur(18px);
+}
+
+.bolt-terminal-session-menu {
+  left: 0;
+  width: min(320px, calc(100vw - 24px));
+  gap: 2px;
+}
+
+.bolt-terminal-more-menu {
+  right: 0;
+  width: min(300px, calc(100vw - 24px));
+  gap: 4px;
+}
+
+.bolt-terminal-session-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.bolt-terminal-session-menu-item,
+.bolt-terminal-session-new,
+.bolt-terminal-menu-item {
+  width: 100%;
+  min-height: 34px;
+  justify-content: flex-start;
+  gap: 9px;
+  border-radius: 6px;
+  padding: 0 9px;
+  text-align: left;
+}
+
+.bolt-terminal-session-menu-item span:last-child,
+.bolt-terminal-session-new span:last-child,
+.bolt-terminal-menu-item span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-terminal-session-menu-item[aria-checked='true'] {
+  color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
+  font-weight: 650;
+}
+
+.bolt-terminal-session-close {
+  flex: 0 0 auto;
+  color: var(--vc-ide-text-muted, var(--bolt-elements-textTertiary));
+}
+
+.bolt-terminal-menu-heading {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 9px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
+  margin: 0 0 4px;
+  padding: 6px 6px 10px;
+  color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
+}
+
+.bolt-terminal-menu-heading > span {
+  flex: 0 0 auto;
+  color: var(--vc-ide-accent-action, #0099ff);
+  font-size: 16px;
+}
+
+.bolt-terminal-menu-heading div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.bolt-terminal-menu-heading strong,
+.bolt-terminal-menu-heading small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-terminal-menu-heading strong {
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.bolt-terminal-menu-heading small,
+.bolt-terminal-profile-select > span {
+  color: var(--vc-ide-text-muted, var(--bolt-elements-textTertiary));
+  font-size: 11px;
+}
+
+.bolt-terminal-profile-select {
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
+  margin-top: 4px;
+  padding: 10px 6px 4px;
+}
+
+.bolt-terminal-profile-select select,
+.bolt-terminal-find-row input {
+  height: 32px;
+  border: 1px solid var(--vc-ide-border-visible, var(--bolt-elements-borderColor));
+  border-radius: 6px;
+  background: var(--vc-ide-bg-card, var(--bolt-elements-background-depth-3));
+  color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
+  font-size: 12px;
+  outline: none;
+}
+
+.bolt-terminal-profile-select select {
+  width: 100%;
+  padding: 0 8px;
+}
+
+.bolt-terminal-profile-select select:focus,
+.bolt-terminal-find-row input:focus {
+  border-color: var(--vc-ide-accent-action, #0099ff);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-action, #0099ff), transparent 76%);
 }
 
 .bolt-terminal-runtime-meta {
-  flex: 0 0 auto;
+  justify-content: space-between;
   gap: 7px;
   border: 1px solid var(--vc-ide-border-visible, var(--bolt-elements-borderColor));
-  border-radius: 999px;
+  border-radius: 8px;
   background: var(--vc-ide-bg-card, var(--bolt-elements-background-depth-3));
-  padding: 3px 9px;
+  margin-top: 4px;
+  padding: 8px 10px;
   color: var(--vc-ide-text-secondary, var(--bolt-elements-textSecondary));
   font-size: 11px;
   line-height: 1;
@@ -103,120 +258,6 @@
   font-weight: 750;
 }
 
-.bolt-terminal-profile-select,
-.bolt-terminal-search {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 6px;
-}
-
-.bolt-terminal-profile-select > span {
-  color: var(--vc-ide-text-muted, var(--bolt-elements-textTertiary));
-  font-size: 11px;
-}
-
-.bolt-terminal-profile-select select,
-.bolt-terminal-search input {
-  height: 28px;
-  border: 1px solid var(--vc-ide-border-visible, var(--bolt-elements-borderColor));
-  border-radius: 5px;
-  background: var(--vc-ide-bg-card, var(--bolt-elements-background-depth-3));
-  color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
-  font-size: 12px;
-  outline: none;
-}
-
-.bolt-terminal-profile-select select {
-  width: 100%;
-  min-width: 150px;
-  padding: 0 7px;
-}
-
-.bolt-terminal-search input {
-  width: min(180px, 18vw);
-  min-width: 120px;
-  padding: 0 8px;
-}
-
-.bolt-terminal-search button,
-.bolt-terminal-action-button,
-.bolt-terminal-more-button,
-.bolt-terminal-menu-item {
-  display: inline-flex;
-  min-height: 28px;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  border: 1px solid var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
-  border-radius: 5px;
-  background: transparent;
-  color: var(--vc-ide-text-secondary, var(--bolt-elements-textSecondary));
-  font-size: 12px;
-  line-height: 1;
-  padding: 0 8px;
-  white-space: nowrap;
-}
-
-.bolt-terminal-more {
-  position: relative;
-  flex: 0 0 auto;
-}
-
-.bolt-terminal-more-button {
-  border-color: var(--vc-ide-border-visible, var(--bolt-elements-borderColor));
-  background: var(--vc-ide-bg-card, var(--bolt-elements-background-depth-3));
-  color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
-  font-weight: 650;
-}
-
-.bolt-terminal-more-menu {
-  position: absolute;
-  z-index: 30;
-  top: calc(100% + 6px);
-  right: 0;
-  display: grid;
-  width: min(280px, calc(100vw - 24px));
-  gap: 10px;
-  border: 1px solid var(--vc-ide-border-visible, var(--bolt-elements-borderColor));
-  border-radius: 10px;
-  background: var(--vc-ide-bg-panel, var(--bolt-elements-background-depth-2));
-  box-shadow: 0 18px 42px color-mix(in srgb, black, transparent 62%);
-  padding: 12px;
-}
-
-.bolt-terminal-more-menu .bolt-terminal-profile-select {
-  display: grid;
-  gap: 6px;
-}
-
-.bolt-terminal-more-menu .bolt-terminal-profile-select > span {
-  font-weight: 750;
-}
-
-.bolt-terminal-more-menu .bolt-terminal-runtime-meta {
-  justify-content: space-between;
-  border-radius: 8px;
-  padding: 8px 10px;
-}
-
-.bolt-terminal-menu-item {
-  width: 100%;
-  justify-content: flex-start;
-  border-color: var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
-  background: transparent;
-}
-
-.bolt-terminal-search button {
-  width: 28px;
-  padding: 0;
-}
-
-.bolt-terminal-search input:focus,
-.bolt-terminal-profile-select select:focus {
-  border-color: var(--vc-ide-accent-action, #0099ff);
-}
-
 .bolt-terminal-runtime-dot {
   width: 6px;
   height: 6px;
@@ -225,49 +266,65 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--vc-ide-accent-success, #3fb950), transparent 78%);
 }
 
-.bolt-terminal-tab-item {
-  display: inline-flex;
-  min-width: 0;
-  height: 30px;
-  align-items: center;
-  border: 1px solid transparent;
-  border-radius: 6px 6px 0 0;
-  color: var(--vc-ide-text-secondary, var(--bolt-elements-textSecondary));
-}
-
-.bolt-terminal-tab-item.is-active {
-  background: var(--vc-ide-bg-app, var(--bolt-elements-terminals-background));
+.bolt-terminal-session-button:hover,
+.bolt-terminal-session-button[aria-expanded='true'],
+.bolt-terminal-icon-button:hover,
+.bolt-terminal-more-button:hover,
+.bolt-terminal-more-button[aria-expanded='true'],
+.bolt-terminal-session-menu-item:hover,
+.bolt-terminal-session-new:hover,
+.bolt-terminal-session-close:hover,
+.bolt-terminal-menu-item:hover,
+.bolt-terminal-find-row button:hover:not(:disabled) {
+  border-color: var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
+  background: var(--vc-ide-bg-hover, var(--bolt-elements-terminals-buttonBackground));
   color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
-  border-color: var(--vc-ide-border-visible, var(--bolt-elements-borderColor));
-  border-bottom-color: var(--vc-ide-bg-app, var(--bolt-elements-terminals-background));
-  box-shadow: inset 0 2px 0 var(--vc-ide-accent-action, #0099ff);
 }
 
-.bolt-terminal-tab-button,
-.bolt-terminal-tab-close {
-  display: inline-flex;
-  height: 100%;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  transition:
-    background-color var(--vc-ui-transition-hover, 150ms ease-out),
-    color var(--vc-ui-transition-hover, 150ms ease-out);
-}
-
-.bolt-terminal-tab-button {
+.bolt-terminal-content-frame {
+  position: relative;
+  display: flex;
   min-width: 0;
-  max-width: 190px;
-  gap: 7px;
-  padding: 0 11px;
+  min-height: 0;
+  flex: 1;
+}
+
+.bolt-terminal-find-row {
+  position: absolute;
+  z-index: 15;
+  top: 8px;
+  right: 10px;
+  display: flex;
+  max-width: calc(100% - 20px);
+  align-items: center;
+  gap: 8px;
+}
+
+.bolt-terminal-find-row input {
+  width: clamp(110px, 22vw, 220px);
+  padding: 0 10px;
+}
+
+.bolt-terminal-find-row button {
+  height: 32px;
+  border: 1px solid var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--vc-ide-bg-card, var(--bolt-elements-background-depth-3)), transparent 6%);
+  color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
   font-size: 12px;
+  padding: 0 11px;
   white-space: nowrap;
+}
+
+.bolt-terminal-find-row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .bolt-terminal-viewports {
   display: grid;
+  width: 100%;
+  height: 100%;
   min-height: 0;
   flex: 1;
   grid-template-columns: minmax(0, 1fr);
@@ -277,27 +334,7 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
-.bolt-terminal-tab-button span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.bolt-terminal-tab-close {
-  width: 28px;
-  color: var(--vc-ide-text-muted, var(--bolt-elements-textTertiary));
-}
-
-.bolt-terminal-tab-item:hover,
-.bolt-terminal-tab-close:hover,
-.bolt-terminal-action-button:hover,
-.bolt-terminal-more-button:hover,
-.bolt-terminal-menu-item:hover,
-.bolt-terminal-search button:hover {
-  background: var(--vc-ide-bg-hover, var(--bolt-elements-terminals-buttonBackground));
-  color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
-}
-
-.bolt-terminal-tabs-shell :where(button):focus-visible,
+.bolt-terminal-tabs-shell :where(button, input, select):focus-visible,
 .bolt-terminal-viewport-frame:focus-within {
   outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action, #0099ff), transparent 26%);
   outline-offset: -2px;
@@ -310,15 +347,67 @@
 }
 
 @media (max-width: 900px) {
-  .bolt-terminal-runtime-meta {
-    display: inline-flex;
-  }
-
-  .bolt-terminal-tab-button {
-    max-width: 220px;
+  .bolt-terminal-session-button {
+    max-width: min(320px, calc(100vw - 156px));
   }
 
   .bolt-terminal-viewports.is-split {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .bolt-terminal-tabs-bar {
+    min-height: 40px;
+    gap: 5px;
+    padding: 0 6px;
+  }
+
+  .bolt-terminal-primary-actions {
+    gap: 1px;
+  }
+
+  .bolt-terminal-icon-button,
+  .bolt-terminal-more-button {
+    width: 28px;
+  }
+
+  .bolt-terminal-session-button {
+    max-width: calc(100vw - 146px);
+    padding-inline: 6px;
+  }
+
+  .bolt-terminal-session-menu {
+    width: min(280px, calc(100vw - 16px));
+  }
+
+  .bolt-terminal-more-menu {
+    position: fixed;
+    top: auto;
+    right: 8px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+    left: 8px;
+    width: auto;
+    max-height: 68vh;
+    overflow: auto;
+    border-radius: 12px;
+    padding: 8px;
+  }
+
+  .bolt-terminal-find-row {
+    right: 8px;
+    left: 8px;
+    max-width: none;
+    gap: 5px;
+  }
+
+  .bolt-terminal-find-row input {
+    min-width: 82px;
+    flex: 1 1 auto;
+    width: auto;
+  }
+
+  .bolt-terminal-find-row button {
+    padding: 0 8px;
   }
 }

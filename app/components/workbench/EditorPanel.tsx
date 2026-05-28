@@ -43,6 +43,7 @@ interface EditorPanelProps {
 
 const DEFAULT_EDITOR_SIZE = 100 - DEFAULT_TERMINAL_SIZE;
 const LARGE_FILE_BYTES = 1_000_000;
+const SHELL_TERMINAL_LABEL = 'Shell (Terminal)';
 
 export const EditorPanel = memo(
   ({
@@ -295,12 +296,12 @@ export const EditorPanel = memo(
 
       if (mobilePanel === 'terminal') {
         return (
-          <PanelBoundary title="Terminal">
+          <PanelBoundary title={SHELL_TERMINAL_LABEL}>
             <div
               className="h-full min-h-0"
               data-testid="mobile-terminal-panel"
               role="region"
-              aria-label="Interactive terminal"
+              aria-label={`Interactive ${SHELL_TERMINAL_LABEL}`}
             >
               <PanelGroup direction="vertical">
                 <TerminalTabs panelDefaultSize={100} />
@@ -330,7 +331,7 @@ export const EditorPanel = memo(
           </PanelGroup>
         </Panel>
         <PanelResizeHandle />
-        <PanelBoundary title="Terminal">
+        <PanelBoundary title={SHELL_TERMINAL_LABEL}>
           <TerminalTabs />
         </PanelBoundary>
       </PanelGroup>

@@ -129,6 +129,7 @@ const PROJECT_BOTTOM_TERMINAL_UI_STORAGE_KEY = 'vibecore-project-bottom-terminal
 const PROJECT_IDE_GUIDED_TOUR_STORAGE_KEY = 'vibecore-project-ide-guided-tour-v1';
 const PROJECT_SECURITY_SCAN_TIMEOUT_MS = 90_000;
 const PROJECT_KEYBINDINGS = defaultProjectKeybindings;
+const SHELL_TERMINAL_LABEL = 'Shell (Terminal)';
 
 const IDE_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string }> = {
   Agent: { description: 'Focus the AI agent composer and project instructions.', shortcut: 'Cmd+J' },
@@ -167,14 +168,15 @@ const IDE_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string 
   'Toggle split log view': { description: 'Show another log stream beside the current one.', shortcut: 'Cmd+\\' },
   'Tab actions': { description: 'Open tab actions such as close, split and pin.' },
   'Toggle live tail': { description: 'Keep logs pinned to the newest entry while output streams.', shortcut: 'T' },
-  'Toggle terminal': { description: 'Show or hide the pinned terminal drawer.', shortcut: 'Ctrl+`' },
+  'Toggle terminal': { description: 'Show or hide the pinned shell terminal drawer.', shortcut: 'Ctrl+`' },
 };
 
 const IDE_RAIL_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string }> = {
   Agent: { description: 'Focus the AI agent composer and project instructions.', shortcut: 'Cmd+J' },
   Files: { description: 'Open the project file browser and workspace views.', shortcut: 'Cmd+Shift+E' },
   Editor: { description: 'Return to the active code editor tab.', shortcut: 'Cmd+E' },
-  Terminal: { description: 'Open the workspace terminal drawer.', shortcut: 'Ctrl+`' },
+  Terminal: { description: 'Open the workspace shell terminal drawer.', shortcut: 'Ctrl+`' },
+  [SHELL_TERMINAL_LABEL]: { description: 'Open the workspace shell terminal drawer.', shortcut: 'Ctrl+`' },
   Preview: { description: 'Open the live web preview panel.', shortcut: 'Cmd+Enter' },
   Publish: { description: 'Open deployments, domains and publishing tools.', shortcut: 'Cmd+Shift+P' },
   Search: { description: 'Search project files and symbols.', shortcut: 'Cmd+P' },
@@ -277,13 +279,13 @@ const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: st
   editor: { id: 'editor', name: 'Editor', icon: 'i-ph:code' },
   search: { id: 'search', name: 'Search', icon: 'i-ph:magnifying-glass' },
   locks: { id: 'locks', name: 'Locks', icon: 'i-ph:lock' },
-  terminal: { id: 'terminal', name: 'Terminal', icon: 'i-ph:terminal-window' },
+  terminal: { id: 'terminal', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
   actions: { id: 'actions', name: 'AI Agent', icon: 'agent' },
   assistant: { id: 'assistant', name: 'AI Agent', icon: 'agent' },
   publishing: { id: 'publishing', name: 'Deployments', icon: 'i-ph:rocket-launch' },
   'app-storage': { id: 'app-storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
   auth: { id: 'auth', name: 'Settings', icon: 'i-ph:gear' },
-  console: { id: 'console', name: 'Terminal', icon: 'i-ph:terminal-window' },
+  console: { id: 'console', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
   database: { id: 'database', name: 'Database', icon: 'i-ph:database' },
   debug: { id: 'debug', name: 'Debugger', icon: 'i-ph:bug' },
   debugger: { id: 'debugger', name: 'Debugger', icon: 'i-ph:bug' },
@@ -304,7 +306,7 @@ const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: st
   snapshots: { id: 'snapshots', name: 'Snapshots', icon: 'i-ph:stack' },
   extensions: { id: 'extensions', name: 'Extensions', icon: 'i-ph:puzzle-piece' },
   security: { id: 'security', name: 'Security', icon: 'i-ph:shield-check' },
-  shell: { id: 'shell', name: 'Terminal', icon: 'i-ph:terminal-window' },
+  shell: { id: 'shell', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
   'kv-store': { id: 'kv-store', name: 'Database', icon: 'i-ph:database' },
   storage: { id: 'storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
   'object-storage': { id: 'object-storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
@@ -381,8 +383,8 @@ const ECODE_MOBILE_TOOLS = [
   {
     id: 'terminal',
     section: 'tools',
-    title: 'Terminal',
-    description: 'Workspace terminal',
+    title: SHELL_TERMINAL_LABEL,
+    description: 'Workspace shell terminal',
     icon: 'i-ph:terminal-window',
   },
   {
@@ -456,7 +458,7 @@ const ECODE_MOBILE_TOOLS = [
     id: 'logs',
     section: 'tools',
     title: 'Logs',
-    description: 'Terminal',
+    description: 'Runtime logs',
     icon: 'i-ph:list-magnifying-glass',
     tone: 'info',
   },
@@ -588,8 +590,8 @@ const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> =
   secrets: 'Environment variables',
   git: 'Version control',
   activity: 'Project timeline',
-  terminal: 'Workspace terminal',
-  logs: 'Terminal',
+  terminal: 'Workspace shell terminal',
+  logs: 'Runtime logs',
   collaborators: 'Team access',
   domains: 'Custom domains',
   snapshots: 'Rollback points',
@@ -1658,7 +1660,7 @@ function inferAgentToolAction(message: string | undefined): AgentToolAction | nu
     [/\b(open|show|ouvre|affiche).*\b(files?|fichiers?|explorer)\b|\b(files?|fichiers?)\b/, 'files', 'Open Files'],
     [/\b(search|find|recherche)\b/, 'search', 'Open Search'],
     [/\b(database|sql|db|base de donn)/, 'database', 'Open Database'],
-    [/\b(terminal|console|logs?|shell)\b/, 'terminal', 'Open Terminal'],
+    [/\b(terminal|console|logs?|shell)\b/, 'terminal', `Open ${SHELL_TERMINAL_LABEL}`],
     [/\b(preview|webview|aperçu|apercu)\b/, 'preview', 'Open Webview'],
     [/\b(deploy|deployment|publish|publier|déploiement|deploiement)\b/, 'deployments', 'Open Deployments'],
     [/\b(secret|env|environment variable)\b/, 'secrets', 'Open Secrets'],
@@ -6309,7 +6311,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           ...[
             ['files', 'Files', 'Browse project files', formatKeybindingCombo('cmd+p')],
             ['search', 'Search', 'Find in files', ''],
-            ['terminal', 'Terminal', 'Workspace shell', formatKeybindingCombo('cmd+`')],
+            ['terminal', SHELL_TERMINAL_LABEL, 'Workspace shell', formatKeybindingCombo('cmd+`')],
             ['preview', 'Webview', 'App preview', formatKeybindingCombo('cmd+enter')],
             ['database', 'Database', 'SQL browser', ''],
             ['object-storage', 'Object Storage', 'File storage', ''],
@@ -7247,8 +7249,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               })()}
               <button
                 type="button"
-                aria-label="Toggle terminal"
-                title="Toggle terminal"
+                aria-label={`Toggle ${SHELL_TERMINAL_LABEL}`}
+                title={`Toggle ${SHELL_TERMINAL_LABEL}`}
                 className="bolt-project-statusbar-icon-button"
                 onClick={() => {
                   setBottomTerminalView('terminal');
@@ -7807,14 +7809,14 @@ function ProjectBottomTerminal({
     : 'No backend workspace';
 
   const terminalTabs = [
-    ['terminal', 'Terminal', 'i-ph:terminal-window'],
+    ['terminal', SHELL_TERMINAL_LABEL, 'i-ph:terminal-window'],
     ['output', 'Output', 'i-ph:list-bullets'],
     ['problems', 'Problems', 'i-ph:warning-circle'],
     ['debug', 'Debug Console', 'i-ph:bug'],
   ] as const;
 
   return (
-    <section className="bolt-project-bottom-terminal" aria-label="Pinned terminal">
+    <section className="bolt-project-bottom-terminal" aria-label={`Pinned ${SHELL_TERMINAL_LABEL}`}>
       <div className="bolt-project-bottom-terminal-tabs">
         <div className="bolt-project-bottom-terminal-tabs-left" aria-label="Pinned terminal views">
           {terminalTabs.map(([id, label, icon]) => (
@@ -7880,7 +7882,7 @@ function ProjectBottomTerminal({
         {active === 'terminal' ? (
           <ClientOnly fallback={<TerminalTabsFallback />}>
             {() => (
-              <PanelBoundary title="Terminal">
+              <PanelBoundary title={SHELL_TERMINAL_LABEL}>
                 <Suspense fallback={<TerminalTabsFallback />}>
                   <PanelGroup direction="vertical" className="h-full">
                     <LazyTerminalTabs panelDefaultSize={100} />
@@ -7906,73 +7908,34 @@ function TerminalTabsFallback() {
     <div className="h-full">
       <div className="bolt-terminal-tabs-shell bg-bolt-elements-terminals-background flex h-full flex-col">
         <div className="bolt-terminal-tabs-bar" data-testid="terminal-tabs-bar" aria-busy="true">
-          <div className="bolt-terminal-tabs-strip" aria-label="Terminal sessions">
-            <div className="bolt-terminal-tab-item is-active" data-terminal-kind="agent">
-              <button
-                type="button"
-                className="bolt-terminal-tab-button"
-                aria-current="page"
-                aria-label="Vibecore Terminal"
-                disabled
-              >
-                <span className="i-ph:sparkle-duotone" aria-hidden />
-                <span>Vibecore Terminal</span>
+          <div className="bolt-terminal-session-switcher" aria-label="Shell sessions">
+            <button type="button" className="bolt-terminal-session-button" aria-label="Shell session loading" disabled>
+              <span className="i-ph:caret-down" aria-hidden />
+              <span className="bolt-terminal-session-label">~/workspace: bash</span>
+            </button>
+          </div>
+          <div className="bolt-terminal-primary-actions" aria-label="Shell actions">
+            <button type="button" className="bolt-terminal-icon-button" aria-label="Find in Shell" disabled>
+              <span className="i-ph:magnifying-glass" aria-hidden />
+            </button>
+            <button type="button" className="bolt-terminal-icon-button" aria-label="Clear conversation" disabled>
+              <span className="i-ph:trash" aria-hidden />
+            </button>
+            <div className="bolt-terminal-more">
+              <button type="button" className="bolt-terminal-more-button" aria-label="More Shell actions" disabled>
+                <span className="i-ph:dots-three-vertical-bold" aria-hidden />
               </button>
             </div>
-          </div>
-          <div
-            className="bolt-terminal-toolbar-section"
-            data-section="search"
-            role="search"
-            aria-label="Search terminal"
-          >
-            <span className="bolt-terminal-toolbar-label">Search</span>
-            <div className="bolt-terminal-search">
-              <input aria-label="Search terminal scrollback" placeholder="Find in terminal" disabled />
-              <button type="button" aria-label="Find previous terminal match" disabled>
-                <span className="i-ph:caret-up" aria-hidden />
-              </button>
-              <button type="button" aria-label="Find next terminal match" disabled>
-                <span className="i-ph:caret-down" aria-hidden />
-              </button>
-            </div>
-          </div>
-          <div className="bolt-terminal-toolbar-section" data-section="process" aria-label="Terminal process actions">
-            <span className="bolt-terminal-toolbar-label">Process</span>
-            <button type="button" className="bolt-terminal-action-button" disabled>
-              <span className="i-ph:plus" aria-hidden />
-              New
-            </button>
-            <button type="button" className="bolt-terminal-action-button" disabled>
-              <span className="i-ph:stop" aria-hidden />
-              Kill
-            </button>
-            <button type="button" className="bolt-terminal-action-button" disabled>
-              <span className="i-ph:arrow-clockwise" aria-hidden />
-              Restart
-            </button>
-          </div>
-          <div className="bolt-terminal-toolbar-section" data-section="view" aria-label="Terminal view actions">
-            <span className="bolt-terminal-toolbar-label">View</span>
-            <button type="button" className="bolt-terminal-action-button" disabled>
-              <span className="i-ph:columns" aria-hidden />
-              Split
-            </button>
-            <button type="button" className="bolt-terminal-action-button" disabled>
-              <span className="i-ph:eraser" aria-hidden />
-              Clear
-            </button>
-          </div>
-          <div className="bolt-terminal-more">
-            <button type="button" className="bolt-terminal-more-button" aria-label="More terminal options" disabled>
-              <span className="i-ph:dots-three-vertical-bold" aria-hidden />
-              More
+            <button type="button" className="bolt-terminal-icon-button" aria-label="Close tab" disabled>
+              <span className="i-ph:x" aria-hidden />
             </button>
           </div>
         </div>
-        <div className="bolt-terminal-viewports">
-          <div className="grid h-full place-items-center text-sm text-bolt-elements-textSecondary" role="status">
-            Loading terminal...
+        <div className="bolt-terminal-content-frame">
+          <div className="bolt-terminal-viewports">
+            <div className="grid h-full place-items-center text-sm text-bolt-elements-textSecondary" role="status">
+              Loading terminal...
+            </div>
           </div>
         </div>
       </div>
@@ -8050,11 +8013,11 @@ function ProjectInteractiveTerminalPanel({ projectId }: { projectId?: string }) 
   const [toolsOpen, setToolsOpen] = useState(false);
 
   return (
-    <section className="bolt-project-terminal-direct-panel" aria-label="Interactive terminal">
+    <section className="bolt-project-terminal-direct-panel" aria-label={`Interactive ${SHELL_TERMINAL_LABEL}`}>
       <div className="bolt-project-terminal-direct-shell">
         <ClientOnly fallback={<TerminalTabsFallback />}>
           {() => (
-            <PanelBoundary title="Terminal">
+            <PanelBoundary title={SHELL_TERMINAL_LABEL}>
               <Suspense fallback={<TerminalTabsFallback />}>
                 <PanelGroup direction="vertical" className="h-full">
                   <LazyTerminalTabs panelDefaultSize={100} />
@@ -8429,7 +8392,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
               </div>
               <ClientOnly fallback={<TerminalTabsFallback />}>
                 {() => (
-                  <PanelBoundary title="Terminal">
+                  <PanelBoundary title={SHELL_TERMINAL_LABEL}>
                     <Suspense fallback={<TerminalTabsFallback />}>
                       <PanelGroup direction="vertical" className="h-full">
                         <LazyTerminalTabs panelDefaultSize={100} />
@@ -8931,7 +8894,14 @@ function IdeTabBar({
     ['files', 'Files', 'Browse project files', 'i-ph:files', 'var(--vc-ide-accent-warning)', 'Workspace'],
     ['search', 'Search', 'Find in files', 'i-ph:magnifying-glass', 'var(--vc-ide-accent-action)', 'Workspace'],
     ['locks', 'Locks', 'Locked files', 'i-ph:lock', 'var(--vc-ide-accent-warning)', 'Workspace'],
-    ['terminal', 'Terminal', 'Workspace shell', 'i-ph:terminal-window', 'var(--vc-ide-accent-success)', 'Runtime'],
+    [
+      'terminal',
+      SHELL_TERMINAL_LABEL,
+      'Workspace shell',
+      'i-ph:terminal-window',
+      'var(--vc-ide-accent-success)',
+      'Runtime',
+    ],
     ['logs', 'Logs', 'Runtime logs', 'i-ph:list-magnifying-glass', 'var(--vc-ide-accent-success)', 'Runtime'],
     ['preview', 'Webview', 'App preview', 'i-ph:browser', 'var(--vc-ide-accent-action)', 'Runtime'],
     ['database', 'Database', 'SQL browser', 'i-ph:database', 'var(--vc-ide-accent-ai-start)', 'Data'],
@@ -9347,7 +9317,7 @@ function ProjectWelcomeState({
 }) {
   const shortcuts: Array<[string, string, string, IdeWorkspacePanel | IdeRightPanel]> = [
     ['i-ph:files', 'Open Files', formatKeybindingCombo('cmd+p'), 'files'],
-    ['i-ph:terminal-window', 'Open Terminal', formatKeybindingCombo('cmd+`'), 'terminal'],
+    ['i-ph:terminal-window', `Open ${SHELL_TERMINAL_LABEL}`, formatKeybindingCombo('cmd+`'), 'terminal'],
     ['i-ph:browser', 'View Preview', formatKeybindingCombo('cmd+enter'), 'preview'],
     ['i-ph:command', 'All Commands', formatKeybindingCombo('cmd+k'), 'settings'],
   ];
@@ -15719,7 +15689,7 @@ function panelTitle(panel: string) {
     secrets: 'Secrets',
     git: 'Git',
     activity: 'Activity',
-    terminal: 'Terminal',
+    terminal: SHELL_TERMINAL_LABEL,
     logs: 'Logs',
     collaborators: 'Collaborators',
     domains: 'Domains',
