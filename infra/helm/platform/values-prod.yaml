@@ -165,6 +165,11 @@ services:
     image: api
     port: 3001
     replicas: 2
+    # HPA cap (templates/hpa.yaml). Default would be replicas*5 = 10; we hold
+    # the API at 6 because beyond that, Filestore-backed /data/vibecore IO
+    # becomes the bottleneck before CPU does — adding pods only raises NFS
+    # contention instead of throughput.
+    maxReplicas: 6
     path: /api
     # /ready hits Postgres + Redis (services/api/src/app.ts:3575). On a
     # transient DB hiccup the pod drops out of the Service without being

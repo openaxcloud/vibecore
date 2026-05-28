@@ -14,7 +14,7 @@ spec:
     kind: Deployment
     name: {{ include "vibecore-platform.fullname" $ }}-{{ kebabcase $name }}
   minReplicas: {{ $svc.replicas | default 2 | int }}
-  maxReplicas: {{ max 3 (mul ($svc.replicas | default 2 | int) 5) }}
+  maxReplicas: {{ $svc.maxReplicas | default (max 3 (mul ($svc.replicas | default 2 | int) 5)) | int }}
   metrics:
     - type: Resource
       resource:
