@@ -86,8 +86,14 @@ import {
   signIntegrationOauthState,
   verifyIntegrationOauthState,
 } from './integrations/oauth-state.js';
+import { bitbucketConnector, resolveBitbucketCredentials } from './integrations/providers/bitbucket.js';
 import { githubConnector, resolveGithubCredentials } from './integrations/providers/github.js';
-import { ConnectorProviderError } from './integrations/providers/types.js';
+import { gitlabConnector, resolveGitLabCredentials } from './integrations/providers/gitlab.js';
+import {
+  ConnectorProviderError,
+  type ConnectorOAuthCredentials,
+  type ConnectorProvider,
+} from './integrations/providers/types.js';
 import {
   McpMarketplaceService,
   McpMarketplaceError,
@@ -281,10 +287,16 @@ const zipImportSchema = z.object({
   zipBase64: z.string().min(1),
   replaceExisting: z.boolean().optional(),
 });
+const gitRemoteUrlSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(2048)
+  .refine(isSafeGitRemoteUrl, 'Git remote URL must be an HTTPS or SSH URL.');
 const projectSettingsSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
-  gitRepositoryUrl: z.string().url().optional(),
+  gitRepositoryUrl: gitRemoteUrlSchema.optional(),
   gitDefaultBranch: z.string().min(1).optional(),
 });
 const projectIdeStateSchema = z.object({
@@ -545,6 +557,11 @@ const gitCommitSchema = z.object({
   workspaceId: workspaceIdField,
 });
 const gitBranchSchema = z.object({ branch: z.string().min(1).default('main'), workspaceId: workspaceIdField });
+const gitRemoteSchema = z.object({
+  remoteUrl: gitRemoteUrlSchema,
+  branch: z.string().min(1).default('main'),
+  workspaceId: workspaceIdField,
+});
 
 const gitCheckoutBranchSchema = z.object({
   branch: z.string().min(1),
@@ -1100,6 +1117,52 @@ function maskConnectionUrl(value: string) {
   }
 }
 
+function isSafeGitRemoteUrl(value: string) {
+  const remoteUrl = value.trim();
+
+  if (!remoteUrl || /[\s"'`\\]/.test(remoteUrl)) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(remoteUrl);
+
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'ssh:') {
+      return false;
+    }
+
+    return Boolean(parsed.hostname && !/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/i.test(parsed.hostname));
+  } catch {
+    const scpLike = remoteUrl.match(/^([A-Za-z0-9._-]+)@([A-Za-z0-9.-]+):([A-Za-z0-9._~/-]+(?:\.git)?)$/);
+
+    if (!scpLike) {
+      return false;
+    }
+
+    const hostname = scpLike[2];
+
+    return !/^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/i.test(hostname);
+  }
+}
+
+function inferGitRemoteProvider(value: string) {
+  const remoteUrl = value.toLowerCase();
+
+  if (remoteUrl.includes('github.com')) {
+    return 'github';
+  }
+
+  if (remoteUrl.includes('gitlab.com')) {
+    return 'gitlab';
+  }
+
+  if (remoteUrl.includes('bitbucket.org')) {
+    return 'bitbucket';
+  }
+
+  return 'custom';
+}
+
 function assertReadOnlySql(query: string) {
   const normalized = query.trim().replace(/;\s*$/, '').toLowerCase();
 
@@ -1567,7 +1630,12 @@ function slugifyRouteSegment(value: string) {
     .replace(/^-|-$/g, '');
 }
 
-function ideStateObject(state?: ProjectIdeStateRecord) {
+// Accepts either ProjectIdeStateRecord or WorkspaceIdeStateRecord — both
+// expose the same `.state` payload, and downstream readers only touch that
+// payload, so the helpers in this file operate on the structural intersection.
+type PersistedIdeStateLike = { state: unknown } | undefined;
+
+function ideStateObject(state?: PersistedIdeStateLike) {
   return state?.state && typeof state.state === 'object' && !Array.isArray(state.state)
     ? ({ ...(state.state as Record<string, unknown>) } as Record<string, unknown>)
     : {};
@@ -1588,7 +1656,7 @@ function collaborationDocuments(state?: ProjectIdeStateRecord) {
   return { root, collaboration, documents };
 }
 
-function projectFilesFromPersistedIdeState(state?: ProjectIdeStateRecord): Array<{ path: string; content: string }> {
+function projectFilesFromPersistedIdeState(state?: PersistedIdeStateLike): Array<{ path: string; content: string }> {
   const persistedManifest = projectFileManifestFromPersistedIdeState(state);
 
   if (persistedManifest.exists) {
@@ -1622,7 +1690,7 @@ function projectFilesFromIdeStateRoot(root: Record<string, unknown>): Array<{ pa
   return [...files.entries()].map(([path, content]) => ({ path, content }));
 }
 
-function projectFileManifestFromPersistedIdeState(state?: ProjectIdeStateRecord): {
+function projectFileManifestFromPersistedIdeState(state?: PersistedIdeStateLike): {
   exists: boolean;
   files: Array<{ path: string; content: string }>;
 } {
@@ -1843,7 +1911,14 @@ async function listProjectFilesIncludingIdeState(
   workspaceId?: string,
 ): Promise<ProjectFile[]> {
   const existingFiles = await projectStorage.listFiles(projectId, workspaceId);
-  const ideState = await store.getProjectIdeState(projectId);
+  // Prefer the workspace-scoped IDE state so committing on workspace B uses the
+  // editor manifest captured for workspace B rather than the project-level
+  // state — that mismatch was the bug Fix 2 set out to close. When no workspace
+  // state has been persisted yet we fall back to the project-level state so
+  // workspaces created before per-workspace state existed keep working.
+  const ideState =
+    (workspaceId ? await store.getWorkspaceIdeState(workspaceId) : undefined) ??
+    (await store.getProjectIdeState(projectId));
   const persistedManifest = projectFileManifestFromPersistedIdeState(ideState);
 
   if (persistedManifest.exists) {
@@ -2634,9 +2709,7 @@ async function resolveGitWorkspaceId(
     });
   }
 
-  const primary = [...workspaces].sort((a, b) =>
-    String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? '')),
-  )[0];
+  const primary = [...workspaces].sort((a, b) => String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? '')))[0];
 
   return primary?.id === target.id ? undefined : target.id;
 }
@@ -3205,6 +3278,32 @@ function previewUrlForWorkspacePort(workspaceId: string, port: number) {
   }
 
   return `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/preview/${encodeURIComponent(String(port))}/proxy/`;
+}
+
+function connectorProviderFor(provider: string): ConnectorProvider | undefined {
+  switch (provider) {
+    case 'github':
+      return githubConnector;
+    case 'gitlab':
+      return gitlabConnector;
+    case 'bitbucket':
+      return bitbucketConnector;
+    default:
+      return undefined;
+  }
+}
+
+function connectorCredentialsFor(provider: string): ConnectorOAuthCredentials | null {
+  switch (provider) {
+    case 'github':
+      return resolveGithubCredentials();
+    case 'gitlab':
+      return resolveGitLabCredentials();
+    case 'bitbucket':
+      return resolveBitbucketCredentials();
+    default:
+      return null;
+  }
 }
 
 function classifyRuntimeLogLevel(line: string): 'info' | 'warn' | 'error' {
@@ -4896,7 +4995,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const params = parse(integrationOauthProviderParams, request.params);
       const body = parse(integrationOauthConnectSchema, request.body);
 
-      if (params.provider !== 'github') {
+      const connector = connectorProviderFor(params.provider);
+
+      if (!connector) {
         return reply.code(400).send({
           error: `Unsupported connector provider: ${params.provider}`,
           code: 'CONNECTOR_UNKNOWN_PROVIDER',
@@ -4926,11 +5027,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         organizationId = orgs[0].id;
       }
 
-      const credentials = resolveGithubCredentials();
+      const credentials = connectorCredentialsFor(params.provider);
 
       if (!credentials) {
         return reply.code(503).send({
-          error: 'GitHub integration OAuth credentials are not configured on this server.',
+          error: `${params.provider} integration OAuth credentials are not configured on this server.`,
           code: 'PROVIDER_NOT_CONFIGURED',
         });
       }
@@ -4945,7 +5046,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         secret: resolveIntegrationOauthStateSecret(),
       });
 
-      const authorizationUrl = githubConnector.buildAuthorizeUrl({ credentials, state });
+      const authorizationUrl = connector.buildAuthorizeUrl({ credentials, state });
 
       return { provider: params.provider, authorizationUrl };
     },
@@ -4964,7 +5065,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const params = parse(integrationOauthProviderParams, request.params);
       const body = parse(integrationOauthCallbackBodySchema, request.body);
 
-      if (params.provider !== 'github') {
+      const connector = connectorProviderFor(params.provider);
+
+      if (!connector) {
         return reply.code(400).send({
           error: `Unsupported connector provider: ${params.provider}`,
           code: 'CONNECTOR_UNKNOWN_PROVIDER',
@@ -4999,18 +5102,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
       }
 
-      const credentials = resolveGithubCredentials();
+      const credentials = connectorCredentialsFor(params.provider);
 
       if (!credentials) {
         return reply.code(503).send({
-          error: 'GitHub integration OAuth credentials are not configured on this server.',
+          error: `${params.provider} integration OAuth credentials are not configured on this server.`,
           code: 'PROVIDER_NOT_CONFIGURED',
         });
       }
 
       try {
-        const tokenResult = await githubConnector.exchangeCodeForToken({ credentials, code: body.code });
-        const userInfo = await githubConnector.fetchUserInfo({ accessToken: tokenResult.accessToken });
+        const tokenResult = await connector.exchangeCodeForToken({ credentials, code: body.code });
+        const userInfo = await connector.fetchUserInfo({ accessToken: tokenResult.accessToken });
 
         const accessTokenEncrypted = encryptJson({ value: tokenResult.accessToken });
 
@@ -11276,6 +11379,71 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return result;
+  });
+  app.post('/projects/:projectId/git/remote', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    if (!gitProvider.configureRemote) {
+      return reply
+        .code(501)
+        .send({ error: 'Git remote configuration is not supported by this runtime.', code: 'GIT_REMOTE_UNSUPPORTED' });
+    }
+
+    const body = parse(gitRemoteSchema, request.body ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
+    const remote = await gitProvider.configureRemote({ projectId: project.id, workspaceId, remoteUrl: body.remoteUrl });
+
+    // When the caller targets a specific (non-primary) workspace, store the
+    // remote URL on the workspace record so different workspaces can point at
+    // different remotes. The project-level Project.gitRepositoryUrl is still
+    // updated for the primary workspace (where workspaceId resolves to
+    // undefined) so single-workspace projects keep their canonical remote on
+    // Project, matching pre-Fix-4 behavior.
+    let updatedWorkspace: WorkspaceRecord | undefined;
+
+    if (workspaceId) {
+      updatedWorkspace = await store.updateWorkspaceGitRepositoryUrl({
+        workspaceId,
+        gitRepositoryUrl: body.remoteUrl,
+      });
+    }
+
+    const updatedProject = workspaceId
+      ? project
+      : await store.updateProject({
+          projectId: project.id,
+          gitRepositoryUrl: body.remoteUrl,
+          gitDefaultBranch: body.branch,
+        });
+
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'git.remote.configure',
+      metadata: {
+        remote: remote.remote,
+        provider: inferGitRemoteProvider(body.remoteUrl),
+        workspaceId: body.workspaceId,
+      },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'git.remote.configure',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: {
+        remote: remote.remote,
+        provider: inferGitRemoteProvider(body.remoteUrl),
+        workspaceId: body.workspaceId,
+      },
+    });
+
+    return { remote, project: updatedProject, workspace: updatedWorkspace };
   });
   app.get('/projects/:projectId/git/branches', async (request) => {
     const project = await requireProject(

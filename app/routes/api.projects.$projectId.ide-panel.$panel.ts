@@ -288,13 +288,21 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
       const primaryWorkspaceId =
         typeof orderedByCreated[0]?.id === 'string' ? (orderedByCreated[0]!.id as string) : undefined;
+
+      /*
+       * workspaceList comes back DESC by createdAt, so workspaceList[0] is the
+       * most recently created workspace. Expose it as activeWorkspaceId so the
+       * UI can label it, but default the selection to the primary (oldest)
+       * workspace so the IDE lands on the canonical working tree rather than
+       * whatever experimental branch was created most recently.
+       */
       const activeWorkspaceId =
         typeof workspaceList[0]?.id === 'string' ? (workspaceList[0]!.id as string) : primaryWorkspaceId;
 
       const selectedWorkspaceId =
         requestedWorkspaceId && workspaceList.some((workspace) => workspace?.id === requestedWorkspaceId)
           ? requestedWorkspaceId
-          : activeWorkspaceId;
+          : (primaryWorkspaceId ?? activeWorkspaceId);
 
       const workspaceQueryParam =
         selectedWorkspaceId && selectedWorkspaceId !== primaryWorkspaceId
@@ -388,13 +396,41 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   if (panel === 'debugger') {
     try {
-      const [dashboard, envVars, activity] = await Promise.all([
+      const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
+
+      const [dashboard, envVars, activity, workspacesResponse] = await Promise.all([
         apiRequest<any>(request, `/projects/${projectId}/dashboard`),
         apiRequest(request, `/projects/${projectId}/env-vars`),
         apiRequest(request, `/projects/${projectId}/activity`),
+        apiRequest<{ workspaces: Array<Record<string, unknown>> }>(request, `/projects/${projectId}/workspaces`).catch(
+          () => ({ workspaces: [] as Array<Record<string, unknown>> }),
+        ),
       ]);
 
-      const workspaceId = dashboard?.workspace?.id ?? projectId;
+      const workspaceList = Array.isArray(workspacesResponse?.workspaces) ? workspacesResponse.workspaces : [];
+
+      const primaryWorkspaceId = (() => {
+        const ordered = [...workspaceList].sort((a, b) =>
+          String(a?.createdAt ?? '').localeCompare(String(b?.createdAt ?? '')),
+        );
+
+        return typeof ordered[0]?.id === 'string' ? (ordered[0]!.id as string) : undefined;
+      })();
+      const requestedIsKnown =
+        requestedWorkspaceId && workspaceList.some((workspace) => workspace?.id === requestedWorkspaceId);
+
+      /*
+       * Prefer the explicitly requested workspace, then the project's primary
+       * workspace, then the dashboard's reported workspace, and finally the
+       * projectId itself as a last-resort fallback. The previous fallback chain
+       * silently bound the debugger to whichever workspace happened to be
+       * reported by /dashboard rather than the workspace the IDE is scoped to.
+       */
+      const workspaceId =
+        (requestedIsKnown ? requestedWorkspaceId : undefined) ??
+        primaryWorkspaceId ??
+        dashboard?.workspace?.id ??
+        projectId;
 
       const [runtimeStatus, runtimeProcesses, runtimeLogs] = await Promise.all([
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`).catch((error) => ({
@@ -1770,6 +1806,15 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       await apiRequest(request, `/projects/${projectId}/git/pull`, {
         method: 'POST',
         body: JSON.stringify({ branch: body.branch || 'main', workspaceId }),
+      });
+    } else if (intent === 'configure-remote') {
+      await apiRequest(request, `/projects/${projectId}/git/remote`, {
+        method: 'POST',
+        body: JSON.stringify({
+          remoteUrl: body.remoteUrl || body.gitRepositoryUrl,
+          branch: body.branch || body.gitDefaultBranch || 'main',
+          workspaceId,
+        }),
       });
     } else if (intent === 'checkout-branch') {
       await apiRequest(request, `/projects/${projectId}/git/branches/checkout`, {
