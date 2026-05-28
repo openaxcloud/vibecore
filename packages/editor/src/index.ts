@@ -5,7 +5,7 @@ import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
 import { markdown } from '@codemirror/lang-markdown';
 import { searchKeymap } from '@codemirror/search';
-import { Compartment, EditorState, type Extension } from '@codemirror/state';
+import { Compartment, EditorState, Prec, type Extension } from '@codemirror/state';
 import { drawSelection, dropCursor, EditorView, highlightActiveLine, keymap, lineNumbers } from '@codemirror/view';
 import { createElement, useEffect, useRef, useState, type ReactNode } from 'react';
 import type * as MonacoTypes from 'monaco-editor';
@@ -1023,6 +1023,14 @@ export function DesktopCodeEditor({
   return createElement('div', { ref: containerRef, className, 'data-editor-kind': 'monaco' });
 }
 
+const LOCAL_DRAFT_UPSTREAM_PROTECTION_MS = 120_000;
+
+interface LocalDocumentDraft {
+  filePath?: string;
+  value: string;
+  updatedAt: number;
+}
+
 function codeMirrorExtensions(
   props: EditorAdapterProps,
   compartments?: { editable: Compartment; readOnly: Compartment },
@@ -1071,31 +1079,26 @@ function codeMirrorExtensions(
           compartments.readOnly.of(EditorState.readOnly.of(Boolean(props.readOnly))),
         ]
       : [EditorView.editable.of(!props.readOnly), EditorState.readOnly.of(Boolean(props.readOnly))]),
-    EditorView.domEventHandlers({
-      keydown(event, view) {
-        if (
-          view.state.readOnly ||
-          event.defaultPrevented ||
-          event.metaKey ||
-          event.ctrlKey ||
-          event.altKey ||
-          event.isComposing
-        ) {
-          return false;
-        }
+    Prec.highest(
+      EditorView.domEventHandlers({
+        keydown(event, view) {
+          if (view.state.readOnly || event.metaKey || event.ctrlKey || event.altKey || event.isComposing) {
+            return false;
+          }
 
-        const keyText = event.key === 'Enter' ? '\n' : event.key.length === 1 ? event.key : undefined;
+          const keyText = event.key === 'Enter' ? '\n' : event.key.length === 1 ? event.key : undefined;
 
-        if (!keyText) {
-          return false;
-        }
+          if (!keyText) {
+            return false;
+          }
 
-        event.preventDefault();
-        view.dispatch(view.state.replaceSelection(keyText));
+          event.preventDefault();
+          view.dispatch(view.state.replaceSelection(keyText));
 
-        return true;
-      },
-    }),
+          return true;
+        },
+      }),
+    ),
     languageExtension,
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
@@ -1132,6 +1135,7 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
   const readOnlyCompartmentRef = useRef(new Compartment());
   const localDocumentChangedRef = useRef(false);
   const localDocumentFilePathRef = useRef(props.filePath);
+  const localDocumentDraftRef = useRef<LocalDocumentDraft | null>(null);
   const lastAppliedValueRef = useRef(props.value);
   const lastFilePathRef = useRef(props.filePath);
   const propsRef = useRef(props);
@@ -1153,6 +1157,11 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
             onChange: (change) => {
               localDocumentChangedRef.current = true;
               localDocumentFilePathRef.current = propsRef.current.filePath;
+              localDocumentDraftRef.current = {
+                filePath: propsRef.current.filePath,
+                value: change.value,
+                updatedAt: Date.now(),
+              };
               propsRef.current.onChange?.(change);
             },
             onSave: () => propsRef.current.onSave?.(),
@@ -1184,6 +1193,22 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
     const current = view.state.doc.toString();
     const filePathChanged = lastFilePathRef.current !== props.filePath;
     const upstreamChanged = lastAppliedValueRef.current !== props.value;
+    const localDraft = localDocumentDraftRef.current;
+    const draftSwitchesAwayFromEditedFile =
+      filePathChanged &&
+      Boolean(localDraft?.filePath) &&
+      Boolean(props.filePath) &&
+      localDraft?.filePath !== props.filePath;
+    const draftBelongsToCurrentFile =
+      Boolean(localDraft) &&
+      !draftSwitchesAwayFromEditedFile &&
+      (localDraft?.filePath === props.filePath || !localDraft?.filePath || !props.filePath);
+    const shouldProtectRecentLocalDraft =
+      Boolean(localDraft) &&
+      draftBelongsToCurrentFile &&
+      current === localDraft?.value &&
+      current !== props.value &&
+      Date.now() - localDraft.updatedAt <= LOCAL_DRAFT_UPSTREAM_PROTECTION_MS;
     const hasUnappliedLocalChange =
       localDocumentChangedRef.current && current !== lastAppliedValueRef.current && current !== props.value;
     const switchedAwayFromLocallyEditedFile =
@@ -1193,6 +1218,12 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
       props.filePath !== localDocumentFilePathRef.current;
 
     if (!filePathChanged && !upstreamChanged) {
+      return;
+    }
+
+    if (shouldProtectRecentLocalDraft) {
+      lastFilePathRef.current = props.filePath;
+
       return;
     }
 
@@ -1215,6 +1246,7 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: props.value } });
       localDocumentChangedRef.current = false;
       localDocumentFilePathRef.current = props.filePath;
+      localDocumentDraftRef.current = null;
       lastAppliedValueRef.current = props.value;
       lastFilePathRef.current = props.filePath;
     }

@@ -269,6 +269,8 @@ const IDE_URL_PANELS = [...IDE_WORKSPACE_PANELS, ...IDE_RIGHT_PANELS] as const;
 const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'search', 'locks', 'terminal', 'preview', 'deploy'] as const;
 
 const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deployments'] as const;
+const MOBILE_OVERLAY_RESTORE_WINDOW_MS = 120_000;
+type MobileOverlayKind = 'tools' | 'tabs' | 'more';
 
 const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: string }> = {
   preview: { id: 'preview', name: 'Webview', icon: 'i-ph:monitor' },
@@ -2388,6 +2390,31 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [mobileTabSwitcherOpen, setMobileTabSwitcherOpen] = useState(false);
     const [mobileMoreMenuOpen, setMobileMoreMenuOpen] = useState(false);
 
+    const mobileOverlayStorageKey = useMemo(
+      () => (projectIdeMode && projectId ? `vibecore:mobile-overlay:${projectId}` : undefined),
+      [projectIdeMode, projectId],
+    );
+    const persistMobileOverlay = useCallback(
+      (overlay: MobileOverlayKind | null) => {
+        if (!mobileOverlayStorageKey || typeof window === 'undefined') {
+          return;
+        }
+
+        try {
+          if (!overlay) {
+            window.sessionStorage.removeItem(mobileOverlayStorageKey);
+
+            return;
+          }
+
+          window.sessionStorage.setItem(mobileOverlayStorageKey, JSON.stringify({ overlay, openedAt: Date.now() }));
+        } catch {
+          // Session storage can be disabled in hardened browsers; overlay state still works in memory.
+        }
+      },
+      [mobileOverlayStorageKey],
+    );
+
     useEffect(() => {
       setClientHydrated(true);
     }, []);
@@ -2420,33 +2447,91 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setMobileTabSwitcherOpen(false);
       setMobileMoreMenuOpen(false);
       setMobileToolsQuery('');
-    }, []);
+      persistMobileOverlay(null);
+    }, [persistMobileOverlay]);
 
     const closeMobileToolsSheet = useCallback(() => {
       setMobileToolsSheetOpen(false);
       setMobileToolsQuery('');
-    }, []);
+      persistMobileOverlay(null);
+    }, [persistMobileOverlay]);
+
+    const handleMobileOverlayEscapeKey = useCallback(
+      (event: React.KeyboardEvent<HTMLElement>) => {
+        if (event.key !== 'Escape') {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        closeMobileOverlays();
+      },
+      [closeMobileOverlays],
+    );
 
     const openMobileToolsSheet = useCallback(() => {
       setMobileTabSwitcherOpen(false);
       setMobileMoreMenuOpen(false);
       setMobileToolsQuery('');
       setMobileToolsSheetOpen(true);
-    }, []);
+      persistMobileOverlay('tools');
+    }, [persistMobileOverlay]);
 
     const openMobileTabSwitcher = useCallback(() => {
       setMobileToolsSheetOpen(false);
       setMobileMoreMenuOpen(false);
       setMobileToolsQuery('');
       setMobileTabSwitcherOpen(true);
-    }, []);
+      persistMobileOverlay('tabs');
+    }, [persistMobileOverlay]);
 
     const openMobileMoreMenu = useCallback(() => {
       setMobileToolsSheetOpen(false);
       setMobileTabSwitcherOpen(false);
       setMobileToolsQuery('');
       setMobileMoreMenuOpen(true);
-    }, []);
+      persistMobileOverlay('more');
+    }, [persistMobileOverlay]);
+
+    useEffect(() => {
+      if (!useMobileIde || !clientHydrated || !mobileOverlayStorageKey || typeof window === 'undefined') {
+        return;
+      }
+
+      try {
+        const rawState = window.sessionStorage.getItem(mobileOverlayStorageKey);
+
+        if (!rawState) {
+          return;
+        }
+
+        const parsedState = JSON.parse(rawState) as { overlay?: unknown; openedAt?: unknown };
+        const openedAt = typeof parsedState.openedAt === 'number' ? parsedState.openedAt : 0;
+        const isFresh = Date.now() - openedAt <= MOBILE_OVERLAY_RESTORE_WINDOW_MS;
+
+        if (!isFresh) {
+          window.sessionStorage.removeItem(mobileOverlayStorageKey);
+
+          return;
+        }
+
+        if (parsedState.overlay === 'tools') {
+          setMobileTabSwitcherOpen(false);
+          setMobileMoreMenuOpen(false);
+          setMobileToolsSheetOpen(true);
+        } else if (parsedState.overlay === 'tabs') {
+          setMobileToolsSheetOpen(false);
+          setMobileMoreMenuOpen(false);
+          setMobileTabSwitcherOpen(true);
+        } else if (parsedState.overlay === 'more') {
+          setMobileToolsSheetOpen(false);
+          setMobileTabSwitcherOpen(false);
+          setMobileMoreMenuOpen(true);
+        }
+      } catch {
+        window.sessionStorage.removeItem(mobileOverlayStorageKey);
+      }
+    }, [clientHydrated, mobileOverlayStorageKey, useMobileIde]);
 
     const [mobileOpenTabs, setMobileOpenTabs] = useState(() =>
       ECODE_MOBILE_DEFAULT_TABS.map((tab) => ECODE_MOBILE_TAB_META[tab]),
@@ -3387,7 +3472,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           if (
             ui?.mobilePanel &&
-            ['chat', 'files', 'editor', 'search', 'terminal', 'preview', 'deploy'].includes(ui.mobilePanel)
+            (!useMobileIde || !activeProjectPanel) &&
+            ['chat', 'files', 'editor', 'search', 'locks', 'terminal', 'preview', 'deploy'].includes(ui.mobilePanel)
           ) {
             setMobilePanel(ui.mobilePanel);
           }
@@ -3855,13 +3941,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         if (useMobileIde) {
           setMobileIdePanel('editor');
+          setProjectPanelSearchParam('editor');
         }
       };
 
       window.addEventListener('vibecore:open-editor-file', handleOpenEditorFile);
 
       return () => window.removeEventListener('vibecore:open-editor-file', handleOpenEditorFile);
-    }, [openProjectFile, projectFiles, setMobileIdePanel, useMobileIde]);
+    }, [openProjectFile, projectFiles, setMobileIdePanel, setProjectPanelSearchParam, useMobileIde]);
 
     const runProjectEditorCommand = useCallback((command: string) => {
       window.dispatchEvent(new CustomEvent('vibecore:editor-command', { detail: { command } }));
@@ -5446,6 +5533,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
                 if (useMobileIde) {
                   setMobileIdePanel('editor');
+                  setProjectPanelSearchParam('editor');
                 }
               }}
               onFileOpen={(filePath) => {
@@ -5453,6 +5541,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
                 if (useMobileIde) {
                   setMobileIdePanel('editor');
+                  setProjectPanelSearchParam('editor');
                 }
               }}
             />
@@ -5477,7 +5566,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     projectId={projectId}
                     previewDevice={previewDevice}
                     onPreviewDeviceChange={setPreviewDevice}
-                    onOpenSourceFile={(filePath) => openProjectFile(filePath, { preview: false })}
+                    onOpenSourceFile={(filePath) => {
+                      openProjectFile(filePath, { preview: false });
+
+                      if (useMobileIde) {
+                        setMobileIdePanel('editor');
+                        setProjectPanelSearchParam('editor');
+                      }
+                    }}
                     onOpenLogsRight={() => {
                       setRightPanelMode('preview-logs');
                       setRightPanelOpen(true);
@@ -5514,6 +5610,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         selectedFile,
         setSelectedElement,
         setMobileIdePanel,
+        setProjectPanelSearchParam,
         theme,
         unsavedFiles,
         useMobileIde,
@@ -6824,6 +6921,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               aria-modal="true"
               aria-label="More IDE panels"
               data-testid="mobile-more-menu-sheet"
+              onKeyDownCapture={handleMobileOverlayEscapeKey}
             >
               <div className="bolt-mobile-more-menu-handle" aria-hidden />
               <header className="bolt-mobile-more-menu-header">
@@ -6975,6 +7073,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               aria-modal="true"
               aria-label="Search for tools and files"
               data-testid="tools-sheet"
+              onKeyDownCapture={handleMobileOverlayEscapeKey}
             >
               <div className="bolt-mobile-more-handle" aria-hidden />
               <header className="bolt-mobile-more-header">

@@ -46,6 +46,45 @@ describe('MobileCodeEditor document sync', () => {
     expect(content.textContent).toContain('x');
   });
 
+  it('accepts whitespace and newline as the first mobile keystrokes', () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <MobileCodeEditor value="export const value = 1;" filePath="src/App.tsx" onChange={onChange} />,
+    );
+    const content = editorContent(container);
+
+    content.focus();
+    fireEvent.keyDown(content, { key: ' ' });
+    fireEvent.keyDown(content, { key: 'Enter' });
+    fireEvent.keyDown(content, { key: '/' });
+    fireEvent.keyDown(content, { key: '/' });
+    fireEvent.keyDown(content, { key: ' ' });
+    fireEvent.keyDown(content, { key: 'm' });
+
+    expect(content.textContent).toContain('// m');
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it('does not overwrite a fresh local draft with a stale upstream value', () => {
+    const onChange = vi.fn();
+    const initialValue = 'export const value = 1;';
+    const { container, rerender } = render(
+      <MobileCodeEditor value={initialValue} filePath="src/App.tsx" onChange={onChange} />,
+    );
+    const content = editorContent(container);
+
+    content.focus();
+    fireEvent.keyDown(content, { key: 'x' });
+
+    const localValue = onChange.mock.lastCall?.[0]?.value as string | undefined;
+    expect(localValue).toContain('x');
+
+    rerender(<MobileCodeEditor value={localValue!} filePath="src/App.tsx" onChange={onChange} />);
+    rerender(<MobileCodeEditor value={initialValue} filePath="src/App.tsx" onChange={onChange} />);
+
+    expect(content.textContent).toContain('x');
+  });
+
   it('still applies a real file switch after a local edit', () => {
     const onChange = vi.fn();
     const { container, rerender } = render(

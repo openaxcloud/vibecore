@@ -58,10 +58,8 @@ export function projectPanelPath(project: ProjectUrlRef, panel: string) {
 export function withProjectSearch(path: string, options: { panel?: string; searchParams?: URLSearchParams } = {}) {
   const params = new URLSearchParams(options.searchParams);
 
-  if (options.panel && options.panel !== 'editor') {
+  if (options.panel) {
     params.set('panel', options.panel);
-  } else if (options.panel === 'editor') {
-    params.delete('panel');
   }
 
   const search = params.toString();

@@ -14,7 +14,7 @@ export function readPanelSearchParam(
 export function withPanelSearchParam(searchParams: URLSearchParams, panel?: string): URLSearchParams {
   const nextParams = new URLSearchParams(searchParams);
 
-  if (!panel || panel === 'editor') {
+  if (!panel) {
     nextParams.delete('panel');
   } else {
     nextParams.set('panel', panel);

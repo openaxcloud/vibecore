@@ -31,7 +31,7 @@ describe('project URL helpers', () => {
       ),
     ).toBe('/@henri45/volt-watt?commit=abc&panel=preview');
     expect(projectPanelPath({ id: 'project_1', slug: 'volt-watt', organizationSlug: 'henri45' }, 'editor')).toBe(
-      '/@henri45/volt-watt',
+      '/@henri45/volt-watt?panel=editor',
     );
   });
 

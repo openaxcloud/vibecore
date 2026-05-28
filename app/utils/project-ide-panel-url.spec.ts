@@ -17,10 +17,10 @@ describe('project IDE panel URL helpers', () => {
     expect(nextParams.get('commit')).toBe('abc123');
   });
 
-  it('removes the panel param for the editor while preserving unrelated params', () => {
+  it('sets the editor panel while preserving unrelated params', () => {
     const nextParams = withPanelSearchParam(new URLSearchParams('commit=abc123&panel=git'), 'editor');
 
-    expect(nextParams.get('panel')).toBeNull();
+    expect(nextParams.get('panel')).toBe('editor');
     expect(nextParams.get('commit')).toBe('abc123');
   });
 });

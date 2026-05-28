@@ -8,6 +8,7 @@ const iconPaths = globSync('./icons/*.svg');
 const collectionName = 'bolt';
 
 const LOCAL_ARTIFACT_EXCLUDES = [
+  /\.(css|postcss|sass|scss|less|stylus|styl)($|\?)/,
   /\/\.claude\//,
   /\/\.playwright-mcp\//,
   /\/\.vibecore\//,

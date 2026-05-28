@@ -69,7 +69,7 @@ interface WindowSize {
 const previewBootSteps: Array<{ id: PreviewBootStepId; label: string; description: string }> = [
   {
     id: 'dependencies',
-    label: 'Installing dependencies',
+    label: 'Building dependencies',
     description: 'Preparing packages and workspace runtime.',
   },
   {
@@ -458,6 +458,13 @@ export const Preview = memo(
         iframeUrl &&
         (activePreview.ready === false || !previewFrameLoaded || loadedPreviewUrl !== iframeUrl),
     );
+    const shouldShowPreviewStartupOverlay = Boolean(
+      !activePreview &&
+        !hasStaticPreview &&
+        autoStart &&
+        !previewRunFailed &&
+        (isStartingPreview || isRefreshingPorts || !workspaceReady || previewStatus),
+    );
     useEffect(() => {
       const previewLoadIdentity = iframeUrl ? `${projectId ?? 'local'}:${iframeUrl}` : undefined;
 
@@ -822,14 +829,18 @@ export const Preview = memo(
         void workbenchStore.refreshRuntimePorts().catch(() => undefined);
 
         if (workbenchStore.isPreviewServerStarting()) {
+          setIsStartingPreview(true);
           setPreviewStatus('Starting dev server and detecting runtime ports...');
+
           return;
         }
 
         if (tick % 6 === 0) {
+          setIsStartingPreview(true);
           setPreviewStatus('Restarting preview server and detecting runtime ports...');
           void workbenchStore.restartPreviewServer().catch(() => undefined);
         } else if (tick % 2 === 0) {
+          setIsStartingPreview(true);
           setPreviewStatus('Starting dev server and detecting runtime ports...');
           void workbenchStore.startPreviewServer().catch(() => undefined);
         }
@@ -1972,21 +1983,46 @@ export const Preview = memo(
                     }}
                   />
                 ) : (
-                  <PreviewSplashSequence
-                    appName={projectId ? 'Project preview' : undefined}
-                    activeStep={previewBootProgress.activeStep}
-                    currentTask={
-                      previewStatus ??
-                      (workspaceReady
-                        ? 'Starting dev server and detecting runtime ports...'
-                        : 'Starting project workspace...')
-                    }
-                    isBusy={isStartingPreview || isRefreshingPorts || autoStart || !workspaceReady}
-                    progress={previewBootProgress.progress}
-                    logs={recentPreviewLogs}
-                    steps={previewBootSteps}
-                    onViewLogs={openPreviewLogs}
-                  />
+                  <>
+                    {shouldShowPreviewStartupOverlay ? (
+                      <iframe
+                        title="preview"
+                        data-testid="preview-iframe"
+                        className="bolt-preview-iframe bolt-preview-iframe--booting"
+                        src="about:blank"
+                      />
+                    ) : null}
+                    <PreviewSplashSequence
+                      appName={projectId ? 'Project preview' : undefined}
+                      activeStep={previewBootProgress.activeStep}
+                      currentTask={
+                        previewStatus ??
+                        (workspaceReady
+                          ? 'Starting dev server and detecting runtime ports...'
+                          : 'Starting project workspace...')
+                      }
+                      isBusy={isStartingPreview || isRefreshingPorts || autoStart || !workspaceReady}
+                      progress={previewBootProgress.progress}
+                      logs={recentPreviewLogs}
+                      steps={previewBootSteps}
+                      onViewLogs={openPreviewLogs}
+                    />
+                    {shouldShowPreviewStartupOverlay ? (
+                      <PreviewLoadingOverlay
+                        activeStep={previewBootProgress.activeStep}
+                        currentTask={
+                          previewStatus ??
+                          (workspaceReady
+                            ? 'Starting dev server and detecting runtime ports...'
+                            : 'Starting project workspace...')
+                        }
+                        logs={recentPreviewLogs}
+                        progress={Math.min(previewBootProgress.progress, 84)}
+                        steps={previewBootSteps}
+                        onViewLogs={openPreviewLogs}
+                      />
+                    ) : null}
+                  </>
                 )}
               </>
             )}
