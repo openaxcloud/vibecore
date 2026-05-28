@@ -456,7 +456,7 @@ const WALKTHROUGH_SECTIONS: WalkthroughEntry[] = [
     steps: [
       {
         label: 'Decide once',
-        detail: 'Auto-apply toggle in agent settings. OFF for review-first, ON for silent writes.',
+        detail: 'Auto-apply is ON by default in agent settings. Switch it OFF for review-first patch control.',
       },
       {
         label: 'Per-hunk control',
@@ -579,7 +579,8 @@ const PREREQUISITES = [
   },
   {
     title: 'Decide an auto-apply preference',
-    detail: 'Auto-apply OFF surfaces the patch review panel; auto-apply ON writes silently with an Undo toast.',
+    detail:
+      'Auto-apply starts ON and writes silently with an Undo toast; switch it OFF to surface the patch review panel.',
   },
 ];
 

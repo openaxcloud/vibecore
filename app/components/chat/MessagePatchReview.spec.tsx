@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { MessagePatchReview } from './MessagePatchReview';
+import { AGENT_AUTO_APPLY_STORAGE_KEY } from '~/lib/hooks/useAutoApplyEnabled';
 import type { FileActionDiff } from '~/lib/hooks/useFileActionDiff';
 import type { FileActionBlock } from '~/types/message-blocks';
 import { buildReviewableDiffHunks, summarizeReviewableDiffHunks } from '~/utils/diff';
@@ -63,21 +64,29 @@ const MESSAGE_WITH_TWO_FILES = [
 
 describe('<MessagePatchReview />', () => {
   afterEach(() => {
+    window.localStorage.removeItem(AGENT_AUTO_APPLY_STORAGE_KEY);
     cleanup();
   });
 
+  it('renders nothing by default because auto-apply starts enabled', () => {
+    const { container } = render(
+      <MessagePatchReview messageId="m-default" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />,
+    );
+    expect(container.firstChild).toBeNull();
+  });
+
   it('renders nothing when auto-apply is enabled', () => {
-    window.localStorage.setItem('vibecore:agent-auto-apply', 'true');
+    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'true');
 
     const { container } = render(
       <MessagePatchReview messageId="m-auto" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />,
     );
     expect(container.firstChild).toBeNull();
-
-    window.localStorage.removeItem('vibecore:agent-auto-apply');
   });
 
   it('renders nothing when the message has no file actions', () => {
+    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
+
     const { container } = render(
       <MessagePatchReview messageId="m-empty" content="Just narration, no actions." parts={undefined} />,
     );
@@ -85,6 +94,8 @@ describe('<MessagePatchReview />', () => {
   });
 
   it('lists every file action as its own inline diff card', () => {
+    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
+
     render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />);
 
     expect(screen.getByText('Files changed')).toBeTruthy();
@@ -94,6 +105,8 @@ describe('<MessagePatchReview />', () => {
   });
 
   it('collapses and reopens the panel on toggle', () => {
+    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
+
     render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />);
 
     const toggle = screen.getByRole('button', { name: /Files changed/ });
@@ -109,6 +122,8 @@ describe('<MessagePatchReview />', () => {
   });
 
   it('shows aggregate +N / −M counts in the panel header', () => {
+    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
+
     render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />);
 
     // Both files are new → 1 added line each (no prior content), 0 removed.
@@ -116,6 +131,8 @@ describe('<MessagePatchReview />', () => {
   });
 
   it('Accept all bulk-applies every file action with changes', async () => {
+    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
+
     const onApply = vi.fn().mockResolvedValue(undefined);
     render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} onApply={onApply} />);
 
@@ -139,6 +156,8 @@ describe('<MessagePatchReview />', () => {
   });
 
   it('Reject all dismisses the review without applying files', () => {
+    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
+
     const onApply = vi.fn();
     render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} onApply={onApply} />);
 
@@ -149,6 +168,8 @@ describe('<MessagePatchReview />', () => {
   });
 
   it('forwards onApply for each file action card', () => {
+    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
+
     const onApply = vi.fn();
     render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} onApply={onApply} />);
 

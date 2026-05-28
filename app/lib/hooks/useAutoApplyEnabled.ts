@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react';
 
 export const AGENT_AUTO_APPLY_STORAGE_KEY = 'vibecore:agent-auto-apply';
+export const DEFAULT_AGENT_AUTO_APPLY_ENABLED = true;
 
 /**
  * Custom DOM event name BaseChat fires after writing the toggle so
@@ -19,15 +20,27 @@ export const AGENT_AUTO_APPLY_STORAGE_KEY = 'vibecore:agent-auto-apply';
  */
 export const AGENT_AUTO_APPLY_CHANGED_EVENT = 'vibecore:auto-apply-changed';
 
-function readAutoApplyFromStorage(): boolean {
-  if (typeof globalThis === 'undefined' || typeof globalThis.localStorage === 'undefined') {
+function parseStoredAutoApply(value: string | null): boolean {
+  if (value === 'false') {
     return false;
   }
 
+  if (value === 'true') {
+    return true;
+  }
+
+  return DEFAULT_AGENT_AUTO_APPLY_ENABLED;
+}
+
+export function readAutoApplyFromStorage(): boolean {
+  if (typeof globalThis === 'undefined' || typeof globalThis.localStorage === 'undefined') {
+    return DEFAULT_AGENT_AUTO_APPLY_ENABLED;
+  }
+
   try {
-    return globalThis.localStorage.getItem(AGENT_AUTO_APPLY_STORAGE_KEY) === 'true';
+    return parseStoredAutoApply(globalThis.localStorage.getItem(AGENT_AUTO_APPLY_STORAGE_KEY));
   } catch {
-    return false;
+    return DEFAULT_AGENT_AUTO_APPLY_ENABLED;
   }
 }
 
@@ -70,7 +83,7 @@ export function useAutoApplyEnabled(): boolean {
         return;
       }
 
-      setEnabled(event.newValue === 'true');
+      setEnabled(parseStoredAutoApply(event.newValue));
     };
 
     const onLocalChange = (event: Event) => {

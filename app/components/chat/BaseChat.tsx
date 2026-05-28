@@ -32,7 +32,7 @@ import {
   partitionMonitoringEvents as partitionMonitoringEventsHelper,
 } from './projectMonitoring';
 import { formatRailBadgeValue } from '~/lib/labels/rail-badge';
-import { setAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
+import { readAutoApplyFromStorage, setAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
 import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
@@ -2648,18 +2648,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.localStorage.setItem('vibecore:agent-plan-first-default', String(projectPlanFirst));
     }, [projectPlanFirst]);
 
-    /*
-     * Auto-apply is opt-in. The default is review-first because applying AI
-     * patches silently can turn a malformed generation into a broken preview.
-     */
     const [projectAutoApply, setProjectAutoApply] = useState(() => {
       if (typeof window === 'undefined') {
-        return false;
+        return readAutoApplyFromStorage();
       }
 
-      const stored = window.localStorage.getItem('vibecore:agent-auto-apply');
-
-      return stored === 'true';
+      return readAutoApplyFromStorage();
     });
 
     useEffect(() => {

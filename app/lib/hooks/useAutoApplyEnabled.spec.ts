@@ -21,9 +21,9 @@ describe('useAutoApplyEnabled', () => {
     window.localStorage.removeItem(AGENT_AUTO_APPLY_STORAGE_KEY);
   });
 
-  it('returns false when nothing is stored', () => {
+  it('returns true when nothing is stored', () => {
     const { result } = renderHook(() => useAutoApplyEnabled());
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
   });
 
   it('returns true when the storage slot already holds "true"', () => {
@@ -33,7 +33,16 @@ describe('useAutoApplyEnabled', () => {
     expect(result.current).toBe(true);
   });
 
+  it('keeps auto-apply disabled when the storage slot already holds "false"', () => {
+    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
+
+    const { result } = renderHook(() => useAutoApplyEnabled());
+    expect(result.current).toBe(false);
+  });
+
   it('reacts to setAutoApplyEnabled in the same tab via the custom event', () => {
+    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
+
     const { result } = renderHook(() => useAutoApplyEnabled());
     expect(result.current).toBe(false);
 
@@ -49,6 +58,8 @@ describe('useAutoApplyEnabled', () => {
   });
 
   it('reacts to the native storage event (cross-tab toggle)', () => {
+    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
+
     const { result } = renderHook(() => useAutoApplyEnabled());
     expect(result.current).toBe(false);
 
@@ -57,6 +68,23 @@ describe('useAutoApplyEnabled', () => {
         new StorageEvent('storage', {
           key: AGENT_AUTO_APPLY_STORAGE_KEY,
           newValue: 'true',
+        }),
+      );
+    });
+    expect(result.current).toBe(true);
+  });
+
+  it('falls back to enabled when the cross-tab preference is removed', () => {
+    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
+
+    const { result } = renderHook(() => useAutoApplyEnabled());
+    expect(result.current).toBe(false);
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: AGENT_AUTO_APPLY_STORAGE_KEY,
+          newValue: null,
         }),
       );
     });
