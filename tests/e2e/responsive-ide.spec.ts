@@ -9,6 +9,41 @@ function mobileBottomNavigation(page: import('@playwright/test').Page) {
   return page.getByTestId('mobile-bottom-navigation');
 }
 
+async function expectBottomTabLabelsHidden(page: import('@playwright/test').Page) {
+  const labelStates = await page
+    .getByTestId('mobile-open-tabs')
+    .locator('.bolt-mobile-replit-tab-label')
+    .evaluateAll((labels) =>
+      labels.map((label) => {
+        const element = label as HTMLElement;
+        const style = window.getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+
+        return {
+          text: element.textContent?.trim() ?? '',
+          display: style.display,
+          height: rect.height,
+          width: rect.width,
+        };
+      }),
+    );
+
+  const visibleTabButtonLabels = await page
+    .getByTestId('mobile-open-tabs')
+    .locator('.bolt-mobile-replit-panel-tab')
+    .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label') ?? ''));
+
+  expect(labelStates.length).toBeGreaterThan(0);
+  expect(visibleTabButtonLabels.length).toBe(labelStates.length);
+  expect(visibleTabButtonLabels.every((label) => /^Switch to .+ tab$/.test(label))).toBe(true);
+
+  for (const state of labelStates) {
+    expect(state.display).toBe('none');
+    expect(state.width).toBe(0);
+    expect(state.height).toBe(0);
+  }
+}
+
 async function clickFirstVisible(candidates: import('@playwright/test').Locator[], options: { timeout?: number } = {}) {
   const deadline = Date.now() + (options.timeout ?? 15_000);
 
@@ -330,7 +365,7 @@ test.describe('responsive IDE shell', () => {
     await expect(page).toHaveURL(/panel=terminal/);
   });
 
-  test('mobile exposes tab navigation for core IDE panels', async ({ page, isMobile }) => {
+  test('mobile exposes icon-only tab navigation for core IDE panels', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile-only assertion');
     test.setTimeout(120_000);
 
@@ -344,9 +379,7 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByTestId('tab-preview')).toBeVisible();
     await expect(page.getByTestId('tab-agent')).toBeVisible();
     await expect(page.getByTestId('tab-deployments')).toBeVisible();
-    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-preview')).toContainText('Webview');
-    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-agent')).toContainText('AI Agent');
-    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-deployments')).toContainText('Deployments');
+    await expectBottomTabLabelsHidden(page);
     await expect(mobileNav.getByTestId('button-add-tab')).toBeVisible();
     await expect(mobileNav.getByTestId('button-more')).toBeVisible();
     await mobileNav.getByTestId('button-more').click();
@@ -357,7 +390,7 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
   });
 
-  test('tablet exposes named tab navigation and one tools entry point', async ({ page }, testInfo) => {
+  test('tablet exposes icon-only tab navigation and one tools entry point', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'tablet', 'tablet-only assertion');
     test.setTimeout(120_000);
     await page.setViewportSize({ width: 1024, height: 768 });
@@ -368,9 +401,7 @@ test.describe('responsive IDE shell', () => {
 
     const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
     await expect(mobileNav).toBeVisible({ timeout: 15000 });
-    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-preview')).toContainText('Webview');
-    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-agent')).toContainText('AI Agent');
-    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-deployments')).toContainText('Deployments');
+    await expectBottomTabLabelsHidden(page);
     await expect(mobileNav.getByTestId('button-add-tab')).toBeVisible();
     await expect(mobileNav.getByTestId('button-more')).toBeVisible();
 
@@ -507,6 +538,7 @@ createServer((request, response) => {
       });
 
       const toolsSheet = await openMobileToolsSheet(page);
+
       const toolsTheme = await toolsSheet.evaluate((element) => {
         const root = document.documentElement;
         const styles = getComputedStyle(element);
@@ -527,6 +559,7 @@ createServer((request, response) => {
       await expect(toolsSheet).toBeHidden({ timeout: 10_000 });
 
       await page.getByTestId('mobile-bottom-navigation').getByTestId('button-more').click();
+
       const moreMenu = page.getByTestId('mobile-more-menu-sheet');
       await expect(moreMenu).toBeVisible({ timeout: 10_000 });
 

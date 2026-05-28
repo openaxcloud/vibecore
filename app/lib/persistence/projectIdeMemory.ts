@@ -642,11 +642,7 @@ export function recordSlashCommand(projectId: string, commandId: string, workspa
   return saveProjectIdeMemory(projectId, { ui: { recentSlashCommandIds: next } }, workspaceId);
 }
 
-export function saveProjectIdeMemory(
-  projectId: string,
-  patch: ProjectIdeMemory,
-  workspaceId?: string,
-): Promise<void> {
+export function saveProjectIdeMemory(projectId: string, patch: ProjectIdeMemory, workspaceId?: string): Promise<void> {
   installLifecycleFlushListenersOnce();
 
   const id = scopeKey(projectId, workspaceId);

@@ -3501,38 +3501,28 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-replit-panel-tab {
-  width: auto;
-  min-width: 52px;
-  max-width: 78px;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
   height: 44px;
-  flex: 1 1 58px;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 6px 7px;
-  border-radius: 12px;
-  font-size: 18px;
+  flex: 0 0 44px;
+  flex-direction: row;
+  gap: 0;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 20px;
 }
 
 .bolt-mobile-replit-panel-tab svg,
 .bolt-mobile-replit-panel-tab
   > span:not(.sr-only):not(.bolt-mobile-replit-tab-label):not(.bolt-mobile-replit-tab-indicator) {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
 }
 
 .bolt-mobile-replit-tab-label {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  color: currentColor;
-  font-size: 9.5px;
-  font-weight: 700;
-  line-height: 1;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: none;
 }
 
 .bolt-mobile-replit-icon-tab[aria-current='page'] {
@@ -3574,17 +3564,18 @@ body :where(.lucide, svg[data-lucide]) {
 
 @media (min-width: 768px) and (max-width: 1199px) {
   .bolt-mobile-replit-panel-tab {
-    max-width: 112px;
-    flex-basis: 92px;
+    width: 48px;
+    min-width: 48px;
+    max-width: 48px;
+    flex: 0 0 48px;
     flex-direction: row;
-    gap: 6px;
-    padding: 0 10px 0 9px;
+    gap: 0;
+    padding: 0;
     border-radius: 999px;
   }
 
   .bolt-mobile-replit-tab-label {
-    font-size: 11px;
-    text-align: left;
+    display: none;
   }
 }
 
@@ -13863,8 +13854,10 @@ button.bolt-project-statusbar-pill:focus-visible,
 
 .bolt-project-settings-hub {
   display: grid;
+  min-width: 0;
   gap: 16px;
   color: var(--bolt-elements-textPrimary);
+  container-type: inline-size;
 
   header,
   .bolt-project-settings-sidebar,
@@ -13876,10 +13869,15 @@ button.bolt-project-statusbar-pill:focus-visible,
 
   header {
     display: flex;
+    min-width: 0;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     padding: 16px;
+
+    > div:first-child {
+      min-width: 0;
+    }
 
     h3 {
       margin: 0;
@@ -13932,6 +13930,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 
   .bolt-project-settings-sidebar {
     display: grid;
+    min-width: 0;
     position: sticky;
     top: 8px;
     gap: 16px;
@@ -13967,6 +13966,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 
   .bolt-project-settings-sidebar button {
     display: grid;
+    min-width: 0;
     min-height: 52px;
     gap: 2px;
     text-align: left;
@@ -14021,12 +14021,14 @@ button.bolt-project-statusbar-pill:focus-visible,
 
   .bolt-project-settings-grid {
     display: grid;
+    min-width: 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
   }
 
   .bolt-project-settings-card {
     display: grid;
+    min-width: 0;
     gap: 12px;
     padding: 16px;
 
@@ -14565,6 +14567,135 @@ button.bolt-project-statusbar-pill:focus-visible,
     .bolt-project-memory-fields {
       grid-template-columns: 1fr;
       align-items: stretch;
+    }
+  }
+}
+
+@media (max-width: 720px) {
+  .bolt-project-settings-hub {
+    gap: 12px;
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: stretch;
+      gap: 10px;
+      padding: 12px;
+
+      h3 {
+        font-size: 15px;
+      }
+
+      p {
+        font-size: 11px;
+        line-height: 1.4;
+      }
+
+      a,
+      .bolt-project-settings-status {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    .bolt-project-settings-sidebar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 8px;
+      scroll-padding-inline: 8px;
+      scroll-snap-type: x proximity;
+      scrollbar-width: none;
+    }
+
+    .bolt-project-settings-sidebar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .bolt-project-settings-sidebar section {
+      display: flex;
+      flex: 0 0 auto;
+      gap: 6px;
+    }
+
+    .bolt-project-settings-sidebar section > div {
+      width: 108px;
+      min-width: 108px;
+      align-content: center;
+      border-right: 1px solid var(--bolt-elements-borderColor);
+      padding: 6px 8px 6px 0;
+    }
+
+    .bolt-project-settings-sidebar section > div small {
+      display: none;
+    }
+
+    .bolt-project-settings-sidebar button {
+      width: 136px;
+      min-width: 136px;
+      min-height: 48px;
+      scroll-snap-align: start;
+      padding: 8px 10px;
+    }
+
+    .bolt-project-settings-sidebar button small {
+      display: -webkit-box;
+      overflow: hidden;
+      white-space: normal;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .bolt-project-settings-sidebar button[aria-current='page'] {
+      box-shadow: inset 0 -3px 0 var(--vc-ide-accent-action);
+    }
+
+    .bolt-project-settings-active-heading,
+    .bolt-project-settings-card {
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .bolt-project-settings-card {
+      gap: 10px;
+    }
+
+    .bolt-project-settings-list form,
+    .bolt-project-memory-row,
+    .bolt-project-memory-card-header,
+    .bolt-project-provider-header {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .bolt-project-settings-list form button,
+    .bolt-project-form-actions button,
+    .bolt-project-form-actions a,
+    .bolt-project-danger-form button,
+    .bolt-project-inline-action button {
+      width: 100%;
+    }
+
+    .bolt-project-usage-limits > div {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 6px;
+      align-items: start;
+    }
+
+    .bolt-project-usage-limits > div:first-child {
+      display: none;
+    }
+
+    .bolt-project-memory-actions,
+    .bolt-project-memory-edit > div:not(.bolt-project-memory-fields) {
+      flex-wrap: wrap;
+      justify-content: stretch;
+    }
+
+    .bolt-project-memory-actions button,
+    .bolt-project-memory-edit > div:not(.bolt-project-memory-fields) button {
+      flex: 1 1 120px;
     }
   }
 }
@@ -15922,6 +16053,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    .bolt-project-service-panel[data-panel='settings']
+    > .min-h-0 {
+    padding: 10px 10px calc(var(--mobile-nav-height) + 34px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .bolt-responsive-ide-mobile
     :where(
       .bolt-workbench-mobile,
       .bolt-workbench-mobile-service,
@@ -16008,6 +16146,32 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     :where(.bolt-project-deploy-history, .bolt-project-database-tool aside, .bolt-project-git-tool section) {
     border-right: 0 !important;
     border-bottom: 1px solid var(--vc-ide-border-subtle);
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-settings-hub {
+    gap: 10px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-settings-hub header {
+    border-radius: 10px;
+    background: var(--vc-ide-bg-card);
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-settings-sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    border-color: var(--vc-ide-border-visible);
+    background: color-mix(in srgb, var(--vc-ide-bg-card) 94%, transparent);
+    backdrop-filter: blur(16px);
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-settings-main {
+    gap: 12px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-settings-active-heading {
+    display: none;
   }
 
   .bolt-workbench-mobile > div.fixed {
@@ -16382,23 +16546,23 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-mobile-replit-panel-tab {
-    width: auto;
-    min-width: 50px;
-    max-width: 58px;
-    flex-basis: 50px;
-    padding-inline: 4px;
+    width: 38px;
+    min-width: 38px;
+    max-width: 38px;
+    flex-basis: 38px;
+    padding-inline: 0;
   }
 
   .bolt-mobile-replit-tab-label {
-    font-size: 9px;
+    display: none;
   }
 
   .bolt-mobile-replit-panel-tab svg,
   .bolt-mobile-replit-panel-tab
     > span:not(.sr-only):not(.bolt-mobile-replit-tab-label):not(.bolt-mobile-replit-tab-indicator) {
-    width: 17px;
-    height: 17px;
-    flex-basis: 17px;
+    width: 20px;
+    height: 20px;
+    flex-basis: 20px;
   }
 
   .bolt-mobile-tabbar {
@@ -16423,6 +16587,85 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-project-action-group--primary {
     order: 2;
+  }
+}
+
+@media (max-width: 480px) {
+  .bolt-mobile-replit-nav-inner {
+    gap: 6px;
+    padding-inline: 8px;
+  }
+
+  .bolt-mobile-replit-run,
+  .bolt-mobile-replit-tools {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+  }
+
+  .bolt-mobile-replit-icon-tab {
+    width: 38px;
+    flex-basis: 38px;
+  }
+
+  .bolt-mobile-replit-panel-tab {
+    width: 38px;
+    min-width: 38px;
+    max-width: 38px;
+    flex: 0 0 38px;
+    gap: 0;
+    padding-inline: 0;
+  }
+
+  .bolt-mobile-replit-panel-tab .bolt-mobile-replit-tab-label {
+    display: none;
+  }
+
+  .bolt-mobile-replit-panel-tab[aria-current='page'] {
+    width: 38px;
+    min-width: 38px;
+    max-width: 38px;
+    flex-basis: 38px;
+    gap: 0;
+    padding: 0;
+  }
+
+  .bolt-mobile-replit-panel-tab[aria-current='page'] .bolt-mobile-replit-tab-label {
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .bolt-mobile-replit-nav-inner {
+    gap: 4px;
+    padding-inline: 6px;
+  }
+
+  .bolt-mobile-replit-run,
+  .bolt-mobile-replit-tools {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+  }
+
+  .bolt-mobile-replit-icon-tab,
+  .bolt-mobile-replit-panel-tab,
+  .bolt-mobile-replit-panel-tab[aria-current='page'] {
+    width: 34px;
+    min-width: 34px;
+    max-width: 34px;
+    flex-basis: 34px;
+  }
+
+  .bolt-mobile-replit-icon-tab svg,
+  .bolt-mobile-replit-icon-tab
+    > span:not(.sr-only):not(.bolt-mobile-replit-tab-label):not(.bolt-mobile-replit-tab-indicator),
+  .bolt-mobile-replit-panel-tab svg,
+  .bolt-mobile-replit-panel-tab
+    > span:not(.sr-only):not(.bolt-mobile-replit-tab-label):not(.bolt-mobile-replit-tab-indicator) {
+    width: 18px;
+    height: 18px;
+    flex-basis: 18px;
   }
 }
 

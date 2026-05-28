@@ -301,7 +301,7 @@ export const EditorPanel = memo(
               className="h-full min-h-0"
               data-testid="mobile-terminal-panel"
               role="region"
-              aria-label={`Interactive ${SHELL_TERMINAL_LABEL}`}
+              aria-label="Interactive terminal"
             >
               <PanelGroup direction="vertical">
                 <TerminalTabs panelDefaultSize={100} />
