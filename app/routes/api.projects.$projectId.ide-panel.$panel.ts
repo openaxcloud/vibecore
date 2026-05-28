@@ -366,7 +366,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       const schemaKey = url.searchParams.get('schemaKey');
 
       const [dashboard, databases, envVars, secrets, snapshots] = await Promise.all([
-        apiRequest(request, `/projects/${projectId}/dashboard`),
+        apiRequest(request, `/projects/${projectId}/dashboard`).catch(() => ({})),
         apiRequest(request, `/projects/${projectId}/databases`),
         apiRequest(request, `/projects/${projectId}/env-vars`),
         apiRequest(request, `/projects/${projectId}/secrets`),

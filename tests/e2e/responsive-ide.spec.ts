@@ -632,6 +632,7 @@ createServer((request, response) => {
     const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first();
     await expect(databasePanel).toBeVisible({ timeout: 45000 });
     await expect(databasePanel.getByText(/Loading database from backend/i)).toHaveCount(0, { timeout: 45000 });
+    await expect(databasePanel).not.toContainText('PANEL_BACKEND_UNAVAILABLE');
     await expect(page.getByTestId('mobile-ide-header')).toContainText('Database');
     await expect(databasePanel.getByRole('button', { name: 'Backups' })).toBeVisible({ timeout: 45000 });
 
