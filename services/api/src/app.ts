@@ -8818,6 +8818,90 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { ideState };
   });
+  app.get('/workspaces/:workspaceId/ide-state', async (request, reply) => {
+    const workspace = await requireWorkspace(
+      request,
+      store,
+      parse(workspaceParams, request.params).workspaceId,
+      'projects:read',
+    );
+
+    const ideState = (await store.getWorkspaceIdeState(workspace.id)) ?? null;
+
+    if (ideState) {
+      reply.header('etag', `"${ideState.version}"`);
+    }
+
+    return { ideState };
+  });
+  app.put('/workspaces/:workspaceId/ide-state', async (request, reply) => {
+    const workspace = await requireWorkspace(
+      request,
+      store,
+      parse(workspaceParams, request.params).workspaceId,
+      'projects:write',
+    );
+
+    const body = parse(projectIdeStateSchema, request.body ?? {});
+    const existingState = await store.getWorkspaceIdeState(workspace.id);
+
+    /*
+     * Same optimistic-concurrency contract as PUT /projects/:projectId/ide-state.
+     * Two tabs scoped to the same workspace race-save → second writer hits 412
+     * and gets the current state in the body so the client can re-merge.
+     */
+    const ifMatchHeader = request.headers['if-match'];
+
+    const ifMatch =
+      typeof ifMatchHeader === 'string'
+        ? ifMatchHeader.replace(/^W\//, '').replace(/"/g, '').trim()
+        : undefined;
+
+    if (ifMatch && existingState && String(existingState.version) !== ifMatch) {
+      reply.header('etag', `"${existingState.version}"`);
+      return reply.code(412).send({
+        error: 'IDE state was modified by another session',
+        code: 'IDE_STATE_PRECONDITION_FAILED',
+        ideState: existingState,
+      });
+    }
+
+    const state = mergeProjectIdeState(existingState?.state, body.state);
+
+    const ideState = await store.upsertWorkspaceIdeState({
+      workspaceId: workspace.id,
+      state,
+      updatedByUserId: request.currentUser!.id,
+    });
+
+    reply.header('etag', `"${ideState.version}"`);
+
+    const persistedKeys = Object.keys(body.state);
+    const shouldRecordActivity = persistedKeys.some((key) => key !== 'ui');
+
+    if (shouldRecordActivity) {
+      const project = await requireProject(request, store, workspace.projectId, 'projects:read');
+      await store.recordProjectActivity({
+        projectId: project.id,
+        actorUserId: request.currentUser!.id,
+        action: 'workspace.ide_state.save',
+        metadata: {
+          workspaceId: workspace.id,
+          version: ideState.version,
+          persistedKeys,
+        },
+      });
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'workspace.ide_state.save',
+        resourceType: 'workspace',
+        resourceId: workspace.id,
+        metadata: { version: ideState.version, persistedKeys },
+      });
+    }
+
+    return { ideState };
+  });
 
   /*
    * Persistence for the workbench AgentPatchProposal queue. Terminal-status
