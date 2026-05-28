@@ -89,6 +89,49 @@ function panelErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Runtime request failed';
 }
 
+interface PanelWorkspaceContext {
+  workspaceList: Array<Record<string, unknown>>;
+  primaryWorkspaceId?: string;
+  activeWorkspaceId?: string;
+  selectedWorkspaceId?: string;
+}
+
+/*
+ * Resolves the workspace a panel loader should operate on, mirroring the
+ * git/debugger pattern. Honors `?workspaceId=` when it matches one of the
+ * project's workspaces; otherwise falls back to the primary (oldest)
+ * workspace so panels land on the canonical working tree instead of whichever
+ * experimental branch was created most recently.
+ */
+async function resolvePanelWorkspace(
+  request: Request,
+  projectId: string,
+  requestedWorkspaceId?: string,
+): Promise<PanelWorkspaceContext> {
+  const workspacesResponse = await apiRequest<{ workspaces: Array<Record<string, unknown>> }>(
+    request,
+    `/projects/${projectId}/workspaces`,
+  ).catch(() => ({ workspaces: [] as Array<Record<string, unknown>> }));
+
+  const workspaceList = Array.isArray(workspacesResponse?.workspaces) ? workspacesResponse.workspaces : [];
+
+  const orderedByCreated = [...workspaceList].sort((a, b) =>
+    String(a?.createdAt ?? '').localeCompare(String(b?.createdAt ?? '')),
+  );
+
+  const primaryWorkspaceId =
+    typeof orderedByCreated[0]?.id === 'string' ? (orderedByCreated[0]!.id as string) : undefined;
+  const activeWorkspaceId =
+    typeof workspaceList[0]?.id === 'string' ? (workspaceList[0]!.id as string) : primaryWorkspaceId;
+
+  const requestedIsKnown =
+    requestedWorkspaceId && workspaceList.some((workspace) => workspace?.id === requestedWorkspaceId);
+
+  const selectedWorkspaceId = requestedIsKnown ? requestedWorkspaceId : (primaryWorkspaceId ?? activeWorkspaceId);
+
+  return { workspaceList, primaryWorkspaceId, activeWorkspaceId, selectedWorkspaceId };
+}
+
 async function loadOverviewPanelEnvelope(request: Request, projectId: string, project: unknown) {
   try {
     const [dashboard, packages, collaborators, gitGraph, envVars] = await Promise.all([
@@ -498,6 +541,9 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   if (panel === 'packages') {
     try {
+      const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
+      const workspaceCtx = await resolvePanelWorkspace(request, projectId, requestedWorkspaceId);
+
       const [packages, envVars] = await Promise.all([
         apiRequest(request, `/projects/${projectId}/packages`),
         apiRequest(request, `/projects/${projectId}/env-vars`),
@@ -508,6 +554,10 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           ...(packages as any),
           envVars: (envVars as any)?.envVars ?? [],
           packagesState: readPackagesState(envVars),
+          workspaces: workspaceCtx.workspaceList,
+          primaryWorkspaceId: workspaceCtx.primaryWorkspaceId,
+          activeWorkspaceId: workspaceCtx.activeWorkspaceId,
+          selectedWorkspaceId: workspaceCtx.selectedWorkspaceId,
         }),
       );
     } catch (error) {
@@ -532,6 +582,11 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     }
 
     try {
+      const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
+
+      const workspaceCtx =
+        panel === 'monitoring' ? await resolvePanelWorkspace(request, projectId, requestedWorkspaceId) : undefined;
+
       const [dashboard, envVars, deployments, snapshots] = await Promise.all([
         apiRequest(request, `/projects/${projectId}/dashboard`),
         apiRequest(request, `/projects/${projectId}/env-vars`),
@@ -539,7 +594,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         panel === 'database' ? apiRequest(request, `/projects/${projectId}/snapshots`) : Promise.resolve({}),
       ]);
 
-      const workspaceId = (dashboard as any)?.workspace?.id ?? projectId;
+      const workspaceId = workspaceCtx?.selectedWorkspaceId ?? (dashboard as any)?.workspace?.id ?? projectId;
 
       const [runtimeStatus, runtimePorts] =
         panel === 'monitoring'
@@ -567,6 +622,14 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           workspaceId,
           runtimeStatus,
           runtimePorts,
+          ...(workspaceCtx
+            ? {
+                workspaces: workspaceCtx.workspaceList,
+                primaryWorkspaceId: workspaceCtx.primaryWorkspaceId,
+                activeWorkspaceId: workspaceCtx.activeWorkspaceId,
+                selectedWorkspaceId: workspaceCtx.selectedWorkspaceId,
+              }
+            : {}),
         }),
       );
     } catch (error) {
@@ -698,6 +761,9 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   if (panel === 'terminal') {
     try {
+      const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
+      const workspaceCtx = await resolvePanelWorkspace(request, projectId, requestedWorkspaceId);
+
       const [dashboard, envVars, secrets, activity] = await Promise.all([
         apiRequest<any>(request, `/projects/${projectId}/dashboard`),
         apiRequest(request, `/projects/${projectId}/env-vars`),
@@ -705,7 +771,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         apiRequest(request, `/projects/${projectId}/activity`),
       ]);
 
-      const workspaceId = dashboard?.workspace?.id ?? projectId;
+      const workspaceId = workspaceCtx.selectedWorkspaceId ?? dashboard?.workspace?.id ?? projectId;
 
       const [runtimeStatus, runtimeFiles, runtimeProcesses, runtimePorts] = await Promise.all([
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`).catch((error) => ({
@@ -734,6 +800,10 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           runtimeProcesses,
           runtimePorts,
           terminalState: readTerminalState(envVars),
+          workspaces: workspaceCtx.workspaceList,
+          primaryWorkspaceId: workspaceCtx.primaryWorkspaceId,
+          activeWorkspaceId: workspaceCtx.activeWorkspaceId,
+          selectedWorkspaceId: workspaceCtx.selectedWorkspaceId,
         }),
       );
     } catch (error) {
@@ -743,13 +813,16 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   if (panel === 'logs') {
     try {
+      const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
+      const workspaceCtx = await resolvePanelWorkspace(request, projectId, requestedWorkspaceId);
+
       const [dashboard, activity, deployments] = await Promise.all([
         apiRequest<any>(request, `/projects/${projectId}/dashboard`),
         apiRequest(request, `/projects/${projectId}/activity`),
         apiRequest(request, `/projects/${projectId}/deployments`),
       ]);
 
-      const workspaceId = dashboard?.workspace?.id ?? projectId;
+      const workspaceId = workspaceCtx.selectedWorkspaceId ?? dashboard?.workspace?.id ?? projectId;
 
       const [runtimeStatus, runtimeProcesses, runtimePorts, runtimeLogs] = await Promise.all([
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`).catch((error) => ({
@@ -779,6 +852,10 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           runtimeProcesses,
           runtimePorts,
           runtimeLogs,
+          workspaces: workspaceCtx.workspaceList,
+          primaryWorkspaceId: workspaceCtx.primaryWorkspaceId,
+          activeWorkspaceId: workspaceCtx.activeWorkspaceId,
+          selectedWorkspaceId: workspaceCtx.selectedWorkspaceId,
         }),
       );
     } catch (error) {
