@@ -1,0 +1,79 @@
+{{- /*
+Shared storage for API project files + static-deployment artifacts.
+
+Renders nothing when `.Values.storage.enabled` is false (single-replica dev).
+
+When enabled:
+ - If `pv.create` is true, renders a PersistentVolume bound to an external
+   NFS server (e.g. GCP Filestore). reclaimPolicy=Retain so deleting the
+   PVC never destroys the underlying Filestore data.
+ - Always renders a PersistentVolumeClaim that the API deployment mounts
+   at `mountPath`. Defaults to ReadWriteMany so every API replica reads
+   and writes the same volume concurrently.
+
+Deletion semantics: `helm uninstall` removes the PVC. With reclaimPolicy
+Retain the PV stays Released until an operator deletes it manually, which
+is intentional — the Filestore instance must survive a chart re-install.
+*/ -}}
+{{- if .Values.storage.enabled }}
+{{- if .Values.storage.pv.create }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.storage.pv.name }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.storage.pv.name }}
+    app.kubernetes.io/part-of: vibecore
+spec:
+  capacity:
+    storage: {{ .Values.storage.pv.capacity }}
+  accessModes:
+{{ toYaml .Values.storage.pv.accessModes | indent 4 }}
+  persistentVolumeReclaimPolicy: {{ .Values.storage.pv.reclaimPolicy | default "Retain" }}
+  storageClassName: ""
+  mountOptions:
+    # NFSv3 hard mount: API blocks rather than EIOs if Filestore is briefly
+    # unreachable. nolock disables NLM (Filestore BASIC does not run rpc.lockd);
+    # cross-replica coordination uses O_EXCL lockfiles in project-storage.ts.
+    - hard
+    - nfsvers=3
+    - nolock
+    # rsize/wsize match Filestore BASIC tier defaults. Bumping above
+    # 1 MiB risks fragmenting the TCP window on long writes (zip imports).
+    - rsize=1048576
+    - wsize=1048576
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: {{ required "storage.pv.nfs.server is required when pv.create=true" .Values.storage.pv.nfs.server | quote }}
+    path: {{ .Values.storage.pv.nfs.path | quote }}
+    readOnly: {{ .Values.storage.pv.nfs.readOnly | default false }}
+  {{- if .Values.storage.pv.bindToClaim }}
+  claimRef:
+    namespace: {{ .Release.Namespace }}
+    name: {{ .Values.storage.pvc.name }}
+  {{- end }}
+---
+{{- end }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.storage.pvc.name }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.storage.pvc.name }}
+    app.kubernetes.io/part-of: vibecore
+spec:
+  accessModes:
+{{ toYaml .Values.storage.pvc.accessModes | indent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.pvc.storage }}
+  {{- if .Values.storage.pv.create }}
+  # Static-bind to the PV declared above. Empty storageClassName is
+  # required for static binding (Kubernetes treats `""` as "no class").
+  storageClassName: ""
+  volumeName: {{ .Values.storage.pv.name }}
+  {{- else if .Values.storage.pvc.storageClassName }}
+  storageClassName: {{ .Values.storage.pvc.storageClassName | quote }}
+  {{- end }}
+{{- end }}

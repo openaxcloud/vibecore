@@ -43,9 +43,16 @@ platformEnv:
   # Fastify trust-proxy. Staging/prod sit behind ingress-nginx; leave true.
   # Override to "false" only for local helm template debugging.
   trustProxy: 'true'
-  # API project storage must be on a writable mount because production pods
-  # run with a read-only root filesystem. /tmp is mounted as an emptyDir.
+  # API project storage path. When `storage.enabled` is true, the chart
+  # overrides this with `<storage.mountPath>/<storage.projectSubpath>` so
+  # every API replica reads/writes the same shared volume. When false, the
+  # API falls back to /tmp emptyDir — fine for single-replica dev only.
   projectStorageDir: '/tmp/vibecore-project-storage'
+  # Static-deployment artifact path (served from app.ts /static-deployments
+  # route). Same single-replica caveat as `projectStorageDir`: required to
+  # be shared across replicas, defaults to /tmp emptyDir when storage is
+  # disabled.
+  staticDeployStorageDir: '/tmp/vibecore-static-deployments'
   # PlatformAdmin TOTP gate. Defaults to "true" in the api (the env var is
   # treated as required unless it equals the string "false") — set
   # explicitly so the policy is visible in chart values.
@@ -163,6 +170,45 @@ services:
     resources:
       requests: { cpu: 250m, memory: 512Mi }
       limits: { cpu: '1', memory: 1Gi }
+
+# Shared persistent storage for the API. Backs `PROJECT_STORAGE_DIR` and
+# `STATIC_DEPLOY_STORAGE_DIR` so every API replica sees the same project
+# files, git working trees, and static-deployment artifacts. When disabled
+# the API falls back to its emptyDir mount — only safe at replicas <= 1.
+#
+# `pv.create=true` renders a manually-provisioned PersistentVolume that
+# points at an external NFS server (e.g. a GCP Filestore instance). Leave
+# false and set `pvc.storageClassName` to use a cluster StorageClass.
+storage:
+  enabled: false
+  mountPath: /data/vibecore
+  projectSubpath: projects
+  staticDeploySubpath: static-deployments
+  pv:
+    create: false
+    name: vibecore-shared
+    capacity: 1Ti
+    accessModes:
+      - ReadWriteMany
+    # Reclaim policy must be Retain when the PV is backed by a long-lived
+    # external resource (Filestore, NetApp, etc.). Delete would orphan the
+    # bound external volume the moment the PVC is removed.
+    reclaimPolicy: Retain
+    nfs:
+      server: ''
+      path: /vibecore_data
+      readOnly: false
+    # Optional: bind the PV exclusively to the PVC below. Required when
+    # `pv.create=true` so dynamic claims can't accidentally grab it.
+    bindToClaim: true
+  pvc:
+    name: vibecore-shared
+    accessModes:
+      - ReadWriteMany
+    storage: 1Ti
+    # Empty string + `volumeName` = static binding to the PV above.
+    # Set to a class name (e.g. `standard-rwx`) to use dynamic provisioning.
+    storageClassName: ''
 
 podSecurity:
   enabled: true

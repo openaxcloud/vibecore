@@ -79,10 +79,13 @@ platformEnv:
   # GKE ingress (ingress-nginx). Without this, request.ip is always the proxy
   # pod IP, breaking audit logs, rate-limits, and OAuth callback origin checks.
   trustProxy: 'true'
-  # Writable emptyDir mount for API-local project scaffolds and zip/snapshot
-  # staging. Durable generated app state lives in workspace PVCs; a shared
-  # object-storage backend should replace this for API-local archives.
-  projectStorageDir: '/tmp/vibecore-project-storage'
+  # Shared NFS path for API project files and static-deployment artifacts.
+  # When `storage.enabled=true` (below) the chart sets both PROJECT_STORAGE_DIR
+  # and STATIC_DEPLOY_STORAGE_DIR via per-pod env vars that override these
+  # ConfigMap values, so the literals here only show the default fallback.
+  # Keep them in sync with `storage.mountPath` for sanity.
+  projectStorageDir: '/data/vibecore/projects'
+  staticDeployStorageDir: '/data/vibecore/static-deployments'
   # Require TOTP MFA for every PlatformAdmin endpoint. The api defaults to
   # required when the env var is anything other than the string "false"
   # (services/api/src/app.ts:1005), but we set it explicitly here so the
@@ -218,6 +221,46 @@ services:
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { cpu: 500m, memory: 512Mi }
+
+# Shared NFS storage backing the API's project files and static deployment
+# artifacts. Mounted at /data/vibecore on every API pod so all replicas see
+# the same on-disk state — the prerequisite for scaling the API beyond 1
+# replica without losing data between requests.
+#
+# Backed by GCP Filestore (instance `vibecore-shared` in europe-west9-a,
+# 1 TiB BASIC_HDD, NFSv3). Created out-of-band via:
+#   gcloud filestore instances create vibecore-shared \
+#     --project=vibecore-495216 --zone=europe-west9-a \
+#     --tier=BASIC_HDD --file-share=name=vibecore_data,capacity=1TB \
+#     --network=name=default
+# reclaimPolicy=Retain means deleting the chart's PVC leaves the Filestore
+# data intact — destroying the instance is a separate, deliberate operation.
+storage:
+  enabled: true
+  mountPath: /data/vibecore
+  projectSubpath: projects
+  staticDeploySubpath: static-deployments
+  pv:
+    create: true
+    name: vibecore-shared
+    capacity: 1Ti
+    accessModes:
+      - ReadWriteMany
+    reclaimPolicy: Retain
+    bindToClaim: true
+    nfs:
+      # Filestore reserved IP (see `gcloud filestore instances describe
+      # vibecore-shared`). Lives on the `default` VPC, peered with the GKE
+      # cluster — no extra firewall rule needed for in-VPC pods.
+      server: '10.110.133.10'
+      path: /vibecore_data
+      readOnly: false
+  pvc:
+    name: vibecore-shared
+    accessModes:
+      - ReadWriteMany
+    storage: 1Ti
+    storageClassName: ''
 
 podSecurity:
   enabled: true

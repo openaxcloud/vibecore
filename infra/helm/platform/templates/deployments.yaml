@@ -1,6 +1,13 @@
 {{- range $name, $svc := .Values.services }}
 {{- if $svc.enabled }}
 {{- $imageTag := default $.Values.global.imageTag $svc.imageTag }}
+{{- /*
+Mount the shared PVC only on the API. Project storage + static-deployment
+artifacts are written by the API; worker and workspace-manager don't read
+them. Adding the mount where it isn't needed wastes a mount handle and
+pulls those pods onto the NFS network without reason.
+*/ -}}
+{{- $needsSharedStorage := and $.Values.storage.enabled (eq $name "api") }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -61,6 +68,17 @@ spec:
               value: {{ $svc.port | quote }}
             - name: HOST
               value: "0.0.0.0"
+            {{- if $needsSharedStorage }}
+            # When shared storage is enabled the chart overrides whatever
+            # PROJECT_STORAGE_DIR / STATIC_DEPLOY_STORAGE_DIR come from the
+            # ConfigMap so the API always reads from the PVC mount. These
+            # env vars take precedence over `envFrom: configMapRef` because
+            # `env:` entries are merged last by the Kubelet.
+            - name: PROJECT_STORAGE_DIR
+              value: {{ printf "%s/%s" $.Values.storage.mountPath $.Values.storage.projectSubpath | quote }}
+            - name: STATIC_DEPLOY_STORAGE_DIR
+              value: {{ printf "%s/%s" $.Values.storage.mountPath $.Values.storage.staticDeploySubpath | quote }}
+            {{- end }}
           {{- if ne $svc.httpHealth false }}
           # readinessProbe distinguished from livenessProbe: a 503 on /ready
           # (DB/Redis check) drops the pod from the Service backend without
@@ -93,8 +111,17 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            {{- if $needsSharedStorage }}
+            - name: shared-data
+              mountPath: {{ $.Values.storage.mountPath }}
+            {{- end }}
       volumes:
         - name: tmp
           emptyDir: {}
+        {{- if $needsSharedStorage }}
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: {{ $.Values.storage.pvc.name }}
+        {{- end }}
 {{- end }}
 {{- end }}
