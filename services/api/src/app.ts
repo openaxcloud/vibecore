@@ -6813,6 +6813,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const workspaceStartAt = nowSeconds();
 
+    const [projectEnvVars, projectSecrets] = await Promise.all([
+      store.listProjectEnvVars(authorized.projectId),
+      store.listProjectSecrets(authorized.projectId),
+    ]);
+    const env = Object.fromEntries(projectEnvVars.map((entry) => [entry.key, entry.value]));
+    const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
+
     const managerWorkspace = await managerRequest<any>('/workspaces/start', {
       method: 'POST',
       body: JSON.stringify({
@@ -6829,8 +6836,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               storageGb: state.limits['storage.gb'],
             }
           : undefined,
-        env: {},
-        allowedSecretKeys: [],
+        env,
+        allowedSecretKeys,
       }),
     });
     metrics.increment('workspace_starts_total', {
@@ -6881,6 +6888,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
 
+    const [projectEnvVars, projectSecrets] = await Promise.all([
+      store.listProjectEnvVars(authorized.projectId),
+      store.listProjectSecrets(authorized.projectId),
+    ]);
+    const env = Object.fromEntries(projectEnvVars.map((entry) => [entry.key, entry.value]));
+    const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
+
     const managerWorkspace = await managerRequest<any>(`/workspaces/${authorized.workspaceId}/restart`, {
       method: 'POST',
       body: JSON.stringify({
@@ -6890,8 +6904,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         workspaceId: authorized.workspaceId,
         image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
         plan: process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
-        env: {},
-        allowedSecretKeys: [],
+        env,
+        allowedSecretKeys,
       }),
     });
     await audit(request, store, {
