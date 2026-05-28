@@ -6752,7 +6752,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <button
                       key={tab.id}
                       type="button"
-                      className="bolt-mobile-replit-icon-tab bolt-mobile-replit-panel-tab"
+                      className="bolt-mobile-replit-icon-tab"
                       aria-label={`Switch to ${tab.name} tab`}
                       aria-pressed={isActive}
                       aria-current={isActive ? 'page' : undefined}
@@ -6760,8 +6760,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       onClick={() => activateMobileTool(tab.id)}
                     >
                       {tab.icon === 'agent' ? <MobileReplitAgentIcon /> : <span className={tab.icon} aria-hidden />}
-                      <span className="bolt-mobile-replit-tab-label">{tab.name}</span>
-                      {isActive ? <span className="bolt-mobile-replit-tab-indicator" aria-hidden /> : null}
+                      {isActive ? <i aria-hidden /> : null}
                     </button>
                   );
                 })}

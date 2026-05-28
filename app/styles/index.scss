@@ -3494,45 +3494,9 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-replit-icon-tab svg,
-.bolt-mobile-replit-icon-tab
-  > span:not(.sr-only):not(.bolt-mobile-replit-tab-label):not(.bolt-mobile-replit-tab-indicator) {
+.bolt-mobile-replit-icon-tab > span:not(.sr-only) {
   width: 20px;
   height: 20px;
-}
-
-.bolt-mobile-replit-panel-tab {
-  width: auto;
-  min-width: 52px;
-  max-width: 78px;
-  height: 44px;
-  flex: 1 1 58px;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 6px 7px;
-  border-radius: 12px;
-  font-size: 18px;
-}
-
-.bolt-mobile-replit-panel-tab svg,
-.bolt-mobile-replit-panel-tab
-  > span:not(.sr-only):not(.bolt-mobile-replit-tab-label):not(.bolt-mobile-replit-tab-indicator) {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
-}
-
-.bolt-mobile-replit-tab-label {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  color: currentColor;
-  font-size: 9.5px;
-  font-weight: 700;
-  line-height: 1;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .bolt-mobile-replit-icon-tab[aria-current='page'] {
@@ -3541,13 +3505,11 @@ body :where(.lucide, svg[data-lucide]) {
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.2);
 }
 
-.bolt-mobile-replit-icon-tab[aria-current='page'] svg,
-.bolt-mobile-replit-icon-tab[aria-current='page']
-  > span:not(.sr-only):not(.bolt-mobile-replit-tab-label):not(.bolt-mobile-replit-tab-indicator) {
+.bolt-mobile-replit-icon-tab[aria-current='page'] svg {
   color: #7c65c1;
 }
 
-.bolt-mobile-replit-tab-indicator {
+.bolt-mobile-replit-icon-tab i {
   position: absolute;
   bottom: 2px;
   left: 50%;
@@ -3570,22 +3532,6 @@ body :where(.lucide, svg[data-lucide]) {
   color: #9ca3af;
   font-size: 11px;
   font-weight: 700;
-}
-
-@media (min-width: 768px) and (max-width: 1199px) {
-  .bolt-mobile-replit-panel-tab {
-    max-width: 112px;
-    flex-basis: 92px;
-    flex-direction: row;
-    gap: 6px;
-    padding: 0 10px 0 9px;
-    border-radius: 999px;
-  }
-
-  .bolt-mobile-replit-tab-label {
-    font-size: 11px;
-    text-align: left;
-  }
 }
 
 .bolt-mobile-tab-switcher {
@@ -4910,6 +4856,7 @@ body :where(.lucide, svg[data-lucide]) {
     gap: 6px;
     padding: 8px 10px;
   }
+
 }
 
 @media (min-width: 1600px) and (min-height: 800px) {
@@ -16102,26 +16049,6 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   .bolt-mobile-replit-icon-tab {
     width: 38px;
     flex-basis: 38px;
-  }
-
-  .bolt-mobile-replit-panel-tab {
-    width: auto;
-    min-width: 50px;
-    max-width: 58px;
-    flex-basis: 50px;
-    padding-inline: 4px;
-  }
-
-  .bolt-mobile-replit-tab-label {
-    font-size: 9px;
-  }
-
-  .bolt-mobile-replit-panel-tab svg,
-  .bolt-mobile-replit-panel-tab
-    > span:not(.sr-only):not(.bolt-mobile-replit-tab-label):not(.bolt-mobile-replit-tab-indicator) {
-    width: 17px;
-    height: 17px;
-    flex-basis: 17px;
   }
 
   .bolt-mobile-tabbar {

@@ -371,29 +371,7 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByTestId('tab-preview')).toBeVisible();
     await expect(page.getByTestId('tab-agent')).toBeVisible();
     await expect(page.getByTestId('tab-deployments')).toBeVisible();
-    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-preview')).toContainText('Webview');
-    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-agent')).toContainText('AI Agent');
-    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-deployments')).toContainText('Deployments');
     await expect(mobileNav.getByTestId('button-more')).toBeVisible();
-  });
-
-  test('tablet exposes named tab navigation for core IDE panels', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'tablet', 'tablet-only assertion');
-    test.setTimeout(120_000);
-    await page.setViewportSize({ width: 1024, height: 768 });
-
-    const projectId = await createTestProject(page, 'Responsive tablet named tabs project');
-
-    await page.goto(`/projects/${projectId}/ide?panel=database`, { waitUntil: 'domcontentloaded' });
-
-    const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
-    await expect(mobileNav).toBeVisible({ timeout: 15000 });
-    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-preview')).toContainText('Webview');
-    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-agent')).toContainText('AI Agent');
-    await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-deployments')).toContainText('Deployments');
-
-    const overflowX = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
-    expect(overflowX).toBe(false);
   });
 
   test('mobile keeps runtime status above navigation without overlap', async ({ page, isMobile }) => {
