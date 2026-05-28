@@ -32,7 +32,7 @@ import {
   partitionMonitoringEvents as partitionMonitoringEventsHelper,
 } from './projectMonitoring';
 import { formatRailBadgeValue } from '~/lib/labels/rail-badge';
-import { readAutoApplyFromStorage, setAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
+import { setAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
 import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
@@ -2648,21 +2648,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.localStorage.setItem('vibecore:agent-plan-first-default', String(projectPlanFirst));
     }, [projectPlanFirst]);
 
-    const [projectAutoApply, setProjectAutoApply] = useState(() => {
-      if (typeof window === 'undefined') {
-        return readAutoApplyFromStorage();
-      }
-
-      return readAutoApplyFromStorage();
-    });
+    const projectAutoApply = true;
 
     useEffect(() => {
-      if (typeof window === 'undefined') {
-        return;
-      }
-
-      setAutoApplyEnabled(projectAutoApply);
-    }, [projectAutoApply]);
+      setAutoApplyEnabled(true);
+    }, []);
 
     const [guidedTourOpen, setGuidedTourOpen] = useState(false);
     const [guidedTourStepIndex, setGuidedTourStepIndex] = useState(0);
@@ -2678,11 +2668,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     /*
-     * Auto-apply effect — when the toggle is on, every pending proposal
-     * (future or already in the queue when the user flipped the switch) is
-     * accepted silently. The effect runs again whenever the toggle flips or
-     * a new proposal lands, so existing items get picked up immediately.
-     * Each silent accept fires a toast with an Undo action.
+     * Auto-apply effect — every pending proposal is accepted silently.
+     * The effect runs again whenever a new proposal lands, so existing
+     * items get picked up immediately. Each silent accept fires a toast
+     * with an Undo action.
      */
     const autoAppliedRef = useRef<Map<string, string>>(new Map());
     const appliedToastBufferRef = useRef<Map<string, { filePath: string; proposalId: string }>>(new Map());
@@ -2736,10 +2725,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, []);
 
     useEffect(() => {
-      if (!projectAutoApply) {
-        return;
-      }
-
       for (const proposal of Object.values(agentPatchProposals)) {
         const attemptKey = autoApplyAttemptKey({
           id: proposal.id,
@@ -2766,7 +2751,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           scheduleAppliedFilesToast(filePath, proposal.id);
         });
       }
-    }, [agentPatchProposals, projectAutoApply, scheduleAppliedFilesToast]);
+    }, [agentPatchProposals, scheduleAppliedFilesToast]);
 
     const [archivedProjectConversations, setArchivedProjectConversations] = useState<
       Array<{ id: string; title?: string; messages: Message[]; createdAt?: string; updatedAt?: string }>
@@ -5107,15 +5092,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </button>
               </div>
             )}
-            {projectIdeMode && projectPlanFirst && (
-              <div
-                className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-xs text-bolt-elements-textSecondary"
-                role="status"
-              >
-                <strong className="text-bolt-elements-textPrimary">Plan first enabled.</strong> The agent must return a
-                reviewable plan and wait for approval before applying changes or running commands.
-              </div>
-            )}
             {projectIdeMode && (
               <div className="bolt-project-agent-suggestions" aria-label="Agent suggestions">
                 {projectAgentSuggestions.map((suggestion) => (
@@ -5190,6 +5166,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               setSelectedElement={setSelectedElement}
               onWebSearchResult={onWebSearchResult}
               projectIdeMode={projectIdeMode}
+              planFirstEnabled={projectPlanFirst}
+              onPlanFirstChange={setProjectPlanFirst}
               placeholder={
                 projectIdeMode
                   ? `${
@@ -6198,57 +6176,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                               </HeaderTip>
                             );
                           })}
-                        </div>
-                        <div className="bolt-project-agent-mode-toggles" role="group" aria-label="Execution guardrails">
-                          <div className="bolt-project-agent-toggle-group">
-                            <label
-                              className="bolt-project-agent-plan-first"
-                              data-active={projectPlanFirst ? 'true' : 'false'}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={projectPlanFirst}
-                                onChange={(event) => setProjectPlanFirst(event.currentTarget.checked)}
-                                aria-label="Plan first"
-                              />
-                              <span className="bolt-project-agent-plan-first-track" aria-hidden>
-                                <span className="bolt-project-agent-plan-first-thumb" />
-                              </span>
-                              <span className="bolt-project-agent-plan-first-label">Plan first</span>
-                            </label>
-                            <HeaderTip label="Autonomously edits files and runs commands. Plan first will require your approval.">
-                              <button
-                                type="button"
-                                className="bolt-project-agent-toggle-info"
-                                aria-label="About Plan first"
-                              >
-                                i
-                              </button>
-                            </HeaderTip>
-                          </div>
-                          <HeaderTip
-                            label={
-                              projectAutoApply
-                                ? 'Auto-applies patches that pass validation. Failed patches stay in manual review.'
-                                : 'Review every patch before the agent writes files.'
-                            }
-                          >
-                            <label
-                              className="bolt-project-agent-plan-first"
-                              data-active={projectAutoApply ? 'true' : 'false'}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={projectAutoApply}
-                                onChange={(event) => setProjectAutoApply(event.currentTarget.checked)}
-                                aria-label="Auto-apply successful patches"
-                              />
-                              <span className="bolt-project-agent-plan-first-track" aria-hidden>
-                                <span className="bolt-project-agent-plan-first-thumb" />
-                              </span>
-                              <span className="bolt-project-agent-plan-first-label">Auto-apply successful patches</span>
-                            </label>
-                          </HeaderTip>
                         </div>
                       </div>
                     );
@@ -10504,7 +10431,7 @@ function ProjectSettingsPanel({
         ['project', 'Project', 'Metadata, repository and export controls'],
         ['security', 'Security', 'Password policy, sessions and account protection'],
         ['usage', 'Usage', 'Plan, limits, usage events and quotas'],
-        ['ai', 'AI', 'Provider routing, model defaults and keys'],
+        ['ai', 'AI', 'Provider routing, agent defaults and keys'],
       ],
     },
     {
@@ -11228,7 +11155,28 @@ function ProjectSettingsPanel({
             <section className="bolt-project-settings-card">
               <div className="bolt-project-settings-card-title">
                 <h4>AI Provider Controls</h4>
-                <small>Provider modes, keys and routing are persisted in project secrets and IDE settings state.</small>
+                <small>
+                  Provider modes, keys and routing are persisted in project secrets; agent behaviour is surfaced here.
+                </small>
+              </div>
+              <div className="bolt-project-agent-policy" aria-label="Agent patch policy">
+                <label>
+                  Auto-apply successful patches
+                  <select defaultValue="enabled" disabled aria-label="Auto-apply successful patches setting">
+                    <option value="enabled">Enabled</option>
+                  </select>
+                  <small>
+                    Always enabled. Successful patches are applied automatically; failed validation stays in review with
+                    retry and reject actions.
+                  </small>
+                </label>
+                <label>
+                  Plan control
+                  <select defaultValue="composer" disabled aria-label="Plan control location">
+                    <option value="composer">Composer button</option>
+                  </select>
+                  <small>Use the Plan button in the prompt toolbar when you want approval before edits.</small>
+                </label>
               </div>
               <form onSubmit={submitWithNotice('AI routing preferences saved.')} className="bolt-project-ai-routing">
                 <input name="intent" value="ai-routing" type="hidden" />

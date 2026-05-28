@@ -2,13 +2,12 @@
  * Decide whether an AI-generated file patch can be applied automatically
  * (Replit-style auto-apply) or whether the user must still review it.
  *
- * Contract: a single toggle. When the user enables auto-apply, every
- * pending proposal — future and existing — is accepted silently. The
+ * Contract: auto-apply is always enabled. Every pending proposal — future
+ * and existing — is accepted silently. The
  * `isRiskyAgentPatchPath` predicate stays exported as a passive signal
  * (callers can label which files would have been "risky" in the review
  * queue), but it does NOT short-circuit the auto-accept; making the
- * setting half-on / half-off forces users to reason about a second knob
- * that does not exist.
+ * setting is surfaced in Settings as read-only policy information.
  *
  * The predicates are pure so they stay cheap to call from React effects
  * and have full unit-test coverage.
@@ -79,7 +78,7 @@ export function isRiskyAgentPatchPath(relativePath: string | null | undefined): 
 }
 
 export interface AutoApplyDecisionInput {
-  /** Current value of the `vibecore:agent-auto-apply` user setting. */
+  /** Legacy caller input kept for compatibility; policy is always enabled. */
   autoApplyEnabled: boolean;
 
   /** Current proposal status — only `'pending'` is eligible for auto-apply. */
@@ -98,13 +97,11 @@ export interface AutoApplyAttemptKeyInput {
 }
 
 /**
- * Returns true only when every condition for a silent auto-apply is met:
- * setting on AND proposal still pending. Once the toggle is on, every
- * pending proposal — including ones that were already in the queue when
- * the user flipped the switch — gets accepted on the next effect tick.
+ * Returns true only when the proposal is still pending. Auto-apply is a
+ * fixed product policy, so the legacy `autoApplyEnabled` input is ignored.
  */
 export function shouldAutoApplyPatch(input: AutoApplyDecisionInput): boolean {
-  return input.autoApplyEnabled && input.status === 'pending';
+  return input.status === 'pending';
 }
 
 /**

@@ -80,6 +80,8 @@ const baseProps: ChatBoxTestProps = {
   chatMode: 'build',
   setChatMode: vi.fn(),
   projectIdeMode: true,
+  planFirstEnabled: false,
+  onPlanFirstChange: vi.fn(),
 };
 
 function renderChatBox(overrides: Partial<ChatBoxTestProps> = {}) {
@@ -97,6 +99,10 @@ describe('<ChatBox /> toolbar', () => {
 
     expect(screen.queryByText(/Use Shift \+ Return a new line/i)).toBeNull();
     expect(screen.getByRole('button', { name: 'Upload file' }).getAttribute('data-vc-tooltip')).toBe('Upload file');
+    expect(screen.getByRole('button', { name: 'Plan' }).getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByRole('button', { name: 'Plan' }).getAttribute('data-vc-tooltip')).toBe(
+      'Plan is off: click to require a reviewable plan before edits or commands.',
+    );
     expect(screen.getByRole('button', { name: 'More composer tools' }).getAttribute('aria-haspopup')).toBe('menu');
 
     const shortcuts = screen.getByRole('button', { name: 'Composer shortcuts' });
@@ -118,5 +124,17 @@ describe('<ChatBox /> toolbar', () => {
     expect(within(menu).getByText('Enhance prompt')).toBeTruthy();
     expect(within(menu).getByText('Speech')).toBeTruthy();
     expect(within(menu).getByText('Hide agent settings')).toBeTruthy();
+  });
+
+  it('toggles Plan first from the composer toolbar', () => {
+    const onPlanFirstChange = vi.fn();
+    renderChatBox({ planFirstEnabled: true, onPlanFirstChange });
+
+    const planButton = screen.getByRole('button', { name: 'Plan' });
+
+    expect(planButton.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(planButton);
+
+    expect(onPlanFirstChange).toHaveBeenCalledWith(false);
   });
 });

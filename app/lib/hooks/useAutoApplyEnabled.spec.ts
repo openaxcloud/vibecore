@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   AGENT_AUTO_APPLY_CHANGED_EVENT,
   AGENT_AUTO_APPLY_STORAGE_KEY,
+  readAutoApplyFromStorage,
   setAutoApplyEnabled,
   useAutoApplyEnabled,
 } from './useAutoApplyEnabled';
@@ -33,41 +34,44 @@ describe('useAutoApplyEnabled', () => {
     expect(result.current).toBe(true);
   });
 
-  it('keeps auto-apply disabled when the storage slot already holds "false"', () => {
+  it('ignores legacy stored "false" values', () => {
     window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
 
     const { result } = renderHook(() => useAutoApplyEnabled());
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
+    expect(readAutoApplyFromStorage()).toBe(true);
   });
 
-  it('reacts to setAutoApplyEnabled in the same tab via the custom event', () => {
+  it('normalizes writes to enabled in the same tab via the custom event', () => {
     window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
 
     const { result } = renderHook(() => useAutoApplyEnabled());
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
 
     act(() => {
       setAutoApplyEnabled(true);
     });
     expect(result.current).toBe(true);
+    expect(window.localStorage.getItem(AGENT_AUTO_APPLY_STORAGE_KEY)).toBe('true');
 
     act(() => {
       setAutoApplyEnabled(false);
     });
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
+    expect(window.localStorage.getItem(AGENT_AUTO_APPLY_STORAGE_KEY)).toBe('true');
   });
 
-  it('reacts to the native storage event (cross-tab toggle)', () => {
+  it('ignores cross-tab attempts to disable auto-apply', () => {
     window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
 
     const { result } = renderHook(() => useAutoApplyEnabled());
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
 
     act(() => {
       window.dispatchEvent(
         new StorageEvent('storage', {
           key: AGENT_AUTO_APPLY_STORAGE_KEY,
-          newValue: 'true',
+          newValue: 'false',
         }),
       );
     });
@@ -78,7 +82,7 @@ describe('useAutoApplyEnabled', () => {
     window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
 
     const { result } = renderHook(() => useAutoApplyEnabled());
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
 
     act(() => {
       window.dispatchEvent(

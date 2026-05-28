@@ -61,7 +61,7 @@ export interface MessagePatchReviewProps extends SnapshotInput {
 
 export const MessagePatchReview = memo(({ messageId, content, parts, onApply }: MessagePatchReviewProps) => {
   /*
-   * When auto-apply is on the existing ActionRunner path applies file
+   * Auto-apply is always on. The existing ActionRunner path applies file
    * actions silently — surfacing a redundant Accept/Apply UI here would
    * confuse the user and risk double-writes. Hide the panel entirely;
    * the existing artifact card still narrates what landed.
@@ -69,12 +69,16 @@ export const MessagePatchReview = memo(({ messageId, content, parts, onApply }: 
   const autoApplyEnabled = useAutoApplyEnabled();
 
   const blocks = useMemo(() => {
+    if (autoApplyEnabled) {
+      return [];
+    }
+
     /*
      * `messageToBlocks` reads `id`, `content`, `parts`, `experimental_attachments`.
      * We're at the assistant-message render boundary so attachments don't apply.
      */
     return messageToBlocks({ id: messageId, role: 'assistant', content, parts });
-  }, [messageId, content, parts]);
+  }, [autoApplyEnabled, messageId, content, parts]);
 
   const summary = useMemo(() => summarizeAssistantMessage(blocks), [blocks]);
   const fileActions = summary.fileActions;

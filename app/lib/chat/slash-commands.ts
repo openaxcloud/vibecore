@@ -31,7 +31,7 @@ export interface SlashCommandContext {
   /** Setter mirror of `planFirst`. */
   setPlanFirst?: (next: boolean) => void;
 
-  /** Auto-apply state — read so mode-switch commands can warn the user. */
+  /** Auto-apply policy state. It is currently always true. */
   autoApplyEnabled?: boolean;
 
   /** Imperative composer hooks. */

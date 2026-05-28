@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { MessagePatchReview } from './MessagePatchReview';
@@ -84,98 +84,19 @@ describe('<MessagePatchReview />', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders nothing when the message has no file actions', () => {
+  it('renders nothing even when legacy storage says auto-apply is disabled', () => {
     window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
 
     const { container } = render(
-      <MessagePatchReview messageId="m-empty" content="Just narration, no actions." parts={undefined} />,
+      <MessagePatchReview messageId="m-legacy" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />,
     );
     expect(container.firstChild).toBeNull();
   });
 
-  it('lists every file action as its own inline diff card', () => {
-    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
-
-    render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />);
-
-    expect(screen.getByText('Files changed')).toBeTruthy();
-    expect(screen.getByLabelText('2 files').textContent).toBe('2');
-    expect(screen.getByLabelText('File action diff for src/one.ts')).toBeTruthy();
-    expect(screen.getByLabelText('File action diff for src/two.ts')).toBeTruthy();
-  });
-
-  it('collapses and reopens the panel on toggle', () => {
-    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
-
-    render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />);
-
-    const toggle = screen.getByRole('button', { name: /Files changed/ });
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    expect(screen.queryByLabelText('File action diff for src/one.ts')).toBeTruthy();
-
-    fireEvent.click(toggle);
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.queryByLabelText('File action diff for src/one.ts')).toBeNull();
-
-    fireEvent.click(toggle);
-    expect(screen.queryByLabelText('File action diff for src/one.ts')).toBeTruthy();
-  });
-
-  it('shows aggregate +N / −M counts in the panel header', () => {
-    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
-
-    render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />);
-
-    // Both files are new → 1 added line each (no prior content), 0 removed.
-    expect(screen.getByLabelText(/2 added, 0 removed across 2 files/)).toBeTruthy();
-  });
-
-  it('Accept all bulk-applies every file action with changes', async () => {
-    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
-
-    const onApply = vi.fn().mockResolvedValue(undefined);
-    render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} onApply={onApply} />);
-
-    const applyAll = screen.getByRole('button', { name: /Accept all 2 files/ });
-    fireEvent.click(applyAll);
-
-    /*
-     * The handler is async; wait for the Accept-all button to leave the
-     * "Accepting…" state by polling for both onApply invocations.
-     */
-    await vi.waitFor(() => {
-      expect(onApply).toHaveBeenCalledTimes(2);
-    });
-
-    expect(onApply.mock.calls[0][0].filePath).toBe('src/one.ts');
-    expect(onApply.mock.calls[1][0].filePath).toBe('src/two.ts');
-
-    // Each detail carries the full proposed content as acceptedContent.
-    expect(onApply.mock.calls[0][0].acceptedHunkIds.length).toBeGreaterThan(0);
-    expect(onApply.mock.calls[0][0].rejectedHunkIds).toEqual([]);
-  });
-
-  it('Reject all dismisses the review without applying files', () => {
-    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
-
-    const onApply = vi.fn();
-    render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} onApply={onApply} />);
-
-    fireEvent.click(screen.getByRole('button', { name: /Reject all 2 files/ }));
-
-    expect(onApply).not.toHaveBeenCalled();
-    expect(screen.queryByLabelText('Patch review for assistant message')).toBeNull();
-  });
-
-  it('forwards onApply for each file action card', () => {
-    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
-
-    const onApply = vi.fn();
-    render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} onApply={onApply} />);
-
-    fireEvent.click(screen.getAllByRole('button', { name: 'Accept file' })[0]);
-
-    expect(onApply).toHaveBeenCalledTimes(1);
-    expect(onApply.mock.calls[0][0].filePath).toBe('src/one.ts');
+  it('renders nothing when the message has no file actions', () => {
+    const { container } = render(
+      <MessagePatchReview messageId="m-empty" content="Just narration, no actions." parts={undefined} />,
+    );
+    expect(container.firstChild).toBeNull();
   });
 });

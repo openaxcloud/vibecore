@@ -435,7 +435,7 @@ const WALKTHROUGH_SECTIONS: WalkthroughEntry[] = [
     tagline: "See the agent's intent before any file lands.",
     why: "For larger changes the agent emits an actionable checklist (Markdown task list) before touching files. The checklist renders as a live progress widget so you can see what's done, in flight or failing without scrolling through walls of text.",
     steps: [
-      { label: 'Toggle Plan first', detail: 'In agent preferences or via /plan in the composer.' },
+      { label: 'Toggle Plan', detail: 'Use the compact Plan button in the composer toolbar, or type /plan.' },
       {
         label: 'Send your request',
         detail: 'The agent emits a `- [ ] step` list which is parsed and rendered as a checklist.',
@@ -450,28 +450,28 @@ const WALKTHROUGH_SECTIONS: WalkthroughEntry[] = [
   {
     id: 'patch-review',
     icon: Wand2,
-    title: 'Patch review & Apply all',
-    tagline: 'Accept / Reject per hunk, or apply everything in one click.',
-    why: 'When auto-apply is OFF, every file the agent proposes lands in a review panel with a unified diff per hunk. You decide what survives. When auto-apply is ON, writes happen silently with a coalesced Undo toast — exactly the Replit / Cursor default.',
+    title: 'Auto-apply & patch recovery',
+    tagline: 'Successful patches apply immediately; failed validation stays reviewable.',
+    why: 'Auto-apply is always enabled for successful patches, matching the fast Replit / Cursor default. Validation failures stay visible in review surfaces with retry, reject and recovery affordances instead of being hidden.',
     steps: [
       {
-        label: 'Decide once',
-        detail: 'Auto-apply is ON by default in agent settings. Switch it OFF for review-first patch control.',
+        label: 'Check policy',
+        detail: 'Agent settings show auto-apply as enabled and read-only so the behaviour is predictable.',
       },
       {
-        label: 'Per-hunk control',
-        detail: 'Accept or Reject individual diff hunks; the panel header shows +N / −M across all files.',
+        label: 'Recover failures',
+        detail: 'Failed validation remains in review with retry and reject actions instead of silently disappearing.',
       },
       {
-        label: 'Apply all',
-        detail: 'One click writes every accepted hunk to disk. Failures surface as toasts; the panel disappears.',
+        label: 'Undo fast',
+        detail: 'Successful writes still surface the coalesced Undo toast for quick rollback.',
       },
     ],
     preview: <PatchReviewPreview />,
     notes: (
       <p>
-        <strong>Auto-apply ON?</strong> The review panel is hidden — writes flow straight to the workbench with the
-        existing Undo toast. The agent UX feels native, not gated.
+        <strong>Auto-apply enabled?</strong> The review panel is hidden for successful writes; failed validation remains
+        visible so users can recover deliberately.
       </p>
     ),
   },
@@ -578,9 +578,8 @@ const PREREQUISITES = [
     detail: 'Pick a template (React, Remix, Node, Python) or import an existing repo to spin up the IDE.',
   },
   {
-    title: 'Decide an auto-apply preference',
-    detail:
-      'Auto-apply starts ON and writes silently with an Undo toast; switch it OFF to surface the patch review panel.',
+    title: 'Know the patch policy',
+    detail: 'Auto-apply is always enabled for successful patches; failed validation remains reviewable.',
   },
 ];
 

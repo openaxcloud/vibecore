@@ -82,8 +82,8 @@ describe('shouldAutoApplyPatch', () => {
     expect(shouldAutoApplyPatch({ autoApplyEnabled: true, status: 'pending' })).toBe(true);
   });
 
-  it('refuses when the toggle is off', () => {
-    expect(shouldAutoApplyPatch({ autoApplyEnabled: false, status: 'pending' })).toBe(false);
+  it('approves pending patches even when a legacy caller passes the toggle as off', () => {
+    expect(shouldAutoApplyPatch({ autoApplyEnabled: false, status: 'pending' })).toBe(true);
   });
 
   it('refuses anything other than a pending status', () => {

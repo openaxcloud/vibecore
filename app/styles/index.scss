@@ -4857,15 +4857,6 @@ body :where(.lucide, svg[data-lucide]) {
     padding: 8px 10px;
   }
 
-  .bolt-project-agent-mode-toggles {
-    gap: 6px;
-  }
-
-  .bolt-project-agent-mode-bar .bolt-project-agent-plan-first-label {
-    max-width: 132px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
 }
 
 @media (min-width: 1600px) and (min-height: 800px) {
@@ -6228,6 +6219,41 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-primary);
 }
 
+.bolt-chatbox-plan-button {
+  display: inline-flex;
+  height: 32px;
+  min-width: 68px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 10px;
+  transition:
+    background-color 120ms ease-out,
+    border-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.bolt-chatbox-plan-button:hover,
+.bolt-chatbox-plan-button:focus-visible,
+.bolt-chatbox-plan-button[data-active='true'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 52%, var(--vc-ide-border-subtle));
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 16%, var(--vc-ide-bg-card));
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-chatbox-plan-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
+  outline-offset: 2px;
+}
+
 .bolt-chatbox-toolbar-info {
   color: var(--vc-ide-text-muted);
 }
@@ -6920,157 +6946,11 @@ body :where(.lucide, svg[data-lucide]) {
   align-self: flex-start;
 }
 
-.bolt-project-agent-mode-toggles {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.bolt-project-agent-mode-bar .bolt-project-agent-plan-first {
-  padding: 2px 10px 2px 4px;
-  height: 26px;
-}
-
-.bolt-project-agent-mode-bar .bolt-project-agent-plan-first::before {
-  display: none;
-}
-
 .bolt-project-agent-mode-description {
   margin: 0;
   font-size: 11px;
   line-height: 1.45;
   color: var(--vc-ide-text-muted);
-}
-
-.bolt-project-agent-toggle-group {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  gap: 3px;
-}
-
-.bolt-project-agent-toggle-info {
-  display: inline-flex;
-  width: 18px;
-  height: 18px;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border-radius: 999px;
-  border: 1px solid var(--vc-ide-border-subtle);
-  background: var(--vc-ide-bg-card);
-  color: var(--vc-ide-text-muted);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-  transition:
-    background-color 120ms ease-out,
-    border-color 120ms ease-out,
-    color 120ms ease-out;
-}
-
-.bolt-project-agent-toggle-info:hover,
-.bolt-project-agent-toggle-info:focus-visible {
-  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 46%, var(--vc-ide-border-subtle));
-  background: var(--vc-ide-bg-hover);
-  color: var(--vc-ide-text-primary);
-}
-
-.bolt-project-agent-toggle-info:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action) 60%, transparent);
-  outline-offset: 2px;
-}
-
-.bolt-project-agent-plan-first {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  gap: 6px;
-  padding: 2px 8px 2px 4px;
-  height: 24px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  cursor: pointer;
-  user-select: none;
-  white-space: nowrap;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--vc-ide-text-muted);
-  transition:
-    color 120ms ease-out,
-    background-color 120ms ease-out,
-    border-color 120ms ease-out;
-}
-
-.bolt-project-agent-plan-first::before {
-  content: '';
-  flex: 0 0 auto;
-  width: 1px;
-  height: 14px;
-  margin-right: 4px;
-  background: var(--vc-ide-border-subtle);
-}
-
-.bolt-project-agent-plan-first:hover {
-  color: var(--vc-ide-text-primary);
-}
-
-.bolt-project-agent-plan-first input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  border: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-}
-
-.bolt-project-agent-plan-first-track {
-  position: relative;
-  display: inline-block;
-  width: 22px;
-  height: 12px;
-  border-radius: 999px;
-  background: var(--vc-ide-bg-card);
-  border: 1px solid var(--vc-ide-border-subtle);
-  transition:
-    background-color 120ms ease-out,
-    border-color 120ms ease-out;
-}
-
-.bolt-project-agent-plan-first-thumb {
-  position: absolute;
-  top: 1px;
-  left: 1px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--vc-ide-text-muted);
-  transition:
-    transform 140ms ease-out,
-    background-color 120ms ease-out;
-}
-
-.bolt-project-agent-plan-first[data-active='true'] {
-  color: var(--vc-ide-text-primary);
-}
-
-.bolt-project-agent-plan-first[data-active='true'] .bolt-project-agent-plan-first-track {
-  background: color-mix(in srgb, var(--vc-ide-accent-action) 32%, transparent);
-  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 60%, transparent);
-}
-
-.bolt-project-agent-plan-first[data-active='true'] .bolt-project-agent-plan-first-thumb {
-  transform: translateX(10px);
-  background: var(--vc-ide-accent-action);
-}
-
-.bolt-project-agent-plan-first input:focus-visible + .bolt-project-agent-plan-first-track {
-  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action) 60%, transparent);
-  outline-offset: 1px;
 }
 
 .bolt-project-tabbar,
@@ -14097,6 +13977,40 @@ button.bolt-project-statusbar-pill:focus-visible,
     }
   }
 
+  .bolt-project-agent-policy {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    border: 1px solid var(--bolt-elements-borderColor);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--bolt-elements-background-depth-1) 86%, transparent);
+    padding: 12px;
+
+    label {
+      display: grid;
+      gap: 7px;
+      color: var(--bolt-elements-textPrimary);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    select {
+      width: 100%;
+      height: 34px;
+      border: 1px solid var(--bolt-elements-borderColor);
+      border-radius: 8px;
+      background: var(--bolt-elements-background-depth-2);
+      color: var(--bolt-elements-textPrimary);
+      padding: 0 10px;
+    }
+
+    small {
+      color: var(--bolt-elements-textSecondary);
+      font-weight: 500;
+      line-height: 1.45;
+    }
+  }
+
   .bolt-project-ai-routing {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -14356,6 +14270,7 @@ button.bolt-project-statusbar-pill:focus-visible,
     .bolt-project-settings-layout,
     .bolt-project-settings-grid,
     .bolt-project-settings-provider-grid,
+    .bolt-project-agent-policy,
     .bolt-project-ai-routing {
       grid-template-columns: 1fr;
     }

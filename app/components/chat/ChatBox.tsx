@@ -69,6 +69,8 @@ interface ChatBoxProps {
   selectedElement?: ElementInfo | null;
   setSelectedElement?: ((element: ElementInfo | null) => void) | undefined;
   projectIdeMode?: boolean;
+  planFirstEnabled?: boolean;
+  onPlanFirstChange?: (next: boolean) => void;
   placeholder?: string;
 
   /** Project id used by the composer overlays to persist MRU palettes. */
@@ -101,6 +103,9 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
     : props.input.length === 0
       ? 'Type a prompt to enable AI prompt enhancement'
       : 'Enhance this prompt with AI before sending';
+  const planFirstTooltip = props.planFirstEnabled
+    ? 'Plan is on: the agent must propose a reviewable plan before edits or commands.'
+    : 'Plan is off: click to require a reviewable plan before edits or commands.';
 
   const [isToolsMenuOpen, setIsToolsMenuOpen] = React.useState(false);
   const toolsMenuRef = React.useRef<HTMLDivElement>(null);
@@ -145,6 +150,10 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
   const toggleModelSettings = () => {
     props.setIsModelSettingsCollapsed(!props.isModelSettingsCollapsed);
     setIsToolsMenuOpen(false);
+  };
+
+  const togglePlanFirst = () => {
+    props.onPlanFirstChange?.(!props.planFirstEnabled);
   };
 
   return (
@@ -381,6 +390,21 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             >
               <div className="i-ph:paperclip text-xl"></div>
             </IconButton>
+
+            {props.projectIdeMode && props.onPlanFirstChange ? (
+              <button
+                type="button"
+                className="bolt-chatbox-plan-button"
+                data-active={props.planFirstEnabled ? 'true' : 'false'}
+                aria-pressed={props.planFirstEnabled ? 'true' : 'false'}
+                title={planFirstTooltip}
+                data-vc-tooltip={planFirstTooltip}
+                onClick={togglePlanFirst}
+              >
+                <span>Plan</span>
+                <span className="i-ph:caret-down text-xs" aria-hidden />
+              </button>
+            ) : null}
 
             <div ref={toolsMenuRef} className="bolt-chatbox-tools-menu-anchor">
               <IconButton
