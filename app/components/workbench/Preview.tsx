@@ -402,6 +402,8 @@ export const Preview = memo(
     const [isStartingPreview, setIsStartingPreview] = useState(false);
     const [previewStatus, setPreviewStatus] = useState<string | undefined>();
     const [previewRunFailed, setPreviewRunFailed] = useState(false);
+    const [previewFrameLoaded, setPreviewFrameLoaded] = useState(false);
+    const [loadedPreviewUrl, setLoadedPreviewUrl] = useState<string | undefined>();
     const [logsOpen, setLogsOpen] = useState(false);
     const [activeLogTab, setActiveLogTab] = useState<PreviewLogTab>('webview');
     const [devToolsOpen, setDevToolsOpen] = useState(false);
@@ -441,6 +443,19 @@ export const Preview = memo(
           previewStatus,
         }),
       [isRefreshingPorts, isStartingPreview, previews.length, previewRunFailed, previewStatus, workspaceReady],
+    );
+    const recentPreviewLogs = useMemo(
+      () =>
+        workspaceLogs
+          .map((line) => line.replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, '').trim())
+          .filter(Boolean)
+          .slice(-4),
+      [workspaceLogs],
+    );
+    const shouldShowPreviewLoadingOverlay = Boolean(
+      activePreview &&
+        iframeUrl &&
+        (activePreview.ready === false || !previewFrameLoaded || loadedPreviewUrl !== iframeUrl),
     );
     const openPreviewLogs = useCallback(() => {
       setActiveLogTab('server');
@@ -591,6 +606,8 @@ export const Preview = memo(
 
       const { baseUrl } = activePreview;
       setPreviewRunFailed(false);
+      setPreviewFrameLoaded(false);
+      setLoadedPreviewUrl(undefined);
       setIframeUrl(baseUrl);
       setDisplayPath('/');
       setAddressInput(baseUrl);
@@ -872,6 +889,18 @@ export const Preview = memo(
 
       inputRef.current?.blur();
     };
+
+    useEffect(() => {
+      if (!activePreview || !iframeUrl) {
+        setPreviewFrameLoaded(false);
+        setLoadedPreviewUrl(undefined);
+
+        return;
+      }
+
+      setPreviewFrameLoaded(false);
+      setLoadedPreviewUrl(undefined);
+    }, [activePreview?.baseUrl, activePreview?.port, iframeUrl]);
 
     const toggleFullscreen = async () => {
       if (!isFullscreen && containerRef.current) {
@@ -1490,6 +1519,10 @@ export const Preview = memo(
             ...events,
           ].slice(0, 80),
         );
+        setPreviewFrameLoaded(true);
+        setLoadedPreviewUrl(targetUrl);
+        setIsStartingPreview(false);
+        setPreviewStatus('Preview rendered.');
       },
       [visiblePreviewUrl],
     );
@@ -1769,6 +1802,7 @@ export const Preview = memo(
                     sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
                     allow="cross-origin-isolated"
                     onLoad={() => recordPreviewLoad('static-preview')}
+                    data-testid="preview-iframe"
                   />
                 ) : isDeviceModeOn && showDeviceFrameInPreview ? (
                   <div
@@ -1850,6 +1884,7 @@ export const Preview = memo(
                         sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
                         allow="cross-origin-isolated"
                         onLoad={() => recordPreviewLoad(iframeUrl)}
+                        data-testid="preview-iframe"
                       />
                     </div>
                   </div>
@@ -1862,8 +1897,24 @@ export const Preview = memo(
                     sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
                     allow="geolocation; ch-ua-full-version-list; cross-origin-isolated; screen-wake-lock; publickey-credentials-get; shared-storage-select-url; ch-ua-arch; bluetooth; compute-pressure; ch-prefers-reduced-transparency; deferred-fetch; usb; ch-save-data; publickey-credentials-create; shared-storage; deferred-fetch-minimal; run-ad-auction; ch-ua-form-factors; ch-downlink; otp-credentials; payment; ch-ua; ch-ua-model; ch-ect; autoplay; camera; private-state-token-issuance; accelerometer; ch-ua-platform-version; idle-detection; private-aggregation; interest-cohort; ch-viewport-height; local-fonts; ch-ua-platform; midi; ch-ua-full-version; xr-spatial-tracking; clipboard-read; gamepad; display-capture; keyboard-map; join-ad-interest-group; ch-width; ch-prefers-reduced-motion; browsing-topics; encrypted-media; gyroscope; serial; ch-rtt; ch-ua-mobile; window-management; unload; ch-dpr; ch-prefers-color-scheme; ch-ua-wow64; attribution-reporting; fullscreen; identity-credentials-get; private-state-token-redemption; hid; ch-ua-bitness; storage-access; sync-xhr; ch-device-memory; ch-viewport-width; picture-in-picture; magnetometer; clipboard-write; microphone"
                     onLoad={() => recordPreviewLoad(iframeUrl)}
+                    data-testid="preview-iframe"
                   />
                 )}
+                {shouldShowPreviewLoadingOverlay ? (
+                  <PreviewLoadingOverlay
+                    activeStep={previewBootProgress.activeStep}
+                    currentTask={
+                      previewStatus ??
+                      (activePreview?.ready === false
+                        ? 'Waiting for the preview port to become ready...'
+                        : 'Loading the webview and waiting for the first render...')
+                    }
+                    logs={recentPreviewLogs}
+                    progress={Math.min(previewBootProgress.progress, activePreview?.ready === false ? 84 : 92)}
+                    steps={previewBootSteps}
+                    onViewLogs={openPreviewLogs}
+                  />
+                ) : null}
                 <Inspector
                   isActive={isInspectorMode}
                   iframeRef={iframeRef}
@@ -1915,6 +1966,7 @@ export const Preview = memo(
                     }
                     isBusy={isStartingPreview || isRefreshingPorts || autoStart || !workspaceReady}
                     progress={previewBootProgress.progress}
+                    logs={recentPreviewLogs}
                     steps={previewBootSteps}
                     onViewLogs={openPreviewLogs}
                   />
@@ -2086,6 +2138,7 @@ function PreviewSplashSequence({
   activeStep,
   currentTask,
   isBusy,
+  logs,
   onViewLogs,
   progress,
   steps,
@@ -2094,6 +2147,7 @@ function PreviewSplashSequence({
   activeStep: PreviewBootStepId;
   currentTask: string;
   isBusy: boolean;
+  logs?: string[];
   onViewLogs?: () => void;
   progress: number;
   steps: Array<{ id: PreviewBootStepId; label: string; description: string }>;
@@ -2172,6 +2226,73 @@ function PreviewSplashSequence({
           </div>
           {appName ? <p>Preparing: {appName}</p> : null}
         </div>
+        {logs?.length ? <pre className="bolt-preview-splash-log">{logs.join('\n')}</pre> : null}
+      </div>
+    </div>
+  );
+}
+
+function PreviewLoadingOverlay({
+  activeStep,
+  currentTask,
+  logs,
+  onViewLogs,
+  progress,
+  steps,
+}: {
+  activeStep: PreviewBootStepId;
+  currentTask: string;
+  logs: string[];
+  onViewLogs?: () => void;
+  progress: number;
+  steps: Array<{ id: PreviewBootStepId; label: string; description: string }>;
+}) {
+  const activeLabel = steps.find((step) => step.id === activeStep)?.label ?? 'Preparing preview';
+
+  return (
+    <div
+      className="bolt-preview-loading-overlay"
+      data-testid="preview-loading-overlay"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="bolt-preview-loading-card">
+        <span className="bolt-preview-loading-spinner i-ph:circle-notch animate-spin" aria-hidden />
+        <div className="bolt-preview-loading-copy">
+          <span>Webview startup</span>
+          <h3 data-testid="preview-loading-current-step">{activeLabel}</h3>
+          <p>{currentTask}</p>
+        </div>
+        <div
+          className="bolt-preview-loading-progress"
+          role="progressbar"
+          aria-label="Webview startup progress"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress)}
+        >
+          <span style={{ width: `${Math.max(8, Math.min(progress, 100))}%` }} />
+        </div>
+        <ol className="bolt-preview-loading-steps" aria-label="Webview startup steps">
+          {steps.map((step) => {
+            const stepIndex = steps.findIndex((item) => item.id === step.id);
+            const activeIndex = steps.findIndex((item) => item.id === activeStep);
+            const state = stepIndex < activeIndex ? 'complete' : stepIndex === activeIndex ? 'active' : 'pending';
+
+            return (
+              <li key={step.id} data-state={state}>
+                <span aria-hidden>{state === 'complete' ? '✓' : stepIndex + 1}</span>
+                <strong>{step.label}</strong>
+              </li>
+            );
+          })}
+        </ol>
+        {logs.length ? <pre data-testid="preview-loading-log">{logs.join('\n')}</pre> : null}
+        {onViewLogs ? (
+          <button type="button" onClick={onViewLogs}>
+            View logs
+          </button>
+        ) : null}
       </div>
     </div>
   );

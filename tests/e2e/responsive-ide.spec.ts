@@ -161,7 +161,16 @@ async function authenticate(page: import('@playwright/test').Page) {
   return payload!;
 }
 
-async function createTestProject(page: import('@playwright/test').Page, name: string) {
+async function createTestProject(
+  page: import('@playwright/test').Page,
+  name: string,
+  files: Record<string, string> = {
+    'src/App.tsx': `export function App() {
+  return <main>Responsive IDE test</main>;
+}
+`,
+  },
+) {
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
   const auth = await authenticate(page);
 
@@ -174,13 +183,10 @@ async function createTestProject(page: import('@playwright/test').Page, name: st
 
   const projectId = (await createProject.json()).project.id as string;
   const zip = new JSZip();
-  zip.file(
-    'src/App.tsx',
-    `export function App() {
-  return <main>Responsive IDE test</main>;
-}
-`,
-  );
+
+  for (const [filePath, content] of Object.entries(files)) {
+    zip.file(filePath, content);
+  }
 
   const importFiles = await page.request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
     headers: { authorization: `Bearer ${auth.token}` },
@@ -409,6 +415,66 @@ test.describe('responsive IDE shell', () => {
     expect(metrics.navVisible).toBe(true);
     expect(metrics.overlaps).toBe(false);
     expect(metrics.overflowX).toBe(false);
+  });
+
+  test('mobile and tablet keep a visible webview startup state until the iframe renders', async ({
+    page,
+  }, testInfo) => {
+    test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
+    test.setTimeout(240_000);
+
+    const projectId = await createTestProject(page, 'Responsive slow preview startup project', {
+      'package.json': JSON.stringify(
+        {
+          private: true,
+          type: 'module',
+          scripts: { dev: 'node server.mjs' },
+        },
+        null,
+        2,
+      ),
+      'server.mjs': `import { createServer } from 'node:http';
+
+const port = Number(process.env.PORT || 5173);
+
+createServer((request, response) => {
+  response.setHeader('Content-Type', 'text/html; charset=utf-8');
+
+  if (request.url === '/healthz') {
+    response.end('ok');
+    return;
+  }
+
+  setTimeout(() => {
+    response.end('<!doctype html><html><body><main data-slow-preview="ready">Slow preview ready</main></body></html>');
+  }, 8000);
+}).listen(port, '0.0.0.0', () => {
+  console.log('slow preview server listening on ' + port);
+});
+`,
+    });
+
+    await page.goto(`/projects/${projectId}/ide?panel=preview`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 45_000 });
+
+    await expect(
+      page.getByTestId('preview-splash-sequence').or(page.getByTestId('preview-loading-overlay')).first(),
+    ).toBeVisible({ timeout: 45_000 });
+
+    const loadingOverlay = page.getByTestId('preview-loading-overlay');
+    await expect(loadingOverlay).toBeVisible({ timeout: 180_000 });
+    await expect(loadingOverlay.getByTestId('preview-loading-current-step')).toContainText(
+      /Building|Starting dev server|Ready/,
+    );
+    await expect(loadingOverlay).toContainText(/Webview startup|Loading the webview|Waiting for the preview port/);
+    await expect(page.getByTestId('preview-iframe')).toBeVisible({ timeout: 15_000 });
+    await expect(loadingOverlay).toBeVisible();
+
+    await expect(page.frameLocator('iframe[title="preview"]').locator('[data-slow-preview="ready"]')).toContainText(
+      'Slow preview ready',
+      { timeout: 180_000 },
+    );
+    await expect(loadingOverlay).toHaveCount(0, { timeout: 15_000 });
   });
 
   test('mobile restores the last active IDE panel from local persistence', async ({ page, isMobile }) => {
