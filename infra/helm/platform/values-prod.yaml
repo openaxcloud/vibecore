@@ -250,9 +250,10 @@ storage:
     bindToClaim: true
     nfs:
       # Filestore reserved IP (see `gcloud filestore instances describe
-      # vibecore-shared`). Lives on the `default` VPC, peered with the GKE
-      # cluster — no extra firewall rule needed for in-VPC pods.
-      server: '10.110.133.10'
+      # vibecore-shared --location=europe-west9-a`). Lives on
+      # vibecore-prod-vpc, peered with the GKE cluster — no extra firewall
+      # rule needed for in-VPC pods.
+      server: '10.18.14.98'
       path: /vibecore_data
       readOnly: false
   pvc:
