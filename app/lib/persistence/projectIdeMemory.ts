@@ -143,13 +143,46 @@ const pendingDirty = new Map<string, ProjectIdeMemory>();
 const crossTabListeners = new Map<string, Set<(memory: ProjectIdeMemory) => void>>();
 
 /*
- * Phase 0 #4 — last-known server `version` per project. The server returns
+ * Phase 0 #4 — last-known server `version` per scope. The server returns
  * it via the `etag` response header on GET/PUT (and as `ideState.version`
  * in the body). We send it back as `If-Match` on the next PUT so a second
  * tab with a stale version is rejected with 412 instead of silently
  * clobbering the other tab's writes.
  */
 const versionByProject = new Map<string, number>();
+
+/*
+ * Workspace isolation — when a `workspaceId` is supplied the IDE state is
+ * scoped to that workspace and routed through `/api/workspaces/:id/ide-state`
+ * (which has the same If-Match/ETag contract as the project-level endpoint).
+ * Without a workspaceId we fall back to the legacy project-scoped endpoint so
+ * users on projects that haven't been migrated to workspaces still see their
+ * persisted state.
+ *
+ * The scope key is used as the map key for every cache the file maintains
+ * (memoryCache, pendingDirty, versionByProject, listeners, debounced saves)
+ * and as the localStorage suffix. For the project-only case we keep the bare
+ * projectId so existing localStorage entries (`vibecore.projectIdeMemory:<projectId>`)
+ * stay valid.
+ */
+function scopeKey(projectId: string, workspaceId?: string): string {
+  return workspaceId ? `workspace:${workspaceId}` : projectId;
+}
+
+function scopeEndpoint(projectId: string, workspaceId?: string): string {
+  return workspaceId
+    ? `/api/workspaces/${encodeURIComponent(workspaceId)}/ide-state`
+    : `/api/projects/${encodeURIComponent(projectId)}/ide-state`;
+}
+
+/*
+ * `persistWithRetry` and `runDebouncedSave` are invoked off the call stack
+ * (debounce timers, lifecycle flush, retry loop) so they can't recompute the
+ * endpoint URL from the caller's arguments. We record it here when a save is
+ * enqueued and read it back later — workspace-scoped saves keep hitting the
+ * workspace endpoint even when triggered by a `pagehide` event.
+ */
+const scopeEndpoints = new Map<string, string>();
 
 /**
  * Coalesce rapid-fire saves (one per chat-stream tick, drag-resize, scroll, …)
@@ -263,21 +296,25 @@ function memoryForServerSave(memory: ProjectIdeMemory, patch: ProjectIdeMemory):
   };
 }
 
-export function getProjectIdeMemoryStorageKey(projectId: string) {
-  return `${PROJECT_IDE_MEMORY_STORAGE_PREFIX}:${projectId}`;
+export function getProjectIdeMemoryStorageKey(projectId: string, workspaceId?: string) {
+  return `${PROJECT_IDE_MEMORY_STORAGE_PREFIX}:${scopeKey(projectId, workspaceId)}`;
+}
+
+function storageKeyForScope(scope: string) {
+  return `${PROJECT_IDE_MEMORY_STORAGE_PREFIX}:${scope}`;
 }
 
 function localStorageAvailable() {
   return typeof globalThis !== 'undefined' && typeof globalThis.localStorage !== 'undefined';
 }
 
-function readLocalProjectIdeMemory(projectId: string): ProjectIdeMemory | undefined {
+function readLocalProjectIdeMemory(scope: string): ProjectIdeMemory | undefined {
   if (!localStorageAvailable()) {
     return undefined;
   }
 
   try {
-    const raw = globalThis.localStorage.getItem(getProjectIdeMemoryStorageKey(projectId));
+    const raw = globalThis.localStorage.getItem(storageKeyForScope(scope));
 
     if (!raw) {
       return undefined;
@@ -293,13 +330,13 @@ function readLocalProjectIdeMemory(projectId: string): ProjectIdeMemory | undefi
   }
 }
 
-function writeLocalProjectIdeMemory(projectId: string, memory: ProjectIdeMemory) {
+function writeLocalProjectIdeMemory(scope: string, memory: ProjectIdeMemory) {
   if (!localStorageAvailable()) {
     return;
   }
 
   try {
-    globalThis.localStorage.setItem(getProjectIdeMemoryStorageKey(projectId), JSON.stringify(memory));
+    globalThis.localStorage.setItem(storageKeyForScope(scope), JSON.stringify(memory));
   } catch (error) {
     console.error('Failed to write local project IDE memory', error);
   }
@@ -320,19 +357,21 @@ function newerMemory(first: ProjectIdeMemory | undefined, second: ProjectIdeMemo
   return secondUpdated > firstUpdated ? second : first;
 }
 
-export function clearProjectIdeMemoryCacheForTest(projectId?: string) {
+export function clearProjectIdeMemoryCacheForTest(projectId?: string, workspaceId?: string) {
   if (projectId) {
-    memoryCache.delete(projectId);
-    pendingSaves.delete(projectId);
-    pendingDirty.delete(projectId);
-    crossTabListeners.delete(projectId);
-    versionByProject.delete(projectId);
+    const id = scopeKey(projectId, workspaceId);
+    memoryCache.delete(id);
+    pendingSaves.delete(id);
+    pendingDirty.delete(id);
+    crossTabListeners.delete(id);
+    versionByProject.delete(id);
+    scopeEndpoints.delete(id);
 
-    const debounced = pendingDebouncedSaves.get(projectId);
+    const debounced = pendingDebouncedSaves.get(id);
 
     if (debounced) {
       clearTimeout(debounced.timer);
-      pendingDebouncedSaves.delete(projectId);
+      pendingDebouncedSaves.delete(id);
     }
 
     return;
@@ -343,6 +382,7 @@ export function clearProjectIdeMemoryCacheForTest(projectId?: string) {
   pendingDirty.clear();
   crossTabListeners.clear();
   versionByProject.clear();
+  scopeEndpoints.clear();
 
   for (const entry of pendingDebouncedSaves.values()) {
     clearTimeout(entry.timer);
@@ -365,8 +405,8 @@ export function setProjectIdeMemorySaveDebounceMsForTest(ms: number) {
  * Tests-only read of the last known server version (the ETag we'll send as
  * `If-Match` on the next PUT).
  */
-export function getProjectIdeMemoryVersionForTest(projectId: string): number | undefined {
-  return versionByProject.get(projectId);
+export function getProjectIdeMemoryVersionForTest(projectId: string, workspaceId?: string): number | undefined {
+  return versionByProject.get(scopeKey(projectId, workspaceId));
 }
 
 function parseEtagHeader(header: string | null | undefined): number | undefined {
@@ -395,14 +435,20 @@ function readResponseHeader(response: Response, name: string): string | null {
   return headers.get(name) ?? null;
 }
 
-export function subscribeProjectIdeMemory(projectId: string, listener: (memory: ProjectIdeMemory) => void) {
+export function subscribeProjectIdeMemory(
+  projectId: string,
+  listener: (memory: ProjectIdeMemory) => void,
+  workspaceId?: string,
+) {
   installStorageListenerOnce();
 
-  let listeners = crossTabListeners.get(projectId);
+  const id = scopeKey(projectId, workspaceId);
+
+  let listeners = crossTabListeners.get(id);
 
   if (!listeners) {
     listeners = new Set();
-    crossTabListeners.set(projectId, listeners);
+    crossTabListeners.set(id, listeners);
   }
 
   listeners.add(listener);
@@ -411,13 +457,13 @@ export function subscribeProjectIdeMemory(projectId: string, listener: (memory: 
     listeners?.delete(listener);
 
     if (listeners && listeners.size === 0) {
-      crossTabListeners.delete(projectId);
+      crossTabListeners.delete(id);
     }
   };
 }
 
-function notifyCrossTabListeners(projectId: string, memory: ProjectIdeMemory) {
-  const listeners = crossTabListeners.get(projectId);
+function notifyCrossTabListeners(scope: string, memory: ProjectIdeMemory) {
+  const listeners = crossTabListeners.get(scope);
 
   if (!listeners) {
     return;
@@ -475,7 +521,13 @@ function installStorageListenerOnce() {
       return;
     }
 
-    const projectId = event.key.slice(PROJECT_IDE_MEMORY_STORAGE_PREFIX.length + 1);
+    /*
+     * The slice yields the scope key — bare projectId for legacy entries,
+     * `workspace:<workspaceId>` for the workspace-isolated variant. Both flow
+     * through the same cache and listener registry so cross-tab updates land
+     * regardless of which endpoint produced the write.
+     */
+    const scope = event.key.slice(PROJECT_IDE_MEMORY_STORAGE_PREFIX.length + 1);
 
     try {
       const parsed = JSON.parse(event.newValue) as ProjectIdeMemory;
@@ -484,40 +536,44 @@ function installStorageListenerOnce() {
         return;
       }
 
-      const previous = memoryCache.get(projectId);
+      const previous = memoryCache.get(scope);
       const next = newerMemory(previous, parsed);
 
       if (next === previous) {
         return;
       }
 
-      memoryCache.set(projectId, next);
-      notifyCrossTabListeners(projectId, next);
+      memoryCache.set(scope, next);
+      notifyCrossTabListeners(scope, next);
     } catch (error) {
       console.error('projectIdeMemory cross-tab parse failed', error);
     }
   });
 }
 
-export async function getProjectIdeMemory(projectId: string): Promise<ProjectIdeMemory> {
-  const cached = memoryCache.get(projectId);
+export async function getProjectIdeMemory(projectId: string, workspaceId?: string): Promise<ProjectIdeMemory> {
+  const id = scopeKey(projectId, workspaceId);
+  const endpoint = scopeEndpoint(projectId, workspaceId);
+  scopeEndpoints.set(id, endpoint);
+
+  const cached = memoryCache.get(id);
 
   if (cached) {
     return cached;
   }
 
-  const localMemory = readLocalProjectIdeMemory(projectId);
+  const localMemory = readLocalProjectIdeMemory(id);
 
   try {
-    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-state`, {
+    const response = await fetch(endpoint, {
       credentials: 'include',
       headers: { accept: 'application/json' },
     });
 
     if (PROJECT_IDE_MEMORY_AUTH_STATUSES.has(response.status)) {
       const memory = localMemory ?? {};
-      memoryCache.set(projectId, memory);
-      versionByProject.delete(projectId);
+      memoryCache.set(id, memory);
+      versionByProject.delete(id);
 
       return memory;
     }
@@ -533,16 +589,16 @@ export async function getProjectIdeMemory(projectId: string): Promise<ProjectIde
     const version = parseEtagHeader(readResponseHeader(response, 'etag')) ?? payload.ideState?.version;
 
     if (typeof version === 'number' && Number.isFinite(version)) {
-      versionByProject.set(projectId, version);
+      versionByProject.set(id, version);
     }
 
-    memoryCache.set(projectId, memory);
-    writeLocalProjectIdeMemory(projectId, memory);
+    memoryCache.set(id, memory);
+    writeLocalProjectIdeMemory(id, memory);
 
     return memory;
   } catch (error) {
     if (localMemory) {
-      memoryCache.set(projectId, localMemory);
+      memoryCache.set(id, localMemory);
 
       return localMemory;
     }
@@ -568,33 +624,40 @@ function pushMruEntry(list: string[] | undefined, entry: string): string[] {
  * Record a file the user selected in the @-mentions palette so the
  * next palette open prioritises it.
  */
-export function recordMentionedFile(projectId: string, filePath: string): Promise<void> {
-  const cached = memoryCache.get(projectId);
+export function recordMentionedFile(projectId: string, filePath: string, workspaceId?: string): Promise<void> {
+  const cached = memoryCache.get(scopeKey(projectId, workspaceId));
   const next = pushMruEntry(cached?.ui?.recentMentionedFilePaths, filePath);
 
-  return saveProjectIdeMemory(projectId, { ui: { recentMentionedFilePaths: next } });
+  return saveProjectIdeMemory(projectId, { ui: { recentMentionedFilePaths: next } }, workspaceId);
 }
 
 /**
  * Record a slash command id the user executed so the next palette
  * open prioritises it.
  */
-export function recordSlashCommand(projectId: string, commandId: string): Promise<void> {
-  const cached = memoryCache.get(projectId);
+export function recordSlashCommand(projectId: string, commandId: string, workspaceId?: string): Promise<void> {
+  const cached = memoryCache.get(scopeKey(projectId, workspaceId));
   const next = pushMruEntry(cached?.ui?.recentSlashCommandIds, commandId);
 
-  return saveProjectIdeMemory(projectId, { ui: { recentSlashCommandIds: next } });
+  return saveProjectIdeMemory(projectId, { ui: { recentSlashCommandIds: next } }, workspaceId);
 }
 
-export function saveProjectIdeMemory(projectId: string, patch: ProjectIdeMemory): Promise<void> {
+export function saveProjectIdeMemory(
+  projectId: string,
+  patch: ProjectIdeMemory,
+  workspaceId?: string,
+): Promise<void> {
   installLifecycleFlushListenersOnce();
 
-  const existing = memoryCache.get(projectId) ?? {};
+  const id = scopeKey(projectId, workspaceId);
+  scopeEndpoints.set(id, scopeEndpoint(projectId, workspaceId));
+
+  const existing = memoryCache.get(id) ?? {};
   const next = mergeProjectIdeMemory(existing, patch);
   const dirty = memoryForServerSave(next, patch);
-  memoryCache.set(projectId, next);
-  writeLocalProjectIdeMemory(projectId, next);
-  pendingDirty.set(projectId, dirty);
+  memoryCache.set(id, next);
+  writeLocalProjectIdeMemory(id, next);
+  pendingDirty.set(id, dirty);
 
   /*
    * If the debounce window is 0 (tests / shutdown override), preserve the
@@ -602,18 +665,18 @@ export function saveProjectIdeMemory(projectId: string, patch: ProjectIdeMemory)
    * `await`-ing the save still observe the network result.
    */
   if (saveDebounceMs <= 0) {
-    const previous = pendingSaves.get(projectId) ?? Promise.resolve();
-    const save = previous.catch(() => undefined).then(() => persistWithRetry(projectId));
-    pendingSaves.set(projectId, save);
+    const previous = pendingSaves.get(id) ?? Promise.resolve();
+    const save = previous.catch(() => undefined).then(() => persistWithRetry(id));
+    pendingSaves.set(id, save);
 
     return save;
   }
 
-  const existingEntry = pendingDebouncedSaves.get(projectId);
+  const existingEntry = pendingDebouncedSaves.get(id);
 
   if (existingEntry) {
     clearTimeout(existingEntry.timer);
-    existingEntry.timer = setTimeout(() => runDebouncedSave(projectId), saveDebounceMs);
+    existingEntry.timer = setTimeout(() => runDebouncedSave(id), saveDebounceMs);
 
     return existingEntry.promise;
   }
@@ -627,28 +690,28 @@ export function saveProjectIdeMemory(projectId: string, patch: ProjectIdeMemory)
   });
 
   const entry: DebouncedSaveEntry = {
-    timer: setTimeout(() => runDebouncedSave(projectId), saveDebounceMs),
+    timer: setTimeout(() => runDebouncedSave(id), saveDebounceMs),
     promise,
     resolve: resolveFn,
     reject: rejectFn,
   };
-  pendingDebouncedSaves.set(projectId, entry);
+  pendingDebouncedSaves.set(id, entry);
 
   return promise;
 }
 
-function runDebouncedSave(projectId: string) {
-  const entry = pendingDebouncedSaves.get(projectId);
+function runDebouncedSave(scope: string) {
+  const entry = pendingDebouncedSaves.get(scope);
 
   if (!entry) {
     return;
   }
 
-  pendingDebouncedSaves.delete(projectId);
+  pendingDebouncedSaves.delete(scope);
 
-  const previous = pendingSaves.get(projectId) ?? Promise.resolve();
-  const save = previous.catch(() => undefined).then(() => persistWithRetry(projectId));
-  pendingSaves.set(projectId, save);
+  const previous = pendingSaves.get(scope) ?? Promise.resolve();
+  const save = previous.catch(() => undefined).then(() => persistWithRetry(scope));
+  pendingSaves.set(scope, save);
 
   save.then(
     () => entry.resolve(),
@@ -661,8 +724,8 @@ function runDebouncedSave(projectId: string) {
  * once every flushed PUT has settled. Use this from beforeunload handlers and
  * tests where the 5 s debounce window would otherwise discard data.
  */
-export async function flushProjectIdeMemorySaves(projectId?: string): Promise<void> {
-  const ids = projectId ? [projectId] : Array.from(pendingDebouncedSaves.keys());
+export async function flushProjectIdeMemorySaves(projectId?: string, workspaceId?: string): Promise<void> {
+  const ids = projectId ? [scopeKey(projectId, workspaceId)] : Array.from(pendingDebouncedSaves.keys());
 
   const promises: Promise<void>[] = [];
 
@@ -681,11 +744,22 @@ export async function flushProjectIdeMemorySaves(projectId?: string): Promise<vo
   await Promise.allSettled(promises);
 }
 
-async function persistWithRetry(projectId: string): Promise<void> {
+async function persistWithRetry(scope: string): Promise<void> {
   let lastError: unknown;
 
+  /*
+   * scopeEndpoints is populated by every save/get call before we end up here.
+   * If a flush is somehow triggered for a scope we never registered we fall
+   * back to the legacy project endpoint so we don't drop the write entirely.
+   */
+  const endpoint =
+    scopeEndpoints.get(scope) ??
+    (scope.startsWith('workspace:')
+      ? `/api/workspaces/${encodeURIComponent(scope.slice('workspace:'.length))}/ide-state`
+      : `/api/projects/${encodeURIComponent(scope)}/ide-state`);
+
   for (let attempt = 0; attempt <= SAVE_RETRY_DELAYS_MS.length; attempt += 1) {
-    const dirty = pendingDirty.get(projectId) ?? memoryCache.get(projectId);
+    const dirty = pendingDirty.get(scope) ?? memoryCache.get(scope);
 
     if (!dirty) {
       return;
@@ -703,14 +777,14 @@ async function persistWithRetry(projectId: string): Promise<void> {
       'content-type': 'application/json',
     };
 
-    const knownVersion = versionByProject.get(projectId);
+    const knownVersion = versionByProject.get(scope);
 
     if (typeof knownVersion === 'number') {
       headers['if-match'] = `"${knownVersion}"`;
     }
 
     try {
-      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-state`, {
+      const response = await fetch(endpoint, {
         method: 'PUT',
         credentials: 'include',
         headers,
@@ -736,9 +810,9 @@ async function persistWithRetry(projectId: string): Promise<void> {
         const serverVersion = parseEtagHeader(readResponseHeader(response, 'etag')) ?? serverEnvelope.ideState?.version;
 
         if (typeof serverVersion === 'number' && Number.isFinite(serverVersion)) {
-          versionByProject.set(projectId, serverVersion);
+          versionByProject.set(scope, serverVersion);
         } else {
-          versionByProject.delete(projectId);
+          versionByProject.delete(scope);
         }
 
         const serverMemory = serverEnvelope.ideState?.state;
@@ -753,10 +827,10 @@ async function persistWithRetry(projectId: string): Promise<void> {
            * toggle isn't lost when we save a panel resize, for example).
            */
           const merged = mergeProjectIdeMemory(serverMemory, dirty);
-          memoryCache.set(projectId, merged);
-          pendingDirty.set(projectId, merged);
-          writeLocalProjectIdeMemory(projectId, merged);
-          notifyCrossTabListeners(projectId, merged);
+          memoryCache.set(scope, merged);
+          pendingDirty.set(scope, merged);
+          writeLocalProjectIdeMemory(scope, merged);
+          notifyCrossTabListeners(scope, merged);
         }
 
         const conflictError = new Error('IDE state was modified by another session');
@@ -779,22 +853,22 @@ async function persistWithRetry(projectId: string): Promise<void> {
         const newVersion = parseEtagHeader(readResponseHeader(response, 'etag'));
 
         if (typeof newVersion === 'number') {
-          versionByProject.set(projectId, newVersion);
+          versionByProject.set(scope, newVersion);
         } else {
           try {
             const payload = (await response.clone().json()) as IdeStateEnvelope;
             const payloadVersion = payload.ideState?.version;
 
             if (typeof payloadVersion === 'number' && Number.isFinite(payloadVersion)) {
-              versionByProject.set(projectId, payloadVersion);
+              versionByProject.set(scope, payloadVersion);
             }
           } catch {
             // ignore — version stays as-is; next GET will reseed it.
           }
         }
 
-        if (pendingDirty.get(projectId) === dirty) {
-          pendingDirty.delete(projectId);
+        if (pendingDirty.get(scope) === dirty) {
+          pendingDirty.delete(scope);
         }
 
         return;

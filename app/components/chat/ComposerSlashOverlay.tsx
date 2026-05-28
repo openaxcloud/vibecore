@@ -21,6 +21,7 @@ import { memo, useCallback, useEffect, useMemo, useState, type RefObject } from 
 import { SlashCommandsPalette } from './SlashCommandsPalette';
 import { parseSlashInput, type SlashCommand, type SlashCommandContext } from '~/lib/chat/slash-commands';
 import { recordSlashCommand } from '~/lib/persistence/projectIdeMemory';
+import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
 
 export interface ComposerSlashOverlayProps {
   textareaRef: RefObject<HTMLTextAreaElement>;
@@ -66,6 +67,7 @@ export function detectSlashTrigger(input: string): ActiveTrigger | null {
 export const ComposerSlashOverlay = memo(
   ({ textareaRef, input, handleInputChange, context, recentSlashCommandIds, projectId }: ComposerSlashOverlayProps) => {
     const trigger = useMemo(() => detectSlashTrigger(input), [input]);
+    const currentWorkspaceId = useCurrentWorkspaceId();
 
     const [focused, setFocused] = useState(false);
 
@@ -127,7 +129,7 @@ export const ComposerSlashOverlay = memo(
         const resolvedContext: SlashCommandContext = { ...(context ?? {}), argument };
 
         if (projectId) {
-          void recordSlashCommand(projectId, command.id);
+          void recordSlashCommand(projectId, command.id, currentWorkspaceId);
         }
 
         try {
@@ -141,7 +143,7 @@ export const ComposerSlashOverlay = memo(
           });
         }
       },
-      [clearInput, context, projectId, textareaRef, trigger],
+      [clearInput, context, projectId, currentWorkspaceId, textareaRef, trigger],
     );
 
     const handleDismiss = useCallback(() => {

@@ -1,5 +1,5 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useLoaderData, useNavigation } from '@remix-run/react';
+import { Form, useLoaderData, useNavigation, useSearchParams } from '@remix-run/react';
 import {
   Ban,
   CheckCircle2,
@@ -61,6 +61,16 @@ export const action = (args: EnterpriseActionArgs) =>
   projectAction(args, {
     default: async ({ request, projectId, body }) => {
       const envVars = parseEnvVars(body.envVars ?? '');
+
+      /*
+       * Workspace isolation — the deploy POST handler in services/api scopes
+       * the build sandbox and Deployment row to `body.workspaceId` when it's
+       * present. Read from the hidden input first, then fall back to the URL
+       * query so `?workspace=ws-…` deep-links also deploy the right workspace.
+       */
+      const queryWorkspaceId = new URL(request.url).searchParams.get('workspace') ?? undefined;
+      const workspaceId = body.workspaceId || queryWorkspaceId || undefined;
+
       await apiRequest(request, `/projects/${projectId}/deployments`, {
         method: 'POST',
         body: JSON.stringify({
@@ -80,10 +90,13 @@ export const action = (args: EnterpriseActionArgs) =>
           githubIntegration: body.repositoryUrl
             ? { repositoryUrl: body.repositoryUrl, branch: body.branch || undefined }
             : undefined,
+          workspaceId,
         }),
       });
 
-      return redirect(`/projects/${projectId}/deployments`);
+      const redirectQuery = workspaceId ? `?workspace=${encodeURIComponent(workspaceId)}` : '';
+
+      return redirect(`/projects/${projectId}/deployments${redirectQuery}`);
     },
     cancel: async ({ request, projectId, body }) => {
       await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/cancel`, { method: 'POST' });
@@ -104,6 +117,15 @@ export default function ProjectDeploymentsPage() {
   const navigation = useNavigation();
   const busy = navigation.state !== 'idle';
   const latest = data.deployments[0];
+
+  /*
+   * Carry the active workspace id from the IDE shell (e.g. `?workspace=ws-1`)
+   * into the form so the API scopes the build sandbox and Deployment row to
+   * the right workspace. Legacy projects without workspaces submit no value
+   * and continue to deploy from the project root.
+   */
+  const [searchParams] = useSearchParams();
+  const workspaceId = searchParams.get('workspace') ?? '';
 
   return (
     <ProjectShell
@@ -157,6 +179,7 @@ export default function ProjectDeploymentsPage() {
           method="post"
           className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md"
         >
+          <input type="hidden" name="workspaceId" value={workspaceId} />
           <div>
             <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Deployment wizard</h2>
             <p className="text-xs text-bolt-elements-textSecondary">

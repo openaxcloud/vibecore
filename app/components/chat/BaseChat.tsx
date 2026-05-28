@@ -106,6 +106,7 @@ import {
   type ProjectIdeMemory,
 } from '~/lib/persistence/projectIdeMemory';
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
+import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
 import { useSearchParams } from '@remix-run/react';
 import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
 import {
@@ -113,6 +114,7 @@ import {
   formatProjectPanelUpdatedLabel,
   projectPanelRefreshIntervalMs,
 } from '~/utils/project-panel-refresh';
+import { countHiddenMobileBottomTabs, selectVisibleMobileBottomTabs } from '~/lib/mobile-bottom-tabs';
 import {
   applyKeybindingOverrides,
   defaultProjectKeybindings,
@@ -2212,6 +2214,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const layout = useResponsiveLayout();
 
     /*
+     * Workspace isolation — when the IDE is scoped to a specific workspace
+     * route IDE state through `/api/workspaces/:id/ide-state` so two open
+     * workspaces in the same project keep distinct editor layouts, open
+     * conversations, palette MRU, etc. Falls back to the project endpoint
+     * for legacy projects that don't have a workspace assigned yet.
+     */
+    const currentWorkspaceId = useCurrentWorkspaceId();
+
+    /*
      * Header presence — subscribe to the project collaboration channel
      * at the root so PresenceAvatars in the agent header stays live
      * regardless of which sidebar panel is active. (The collaborators
@@ -2241,7 +2252,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       let cancelled = false;
 
-      getProjectIdeMemory(projectId)
+      getProjectIdeMemory(projectId, currentWorkspaceId)
         .then((value) => {
           if (!cancelled) {
             setPaletteMemory(value);
@@ -2249,17 +2260,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         })
         .catch(() => undefined);
 
-      const unsubscribe = subscribeProjectIdeMemory(projectId, (next) => {
-        if (!cancelled) {
-          setPaletteMemory(next);
-        }
-      });
+      const unsubscribe = subscribeProjectIdeMemory(
+        projectId,
+        (next) => {
+          if (!cancelled) {
+            setPaletteMemory(next);
+          }
+        },
+        currentWorkspaceId,
+      );
 
       return () => {
         cancelled = true;
         unsubscribe();
       };
-    }, [projectId, projectIdeMode]);
+    }, [projectId, projectIdeMode, currentWorkspaceId]);
 
     const recentMentionedFilePaths = paletteMemory?.ui?.recentMentionedFilePaths;
     const recentSlashCommandIds = paletteMemory?.ui?.recentSlashCommandIds;
@@ -3350,6 +3365,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       let cancelled = false;
 
       const safeProjectId = projectId;
+      const safeWorkspaceId = currentWorkspaceId;
 
       async function loadProjectHistory() {
         try {
@@ -3357,7 +3373,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             fetch(`/api/projects/${safeProjectId}/ide-panel/snapshots`, {
               headers: { accept: 'application/json' },
             }),
-            getProjectIdeMemory(safeProjectId).catch(() => undefined),
+            getProjectIdeMemory(safeProjectId, safeWorkspaceId).catch(() => undefined),
           ]);
           const payload = (response.ok ? await response.json() : {}) as {
             data?: { snapshots?: ProjectSnapshot[] };
@@ -3383,7 +3399,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       return () => {
         cancelled = true;
       };
-    }, [projectIdeMode, projectId]);
+    }, [projectIdeMode, projectId, currentWorkspaceId]);
 
     useEffect(() => {
       if (!projectIdeMode || !projectId || restoredProjectId.current === projectId) {
@@ -3393,7 +3409,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       let cancelled = false;
       restoredProjectId.current = projectId;
 
-      getProjectIdeMemory(projectId)
+      getProjectIdeMemory(projectId, currentWorkspaceId)
         .then((memory) => {
           if (cancelled) {
             return;
@@ -3527,7 +3543,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       return () => {
         cancelled = true;
       };
-    }, [activeProjectPanel, projectFiles, projectIdeMode, projectId]);
+    }, [activeProjectPanel, projectFiles, projectIdeMode, projectId, currentWorkspaceId]);
 
     useEffect(() => {
       const pendingSelectedFile = pendingProjectSelectedFile.current;
@@ -3791,31 +3807,35 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       const saveTimer = window.setTimeout(() => {
-        saveProjectIdeMemory(projectId, {
-          ui: {
-            selectedFile,
-            currentView,
-            rightPanelOpen,
-            rightPanelMode,
-            rightPanelWidth,
-            workspaceTabs,
-            activeWorkspacePanel,
-            paneTree,
-            activePaneId,
-            agentWidth,
-            terminalBottomOpen,
-            terminalBottomHeight,
-            cursorPositions,
-            scrollPositions,
-            recentTabIds,
-            closedTabs,
-            mobilePanel,
-            editorMinimapEnabled,
-            lockedItems: backendLockedItems,
-            deletedPaths: backendDeletedPaths,
-            showWorkbench: true,
+        saveProjectIdeMemory(
+          projectId,
+          {
+            ui: {
+              selectedFile,
+              currentView,
+              rightPanelOpen,
+              rightPanelMode,
+              rightPanelWidth,
+              workspaceTabs,
+              activeWorkspacePanel,
+              paneTree,
+              activePaneId,
+              agentWidth,
+              terminalBottomOpen,
+              terminalBottomHeight,
+              cursorPositions,
+              scrollPositions,
+              recentTabIds,
+              closedTabs,
+              mobilePanel,
+              editorMinimapEnabled,
+              lockedItems: backendLockedItems,
+              deletedPaths: backendDeletedPaths,
+              showWorkbench: true,
+            },
           },
-        }).catch((error) => {
+          currentWorkspaceId,
+        ).catch((error) => {
           console.error('Failed to persist project IDE state', error);
         });
       }, 1000);
@@ -3824,6 +3844,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [
       projectIdeMode,
       projectId,
+      currentWorkspaceId,
       projectStateReady,
       selectedFile,
       currentView,
@@ -4835,14 +4856,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setConversationHistoryOpen(false);
 
         if (projectId && checkpoint.conversationId !== `project:${projectId}`) {
-          await saveProjectIdeMemory(projectId, {
-            chat: {
-              id: `project:${projectId}`,
-              description: checkpoint.conversationTitle,
-              messages: checkpoint.messages,
-              archivedMessages: [],
+          await saveProjectIdeMemory(
+            projectId,
+            {
+              chat: {
+                id: `project:${projectId}`,
+                description: checkpoint.conversationTitle,
+                messages: checkpoint.messages,
+                archivedMessages: [],
+              },
             },
-          }).catch((error) => console.error('Failed to load archived project conversation', error));
+            currentWorkspaceId,
+          ).catch((error) => console.error('Failed to load archived project conversation', error));
           window.location.hash = checkpoint.messageId ? `chat-message-${checkpoint.messageId}` : '';
           window.location.reload();
 
@@ -4887,7 +4912,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         window.requestAnimationFrame(tryFocus);
       },
-      [projectId],
+      [projectId, currentWorkspaceId],
     );
 
     const openCheckpointChanges = useCallback(
@@ -4923,14 +4948,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           });
         }
 
-        await saveProjectIdeMemory(projectId, {
-          chat: {
-            id: `project:${projectId}`,
-            description: rollbackTarget.title,
-            messages: rollbackTarget.messages,
-            archivedMessages: [],
+        await saveProjectIdeMemory(
+          projectId,
+          {
+            chat: {
+              id: `project:${projectId}`,
+              description: rollbackTarget.title,
+              messages: rollbackTarget.messages,
+              archivedMessages: [],
+            },
           },
-        });
+          currentWorkspaceId,
+        );
 
         window.location.reload();
       } catch (error) {
@@ -4938,7 +4967,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       } finally {
         setRollbackBusy(false);
       }
-    }, [projectId, rollbackDatabase, rollbackTarget]);
+    }, [projectId, currentWorkspaceId, rollbackDatabase, rollbackTarget]);
 
     const headerPresence = useMemo(
       () => dedupeCollaborationPresence(headerCollaboration.snapshot?.presence ?? []),
@@ -6554,6 +6583,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }),
       [],
     );
+    const mobileBottomTabs = useMemo(
+      () => selectVisibleMobileBottomTabs(mobileOpenTabs, activeMobileOpenTabId, 3),
+      [activeMobileOpenTabId, mobileOpenTabs],
+    );
+    const hiddenMobileBottomTabCount = useMemo(
+      () => countHiddenMobileBottomTabs(mobileOpenTabs, mobileBottomTabs),
+      [mobileBottomTabs, mobileOpenTabs],
+    );
 
     const showMobileChrome = useMobileIde && clientHydrated;
 
@@ -6847,7 +6884,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <span className="i-ph:squares-four" aria-hidden />
                 </button>
                 <span className="bolt-mobile-replit-divider" aria-hidden />
-                {mobileOpenTabs.slice(0, 3).map((tab) => {
+                {mobileBottomTabs.map((tab) => {
                   const isActive = activeMobileOpenTabId === tab.id;
 
                   return (
@@ -6867,15 +6904,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     </button>
                   );
                 })}
-                {mobileOpenTabs.length > 3 ? (
+                {hiddenMobileBottomTabCount > 0 ? (
                   <button
                     type="button"
                     className="bolt-mobile-replit-icon-tab bolt-mobile-replit-more-tabs"
-                    aria-label={`Show ${mobileOpenTabs.length - 3} more tabs`}
+                    aria-label={`Show ${hiddenMobileBottomTabCount} more tabs`}
                     data-testid="button-more-tabs"
                     onClick={openMobileTabSwitcher}
                   >
-                    +{mobileOpenTabs.length - 3}
+                    +{hiddenMobileBottomTabCount}
                   </button>
                 ) : null}
                 <span className="bolt-mobile-replit-divider bolt-mobile-replit-divider--add" aria-hidden />
@@ -7915,7 +7952,7 @@ function ProjectBottomTerminal({
   ] as const;
 
   return (
-    <section className="bolt-project-bottom-terminal" aria-label={`Pinned ${SHELL_TERMINAL_LABEL}`}>
+    <section className="bolt-project-bottom-terminal" aria-label="Pinned terminal">
       <div className="bolt-project-bottom-terminal-tabs">
         <div className="bolt-project-bottom-terminal-tabs-left" aria-label="Pinned terminal views">
           {terminalTabs.map(([id, label, icon]) => (
@@ -8112,7 +8149,7 @@ function ProjectInteractiveTerminalPanel({ projectId }: { projectId?: string }) 
   const [toolsOpen, setToolsOpen] = useState(false);
 
   return (
-    <section className="bolt-project-terminal-direct-panel" aria-label={`Interactive ${SHELL_TERMINAL_LABEL}`}>
+    <section className="bolt-project-terminal-direct-panel" aria-label="Interactive terminal">
       <div className="bolt-project-terminal-direct-shell">
         <ClientOnly fallback={<TerminalTabsFallback />}>
           {() => (

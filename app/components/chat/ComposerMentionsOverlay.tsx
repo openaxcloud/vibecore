@@ -18,6 +18,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type RefObject
 import { FileMentionsPalette } from './FileMentionsPalette';
 import type { FileMentionCandidate } from '~/lib/hooks/useFileMentions';
 import { recordMentionedFile } from '~/lib/persistence/projectIdeMemory';
+import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
 
 export interface ComposerMentionsOverlayProps {
   textareaRef: RefObject<HTMLTextAreaElement>;
@@ -89,6 +90,7 @@ export function detectMentionTrigger(input: string, caret: number): ActiveTrigge
 export const ComposerMentionsOverlay = memo(
   ({ textareaRef, input, handleInputChange, recentMentionedFilePaths, projectId }: ComposerMentionsOverlayProps) => {
     const [caret, setCaret] = useState<number>(0);
+    const currentWorkspaceId = useCurrentWorkspaceId();
 
     /*
      * Track the textarea caret position via selectionchange polling. We
@@ -137,7 +139,7 @@ export const ComposerMentionsOverlay = memo(
 
         if (projectId) {
           // Fire-and-forget MRU record — the debounced save layer batches.
-          void recordMentionedFile(projectId, candidate.displayPath);
+          void recordMentionedFile(projectId, candidate.displayPath, currentWorkspaceId);
         }
 
         const before = input.slice(0, active.start);
@@ -165,7 +167,7 @@ export const ComposerMentionsOverlay = memo(
           setCaret(nextCaret);
         });
       },
-      [handleInputChange, input, projectId, textareaRef, trigger],
+      [handleInputChange, input, projectId, currentWorkspaceId, textareaRef, trigger],
     );
 
     const handleDismiss = useCallback(() => {
