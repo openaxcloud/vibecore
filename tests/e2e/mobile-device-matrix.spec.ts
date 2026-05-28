@@ -353,8 +353,17 @@ async function assertCompactShellForProfile(
     expect(layout.overflowX, `${profile.name} horizontal overflow`).toBe(false);
     expect(layout.overlaps, `${profile.name} status/nav overlap`).toBe(false);
 
-    await expect(page.getByTestId('mobile-bottom-navigation').getByTestId('button-more')).toHaveCount(0);
-    await expect(page.getByTestId('mobile-ide-header').getByTestId('button-more')).toHaveCount(0);
+    await expect(page.getByTestId('mobile-bottom-navigation').getByTestId('button-more')).toBeVisible();
+    await expect(page.getByTestId('mobile-ide-header').getByTestId('button-more')).toBeVisible();
+    await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
+
+    await page.getByTestId('mobile-bottom-navigation').getByTestId('button-more').click({ force: true });
+    await expect(page.getByTestId('mobile-more-menu-sheet'), `${profile.name} more menu`).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Deployments');
+    await expect(page.getByTestId('mobile-more-menu-settings')).toContainText('Settings');
+    await page.getByTestId('mobile-more-menu-close').click({ force: true });
     await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
 
     const toolsSheet = await openMobileToolsSheet(page, profile.name);

@@ -348,7 +348,13 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-agent')).toContainText('AI Agent');
     await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-deployments')).toContainText('Deployments');
     await expect(mobileNav.getByTestId('button-add-tab')).toBeVisible();
-    await expect(mobileNav.getByTestId('button-more')).toHaveCount(0);
+    await expect(mobileNav.getByTestId('button-more')).toBeVisible();
+    await mobileNav.getByTestId('button-more').click();
+    await expect(page.getByTestId('mobile-more-menu-sheet')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('mobile-more-menu-database')).toContainText('Database');
+    await expect(page.getByTestId('mobile-more-menu-settings')).toContainText('Settings');
+    await page.getByTestId('mobile-more-menu-close').click();
+    await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
   });
 
   test('tablet exposes named tab navigation and one tools entry point', async ({ page }, testInfo) => {
@@ -366,7 +372,7 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-agent')).toContainText('AI Agent');
     await expect(page.getByTestId('mobile-open-tabs').getByTestId('tab-deployments')).toContainText('Deployments');
     await expect(mobileNav.getByTestId('button-add-tab')).toBeVisible();
-    await expect(mobileNav.getByTestId('button-more')).toHaveCount(0);
+    await expect(mobileNav.getByTestId('button-more')).toBeVisible();
 
     const toolsSheet = await openMobileToolsSheet(page);
     await expect(toolsSheet).toBeVisible({ timeout: 15_000 });
@@ -374,6 +380,14 @@ test.describe('responsive IDE shell', () => {
     await expect(toolsSheet.getByTestId('tool-item-object-storage')).toContainText('Object Storage');
     await expect(toolsSheet.getByTestId('tool-item-commands')).toContainText('Commands');
     await expect(toolsSheet.getByTestId('tool-item-share')).toContainText('Share');
+    await page.keyboard.press('Escape');
+    await expect(toolsSheet).toBeHidden({ timeout: 10_000 });
+
+    await mobileNav.getByTestId('button-more').click();
+    await expect(page.getByTestId('mobile-more-menu-sheet')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Deployments');
+    await expect(page.getByTestId('mobile-more-menu-object-storage')).toContainText('Object Storage');
+    await page.keyboard.press('Escape');
     await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
 
     const overflowX = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
@@ -477,7 +491,66 @@ createServer((request, response) => {
     await expect(loadingOverlay).toHaveCount(0, { timeout: 15_000 });
   });
 
-  test('mobile restores the last active IDE panel from local persistence', async ({ page, isMobile }) => {
+  test('mobile and tablet menus follow dark and light theme tokens', async ({ page }, testInfo) => {
+    test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
+    test.setTimeout(120_000);
+
+    const projectId = await createTestProject(page, 'Responsive compact theme menu project');
+
+    for (const theme of ['light', 'dark'] as const) {
+      await page.addInitScript((nextTheme) => {
+        window.localStorage.setItem('bolt_theme', nextTheme);
+      }, theme);
+      await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'chat', {
+        timeout: 15_000,
+      });
+
+      const toolsSheet = await openMobileToolsSheet(page);
+      const toolsTheme = await toolsSheet.evaluate((element) => {
+        const root = document.documentElement;
+        const styles = getComputedStyle(element);
+
+        return {
+          rootTheme: root.getAttribute('data-theme'),
+          background: styles.backgroundColor,
+          color: styles.color,
+          overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+        };
+      });
+
+      expect(toolsTheme.rootTheme).toBe(theme);
+      expect(toolsTheme.overflowX).toBe(false);
+      expect(toolsTheme.background).not.toBe('rgba(0, 0, 0, 0)');
+      expect(toolsTheme.color).not.toBe('rgba(0, 0, 0, 0)');
+      await page.keyboard.press('Escape');
+      await expect(toolsSheet).toBeHidden({ timeout: 10_000 });
+
+      await page.getByTestId('mobile-bottom-navigation').getByTestId('button-more').click();
+      const moreMenu = page.getByTestId('mobile-more-menu-sheet');
+      await expect(moreMenu).toBeVisible({ timeout: 10_000 });
+
+      const moreTheme = await moreMenu.evaluate((element) => {
+        const styles = getComputedStyle(element);
+
+        return {
+          rootTheme: document.documentElement.getAttribute('data-theme'),
+          background: styles.backgroundColor,
+          color: styles.color,
+          overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+        };
+      });
+
+      expect(moreTheme.rootTheme).toBe(theme);
+      expect(moreTheme.overflowX).toBe(false);
+      expect(moreTheme.background).not.toBe('rgba(0, 0, 0, 0)');
+      expect(moreTheme.color).not.toBe('rgba(0, 0, 0, 0)');
+      await page.keyboard.press('Escape');
+      await expect(moreMenu).toHaveCount(0);
+    }
+  });
+
+  test('mobile opens the agent by default and uses panel URLs for restore', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile-only assertion');
 
     const projectId = await createTestProject(page, 'Responsive mobile persistence project');
@@ -486,13 +559,25 @@ createServer((request, response) => {
 
     const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
     await expect(mobileNav).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'chat', {
+      timeout: 15000,
+    });
+    await expect(page.getByTestId('mobile-ide-header')).toContainText('AI Agent');
+
     await page.getByTestId('tab-preview').tap();
     await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'preview');
+    await expect(page).toHaveURL(/panel=preview/, { timeout: 15_000 });
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'preview', {
       timeout: 15000,
     });
+
+    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'chat', {
+      timeout: 15000,
+    });
+    await expect(page.getByTestId('mobile-ide-header')).toContainText('AI Agent');
   });
 
   test('mobile can deep-link to real IDE service panels', async ({ page, isMobile }) => {
@@ -734,8 +819,15 @@ createServer((request, response) => {
     await page.goto(`/projects/${projectId}/ide?panel=preview`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 45_000 });
 
-    await expect(page.getByTestId('mobile-bottom-navigation').getByTestId('button-more')).toHaveCount(0);
-    await expect(page.getByTestId('mobile-ide-header').getByTestId('button-more')).toHaveCount(0);
+    await expect(page.getByTestId('mobile-bottom-navigation').getByTestId('button-more')).toBeVisible();
+    await expect(page.getByTestId('mobile-ide-header').getByTestId('button-more')).toBeVisible();
+    await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
+
+    await page.getByTestId('mobile-bottom-navigation').getByTestId('button-more').click();
+    await expect(page.getByTestId('mobile-more-menu-sheet')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Deployments');
+    await expect(page.getByTestId('mobile-more-menu-settings')).toContainText('Settings');
+    await page.keyboard.press('Escape');
     await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
 
     const toolsSheet = await openMobileToolsSheet(page);

@@ -1,0 +1,350 @@
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { toast } from 'react-toastify';
+import { useConnectorPopup } from '~/lib/chat/use-connector-popup';
+import { classNames } from '~/utils/classNames';
+
+type OAuthProviderId = 'github' | 'gitlab' | 'bitbucket';
+type ProviderCardId = OAuthProviderId | 'custom';
+
+type ProviderCard = {
+  id: ProviderCardId;
+  label: string;
+  icon: string;
+  description: string;
+  action: string;
+  remotePlaceholder: string;
+};
+
+const PROVIDERS: ProviderCard[] = [
+  {
+    id: 'github',
+    label: 'GitHub',
+    icon: 'i-ph:github-logo',
+    description: 'Authorize E-Code to use your GitHub repositories from this workspace.',
+    action: 'Connect GitHub',
+    remotePlaceholder: 'https://github.com/acme/app.git',
+  },
+  {
+    id: 'gitlab',
+    label: 'GitLab',
+    icon: 'i-ph:gitlab-logo',
+    description: 'Start the GitLab OAuth flow without leaving the Git panel.',
+    action: 'Connect GitLab',
+    remotePlaceholder: 'https://gitlab.com/acme/app.git',
+  },
+  {
+    id: 'bitbucket',
+    label: 'Bitbucket',
+    icon: 'i-ph:git-branch',
+    description: 'Connect a Bitbucket account for hosted Git workflows.',
+    action: 'Connect Bitbucket',
+    remotePlaceholder: 'https://bitbucket.org/acme/app.git',
+  },
+  {
+    id: 'custom',
+    label: 'Custom Remote',
+    icon: 'i-ph:link-simple',
+    description: 'Add any HTTPS or SSH Git origin that this workspace can access.',
+    action: 'Add remote URL',
+    remotePlaceholder: 'git@example.com:acme/app.git',
+  },
+];
+
+export interface GitProviderConnectPanelProps {
+  projectId: string;
+  gitRepositoryUrl?: string | null;
+  defaultBranch?: string | null;
+  workspaceId?: string;
+  busy?: boolean;
+  onConnected?: () => void | Promise<void>;
+  onRemoteConfigured?: () => void | Promise<void>;
+}
+
+function providerLabel(provider: string) {
+  return PROVIDERS.find((item) => item.id === provider)?.label ?? provider;
+}
+
+export function GitProviderConnectPanel({
+  projectId,
+  gitRepositoryUrl,
+  defaultBranch,
+  workspaceId,
+  busy = false,
+  onConnected,
+  onRemoteConfigured,
+}: GitProviderConnectPanelProps) {
+  const { state, launch, reset } = useConnectorPopup();
+  const [pendingProvider, setPendingProvider] = useState<OAuthProviderId | null>(null);
+  const [networkError, setNetworkError] = useState<string | null>(null);
+  const [remoteProvider, setRemoteProvider] = useState<ProviderCardId | null>(null);
+  const [remoteUrl, setRemoteUrl] = useState(gitRepositoryUrl ?? '');
+  const [branch, setBranch] = useState(defaultBranch ?? 'main');
+  const [configuringRemote, setConfiguringRemote] = useState(false);
+  const [remoteError, setRemoteError] = useState<string | null>(null);
+  const handledConnectionRef = useRef<string | null>(null);
+
+  const activeRemoteProvider = useMemo(
+    () => PROVIDERS.find((provider) => provider.id === remoteProvider) ?? PROVIDERS[0],
+    [remoteProvider],
+  );
+
+  useEffect(() => {
+    if (!remoteProvider) {
+      setRemoteUrl(gitRepositoryUrl ?? '');
+    }
+  }, [gitRepositoryUrl, remoteProvider]);
+
+  useEffect(() => {
+    if (state.phase !== 'succeeded') {
+      return;
+    }
+
+    const connectionKey = `${state.result.provider}:${state.result.userConnectionId}`;
+
+    if (handledConnectionRef.current === connectionKey) {
+      return;
+    }
+
+    handledConnectionRef.current = connectionKey;
+
+    const label = providerLabel(state.result.provider);
+    toast.success(`${label} connected as ${state.result.accountLabel}`);
+    setPendingProvider(null);
+    setNetworkError(null);
+    void onConnected?.();
+  }, [onConnected, state]);
+
+  useEffect(() => {
+    if (state.phase !== 'failed') {
+      return;
+    }
+
+    setPendingProvider(null);
+    setNetworkError(state.result.errorMessage ?? `${providerLabel(state.result.provider)} connection failed.`);
+  }, [state]);
+
+  const startOAuth = useCallback(
+    async (provider: OAuthProviderId) => {
+      setNetworkError(null);
+      setPendingProvider(provider);
+      handledConnectionRef.current = null;
+      reset();
+
+      try {
+        const response = await fetch(`/api/integrations/oauth/${provider}/connect`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ projectId }),
+        });
+
+        if (!response.ok) {
+          const parsed = (await response.json().catch(() => ({}))) as { error?: string; code?: string };
+          throw new Error(parsed.error ?? `Failed to start ${providerLabel(provider)} OAuth (HTTP ${response.status})`);
+        }
+
+        const result = (await response.json()) as { provider: string; authorizationUrl: string };
+        launch({ authorizationUrl: result.authorizationUrl, provider: result.provider });
+      } catch (error) {
+        setPendingProvider(null);
+        setNetworkError(error instanceof Error ? error.message : 'Unable to start OAuth flow.');
+      }
+    },
+    [launch, projectId, reset],
+  );
+
+  const openRemoteDrawer = useCallback(
+    (provider: ProviderCardId) => {
+      setRemoteProvider(provider);
+      setRemoteError(null);
+      setBranch(defaultBranch ?? 'main');
+
+      if (gitRepositoryUrl) {
+        setRemoteUrl(gitRepositoryUrl);
+      } else {
+        setRemoteUrl('');
+      }
+    },
+    [defaultBranch, gitRepositoryUrl],
+  );
+
+  const configureRemote = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      setRemoteError(null);
+      setConfiguringRemote(true);
+
+      try {
+        const formData = new FormData();
+        formData.set('intent', 'configure-remote');
+        formData.set('remoteUrl', remoteUrl.trim());
+        formData.set('branch', branch.trim() || 'main');
+
+        if (workspaceId) {
+          formData.set('workspaceId', workspaceId);
+        }
+
+        const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-panel/git`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = (await response.json().catch(() => ({}))) as { error?: string };
+
+        if (!response.ok) {
+          throw new Error(result.error ?? `Failed to configure remote (HTTP ${response.status})`);
+        }
+
+        toast.success(`Git origin configured for ${branch.trim() || 'main'}`);
+        setRemoteProvider(null);
+        void onRemoteConfigured?.();
+      } catch (error) {
+        setRemoteError(error instanceof Error ? error.message : 'Unable to configure this Git remote.');
+      } finally {
+        setConfiguringRemote(false);
+      }
+    },
+    [branch, onRemoteConfigured, projectId, remoteUrl, workspaceId],
+  );
+
+  const isLaunching = state.phase === 'launching';
+  const succeeded = state.phase === 'succeeded' ? state.result : null;
+
+  return (
+    <div className="grid gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <strong className="block text-amber-700 dark:text-amber-200">No remote connected yet</strong>
+          <p className="mt-1 max-w-2xl text-amber-700/85 dark:text-amber-100/85">
+            Connect a source-control provider here, or add a Git origin directly to this workspace.
+          </p>
+        </div>
+        {gitRepositoryUrl ? (
+          <span className="max-w-full truncate rounded-md border border-amber-500/30 px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-200">
+            {gitRepositoryUrl}
+          </span>
+        ) : null}
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4" aria-label="Connect Git remote providers">
+        {PROVIDERS.map((provider) => {
+          const providerLaunching = isLaunching && pendingProvider === provider.id;
+          const providerSucceeded = succeeded?.provider === provider.id;
+          const isOAuthProvider = provider.id !== 'custom';
+
+          return (
+            <button
+              key={provider.id}
+              type="button"
+              className={classNames(
+                'group grid min-h-[132px] gap-2 rounded-md border border-amber-500/25 bg-bolt-elements-background-depth-1 p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus',
+                'hover:border-amber-500/50 hover:bg-bolt-elements-background-depth-2 disabled:cursor-not-allowed disabled:opacity-60',
+              )}
+              disabled={busy || providerLaunching || (isLaunching && isOAuthProvider)}
+              aria-label={`${provider.action} from Git panel`}
+              onClick={() => {
+                if (provider.id === 'custom') {
+                  openRemoteDrawer(provider.id);
+                } else {
+                  void startOAuth(provider.id);
+                }
+              }}
+            >
+              <span className="flex items-center justify-between gap-2">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className={classNames(provider.icon, 'h-4 w-4 text-bolt-elements-item-contentAccent')} />
+                  <span className="truncate text-xs font-semibold text-bolt-elements-textPrimary">
+                    {provider.label}
+                  </span>
+                </span>
+                {providerSucceeded ? (
+                  <span className="i-ph:check-circle-fill h-4 w-4 text-bolt-elements-icon-success" aria-hidden />
+                ) : null}
+              </span>
+              <span className="text-[11px] leading-4 text-bolt-elements-textSecondary">{provider.description}</span>
+              <span className="mt-auto inline-flex items-center gap-1 text-xs font-semibold text-bolt-elements-item-contentAccent">
+                {providerLaunching ? (
+                  <>
+                    <span className="i-ph:spinner-gap-bold h-3.5 w-3.5 animate-spin" aria-hidden />
+                    Waiting for OAuth...
+                  </>
+                ) : providerSucceeded ? (
+                  `Connected as ${succeeded.accountLabel}`
+                ) : (
+                  provider.action
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {networkError ? (
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500" role="alert">
+          {networkError}
+        </div>
+      ) : null}
+
+      {remoteProvider ? (
+        <div
+          className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
+          role="dialog"
+          aria-label={`Configure ${activeRemoteProvider.label} remote`}
+        >
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
+                Configure {activeRemoteProvider.label}
+              </h3>
+              <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+                This sets the workspace Git `origin` and stores the remote on the project.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
+              onClick={() => setRemoteProvider(null)}
+            >
+              Close
+            </button>
+          </div>
+          <form onSubmit={configureRemote} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_auto]">
+            <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
+              Remote URL
+              <input
+                className="h-9 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+                value={remoteUrl}
+                onChange={(event) => setRemoteUrl(event.currentTarget.value)}
+                placeholder={activeRemoteProvider.remotePlaceholder}
+                required
+              />
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
+              Default branch
+              <input
+                className="h-9 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+                value={branch}
+                onChange={(event) => setBranch(event.currentTarget.value)}
+                placeholder="main"
+                required
+              />
+            </label>
+            <div className="flex items-end">
+              <button
+                type="submit"
+                className="inline-flex h-9 w-full items-center justify-center rounded-md bg-bolt-elements-button-primary-background px-3 text-sm font-medium text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover disabled:opacity-60"
+                disabled={configuringRemote || busy}
+              >
+                {configuringRemote ? 'Saving...' : 'Save remote'}
+              </button>
+            </div>
+          </form>
+          {remoteError ? (
+            <p className="mt-2 rounded-md border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-500" role="alert">
+              {remoteError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}

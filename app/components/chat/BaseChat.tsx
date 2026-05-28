@@ -65,6 +65,7 @@ import { PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
 import { buildGitStatusMap } from '~/utils/fileExplorerMetadata';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
 import { GitBranchSyncControls } from '~/components/git/GitBranchSyncControls';
+import { GitProviderConnectPanel } from '~/components/git/GitProviderConnectPanel';
 import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
 import StarterTemplates from './StarterTemplates';
 import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
@@ -266,51 +267,6 @@ const IDE_URL_PANELS = [...IDE_WORKSPACE_PANELS, ...IDE_RIGHT_PANELS] as const;
 const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'search', 'locks', 'terminal', 'preview', 'deploy'] as const;
 
 const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deployments'] as const;
-
-const ECODE_MOBILE_COMPATIBLE_PANEL_TABS: Record<(typeof MOBILE_IDE_PANELS)[number], Set<string>> = {
-  chat: new Set(['agent', 'assistant', 'actions', 'tools']),
-  files: new Set(['files']),
-  editor: new Set(['editor']),
-  search: new Set(['search']),
-  locks: new Set(['locks']),
-  terminal: new Set(['terminal', 'console', 'shell']),
-  preview: new Set(['preview', 'web']),
-  deploy: new Set([
-    'deploy',
-    'deployments',
-    'publishing',
-    'object-storage',
-    'app-storage',
-    'auth',
-    'database',
-    'debugger',
-    'debug',
-    'developer',
-    'git',
-    'activity',
-    'history',
-    'integrations',
-    'collaborators',
-    'collaboration',
-    'collaborate',
-    'multiplayer',
-    'packages',
-    'secrets',
-    'settings',
-    'workflows',
-    'snapshots',
-    'checkpoints',
-    'extensions',
-    'security',
-    'env',
-    'logs',
-    'monitoring',
-    'domains',
-    'overview',
-    'kv-store',
-    'storage',
-  ]),
-};
 
 const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: string }> = {
   preview: { id: 'preview', name: 'Webview', icon: 'i-ph:monitor' },
@@ -578,6 +534,34 @@ const ECODE_MOBILE_TOOLS = [
     icon: 'i-ph:share-network',
     tone: 'info',
   },
+] as const;
+
+const ECODE_MOBILE_MORE_ITEMS = [
+  'preview',
+  'agent',
+  'files',
+  'editor',
+  'deployments',
+  'git',
+  'packages',
+  'database',
+  'object-storage',
+  'secrets',
+  'env',
+  'terminal',
+  'logs',
+  'search',
+  'locks',
+  'commands',
+  'workflows',
+  'collaborators',
+  'activity',
+  'snapshots',
+  'extensions',
+  'monitoring',
+  'domains',
+  'security',
+  'settings',
 ] as const;
 
 const IDE_FILE_TREE_HIDDEN_PATTERNS = [
@@ -2400,6 +2384,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [mobileToolsQuery, setMobileToolsQuery] = useState('');
 
     const [mobileTabSwitcherOpen, setMobileTabSwitcherOpen] = useState(false);
+    const [mobileMoreMenuOpen, setMobileMoreMenuOpen] = useState(false);
 
     useEffect(() => {
       setClientHydrated(true);
@@ -2431,6 +2416,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const closeMobileOverlays = useCallback(() => {
       setMobileToolsSheetOpen(false);
       setMobileTabSwitcherOpen(false);
+      setMobileMoreMenuOpen(false);
       setMobileToolsQuery('');
     }, []);
 
@@ -2441,14 +2427,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const openMobileToolsSheet = useCallback(() => {
       setMobileTabSwitcherOpen(false);
+      setMobileMoreMenuOpen(false);
       setMobileToolsQuery('');
       setMobileToolsSheetOpen(true);
     }, []);
 
     const openMobileTabSwitcher = useCallback(() => {
       setMobileToolsSheetOpen(false);
+      setMobileMoreMenuOpen(false);
       setMobileToolsQuery('');
       setMobileTabSwitcherOpen(true);
+    }, []);
+
+    const openMobileMoreMenu = useCallback(() => {
+      setMobileToolsSheetOpen(false);
+      setMobileTabSwitcherOpen(false);
+      setMobileToolsQuery('');
+      setMobileMoreMenuOpen(true);
     }, []);
 
     const [mobileOpenTabs, setMobileOpenTabs] = useState(() =>
@@ -2457,9 +2452,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const [activeMobileOpenTabId, setActiveMobileOpenTabId] = useState('agent');
 
-    const { state: mobileIdeLocalState, setActivePanel: persistMobilePanel } = useMobileIdePersistence(
-      projectIdeMode ? projectId : undefined,
-    );
+    const { setActivePanel: persistMobilePanel } = useMobileIdePersistence(projectIdeMode ? projectId : undefined);
+
     const ensureMobileOpenTab = useCallback((tabId: string) => {
       const tab = ECODE_MOBILE_TAB_META[tabId] ?? {
         id: tabId,
@@ -2530,7 +2524,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [closeMobileOverlays, useMobileIde]);
 
     useEffect(() => {
-      if (!useMobileIde || (!mobileToolsSheetOpen && !mobileTabSwitcherOpen)) {
+      if (!useMobileIde || (!mobileToolsSheetOpen && !mobileTabSwitcherOpen && !mobileMoreMenuOpen)) {
         return undefined;
       }
 
@@ -2545,7 +2539,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.addEventListener('keydown', handleMobileOverlayEscape);
 
       return () => window.removeEventListener('keydown', handleMobileOverlayEscape);
-    }, [closeMobileOverlays, mobileTabSwitcherOpen, mobileToolsSheetOpen, useMobileIde]);
+    }, [closeMobileOverlays, mobileMoreMenuOpen, mobileTabSwitcherOpen, mobileToolsSheetOpen, useMobileIde]);
 
     const [isOnline, setIsOnline] = useState(true);
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
@@ -3943,6 +3937,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setMobileToolsSheetOpen(false);
           setMobileToolsQuery('');
           setMobileTabSwitcherOpen(false);
+          setMobileMoreMenuOpen(false);
 
           return;
         }
@@ -3951,6 +3946,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setMobileToolsSheetOpen(false);
           setMobileToolsQuery('');
           setMobileTabSwitcherOpen(false);
+          setMobileMoreMenuOpen(false);
 
           const projectLink = `${window.location.origin}${projectUrl ?? `/projects/${projectId}`}`;
 
@@ -3975,6 +3971,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           normalizedToolId === 'tools'
         ) {
           setMobileIdePanel('chat', { activeTabId: normalizedToolId });
+          setProjectPanelSearchParam();
         } else if (normalizedToolId === 'files') {
           setMobileIdePanel('files');
           setProjectPanelSearchParam('files');
@@ -4006,6 +4003,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setMobileToolsSheetOpen(false);
         setMobileToolsQuery('');
         setMobileTabSwitcherOpen(false);
+        setMobileMoreMenuOpen(false);
       },
       [
         ensureMobileOpenTab,
@@ -4451,32 +4449,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [isStreaming, onStreamingChange]);
 
     useEffect(() => {
-      if (
-        !projectIdeMode ||
-        !useMobileIde ||
-        activeProjectPanel ||
-        !mobileIdeLocalState.activePanel ||
-        !MOBILE_IDE_PANELS.includes(mobileIdeLocalState.activePanel as any)
-      ) {
+      if (!projectIdeMode || !useMobileIde || activeProjectPanel) {
         return;
       }
 
-      const persistedPanel = mobileIdeLocalState.activePanel as (typeof MOBILE_IDE_PANELS)[number];
-      setMobilePanel(persistedPanel);
-
-      if (ECODE_MOBILE_COMPATIBLE_PANEL_TABS[persistedPanel]?.has(activeMobileOpenTabId)) {
-        return;
-      }
-
-      ensureMobileOpenTab(persistedPanel === 'chat' ? 'agent' : persistedPanel);
-    }, [
-      activeMobileOpenTabId,
-      activeProjectPanel,
-      ensureMobileOpenTab,
-      mobileIdeLocalState.activePanel,
-      projectIdeMode,
-      useMobileIde,
-    ]);
+      setMobilePanel('chat');
+      setActiveMobileOpenTabId('agent');
+      persistMobilePanel('chat');
+      ensureMobileOpenTab('agent');
+    }, [activeProjectPanel, ensureMobileOpenTab, persistMobilePanel, projectIdeMode, useMobileIde]);
 
     const networkToastRef = useRef<{ offline?: string | number; first: boolean }>({ first: true });
 
@@ -5458,8 +5439,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 }))}
               changedFiles={projectBackendState.git?.fileStatuses ?? projectBackendState.git?.changedFiles}
               openFilesOnSelect={useMobileIde}
-              onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
-              onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
+              onFilePreview={(filePath) => {
+                openProjectFile(filePath, { preview: true });
+
+                if (useMobileIde) {
+                  setMobileIdePanel('editor');
+                }
+              }}
+              onFileOpen={(filePath) => {
+                openProjectFile(filePath, { preview: false });
+
+                if (useMobileIde) {
+                  setMobileIdePanel('editor');
+                }
+              }}
             />
           );
         }
@@ -5518,8 +5511,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         runProjectEditorCommand,
         selectedFile,
         setSelectedElement,
+        setMobileIdePanel,
         theme,
         unsavedFiles,
+        useMobileIde,
       ],
     );
 
@@ -5784,12 +5779,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       const railWidth =
         typeof document === 'undefined'
-          ? 56
+          ? 48
           : Number.parseFloat(
               window
                 .getComputedStyle(document.querySelector('.bolt-responsive-ide-desktop') ?? document.documentElement)
                 .getPropertyValue('--project-ide-rail-width'),
-            ) || 56;
+            ) || 48;
 
       return Math.max(320, viewportWidth - railWidth - 1);
     }, []);
@@ -6445,6 +6440,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       };
     const mobileServiceHeaderTab =
       useMobileIde && mobilePanel === 'deploy' && activeMobileOpenTabId ? mobileHeaderTab : undefined;
+    const mobileMoreMenuItems = useMemo(
+      () =>
+        ECODE_MOBILE_MORE_ITEMS.map((itemId) => {
+          const tool = ECODE_MOBILE_TOOLS.find((item) => item.id === itemId);
+          const meta = ECODE_MOBILE_TAB_META[itemId];
+
+          return {
+            id: itemId,
+            title: tool?.title ?? meta?.name ?? panelTitle(itemId),
+            icon: tool?.icon ?? meta?.icon ?? panelIcon(itemId),
+            tone: tool && 'tone' in tool ? tool.tone : undefined,
+          };
+        }),
+      [],
+    );
 
     const showMobileChrome = useMobileIde && clientHydrated;
 
@@ -6516,6 +6526,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   onClick={openMobileToolsSheet}
                 >
                   <span className="i-ph:plus" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  aria-label="More options"
+                  aria-haspopup="dialog"
+                  aria-expanded={mobileMoreMenuOpen}
+                  data-testid="button-more"
+                  onClick={openMobileMoreMenu}
+                >
+                  <span className="i-ph:dots-three-vertical-bold" aria-hidden />
                 </button>
               </div>
             </div>
@@ -6759,21 +6779,86 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     +{mobileOpenTabs.length - 3}
                   </button>
                 ) : null}
+                <span className="bolt-mobile-replit-divider bolt-mobile-replit-divider--add" aria-hidden />
+                <button
+                  type="button"
+                  className="bolt-mobile-replit-icon-tab"
+                  aria-label="Add new tab"
+                  aria-haspopup="dialog"
+                  aria-expanded={mobileToolsSheetOpen}
+                  data-testid="button-add-tab"
+                  onClick={openMobileToolsSheet}
+                >
+                  <span className="i-ph:plus" aria-hidden />
+                </button>
               </div>
 
               <button
                 type="button"
                 className="bolt-mobile-replit-tools"
-                aria-label="Open tools"
+                aria-label="More options"
                 aria-haspopup="dialog"
-                aria-expanded={mobileToolsSheetOpen}
-                data-testid="button-add-tab"
-                onClick={openMobileToolsSheet}
+                aria-expanded={mobileMoreMenuOpen}
+                data-testid="button-more"
+                onClick={openMobileMoreMenu}
               >
-                <span className="i-ph:plus" aria-hidden />
+                <span className="i-ph:dots-three-vertical-bold" aria-hidden />
               </button>
             </div>
           </nav>
+        )}
+        {showMobileChrome && mobileMoreMenuOpen && (
+          <>
+            <button
+              type="button"
+              className="bolt-mobile-more-menu-backdrop"
+              aria-label="Close more menu"
+              data-testid="mobile-more-menu-backdrop"
+              onClick={closeMobileOverlays}
+            />
+            <section
+              className="bolt-mobile-more-menu-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-label="More IDE panels"
+              data-testid="mobile-more-menu-sheet"
+            >
+              <div className="bolt-mobile-more-menu-handle" aria-hidden />
+              <header className="bolt-mobile-more-menu-header">
+                <h2>Panels</h2>
+                <button
+                  type="button"
+                  aria-label="Close more menu"
+                  data-testid="mobile-more-menu-close"
+                  onClick={closeMobileOverlays}
+                >
+                  <span className="i-ph:x" aria-hidden />
+                </button>
+              </header>
+              <div className="bolt-mobile-more-menu-grid">
+                {mobileMoreMenuItems.map((item) => {
+                  const isActive = activeMobileOpenTabId === item.id;
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="bolt-mobile-more-menu-item"
+                      data-tone={item.tone}
+                      data-testid={`mobile-more-menu-${item.id}`}
+                      aria-current={isActive ? 'page' : undefined}
+                      onClick={() => activateMobileTool(item.id)}
+                    >
+                      <span className="bolt-mobile-more-menu-icon" aria-hidden>
+                        {item.icon === 'agent' ? <MobileReplitAgentIcon /> : <span className={item.icon} />}
+                      </span>
+                      <span>{item.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          </>
         )}
         {showMobileChrome && mobileTabSwitcherOpen && (
           <section
@@ -7611,7 +7696,7 @@ function ProjectIdeServicePanel({
           </button>
           {panelActionsOpen ? (
             <div
-              className="absolute right-0 top-[calc(100%+6px)] z-20 w-[192px] max-w-[calc(100vw-1.5rem)] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-1 text-[12px] text-bolt-elements-textPrimary shadow-lg"
+              className="bolt-project-panel-actions-menu absolute right-0 top-[calc(100%+6px)] z-20 w-[192px] max-w-[calc(100vw-1.5rem)] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-1 text-[12px] text-bolt-elements-textPrimary shadow-lg"
               role="menu"
               aria-label={`${title} panel actions`}
             >
@@ -9861,7 +9946,7 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'git') {
-    return <ProjectGitPanel data={data} project={project} onSubmit={onSubmit} busy={busy} />;
+    return <ProjectGitPanel data={data} project={project} onSubmit={onSubmit} busy={busy} reload={reload} />;
   }
 
   if (panel === 'settings') {
@@ -15083,7 +15168,19 @@ function ProjectSecretsPanel({
   );
 }
 
-function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project: any; onSubmit: any; busy: boolean }) {
+function ProjectGitPanel({
+  data,
+  project,
+  onSubmit,
+  busy,
+  reload,
+}: {
+  data: any;
+  project: any;
+  onSubmit: any;
+  busy: boolean;
+  reload?: () => void | Promise<void>;
+}) {
   const status = data.status ?? data;
   const branch = status.branch ?? project.gitDefaultBranch ?? 'main';
   const changedFiles = status.fileStatuses ?? status.changedFiles?.map((path: string) => ({ path, status: 'M' })) ?? [];
@@ -15189,39 +15286,14 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
       </div>
 
       {!hasRemote && (
-        <div className="grid gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <strong className="block text-amber-700 dark:text-amber-200">No remote connected yet</strong>
-              <p className="mt-1 max-w-2xl text-amber-700/85 dark:text-amber-100/85">
-                A remote is the hosted copy of this repository. Connect one when you want to push commits, pull updates,
-                or open pull/merge requests from this workspace.
-              </p>
-            </div>
-            <a
-              href={`/projects/${project.id}/settings`}
-              className="rounded-md border border-amber-500/40 px-3 py-1.5 font-semibold text-amber-700 hover:bg-amber-500/15 dark:text-amber-200"
-            >
-              Configure remote
-            </a>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4" aria-label="Supported Git remote providers">
-            {[
-              ['GitHub', 'Connect through the GitHub integration or paste a GitHub HTTPS/SSH URL.'],
-              ['GitLab', 'Use a GitLab project remote URL for push, pull and merge-request workflows.'],
-              ['Bitbucket', 'Paste a Bitbucket Git remote URL to sync this workspace repository.'],
-              ['Custom remote', 'Use any HTTPS or SSH Git remote your workspace credentials can access.'],
-            ].map(([provider, description]) => (
-              <div
-                key={provider}
-                className="rounded-md border border-amber-500/25 bg-bolt-elements-background-depth-1 p-3"
-              >
-                <div className="text-xs font-semibold text-bolt-elements-textPrimary">{provider}</div>
-                <p className="mt-1 text-[11px] leading-4 text-bolt-elements-textSecondary">{description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+        <GitProviderConnectPanel
+          projectId={project.id}
+          gitRepositoryUrl={project.gitRepositoryUrl}
+          defaultBranch={project.gitDefaultBranch}
+          busy={busy}
+          onConnected={reload}
+          onRemoteConfigured={reload}
+        />
       )}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">

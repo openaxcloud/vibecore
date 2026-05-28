@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 /*
  * Shared hook for launching a connector OAuth popup and reacting to the
  * postMessage emitted by /integrations/oauth/:provider/callback. Used by
- * the Settings → GitHub tab button and the chat connection_request card.
+ * the Git provider panels, the Settings → GitHub tab button, and the chat
+ * connection_request card.
  *
  * The hook does not assume a specific endpoint; the caller passes
  * launchUrl when ready (typically after a POST to

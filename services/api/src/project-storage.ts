@@ -89,6 +89,11 @@ export interface GitProvider {
     workspaceId?: string;
     branch: string;
   }): Promise<{ pulled: boolean; branch: string; changedFiles: string[] }>;
+  configureRemote?(input: {
+    projectId: string;
+    workspaceId?: string;
+    remoteUrl: string;
+  }): Promise<{ remote: string; remoteUrl: string }>;
   listBranches(projectId: string, workspaceId?: string): Promise<string[]>;
   checkoutBranch(input: {
     projectId: string;
@@ -102,10 +107,7 @@ export interface GitProvider {
     workspaceId?: string;
     message?: string;
   }): Promise<{ stashed: boolean; output: string }>;
-  stashList(
-    projectId: string,
-    workspaceId?: string,
-  ): Promise<Array<{ id: string; branch?: string; message: string }>>;
+  stashList(projectId: string, workspaceId?: string): Promise<Array<{ id: string; branch?: string; message: string }>>;
   stashApply(input: {
     projectId: string;
     workspaceId?: string;
@@ -164,7 +166,9 @@ function workspaceSubpath(workspaceId: string, filePath = '') {
     throw new Error('Invalid workspaceId');
   }
 
-  return filePath ? `${SECONDARY_WORKSPACES_DIR}/${workspaceId}/${filePath}` : `${SECONDARY_WORKSPACES_DIR}/${workspaceId}`;
+  return filePath
+    ? `${SECONDARY_WORKSPACES_DIR}/${workspaceId}/${filePath}`
+    : `${SECONDARY_WORKSPACES_DIR}/${workspaceId}`;
 }
 
 function safeWorkspacePath(projectId: string, workspaceId?: string, filePath = '') {
@@ -243,7 +247,10 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
   await mkdir(root, { recursive: true });
 
   const lockPath = join(root, `${projectId}.lock`);
-  const sentinelPath = join(root, `${projectId}.${PROJECT_LOCK_OWNER}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`);
+  const sentinelPath = join(
+    root,
+    `${projectId}.${PROJECT_LOCK_OWNER}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`,
+  );
 
   await writeFile(sentinelPath, `${PROJECT_LOCK_OWNER}\n${new Date().toISOString()}\n`, 'utf8');
 
@@ -288,8 +295,7 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
 export async function withProjectLock<T>(projectId: string, fn: () => Promise<T>): Promise<T> {
   // Disable cross-replica file locking in unit tests, which run many parallel
   // workers against tmp dirs. The in-memory queue still serializes per-process.
-  const enableFileLock =
-    process.env.VIBECORE_PROJECT_LOCK !== 'disabled' && process.env.NODE_ENV !== 'test';
+  const enableFileLock = process.env.VIBECORE_PROJECT_LOCK !== 'disabled' && process.env.NODE_ENV !== 'test';
 
   const previous = PROJECT_MUTATION_QUEUE.get(projectId) ?? Promise.resolve();
 
@@ -674,6 +680,19 @@ export class GitCliProvider implements GitProvider {
     });
   }
 
+  async configureRemote(input: { projectId: string; workspaceId?: string; remoteUrl: string }) {
+    return withProjectLock(input.projectId, async () => {
+      const remotes = await this.git(input.projectId, ['remote'], input.workspaceId).catch(() => '');
+      const args = remotes.split('\n').includes('origin')
+        ? ['remote', 'set-url', 'origin', input.remoteUrl]
+        : ['remote', 'add', 'origin', input.remoteUrl];
+
+      await this.git(input.projectId, args, input.workspaceId);
+
+      return { remote: 'origin', remoteUrl: input.remoteUrl };
+    });
+  }
+
   async listBranches(projectId: string, workspaceId?: string) {
     const output = await this.git(projectId, ['branch', '--all', '--format=%(refname:short)'], workspaceId);
 
@@ -696,7 +715,11 @@ export class GitCliProvider implements GitProvider {
   }) {
     return withProjectLock(input.projectId, async () => {
       if (input.create) {
-        await this.git(input.projectId, ['checkout', '-b', input.branch, input.startPoint ?? 'HEAD'], input.workspaceId);
+        await this.git(
+          input.projectId,
+          ['checkout', '-b', input.branch, input.startPoint ?? 'HEAD'],
+          input.workspaceId,
+        );
       } else {
         await this.git(input.projectId, ['checkout', input.branch], input.workspaceId);
       }

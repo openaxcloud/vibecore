@@ -825,7 +825,7 @@ export function AppShell({
       <div
         className={classNames(
           'vc-app-shell-grid grid min-h-screen',
-          sidebarCollapsed ? 'lg:grid-cols-[64px_1fr]' : 'lg:grid-cols-[240px_1fr]',
+          sidebarCollapsed ? 'lg:grid-cols-[56px_1fr]' : 'lg:grid-cols-[240px_1fr]',
         )}
       >
         <DesktopSidebar collapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
@@ -879,16 +879,19 @@ function SidebarHeader({ collapsed }: { collapsed: boolean }) {
       to="/organization-switcher"
       className={classNames(
         'vc-sidebar-header group flex h-14 shrink-0 items-center border-b border-bolt-elements-borderColor transition-colors hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
-        collapsed ? 'justify-center px-2' : 'gap-2 px-3',
+        collapsed ? 'justify-center px-1.5' : 'gap-2 px-3',
       )}
       aria-label="Organization switcher"
       title={collapsed ? 'Organization switcher' : undefined}
     >
       <span
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3"
+        className={classNames(
+          'flex shrink-0 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3',
+          collapsed ? 'h-7 w-7' : 'h-8 w-8',
+        )}
         aria-hidden
       >
-        <Sparkles className="h-4 w-4" />
+        <Sparkles className={collapsed ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
       </span>
       {!collapsed ? (
         <span className="vc-sidebar-fade-label min-w-0 flex-1">
@@ -1038,16 +1041,19 @@ function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; em
             type="button"
             className={classNames(
               'group inline-flex items-center rounded-md text-left text-sm transition-colors hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
-              collapsed ? 'h-10 w-10 justify-center px-0' : 'h-10 w-full gap-2 px-2',
+              collapsed ? 'h-9 w-9 justify-center px-0' : 'h-10 w-full gap-2 px-2',
             )}
             aria-label="Account menu"
             title={collapsed ? 'Account menu' : undefined}
           >
             <span
-              className="vc-sidebar-avatar flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 text-[11px] font-semibold uppercase text-bolt-elements-textPrimary"
+              className={classNames(
+                'vc-sidebar-avatar flex shrink-0 items-center justify-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 text-[11px] font-semibold uppercase text-bolt-elements-textPrimary',
+                collapsed ? 'h-7 w-7' : 'h-8 w-8',
+              )}
               aria-hidden
             >
-              {hasInitials ? initials : <UserIcon className="h-4 w-4" aria-hidden />}
+              {hasInitials ? initials : <UserIcon className={collapsed ? 'h-3.5 w-3.5' : 'h-4 w-4'} aria-hidden />}
             </span>
             {!collapsed ? (
               <span className="vc-sidebar-fade-label min-w-0 flex-1">
@@ -1595,14 +1601,14 @@ function CreateProjectCta({ collapsed }: { collapsed: boolean }) {
       className={({ isActive }) =>
         classNames(
           'vc-sidebar-cta group relative inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-[12px] font-semibold transition-[background-color,filter,box-shadow] focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-accent-action)] focus:ring-offset-2 focus:ring-offset-bolt-elements-background-depth-2',
-          collapsed ? 'h-10 w-10' : 'h-10 w-full px-3',
+          collapsed ? 'h-9 w-9' : 'h-10 w-full px-3',
           isActive && 'vc-sidebar-cta--active',
         )
       }
       aria-label={collapsed ? 'Create project' : undefined}
       title={collapsed ? 'Create project' : undefined}
     >
-      <Plus className={classNames('shrink-0', collapsed ? 'h-[18px] w-[18px]' : 'h-4 w-4')} aria-hidden />
+      <Plus className="h-4 w-4 shrink-0" aria-hidden />
       {!collapsed ? <span className="truncate">New project</span> : null}
       {collapsed ? <span className="vc-collapsed-nav-label">Create project</span> : null}
     </NavLink>
@@ -1621,7 +1627,7 @@ function NavGroup({ items, collapsed = false }: { items: NavItem[]; collapsed?: 
             className={({ isActive }) =>
               classNames(
                 'vc-sidebar-nav-item group relative flex items-center rounded-md text-[13px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
-                collapsed ? 'h-10 w-10 justify-center px-0' : 'h-9 w-full gap-2 px-3',
+                collapsed ? 'h-9 w-9 justify-center px-0' : 'h-9 w-full gap-2 px-3',
                 isActive
                   ? 'vc-sidebar-nav-item--active text-bolt-elements-textPrimary'
                   : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
@@ -1633,7 +1639,7 @@ function NavGroup({ items, collapsed = false }: { items: NavItem[]; collapsed?: 
             <Icon
               className={classNames(
                 'vc-sidebar-nav-icon shrink-0 transition-transform duration-150 group-hover:scale-[1.05]',
-                collapsed ? 'h-[20px] w-[20px]' : 'h-[18px] w-[18px]',
+                collapsed ? 'h-[17px] w-[17px]' : 'h-[18px] w-[18px]',
               )}
               aria-hidden
             />

@@ -25,7 +25,7 @@ interface CallbackOutcomePayload {
   errorMessage?: string;
 }
 
-const ALLOWED_PROVIDERS = new Set(['github']);
+const ALLOWED_PROVIDERS = new Set(['github', 'gitlab', 'bitbucket']);
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const provider = params.provider;

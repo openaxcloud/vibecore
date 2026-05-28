@@ -404,6 +404,7 @@ export const Preview = memo(
     const [previewRunFailed, setPreviewRunFailed] = useState(false);
     const [previewFrameLoaded, setPreviewFrameLoaded] = useState(false);
     const [loadedPreviewUrl, setLoadedPreviewUrl] = useState<string | undefined>();
+    const previewLoadIdentityRef = useRef<string | undefined>();
     const [logsOpen, setLogsOpen] = useState(false);
     const [activeLogTab, setActiveLogTab] = useState<PreviewLogTab>('webview');
     const [devToolsOpen, setDevToolsOpen] = useState(false);
@@ -457,6 +458,22 @@ export const Preview = memo(
         iframeUrl &&
         (activePreview.ready === false || !previewFrameLoaded || loadedPreviewUrl !== iframeUrl),
     );
+    useEffect(() => {
+      const previewLoadIdentity = iframeUrl ? `${projectId ?? 'local'}:${iframeUrl}` : undefined;
+
+      if (previewLoadIdentityRef.current === previewLoadIdentity) {
+        return;
+      }
+
+      previewLoadIdentityRef.current = previewLoadIdentity;
+      setPreviewFrameLoaded(false);
+      setLoadedPreviewUrl(undefined);
+
+      if (previewLoadIdentity) {
+        setPreviewStatus('Loading the webview and waiting for the first render...');
+      }
+    }, [iframeUrl, projectId]);
+
     const openPreviewLogs = useCallback(() => {
       setActiveLogTab('server');
       setLogsOpen(true);

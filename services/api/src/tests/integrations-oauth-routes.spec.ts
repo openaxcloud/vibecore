@@ -133,6 +133,10 @@ describe('Integrations OAuth routes (TestApiStore)', () => {
   beforeEach(() => {
     process.env.INTEGRATION_GITHUB_CLIENT_ID = 'route-test-client-id';
     process.env.INTEGRATION_GITHUB_CLIENT_SECRET = 'route-test-client-secret';
+    process.env.INTEGRATION_GITLAB_CLIENT_ID = 'route-test-gitlab-client-id';
+    process.env.INTEGRATION_GITLAB_CLIENT_SECRET = 'route-test-gitlab-client-secret';
+    process.env.INTEGRATION_BITBUCKET_CLIENT_ID = 'route-test-bitbucket-client-id';
+    process.env.INTEGRATION_BITBUCKET_CLIENT_SECRET = 'route-test-bitbucket-client-secret';
     process.env.OAUTH_STATE_SECRET = 'route-test-state-secret-do-not-ship';
     process.env.ENCRYPTION_SECRET = 'route-test-encryption-secret-do-not-ship';
   });
@@ -165,6 +169,35 @@ describe('Integrations OAuth routes (TestApiStore)', () => {
     await app.close();
   });
 
+  it.each([
+    ['gitlab', 'https://gitlab.com/oauth/authorize', 'route-test-gitlab-client-id'],
+    ['bitbucket', 'https://bitbucket.org/site/oauth2/authorize', 'route-test-bitbucket-client-id'],
+  ])(
+    'connect returns an in-app OAuth authorize URL for %s',
+    async (provider, expectedAuthorizeUrl, expectedClientId) => {
+      const store = new TestApiStore();
+      const app = await buildTestApiApp({ store });
+      const tenant = await registerUserAndProject(app, `${provider}@example.com`, `${provider}Org`);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/integrations/oauth/${provider}/connect`,
+        headers: { authorization: `Bearer ${tenant.token}` },
+        payload: { projectId: tenant.projectId },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json() as { provider: string; authorizationUrl: string };
+      expect(body.provider).toBe(provider);
+
+      const url = new URL(body.authorizationUrl);
+      expect(url.origin + url.pathname).toBe(expectedAuthorizeUrl);
+      expect(url.searchParams.get('client_id')).toBe(expectedClientId);
+      expect(url.searchParams.get('state')).toBeTruthy();
+      await app.close();
+    },
+  );
+
   it('connect returns 503 when the GitHub credentials are not configured', async () => {
     delete process.env.INTEGRATION_GITHUB_CLIENT_ID;
 
@@ -184,7 +217,7 @@ describe('Integrations OAuth routes (TestApiStore)', () => {
     await app.close();
   });
 
-  it('connect returns 400 for unsupported providers in this phase', async () => {
+  it('connect returns 400 for unsupported providers', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const tenant = await registerUserAndProject(app, 'unsupported@example.com', 'UnsupOrg');
@@ -302,10 +335,13 @@ describe('Integrations OAuth routes (TestApiStore)', () => {
     });
     const state = new URL((connect.json() as { authorizationUrl: string }).authorizationUrl).searchParams.get('state')!;
 
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(
-      JSON.stringify({ error: 'bad_verification_code', error_description: 'The code has expired' }),
-      { status: 200, headers: { 'content-type': 'application/json' } },
-    ));
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async () =>
+        new Response(JSON.stringify({ error: 'bad_verification_code', error_description: 'The code has expired' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+    );
 
     const response = await app.inject({
       method: 'POST',
