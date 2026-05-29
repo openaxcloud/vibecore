@@ -111,15 +111,18 @@ platformEnv:
   # Non-secret Stripe catalog IDs. Populate from `pnpm stripe:seed` after
   # rotating STRIPE_SECRET_KEY; empty values are intentionally omitted from
   # the rendered ConfigMap so they cannot mask Secret-sourced env values.
+  # Free has no checkout (short-circuits with STRIPE_FREE_NO_CHECKOUT) and
+  # Enterprise routes to /contact-sales (STRIPE_ENTERPRISE_CONTACT_SALES),
+  # so only Pro and Team need real price IDs for self-serve checkout.
   stripe:
     freeProductId: ''
     freePriceId: ''
-    proProductId: ''
-    proPriceId: ''
-    teamProductId: ''
-    teamPriceId: ''
+    proProductId: 'prod_SmqeF8z5hVEDgn'
+    proPriceId: 'price_1RrGxL2VSIgdqPLPk54OZhZX'
+    teamProductId: 'prod_SmqqkOPRY15MGD'
+    teamPriceId: 'price_1RrH8b2VSIgdqPLPCDou48K3'
     enterpriseProductId: ''
-    enterprisePriceId: ''
+    enterprisePriceId: 'price_1RrHLq2VSIgdqPLP9Z9KniIZ'
   google:
     authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth'
     tokenUrl: 'https://oauth2.googleapis.com/token'
