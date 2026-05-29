@@ -83,6 +83,14 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     });
   } catch (error) {
     if (error instanceof Response) {
+      /*
+       * `apiRequest` may throw a redirect Response (e.g. to /login on 401).
+       * Let those propagate so the redirect actually happens.
+       */
+      if (error.status >= 300 && error.status < 400) {
+        throw error;
+      }
+
       let parsed: { error?: string; code?: string } = {};
 
       try {

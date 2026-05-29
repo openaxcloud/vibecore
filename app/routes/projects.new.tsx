@@ -46,6 +46,7 @@ import {
   formObject,
   isApiResponse,
   json,
+  loginRedirectFromRequest,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
@@ -463,13 +464,6 @@ function projectPromptForArtifact(prompt: string, category: ArtifactCategory) {
   ].join('\n');
 }
 
-function loginRedirect(request: Request) {
-  const url = new URL(request.url);
-  const redirectTo = `${url.pathname}${url.search}`;
-
-  return redirect(`/login?redirectTo=${encodeURIComponent(redirectTo)}`);
-}
-
 function createPendingPromptId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -530,7 +524,7 @@ async function requireFirstOrganization(request: Request) {
     return await firstOrganization(request);
   } catch (error) {
     if (isApiResponse(error, 401) || isApiResponse(error, 403)) {
-      throw loginRedirect(request);
+      throw loginRedirectFromRequest(request);
     }
 
     throw error;

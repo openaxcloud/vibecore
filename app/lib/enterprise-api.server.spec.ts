@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { apiBaseUrl, apiRequest, firstOrganization, firstOrganizationOrNull } from './enterprise-api.server';
+import {
+  apiBaseUrl,
+  apiRequest,
+  firstOrganization,
+  firstOrganizationOrNull,
+  loginRedirectFromRequest,
+  safeReturnTo,
+} from './enterprise-api.server';
 
 const ENV_KEYS = ['SAAS_API_URL', 'API_BASE_URL', 'API_HOST', 'API_PORT', 'NODE_ENV'] as const;
 
@@ -167,6 +174,86 @@ describe('apiRequest', () => {
     });
   });
 
+  it('redirects page loaders to /login when the upstream API answers 401', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        return new Response(JSON.stringify({ error: 'Session expired' }), {
+          status: 401,
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
+
+    let thrown: unknown;
+
+    try {
+      await apiRequest(new Request('https://app.example.com/dashboard?tab=overview'), '/orgs');
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(Response);
+    expect((thrown as Response).status).toBe(302);
+    expect((thrown as Response).headers.get('Location')).toBe(
+      `/login?returnTo=${encodeURIComponent('/dashboard?tab=overview')}`,
+    );
+  });
+
+  it('does not redirect resource (/api/*) routes — fetch callers receive the original 401', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        return new Response(JSON.stringify({ error: 'Session expired' }), {
+          status: 401,
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
+
+    let thrown: unknown;
+
+    try {
+      await apiRequest(new Request('https://app.example.com/api/projects/abc/files'), '/projects/abc/files');
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(Response);
+    expect((thrown as Response).status).toBe(401);
+  });
+
+  it('honors redirectOn401: false for credential-checking actions', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        return new Response(JSON.stringify({ error: 'Invalid email or password' }), {
+          status: 401,
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
+
+    let thrown: unknown;
+
+    try {
+      await apiRequest(new Request('https://app.example.com/login'), '/auth/login', {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ email: 'a@b.c', password: 'nope' }),
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(Response);
+    expect((thrown as Response).status).toBe(401);
+    await expect((thrown as Response).json()).resolves.toMatchObject({
+      ok: false,
+      error: 'Invalid email or password',
+    });
+  });
+
   it('passes through non-MFA 403 responses as json errors', async () => {
     vi.stubGlobal(
       'fetch',
@@ -193,6 +280,60 @@ describe('apiRequest', () => {
       code: 'RBAC_FORBIDDEN',
       error: 'Missing permission: billing:read',
     });
+  });
+});
+
+describe('safeReturnTo', () => {
+  it('accepts a same-origin path', () => {
+    expect(safeReturnTo('/projects/123/ide')).toBe('/projects/123/ide');
+  });
+
+  it('preserves the query string on a same-origin path', () => {
+    expect(safeReturnTo('/dashboard?tab=overview&filter=ready')).toBe('/dashboard?tab=overview&filter=ready');
+  });
+
+  it('rejects protocol-relative URLs to prevent open redirects', () => {
+    expect(safeReturnTo('//evil.com/login')).toBeUndefined();
+  });
+
+  it('rejects absolute URLs to other hosts', () => {
+    expect(safeReturnTo('https://evil.com/login')).toBeUndefined();
+  });
+
+  it('rejects backslash-prefixed paths that some browsers normalise to protocol-relative', () => {
+    expect(safeReturnTo('/\\evil.com')).toBeUndefined();
+  });
+
+  it('rejects loops back to auth flow routes', () => {
+    expect(safeReturnTo('/login')).toBeUndefined();
+    expect(safeReturnTo('/login?error=x')).toBeUndefined();
+    expect(safeReturnTo('/signup')).toBeUndefined();
+    expect(safeReturnTo('/mfa-setup')).toBeUndefined();
+  });
+
+  it('rejects empty, null, and non-path values', () => {
+    expect(safeReturnTo('')).toBeUndefined();
+    expect(safeReturnTo(null)).toBeUndefined();
+    expect(safeReturnTo(undefined)).toBeUndefined();
+    expect(safeReturnTo('relative/path')).toBeUndefined();
+  });
+});
+
+describe('loginRedirectFromRequest', () => {
+  it('builds /login with an encoded returnTo from the current request URL', () => {
+    const response = loginRedirectFromRequest(new Request('https://app.example.com/projects/abc/ide?panel=files'));
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe(
+      `/login?returnTo=${encodeURIComponent('/projects/abc/ide?panel=files')}`,
+    );
+  });
+
+  it('falls back to plain /login when the current path is an auth route', () => {
+    const response = loginRedirectFromRequest(new Request('https://app.example.com/login?error=expired'));
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe('/login');
   });
 });
 

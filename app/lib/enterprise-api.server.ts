@@ -107,12 +107,68 @@ export function clearSessionCookie() {
  */
 const MFA_REQUIRED_REDIRECT_PATH = '/mfa-setup';
 
-export async function apiRequest<T = unknown>(request: Request, path: string, init: RequestInit = {}) {
+export type ApiRequestInit = RequestInit & {
+  /*
+   * When the upstream API answers 401, the default behaviour is to throw a
+   * Remix redirect to `/login?returnTo=…` so authenticated loaders fall back
+   * to the sign-in page instead of rendering a bare `<h1>401</h1>` shell.
+   * Credential-checking routes (login, signup, password reset, MFA verify,
+   * verify-email) opt out so a 401 from "wrong credentials" surfaces as a
+   * form error instead of looping the user back through the sign-in flow.
+   */
+  redirectOn401?: boolean;
+};
+
+export function safeReturnTo(value: string | null | undefined): string | undefined {
+  if (typeof value !== 'string' || value.length === 0) {
+    return undefined;
+  }
+
+  // Reject protocol-relative (//evil.com) and absolute URLs to prevent open-redirect.
+  if (!value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\')) {
+    return undefined;
+  }
+
+  // Don't bounce back to auth-flow routes — those have their own UX.
+  if (/^\/(login|signup|register|forgot-password|reset-password|verify-email|mfa-setup)(?:[/?#]|$)/.test(value)) {
+    return undefined;
+  }
+
+  return value;
+}
+
+export function loginRedirectFromRequest(request: Request) {
+  const url = new URL(request.url);
+  const returnTo = `${url.pathname}${url.search}`;
+  const safe = safeReturnTo(returnTo);
+
+  return safe ? redirect(`/login?returnTo=${encodeURIComponent(safe)}`) : redirect('/login');
+}
+
+/*
+ * Resource routes (any path under `/api/`) are consumed by `fetch()` from the
+ * browser, not by full-page navigations. Redirecting them to `/login` would
+ * be transparently followed by `fetch`, leaving the caller with a 200 HTML
+ * body where it expected JSON. For those routes we let the original 401
+ * propagate so the client-side code can react (e.g. show an inline prompt,
+ * trigger a navigation). Page loaders, by contrast, render HTML and benefit
+ * from a server-side redirect to the sign-in screen.
+ */
+function isPageNavigation(request: Request) {
+  try {
+    return !new URL(request.url).pathname.startsWith('/api/');
+  } catch {
+    return false;
+  }
+}
+
+export async function apiRequest<T = unknown>(request: Request, path: string, init: ApiRequestInit = {}) {
+  const { redirectOn401 = true, ...fetchInit } = init;
   const token = readSessionToken(request);
-  const headers = new Headers(init.headers);
+  const headers = new Headers(fetchInit.headers);
   headers.set('accept', 'application/json');
 
-  if (init.body && !headers.has('content-type')) {
+  if (fetchInit.body && !headers.has('content-type')) {
     headers.set('content-type', 'application/json');
   }
 
@@ -120,7 +176,7 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
     headers.set('authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${apiBaseUrl()}${path}`, { ...init, headers });
+  const response = await fetch(`${apiBaseUrl()}${path}`, { ...fetchInit, headers });
   const contentType = response.headers.get('content-type') ?? '';
   const payload = contentType.includes('application/json') ? await response.json() : await response.text();
 
@@ -129,6 +185,10 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
 
     if (response.status === 403 && payloadCode === 'MFA_REQUIRED' && !path.startsWith('/auth/mfa')) {
       throw redirect(MFA_REQUIRED_REDIRECT_PATH);
+    }
+
+    if (response.status === 401 && redirectOn401 && isPageNavigation(request)) {
+      throw loginRedirectFromRequest(request);
     }
 
     throw json(

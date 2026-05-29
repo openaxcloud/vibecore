@@ -20,6 +20,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   try {
     await apiRequest(request, '/auth/password-reset/confirm', {
       method: 'POST',
+      redirectOn401: false,
       body: JSON.stringify({ token, password }),
     });
 

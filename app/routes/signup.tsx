@@ -86,6 +86,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   try {
     const result = await apiRequest<{ token: string }>(request, '/auth/register', {
       method: 'POST',
+      redirectOn401: false,
       body: JSON.stringify({
         email,
         password,

@@ -16866,6 +16866,20 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     padding-inline: 10px !important;
   }
 
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-agent-policy select,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-ai-routing select,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-ai-routing button,
+  .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    .bolt-project-settings-provider-grid
+    input:not([type='hidden']),
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-settings-provider-grid select,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-settings-provider-grid button {
+    height: auto !important;
+    min-height: 44px !important;
+    font-size: 16px !important;
+  }
+
   .bolt-responsive-ide-mobile .bolt-api-key-manager {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr);

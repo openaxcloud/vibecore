@@ -189,6 +189,270 @@ async function expectSettingsTabRailFitsViewport(page: import('@playwright/test'
   }
 }
 
+async function expectFloatingSurfaceFitsViewport(
+  locator: import('@playwright/test').Locator,
+  label: string,
+  options: { minInteractiveHeight?: number; requireSearchFontSize?: boolean; minVisibleOptions?: number } = {},
+) {
+  const metrics = await locator.evaluate(
+    (surface, assertionOptions) => {
+      const surfaceRect = surface.getBoundingClientRect();
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+
+      const interactiveElements = Array.from(
+        surface.querySelectorAll('button, input, select, textarea, [role="option"], [role="menuitem"]'),
+      )
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          const style = window.getComputedStyle(element);
+
+          return {
+            height: rect.height,
+            isVisible:
+              style.display !== 'none' &&
+              style.visibility !== 'hidden' &&
+              rect.width > 0 &&
+              rect.height > 0 &&
+              rect.bottom >= surfaceRect.top &&
+              rect.top <= viewportHeight,
+            left: rect.left,
+            right: rect.right,
+            text: element.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+            width: rect.width,
+          };
+        })
+        .filter((element) => element.isVisible);
+      const searchInput = surface.querySelector(
+        'input[role="searchbox"], input[aria-label^="Search"], input[type="search"], input[type="text"], input:not([type])',
+      ) as HTMLInputElement | null;
+      const visibleOptions = Array.from(surface.querySelectorAll('[role="option"]')).filter((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+
+        return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+      }).length;
+
+      return {
+        bottom: surfaceRect.bottom,
+        documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+        interactiveElements,
+        left: surfaceRect.left,
+        right: surfaceRect.right,
+        searchFontSize: searchInput ? Number.parseFloat(window.getComputedStyle(searchInput).fontSize) : undefined,
+        top: surfaceRect.top,
+        viewportHeight,
+        viewportWidth,
+        visibleOptions,
+        minInteractiveHeight: assertionOptions.minInteractiveHeight ?? 0,
+      };
+    },
+    {
+      minInteractiveHeight: options.minInteractiveHeight,
+    },
+    { timeout: 5_000 },
+  );
+
+  expect(metrics.documentOverflowsX, `${label} document horizontal overflow`).toBe(false);
+  expect(metrics.left, `${label} left edge`).toBeGreaterThanOrEqual(0);
+  expect(metrics.top, `${label} top edge`).toBeGreaterThanOrEqual(0);
+  expect(metrics.right, `${label} right edge`).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+  expect(metrics.bottom, `${label} bottom edge`).toBeLessThanOrEqual(metrics.viewportHeight + 1);
+
+  if (options.requireSearchFontSize) {
+    expect(metrics.searchFontSize ?? 0, `${label} search input font size`).toBeGreaterThanOrEqual(16);
+  }
+
+  if (typeof options.minVisibleOptions === 'number') {
+    expect(metrics.visibleOptions, `${label} visible options`).toBeGreaterThanOrEqual(options.minVisibleOptions);
+  }
+
+  for (const element of metrics.interactiveElements) {
+    expect(element.left, `${label} interactive left: ${element.text}`).toBeGreaterThanOrEqual(0);
+    expect(element.right, `${label} interactive right: ${element.text}`).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+
+    if (metrics.minInteractiveHeight > 0) {
+      expect(element.height, `${label} interactive height: ${element.text}`).toBeGreaterThanOrEqual(
+        metrics.minInteractiveHeight,
+      );
+    }
+  }
+}
+
+async function openAgentModelSettings(page: import('@playwright/test').Page) {
+  const selector = page.getByTestId('agent-model-selector');
+
+  if (await selector.isVisible().catch(() => false)) {
+    return;
+  }
+
+  const composer = page.getByTestId('ide-agent-composer');
+  const toolsMenu = page.getByTestId('composer-tools-menu');
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await composer.getByRole('button', { name: 'More composer tools' }).click({ force: true });
+
+    if (await toolsMenu.isVisible().catch(() => false)) {
+      break;
+    }
+
+    await expect(toolsMenu)
+      .toBeVisible({ timeout: 3_000 })
+      .catch(() => undefined);
+  }
+
+  await expect(toolsMenu).toBeVisible({ timeout: 10_000 });
+  await expectFloatingSurfaceFitsViewport(toolsMenu, 'composer tools menu', { minInteractiveHeight: 44 });
+
+  const settingsButton = toolsMenu
+    .locator('button')
+    .filter({ hasText: /settings/i })
+    .last();
+  await expect(settingsButton).toBeVisible({ timeout: 10_000 });
+  await settingsButton.click();
+  await expect(selector).toBeVisible({ timeout: 10_000 });
+}
+
+async function expectAgentModelSelectorFitsViewport(page: import('@playwright/test').Page) {
+  await openAgentModelSettings(page);
+
+  const selectorMetrics = await page.getByTestId('agent-model-selector').evaluate((selector) => {
+    const selectorRect = selector.getBoundingClientRect();
+
+    const fields = Array.from(selector.querySelectorAll('[data-testid$="-combobox"]')).map((field) => {
+      const rect = field.getBoundingClientRect();
+
+      return {
+        height: rect.height,
+        left: rect.left,
+        right: rect.right,
+        width: rect.width,
+      };
+    });
+
+    return {
+      bottom: selectorRect.bottom,
+      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      fields,
+      left: selectorRect.left,
+      right: selectorRect.right,
+      top: selectorRect.top,
+      viewportWidth: window.innerWidth,
+    };
+  });
+
+  expect(selectorMetrics.documentOverflowsX).toBe(false);
+  expect(selectorMetrics.left).toBeGreaterThanOrEqual(0);
+  expect(selectorMetrics.right).toBeLessThanOrEqual(selectorMetrics.viewportWidth + 1);
+
+  for (const field of selectorMetrics.fields) {
+    expect(field.left).toBeGreaterThanOrEqual(0);
+    expect(field.right).toBeLessThanOrEqual(selectorMetrics.viewportWidth + 1);
+    expect(field.height).toBeGreaterThanOrEqual(44);
+  }
+
+  await page.getByTestId('agent-provider-combobox').click();
+
+  const providerListbox = page.getByTestId('agent-provider-listbox');
+  await expect(providerListbox).toBeVisible({ timeout: 10_000 });
+  await expect(providerListbox.getByTestId('agent-provider-option').first()).toBeVisible({ timeout: 10_000 });
+  try {
+    await expectFloatingSurfaceFitsViewport(providerListbox, 'provider selector dropdown', {
+      minInteractiveHeight: 44,
+      minVisibleOptions: 1,
+      requireSearchFontSize: true,
+    });
+  } catch (error) {
+    await page.getByTestId('agent-provider-combobox').click();
+    await expect(providerListbox).toBeVisible({ timeout: 10_000 });
+    await expectFloatingSurfaceFitsViewport(providerListbox, 'provider selector dropdown after reopen', {
+      minInteractiveHeight: 44,
+      minVisibleOptions: 1,
+      requireSearchFontSize: true,
+    });
+  }
+
+  const preferredProvider = providerListbox
+    .getByTestId('agent-provider-option')
+    .filter({ hasText: /Anthropic/ })
+    .first();
+  const providerToSelect = (await preferredProvider.isVisible().catch(() => false))
+    ? preferredProvider
+    : providerListbox.getByTestId('agent-provider-option').first();
+
+  await providerToSelect.click();
+  await expect(providerListbox).toHaveCount(0);
+
+  await page.getByTestId('agent-model-combobox').click();
+
+  const modelListbox = page.getByTestId('agent-model-listbox');
+  await expect(modelListbox).toBeVisible({ timeout: 10_000 });
+
+  const modelReadyState = modelListbox
+    .getByTestId('agent-model-option')
+    .first()
+    .or(modelListbox.getByText(/Loading models|No models/i).first());
+
+  await expect(modelReadyState).toBeVisible({ timeout: 20_000 });
+
+  const hasModelOption = await modelListbox
+    .getByTestId('agent-model-option')
+    .first()
+    .isVisible()
+    .catch(() => false);
+
+  await expectFloatingSurfaceFitsViewport(modelListbox, 'model selector dropdown', {
+    minInteractiveHeight: 44,
+    minVisibleOptions: hasModelOption ? 1 : undefined,
+    requireSearchFontSize: true,
+  });
+  await page.keyboard.press('Escape');
+  await expect(modelListbox).toHaveCount(0);
+}
+
+async function expectSettingsAiControlsFitViewport(page: import('@playwright/test').Page) {
+  const metrics = await page.getByTestId('settings-hub-panel').evaluate((hub) => {
+    const controls = Array.from(
+      hub.querySelectorAll(
+        '.bolt-project-agent-policy select, .bolt-project-ai-routing select, .bolt-project-ai-routing input:not([type="checkbox"]):not([type="hidden"]), .bolt-project-ai-routing button, .bolt-project-settings-provider-grid select, .bolt-project-settings-provider-grid input:not([type="hidden"]), .bolt-project-settings-provider-grid button',
+      ),
+    )
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+
+        return {
+          height: rect.height,
+          left: rect.left,
+          right: rect.right,
+          text:
+            element.getAttribute('aria-label') ||
+            element.getAttribute('name') ||
+            element.textContent?.replace(/\s+/g, ' ').trim() ||
+            element.tagName,
+          visible: style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0,
+          width: rect.width,
+        };
+      })
+      .filter((control) => control.visible);
+
+    return {
+      controls,
+      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      viewportWidth: window.innerWidth,
+    };
+  });
+
+  expect(metrics.documentOverflowsX).toBe(false);
+  expect(metrics.controls.length).toBeGreaterThanOrEqual(6);
+
+  for (const control of metrics.controls) {
+    expect(control.left, String(control.text)).toBeGreaterThanOrEqual(0);
+    expect(control.right, String(control.text)).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+    expect(control.height, String(control.text)).toBeGreaterThanOrEqual(42);
+  }
+}
+
 async function openMobileToolsSheet(page: import('@playwright/test').Page) {
   const toolsSheet = page.getByTestId('tools-sheet');
 
@@ -574,6 +838,106 @@ test.describe('responsive IDE shell', () => {
     await page.getByTestId('button-settings-tab-usage').click();
     await expect(page.getByText('Billing & Plan')).toBeVisible({ timeout: 15_000 });
     await expectSettingsTabRailFitsViewport(page);
+  });
+
+  test('mobile and tablet keep agent model controls and composer menus usable', async ({ page }, testInfo) => {
+    test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
+    test.setTimeout(180_000);
+
+    const projectId = await createTestProject(page, 'Responsive agent model controls project');
+
+    await page.goto(`/projects/${projectId}/ide?panel=agent`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByTestId('ide-agent-composer')).toBeVisible({ timeout: 45_000 });
+
+    await expectAgentModelSelectorFitsViewport(page);
+
+    const apiKeyManager = page.getByTestId('api-key-manager');
+
+    if (await apiKeyManager.isVisible().catch(() => false)) {
+      await page.getByRole('button', { name: 'Edit API Key' }).click();
+      await expect(page.getByPlaceholder('Enter API Key')).toBeVisible({ timeout: 10_000 });
+
+      const apiKeyMetrics = await apiKeyManager.evaluate((manager) => {
+        const rect = manager.getBoundingClientRect();
+        const input = manager.querySelector('input[type="password"]')?.getBoundingClientRect();
+
+        return {
+          documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+          inputHeight: input?.height ?? 0,
+          inputLeft: input?.left ?? 0,
+          inputRight: input?.right ?? 0,
+          left: rect.left,
+          right: rect.right,
+          viewportWidth: window.innerWidth,
+        };
+      });
+
+      expect(apiKeyMetrics.documentOverflowsX).toBe(false);
+      expect(apiKeyMetrics.left).toBeGreaterThanOrEqual(0);
+      expect(apiKeyMetrics.right).toBeLessThanOrEqual(apiKeyMetrics.viewportWidth + 1);
+      expect(apiKeyMetrics.inputLeft).toBeGreaterThanOrEqual(0);
+      expect(apiKeyMetrics.inputRight).toBeLessThanOrEqual(apiKeyMetrics.viewportWidth + 1);
+      expect(apiKeyMetrics.inputHeight).toBeGreaterThanOrEqual(44);
+
+      await page.getByRole('button', { name: 'Cancel' }).click();
+      await expect(page.getByPlaceholder('Enter API Key')).toHaveCount(0);
+    }
+  });
+
+  test('mobile and tablet keep command palette and panel action menus inside the viewport', async ({
+    page,
+  }, testInfo) => {
+    test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
+    test.setTimeout(180_000);
+
+    const projectId = await createTestProject(page, 'Responsive compact command menus project');
+
+    await page.goto(`/projects/${projectId}/ide?panel=agent`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 45_000 });
+
+    const toolsSheet = await openMobileToolsSheet(page);
+    await toolsSheet.getByTestId('tool-item-commands').click();
+
+    const commandPalette = page.locator('.bolt-project-command-palette').first();
+    await expect(commandPalette).toBeVisible({ timeout: 10_000 });
+    await expectFloatingSurfaceFitsViewport(commandPalette, 'command palette', {
+      minInteractiveHeight: 44,
+      requireSearchFontSize: true,
+    });
+    await commandPalette.getByRole('textbox', { name: 'Search commands' }).fill('settings');
+    await expect(commandPalette.getByRole('button', { name: /Settings/ })).toBeVisible({ timeout: 10_000 });
+    await expectFloatingSurfaceFitsViewport(commandPalette, 'filtered command palette', {
+      minInteractiveHeight: 44,
+      requireSearchFontSize: true,
+    });
+    await page.keyboard.press('Escape');
+    await expect(commandPalette).toHaveCount(0);
+
+    await page.goto(`/projects/${projectId}/ide?panel=settings`, { waitUntil: 'domcontentloaded' });
+    await expectMobileServicePanel(page, 'settings');
+    await page.getByTestId('ide-panel-actions').click();
+
+    const panelActions = page.locator('.bolt-project-panel-actions-menu').first();
+    await expect(panelActions).toBeVisible({ timeout: 10_000 });
+    await expectFloatingSurfaceFitsViewport(panelActions, 'service panel actions menu', { minInteractiveHeight: 44 });
+    await page.keyboard.press('Escape');
+    await expect(panelActions).toHaveCount(0);
+  });
+
+  test('mobile and tablet keep AI provider settings controls responsive', async ({ page }, testInfo) => {
+    test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
+    test.setTimeout(120_000);
+
+    const projectId = await createTestProject(page, 'Responsive AI settings controls project');
+
+    await page.goto(`/projects/${projectId}/ide?panel=settings`, { waitUntil: 'domcontentloaded' });
+    await expectMobileServicePanel(page, 'settings');
+    await expect(page.getByTestId('settings-hub-panel')).toBeVisible({ timeout: 45_000 });
+    await page.getByTestId('button-settings-tab-ai').click();
+    await expect(page.getByText('AI Provider Controls')).toBeVisible({ timeout: 15_000 });
+    await expectSettingsTabRailFitsViewport(page);
+    await expectSettingsAiControlsFitViewport(page);
   });
 
   test('mobile and tablet run button controls the real preview runtime', async ({ page }, testInfo) => {

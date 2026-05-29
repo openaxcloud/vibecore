@@ -39,6 +39,7 @@ export async function action({ request }: EnterpriseActionArgs) {
     try {
       await apiRequest(request, '/auth/mfa/verify', {
         method: 'POST',
+        redirectOn401: false,
         body: JSON.stringify({ code: body.code }),
       });
     } catch (error) {

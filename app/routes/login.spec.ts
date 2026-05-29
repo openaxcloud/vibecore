@@ -2,9 +2,9 @@
  * @vitest-environment jsdom
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { loader } from './login';
+import { action, loader } from './login';
 
 function buildRequest(host: string): Request {
   return new Request(`http://${host}/login`, {
@@ -107,5 +107,109 @@ describe('login route loader', () => {
       error: 'callback_failed',
       detail: 'OAUTH_TOKEN_EXCHANGE_FAILED',
     });
+  });
+});
+
+describe('login route action', () => {
+  let originalApiBaseUrl: string | undefined;
+  let originalSaasApiUrl: string | undefined;
+
+  beforeEach(() => {
+    originalApiBaseUrl = process.env.API_BASE_URL;
+    originalSaasApiUrl = process.env.SAAS_API_URL;
+    delete process.env.SAAS_API_URL;
+    process.env.API_BASE_URL = 'https://api.example.com';
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+
+    if (originalApiBaseUrl === undefined) {
+      delete process.env.API_BASE_URL;
+    } else {
+      process.env.API_BASE_URL = originalApiBaseUrl;
+    }
+
+    if (originalSaasApiUrl === undefined) {
+      delete process.env.SAAS_API_URL;
+    } else {
+      process.env.SAAS_API_URL = originalSaasApiUrl;
+    }
+  });
+
+  function stubLoginOk() {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        return new Response(JSON.stringify({ token: 'tok_123', user: { email: 'a@b.c' } }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
+  }
+
+  function buildActionRequest(url: string, fields: Record<string, string>) {
+    const body = new URLSearchParams(fields).toString();
+
+    return new Request(url, {
+      method: 'POST',
+      headers: {
+        host: 'app.e-code.ai',
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      body,
+    });
+  }
+
+  it('redirects to the safe returnTo from the URL after a successful sign-in', async () => {
+    stubLoginOk();
+
+    const response = (await action({
+      request: buildActionRequest(`http://app.e-code.ai/login?returnTo=${encodeURIComponent('/projects/abc/ide')}`, {
+        email: 'a@b.c',
+        password: 'pw',
+      }),
+      params: {},
+      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+        typeof action
+      >[0]['context'],
+    })) as Response;
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe('/projects/abc/ide');
+  });
+
+  it('falls back to /dashboard when no returnTo is present', async () => {
+    stubLoginOk();
+
+    const response = (await action({
+      request: buildActionRequest('http://app.e-code.ai/login', { email: 'a@b.c', password: 'pw' }),
+      params: {},
+      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+        typeof action
+      >[0]['context'],
+    })) as Response;
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe('/dashboard');
+  });
+
+  it('ignores a hostile absolute-URL returnTo (open-redirect guard)', async () => {
+    stubLoginOk();
+
+    const response = (await action({
+      request: buildActionRequest(
+        `http://app.e-code.ai/login?returnTo=${encodeURIComponent('https://evil.com/steal')}`,
+        { email: 'a@b.c', password: 'pw' },
+      ),
+      params: {},
+      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+        typeof action
+      >[0]['context'],
+    })) as Response;
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe('/dashboard');
   });
 });

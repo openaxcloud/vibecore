@@ -4085,19 +4085,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         if (normalizedToolId === 'commands') {
           openCommandPalette('all');
-          setMobileToolsSheetOpen(false);
-          setMobileToolsQuery('');
-          setMobileTabSwitcherOpen(false);
-          setMobileMoreMenuOpen(false);
+          closeMobileOverlays();
 
           return;
         }
 
         if (normalizedToolId === 'share') {
-          setMobileToolsSheetOpen(false);
-          setMobileToolsQuery('');
-          setMobileTabSwitcherOpen(false);
-          setMobileMoreMenuOpen(false);
+          closeMobileOverlays();
 
           const projectLink = `${window.location.origin}${projectUrl ?? `/projects/${projectId}`}`;
 
@@ -4151,12 +4145,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           }
         }
 
-        setMobileToolsSheetOpen(false);
-        setMobileToolsQuery('');
-        setMobileTabSwitcherOpen(false);
-        setMobileMoreMenuOpen(false);
+        closeMobileOverlays();
       },
       [
+        closeMobileOverlays,
         ensureMobileOpenTab,
         openCommandPalette,
         openWorkspacePanel,

@@ -87,25 +87,28 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
   };
 
   return (
-    <div className="flex items-center justify-between py-3 px-1">
-      <div className="flex items-center gap-2 flex-1">
-        <div className="flex items-center gap-2">
+    <div
+      className="bolt-api-key-manager flex items-center justify-between gap-3 px-1 py-3"
+      data-testid="api-key-manager"
+    >
+      <div className="bolt-api-key-manager-summary flex min-w-0 flex-1 items-center gap-2">
+        <div className="bolt-api-key-status-row flex min-w-0 items-center gap-2">
           <span className="text-sm font-medium text-bolt-elements-textSecondary">{provider?.name} API Key:</span>
           {!isEditing && (
-            <div className="flex items-center gap-2">
+            <div className="bolt-api-key-status flex min-w-0 items-center gap-2">
               {apiKey ? (
                 <>
-                  <div className="i-ph:check-circle-fill text-green-500 w-4 h-4" />
+                  <div className="i-ph:check-circle-fill h-4 w-4 flex-shrink-0 text-green-500" />
                   <span className="text-xs text-green-500">Set via UI</span>
                 </>
               ) : isEnvKeySet ? (
                 <>
-                  <div className="i-ph:check-circle-fill text-green-500 w-4 h-4" />
+                  <div className="i-ph:check-circle-fill h-4 w-4 flex-shrink-0 text-green-500" />
                   <span className="text-xs text-green-500">Set via environment variable</span>
                 </>
               ) : (
                 <>
-                  <div className="i-ph:x-circle-fill text-red-500 w-4 h-4" />
+                  <div className="i-ph:x-circle-fill h-4 w-4 flex-shrink-0 text-red-500" />
                   <span className="text-xs text-red-500">Not Set (Please set via UI or ENV_VAR)</span>
                 </>
               )}
@@ -114,15 +117,15 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="bolt-api-key-manager-actions flex shrink-0 items-center gap-2">
         {isEditing ? (
-          <div className="flex items-center gap-2">
+          <div className="bolt-api-key-editor flex min-w-0 items-center gap-2">
             <input
               type="password"
               value={tempKey}
               placeholder="Enter API Key"
               onChange={(e) => setTempKey(e.target.value)}
-              className="w-[300px] px-3 py-1.5 text-sm rounded border border-bolt-elements-borderColor 
+              className="bolt-api-key-input w-full rounded border border-bolt-elements-borderColor px-3 py-1.5 text-sm
                         bg-bolt-elements-prompt-background text-bolt-elements-textPrimary 
                         focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
             />

@@ -168,6 +168,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
          * },
          */
       )}
+      data-testid={props.projectIdeMode ? 'ide-agent-composer' : undefined}
     >
       <svg className={classNames(styles.PromptEffectContainer)}>
         <defs>
@@ -419,7 +420,12 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               </IconButton>
 
               {isToolsMenuOpen ? (
-                <div className="bolt-chatbox-tools-menu" role="menu" aria-label="Composer tools">
+                <div
+                  className="bolt-chatbox-tools-menu"
+                  role="menu"
+                  aria-label="Composer tools"
+                  data-testid="composer-tools-menu"
+                >
                   <ColorSchemeDialog
                     designScheme={props.designScheme}
                     setDesignScheme={props.setDesignScheme}

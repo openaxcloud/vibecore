@@ -8,6 +8,7 @@ import {
   formObject,
   json,
   redirect,
+  safeReturnTo,
   sessionCookie,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
@@ -47,6 +48,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       user?: { name?: string; email?: string; mfaEnabled?: boolean; platformAdmin?: boolean };
     }>(request, '/auth/login', {
       method: 'POST',
+      redirectOn401: false,
       body: JSON.stringify({
         email: body.email,
         password: body.password,
@@ -54,10 +56,16 @@ export async function action({ request }: EnterpriseActionArgs) {
       }),
     });
 
-    const redirectTo =
-      process.env.ADMIN_MFA_REQUIRED !== 'false' && result.user?.platformAdmin && !result.user.mfaEnabled
-        ? '/mfa-setup'
-        : '/dashboard';
+    const requestUrl = new URL(request.url);
+
+    const returnToParam =
+      safeReturnTo(requestUrl.searchParams.get('returnTo')) ??
+      safeReturnTo(typeof body.returnTo === 'string' ? body.returnTo : null);
+
+    const mustEnrollMfa =
+      process.env.ADMIN_MFA_REQUIRED !== 'false' && result.user?.platformAdmin && !result.user.mfaEnabled;
+
+    const redirectTo = mustEnrollMfa ? '/mfa-setup' : (returnToParam ?? '/dashboard');
 
     return redirect(redirectTo, {
       headers: {

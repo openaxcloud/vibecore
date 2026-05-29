@@ -9,6 +9,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   try {
     await apiRequest(request, '/auth/password-reset/request', {
       method: 'POST',
+      redirectOn401: false,
       body: JSON.stringify(body),
     });
 
