@@ -8853,9 +8853,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ifMatchHeader = request.headers['if-match'];
 
     const ifMatch =
-      typeof ifMatchHeader === 'string'
-        ? ifMatchHeader.replace(/^W\//, '').replace(/"/g, '').trim()
-        : undefined;
+      typeof ifMatchHeader === 'string' ? ifMatchHeader.replace(/^W\//, '').replace(/"/g, '').trim() : undefined;
 
     if (ifMatch && existingState && String(existingState.version) !== ifMatch) {
       reply.header('etag', `"${existingState.version}"`);
@@ -10599,6 +10597,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const body = parse(billingCheckoutSchema, request.body);
     await requireOrg(request, store, orgId, 'billing:manage');
+
+    if (body.planKey === 'free') {
+      throw Object.assign(
+        new Error(
+          'Free plan has no checkout. Cancel any paid subscription via /orgs/:orgId/billing/portal to return to free.',
+        ),
+        { statusCode: 400, code: 'STRIPE_FREE_NO_CHECKOUT' },
+      );
+    }
+
+    if (body.planKey === 'enterprise') {
+      throw Object.assign(
+        new Error('Enterprise plans are not self-serve. Visit /contact-sales to start a conversation.'),
+        { statusCode: 400, code: 'STRIPE_ENTERPRISE_CONTACT_SALES', contactSalesUrl: '/contact-sales' },
+      );
+    }
 
     const plan = await store.getBillingPlan(body.planKey);
 

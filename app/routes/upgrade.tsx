@@ -1,3 +1,4 @@
+import { Link } from '@remix-run/react';
 import { EnterpriseFormPage, PrimaryButton, SelectField } from '~/components/enterprise/EnterpriseFormPage';
 
 export default function UpgradePage() {
@@ -13,11 +14,17 @@ export default function UpgradePage() {
           options={[
             { value: 'pro', label: 'Pro' },
             { value: 'team', label: 'Team' },
-            { value: 'enterprise', label: 'Enterprise' },
           ]}
         />
         <PrimaryButton>Start checkout</PrimaryButton>
       </form>
+      <p className="mt-4 text-sm text-bolt-elements-textSecondary">
+        Need Enterprise (SSO/SAML, custom quotas, premium support)?{' '}
+        <Link to="/contact-sales" className="underline">
+          Talk to sales
+        </Link>
+        .
+      </p>
     </EnterpriseFormPage>
   );
 }

@@ -2280,6 +2280,42 @@ describe('SaaS API', () => {
     }
   });
 
+  it('short-circuits FREE and ENTERPRISE checkout without hitting Stripe', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'no-checkout@example.com', organizationName: 'No Checkout Org' });
+
+    try {
+      const free = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/billing/checkout`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {
+          planKey: 'free',
+          successUrl: 'https://app.example.com/billing/success',
+          cancelUrl: 'https://app.example.com/billing/cancel',
+        },
+      });
+      expect(free.statusCode).toBe(400);
+      expect(free.json().code).toBe('STRIPE_FREE_NO_CHECKOUT');
+
+      const enterprise = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/billing/checkout`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {
+          planKey: 'enterprise',
+          successUrl: 'https://app.example.com/billing/success',
+          cancelUrl: 'https://app.example.com/billing/cancel',
+        },
+      });
+      expect(enterprise.statusCode).toBe(400);
+      expect(enterprise.json().code).toBe('STRIPE_ENTERPRISE_CONTACT_SALES');
+    } finally {
+      await app.close();
+    }
+  });
+
   it('creates Stripe checkout through a configured billing endpoint', async () => {
     const previousSecretKey = process.env.STRIPE_SECRET_KEY;
     const previousApiBase = process.env.STRIPE_API_BASE_URL;
