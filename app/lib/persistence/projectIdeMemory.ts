@@ -29,7 +29,7 @@ export type ProjectIdeWorkspacePanel =
   | 'domains'
   | 'snapshots'
   | 'settings';
-export type ProjectMobilePanel = 'chat' | 'files' | 'editor' | 'search' | 'terminal' | 'preview' | 'deploy';
+export type ProjectMobilePanel = 'chat' | 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy';
 
 export interface ProjectIdePaneTab {
   id: string;

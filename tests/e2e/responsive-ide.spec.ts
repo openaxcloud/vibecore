@@ -9,6 +9,10 @@ function mobileBottomNavigation(page: import('@playwright/test').Page) {
   return page.getByTestId('mobile-bottom-navigation');
 }
 
+function apiBaseUrl() {
+  return process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+}
+
 async function expectBottomTabLabelsHidden(page: import('@playwright/test').Page) {
   const labelStates = await page
     .getByTestId('mobile-open-tabs')
@@ -149,7 +153,6 @@ async function openMobileToolsSheet(page: import('@playwright/test').Page) {
 }
 
 async function authenticate(page: import('@playwright/test').Page) {
-  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
   const appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -157,7 +160,7 @@ async function authenticate(page: import('@playwright/test').Page) {
   let payload: { token: string; organization: { id: string } } | undefined;
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
-    const response = await page.request.post(`${apiBaseUrl}/auth/register`, {
+    const response = await page.request.post(`${apiBaseUrl()}/auth/register`, {
       data: {
         email: `responsive-${suffix}-${attempt}@local.test`,
         password: 'Password123!',
@@ -206,10 +209,22 @@ async function createTestProject(
 `,
   },
 ) {
-  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+  return (await createTestProjectFixture(page, name, files)).projectId;
+}
+
+async function createTestProjectFixture(
+  page: import('@playwright/test').Page,
+  name: string,
+  files: Record<string, string> = {
+    'src/App.tsx': `export function App() {
+  return <main>Responsive IDE test</main>;
+}
+`,
+  },
+) {
   const auth = await authenticate(page);
 
-  const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+  const createProject = await page.request.post(`${apiBaseUrl()}/orgs/${auth.organization.id}/projects`, {
     headers: { authorization: `Bearer ${auth.token}` },
     data: { name },
   });
@@ -223,14 +238,14 @@ async function createTestProject(
     zip.file(filePath, content);
   }
 
-  const importFiles = await page.request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
+  const importFiles = await page.request.post(`${apiBaseUrl()}/projects/${projectId}/files/import/zip`, {
     headers: { authorization: `Bearer ${auth.token}` },
     data: { zipBase64: await zip.generateAsync({ type: 'base64' }) },
   });
 
   expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
-  return projectId;
+  return { projectId, auth };
 }
 
 test.describe('responsive IDE shell', () => {
@@ -586,7 +601,21 @@ createServer((request, response) => {
   test('mobile opens the agent by default and uses panel URLs for restore', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile-only assertion');
 
-    const projectId = await createTestProject(page, 'Responsive mobile persistence project');
+    const { projectId, auth } = await createTestProjectFixture(page, 'Responsive mobile persistence project');
+    const staleMobileState = await page.request.put(`${apiBaseUrl()}/projects/${projectId}/ide-state`, {
+      headers: { authorization: `Bearer ${auth.token}` },
+      data: {
+        state: {
+          ui: {
+            activeWorkspacePanel: 'files',
+            mobilePanel: 'files',
+            workspaceTabs: ['files'],
+          },
+        },
+      },
+    });
+
+    expect(staleMobileState.ok(), await staleMobileState.text()).toBeTruthy();
 
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
 

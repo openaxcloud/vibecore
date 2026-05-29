@@ -8649,7 +8649,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return {
       project,
-      workspace: (await store.listWorkspaces(project.id))[0] ?? null,
+      workspace: (await store.listWorkspaces(project.id).catch(() => []))[0] ?? null,
       files: publicFiles(files),
       git: await gitProvider.status(project.id),
       recentActivity: await store.listProjectActivity(project.id, { limit: 20, order: 'desc' }),
@@ -8663,7 +8663,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    const workspace = (await store.listWorkspaces(project.id))[0] ?? null;
+    const workspace = (await store.listWorkspaces(project.id).catch(() => []))[0] ?? null;
     const storageFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
     const filesByPath = new Map(storageFiles.map((file) => [file.path, file]));
 
@@ -11810,7 +11810,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    return { deployments: await store.listDeployments(project.id) };
+    return { deployments: await store.listDeployments(project.id).catch(() => []) };
   });
   app.post('/projects/:projectId/deployments', async (request, reply) => {
     const project = await requireProject(

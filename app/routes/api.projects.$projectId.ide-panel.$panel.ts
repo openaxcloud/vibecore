@@ -135,11 +135,14 @@ async function resolvePanelWorkspace(
 async function loadOverviewPanelEnvelope(request: Request, projectId: string, project: unknown) {
   try {
     const [dashboard, packages, collaborators, gitGraph, envVars] = await Promise.all([
-      apiRequest(request, `/projects/${projectId}/dashboard`),
+      apiRequest(request, `/projects/${projectId}/dashboard`).catch((error) => ({ error: panelErrorMessage(error) })),
       apiRequest(request, `/projects/${projectId}/packages`).catch(() => null),
       apiRequest(request, `/projects/${projectId}/collaboration`).catch(() => ({ collaborators: [] })),
       apiRequest(request, `/projects/${projectId}/git/graph`).catch(() => ({ commits: [] })),
-      apiRequest(request, `/projects/${projectId}/env-vars`).catch(() => ({ envVars: [] })),
+      apiRequest(request, `/projects/${projectId}/env-vars`).catch((error) => ({
+        envVars: [],
+        error: panelErrorMessage(error),
+      })),
     ]);
 
     const dashboardData = dashboard as Record<string, any>;
@@ -168,7 +171,13 @@ async function loadOverviewPanelEnvelope(request: Request, projectId: string, pr
       packagesState: readPackagesState(envVars),
     });
   } catch (error) {
-    return panelEnvelopeError('overview', project, error);
+    return panelEnvelope('overview', project, {
+      overview: buildProjectOverviewInsights({ project: project as any }),
+      loadError: panelErrorMessage(error),
+      workflowsState: defaultWorkflowsState(),
+      terminalState: defaultTerminalState(),
+      packagesState: defaultPackagesState(),
+    });
   }
 }
 
@@ -286,6 +295,10 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     (url.searchParams.get('stream') === '1' || request.headers.get('accept')?.includes('text/event-stream'))
   ) {
     return streamOverviewPanel(request, projectId, project.project);
+  }
+
+  if (panel === 'overview') {
+    return json(await loadOverviewPanelEnvelope(request, projectId, project.project));
   }
 
   if (panel === 'domains') {

@@ -3437,7 +3437,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             setWorkspaceTabs(restoredTabs);
           }
 
-          if (!activeProjectPanel && ui?.activeWorkspacePanel && isIdeWorkspacePanel(ui.activeWorkspacePanel)) {
+          if (
+            !useMobileIde &&
+            !activeProjectPanel &&
+            ui?.activeWorkspacePanel &&
+            isIdeWorkspacePanel(ui.activeWorkspacePanel)
+          ) {
             setActiveWorkspacePanel(ui.activeWorkspacePanel);
           }
 
@@ -3488,7 +3493,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           if (
             ui?.mobilePanel &&
-            (!useMobileIde || !activeProjectPanel) &&
+            !useMobileIde &&
+            !activeProjectPanel &&
             ['chat', 'files', 'editor', 'search', 'locks', 'terminal', 'preview', 'deploy'].includes(ui.mobilePanel)
           ) {
             setMobilePanel(ui.mobilePanel);
@@ -5620,7 +5626,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
 
         return (
-          <ProjectIdeServicePanel projectId={projectId} panel={panel} initialPayload={initialIdePanels?.[panel]} />
+          <ProjectIdeServicePanel
+            key={`${projectId ?? 'project'}:${panel}`}
+            projectId={projectId}
+            panel={panel}
+            initialPayload={initialIdePanels?.[panel]}
+          />
         );
       },
       [
@@ -6114,6 +6125,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         />
                       ) : (
                         <ProjectIdeServicePanel
+                          key={`${projectId ?? 'project'}:right:logs`}
                           projectId={projectId}
                           panel="logs"
                           initialPayload={initialIdePanels?.logs}
@@ -6814,6 +6826,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <PanelBoundary title={IDE_TOOL_DESCRIPTIONS[activeMobileServicePanel] ?? 'Project tools'}>
                   <div className="bolt-workbench-mobile bolt-workbench-mobile-service fixed left-0 z-0 w-full">
                     <ProjectIdeServicePanel
+                      key={`${projectId ?? 'project'}:mobile:${activeMobileServicePanel}`}
                       projectId={projectId}
                       panel={activeMobileServicePanel}
                       displayTitle={mobileServiceHeaderTab?.name}
@@ -8028,11 +8041,21 @@ function ProjectBottomTerminal({
             )}
           </ClientOnly>
         ) : active === 'output' ? (
-          <ProjectIdeServicePanel projectId={projectId} panel="logs" initialPayload={initialIdePanels?.logs} />
+          <ProjectIdeServicePanel
+            key={`${projectId ?? 'project'}:bottom:logs`}
+            projectId={projectId}
+            panel="logs"
+            initialPayload={initialIdePanels?.logs}
+          />
         ) : active === 'problems' ? (
           <ProjectProblemsPanel />
         ) : (
-          <ProjectIdeServicePanel projectId={projectId} panel="debugger" initialPayload={initialIdePanels?.debugger} />
+          <ProjectIdeServicePanel
+            key={`${projectId ?? 'project'}:bottom:debugger`}
+            projectId={projectId}
+            panel="debugger"
+            initialPayload={initialIdePanels?.debugger}
+          />
         )}
       </div>
     </section>
