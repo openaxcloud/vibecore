@@ -16392,7 +16392,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer {
-    padding-bottom: calc(var(--mobile-nav-height) + 58px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(var(--mobile-nav-height) + 10px + env(safe-area-inset-bottom, 0px));
   }
 
   .bolt-responsive-ide-mobile .bolt-project-chatbox textarea {
