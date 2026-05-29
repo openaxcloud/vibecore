@@ -40,7 +40,8 @@ test.describe('public homepage', () => {
     await expect(page.getByTestId('public-theme-toggle')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Get started' }).first()).toBeVisible();
     await expect(page.getByTestId('section-hero')).toBeVisible();
-    await expect(page.getByRole('heading', { name: /Build and deploy production apps/i })).toBeVisible();
+    await expect(page.getByTestId('section-hero').getByRole('heading', { name: 'E-Code' })).toBeVisible();
+    await expect(page.getByText(/Build, run, collaborate, and deploy production apps/i)).toBeVisible();
     await expect(page.getByTestId('input-homepage-prompt')).toBeVisible();
     await expect(page.getByTestId('button-homepage-build')).toBeVisible();
     await expect(page.getByTestId('section-product')).toBeVisible();
@@ -64,7 +65,7 @@ test.describe('public homepage', () => {
     await expect(page.getByLabel('Open mobile menu')).toBeVisible();
     await page.getByLabel('Open mobile menu').tap();
     await expect(page.getByRole('link', { name: 'AI Agent', exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: /Build and deploy production apps/i })).toBeVisible();
+    await expect(page.getByTestId('section-hero').getByRole('heading', { name: 'E-Code' })).toBeVisible();
     await expect(page.getByTestId('input-homepage-prompt')).toBeVisible();
     await expect(page.getByTestId('button-homepage-build')).toBeVisible();
     await expect(page.getByRole('contentinfo', { name: 'Site footer' })).toBeVisible();

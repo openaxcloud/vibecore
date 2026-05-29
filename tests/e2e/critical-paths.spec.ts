@@ -1,8 +1,14 @@
 import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
 
+const API_BASE_URL =
+  process.env.PLAYWRIGHT_API_URL ??
+  process.env.SAAS_API_URL ??
+  process.env.API_BASE_URL ??
+  'http://127.0.0.1:3001';
+
 async function authenticate(page: import('@playwright/test').Page) {
-  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+  const apiBaseUrl = API_BASE_URL;
   const appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const response = await page.request.post(`${apiBaseUrl}/auth/register`, {
@@ -42,7 +48,7 @@ test('critical path: preview iframe loads imported app content', async ({ page }
   test.setTimeout(120_000);
 
   const auth = await authenticate(page);
-  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+  const apiBaseUrl = API_BASE_URL;
   const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
     headers: { authorization: `Bearer ${auth.token}` },
     data: { name: 'Critical Preview Project' },
