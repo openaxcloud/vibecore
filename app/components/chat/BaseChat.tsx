@@ -7130,11 +7130,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <label className="bolt-mobile-more-search">
                   <span className="sr-only">Search for tools and files</span>
                   <input
+                    aria-label="Search for tools and files"
+                    type="search"
+                    inputMode="search"
+                    enterKeyHint="search"
                     value={mobileToolsQuery}
                     onChange={(event) => setMobileToolsQuery(event.target.value)}
                     placeholder="Search for tools and files"
                     autoComplete="off"
-                    autoFocus
                     data-testid="tools-search-input"
                   />
                 </label>
@@ -7156,7 +7159,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   }
 
                   return (
-                    <div key={section} className="bolt-mobile-more-group">
+                    <div key={section} className="bolt-mobile-more-group" data-section={section}>
                       <div className="bolt-mobile-more-section-label">{section === 'search' ? 'Search' : 'Tools'}</div>
                       <div className="bolt-mobile-more-list">
                         {items.map((item) => (

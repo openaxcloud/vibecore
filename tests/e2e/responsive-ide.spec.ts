@@ -48,40 +48,6 @@ async function expectBottomTabLabelsHidden(page: import('@playwright/test').Page
   }
 }
 
-async function clickFirstVisible(candidates: import('@playwright/test').Locator[], options: { timeout?: number } = {}) {
-  const deadline = Date.now() + (options.timeout ?? 15_000);
-
-  let lastClickError: unknown;
-
-  while (Date.now() < deadline) {
-    for (const candidate of candidates) {
-      if (await candidate.isVisible().catch(() => false)) {
-        const remainingMs = Math.max(deadline - Date.now(), 1);
-
-        try {
-          await candidate.click({ force: true, timeout: Math.min(2_000, remainingMs) });
-
-          return;
-        } catch (error) {
-          lastClickError = error;
-        }
-
-        if (Date.now() >= deadline) {
-          break;
-        }
-      }
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-
-  if (lastClickError) {
-    throw lastClickError;
-  }
-
-  throw new Error('No visible mobile IDE click target was available.');
-}
-
 async function expectMobileServicePanel(page: import('@playwright/test').Page, panel: string) {
   await expect(page).toHaveURL(new RegExp(`panel=${panel.replace('-', '\\-')}`), { timeout: 45_000 });
   await expect(page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).first()).toBeVisible({
@@ -119,35 +85,87 @@ async function waitForRateLimitReset(responseText: string, fallbackMs = 10_000) 
   await new Promise((resolve) => setTimeout(resolve, waitMs));
 }
 
+async function expectMobileToolsSheetFitsViewport(page: import('@playwright/test').Page) {
+  await expect(page.getByTestId('tools-search-input')).not.toBeFocused();
+
+  const metrics = await page.getByTestId('tools-sheet').evaluate((sheet) => {
+    const sheetRect = sheet.getBoundingClientRect();
+    const toolItems = Array.from(sheet.querySelectorAll('[data-testid^="tool-item-"]'));
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+
+    const visibleToolItems = toolItems.filter((item) => {
+      const rect = item.getBoundingClientRect();
+
+      return (
+        rect.top >= sheetRect.top && rect.bottom <= viewportHeight && rect.left >= 0 && rect.right <= viewportWidth
+      );
+    }).length;
+
+    const searchInput = sheet.querySelector('[data-testid="tools-search-input"]') as HTMLInputElement | null;
+
+    return {
+      bottom: sheetRect.bottom,
+      left: sheetRect.left,
+      right: sheetRect.right,
+      searchFontSize: searchInput ? Number.parseFloat(window.getComputedStyle(searchInput).fontSize) : 0,
+      top: sheetRect.top,
+      visibleToolItems,
+      viewportHeight,
+      viewportWidth,
+    };
+  });
+
+  expect(metrics.top).toBeGreaterThanOrEqual(0);
+  expect(metrics.left).toBeGreaterThanOrEqual(0);
+  expect(metrics.right).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+  expect(metrics.bottom).toBeLessThanOrEqual(metrics.viewportHeight + 1);
+  expect(metrics.searchFontSize).toBeGreaterThanOrEqual(16);
+  expect(metrics.visibleToolItems).toBeGreaterThanOrEqual(6);
+}
+
 async function openMobileToolsSheet(page: import('@playwright/test').Page) {
   const toolsSheet = page.getByTestId('tools-sheet');
-  const overviewItem = page.getByTestId('tool-item-overview');
+
+  const openTargets = [
+    mobileBottomNavigation(page).getByTestId('button-add-tab'),
+    page.getByTestId('mobile-ide-header').getByTestId('button-new-tab'),
+  ];
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    if ((await toolsSheet.isVisible().catch(() => false)) && (await overviewItem.isVisible().catch(() => false))) {
+    if (await toolsSheet.isVisible().catch(() => false)) {
+      await expectMobileToolsSheetFitsViewport(page);
+
       return toolsSheet;
     }
 
-    await clickFirstVisible([
-      mobileBottomNavigation(page).getByTestId('button-add-tab'),
-      page.getByTestId('mobile-ide-header').getByTestId('button-new-tab'),
-    ]);
+    for (const target of openTargets) {
+      await target.click({ force: true, timeout: 2000 }).catch(() => undefined);
 
-    try {
-      await expect(toolsSheet).toBeVisible({ timeout: 5000 });
-      await expect(overviewItem).toBeVisible({ timeout: 5000 });
+      if (!(await toolsSheet.isVisible().catch(() => false))) {
+        await target
+          .evaluate((element) => {
+            if (element instanceof HTMLElement) {
+              element.click();
+            }
+          })
+          .catch(() => undefined);
+      }
+
+      try {
+        await expect(toolsSheet).toBeVisible({ timeout: 5000 });
+      } catch {
+        continue;
+      }
+
+      await expectMobileToolsSheetFitsViewport(page);
 
       return toolsSheet;
-    } catch {
-      await page
-        .getByTestId('tools-sheet-close')
-        .click({ force: true })
-        .catch(() => undefined);
     }
   }
 
   await expect(toolsSheet).toBeVisible({ timeout: 15000 });
-  await expect(overviewItem).toBeVisible({ timeout: 15000 });
+  await expectMobileToolsSheetFitsViewport(page);
 
   return toolsSheet;
 }
