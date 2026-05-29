@@ -181,6 +181,7 @@ async function createProject(request: APIRequestContext, auth: AuthPayload) {
   const listedFiles = await request.get(`${apiBaseUrl}/projects/${projectId}/files`, {
     headers: { authorization: `Bearer ${auth.token}` },
   });
+
   const listedFilesBody = await listedFiles.text();
 
   expect(listedFiles.ok(), listedFilesBody).toBeTruthy();
@@ -202,42 +203,81 @@ async function clickFirstVisible(candidates: import('@playwright/test').Locator[
       if (await candidate.isVisible().catch(() => false)) {
         await candidate.click({ force: true });
 
-        return;
+        return true;
       }
     }
 
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
 
-  await candidates[0].click({ force: true });
+  return false;
+}
+
+async function expectMobileToolsSheetFitsViewport(page: Page) {
+  await expect(page.getByTestId('tools-search-input')).not.toBeFocused();
+
+  const metrics = await page.getByTestId('tools-sheet').evaluate((sheet) => {
+    const sheetRect = sheet.getBoundingClientRect();
+    const toolItems = Array.from(sheet.querySelectorAll('[data-testid^="tool-item-"]'));
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+
+    const visibleToolItems = toolItems.filter((item) => {
+      const rect = item.getBoundingClientRect();
+
+      return (
+        rect.top >= sheetRect.top && rect.bottom <= viewportHeight && rect.left >= 0 && rect.right <= viewportWidth
+      );
+    }).length;
+
+    const searchInput = sheet.querySelector('[data-testid="tools-search-input"]') as HTMLInputElement | null;
+
+    return {
+      bottom: sheetRect.bottom,
+      left: sheetRect.left,
+      right: sheetRect.right,
+      searchFontSize: searchInput ? Number.parseFloat(window.getComputedStyle(searchInput).fontSize) : 0,
+      top: sheetRect.top,
+      visibleToolItems,
+      viewportHeight,
+      viewportWidth,
+    };
+  });
+
+  expect(metrics.top).toBeGreaterThanOrEqual(0);
+  expect(metrics.left).toBeGreaterThanOrEqual(0);
+  expect(metrics.right).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+  expect(metrics.bottom).toBeLessThanOrEqual(metrics.viewportHeight + 1);
+  expect(metrics.searchFontSize).toBeGreaterThanOrEqual(16);
+  expect(metrics.visibleToolItems).toBeGreaterThanOrEqual(6);
 }
 
 async function openMobileToolsSheet(page: import('@playwright/test').Page, profileName: string) {
   const toolsSheet = page.getByTestId('tools-sheet');
+  const tabSwitcher = page.getByTestId('mobile-tab-switcher');
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    await clickFirstVisible([
-      page.getByTestId('mobile-bottom-navigation').getByTestId('button-add-tab'),
-      page.getByTestId('mobile-ide-header').getByTestId('button-new-tab'),
-      page.getByTestId('mobile-bottom-navigation').getByTestId('button-tab-switcher'),
-    ]);
+    if (await tabSwitcher.isVisible().catch(() => false)) {
+      await tabSwitcher.getByTestId('button-new-tab').click({ force: true });
+    } else {
+      await clickFirstVisible(
+        [
+          page.getByTestId('mobile-bottom-navigation').getByTestId('button-add-tab'),
+          page.getByTestId('mobile-ide-header').getByTestId('button-new-tab'),
+          page.getByTestId('mobile-bottom-navigation').getByTestId('button-tab-switcher'),
+        ],
+        5_000,
+      );
 
-    if (
-      await page
-        .getByTestId('mobile-tab-switcher')
-        .isVisible()
-        .catch(() => false)
-    ) {
-      await page.getByTestId('button-new-tab').click({ force: true });
+      if (await tabSwitcher.isVisible().catch(() => false)) {
+        await tabSwitcher.getByTestId('button-new-tab').click({ force: true });
+      }
     }
 
     try {
       await expect(toolsSheet, `${profileName} tools sheet`).toBeVisible({ timeout: 5_000 });
-      await expect(toolsSheet.getByTestId('tool-item-editor'), `${profileName} tools sheet content`).toBeVisible({
-        timeout: 5_000,
-      });
 
-      return toolsSheet;
+      break;
     } catch {
       await page
         .getByTestId('tools-sheet-close')
@@ -253,6 +293,7 @@ async function openMobileToolsSheet(page: import('@playwright/test').Page, profi
   await expect(toolsSheet.getByTestId('tool-item-editor'), `${profileName} tools sheet content`).toBeVisible({
     timeout: 15_000,
   });
+  await expectMobileToolsSheetFitsViewport(page);
 
   return toolsSheet;
 }
@@ -281,7 +322,7 @@ test.describe('compact IDE shell device matrix', () => {
     browser,
   }, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium', 'device matrix creates explicit browser contexts');
-    test.setTimeout(240_000);
+    test.setTimeout(480_000);
 
     for (const profile of compactPanelProfiles) {
       await assertEveryCompactPanelForProfile(browser, auth, projectId, profile, testInfo);
@@ -367,6 +408,7 @@ async function assertCompactShellForProfile(
     await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
 
     const toolsSheet = await openMobileToolsSheet(page, profile.name);
+
     const renderedToolItems = await toolsSheet.evaluate((sheet) =>
       Array.from(sheet.querySelectorAll('[data-testid^="tool-item-"]')).map((element) => ({
         id: element.getAttribute('data-testid')?.replace('tool-item-', ''),
@@ -501,6 +543,7 @@ async function assertCompactPanelRendered(page: Page, profileName: string, panel
 
   if (panel === 'preview') {
     const previewSurface = page.locator('.bolt-workbench-mobile > div.fixed:visible').first();
+
     const previewControls = page
       .locator(
         [
@@ -531,6 +574,7 @@ async function assertCompactPanelRendered(page: Page, profileName: string, panel
       previewState.hasFrame || previewState.hasCanvas || previewState.textLength > 20,
       `${profileName} preview should not be blank`,
     ).toBe(true);
+
     return;
   }
 
@@ -547,6 +591,7 @@ async function assertCompactPanelRendered(page: Page, profileName: string, panel
     }
 
     await expect(appFile, `${profileName} imported project file`).toBeVisible({ timeout: 45_000 });
+
     return;
   }
 
@@ -567,6 +612,7 @@ async function assertCompactPanelRendered(page: Page, profileName: string, panel
     ).toBeVisible({
       timeout: 45_000,
     });
+
     return;
   }
 
@@ -599,11 +645,12 @@ function compactPanelScreenshotTarget(page: Page, panel: (typeof compactIdePanel
 }
 
 async function assertCompactPanelLayout(page: Page, profileName: string, panel: (typeof compactIdePanels)[number]) {
-  const layout = await page.evaluate(() => {
+  const layout = await page.evaluate((panelName) => {
     const shell = document.querySelector('.bolt-responsive-ide-mobile');
     const header = document.querySelector('[data-testid="mobile-ide-header"]');
     const nav = document.querySelector('[data-testid="mobile-bottom-navigation"]');
     const status = document.querySelector('.bolt-project-statusbar-mobile');
+
     const isVisible = (element: Element): element is HTMLElement => {
       if (!(element instanceof HTMLElement)) {
         return false;
@@ -649,6 +696,104 @@ async function assertCompactPanelLayout(page: Page, profileName: string, panel: 
     const statusRect = rect(status);
     const activeRect = rect(activeSurface);
 
+    const servicePanel =
+      Array.from(document.querySelectorAll(`[data-testid="ide-service-panel"][data-panel="${panelName}"]`)).find(
+        isVisible,
+      ) ?? null;
+
+    const isHorizontalScroller = (element: Element) =>
+      Boolean(
+        element.closest(
+          [
+            'pre',
+            'table',
+            'code',
+            '.cm-scroller',
+            '.xterm-viewport',
+            '.bolt-project-tool-tabs',
+            '.bolt-project-settings-sidebar',
+          ].join(', '),
+        ),
+      );
+
+    const serviceOverflow = servicePanel
+      ? Array.from(
+          servicePanel.querySelectorAll(
+            [
+              'a',
+              'article',
+              'button',
+              'fieldset',
+              'form',
+              'header',
+              'input',
+              'label',
+              'section',
+              'select',
+              'textarea',
+              '.bolt-project-empty-panel',
+              '.bolt-project-panel-toolbar',
+            ].join(', '),
+          ),
+        )
+          .filter((element) => isVisible(element) && !isHorizontalScroller(element))
+          .map((element) => {
+            const box = element.getBoundingClientRect();
+
+            return {
+              selector:
+                (element as HTMLElement).dataset.testid ??
+                (element as HTMLElement).className?.toString().split(/\s+/).filter(Boolean).slice(0, 2).join('.') ??
+                element.tagName.toLowerCase(),
+              left: box.left,
+              right: box.right,
+              width: box.width,
+            };
+          })
+          .filter((box) => box.left < -1 || box.right > window.innerWidth + 1 || box.width > window.innerWidth + 1)
+          .slice(0, 8)
+      : [];
+
+    const toolbarOverlaps = servicePanel
+      ? Array.from(servicePanel.querySelectorAll('.bolt-project-panel-toolbar'))
+          .filter(isVisible)
+          .flatMap((toolbar) => {
+            const children = Array.from(toolbar.children).filter(isVisible);
+            const overlaps: Array<{ first: string; second: string }> = [];
+
+            for (let index = 0; index < children.length; index += 1) {
+              for (let nextIndex = index + 1; nextIndex < children.length; nextIndex += 1) {
+                const first = children[index];
+                const second = children[nextIndex];
+
+                if (!first || !second) {
+                  continue;
+                }
+
+                const firstBox = first.getBoundingClientRect();
+                const secondBox = second.getBoundingClientRect();
+                const horizontalOverlap = firstBox.left < secondBox.right - 1 && secondBox.left < firstBox.right - 1;
+                const verticalOverlap = firstBox.top < secondBox.bottom - 1 && secondBox.top < firstBox.bottom - 1;
+
+                if (horizontalOverlap && verticalOverlap) {
+                  overlaps.push({
+                    first: first.tagName.toLowerCase(),
+                    second: second.tagName.toLowerCase(),
+                  });
+                }
+              }
+            }
+
+            return overlaps;
+          })
+      : [];
+
+    const managedPanelColumns = servicePanel
+      ? Array.from(servicePanel.querySelectorAll('.bolt-project-managed-panel'))
+          .filter(isVisible)
+          .map((element) => getComputedStyle(element).gridTemplateColumns.split(/\s+/).filter(Boolean).length)
+      : [];
+
     return {
       innerWidth: window.innerWidth,
       innerHeight: window.innerHeight,
@@ -659,8 +804,11 @@ async function assertCompactPanelLayout(page: Page, profileName: string, panel: 
       status: statusRect,
       active: activeRect,
       statusOverlapsNav: Boolean(statusRect && navRect && statusRect.bottom > navRect.top),
+      serviceOverflow,
+      toolbarOverlaps,
+      managedPanelColumns,
     };
-  });
+  }, panel);
 
   expect(layout.overflowX, `${profileName} ${panel} horizontal overflow`).toBe(false);
   expect(layout.shell?.width ?? 0, `${profileName} ${panel} shell width`).toBeGreaterThanOrEqual(layout.innerWidth - 2);
@@ -682,5 +830,12 @@ async function assertCompactPanelLayout(page: Page, profileName: string, panel: 
     expect(layout.active?.top ?? layout.innerHeight, `${profileName} ${panel} active panel top`).toBeGreaterThanOrEqual(
       (layout.shell?.top ?? 0) - 2,
     );
+  }
+
+  expect(layout.serviceOverflow, `${profileName} ${panel} service panel visible overflow`).toEqual([]);
+  expect(layout.toolbarOverlaps, `${profileName} ${panel} toolbar control overlap`).toEqual([]);
+
+  if (panel === 'object-storage') {
+    expect(layout.managedPanelColumns, `${profileName} ${panel} managed panel columns`).not.toContain(2);
   }
 }

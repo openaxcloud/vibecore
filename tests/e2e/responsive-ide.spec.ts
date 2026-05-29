@@ -124,6 +124,71 @@ async function expectMobileToolsSheetFitsViewport(page: import('@playwright/test
   expect(metrics.visibleToolItems).toBeGreaterThanOrEqual(6);
 }
 
+async function expectSettingsTabRailFitsViewport(page: import('@playwright/test').Page) {
+  const metrics = await page.getByTestId('settings-hub-panel').evaluate((hub) => {
+    const rail = hub.querySelector('.bolt-project-settings-sidebar') as HTMLElement | null;
+
+    if (!rail) {
+      throw new Error('Missing settings tab rail');
+    }
+
+    const railRect = rail.getBoundingClientRect();
+
+    const visibleGroupHeadings = Array.from(rail.querySelectorAll('section > div')).filter((heading) => {
+      const style = window.getComputedStyle(heading);
+      const rect = heading.getBoundingClientRect();
+
+      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+    }).length;
+    const visibleButtons = Array.from(rail.querySelectorAll('button'))
+      .map((button) => {
+        const rect = button.getBoundingClientRect();
+
+        return {
+          height: rect.height,
+          left: rect.left,
+          right: rect.right,
+          text: button.textContent?.trim() ?? '',
+          width: rect.width,
+        };
+      })
+      .filter((rect) => rect.right > railRect.left && rect.left < railRect.right);
+
+    const visibleOverlapCount = visibleButtons.reduce((count, button, index) => {
+      const overlaps = visibleButtons.slice(index + 1).some((next) => {
+        const horizontalOverlap = Math.min(button.right, next.right) - Math.max(button.left, next.left);
+
+        return horizontalOverlap > 1;
+      });
+
+      return count + (overlaps ? 1 : 0);
+    }, 0);
+
+    return {
+      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      railLeft: railRect.left,
+      railRight: railRect.right,
+      viewportWidth: window.innerWidth,
+      visibleButtonCount: visibleButtons.length,
+      visibleButtons,
+      visibleGroupHeadings,
+      visibleOverlapCount,
+    };
+  });
+
+  expect(metrics.documentOverflowsX).toBe(false);
+  expect(metrics.railLeft).toBeGreaterThanOrEqual(0);
+  expect(metrics.railRight).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+  expect(metrics.visibleGroupHeadings).toBe(0);
+  expect(metrics.visibleButtonCount).toBeGreaterThanOrEqual(2);
+  expect(metrics.visibleOverlapCount).toBe(0);
+
+  for (const button of metrics.visibleButtons) {
+    expect(button.width, button.text).toBeGreaterThanOrEqual(120);
+    expect(button.height, button.text).toBeGreaterThanOrEqual(44);
+  }
+}
+
 async function openMobileToolsSheet(page: import('@playwright/test').Page) {
   const toolsSheet = page.getByTestId('tools-sheet');
 
@@ -495,6 +560,22 @@ test.describe('responsive IDE shell', () => {
     expect(metrics.overflowX).toBe(false);
   });
 
+  test('mobile and tablet keep the settings tab rail readable', async ({ page }, testInfo) => {
+    test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
+    test.setTimeout(120_000);
+
+    const projectId = await createTestProject(page, 'Responsive settings rail project');
+
+    await page.goto(`/projects/${projectId}/ide?panel=settings`, { waitUntil: 'domcontentloaded' });
+    await expectMobileServicePanel(page, 'settings');
+    await expect(page.getByTestId('settings-hub-panel')).toBeVisible({ timeout: 45_000 });
+    await expectSettingsTabRailFitsViewport(page);
+
+    await page.getByTestId('button-settings-tab-usage').click();
+    await expect(page.getByText('Billing & Plan')).toBeVisible({ timeout: 15_000 });
+    await expectSettingsTabRailFitsViewport(page);
+  });
+
   test('mobile and tablet keep a visible webview startup state until the iframe renders', async ({
     page,
   }, testInfo) => {
@@ -620,6 +701,7 @@ createServer((request, response) => {
     test.skip(!isMobile, 'mobile-only assertion');
 
     const { projectId, auth } = await createTestProjectFixture(page, 'Responsive mobile persistence project');
+
     const staleMobileState = await page.request.put(`${apiBaseUrl()}/projects/${projectId}/ide-state`, {
       headers: { authorization: `Bearer ${auth.token}` },
       data: {

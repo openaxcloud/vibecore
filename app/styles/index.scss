@@ -9637,6 +9637,22 @@ body :where(.lucide, svg[data-lucide]) {
   grid-template-columns: minmax(0, 1fr) 320px;
 }
 
+.bolt-project-managed-form,
+.bolt-project-managed-field {
+  min-width: 0;
+}
+
+.bolt-project-managed-field {
+  display: grid;
+  gap: 6px;
+}
+
+.bolt-project-managed-field > span {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .bolt-project-monitoring-panel {
   display: grid;
   gap: 12px;
@@ -14588,6 +14604,53 @@ button.bolt-project-statusbar-pill:focus-visible,
 
     .bolt-project-settings-sidebar {
       position: static;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 8px;
+      scroll-padding-inline: 8px;
+      scroll-snap-type: x proximity;
+      scrollbar-width: none;
+    }
+
+    .bolt-project-settings-sidebar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .bolt-project-settings-sidebar section {
+      display: contents;
+    }
+
+    .bolt-project-settings-sidebar section > div {
+      display: none;
+    }
+
+    .bolt-project-settings-sidebar button {
+      width: clamp(140px, 28vw, 180px);
+      min-width: clamp(140px, 28vw, 180px);
+      min-height: 54px;
+      flex: 0 0 clamp(140px, 28vw, 180px);
+      scroll-snap-align: start;
+      box-shadow: inset 0 -1px 0 transparent;
+    }
+
+    .bolt-project-settings-sidebar button span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .bolt-project-settings-sidebar button small {
+      display: -webkit-box;
+      overflow: hidden;
+      white-space: normal;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .bolt-project-settings-sidebar button[aria-current='page'] {
+      box-shadow: inset 0 -3px 0 var(--vc-ide-accent-action);
     }
 
     header {
@@ -14631,57 +14694,13 @@ button.bolt-project-statusbar-pill:focus-visible,
       }
     }
 
-    .bolt-project-settings-sidebar {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      overflow-y: hidden;
-      padding: 8px;
-      scroll-padding-inline: 8px;
-      scroll-snap-type: x proximity;
-      scrollbar-width: none;
-    }
-
-    .bolt-project-settings-sidebar::-webkit-scrollbar {
-      display: none;
-    }
-
-    .bolt-project-settings-sidebar section {
-      display: flex;
-      flex: 0 0 auto;
-      gap: 6px;
-    }
-
-    .bolt-project-settings-sidebar section > div {
-      width: 108px;
-      min-width: 108px;
-      align-content: center;
-      border-right: 1px solid var(--bolt-elements-borderColor);
-      padding: 6px 8px 6px 0;
-    }
-
-    .bolt-project-settings-sidebar section > div small {
-      display: none;
-    }
-
     .bolt-project-settings-sidebar button {
-      width: 136px;
-      min-width: 136px;
+      width: clamp(128px, 42vw, 156px);
+      min-width: clamp(128px, 42vw, 156px);
       min-height: 48px;
+      flex-basis: clamp(128px, 42vw, 156px);
       scroll-snap-align: start;
       padding: 8px 10px;
-    }
-
-    .bolt-project-settings-sidebar button small {
-      display: -webkit-box;
-      overflow: hidden;
-      white-space: normal;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-    }
-
-    .bolt-project-settings-sidebar button[aria-current='page'] {
-      box-shadow: inset 0 -3px 0 var(--vc-ide-accent-action);
     }
 
     .bolt-project-settings-active-heading,
@@ -16163,8 +16182,28 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     :where(
       .bolt-project-deploy-tool,
       .bolt-project-deploy-summary,
+      .bolt-project-managed-panel,
+      .bolt-project-package-content,
+      .bolt-project-package-stat-grid,
+      .bolt-project-metric-grid,
+      .bolt-project-activity-metrics,
+      .bolt-project-activity-filters,
+      .bolt-project-security-scope,
+      .bolt-project-security-comparison-grid,
+      .bolt-project-vulnerability-card,
+      .bolt-project-env-row,
+      .bolt-project-secret-row,
+      .bolt-project-domain-add-card,
+      .bolt-project-domain-status-grid,
+      .bolt-project-dns-record,
+      .bolt-project-extensions-hero,
+      .bolt-project-extension-catalog,
+      .bolt-project-database-steps,
+      .bolt-project-database-docs > div,
       .bolt-project-collaboration-tool,
       .bolt-project-collaboration-grid,
+      .bolt-project-collaboration-row,
+      .bolt-project-collaboration-role-guide,
       .bolt-project-database-tool,
       .bolt-project-security-grid,
       .bolt-project-integrations-tool,
@@ -16172,6 +16211,180 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
       .bolt-project-git-tool
     ) {
     grid-template-columns: 1fr !important;
+  }
+
+  .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    :where(
+      .bolt-project-activity-hero,
+      .bolt-project-collaboration-header,
+      .bolt-project-domain-actions,
+      .bolt-project-domain-card-header,
+      .bolt-project-domains-hero,
+      .bolt-project-extensions-hero,
+      .bolt-project-integrations-head,
+      .bolt-project-package-action-header,
+      .bolt-project-package-command-row,
+      .bolt-project-package-install-form,
+      .bolt-project-package-summary-header,
+      .bolt-project-packages-hero,
+      .bolt-project-security-summary
+    ) {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-tool-tabs {
+    height: auto;
+    min-height: 40px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-tool-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-tool-tabs button {
+    height: 40px;
+    min-width: max-content;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-panel-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-panel-toolbar label {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    :where(input:not([type='checkbox']):not([type='radio']):not([type='hidden']), select, textarea) {
+    min-height: 42px;
+    max-width: 100%;
+    font-size: 16px !important;
+  }
+
+  .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    :where(
+      .bolt-project-panel-toolbar button,
+      .bolt-project-managed-form button,
+      .bolt-project-package-install-form button,
+      .bolt-project-package-command-row button,
+      .bolt-project-security-scan-form button,
+      .bolt-project-deploy-actions a
+    ) {
+    min-height: 42px;
+    max-width: 100%;
+  }
+
+  .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    :where(
+      .bolt-project-panel-toolbar button,
+      .bolt-project-managed-form button,
+      .bolt-project-package-install-form button,
+      .bolt-project-deploy-actions a,
+      .bolt-project-security-scan-form button,
+      .bolt-project-security-link
+    ) {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-managed-form {
+    align-content: start;
+    background: var(--vc-ide-bg-panel);
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-managed-field {
+    gap: 7px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-object-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    :where(
+      .bolt-project-object-grid strong,
+      .bolt-project-object-grid span,
+      .bolt-project-object-grid em,
+      .bolt-project-package-list strong,
+      .bolt-project-package-list span,
+      .bolt-project-package-list small,
+      .bolt-project-extension-card strong,
+      .bolt-project-extension-card span,
+      .bolt-project-extension-card p,
+      .bolt-project-env-row strong,
+      .bolt-project-env-row span,
+      .bolt-project-env-row small,
+      .bolt-project-secret-row strong,
+      .bolt-project-secret-row span,
+      .bolt-project-collaboration-user strong,
+      .bolt-project-collaboration-user small,
+      .bolt-project-collaboration-row span,
+      .bolt-project-domain-status-grid strong,
+      .bolt-project-dns-record code,
+      .bolt-project-dns-record span
+    ) {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    :where(
+      .bolt-project-package-list a,
+      .bolt-project-collaboration-user,
+      .bolt-project-collaboration-row,
+      .bolt-project-secret-row,
+      .bolt-project-env-row,
+      .bolt-project-activity-event-main
+    ) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: stretch;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-secret-row {
+    padding: 10px 12px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-env-row form,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-secret-row form,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-collaboration-row form {
+    display: grid;
+    width: 100%;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-env-row button,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-secret-row button,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-collaboration-row button {
+    width: 100%;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-domain-status,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-deploy-card em,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-collaboration-live {
+    width: fit-content;
+    max-width: 100%;
+    white-space: normal;
   }
 
   .bolt-responsive-ide-mobile
@@ -16194,9 +16407,57 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     position: sticky;
     top: 0;
     z-index: 5;
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
     border-color: var(--vc-ide-border-visible);
     background: color-mix(in srgb, var(--vc-ide-bg-card) 94%, transparent);
+    scroll-padding-inline: 8px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
     backdrop-filter: blur(16px);
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-settings-sidebar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-settings-sidebar section {
+    display: contents;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-settings-sidebar section > div {
+    display: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-settings-sidebar button {
+    width: clamp(128px, 42vw, 156px);
+    min-width: clamp(128px, 42vw, 156px) !important;
+    max-width: clamp(128px, 42vw, 156px);
+    min-height: 48px;
+    flex: 0 0 clamp(128px, 42vw, 156px);
+    scroll-snap-align: start;
+    overflow: hidden;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-settings-sidebar button span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-settings-sidebar button small {
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-settings-sidebar button[aria-current='page'] {
+    box-shadow: inset 0 -3px 0 var(--vc-ide-accent-action);
   }
 
   .bolt-responsive-ide-mobile .bolt-project-settings-main {

@@ -11820,14 +11820,25 @@ function ProjectObjectStoragePanel({ data, onSubmit, busy }: { data: any; onSubm
   const [selectedObject, setSelectedObject] = useState('');
 
   return (
-    <div className="bolt-project-managed-panel">
+    <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
       <section>
         <div className="bolt-project-panel-toolbar">
           <label>
             Project file prefix
-            <input value={prefix} onChange={(event) => setPrefix(event.target.value)} />
+            <input
+              value={prefix}
+              onChange={(event) => setPrefix(event.target.value)}
+              placeholder="src/"
+              autoCapitalize="none"
+              spellCheck={false}
+            />
           </label>
-          <button type="button" onClick={() => setSelectedObject(objects[0]?.key ?? '')} disabled={!objects.length}>
+          <button
+            type="button"
+            onClick={() => setSelectedObject(objects[0]?.key ?? '')}
+            disabled={!objects.length}
+            aria-label="Select the first project file in object storage"
+          >
             Select first file
           </button>
         </div>
@@ -11863,10 +11874,35 @@ function ProjectObjectStoragePanel({ data, onSubmit, busy }: { data: any; onSubm
           empty="Object storage is not configured for this project."
         />
       </section>
-      <form onSubmit={onSubmit} className="grid gap-3 rounded-lg border border-bolt-elements-borderColor p-3">
+      <form
+        onSubmit={onSubmit}
+        className="bolt-project-managed-form grid gap-3 rounded-lg border border-bolt-elements-borderColor p-3"
+        aria-label="Object storage configuration"
+      >
         <input name="intent" value="config" type="hidden" />
-        <PanelInput name="key" placeholder="OBJECT_STORAGE_BUCKET" defaultValue="OBJECT_STORAGE_BUCKET" required />
-        <PanelInput name="value" placeholder="vibecore-project-assets" required />
+        <label className="bolt-project-managed-field" htmlFor="object-storage-config-key">
+          <span>Bucket environment key</span>
+          <PanelInput
+            id="object-storage-config-key"
+            name="key"
+            placeholder="OBJECT_STORAGE_BUCKET"
+            defaultValue="OBJECT_STORAGE_BUCKET"
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+          />
+        </label>
+        <label className="bolt-project-managed-field" htmlFor="object-storage-config-value">
+          <span>Bucket name</span>
+          <PanelInput
+            id="object-storage-config-value"
+            name="value"
+            placeholder="vibecore-project-assets"
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+          />
+        </label>
         <PanelButton disabled={busy}>Save storage config</PanelButton>
         <button
           type="submit"
@@ -11874,6 +11910,7 @@ function ProjectObjectStoragePanel({ data, onSubmit, busy }: { data: any; onSubm
           value="export"
           className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
           disabled={busy}
+          aria-label="Export the current project as a zip archive"
         >
           Export project archive
         </button>
