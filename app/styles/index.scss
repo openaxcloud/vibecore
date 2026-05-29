@@ -6413,6 +6413,81 @@ body :where(.lucide, svg[data-lucide]) {
   height: 16px;
 }
 
+.bolt-model-selector {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(132px, 0.44fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.bolt-model-selector-field {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+
+.bolt-model-selector-trigger {
+  min-height: 42px;
+}
+
+.bolt-model-selector-trigger-label,
+.bolt-model-selector-option-title,
+.bolt-model-selector-option-meta,
+.bolt-api-key-status,
+.bolt-api-key-status-row {
+  min-width: 0;
+}
+
+.bolt-model-selector-trigger-label,
+.bolt-model-selector-option-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-model-selector-popover {
+  min-width: 0;
+  max-width: min(100%, 560px);
+}
+
+.bolt-model-selector-list {
+  overscroll-behavior: contain;
+}
+
+.bolt-model-selector-option {
+  min-width: 0;
+}
+
+.bolt-api-key-manager {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.bolt-api-key-status-row,
+.bolt-api-key-status {
+  overflow-wrap: anywhere;
+}
+
+.bolt-api-key-manager-actions {
+  min-width: 0;
+}
+
+.bolt-api-key-editor {
+  width: min(360px, 100%);
+}
+
+.bolt-api-key-input {
+  min-width: 180px;
+}
+
+@media (max-width: 899px) {
+  .bolt-model-selector {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .bolt-project-chatbox .bolt-composer-send-button {
   right: 8px;
   bottom: 8px;
@@ -16171,6 +16246,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     transform: none !important;
   }
 
+  .bolt-responsive-ide-mobile .bolt-project-panel-actions-menu button,
+  .bolt-responsive-ide-mobile .bolt-project-panel-actions-menu [role='presentation'] {
+    min-height: 44px;
+    align-items: center;
+    padding: 9px 10px !important;
+  }
+
   .bolt-responsive-ide-mobile :where([data-vc-tooltip])::before,
   .bolt-responsive-ide-mobile :where([data-vc-tooltip])::after {
     display: none !important;
@@ -16695,6 +16777,270 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   .bolt-responsive-ide-mobile .bolt-project-chatbox .bolt-composer-send-button {
     width: 44px;
     height: 44px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-chatbox {
+    width: min(100%, calc(100vw - 20px));
+    max-width: calc(100vw - 20px);
+    border-radius: 12px;
+    padding: 10px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-model-selector {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-model-selector-trigger {
+    min-height: 44px;
+    border-radius: 10px;
+    padding: 10px 12px !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-model-selector-trigger-label,
+  .bolt-responsive-ide-mobile .bolt-model-selector-option-title,
+  .bolt-responsive-ide-mobile .bolt-model-selector-option-meta,
+  .bolt-responsive-ide-mobile .bolt-api-key-status,
+  .bolt-responsive-ide-mobile .bolt-api-key-status-row {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-model-selector-popover {
+    position: fixed !important;
+    top: auto !important;
+    right: max(12px, env(safe-area-inset-right, 0px)) !important;
+    bottom: calc(var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
+    left: max(12px, env(safe-area-inset-left, 0px)) !important;
+    z-index: 12024 !important;
+    display: grid;
+    width: auto !important;
+    max-width: none;
+    max-height: min(58dvh, 520px);
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+    border-color: var(--mobile-nav-border);
+    border-top-color: var(--mobile-nav-border-top);
+    border-radius: 16px;
+    background: var(--mobile-nav-bg);
+    box-shadow:
+      var(--mobile-nav-shadow),
+      0 24px 80px rgb(0 0 0 / 0.45);
+    padding: 10px 0 0;
+    transform: none !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-model-selector-popover::before {
+    display: block;
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--mobile-nav-border-top);
+    margin: 0 auto 10px;
+    content: '';
+  }
+
+  .bolt-responsive-ide-mobile .bolt-model-selector-popover-head {
+    padding: 0 12px 10px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-model-selector-search input {
+    min-height: 44px;
+    font-size: 16px !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-model-selector-list {
+    max-height: none !important;
+    min-height: 0;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-model-selector-option {
+    min-height: 44px;
+    padding: 10px 12px !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-model-selector-filter-toggle {
+    min-height: 40px;
+    padding-inline: 10px !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-api-key-manager {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 2px 0;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-api-key-manager-summary,
+  .bolt-responsive-ide-mobile .bolt-api-key-status-row,
+  .bolt-responsive-ide-mobile .bolt-api-key-status,
+  .bolt-responsive-ide-mobile .bolt-api-key-manager-actions,
+  .bolt-responsive-ide-mobile .bolt-api-key-editor {
+    width: 100%;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-api-key-status-row,
+  .bolt-responsive-ide-mobile .bolt-api-key-status,
+  .bolt-responsive-ide-mobile .bolt-api-key-editor {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-api-key-manager-actions {
+    justify-content: stretch;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-api-key-manager-actions > button,
+  .bolt-responsive-ide-mobile .bolt-api-key-editor > button {
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-api-key-input {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    font-size: 16px !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-chatbox-toolbar {
+    min-height: 48px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 2px 0;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-chatbox-toolbar-primary,
+  .bolt-responsive-ide-mobile .bolt-chatbox-toolbar-secondary {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-chatbox-toolbar-secondary {
+    margin-left: 0;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-chatbox-toolbar-button,
+  .bolt-responsive-ide-mobile .bolt-chatbox-plan-button {
+    min-height: 44px;
+    border-radius: 10px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-chatbox-toolbar-button {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-chatbox-plan-button {
+    height: 44px;
+    min-width: 76px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu {
+    position: fixed !important;
+    top: auto !important;
+    right: max(12px, env(safe-area-inset-right, 0px)) !important;
+    bottom: calc(var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
+    left: max(12px, env(safe-area-inset-left, 0px)) !important;
+    z-index: 12022;
+    width: auto;
+    min-width: 0;
+    max-height: min(64dvh, 520px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-color: var(--mobile-nav-border);
+    border-top-color: var(--mobile-nav-border-top);
+    border-radius: 16px;
+    background: var(--mobile-nav-bg);
+    box-shadow:
+      var(--mobile-nav-shadow),
+      0 24px 80px rgb(0 0 0 / 0.45);
+    padding: 10px;
+    transform: none !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu::before {
+    display: block;
+    width: 40px;
+    height: 4px;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: var(--mobile-nav-border-top);
+    margin: 0 auto 8px;
+    content: '';
+  }
+
+  .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu-item {
+    min-height: 44px;
+    border-radius: 10px;
+    padding-inline: 12px !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-chatbox-toolbar-supabase {
+    display: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-command-palette {
+    top: calc(var(--vc-ide-topbar-height, 48px) + 8px + env(safe-area-inset-top, 0px)) !important;
+    right: max(10px, env(safe-area-inset-right, 0px)) !important;
+    bottom: calc(var(--mobile-nav-height, 72px) + 12px + env(safe-area-inset-bottom, 0px)) !important;
+    left: max(10px, env(safe-area-inset-left, 0px)) !important;
+    z-index: 12018;
+    width: auto !important;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 16px;
+    transform: none !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-command-palette input {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    min-height: 50px;
+    font-size: 16px !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-command-palette button {
+    min-height: 48px;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-command-palette button span:nth-child(2),
+  .bolt-responsive-ide-mobile .bolt-project-command-palette button strong,
+  .bolt-responsive-ide-mobile .bolt-project-command-palette button small {
+    min-width: 0;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-command-palette footer {
+    position: sticky;
+    bottom: 0;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-keybindings-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-keybindings-list {
+    max-height: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-keybinding-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
   }
 
   .bolt-project-action-group--overflow .bolt-project-overflow-popover {
@@ -17391,7 +17737,9 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 .vc-public-theme-switch-icon {
-  color: currentColor;
+  width: 18px;
+  height: 18px;
+  color: var(--vc-public-text);
 }
 
 .vc-public-desktop-nav {

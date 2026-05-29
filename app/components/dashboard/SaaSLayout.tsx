@@ -518,8 +518,8 @@ function PublicThemeToggle() {
       <span
         className={
           theme === 'dark'
-            ? 'i-ph:sun-dim-duotone vc-public-theme-switch-icon'
-            : 'i-ph:moon-stars-duotone vc-public-theme-switch-icon'
+            ? 'i-ph:sun-dim-bold vc-public-theme-switch-icon'
+            : 'i-ph:moon-stars-bold vc-public-theme-switch-icon'
         }
         aria-hidden
       />
