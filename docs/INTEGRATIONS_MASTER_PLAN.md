@@ -501,7 +501,7 @@ Lucide icons: `Layers`, `Search`, `Plus`, `X`, `ExternalLink`, `Settings`, `LogI
 | `<ConnectMcpServerModal>` | Display name + URL + Advanced settings collapsible (custom headers) + Test & save (does not close on overlay click) |
 | `<OAuthConsentModal>` | Logo e-code → ArrowRight → Logo provider + 3 sections (LinkBreak, Lock, UserCheck) + full-width Continue button |
 | `<SetupApiKeyModal>` | Warning banner + Configure button → opens form modal |
-| `<ApiKeyFormModal>` | Per-provider form (Twilio: SID + Auth Token; Sendgrid: API Key; etc.) |
+| `<ApiKeyFormModal>` | Per-provider form (Twilio: SID + Auth Token; Resend: API Key; etc.) |
 | `<DisconnectConfirmModal>` | Destructive red Yes button, reused for all disconnect/delete flows |
 | `<Avatar>` | Circular 24px, hash-based color, initials in white |
 | `<ScopePill>` | Monospace, bordered, radius 6px |
@@ -639,9 +639,9 @@ These are app-owner credentials registered with each provider's developer consol
 
 ## 13. Catalog seed
 
-Script `packages/database/prisma/seed-connector-catalog.ts` seeds `ConnectorCatalog` with the 39 Replit-style entries:
+Script `packages/database/prisma/seed-connector-catalog.ts` seeds `ConnectorCatalog` with the 38 Replit-style entries:
 
-Figma, GitHub, Gmail, Sendgrid, AgentMail, Airtable, Asana, Basecamp, Box, Calendly, Confluence, Discord, Dropbox, ElevenLabs, GitLab, Google Calendar, Google Docs, Google Drive, Google Sheets, HubSpot, Intercom, Jira, Linear, Mailchimp, Microsoft OneDrive, Microsoft Outlook, Notion, Productboard, Resend, RevenueCat, SharePoint Online, Slack, Squareup, Teamwork, Todoist, Twilio, Twitch, Typeform, Zendesk.
+Figma, GitHub, Gmail, AgentMail, Airtable, Asana, Basecamp, Box, Calendly, Confluence, Discord, Dropbox, ElevenLabs, GitLab, Google Calendar, Google Docs, Google Drive, Google Sheets, HubSpot, Intercom, Jira, Linear, Mailchimp, Microsoft OneDrive, Microsoft Outlook, Notion, Productboard, Resend, RevenueCat, SharePoint Online, Slack, Squareup, Teamwork, Todoist, Twilio, Twitch, Typeform, Zendesk.
 
 Plus 3 Git Providers entries (GitHub, Bitbucket, GitLab) marked `section='git_providers'` and `forAgentUse=false`.
 
@@ -742,7 +742,7 @@ Now that the data layer is solid (Phases 0-2 deliver real `UserConnection` for 5
 - Wire MCP Servers section to existing `McpCatalogEntry` with new `featuredForIdePanel` filter
 - Add Notion as first OAuth provider exclusive to the new panel (validates the catalog UX with a "fresh" provider)
 - Add 4-5 more OAuth providers: Slack, Linear, Jira, Google Drive, Calendar
-- Add 5 API-key connectors: Sendgrid, Resend, Twilio, ElevenLabs, AgentMail
+- Add 4 API-key connectors: Resend, Twilio, ElevenLabs, AgentMail
 - Agent `secret_request` message + renderer + pause/resume
 - Reconnection alerts (worker + banner UI)
 - Workers: `tokenRefresher`, `tokenHealthCheck`

@@ -48,8 +48,8 @@ describe('isConnectorDataPart', () => {
       {
         kind: 'secret_request',
         messageId: 'msg_4',
-        secretKey: 'SENDGRID_API_KEY',
-        displayName: 'SendGrid API key',
+        secretKey: 'RESEND_API_KEY',
+        displayName: 'Resend API key',
         description: 'Used to send transactional emails.',
         fields: [{ name: 'apiKey', label: 'API key', type: 'password', required: true }],
         resumeToken: 'resume_sg',

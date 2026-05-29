@@ -754,7 +754,7 @@ const INTEGRATION_CATALOG = [
   ['elasticsearch', 'Elasticsearch', 'Search and analytics indexing.', 'data', 'i-ph:magnifying-glass'],
   ['stripe', 'Stripe', 'Payments, billing and webhook events.', 'payments', 'i-ph:credit-card'],
   ['twilio', 'Twilio', 'SMS, voice and communications APIs.', 'communication', 'i-ph:phone'],
-  ['sendgrid', 'SendGrid', 'Transactional email delivery.', 'communication', 'i-ph:paper-plane-tilt'],
+  ['resend', 'Resend', 'Transactional email delivery.', 'communication', 'i-ph:paper-plane-tilt'],
   ['intercom', 'Intercom', 'Customer messaging and support.', 'support', 'i-ph:chat-circle-text'],
   ['hubspot', 'HubSpot', 'CRM and marketing automation.', 'support', 'i-ph:users-three'],
   ['salesforce', 'Salesforce', 'Enterprise CRM workflows.', 'support', 'i-ph:building-office'],

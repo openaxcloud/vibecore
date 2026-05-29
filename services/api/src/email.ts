@@ -116,7 +116,7 @@ export class SmtpEmailProvider implements EmailProvider {
  * Fallback used when neither SMTP nor an HTTP webhook is configured. The
  * message is not delivered; only redacted metadata is logged for local
  * development. Production deployments must replace this with an SMTP relay or
- * a webhook to Resend / SendGrid / SES.
+ * a webhook to Resend / SES.
  */
 export class LoggingEmailProvider implements EmailProvider {
   async send(message: EmailMessage) {

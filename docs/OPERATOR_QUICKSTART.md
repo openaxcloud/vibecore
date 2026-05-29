@@ -69,7 +69,7 @@ to the next.
 | GitHub OAuth | OAuth app at `github.com/settings/developers` | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_REDIRECT_URI` |
 | Microsoft Entra | Tenant + app registration | `OIDC_*` (8 keys; copy from `/.well-known/openid-configuration`) |
 | SAML IdP (optional) | App with ACS URL `${DOMAIN}/auth/saml/{ORG_ID}/acs` | `SAML_ENTITY_ID`, `SAML_ACS_URL`, plus EITHER `SAML_SSO_URL`+`SAML_X509_CERTIFICATE` OR `SAML_METADATA_URL` |
-| Email | SendGrid / Postmark / SES | EITHER full `SMTP_*` set OR `EMAIL_HTTP_ENDPOINT`+`EMAIL_HTTP_TOKEN`+`EMAIL_FROM` |
+| Email | Resend / Postmark / SES | EITHER full `SMTP_*` set OR `EMAIL_HTTP_ENDPOINT`+`EMAIL_HTTP_TOKEN`+`EMAIL_FROM` |
 | OTel collector | OTLP HTTP endpoint | `OTEL_EXPORTER_OTLP_ENDPOINT` |
 | SIEM | Webhook URL accepting signed JSON | `SIEM_WEBHOOK_URL` |
 | Incident webhook | Slack / PagerDuty webhook | `INCIDENT_WEBHOOK_URL` |
