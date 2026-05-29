@@ -576,6 +576,71 @@ test.describe('responsive IDE shell', () => {
     await expectSettingsTabRailFitsViewport(page);
   });
 
+  test('mobile and tablet run button controls the real preview runtime', async ({ page }, testInfo) => {
+    test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
+    test.setTimeout(240_000);
+
+    const projectId = await createTestProject(page, 'Responsive mobile run button project', {
+      'package.json': JSON.stringify(
+        {
+          private: true,
+          type: 'module',
+          scripts: { dev: 'node server.mjs' },
+        },
+        null,
+        2,
+      ),
+      'server.mjs': `import { createServer } from 'node:http';
+
+const port = Number(process.env.PORT || 5173);
+
+createServer((_request, response) => {
+  response.setHeader('Content-Type', 'text/html; charset=utf-8');
+  response.end('<!doctype html><html><body><main data-run-button-preview="ready">Mobile run button preview ready</main></body></html>');
+}).listen(port, '0.0.0.0', () => {
+  console.log('mobile run button preview listening on ' + port);
+});
+`,
+      'src/App.tsx': 'export function App() { return <main>Run button editor fixture</main>; }\n',
+    });
+
+    await page.goto(`/projects/${projectId}/ide?panel=editor`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 45_000 });
+    await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 45_000 });
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'editor');
+
+    const runButton = mobileBottomNavigation(page).getByTestId('button-play-stop');
+    await expect(runButton).toBeVisible({ timeout: 15_000 });
+
+    const initialRunLabel = await runButton.getAttribute('aria-label');
+
+    if (initialRunLabel === 'Run project') {
+      await runButton.click();
+      await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'preview', {
+        timeout: 15_000,
+      });
+    } else {
+      await mobileBottomNavigation(page).getByTestId('tab-preview').click();
+      await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'preview', {
+        timeout: 15_000,
+      });
+    }
+
+    await expect(runButton).toHaveAttribute('aria-label', 'Stop running', { timeout: 45_000 });
+    await expect(runButton).toHaveAttribute('data-preview-state', /^(starting|running|static)$/);
+    await expect(runButton).toHaveClass(/bolt-mobile-replit-run--active/);
+    await expect(runButton.locator('span').first()).toHaveClass(/i-ph:square-fill/);
+
+    await expect(
+      page.getByTestId('preview-splash-sequence').or(page.getByTestId('preview-loading-overlay')).first(),
+    ).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByTestId('preview-iframe')).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByTestId('preview-loading-overlay')).toContainText(/Starting npm run dev|Building|Ready/, {
+      timeout: 45_000,
+    });
+    await expect(runButton).toHaveAttribute('aria-label', 'Stop running', { timeout: 15_000 });
+  });
+
   test('mobile and tablet keep a visible webview startup state until the iframe renders', async ({
     page,
   }, testInfo) => {

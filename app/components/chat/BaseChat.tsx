@@ -2931,6 +2931,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const runtimePorts = projectRuntimeState.ports ?? [];
     const isRuntimeReallyRunning = isWorkspaceReallyRunning(projectRuntimeState.workspace, runtimePorts);
 
+    const previewServerStatus = previewServerState.status;
+
+    const isMobilePreviewRunActive =
+      isRuntimeReallyRunning ||
+      previewServerStatus === 'starting' ||
+      previewServerStatus === 'running' ||
+      previewServerStatus === 'static' ||
+      previewServerStatus === 'stopping';
+
+    const isMobilePreviewStopping = previewServerStatus === 'stopping';
+
+    const mobilePreviewRunLabel = isMobilePreviewRunActive
+      ? isMobilePreviewStopping
+        ? 'Stopping project'
+        : 'Stop running'
+      : 'Run project';
+
+    const mobilePreviewRunIcon = isMobilePreviewRunActive ? 'i-ph:square-fill' : 'i-ph:play-fill';
+
     const runtimeUiState = workspaceUiState(projectRuntimeState.workspace, {
       ports: runtimePorts,
       loading: workspaceLoading,
@@ -3002,6 +3021,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       return projectRuntimeState.workspace?.status ?? 'Stopped';
     }, [isRuntimeReallyRunning, projectRuntimeState.workspace, workspaceError, workspaceLoading]);
+    const handleMobilePreviewRunToggle = useCallback(() => {
+      setMobileIdePanel('preview');
+      setProjectPanelSearchParam('preview');
+
+      if (isMobilePreviewRunActive) {
+        void workbenchStore
+          .stopPreviewServer()
+          .catch((error) => toast.error(error instanceof Error ? error.message : 'Failed to stop the preview server'));
+
+        return;
+      }
+
+      void workbenchStore
+        .startPreviewServer()
+        .catch((error) => toast.error(error instanceof Error ? error.message : 'Failed to start the preview server'));
+    }, [isMobilePreviewRunActive, setMobileIdePanel, setProjectPanelSearchParam]);
     const workspaceStatusTitle = useMemo(
       () =>
         [
@@ -6870,20 +6905,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <button
                 type="button"
                 className={classNames('bolt-mobile-replit-run', {
-                  'bolt-mobile-replit-run--active': isRuntimeReallyRunning,
+                  'bolt-mobile-replit-run--active': isMobilePreviewRunActive,
                 })}
-                aria-label={isRuntimeReallyRunning ? 'Stop running' : 'Run project'}
+                aria-busy={isMobilePreviewStopping || undefined}
+                aria-label={mobilePreviewRunLabel}
                 data-testid="button-play-stop"
-                onClick={() => {
-                  if (isRuntimeReallyRunning) {
-                    void workbenchStore.stopPreviewServer();
-                  } else {
-                    setMobileIdePanel('preview');
-                    void workbenchStore.startPreviewServer();
-                  }
-                }}
+                data-preview-state={previewServerStatus}
+                disabled={isMobilePreviewStopping}
+                onClick={handleMobilePreviewRunToggle}
               >
-                <span className={isRuntimeReallyRunning ? 'i-ph:square-fill' : 'i-ph:play-fill'} aria-hidden />
+                <span className={mobilePreviewRunIcon} aria-hidden />
               </button>
 
               <div className="bolt-mobile-replit-tabs" data-testid="mobile-open-tabs">
