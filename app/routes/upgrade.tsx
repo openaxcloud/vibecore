@@ -1,13 +1,54 @@
-import { Link } from '@remix-run/react';
+import type { MetaFunction } from '@remix-run/cloudflare';
+import { Form, Link, useActionData } from '@remix-run/react';
 import { EnterpriseFormPage, PrimaryButton, SelectField } from '~/components/enterprise/EnterpriseFormPage';
+import {
+  apiErrorMessage,
+  apiRequest,
+  firstOrganization,
+  isApiResponse,
+  json,
+  type EnterpriseActionArgs,
+} from '~/lib/enterprise-api.server';
+
+export const meta: MetaFunction = () => [{ title: 'Upgrade - VibeCore' }];
+
+export async function action({ request }: EnterpriseActionArgs) {
+  const organization = await firstOrganization(request);
+  const form = await request.formData();
+
+  try {
+    const result = await apiRequest<{ checkoutUrl: string }>(request, `/orgs/${organization.id}/billing/checkout`, {
+      method: 'POST',
+      body: JSON.stringify({
+        planKey: String(form.get('planKey') ?? 'pro'),
+        successUrl: new URL('/billing', request.url).toString(),
+        cancelUrl: new URL('/upgrade', request.url).toString(),
+      }),
+    });
+
+    return Response.redirect(result.checkoutUrl);
+  } catch (error) {
+    if (isApiResponse(error)) {
+      return json(
+        { error: await apiErrorMessage(error, 'Checkout is unavailable right now. Please try again later.') },
+        { status: error.status },
+      );
+    }
+
+    throw error;
+  }
+}
 
 export default function UpgradePage() {
+  const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+
   return (
     <EnterpriseFormPage
       title="Upgrade"
       description="Move an organization to a higher plan before quota-restricted actions are retried."
+      error={actionData?.error}
     >
-      <form className="space-y-4">
+      <Form method="post" className="space-y-4">
         <SelectField
           label="Plan"
           name="planKey"
@@ -16,8 +57,8 @@ export default function UpgradePage() {
             { value: 'team', label: 'Team' },
           ]}
         />
-        <PrimaryButton>Start checkout</PrimaryButton>
-      </form>
+        <PrimaryButton type="submit">Start checkout</PrimaryButton>
+      </Form>
       <p className="mt-4 text-sm text-bolt-elements-textSecondary">
         Need Enterprise (SSO/SAML, custom quotas, premium support)?{' '}
         <Link to="/contact-sales" className="underline">
