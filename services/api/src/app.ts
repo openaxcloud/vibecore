@@ -12127,7 +12127,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     // A redeploy must actually re-run the build, not just clone the previous
     // READY row (audit #4). Reject hook providers that lost their configuration
     // since the original deploy, the same way the create route does.
-    const providerConfigError = deployProviderConfigError(source.provider);
+    //
+    // `source.provider` is persisted as a plain string by the store layer;
+    // narrow it back to the provider union (validated by the create route's
+    // zod schema before it was stored) so the provider helpers accept it.
+    const sourceProvider = source.provider as (typeof deploymentProviders)[number];
+    const providerConfigError = deployProviderConfigError(sourceProvider);
     if (providerConfigError) {
       return reply.code(400).send(providerConfigError);
     }
@@ -12156,7 +12161,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const sourceArtifactSizeLimitMb =
       typeof sourceMetadata.artifactSizeLimitMb === 'number' ? sourceMetadata.artifactSizeLimitMb : undefined;
 
-    const hookResult = await triggerProviderDeployHook(source.provider);
+    const hookResult = await triggerProviderDeployHook(sourceProvider);
 
     let staticBuildFailed = false;
     const rebuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];

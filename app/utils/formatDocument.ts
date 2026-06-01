@@ -51,10 +51,7 @@ async function loadPluginsForParser(parser: string): Promise<unknown[]> {
     case 'babel':
     case 'json':
     case 'json5': {
-      const [estree, babel] = await Promise.all([
-        import('prettier/plugins/estree'),
-        import('prettier/plugins/babel'),
-      ]);
+      const [estree, babel] = await Promise.all([import('prettier/plugins/estree'), import('prettier/plugins/babel')]);
       return [estree, babel];
     }
     case 'typescript': {
@@ -115,5 +112,5 @@ export async function formatDocument(content: string, filePath: string): Promise
 
   const [{ format }, plugins] = await Promise.all([import('prettier/standalone'), loadPluginsForParser(parser)]);
 
-  return format(content, { parser, plugins: plugins as Parameters<typeof format>[1]['plugins'] });
+  return format(content, { parser, plugins: plugins as NonNullable<Parameters<typeof format>[1]>['plugins'] });
 }

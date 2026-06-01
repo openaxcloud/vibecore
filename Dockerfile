@@ -56,8 +56,10 @@ RUN if [ ! -x /app/node_modules/.bin/remix ]; then \
     fi
 
 # Build the Remix app (SSR + client). Cap V8 well above the runtime
-# limit since Vite + Remix routinely peak near 3 GiB during SSR bundle.
-RUN NODE_OPTIONS=--max-old-space-size=4096 pnpm run build
+# limit since Vite + Remix peak past 4 GiB while rendering chunks on the
+# current bundle (8k+ modules). The E2_HIGHCPU_8 builder has 8 GiB RAM, so
+# 6 GiB leaves headroom for Node/OS overhead while clearing the OOM ceiling.
+RUN NODE_OPTIONS=--max-old-space-size=6144 pnpm run build
 
 # ---- production dependencies stage ----
 FROM build AS prod-deps
