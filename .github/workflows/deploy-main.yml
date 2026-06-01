@@ -1,0 +1,213 @@
+# Continuous deployment to production on push to main.
+#
+# Why this exists: every prod deploy used to be a manual `gcloud builds submit`
+# from a laptop followed by a hand-typed `helm upgrade`. This wires the same
+# steps into CI.
+#
+# Relationship to deploy-prod.yml: that workflow is the *gated, manual* path
+# (staging-validation gate + rollback confirmation + immutable pinned tag).
+# This workflow is the *continuous* path: it builds the two prod image tiers
+# from the pushed commit and rolls them out. Both deploy the same chart/release;
+# they are intentionally separate because the manual path's required inputs and
+# `confirm_rollback_plan == READY` gate cannot be satisfied by a push event.
+#
+# Build constraints (see infra/cloudbuild/*.yaml and docs/INFRASTRUCTURE.md):
+#   * Only ONE Cloud Build worker slot exists, and cloudbuild.yaml's 7 parallel
+#     builds deadlock an 8GB VM. So we run the two tier builds SEQUENTIALLY via
+#     two blocking `gcloud builds submit` calls (no --async).
+#   * runtime-tier.yaml rebuilds the `deps` base image; single-web.yaml only
+#     *consumes* a deps image via _DEPS_TAG. Runtime therefore builds first and
+#     publishes deps:<sha>, then web builds against that exact deps tag so the
+#     web image matches this commit's lockfile.
+#   * admin / ai-gateway / worker are NOT built here — they have their own
+#     single-service.yaml builds and only change when their code changes. Their
+#     image tags are preserved across this rollout by `helm upgrade --reuse-values`.
+
+name: Deploy Production (Continuous)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      short_sha:
+        description: Override image tag to build/deploy (defaults to the pushed commit)
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+
+# Never run two production rollouts at once, and never cancel an in-flight one
+# (cancelling mid-`helm upgrade --atomic` or mid-build leaves things half-applied).
+concurrency:
+  group: deploy-production-continuous
+  cancel-in-progress: false
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GAR_LOCATION: ${{ vars.GAR_LOCATION }}
+  GAR_REPO: vibecore-prod-containers
+  FLEET_MEMBERSHIP: vibecore-prod-app
+  HELM_RELEASE: vibecore
+  HELM_NAMESPACE: vibecore
+
+jobs:
+  build-and-deploy:
+    name: Build tiers sequentially, then helm upgrade
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment:
+      name: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: tag
+        run: |
+          set -euo pipefail
+          # Matches the 10-char short sha used by the Cloud Build configs and
+          # the docker tags they push (web:<sha>, api:<sha>, ...).
+          if [ -n "${{ inputs.short_sha }}" ]; then
+            SHORT_SHA="${{ inputs.short_sha }}"
+          else
+            SHORT_SHA="$(git rev-parse --short=10 HEAD)"
+          fi
+          echo "SHORT_SHA=${SHORT_SHA}" >> "$GITHUB_ENV"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "Deploying image tag: ${SHORT_SHA}"
+
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_ARTIFACT_WRITER_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      # ---- Build 1/2: runtime tier (api + workspace-manager + preview-proxy) ----
+      # Builds the deps base image first; publishes deps:<sha> + deps:latest so
+      # the web build below can pin _DEPS_TAG to this commit. Blocking call.
+      - name: Build runtime tier (Cloud Build)
+        run: |
+          set -euo pipefail
+          echo "::group::gcloud builds submit — runtime-tier"
+          gcloud builds submit \
+            --project="${GCP_PROJECT_ID}" \
+            --region="${GAR_LOCATION}" \
+            --config=infra/cloudbuild/runtime-tier.yaml \
+            --substitutions=_SHORT_SHA="${SHORT_SHA}" \
+            --machine-type=e2-highcpu-8 \
+            --timeout=3600s \
+            .
+          echo "::endgroup::"
+
+      # ---- Build 2/2: web tier ----
+      # Runs only after the runtime build above succeeds (sequential — single
+      # worker slot). Pins _DEPS_TAG to this commit's freshly built deps image.
+      - name: Build web tier (Cloud Build)
+        run: |
+          set -euo pipefail
+          echo "::group::gcloud builds submit — single-web"
+          gcloud builds submit \
+            --project="${GCP_PROJECT_ID}" \
+            --region="${GAR_LOCATION}" \
+            --config=infra/cloudbuild/single-web.yaml \
+            --substitutions=_DEPS_TAG="${SHORT_SHA}",_SHORT_SHA="${SHORT_SHA}" \
+            --machine-type=e2-highcpu-8 \
+            --timeout=1800s \
+            .
+          echo "::endgroup::"
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+
+      # kubectl through Connect Gateway: the cluster control plane is
+      # IP-restricted, so direct `get-gke-credentials` won't reach it from a
+      # GitHub-hosted runner. Connect Gateway routes kubectl through a
+      # Google-managed proxy authenticated by the WIF identity (IAM), no VPN.
+      - name: Get cluster credentials via Connect Gateway
+        run: |
+          set -euo pipefail
+          gcloud components install gke-gcloud-auth-plugin --quiet
+          gcloud container fleet memberships get-credentials "${FLEET_MEMBERSHIP}" \
+            --project="${GCP_PROJECT_ID}"
+          kubectl config current-context
+
+      - name: Record current release revision (for rollback)
+        run: |
+          set -euo pipefail
+          helm history "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" || true
+          echo "Rollback: helm rollback ${HELM_RELEASE} <REVISION> -n ${HELM_NAMESPACE}"
+
+      # --reuse-values preserves every existing value (including admin / worker /
+      # ai-gateway imageTags and all prod config) and only overrides the four
+      # tiers rebuilt above. --atomic auto-rolls-back on a failed upgrade.
+      - name: Helm upgrade (web + runtime image tags)
+        run: |
+          set -euo pipefail
+          helm upgrade "${HELM_RELEASE}" infra/helm/platform \
+            --namespace "${HELM_NAMESPACE}" \
+            --reuse-values \
+            --atomic \
+            --timeout 10m \
+            --set services.web.imageTag="${SHORT_SHA}" \
+            --set services.api.imageTag="${SHORT_SHA}" \
+            --set services.workspaceManager.imageTag="${SHORT_SHA}" \
+            --set services.previewProxy.imageTag="${SHORT_SHA}"
+
+      - name: Verify rollout
+        run: |
+          set -euo pipefail
+          for svc in web api workspace-manager preview-proxy; do
+            dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy \
+              -l "app.kubernetes.io/name=${svc}" -o name 2>/dev/null | head -n1)"
+            if [ -z "${dep}" ]; then
+              # Fall back to the released chart's naming if the label selector misses.
+              dep="deploy/${HELM_RELEASE}-vibecore-platform-${svc}"
+            fi
+            echo "::group::rollout status ${dep}"
+            kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m
+            echo "::endgroup::"
+          done
+
+      # Notifications: always runs. Writes a GitHub job summary (visible on the
+      # run + emailed to the actor by GitHub on failure) and, when a Slack
+      # webhook secret is configured, posts there too. The Slack step is a no-op
+      # if the secret is absent, so this works with zero extra setup.
+      - name: Notify result
+        if: always()
+        env:
+          STATUS: ${{ job.status }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_DEPLOY_WEBHOOK }}
+        run: |
+          set -uo pipefail
+          if [ "${STATUS}" = "success" ]; then
+            ICON=":white_check_mark:"; TITLE="Production deploy succeeded"
+          else
+            ICON=":x:"; TITLE="Production deploy FAILED"
+          fi
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          {
+            echo "## ${TITLE}"
+            echo ""
+            echo "- **Tag:** \`${SHORT_SHA:-unknown}\`"
+            echo "- **Commit:** \`${GITHUB_SHA}\`"
+            echo "- **Release:** \`${HELM_RELEASE}\` / ns \`${HELM_NAMESPACE}\`"
+            echo "- **Run:** ${RUN_URL}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -n "${SLACK_WEBHOOK}" ]; then
+            payload="$(printf '{"text":"%s %s\n>tag: %s | commit: %s\n>%s"}' \
+              "${ICON}" "${TITLE}" "${SHORT_SHA:-unknown}" "${GITHUB_SHA}" "${RUN_URL}")"
+            curl -fsS -X POST -H 'Content-Type: application/json' \
+              -d "${payload}" "${SLACK_WEBHOOK}" || echo "WARN: Slack notify failed (non-fatal)"
+          else
+            echo "SLACK_DEPLOY_WEBHOOK not set — skipping Slack notification."
+          fi
