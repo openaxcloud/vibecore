@@ -7606,31 +7606,65 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
     const client = normalizeRuntimeApiWebSocket(socket);
 
-    let result: { ports: Array<{ port: number; processId?: string }> };
+    // The workspace agent has no port-change stream, so keep the socket open
+    // and poll /ports every 5s, emitting open/close events as ports appear and
+    // disappear instead of sending a single snapshot and closing.
+    const pollPorts = async () => {
+      try {
+        return await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
+          authorized.workspaceId,
+          '/ports',
+        );
+      } catch (error) {
+        if (!shouldUseLocalRuntimeFallback(error)) {
+          throw error;
+        }
 
-    try {
-      result = await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
-        authorized.workspaceId,
-        '/ports',
-      );
-    } catch (error) {
-      if (!shouldUseLocalRuntimeFallback(error)) {
-        throw error;
+        return listLocalRuntimePorts(authorized.workspaceId);
       }
+    };
 
-      result = listLocalRuntimePorts(authorized.workspaceId);
-    }
-
-    for (const port of result.ports) {
+    const emit = (port: { port: number; processId?: string }, type: 'open' | 'close') =>
       client.send(
         JSON.stringify({
           ...port,
-          type: 'open',
-          ready: true,
+          type,
+          ready: type === 'open',
           url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
         }),
       );
-    }
+
+    let known = new Map<number, { port: number; processId?: string }>();
+
+    const sync = async () => {
+      const result = await pollPorts();
+      const current = new Map(result.ports.map((port) => [port.port, port]));
+
+      for (const [port, descriptor] of current) {
+        if (!known.has(port)) {
+          emit(descriptor, 'open');
+        }
+      }
+
+      for (const [port, descriptor] of known) {
+        if (!current.has(port)) {
+          emit(descriptor, 'close');
+        }
+      }
+
+      known = current;
+    };
+
+    // Emit the current set immediately, then watch for transitions.
+    await sync();
+
+    const interval = setInterval(() => {
+      void sync().catch(() => {
+        // Swallow transient agent errors; the next poll resyncs.
+      });
+    }, 5000);
+
+    client.onClose(() => clearInterval(interval));
   });
 
   app.get('/auth/me', async (request) => {
