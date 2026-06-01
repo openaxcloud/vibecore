@@ -451,6 +451,11 @@ export class MCPService {
     return this._tools;
   }
 
+  /** Number of servers in the currently-loaded config (used to decide whether a refresh is needed). */
+  get configuredServerCount() {
+    return Object.keys(this._config?.mcpServers ?? {}).length;
+  }
+
   get toolsWithoutExecute() {
     return this._toolsWithoutExecute;
   }

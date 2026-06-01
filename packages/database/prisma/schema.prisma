@@ -86,6 +86,7 @@ model User {
   agentMemories               AgentMemory[]
   agentMemoryPreferences      AgentMemoryPreference[]
   mcpInstalls                 McpInstall[]
+  mcpUserConfig               McpUserConfig?
   agentRuns                   AgentRun[]
   userConnections             UserConnection[]
   linkedProjectConnections    ProjectConnectionLink[]        @relation("LinkedByUser")
@@ -1067,6 +1068,21 @@ model McpInstall {
   @@unique([userId, alias])
   @@index([organizationId])
   @@index([catalogEntryId])
+}
+
+// Server-side persistence for the MCP "Configuration" tab (manually authored
+// `{ mcpServers: { … } }` JSON + the max sequential-LLM-step count). Replaces
+// the previous localStorage-only storage (audit H5) so the chat/agent runtime
+// can read a user's manually-configured servers — alongside their marketplace
+// installs — when assembling the live MCP tool set. One row per user.
+model McpUserConfig {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  configJson  Json     @default("{}")
+  maxLLMSteps Int      @default(5)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum AgentRunStatus {

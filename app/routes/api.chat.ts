@@ -27,6 +27,7 @@ import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { checkChatQuota, recordChatUsage } from '~/lib/.server/ai-usage';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { MCPService } from '~/lib/services/mcpService';
+import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
 import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
 import { classifyStreamError, streamErrorCodeMessages } from '~/types/context';
 import type { DesignScheme } from '~/types/design-scheme';
@@ -125,6 +126,26 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
   try {
     const mcpService = MCPService.getInstance();
+
+    /*
+     * Audit C2/H7 — load this user's MCP servers (marketplace installs merged
+     * with their manually-configured "Configuration" tab servers) and feed
+     * them into the runtime before tools are read below. Previously the
+     * runtime only saw whatever the Configuration tab last pushed via
+     * /api/mcp-update-config, so marketplace installs never reached the agent.
+     * We only refresh when there is something to load (or to clear), to avoid
+     * tearing down and rebuilding clients on every message needlessly.
+     */
+    try {
+      const { mcpConfig } = await loadUserMcpConfig(request);
+
+      if (Object.keys(mcpConfig.mcpServers).length > 0 || mcpService.configuredServerCount > 0) {
+        await mcpService.updateConfig(mcpConfig);
+      }
+    } catch (error) {
+      logger.warn('Failed to load MCP config for chat request', error);
+    }
+
     const totalMessageContent = messages.reduce((acc, message) => acc + message.content, '');
     logger.debug(`Total message length: ${totalMessageContent.split(' ').length}, words`);
 

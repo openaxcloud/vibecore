@@ -104,6 +104,7 @@ import {
   installListQuerySchema,
   installParamsSchema,
   installPatchSchema,
+  mcpUserConfigSchema,
   createDefaultMcpMarketplaceService,
 } from './mcp-marketplace.js';
 import { PrismaApiStore } from './prisma-store.js';
@@ -5968,6 +5969,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       throw error;
     }
+  });
+
+  // Audit H5: persist the MCP "Configuration" tab server-side. These power the
+  // chat/agent runtime, which reads the user's manually-configured servers and
+  // merges them with their marketplace installs (audit C2/H7).
+  app.get('/mcp/config', async (request) => {
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    return service.getUserConfig(request.currentUser!.id);
+  });
+
+  app.put('/mcp/config', async (request) => {
+    const body = parse(mcpUserConfigSchema, request.body);
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    return service.saveUserConfig({
+      userId: request.currentUser!.id,
+      config: body.config,
+      maxLLMSteps: body.maxLLMSteps,
+    });
   });
 
   app.patch('/agent-memory/:memoryId', async (request, reply) => {

@@ -798,6 +798,15 @@ exports.Prisma.McpInstallScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.McpUserConfigScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  configJson: 'configJson',
+  maxLLMSteps: 'maxLLMSteps',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.AgentRunScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -1157,6 +1166,7 @@ exports.Prisma.ModelName = {
   OAuthConnection: 'OAuthConnection',
   McpCatalogEntry: 'McpCatalogEntry',
   McpInstall: 'McpInstall',
+  McpUserConfig: 'McpUserConfig',
   AgentRun: 'AgentRun',
   AgentRunResult: 'AgentRunResult',
   ConsensusRecord: 'ConsensusRecord',

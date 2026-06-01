@@ -53,7 +53,7 @@ export const MCP_CATALOG_SEEDS: CatalogSeed[] = [
     homepageUrl: `${REPO}/tree/main/src/filesystem`,
     version: '0.7.0',
     transport: 'STDIO',
-    configTemplate: stdioTemplate('@modelcontextprotocol/server-filesystem', ['/path/to/allowed/dir']),
+    configTemplate: stdioTemplate('@modelcontextprotocol/server-filesystem', ['{{rootDir}}']),
     configSchema: {
       type: 'object',
       properties: {
@@ -168,7 +168,7 @@ export const MCP_CATALOG_SEEDS: CatalogSeed[] = [
     configTemplate: {
       type: 'stdio',
       command: 'npx',
-      args: ['-y', '@modelcontextprotocol/server-postgres', 'postgresql://user:pass@host:5432/db'],
+      args: ['-y', '@modelcontextprotocol/server-postgres', '{{DATABASE_URL}}'],
       env: {},
     },
     configSchema: {
@@ -194,7 +194,7 @@ export const MCP_CATALOG_SEEDS: CatalogSeed[] = [
     configTemplate: {
       type: 'stdio',
       command: 'npx',
-      args: ['-y', '@modelcontextprotocol/server-sqlite', '--db-path', '/path/to/db.sqlite'],
+      args: ['-y', '@modelcontextprotocol/server-sqlite', '--db-path', '{{dbPath}}'],
       env: {},
     },
     configSchema: {
@@ -219,7 +219,7 @@ export const MCP_CATALOG_SEEDS: CatalogSeed[] = [
     configTemplate: {
       type: 'stdio',
       command: 'npx',
-      args: ['-y', '@modelcontextprotocol/server-redis', 'redis://localhost:6379'],
+      args: ['-y', '@modelcontextprotocol/server-redis', '{{REDIS_URL}}'],
       env: {},
     },
     configSchema: {

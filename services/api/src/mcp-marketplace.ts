@@ -117,6 +117,24 @@ export const installListQuerySchema = z.object({
   organizationId: z.string().min(1).max(64).optional(),
 });
 
+/**
+ * Body for `PUT /mcp/config` — the manually-authored "Configuration" tab state
+ * (audit H5). `config.mcpServers` is the same `{ name: MCPServerConfig }` map
+ * the runtime consumes; the server values are stored verbatim and validated by
+ * the runtime when clients are created, so we only enforce the envelope shape.
+ */
+export const mcpUserConfigSchema = z.object({
+  config: z
+    .object({ mcpServers: z.record(z.unknown()).default({}) })
+    .default({ mcpServers: {} }),
+  maxLLMSteps: z.coerce.number().int().min(1).max(50).optional(),
+});
+
+export interface McpUserConfigView {
+  config: { mcpServers: Record<string, unknown> };
+  maxLLMSteps: number;
+}
+
 export class McpMarketplaceError extends Error {
   readonly statusCode: number;
   readonly code: string;
@@ -487,6 +505,50 @@ export class McpMarketplaceService {
     });
 
     return { id: install.id, alias: install.alias, organizationId: install.organizationId };
+  }
+
+  /**
+   * Read a user's persisted "Configuration" tab state (audit H5). Returns an
+   * empty config + the default step count when the user has never saved one.
+   */
+  async getUserConfig(userId: string): Promise<McpUserConfigView> {
+    const row = await this.deps.prisma.mcpUserConfig.findUnique({ where: { userId } });
+
+    if (!row) {
+      return { config: { mcpServers: {} }, maxLLMSteps: 5 };
+    }
+
+    const stored = (row.configJson ?? {}) as { mcpServers?: Record<string, unknown> };
+
+    return {
+      config: { mcpServers: stored.mcpServers ?? {} },
+      maxLLMSteps: row.maxLLMSteps,
+    };
+  }
+
+  /** Upsert a user's "Configuration" tab state (audit H5). */
+  async saveUserConfig(input: {
+    userId: string;
+    config?: { mcpServers?: Record<string, unknown> };
+    maxLLMSteps?: number;
+  }): Promise<McpUserConfigView> {
+    const mcpServers = input.config?.mcpServers ?? {};
+    const configJson = { mcpServers } as never;
+
+    const row = await this.deps.prisma.mcpUserConfig.upsert({
+      where: { userId: input.userId },
+      create: {
+        userId: input.userId,
+        configJson,
+        ...(input.maxLLMSteps !== undefined ? { maxLLMSteps: input.maxLLMSteps } : {}),
+      },
+      update: {
+        configJson,
+        ...(input.maxLLMSteps !== undefined ? { maxLLMSteps: input.maxLLMSteps } : {}),
+      },
+    });
+
+    return { config: { mcpServers }, maxLLMSteps: row.maxLLMSteps };
   }
 
   private toEntryView = (entry: {

@@ -42,22 +42,26 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
     }
 
     if (isBrowser) {
-      const savedConfig = localStorage.getItem(MCP_SETTINGS_KEY);
+      /*
+       * Audit H5: the "Configuration" tab now persists server-side. Prefer the
+       * DB-backed config so it follows the user across devices; fall back to
+       * the localStorage cache when the API is unreachable or the user is not
+       * signed in (e.g. local dev without a session).
+       */
+      const settings = (await loadSettingsFromDb()) ?? loadSettingsFromLocalStorage();
 
-      if (savedConfig) {
-        try {
-          const settings = JSON.parse(savedConfig) as MCPSettings;
-          const serverTools = await updateServerConfig(settings.mcpConfig);
-          set(() => ({ settings, serverTools }));
-        } catch (error) {
-          console.error('Error parsing saved mcp config:', error);
-          set(() => ({
-            error: `Error parsing saved mcp config: ${error instanceof Error ? error.message : String(error)}`,
-          }));
-        }
-      } else {
-        localStorage.setItem(MCP_SETTINGS_KEY, JSON.stringify(defaultSettings));
+      try {
+        const serverTools = await updateServerConfig(settings.mcpConfig);
+        set(() => ({ settings, serverTools }));
+      } catch (error) {
+        console.error('Error applying saved mcp config:', error);
+        set(() => ({
+          settings,
+          error: `Error applying saved mcp config: ${error instanceof Error ? error.message : String(error)}`,
+        }));
       }
+
+      localStorage.setItem(MCP_SETTINGS_KEY, JSON.stringify(settings));
     }
 
     set(() => ({ isInitialized: true }));
@@ -75,6 +79,15 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
       if (isBrowser) {
         localStorage.setItem(MCP_SETTINGS_KEY, JSON.stringify(newSettings));
       }
+
+      /*
+       * Persist server-side (audit H5) so the chat/agent runtime can read these
+       * manually-configured servers. A failure here (offline / unauthenticated)
+       * must not lose the in-session change, so we only warn.
+       */
+      await persistSettingsToDb(newSettings).catch((error) => {
+        console.warn('Failed to persist MCP configuration to server:', error);
+      });
 
       set(() => ({ settings: newSettings, serverTools }));
     } catch (error) {
@@ -97,6 +110,52 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
     set(() => ({ serverTools }));
   },
 }));
+
+function loadSettingsFromLocalStorage(): MCPSettings {
+  const savedConfig = localStorage.getItem(MCP_SETTINGS_KEY);
+
+  if (!savedConfig) {
+    return defaultSettings;
+  }
+
+  try {
+    return JSON.parse(savedConfig) as MCPSettings;
+  } catch (error) {
+    console.error('Error parsing saved mcp config:', error);
+    return defaultSettings;
+  }
+}
+
+async function loadSettingsFromDb(): Promise<MCPSettings | null> {
+  try {
+    const response = await fetch('/api/mcp/config', { headers: { accept: 'application/json' } });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = (await response.json()) as { config?: MCPConfig; maxLLMSteps?: number };
+
+    return {
+      mcpConfig: data.config?.mcpServers ? data.config : defaultSettings.mcpConfig,
+      maxLLMSteps: data.maxLLMSteps ?? defaultSettings.maxLLMSteps,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function persistSettingsToDb(settings: MCPSettings): Promise<void> {
+  const response = await fetch('/api/mcp/config', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ config: settings.mcpConfig, maxLLMSteps: settings.maxLLMSteps }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
+  }
+}
 
 async function updateServerConfig(config: MCPConfig) {
   const response = await fetch('/api/mcp-update-config', {

@@ -329,6 +329,11 @@ export type McpCatalogEntry = $Result.DefaultSelection<Prisma.$McpCatalogEntryPa
  */
 export type McpInstall = $Result.DefaultSelection<Prisma.$McpInstallPayload>
 /**
+ * Model McpUserConfig
+ * 
+ */
+export type McpUserConfig = $Result.DefaultSelection<Prisma.$McpUserConfigPayload>
+/**
  * Model AgentRun
  * 
  */
@@ -1310,6 +1315,16 @@ export class PrismaClient<
   get mcpInstall(): Prisma.McpInstallDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.mcpUserConfig`: Exposes CRUD operations for the **McpUserConfig** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more McpUserConfigs
+    * const mcpUserConfigs = await prisma.mcpUserConfig.findMany()
+    * ```
+    */
+  get mcpUserConfig(): Prisma.McpUserConfigDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.agentRun`: Exposes CRUD operations for the **AgentRun** model.
     * Example usage:
     * ```ts
@@ -1925,6 +1940,7 @@ export namespace Prisma {
     OAuthConnection: 'OAuthConnection',
     McpCatalogEntry: 'McpCatalogEntry',
     McpInstall: 'McpInstall',
+    McpUserConfig: 'McpUserConfig',
     AgentRun: 'AgentRun',
     AgentRunResult: 'AgentRunResult',
     ConsensusRecord: 'ConsensusRecord',
@@ -1952,7 +1968,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest" | "emailDeliveryEvent"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest" | "emailDeliveryEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -6602,6 +6618,80 @@ export namespace Prisma {
           }
         }
       }
+      McpUserConfig: {
+        payload: Prisma.$McpUserConfigPayload<ExtArgs>
+        fields: Prisma.McpUserConfigFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.McpUserConfigFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpUserConfigPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.McpUserConfigFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpUserConfigPayload>
+          }
+          findFirst: {
+            args: Prisma.McpUserConfigFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpUserConfigPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.McpUserConfigFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpUserConfigPayload>
+          }
+          findMany: {
+            args: Prisma.McpUserConfigFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpUserConfigPayload>[]
+          }
+          create: {
+            args: Prisma.McpUserConfigCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpUserConfigPayload>
+          }
+          createMany: {
+            args: Prisma.McpUserConfigCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.McpUserConfigCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpUserConfigPayload>[]
+          }
+          delete: {
+            args: Prisma.McpUserConfigDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpUserConfigPayload>
+          }
+          update: {
+            args: Prisma.McpUserConfigUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpUserConfigPayload>
+          }
+          deleteMany: {
+            args: Prisma.McpUserConfigDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.McpUserConfigUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.McpUserConfigUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpUserConfigPayload>[]
+          }
+          upsert: {
+            args: Prisma.McpUserConfigUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpUserConfigPayload>
+          }
+          aggregate: {
+            args: Prisma.McpUserConfigAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateMcpUserConfig>
+          }
+          groupBy: {
+            args: Prisma.McpUserConfigGroupByArgs<ExtArgs>
+            result: $Utils.Optional<McpUserConfigGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.McpUserConfigCountArgs<ExtArgs>
+            result: $Utils.Optional<McpUserConfigCountAggregateOutputType> | number
+          }
+        }
+      }
       AgentRun: {
         payload: Prisma.$AgentRunPayload<ExtArgs>
         fields: Prisma.AgentRunFieldRefs
@@ -7661,6 +7751,7 @@ export namespace Prisma {
     oAuthConnection?: OAuthConnectionOmit
     mcpCatalogEntry?: McpCatalogEntryOmit
     mcpInstall?: McpInstallOmit
+    mcpUserConfig?: McpUserConfigOmit
     agentRun?: AgentRunOmit
     agentRunResult?: AgentRunResultOmit
     consensusRecord?: ConsensusRecordOmit
@@ -9107,6 +9198,7 @@ export namespace Prisma {
     agentMemories?: boolean | User$agentMemoriesArgs<ExtArgs>
     agentMemoryPreferences?: boolean | User$agentMemoryPreferencesArgs<ExtArgs>
     mcpInstalls?: boolean | User$mcpInstallsArgs<ExtArgs>
+    mcpUserConfig?: boolean | User$mcpUserConfigArgs<ExtArgs>
     agentRuns?: boolean | User$agentRunsArgs<ExtArgs>
     userConnections?: boolean | User$userConnectionsArgs<ExtArgs>
     linkedProjectConnections?: boolean | User$linkedProjectConnectionsArgs<ExtArgs>
@@ -9187,6 +9279,7 @@ export namespace Prisma {
     agentMemories?: boolean | User$agentMemoriesArgs<ExtArgs>
     agentMemoryPreferences?: boolean | User$agentMemoryPreferencesArgs<ExtArgs>
     mcpInstalls?: boolean | User$mcpInstallsArgs<ExtArgs>
+    mcpUserConfig?: boolean | User$mcpUserConfigArgs<ExtArgs>
     agentRuns?: boolean | User$agentRunsArgs<ExtArgs>
     userConnections?: boolean | User$userConnectionsArgs<ExtArgs>
     linkedProjectConnections?: boolean | User$linkedProjectConnectionsArgs<ExtArgs>
@@ -9222,6 +9315,7 @@ export namespace Prisma {
       agentMemories: Prisma.$AgentMemoryPayload<ExtArgs>[]
       agentMemoryPreferences: Prisma.$AgentMemoryPreferencePayload<ExtArgs>[]
       mcpInstalls: Prisma.$McpInstallPayload<ExtArgs>[]
+      mcpUserConfig: Prisma.$McpUserConfigPayload<ExtArgs> | null
       agentRuns: Prisma.$AgentRunPayload<ExtArgs>[]
       userConnections: Prisma.$UserConnectionPayload<ExtArgs>[]
       linkedProjectConnections: Prisma.$ProjectConnectionLinkPayload<ExtArgs>[]
@@ -9658,6 +9752,7 @@ export namespace Prisma {
     agentMemories<T extends User$agentMemoriesArgs<ExtArgs> = {}>(args?: Subset<T, User$agentMemoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentMemoryPreferences<T extends User$agentMemoryPreferencesArgs<ExtArgs> = {}>(args?: Subset<T, User$agentMemoryPreferencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     mcpInstalls<T extends User$mcpInstallsArgs<ExtArgs> = {}>(args?: Subset<T, User$mcpInstallsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    mcpUserConfig<T extends User$mcpUserConfigArgs<ExtArgs> = {}>(args?: Subset<T, User$mcpUserConfigArgs<ExtArgs>>): Prisma__McpUserConfigClient<$Result.GetResult<Prisma.$McpUserConfigPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     agentRuns<T extends User$agentRunsArgs<ExtArgs> = {}>(args?: Subset<T, User$agentRunsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     userConnections<T extends User$userConnectionsArgs<ExtArgs> = {}>(args?: Subset<T, User$userConnectionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     linkedProjectConnections<T extends User$linkedProjectConnectionsArgs<ExtArgs> = {}>(args?: Subset<T, User$linkedProjectConnectionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -10623,6 +10718,25 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: McpInstallScalarFieldEnum | McpInstallScalarFieldEnum[]
+  }
+
+  /**
+   * User.mcpUserConfig
+   */
+  export type User$mcpUserConfigArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpUserConfig
+     */
+    select?: McpUserConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpUserConfig
+     */
+    omit?: McpUserConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpUserConfigInclude<ExtArgs> | null
+    where?: McpUserConfigWhereInput
   }
 
   /**
@@ -81309,6 +81423,1112 @@ export namespace Prisma {
 
 
   /**
+   * Model McpUserConfig
+   */
+
+  export type AggregateMcpUserConfig = {
+    _count: McpUserConfigCountAggregateOutputType | null
+    _avg: McpUserConfigAvgAggregateOutputType | null
+    _sum: McpUserConfigSumAggregateOutputType | null
+    _min: McpUserConfigMinAggregateOutputType | null
+    _max: McpUserConfigMaxAggregateOutputType | null
+  }
+
+  export type McpUserConfigAvgAggregateOutputType = {
+    maxLLMSteps: number | null
+  }
+
+  export type McpUserConfigSumAggregateOutputType = {
+    maxLLMSteps: number | null
+  }
+
+  export type McpUserConfigMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    maxLLMSteps: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type McpUserConfigMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    maxLLMSteps: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type McpUserConfigCountAggregateOutputType = {
+    id: number
+    userId: number
+    configJson: number
+    maxLLMSteps: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type McpUserConfigAvgAggregateInputType = {
+    maxLLMSteps?: true
+  }
+
+  export type McpUserConfigSumAggregateInputType = {
+    maxLLMSteps?: true
+  }
+
+  export type McpUserConfigMinAggregateInputType = {
+    id?: true
+    userId?: true
+    maxLLMSteps?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type McpUserConfigMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    maxLLMSteps?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type McpUserConfigCountAggregateInputType = {
+    id?: true
+    userId?: true
+    configJson?: true
+    maxLLMSteps?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type McpUserConfigAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which McpUserConfig to aggregate.
+     */
+    where?: McpUserConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of McpUserConfigs to fetch.
+     */
+    orderBy?: McpUserConfigOrderByWithRelationInput | McpUserConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: McpUserConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` McpUserConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` McpUserConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned McpUserConfigs
+    **/
+    _count?: true | McpUserConfigCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: McpUserConfigAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: McpUserConfigSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: McpUserConfigMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: McpUserConfigMaxAggregateInputType
+  }
+
+  export type GetMcpUserConfigAggregateType<T extends McpUserConfigAggregateArgs> = {
+        [P in keyof T & keyof AggregateMcpUserConfig]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateMcpUserConfig[P]>
+      : GetScalarType<T[P], AggregateMcpUserConfig[P]>
+  }
+
+
+
+
+  export type McpUserConfigGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: McpUserConfigWhereInput
+    orderBy?: McpUserConfigOrderByWithAggregationInput | McpUserConfigOrderByWithAggregationInput[]
+    by: McpUserConfigScalarFieldEnum[] | McpUserConfigScalarFieldEnum
+    having?: McpUserConfigScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: McpUserConfigCountAggregateInputType | true
+    _avg?: McpUserConfigAvgAggregateInputType
+    _sum?: McpUserConfigSumAggregateInputType
+    _min?: McpUserConfigMinAggregateInputType
+    _max?: McpUserConfigMaxAggregateInputType
+  }
+
+  export type McpUserConfigGroupByOutputType = {
+    id: string
+    userId: string
+    configJson: JsonValue
+    maxLLMSteps: number
+    createdAt: Date
+    updatedAt: Date
+    _count: McpUserConfigCountAggregateOutputType | null
+    _avg: McpUserConfigAvgAggregateOutputType | null
+    _sum: McpUserConfigSumAggregateOutputType | null
+    _min: McpUserConfigMinAggregateOutputType | null
+    _max: McpUserConfigMaxAggregateOutputType | null
+  }
+
+  type GetMcpUserConfigGroupByPayload<T extends McpUserConfigGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<McpUserConfigGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof McpUserConfigGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], McpUserConfigGroupByOutputType[P]>
+            : GetScalarType<T[P], McpUserConfigGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type McpUserConfigSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    configJson?: boolean
+    maxLLMSteps?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["mcpUserConfig"]>
+
+  export type McpUserConfigSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    configJson?: boolean
+    maxLLMSteps?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["mcpUserConfig"]>
+
+  export type McpUserConfigSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    configJson?: boolean
+    maxLLMSteps?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["mcpUserConfig"]>
+
+  export type McpUserConfigSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    configJson?: boolean
+    maxLLMSteps?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type McpUserConfigOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "configJson" | "maxLLMSteps" | "createdAt" | "updatedAt", ExtArgs["result"]["mcpUserConfig"]>
+  export type McpUserConfigInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type McpUserConfigIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type McpUserConfigIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $McpUserConfigPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "McpUserConfig"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      configJson: Prisma.JsonValue
+      maxLLMSteps: number
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["mcpUserConfig"]>
+    composites: {}
+  }
+
+  type McpUserConfigGetPayload<S extends boolean | null | undefined | McpUserConfigDefaultArgs> = $Result.GetResult<Prisma.$McpUserConfigPayload, S>
+
+  type McpUserConfigCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<McpUserConfigFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: McpUserConfigCountAggregateInputType | true
+    }
+
+  export interface McpUserConfigDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['McpUserConfig'], meta: { name: 'McpUserConfig' } }
+    /**
+     * Find zero or one McpUserConfig that matches the filter.
+     * @param {McpUserConfigFindUniqueArgs} args - Arguments to find a McpUserConfig
+     * @example
+     * // Get one McpUserConfig
+     * const mcpUserConfig = await prisma.mcpUserConfig.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends McpUserConfigFindUniqueArgs>(args: SelectSubset<T, McpUserConfigFindUniqueArgs<ExtArgs>>): Prisma__McpUserConfigClient<$Result.GetResult<Prisma.$McpUserConfigPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one McpUserConfig that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {McpUserConfigFindUniqueOrThrowArgs} args - Arguments to find a McpUserConfig
+     * @example
+     * // Get one McpUserConfig
+     * const mcpUserConfig = await prisma.mcpUserConfig.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends McpUserConfigFindUniqueOrThrowArgs>(args: SelectSubset<T, McpUserConfigFindUniqueOrThrowArgs<ExtArgs>>): Prisma__McpUserConfigClient<$Result.GetResult<Prisma.$McpUserConfigPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first McpUserConfig that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpUserConfigFindFirstArgs} args - Arguments to find a McpUserConfig
+     * @example
+     * // Get one McpUserConfig
+     * const mcpUserConfig = await prisma.mcpUserConfig.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends McpUserConfigFindFirstArgs>(args?: SelectSubset<T, McpUserConfigFindFirstArgs<ExtArgs>>): Prisma__McpUserConfigClient<$Result.GetResult<Prisma.$McpUserConfigPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first McpUserConfig that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpUserConfigFindFirstOrThrowArgs} args - Arguments to find a McpUserConfig
+     * @example
+     * // Get one McpUserConfig
+     * const mcpUserConfig = await prisma.mcpUserConfig.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends McpUserConfigFindFirstOrThrowArgs>(args?: SelectSubset<T, McpUserConfigFindFirstOrThrowArgs<ExtArgs>>): Prisma__McpUserConfigClient<$Result.GetResult<Prisma.$McpUserConfigPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more McpUserConfigs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpUserConfigFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all McpUserConfigs
+     * const mcpUserConfigs = await prisma.mcpUserConfig.findMany()
+     * 
+     * // Get first 10 McpUserConfigs
+     * const mcpUserConfigs = await prisma.mcpUserConfig.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const mcpUserConfigWithIdOnly = await prisma.mcpUserConfig.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends McpUserConfigFindManyArgs>(args?: SelectSubset<T, McpUserConfigFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpUserConfigPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a McpUserConfig.
+     * @param {McpUserConfigCreateArgs} args - Arguments to create a McpUserConfig.
+     * @example
+     * // Create one McpUserConfig
+     * const McpUserConfig = await prisma.mcpUserConfig.create({
+     *   data: {
+     *     // ... data to create a McpUserConfig
+     *   }
+     * })
+     * 
+     */
+    create<T extends McpUserConfigCreateArgs>(args: SelectSubset<T, McpUserConfigCreateArgs<ExtArgs>>): Prisma__McpUserConfigClient<$Result.GetResult<Prisma.$McpUserConfigPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many McpUserConfigs.
+     * @param {McpUserConfigCreateManyArgs} args - Arguments to create many McpUserConfigs.
+     * @example
+     * // Create many McpUserConfigs
+     * const mcpUserConfig = await prisma.mcpUserConfig.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends McpUserConfigCreateManyArgs>(args?: SelectSubset<T, McpUserConfigCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many McpUserConfigs and returns the data saved in the database.
+     * @param {McpUserConfigCreateManyAndReturnArgs} args - Arguments to create many McpUserConfigs.
+     * @example
+     * // Create many McpUserConfigs
+     * const mcpUserConfig = await prisma.mcpUserConfig.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many McpUserConfigs and only return the `id`
+     * const mcpUserConfigWithIdOnly = await prisma.mcpUserConfig.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends McpUserConfigCreateManyAndReturnArgs>(args?: SelectSubset<T, McpUserConfigCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpUserConfigPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a McpUserConfig.
+     * @param {McpUserConfigDeleteArgs} args - Arguments to delete one McpUserConfig.
+     * @example
+     * // Delete one McpUserConfig
+     * const McpUserConfig = await prisma.mcpUserConfig.delete({
+     *   where: {
+     *     // ... filter to delete one McpUserConfig
+     *   }
+     * })
+     * 
+     */
+    delete<T extends McpUserConfigDeleteArgs>(args: SelectSubset<T, McpUserConfigDeleteArgs<ExtArgs>>): Prisma__McpUserConfigClient<$Result.GetResult<Prisma.$McpUserConfigPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one McpUserConfig.
+     * @param {McpUserConfigUpdateArgs} args - Arguments to update one McpUserConfig.
+     * @example
+     * // Update one McpUserConfig
+     * const mcpUserConfig = await prisma.mcpUserConfig.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends McpUserConfigUpdateArgs>(args: SelectSubset<T, McpUserConfigUpdateArgs<ExtArgs>>): Prisma__McpUserConfigClient<$Result.GetResult<Prisma.$McpUserConfigPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more McpUserConfigs.
+     * @param {McpUserConfigDeleteManyArgs} args - Arguments to filter McpUserConfigs to delete.
+     * @example
+     * // Delete a few McpUserConfigs
+     * const { count } = await prisma.mcpUserConfig.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends McpUserConfigDeleteManyArgs>(args?: SelectSubset<T, McpUserConfigDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more McpUserConfigs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpUserConfigUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many McpUserConfigs
+     * const mcpUserConfig = await prisma.mcpUserConfig.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends McpUserConfigUpdateManyArgs>(args: SelectSubset<T, McpUserConfigUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more McpUserConfigs and returns the data updated in the database.
+     * @param {McpUserConfigUpdateManyAndReturnArgs} args - Arguments to update many McpUserConfigs.
+     * @example
+     * // Update many McpUserConfigs
+     * const mcpUserConfig = await prisma.mcpUserConfig.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more McpUserConfigs and only return the `id`
+     * const mcpUserConfigWithIdOnly = await prisma.mcpUserConfig.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends McpUserConfigUpdateManyAndReturnArgs>(args: SelectSubset<T, McpUserConfigUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpUserConfigPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one McpUserConfig.
+     * @param {McpUserConfigUpsertArgs} args - Arguments to update or create a McpUserConfig.
+     * @example
+     * // Update or create a McpUserConfig
+     * const mcpUserConfig = await prisma.mcpUserConfig.upsert({
+     *   create: {
+     *     // ... data to create a McpUserConfig
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the McpUserConfig we want to update
+     *   }
+     * })
+     */
+    upsert<T extends McpUserConfigUpsertArgs>(args: SelectSubset<T, McpUserConfigUpsertArgs<ExtArgs>>): Prisma__McpUserConfigClient<$Result.GetResult<Prisma.$McpUserConfigPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of McpUserConfigs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpUserConfigCountArgs} args - Arguments to filter McpUserConfigs to count.
+     * @example
+     * // Count the number of McpUserConfigs
+     * const count = await prisma.mcpUserConfig.count({
+     *   where: {
+     *     // ... the filter for the McpUserConfigs we want to count
+     *   }
+     * })
+    **/
+    count<T extends McpUserConfigCountArgs>(
+      args?: Subset<T, McpUserConfigCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], McpUserConfigCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a McpUserConfig.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpUserConfigAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends McpUserConfigAggregateArgs>(args: Subset<T, McpUserConfigAggregateArgs>): Prisma.PrismaPromise<GetMcpUserConfigAggregateType<T>>
+
+    /**
+     * Group by McpUserConfig.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpUserConfigGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends McpUserConfigGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: McpUserConfigGroupByArgs['orderBy'] }
+        : { orderBy?: McpUserConfigGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, McpUserConfigGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetMcpUserConfigGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the McpUserConfig model
+   */
+  readonly fields: McpUserConfigFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for McpUserConfig.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__McpUserConfigClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the McpUserConfig model
+   */
+  interface McpUserConfigFieldRefs {
+    readonly id: FieldRef<"McpUserConfig", 'String'>
+    readonly userId: FieldRef<"McpUserConfig", 'String'>
+    readonly configJson: FieldRef<"McpUserConfig", 'Json'>
+    readonly maxLLMSteps: FieldRef<"McpUserConfig", 'Int'>
+    readonly createdAt: FieldRef<"McpUserConfig", 'DateTime'>
+    readonly updatedAt: FieldRef<"McpUserConfig", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * McpUserConfig findUnique
+   */
+  export type McpUserConfigFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpUserConfig
+     */
+    select?: McpUserConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpUserConfig
+     */
+    omit?: McpUserConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpUserConfigInclude<ExtArgs> | null
+    /**
+     * Filter, which McpUserConfig to fetch.
+     */
+    where: McpUserConfigWhereUniqueInput
+  }
+
+  /**
+   * McpUserConfig findUniqueOrThrow
+   */
+  export type McpUserConfigFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpUserConfig
+     */
+    select?: McpUserConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpUserConfig
+     */
+    omit?: McpUserConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpUserConfigInclude<ExtArgs> | null
+    /**
+     * Filter, which McpUserConfig to fetch.
+     */
+    where: McpUserConfigWhereUniqueInput
+  }
+
+  /**
+   * McpUserConfig findFirst
+   */
+  export type McpUserConfigFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpUserConfig
+     */
+    select?: McpUserConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpUserConfig
+     */
+    omit?: McpUserConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpUserConfigInclude<ExtArgs> | null
+    /**
+     * Filter, which McpUserConfig to fetch.
+     */
+    where?: McpUserConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of McpUserConfigs to fetch.
+     */
+    orderBy?: McpUserConfigOrderByWithRelationInput | McpUserConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for McpUserConfigs.
+     */
+    cursor?: McpUserConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` McpUserConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` McpUserConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of McpUserConfigs.
+     */
+    distinct?: McpUserConfigScalarFieldEnum | McpUserConfigScalarFieldEnum[]
+  }
+
+  /**
+   * McpUserConfig findFirstOrThrow
+   */
+  export type McpUserConfigFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpUserConfig
+     */
+    select?: McpUserConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpUserConfig
+     */
+    omit?: McpUserConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpUserConfigInclude<ExtArgs> | null
+    /**
+     * Filter, which McpUserConfig to fetch.
+     */
+    where?: McpUserConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of McpUserConfigs to fetch.
+     */
+    orderBy?: McpUserConfigOrderByWithRelationInput | McpUserConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for McpUserConfigs.
+     */
+    cursor?: McpUserConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` McpUserConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` McpUserConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of McpUserConfigs.
+     */
+    distinct?: McpUserConfigScalarFieldEnum | McpUserConfigScalarFieldEnum[]
+  }
+
+  /**
+   * McpUserConfig findMany
+   */
+  export type McpUserConfigFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpUserConfig
+     */
+    select?: McpUserConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpUserConfig
+     */
+    omit?: McpUserConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpUserConfigInclude<ExtArgs> | null
+    /**
+     * Filter, which McpUserConfigs to fetch.
+     */
+    where?: McpUserConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of McpUserConfigs to fetch.
+     */
+    orderBy?: McpUserConfigOrderByWithRelationInput | McpUserConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing McpUserConfigs.
+     */
+    cursor?: McpUserConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` McpUserConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` McpUserConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of McpUserConfigs.
+     */
+    distinct?: McpUserConfigScalarFieldEnum | McpUserConfigScalarFieldEnum[]
+  }
+
+  /**
+   * McpUserConfig create
+   */
+  export type McpUserConfigCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpUserConfig
+     */
+    select?: McpUserConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpUserConfig
+     */
+    omit?: McpUserConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpUserConfigInclude<ExtArgs> | null
+    /**
+     * The data needed to create a McpUserConfig.
+     */
+    data: XOR<McpUserConfigCreateInput, McpUserConfigUncheckedCreateInput>
+  }
+
+  /**
+   * McpUserConfig createMany
+   */
+  export type McpUserConfigCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many McpUserConfigs.
+     */
+    data: McpUserConfigCreateManyInput | McpUserConfigCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * McpUserConfig createManyAndReturn
+   */
+  export type McpUserConfigCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpUserConfig
+     */
+    select?: McpUserConfigSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpUserConfig
+     */
+    omit?: McpUserConfigOmit<ExtArgs> | null
+    /**
+     * The data used to create many McpUserConfigs.
+     */
+    data: McpUserConfigCreateManyInput | McpUserConfigCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpUserConfigIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * McpUserConfig update
+   */
+  export type McpUserConfigUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpUserConfig
+     */
+    select?: McpUserConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpUserConfig
+     */
+    omit?: McpUserConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpUserConfigInclude<ExtArgs> | null
+    /**
+     * The data needed to update a McpUserConfig.
+     */
+    data: XOR<McpUserConfigUpdateInput, McpUserConfigUncheckedUpdateInput>
+    /**
+     * Choose, which McpUserConfig to update.
+     */
+    where: McpUserConfigWhereUniqueInput
+  }
+
+  /**
+   * McpUserConfig updateMany
+   */
+  export type McpUserConfigUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update McpUserConfigs.
+     */
+    data: XOR<McpUserConfigUpdateManyMutationInput, McpUserConfigUncheckedUpdateManyInput>
+    /**
+     * Filter which McpUserConfigs to update
+     */
+    where?: McpUserConfigWhereInput
+    /**
+     * Limit how many McpUserConfigs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * McpUserConfig updateManyAndReturn
+   */
+  export type McpUserConfigUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpUserConfig
+     */
+    select?: McpUserConfigSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpUserConfig
+     */
+    omit?: McpUserConfigOmit<ExtArgs> | null
+    /**
+     * The data used to update McpUserConfigs.
+     */
+    data: XOR<McpUserConfigUpdateManyMutationInput, McpUserConfigUncheckedUpdateManyInput>
+    /**
+     * Filter which McpUserConfigs to update
+     */
+    where?: McpUserConfigWhereInput
+    /**
+     * Limit how many McpUserConfigs to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpUserConfigIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * McpUserConfig upsert
+   */
+  export type McpUserConfigUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpUserConfig
+     */
+    select?: McpUserConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpUserConfig
+     */
+    omit?: McpUserConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpUserConfigInclude<ExtArgs> | null
+    /**
+     * The filter to search for the McpUserConfig to update in case it exists.
+     */
+    where: McpUserConfigWhereUniqueInput
+    /**
+     * In case the McpUserConfig found by the `where` argument doesn't exist, create a new McpUserConfig with this data.
+     */
+    create: XOR<McpUserConfigCreateInput, McpUserConfigUncheckedCreateInput>
+    /**
+     * In case the McpUserConfig was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<McpUserConfigUpdateInput, McpUserConfigUncheckedUpdateInput>
+  }
+
+  /**
+   * McpUserConfig delete
+   */
+  export type McpUserConfigDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpUserConfig
+     */
+    select?: McpUserConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpUserConfig
+     */
+    omit?: McpUserConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpUserConfigInclude<ExtArgs> | null
+    /**
+     * Filter which McpUserConfig to delete.
+     */
+    where: McpUserConfigWhereUniqueInput
+  }
+
+  /**
+   * McpUserConfig deleteMany
+   */
+  export type McpUserConfigDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which McpUserConfigs to delete
+     */
+    where?: McpUserConfigWhereInput
+    /**
+     * Limit how many McpUserConfigs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * McpUserConfig without action
+   */
+  export type McpUserConfigDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpUserConfig
+     */
+    select?: McpUserConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpUserConfig
+     */
+    omit?: McpUserConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpUserConfigInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model AgentRun
    */
 
@@ -96190,6 +97410,18 @@ export namespace Prisma {
   export type McpInstallScalarFieldEnum = (typeof McpInstallScalarFieldEnum)[keyof typeof McpInstallScalarFieldEnum]
 
 
+  export const McpUserConfigScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    configJson: 'configJson',
+    maxLLMSteps: 'maxLLMSteps',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type McpUserConfigScalarFieldEnum = (typeof McpUserConfigScalarFieldEnum)[keyof typeof McpUserConfigScalarFieldEnum]
+
+
   export const AgentRunScalarFieldEnum: {
     id: 'id',
     organizationId: 'organizationId',
@@ -96721,6 +97953,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryListRelationFilter
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     mcpInstalls?: McpInstallListRelationFilter
+    mcpUserConfig?: XOR<McpUserConfigNullableScalarRelationFilter, McpUserConfigWhereInput> | null
     agentRuns?: AgentRunListRelationFilter
     userConnections?: UserConnectionListRelationFilter
     linkedProjectConnections?: ProjectConnectionLinkListRelationFilter
@@ -96764,6 +97997,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryOrderByRelationAggregateInput
     agentMemoryPreferences?: AgentMemoryPreferenceOrderByRelationAggregateInput
     mcpInstalls?: McpInstallOrderByRelationAggregateInput
+    mcpUserConfig?: McpUserConfigOrderByWithRelationInput
     agentRuns?: AgentRunOrderByRelationAggregateInput
     userConnections?: UserConnectionOrderByRelationAggregateInput
     linkedProjectConnections?: ProjectConnectionLinkOrderByRelationAggregateInput
@@ -96810,6 +98044,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryListRelationFilter
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     mcpInstalls?: McpInstallListRelationFilter
+    mcpUserConfig?: XOR<McpUserConfigNullableScalarRelationFilter, McpUserConfigWhereInput> | null
     agentRuns?: AgentRunListRelationFilter
     userConnections?: UserConnectionListRelationFilter
     linkedProjectConnections?: ProjectConnectionLinkListRelationFilter
@@ -101388,6 +102623,68 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"McpInstall"> | Date | string
   }
 
+  export type McpUserConfigWhereInput = {
+    AND?: McpUserConfigWhereInput | McpUserConfigWhereInput[]
+    OR?: McpUserConfigWhereInput[]
+    NOT?: McpUserConfigWhereInput | McpUserConfigWhereInput[]
+    id?: StringFilter<"McpUserConfig"> | string
+    userId?: StringFilter<"McpUserConfig"> | string
+    configJson?: JsonFilter<"McpUserConfig">
+    maxLLMSteps?: IntFilter<"McpUserConfig"> | number
+    createdAt?: DateTimeFilter<"McpUserConfig"> | Date | string
+    updatedAt?: DateTimeFilter<"McpUserConfig"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type McpUserConfigOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    configJson?: SortOrder
+    maxLLMSteps?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type McpUserConfigWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    userId?: string
+    AND?: McpUserConfigWhereInput | McpUserConfigWhereInput[]
+    OR?: McpUserConfigWhereInput[]
+    NOT?: McpUserConfigWhereInput | McpUserConfigWhereInput[]
+    configJson?: JsonFilter<"McpUserConfig">
+    maxLLMSteps?: IntFilter<"McpUserConfig"> | number
+    createdAt?: DateTimeFilter<"McpUserConfig"> | Date | string
+    updatedAt?: DateTimeFilter<"McpUserConfig"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id" | "userId">
+
+  export type McpUserConfigOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    configJson?: SortOrder
+    maxLLMSteps?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: McpUserConfigCountOrderByAggregateInput
+    _avg?: McpUserConfigAvgOrderByAggregateInput
+    _max?: McpUserConfigMaxOrderByAggregateInput
+    _min?: McpUserConfigMinOrderByAggregateInput
+    _sum?: McpUserConfigSumOrderByAggregateInput
+  }
+
+  export type McpUserConfigScalarWhereWithAggregatesInput = {
+    AND?: McpUserConfigScalarWhereWithAggregatesInput | McpUserConfigScalarWhereWithAggregatesInput[]
+    OR?: McpUserConfigScalarWhereWithAggregatesInput[]
+    NOT?: McpUserConfigScalarWhereWithAggregatesInput | McpUserConfigScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"McpUserConfig"> | string
+    userId?: StringWithAggregatesFilter<"McpUserConfig"> | string
+    configJson?: JsonWithAggregatesFilter<"McpUserConfig">
+    maxLLMSteps?: IntWithAggregatesFilter<"McpUserConfig"> | number
+    createdAt?: DateTimeWithAggregatesFilter<"McpUserConfig"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"McpUserConfig"> | Date | string
+  }
+
   export type AgentRunWhereInput = {
     AND?: AgentRunWhereInput | AgentRunWhereInput[]
     OR?: AgentRunWhereInput[]
@@ -102555,6 +103852,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -102598,6 +103896,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -102641,6 +103940,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -102684,6 +103984,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -107471,6 +108772,68 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type McpUserConfigCreateInput = {
+    id?: string
+    configJson?: JsonNullValueInput | InputJsonValue
+    maxLLMSteps?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutMcpUserConfigInput
+  }
+
+  export type McpUserConfigUncheckedCreateInput = {
+    id?: string
+    userId: string
+    configJson?: JsonNullValueInput | InputJsonValue
+    maxLLMSteps?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpUserConfigUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    maxLLMSteps?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutMcpUserConfigNestedInput
+  }
+
+  export type McpUserConfigUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    maxLLMSteps?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpUserConfigCreateManyInput = {
+    id?: string
+    userId: string
+    configJson?: JsonNullValueInput | InputJsonValue
+    maxLLMSteps?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpUserConfigUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    maxLLMSteps?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpUserConfigUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    maxLLMSteps?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type AgentRunCreateInput = {
     id?: string
     conversationId?: string | null
@@ -108967,6 +110330,11 @@ export namespace Prisma {
     every?: McpInstallWhereInput
     some?: McpInstallWhereInput
     none?: McpInstallWhereInput
+  }
+
+  export type McpUserConfigNullableScalarRelationFilter = {
+    is?: McpUserConfigWhereInput | null
+    isNot?: McpUserConfigWhereInput | null
   }
 
   export type AgentRunListRelationFilter = {
@@ -112050,6 +113418,39 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
+  export type McpUserConfigCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    configJson?: SortOrder
+    maxLLMSteps?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type McpUserConfigAvgOrderByAggregateInput = {
+    maxLLMSteps?: SortOrder
+  }
+
+  export type McpUserConfigMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    maxLLMSteps?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type McpUserConfigMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    maxLLMSteps?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type McpUserConfigSumOrderByAggregateInput = {
+    maxLLMSteps?: SortOrder
+  }
+
   export type EnumAgentRunStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.AgentRunStatus | EnumAgentRunStatusFieldRefInput<$PrismaModel>
     in?: $Enums.AgentRunStatus[] | ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
@@ -112881,6 +114282,12 @@ export namespace Prisma {
     connect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
   }
 
+  export type McpUserConfigCreateNestedOneWithoutUserInput = {
+    create?: XOR<McpUserConfigCreateWithoutUserInput, McpUserConfigUncheckedCreateWithoutUserInput>
+    connectOrCreate?: McpUserConfigCreateOrConnectWithoutUserInput
+    connect?: McpUserConfigWhereUniqueInput
+  }
+
   export type AgentRunCreateNestedManyWithoutUserInput = {
     create?: XOR<AgentRunCreateWithoutUserInput, AgentRunUncheckedCreateWithoutUserInput> | AgentRunCreateWithoutUserInput[] | AgentRunUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AgentRunCreateOrConnectWithoutUserInput | AgentRunCreateOrConnectWithoutUserInput[]
@@ -113065,6 +114472,12 @@ export namespace Prisma {
     connectOrCreate?: McpInstallCreateOrConnectWithoutUserInput | McpInstallCreateOrConnectWithoutUserInput[]
     createMany?: McpInstallCreateManyUserInputEnvelope
     connect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+  }
+
+  export type McpUserConfigUncheckedCreateNestedOneWithoutUserInput = {
+    create?: XOR<McpUserConfigCreateWithoutUserInput, McpUserConfigUncheckedCreateWithoutUserInput>
+    connectOrCreate?: McpUserConfigCreateOrConnectWithoutUserInput
+    connect?: McpUserConfigWhereUniqueInput
   }
 
   export type AgentRunUncheckedCreateNestedManyWithoutUserInput = {
@@ -113424,6 +114837,16 @@ export namespace Prisma {
     update?: McpInstallUpdateWithWhereUniqueWithoutUserInput | McpInstallUpdateWithWhereUniqueWithoutUserInput[]
     updateMany?: McpInstallUpdateManyWithWhereWithoutUserInput | McpInstallUpdateManyWithWhereWithoutUserInput[]
     deleteMany?: McpInstallScalarWhereInput | McpInstallScalarWhereInput[]
+  }
+
+  export type McpUserConfigUpdateOneWithoutUserNestedInput = {
+    create?: XOR<McpUserConfigCreateWithoutUserInput, McpUserConfigUncheckedCreateWithoutUserInput>
+    connectOrCreate?: McpUserConfigCreateOrConnectWithoutUserInput
+    upsert?: McpUserConfigUpsertWithoutUserInput
+    disconnect?: McpUserConfigWhereInput | boolean
+    delete?: McpUserConfigWhereInput | boolean
+    connect?: McpUserConfigWhereUniqueInput
+    update?: XOR<XOR<McpUserConfigUpdateToOneWithWhereWithoutUserInput, McpUserConfigUpdateWithoutUserInput>, McpUserConfigUncheckedUpdateWithoutUserInput>
   }
 
   export type AgentRunUpdateManyWithoutUserNestedInput = {
@@ -113798,6 +115221,16 @@ export namespace Prisma {
     update?: McpInstallUpdateWithWhereUniqueWithoutUserInput | McpInstallUpdateWithWhereUniqueWithoutUserInput[]
     updateMany?: McpInstallUpdateManyWithWhereWithoutUserInput | McpInstallUpdateManyWithWhereWithoutUserInput[]
     deleteMany?: McpInstallScalarWhereInput | McpInstallScalarWhereInput[]
+  }
+
+  export type McpUserConfigUncheckedUpdateOneWithoutUserNestedInput = {
+    create?: XOR<McpUserConfigCreateWithoutUserInput, McpUserConfigUncheckedCreateWithoutUserInput>
+    connectOrCreate?: McpUserConfigCreateOrConnectWithoutUserInput
+    upsert?: McpUserConfigUpsertWithoutUserInput
+    disconnect?: McpUserConfigWhereInput | boolean
+    delete?: McpUserConfigWhereInput | boolean
+    connect?: McpUserConfigWhereUniqueInput
+    update?: XOR<XOR<McpUserConfigUpdateToOneWithWhereWithoutUserInput, McpUserConfigUpdateWithoutUserInput>, McpUserConfigUncheckedUpdateWithoutUserInput>
   }
 
   export type AgentRunUncheckedUpdateManyWithoutUserNestedInput = {
@@ -117680,6 +119113,20 @@ export namespace Prisma {
     update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutMcpInstallsInput, OrganizationUpdateWithoutMcpInstallsInput>, OrganizationUncheckedUpdateWithoutMcpInstallsInput>
   }
 
+  export type UserCreateNestedOneWithoutMcpUserConfigInput = {
+    create?: XOR<UserCreateWithoutMcpUserConfigInput, UserUncheckedCreateWithoutMcpUserConfigInput>
+    connectOrCreate?: UserCreateOrConnectWithoutMcpUserConfigInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserUpdateOneRequiredWithoutMcpUserConfigNestedInput = {
+    create?: XOR<UserCreateWithoutMcpUserConfigInput, UserUncheckedCreateWithoutMcpUserConfigInput>
+    connectOrCreate?: UserCreateOrConnectWithoutMcpUserConfigInput
+    upsert?: UserUpsertWithoutMcpUserConfigInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutMcpUserConfigInput, UserUpdateWithoutMcpUserConfigInput>, UserUncheckedUpdateWithoutMcpUserConfigInput>
+  }
+
   export type AgentRunResultCreateNestedManyWithoutRunInput = {
     create?: XOR<AgentRunResultCreateWithoutRunInput, AgentRunResultUncheckedCreateWithoutRunInput> | AgentRunResultCreateWithoutRunInput[] | AgentRunResultUncheckedCreateWithoutRunInput[]
     connectOrCreate?: AgentRunResultCreateOrConnectWithoutRunInput | AgentRunResultCreateOrConnectWithoutRunInput[]
@@ -119201,6 +120648,27 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type McpUserConfigCreateWithoutUserInput = {
+    id?: string
+    configJson?: JsonNullValueInput | InputJsonValue
+    maxLLMSteps?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpUserConfigUncheckedCreateWithoutUserInput = {
+    id?: string
+    configJson?: JsonNullValueInput | InputJsonValue
+    maxLLMSteps?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpUserConfigCreateOrConnectWithoutUserInput = {
+    where: McpUserConfigWhereUniqueInput
+    create: XOR<McpUserConfigCreateWithoutUserInput, McpUserConfigUncheckedCreateWithoutUserInput>
+  }
+
   export type AgentRunCreateWithoutUserInput = {
     id?: string
     conversationId?: string | null
@@ -120045,6 +121513,33 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"McpInstall"> | Date | string
   }
 
+  export type McpUserConfigUpsertWithoutUserInput = {
+    update: XOR<McpUserConfigUpdateWithoutUserInput, McpUserConfigUncheckedUpdateWithoutUserInput>
+    create: XOR<McpUserConfigCreateWithoutUserInput, McpUserConfigUncheckedCreateWithoutUserInput>
+    where?: McpUserConfigWhereInput
+  }
+
+  export type McpUserConfigUpdateToOneWithWhereWithoutUserInput = {
+    where?: McpUserConfigWhereInput
+    data: XOR<McpUserConfigUpdateWithoutUserInput, McpUserConfigUncheckedUpdateWithoutUserInput>
+  }
+
+  export type McpUserConfigUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    maxLLMSteps?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpUserConfigUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    maxLLMSteps?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type AgentRunUpsertWithWhereUniqueWithoutUserInput = {
     where: AgentRunWhereUniqueInput
     update: XOR<AgentRunUpdateWithoutUserInput, AgentRunUncheckedUpdateWithoutUserInput>
@@ -120246,6 +121741,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -120288,6 +121784,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -120346,6 +121843,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -120388,6 +121886,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -120430,6 +121929,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -120472,6 +121972,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -120530,6 +122031,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -120572,6 +122074,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -122284,6 +123787,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -122326,6 +123830,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -122490,6 +123995,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -122532,6 +124038,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -124271,6 +125778,7 @@ export namespace Prisma {
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -124313,6 +125821,7 @@ export namespace Prisma {
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -124371,6 +125880,7 @@ export namespace Prisma {
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -124413,6 +125923,7 @@ export namespace Prisma {
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -124771,6 +126282,7 @@ export namespace Prisma {
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -124813,6 +126325,7 @@ export namespace Prisma {
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -125023,6 +126536,7 @@ export namespace Prisma {
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -125065,6 +126579,7 @@ export namespace Prisma {
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -125346,6 +126861,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -125388,6 +126904,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -125527,6 +127044,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -125569,6 +127087,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -126310,6 +127829,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -126352,6 +127872,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -126491,6 +128012,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -126533,6 +128055,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -126650,6 +128173,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -126692,6 +128216,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -126831,6 +128356,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -126873,6 +128399,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -126990,6 +128517,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -127032,6 +128560,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -127171,6 +128700,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -127213,6 +128743,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -127330,6 +128861,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -127372,6 +128904,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -127511,6 +129044,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -127553,6 +129087,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -127670,6 +129205,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -127712,6 +129248,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -127851,6 +129388,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -127893,6 +129431,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -129144,6 +130683,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -129186,6 +130726,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -129325,6 +130866,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -129367,6 +130909,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -129912,6 +131455,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -129954,6 +131498,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -130095,6 +131640,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -130137,6 +131683,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -130179,6 +131726,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -130221,6 +131769,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -130279,6 +131828,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -130321,6 +131871,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -131506,6 +133057,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -131548,6 +133100,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -131715,6 +133268,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -131757,6 +133311,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -132485,6 +134040,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -132527,6 +134083,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -132668,6 +134225,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -132710,6 +134268,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -132912,6 +134471,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -132954,6 +134514,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -133012,6 +134573,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -133054,6 +134616,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -133096,6 +134659,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -133138,6 +134702,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -133196,6 +134761,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -133238,6 +134804,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -133280,6 +134847,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -133322,6 +134890,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -133380,6 +134949,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -133422,6 +134992,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -134501,6 +136072,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -134543,6 +136115,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -134684,6 +136257,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -134726,6 +136300,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -134768,6 +136343,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -134810,6 +136386,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -134868,6 +136445,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -134910,6 +136488,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -135049,6 +136628,7 @@ export namespace Prisma {
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -135091,6 +136671,7 @@ export namespace Prisma {
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -135281,6 +136862,7 @@ export namespace Prisma {
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -135323,6 +136905,7 @@ export namespace Prisma {
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -135411,6 +136994,194 @@ export namespace Prisma {
     oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
     connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type UserCreateWithoutMcpUserConfigInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutMcpUserConfigInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutMcpUserConfigInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutMcpUserConfigInput, UserUncheckedCreateWithoutMcpUserConfigInput>
+  }
+
+  export type UserUpsertWithoutMcpUserConfigInput = {
+    update: XOR<UserUpdateWithoutMcpUserConfigInput, UserUncheckedUpdateWithoutMcpUserConfigInput>
+    create: XOR<UserCreateWithoutMcpUserConfigInput, UserUncheckedCreateWithoutMcpUserConfigInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutMcpUserConfigInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutMcpUserConfigInput, UserUncheckedUpdateWithoutMcpUserConfigInput>
+  }
+
+  export type UserUpdateWithoutMcpUserConfigInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutMcpUserConfigInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type AgentRunResultCreateWithoutRunInput = {
@@ -135520,6 +137291,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
@@ -135562,6 +137334,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
@@ -135770,6 +137543,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
@@ -135812,6 +137586,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
@@ -136097,6 +137872,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
@@ -136139,6 +137915,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
@@ -136284,6 +138061,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
@@ -136326,6 +138104,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
@@ -136579,6 +138358,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
@@ -136621,6 +138401,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
@@ -136817,6 +138598,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
@@ -136859,6 +138641,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
@@ -136978,6 +138761,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -137020,6 +138804,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -137217,6 +139002,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -137259,6 +139045,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
@@ -137585,6 +139372,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
@@ -137627,6 +139415,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
     userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
@@ -137762,6 +139551,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
@@ -137804,6 +139594,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
     userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
