@@ -1,4 +1,5 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
+import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import {
   Bell,
   CircleCheck,
@@ -17,11 +18,14 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
+import { Button } from '~/components/ui/Button';
+import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { classNames } from '~/utils/classNames';
 
 export const meta: MetaFunction = () => [{ title: 'Notifications - VibeCore' }];
 
 type NotificationSurface = {
+  key: string;
   title: string;
   description: string;
   icon: LucideIcon;
@@ -32,6 +36,7 @@ type NotificationSurface = {
 
 const surfaces: NotificationSurface[] = [
   {
+    key: 'security',
     title: 'Security events',
     description: 'MFA changes, API key rotation, suspicious session activity and access policy updates.',
     icon: ShieldAlert,
@@ -40,6 +45,7 @@ const surfaces: NotificationSurface[] = [
     owner: 'Security admins',
   },
   {
+    key: 'billing',
     title: 'Billing alerts',
     description: 'Quota thresholds, failed payments, invoice availability and subscription changes.',
     icon: CreditCard,
@@ -48,6 +54,7 @@ const surfaces: NotificationSurface[] = [
     owner: 'Billing admins',
   },
   {
+    key: 'deployments',
     title: 'Deployment updates',
     description: 'Preview builds, production releases, rollbacks, domain checks and failed jobs.',
     icon: Rocket,
@@ -56,6 +63,7 @@ const surfaces: NotificationSurface[] = [
     owner: 'Project collaborators',
   },
   {
+    key: 'team',
     title: 'Team changes',
     description: 'Invitations, role updates, collaborator changes and owner-level membership events.',
     icon: Users,
@@ -65,11 +73,19 @@ const surfaces: NotificationSurface[] = [
   },
 ];
 
-const channels = [
-  { label: 'Email', detail: 'Transactional provider', icon: Mail, status: 'Required for production' },
-  { label: 'In-app', detail: 'Workspace inbox', icon: Bell, status: 'Enabled' },
-  { label: 'Webhook', detail: 'Audit and incident routing', icon: Webhook, status: 'Enterprise' },
-  { label: 'Mobile', detail: 'Desktop/mobile bridge', icon: Smartphone, status: 'Optional' },
+type NotificationChannel = {
+  key: string;
+  label: string;
+  detail: string;
+  icon: LucideIcon;
+  status: string;
+};
+
+const channels: NotificationChannel[] = [
+  { key: 'email', label: 'Email', detail: 'Transactional provider', icon: Mail, status: 'Required for production' },
+  { key: 'inApp', label: 'In-app', detail: 'Workspace inbox', icon: Bell, status: 'Enabled' },
+  { key: 'webhook', label: 'Webhook', detail: 'Audit and incident routing', icon: Webhook, status: 'Enterprise' },
+  { key: 'mobile', label: 'Mobile', detail: 'Desktop/mobile bridge', icon: Smartphone, status: 'Optional' },
 ];
 
 const policies = [
@@ -78,21 +94,79 @@ const policies = [
   { label: 'Informational', icon: Megaphone, detail: 'Release notes, usage summaries and collaboration updates.' },
 ];
 
+type NotificationPreferences = {
+  surfaces: Record<string, boolean>;
+  channels: Record<string, boolean>;
+};
+
+/*
+ * Notification preferences live in the opaque per-user `preferences` blob
+ * (User.preferences JSON, shallow-merged server-side via PATCH
+ * /user/preferences). Surfaces and channels not present in the saved blob
+ * default to enabled so a fresh account opts into everything until it
+ * explicitly turns something off.
+ */
+function resolvePreferences(saved: Partial<NotificationPreferences> | undefined): NotificationPreferences {
+  const savedSurfaces = saved?.surfaces ?? {};
+  const savedChannels = saved?.channels ?? {};
+
+  return {
+    surfaces: Object.fromEntries(surfaces.map((surface) => [surface.key, savedSurfaces[surface.key] !== false])),
+    channels: Object.fromEntries(channels.map((channel) => [channel.key, savedChannels[channel.key] !== false])),
+  };
+}
+
+export async function loader({ request }: EnterpriseLoaderArgs) {
+  const data = await apiRequest<{ preferences?: { notifications?: Partial<NotificationPreferences> } }>(
+    request,
+    '/user/preferences',
+  );
+
+  return { preferences: resolvePreferences(data.preferences?.notifications) };
+}
+
+export async function action({ request }: EnterpriseActionArgs) {
+  const form = await request.formData();
+
+  // Unchecked checkboxes are omitted from the form body, so absence === off.
+  const notifications: NotificationPreferences = {
+    surfaces: Object.fromEntries(surfaces.map((surface) => [surface.key, form.get(`surface.${surface.key}`) === 'on'])),
+    channels: Object.fromEntries(channels.map((channel) => [channel.key, form.get(`channel.${channel.key}`) === 'on'])),
+  };
+
+  await apiRequest(request, '/user/preferences', {
+    method: 'PATCH',
+    body: JSON.stringify({ preferences: { notifications } }),
+  });
+
+  return { status: 'Notification preferences saved.', preferences: notifications };
+}
+
 export default function NotificationsPage() {
+  const { preferences } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>() as
+    | { status?: string; preferences?: NotificationPreferences }
+    | undefined;
+
+  // After a save, render the freshly-submitted state so toggles stay in sync.
+  const current = actionData?.preferences ?? preferences;
+
+  const enabledSurfaces = Object.values(current.surfaces).filter(Boolean).length;
+  const enabledChannels = Object.values(current.channels).filter(Boolean).length;
+
   return (
     <AppShell
       title="Notifications"
       description="Control high-signal product, billing, deployment and security notifications across your workspace."
-      actions={
-        <>
-          <LinkButton to="/settings/notifications" variant="outline">
-            User preferences
-          </LinkButton>
-          <LinkButton to="/security-settings">Security rules</LinkButton>
-        </>
-      }
+      actions={<LinkButton to="/security-settings">Security rules</LinkButton>}
     >
-      <div className="space-y-6">
+      <Form method="post" className="space-y-6">
+        {actionData?.status ? (
+          <p className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm text-bolt-elements-textSecondary">
+            {actionData.status}
+          </p>
+        ) : null}
+
         <section className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
           <div className="border-b border-bolt-elements-borderColor p-5 sm:p-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -106,15 +180,19 @@ export default function NotificationsPage() {
                 </p>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
-                <Metric value="4" label="Surfaces" />
-                <Metric value="3" label="Priorities" />
-                <Metric value="24/7" label="Routing" />
+                <Metric value={`${enabledSurfaces}/${surfaces.length}`} label="Surfaces on" />
+                <Metric value={`${enabledChannels}/${channels.length}`} label="Channels on" />
+                <Metric value={String(policies.length)} label="Priorities" />
               </div>
             </div>
           </div>
           <div className="grid gap-px bg-bolt-elements-borderColor md:grid-cols-2 xl:grid-cols-4">
             {surfaces.map((surface) => (
-              <NotificationSurfaceCard key={surface.title} surface={surface} />
+              <NotificationSurfaceCard
+                key={surface.key}
+                surface={surface}
+                enabled={current.surfaces[surface.key]}
+              />
             ))}
           </div>
         </section>
@@ -135,14 +213,14 @@ export default function NotificationsPage() {
                 const Icon = channel.icon;
 
                 return (
-                  <div
-                    key={channel.label}
-                    className="flex items-start gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4"
+                  <label
+                    key={channel.key}
+                    className="flex cursor-pointer items-start gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4"
                   >
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
                       <Icon className="h-5 w-5" aria-hidden />
                     </span>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-sm font-semibold">{channel.label}</h3>
                         <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary">
@@ -151,7 +229,13 @@ export default function NotificationsPage() {
                       </div>
                       <p className="mt-1 text-sm text-bolt-elements-textSecondary">{channel.detail}</p>
                     </div>
-                  </div>
+                    <input
+                      type="checkbox"
+                      name={`channel.${channel.key}`}
+                      defaultChecked={current.channels[channel.key]}
+                      className="vc-auth-checkbox mt-1 h-4 w-4 shrink-0 rounded"
+                    />
+                  </label>
                 );
               })}
             </div>
@@ -182,7 +266,11 @@ export default function NotificationsPage() {
             </div>
           </section>
         </div>
-      </div>
+
+        <div className="flex justify-end">
+          <Button type="submit">Save preferences</Button>
+        </div>
+      </Form>
     </AppShell>
   );
 }
@@ -196,11 +284,11 @@ function Metric({ value, label }: { value: string; label: string }) {
   );
 }
 
-function NotificationSurfaceCard({ surface }: { surface: NotificationSurface }) {
+function NotificationSurfaceCard({ surface, enabled }: { surface: NotificationSurface; enabled: boolean }) {
   const Icon = surface.icon;
 
   return (
-    <article className="bg-bolt-elements-background-depth-2 p-4">
+    <label className="flex cursor-pointer flex-col bg-bolt-elements-background-depth-2 p-4">
       <div className="mb-4 flex items-start justify-between gap-3">
         <span
           className={classNames(
@@ -213,9 +301,13 @@ function NotificationSurfaceCard({ surface }: { surface: NotificationSurface }) 
         >
           <Icon className="h-5 w-5" aria-hidden />
         </span>
-        <span className="rounded-full border border-bolt-elements-borderColor px-2 py-1 text-[11px] font-medium text-bolt-elements-textTertiary">
-          {surface.delivery}
-        </span>
+        <input
+          type="checkbox"
+          name={`surface.${surface.key}`}
+          defaultChecked={enabled}
+          aria-label={`Enable ${surface.title} notifications`}
+          className="vc-auth-checkbox mt-1 h-4 w-4 shrink-0 rounded"
+        />
       </div>
       <h3 className="text-sm font-semibold">{surface.title}</h3>
       <p className="mt-2 min-h-16 text-sm leading-6 text-bolt-elements-textSecondary">{surface.description}</p>
@@ -223,6 +315,6 @@ function NotificationSurfaceCard({ surface }: { surface: NotificationSurface }) 
         <MessageSquare className="h-3.5 w-3.5" aria-hidden />
         {surface.owner}
       </div>
-    </article>
+    </label>
   );
 }
