@@ -12,8 +12,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return json({ ok: false, error: 'Missing feature id' }, { status: 400 });
   }
 
-  // Only persist ids that map to a real announcement so the cookie can't be
-  // inflated with arbitrary values.
+  /*
+   * Only persist ids that map to a real announcement so the cookie can't be
+   * inflated with arbitrary values.
+   */
   const known = getFeatureAnnouncements().some((feature) => feature.id === featureId);
 
   if (!known) {

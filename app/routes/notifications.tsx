@@ -144,6 +144,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 
 export default function NotificationsPage() {
   const { preferences } = useLoaderData<typeof loader>();
+
   const actionData = useActionData<typeof action>() as
     | { status?: string; preferences?: NotificationPreferences }
     | undefined;
@@ -188,11 +189,7 @@ export default function NotificationsPage() {
           </div>
           <div className="grid gap-px bg-bolt-elements-borderColor md:grid-cols-2 xl:grid-cols-4">
             {surfaces.map((surface) => (
-              <NotificationSurfaceCard
-                key={surface.key}
-                surface={surface}
-                enabled={current.surfaces[surface.key]}
-              />
+              <NotificationSurfaceCard key={surface.key} surface={surface} enabled={current.surfaces[surface.key]} />
             ))}
           </div>
         </section>

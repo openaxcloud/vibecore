@@ -21,11 +21,13 @@ const getModifierSymbol = (modifier: string): string => {
   }
 };
 
-// Persist the panel's settings to the platform API (DB-backed, audit #3).
-// language/timezone are first-class user columns; notifications rides in the
-// `preferences` blob. Resolves false when the backend can't be reached (e.g.
-// an unauthenticated standalone IDE session) so callers fall back to the
-// localStorage cache without surfacing a hard error.
+/*
+ * Persist the panel's settings to the platform API (DB-backed, audit #3).
+ * language/timezone are first-class user columns; notifications rides in the
+ * `preferences` blob. Resolves false when the backend can't be reached (e.g.
+ * an unauthenticated standalone IDE session) so callers fall back to the
+ * localStorage cache without surfacing a hard error.
+ */
 async function persistPreferencesToBackend(settings: UserProfile): Promise<boolean> {
   try {
     const response = await fetch('/api/user/preferences', {
@@ -96,8 +98,10 @@ export default function SettingsTab() {
                 timezone: data.timezone ?? prev.timezone,
               };
 
-              // Mirror into the cache and mark as already-persisted so the
-              // save effect below treats this merge as a no-op.
+              /*
+               * Mirror into the cache and mark as already-persisted so the
+               * save effect below treats this merge as a no-op.
+               */
               localStorage.setItem('bolt_user_profile', JSON.stringify({ ...prev, ...merged }));
               lastPersistedRef.current = JSON.stringify(merged);
 
@@ -119,11 +123,14 @@ export default function SettingsTab() {
     };
   }, []);
 
-  // Save settings when they change: localStorage cache first (always), then
-  // the DB (source of truth) once hydrated and only for real changes.
+  /*
+   * Save settings when they change: localStorage cache first (always), then
+   * the DB (source of truth) once hydrated and only for real changes.
+   */
   useEffect(() => {
     try {
       const existingProfile = JSON.parse(localStorage.getItem('bolt_user_profile') || '{}');
+
       const updatedProfile = {
         ...existingProfile,
         notifications: settings.notifications,
@@ -225,9 +232,11 @@ export default function SettingsTab() {
                 };
                 localStorage.setItem('bolt_user_profile', JSON.stringify(updatedProfile));
 
-                // Dispatch storage event so other components react in-tab.
-                // The success toast + backend persistence are owned by the
-                // save effect that the setSettings above triggers.
+                /*
+                 * Dispatch storage event so other components react in-tab.
+                 * The success toast + backend persistence are owned by the
+                 * save effect that the setSettings above triggers.
+                 */
                 window.dispatchEvent(
                   new StorageEvent('storage', {
                     key: 'bolt_user_profile',

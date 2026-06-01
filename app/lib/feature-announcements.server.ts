@@ -87,6 +87,7 @@ export function getFeatureAnnouncements(): AnnouncementConfig[] {
 /** Parses the set of viewed feature ids from the request's cookie header. */
 export function readViewedFeatureIds(request: Request): string[] {
   const cookie = request.headers.get('cookie') ?? '';
+
   const match = cookie
     .split(';')
     .map((part) => part.trim())
