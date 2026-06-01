@@ -53,6 +53,36 @@ function toRuntimePath(filePath: string) {
   return filePath.replace(/^\/+/, '');
 }
 
+const LOCAL_CHAT_WARNING_KEY = 'vibecore:local-chat-warning-ack';
+
+/*
+ * Standalone (non-project) chats are persisted only in this browser's
+ * IndexedDB — unlike project chats, which sync to the API via
+ * saveProjectIdeMemory. Server-side sync for standalone chats is not yet
+ * built, so warn the user once per device that their history is device-local
+ * and won't follow them to another browser/machine.
+ */
+function warnLocalChatPersistence() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    if (localStorage.getItem(LOCAL_CHAT_WARNING_KEY)) {
+      return;
+    }
+
+    localStorage.setItem(LOCAL_CHAT_WARNING_KEY, '1');
+  } catch {
+    // localStorage may be unavailable (e.g. private mode); still show the toast once this session.
+  }
+
+  toast.info('Chat history is stored locally on this device and will not sync across devices.', {
+    toastId: 'local-chat-persistence',
+    autoClose: 8000,
+  });
+}
+
 export function useChatHistory() {
   const navigate = useNavigate();
   const { id: mixedId, projectId } = useLoaderData<{ id?: string; projectId?: string }>();
@@ -120,6 +150,7 @@ export function useChatHistory() {
           setReady(true);
         });
     } else if (mixedId) {
+      warnLocalChatPersistence();
       Promise.all([
         getMessages(db!, mixedId),
         getSnapshot(db!, mixedId), // Fetch snapshot from DB
@@ -254,6 +285,7 @@ ${value.content}
         });
     } else {
       // Handle case where there is no mixedId (e.g., new chat)
+      warnLocalChatPersistence();
       setReady(true);
     }
   }, [mixedId, projectId, db, navigate, searchParams]); // Added db, navigate, searchParams dependencies
