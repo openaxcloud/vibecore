@@ -1,3 +1,4 @@
+import { promises as dnsPromises } from 'node:dns';
 import { hashToken } from '@vibecore/auth';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
@@ -87,7 +88,15 @@ function assertFound<T>(value: T | null | undefined, message: string, code: stri
 }
 
 export class PrismaApiStore implements ApiStore {
-  constructor(readonly prisma: DatabaseClient = createDatabaseClient()) {}
+  constructor(
+    readonly prisma: DatabaseClient = createDatabaseClient(),
+    /**
+     * DNS TXT resolver used by {@link verifyDomain}. Injectable so tests can
+     * exercise domain verification without hitting real DNS; defaults to the
+     * Node resolver in production.
+     */
+    private readonly resolveTxt: (hostname: string) => Promise<string[][]> = dnsPromises.resolveTxt,
+  ) {}
 
   async createUser(input: {
     email: string;
@@ -1160,12 +1169,53 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async verifyDomain(input: { organizationId: string; domain: string }) {
+    const domain = input.domain.toLowerCase();
     const record = await this.prisma.verifiedDomain.findUnique({
-      where: { organizationId_domain: { organizationId: input.organizationId, domain: input.domain.toLowerCase() } },
+      where: { organizationId_domain: { organizationId: input.organizationId, domain } },
     });
 
     if (!record) {
       return undefined;
+    }
+
+    /*
+     * The DNS challenge mirrors what the UI instructs the operator to publish:
+     * a TXT record at `_vibecore.<domain>` whose value is
+     * `vibecore-domain-verification=<verificationToken>`. We only mark the
+     * domain verified when that exact record is observed in DNS — never
+     * unconditionally.
+     */
+    const host = `_vibecore.${domain}`;
+    const expected = `vibecore-domain-verification=${record.verificationToken}`;
+
+    let txtRecords: string[][];
+
+    try {
+      txtRecords = await this.resolveTxt(host);
+    } catch (error: any) {
+      const code = error?.code as string | undefined;
+      const message =
+        code === 'ENOTFOUND' || code === 'ENODATA'
+          ? `No TXT record found at ${host}. Add a TXT record with value "${expected}" and try again once DNS propagates.`
+          : `DNS lookup for ${host} failed (${code ?? error?.message ?? 'unknown error'}). Try again shortly.`;
+
+      await this.prisma.verifiedDomain.update({ where: { id: record.id }, data: { sslStatus: 'failed' } });
+
+      throw Object.assign(new Error(message), { statusCode: 422, code: 'DOMAIN_VERIFICATION_FAILED' });
+    }
+
+    // resolveTxt returns one string[] per record (split into 255-char chunks); rejoin before comparing.
+    const matched = txtRecords.some((chunks) => chunks.join('').trim() === expected);
+
+    if (!matched) {
+      await this.prisma.verifiedDomain.update({ where: { id: record.id }, data: { sslStatus: 'failed' } });
+
+      throw Object.assign(
+        new Error(
+          `TXT record at ${host} did not match the expected verification value. Found ${txtRecords.length} record(s), none equal to "${expected}".`,
+        ),
+        { statusCode: 422, code: 'DOMAIN_VERIFICATION_FAILED' },
+      );
     }
 
     return mapDomainVerification(
