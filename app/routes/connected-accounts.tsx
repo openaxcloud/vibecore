@@ -1,7 +1,9 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Link, useLoaderData } from '@remix-run/react';
+import { Link, useLoaderData, useRevalidator } from '@remix-run/react';
 import { Chrome, Github, Link2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { AppShell, StatusPill } from '~/components/dashboard/SaaSLayout';
+import { useConnectorPopup } from '~/lib/chat/use-connector-popup';
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { classNames } from '~/utils/classNames';
 
@@ -35,7 +37,6 @@ const PROVIDERS: ProviderDescriptor[] = [
     title: 'GitHub',
     detail: 'Connected for repository import, push and pull request creation.',
     kind: 'integration',
-    connectPath: '/auth/oauth/github',
     icon: Github,
   },
   {
@@ -140,7 +141,9 @@ export default function ConnectedAccountsPage() {
               </div>
               <div className="flex items-center gap-3 sm:shrink-0">
                 <StatusPill label={statusLabel} />
-                {!isConnected && provider.connectPath ? (
+                {!isConnected && provider.kind === 'integration' ? (
+                  <IntegrationConnectButton provider={provider.apiProvider} />
+                ) : !isConnected && provider.connectPath ? (
                   <Link
                     to={provider.connectPath}
                     reloadDocument
@@ -155,5 +158,71 @@ export default function ConnectedAccountsPage() {
         })}
       </div>
     </AppShell>
+  );
+}
+
+/*
+ * Launches the connector OAuth flow for integration providers (GitHub) via
+ * POST /api/integrations/oauth/:provider/connect, which mints the encrypted,
+ * agent-usable UserConnection on callback — unlike the login OAuth flow that
+ * only records an OAuthConnection for sign-in. The connect happens in a popup
+ * (the callback page postMessages back); once it resolves we revalidate the
+ * loader so the row flips to "Connected".
+ */
+function IntegrationConnectButton({ provider }: { provider: string }) {
+  const { state, launch, reset } = useConnectorPopup();
+  const revalidator = useRevalidator();
+  const [error, setError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+
+  useEffect(() => {
+    if (state.phase === 'succeeded') {
+      revalidator.revalidate();
+      reset();
+    } else if (state.phase === 'failed') {
+      setError(state.result.errorMessage ?? 'Connection failed.');
+      reset();
+    }
+  }, [state, revalidator, reset]);
+
+  const start = useCallback(async () => {
+    setError(null);
+    setStarting(true);
+
+    try {
+      const response = await fetch(`/api/integrations/oauth/${provider}/connect`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        const parsed = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(parsed.error ?? `Failed to start connection (HTTP ${response.status})`);
+      }
+
+      const result = (await response.json()) as { provider: string; authorizationUrl: string };
+      launch({ authorizationUrl: result.authorizationUrl, provider: result.provider });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to start the connection.');
+    } finally {
+      setStarting(false);
+    }
+  }, [launch, provider]);
+
+  const busy = starting || state.phase === 'launching';
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <button
+        type="button"
+        onClick={() => void start()}
+        disabled={busy}
+        className="inline-flex h-8 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
+      >
+        {busy ? 'Connecting…' : 'Connect'}
+      </button>
+      {error ? <span className="max-w-[16rem] text-right text-xs text-red-500">{error}</span> : null}
+    </div>
   );
 }
