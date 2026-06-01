@@ -49,6 +49,28 @@ async function optionalBillingRequest(request: Request, organizationId: string) 
   }
 }
 
+/*
+ * Aggregated AI spend for the org, summed across the whole ledger. Gated on
+ * billing:read like the billing endpoint, so a role without billing access
+ * simply reports $0.00 rather than failing the dashboard.
+ */
+async function optionalAiCostCents(request: Request, organizationId: string) {
+  try {
+    const summary = await apiRequest<{ totals: { costCents: number } }>(
+      request,
+      `/orgs/${organizationId}/ai/cost-summary`,
+    );
+
+    return summary.totals.costCents;
+  } catch (error) {
+    if (isForbiddenApiResponse(error)) {
+      return 0;
+    }
+
+    throw error;
+  }
+}
+
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const orgs = await apiRequest<{ organizations: Organization[] }>(request, '/orgs');
   const organization = orgs.organizations[0];
@@ -61,9 +83,10 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     };
   }
 
-  const [result, billingResult] = await Promise.all([
+  const [result, billingResult, aiCostCents] = await Promise.all([
     apiRequest<{ projects: ApiProject[] }>(request, `/orgs/${organization.id}/projects`),
     optionalBillingRequest(request, organization.id),
+    optionalAiCostCents(request, organization.id),
   ]);
 
   const { billing, billingAccessLimited } = billingResult;
@@ -76,7 +99,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         .reduce((sum, event) => sum + event.quantity, 0),
       planName: billing.plan.name,
       usageEvents: billing.usage.length,
-      aiCostCents: 0,
+      aiCostCents,
     },
     billingAccessLimited,
     projects: result.projects.slice(0, 6).map((project) => ({
