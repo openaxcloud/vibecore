@@ -312,17 +312,27 @@ async function startRuntimeServices(
     throw new Error('Agent server failed to start');
   }
 
+  const managerCalls: Array<{ pathname: string; body: any }> = [];
+
   const manager = createServer((request, response) => {
     const url = new URL(request.url ?? '/', 'http://manager.local');
     response.setHeader('content-type', 'application/json');
 
-    if (url.pathname.endsWith('/agent-token')) {
-      response.end(JSON.stringify({ token: 'runtime-token' }));
-    } else if (url.pathname.endsWith('/logs')) {
-      response.end(JSON.stringify({ logs: options.logs ?? ['workspace ready'] }));
-    } else {
-      response.end(JSON.stringify({ status: 'RUNNING' }));
-    }
+    let body = '';
+    request.on('data', (chunk) => {
+      body += chunk.toString();
+    });
+    request.on('end', () => {
+      managerCalls.push({ pathname: url.pathname, body: body ? JSON.parse(body) : {} });
+
+      if (url.pathname.endsWith('/agent-token')) {
+        response.end(JSON.stringify({ token: 'runtime-token' }));
+      } else if (url.pathname.endsWith('/logs')) {
+        response.end(JSON.stringify({ logs: options.logs ?? ['workspace ready'] }));
+      } else {
+        response.end(JSON.stringify({ status: 'RUNNING' }));
+      }
+    });
   });
 
   await new Promise<void>((resolve) => manager.listen(0, '127.0.0.1', resolve));
@@ -341,6 +351,7 @@ async function startRuntimeServices(
   return {
     files,
     calls,
+    managerCalls,
     async close() {
       process.env.WORKSPACE_MANAGER_URL = previousManager;
       process.env.WORKSPACE_AGENT_URL_TEMPLATE = previousAgent;
@@ -416,8 +427,10 @@ function svixSignature(input: { id: string; timestampSeconds: number; body: stri
   const secretBase64 = input.secretWhsec.startsWith('whsec_')
     ? input.secretWhsec.slice('whsec_'.length)
     : input.secretWhsec;
+
   const key = Buffer.from(secretBase64, 'base64');
   const signed = `${input.id}.${input.timestampSeconds}.${input.body}`;
+
   return `v1,${createHmac('sha256', key).update(signed).digest('base64')}`;
 }
 
@@ -561,6 +574,7 @@ describe('SaaS API', () => {
       ).rejects.toThrow(/WORKSPACE_MANAGER_URL must use HTTPS or an internal Kubernetes service DNS URL/);
 
       process.env.WORKSPACE_MANAGER_URL = 'http://workspace-manager.vibecore.svc:3010';
+
       const app = await buildTestApiApp({
         store: new TestApiStore(),
         isProduction: true,
@@ -1133,6 +1147,7 @@ describe('SaaS API', () => {
       });
 
       expect(response.statusCode).toBe(200);
+
       const result = response.json() as { token: string; user: { email: string } };
       expect(result.user.email).toBe('octo@example.com');
 
@@ -1141,6 +1156,7 @@ describe('SaaS API', () => {
 
       const tokenRequest = requests.find((entry) => entry.url === 'https://github.com/login/oauth/access_token');
       expect(tokenRequest).toBeTruthy();
+
       const tokenBody = String(tokenRequest!.init?.body ?? '');
       expect(tokenBody).toContain('code=gh-auth-code');
       expect(tokenBody).toContain('client_id=gh-code-client-id');
@@ -1149,6 +1165,7 @@ describe('SaaS API', () => {
 
       const userRequest = requests.find((entry) => entry.url === 'https://api.github.com/user');
       expect(userRequest).toBeTruthy();
+
       const userHeaders = new Headers((userRequest!.init?.headers ?? {}) as Record<string, string>);
       expect(userHeaders.get('authorization')).toBe('Bearer gh-access-token');
       expect(userHeaders.get('user-agent')).toBe('vibecore-test-agent');
@@ -1156,6 +1173,7 @@ describe('SaaS API', () => {
 
       const emailsRequest = requests.find((entry) => entry.url === 'https://api.github.com/user/emails');
       expect(emailsRequest).toBeTruthy();
+
       const emailHeaders = new Headers((emailsRequest!.init?.headers ?? {}) as Record<string, string>);
       expect(emailHeaders.get('authorization')).toBe('Bearer gh-access-token');
 
@@ -1257,12 +1275,14 @@ describe('SaaS API', () => {
     expect(await store.findUserByEmail('oauth@example.com')).toBeTruthy();
 
     const oauthToken = oauth.json().token as string;
+
     const connections = await app.inject({
       method: 'GET',
       url: '/auth/connections',
       headers: { authorization: `Bearer ${oauthToken}` },
     });
     expect(connections.statusCode).toBe(200);
+
     const connectionList = connections.json().connections as Array<{ provider: string; externalId: string }>;
     expect(connectionList).toHaveLength(1);
     expect(connectionList[0]).toMatchObject({ provider: 'github', externalId: 'gh_1' });
@@ -1981,6 +2001,7 @@ describe('SaaS API', () => {
 
   it('verifies Resend webhooks, persists delivery events idempotently, and rejects bad signatures', async () => {
     const previousSecret = process.env.RESEND_WEBHOOK_SECRET;
+
     /*
      * Random 24-byte secret encoded as base64 — matches the shape of a real
      * Resend signing secret without leaking one from the dashboard.
@@ -2075,6 +2096,7 @@ describe('SaaS API', () => {
       });
 
       expect(store.emailDeliveryEvents).toHaveLength(1);
+
       const persisted = store.emailDeliveryEvents[0]!;
       expect(persisted.email).toBe('bouncy@example.com');
       expect(persisted.emailMessageId).toBe('em_test_bounce');
@@ -2113,7 +2135,9 @@ describe('SaaS API', () => {
           subject: 'Welcome to e-code',
         },
       });
+
       const deliveredId = 'msg_resend_delivered_1';
+
       const delivered = await app.inject({
         method: 'POST',
         url: '/webhooks/resend',
@@ -3205,6 +3229,7 @@ export function App() { return 'Old app'; }
     replacementZip.file('index.html', '<!doctype html><main data-replaced="true">Replacement app</main>');
 
     const replacementZipBase64 = (await replacementZip.generateAsync({ type: 'nodebuffer' })).toString('base64');
+
     const replaced = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/files/import/zip`,
@@ -3242,6 +3267,7 @@ export function App() { return 'Old app'; }
     const store = new TestApiStore();
     const projectStorage = new MemoryProjectStorage();
     const app = await buildTestApiApp({ store, projectStorage });
+
     const auth = await register(app, {
       email: 'scaffold-recovery@example.com',
       organizationName: 'Scaffold Recovery Org',
@@ -3333,6 +3359,7 @@ export function App() { return 'Old app'; }
     const store = new TestApiStore();
     const projectStorage = new MemoryProjectStorage();
     const app = await buildTestApiApp({ store, projectStorage });
+
     const auth = await register(app, {
       email: 'snapshot-durable-archive@example.com',
       organizationName: 'Snapshot Durable Archive Org',
@@ -3365,12 +3392,14 @@ export function App() { return 'Old app'; }
       payload: { label: 'Durable checkpoint', kind: 'manual' },
     });
     expect(snapshot.statusCode).toBe(201);
+
     const storageKey = snapshot.json().snapshot.storageKey as string;
     expect(storageKey).toMatch(/^snapshots\//);
     expect(store.projectStorageObjects.get(storageKey)?.contentBase64).toBeTruthy();
 
     const changedZip = new JSZip();
     changedZip.file('README.md', '# Durable snapshot\nversion two\n');
+
     const changed = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/files/import/zip`,
@@ -3394,6 +3423,7 @@ export function App() { return 'Old app'; }
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(exported.statusCode).toBe(200);
+
     const archive = await JSZip.loadAsync(Buffer.from(exported.json().archive.base64, 'base64'));
     expect(await archive.file('README.md')!.async('string')).toContain('version one');
 
@@ -4343,6 +4373,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
   it('proxies root preview requests without requiring a trailing wildcard path', async () => {
     const runtime = await startRuntimeServices();
     const app = await buildTestApiApp({ store: new TestApiStore() });
+
     const auth = await register(app, {
       email: 'runtime-preview-proxy@example.com',
       organizationName: 'Runtime Preview Proxy Org',
@@ -4458,6 +4489,57 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       expect(ownerStart.json().id).not.toBe(editorStart.json().id);
       expect((await store.getWorkspace(ownerStart.json().id))?.projectId).toBe(projectId);
       expect((await store.getWorkspace(editorStart.json().id))?.projectId).toBe(projectId);
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('forwards decrypted project secret values to the workspace manager on start', async () => {
+    const runtime = await startRuntimeServices();
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+
+    const owner = await register(app, {
+      email: 'runtime-secrets@example.com',
+      organizationName: 'Runtime Secrets Org',
+    });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/projects`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { name: 'Runtime Secrets Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    const secretUpsert = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/secrets`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { key: 'NPM_TOKEN', value: 'tok_super_secret' },
+    });
+    expect(secretUpsert.statusCode).toBe(200);
+
+    try {
+      const start = await app.inject({
+        method: 'POST',
+        url: '/api/runtime/workspaces',
+        headers: { authorization: `Bearer ${owner.token}` },
+        payload: { workspaceId: projectId, metadata: { projectId } },
+      });
+      expect(start.statusCode).toBe(200);
+
+      const startCall = runtime.managerCalls.find((call) => call.pathname === '/workspaces/start');
+      expect(startCall).toBeDefined();
+
+      /*
+       * The NAMES travel in allowedSecretKeys and the decrypted VALUES in allowedSecrets;
+       * without the latter the K8s Secret is empty and the pod fails with CreateContainerConfigError.
+       */
+      expect(startCall?.body.allowedSecretKeys).toContain('NPM_TOKEN');
+      expect(startCall?.body.allowedSecrets).toMatchObject({ NPM_TOKEN: 'tok_super_secret' });
     } finally {
       await runtime.close();
       await app.close();
@@ -5297,8 +5379,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     expect(setTz.statusCode).toBe(200);
     expect(setTz.json().user.timezone).toBe('Europe/Paris');
 
-    // Previously the field was accepted by the schema but dropped before the
-    // DB write, so it never survived a round trip — this is the regression guard.
+    /*
+     * Previously the field was accepted by the schema but dropped before the
+     * DB write, so it never survived a round trip — this is the regression guard.
+     */
     const afterSet = await app.inject({
       method: 'GET',
       url: '/auth/me',

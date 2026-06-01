@@ -38,8 +38,17 @@ describe('workspace Kubernetes manifests', () => {
         expect.objectContaining({ key: 'sandbox.gke.io/runtime', value: 'gvisor' }),
       ]),
     );
-    expect(pod.spec?.securityContext).toMatchObject({ runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, fsGroup: 1000 });
-    expect(container.securityContext).toMatchObject({ allowPrivilegeEscalation: false, privileged: false, runAsNonRoot: true });
+    expect(pod.spec?.securityContext).toMatchObject({
+      runAsNonRoot: true,
+      runAsUser: 1000,
+      runAsGroup: 1000,
+      fsGroup: 1000,
+    });
+    expect(container.securityContext).toMatchObject({
+      allowPrivilegeEscalation: false,
+      privileged: false,
+      runAsNonRoot: true,
+    });
     expect(container.securityContext.capabilities.drop).toEqual(['ALL']);
     expect(pod.spec?.hostNetwork).toBe(false);
     expect(pod.spec?.hostPID).toBe(false);
@@ -78,7 +87,7 @@ describe('workspace Kubernetes manifests', () => {
 
     expect(secretEnv).toEqual({
       name: 'API_KEY',
-      valueFrom: { secretKeyRef: { name: 'workspace-agent-token', key: 'api-key' } },
+      valueFrom: { secretKeyRef: { name: 'workspace-agent-token', key: 'api-key', optional: true } },
     });
     expect(JSON.stringify(pod)).not.toContain('super-secret');
     expect(JSON.stringify(pod)).not.toContain('api-key-value');

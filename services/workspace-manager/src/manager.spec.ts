@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
 import type { K8sObject, WorkspaceK8sClient } from '@vibecore/k8s-client';
-import { WorkspaceManager, type EventBus, type WorkspaceRecord, type WorkspaceStore } from './manager.js';
 import type { WorkspaceEvent } from '@vibecore/workspace-sdk';
+import { describe, expect, it } from 'vitest';
+import { WorkspaceManager, type EventBus, type WorkspaceRecord, type WorkspaceStore } from './manager.js';
 
 class TestWorkspaceK8sClient implements WorkspaceK8sClient {
   readonly objects = new Map<string, K8sObject>();
@@ -10,6 +10,7 @@ class TestWorkspaceK8sClient implements WorkspaceK8sClient {
   async apply(object: K8sObject) {
     this.objects.set(`${object.metadata.namespace ?? 'default'}:${object.kind}:${object.metadata.name}`, object);
     this.events.push(`apply:${object.kind}:${object.metadata.name}`);
+
     return object;
   }
 
@@ -43,16 +44,20 @@ class TestWorkspaceStore implements WorkspaceStore {
     const now = new Date().toISOString();
     const record = { ...input, createdAt: now, lastActiveAt: now };
     this.workspaces.set(record.id, record);
+
     return record;
   }
 
   async update(workspaceId: string, patch: Partial<WorkspaceRecord>) {
     const existing = this.workspaces.get(workspaceId);
+
     if (!existing) {
       throw new Error('Workspace not found');
     }
+
     const updated = { ...existing, ...patch };
     this.workspaces.set(workspaceId, updated);
+
     return updated;
   }
 
@@ -101,10 +106,36 @@ describe('WorkspaceManager', () => {
         'apply:Service:workspace-workspace_1',
       ]),
     );
-    expect((k8s.objects.get('workspaces:PersistentVolumeClaim:pvc-workspace_1')?.spec?.resources as any).requests.storage).toBe(
-      '30Gi',
-    );
+    expect(
+      (k8s.objects.get('workspaces:PersistentVolumeClaim:pvc-workspace_1')?.spec?.resources as any).requests.storage,
+    ).toBe('30Gi');
     expect(events.events.map((event) => event.type)).toContain('workspace.running');
+  });
+
+  it('injects decrypted secret values into the agent Secret and references them as optional pod env', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+
+    const manager = new WorkspaceManager(
+      new TestWorkspaceStore(),
+      k8s,
+      new TestEventBus(),
+      'test-workspace-agent-secret',
+    );
+    await manager.startWorkspace({ ...input, allowedSecrets: { NPM_TOKEN: 'tok_secret_value' } });
+
+    const secret = k8s.objects.get('workspaces:Secret:agent-token-workspace_1') as any;
+    expect(secret.stringData).toMatchObject({
+      tokenSecret: 'test-workspace-agent-secret',
+      NPM_TOKEN: 'tok_secret_value',
+    });
+
+    const pod = k8s.objects.get('workspaces:Pod:workspace-workspace_1') as any;
+    const npmEnv = pod.spec.containers[0].env.find((entry: any) => entry.name === 'NPM_TOKEN');
+    expect(npmEnv.valueFrom.secretKeyRef).toMatchObject({
+      name: 'agent-token-workspace_1',
+      key: 'NPM_TOKEN',
+      optional: true,
+    });
   });
 
   it('stops, restarts and fully deletes workspace runtime resources', async () => {

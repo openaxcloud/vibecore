@@ -1,7 +1,7 @@
 import { execFile as execFileCallback } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 const execFile = promisify(execFileCallback);
@@ -134,8 +134,10 @@ export function workspaceAgentSecret(input: WorkspaceRuntimeInput): K8sObject {
 
 export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
   assertWorkspaceImageAllowed(input.image);
+
   const resources = resolveWorkspaceResources(input);
   const sandboxSchedulingEnabled = process.env.WORKSPACE_DISABLE_SANDBOX_SCHEDULING !== '1';
+
   return {
     apiVersion: 'v1',
     kind: 'Pod',
@@ -169,9 +171,21 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
           ports: [{ containerPort: 8080, name: 'agent' }],
           env: [
             { name: 'WORKSPACE_ROOT', value: '/workspace' },
-            { name: 'WORKSPACE_AGENT_TOKEN_SECRET', valueFrom: { secretKeyRef: { name: input.agentTokenSecretName, key: 'tokenSecret' } } },
+            {
+              name: 'WORKSPACE_AGENT_TOKEN_SECRET',
+              valueFrom: { secretKeyRef: { name: input.agentTokenSecretName, key: 'tokenSecret' } },
+            },
             ...Object.entries(input.env).map(([name, value]) => ({ name, value })),
-            ...Object.entries(input.secretEnv).map(([name, key]) => ({ name, valueFrom: { secretKeyRef: { name: input.agentTokenSecretName, key } } })),
+            ...Object.entries(input.secretEnv).map(([name, key]) => ({
+              name,
+
+              /*
+               * optional so a referenced key that is absent from the Secret (e.g. a
+               * newly-added project secret not yet synced) cannot brick pod startup
+               * with CreateContainerConfigError.
+               */
+              valueFrom: { secretKeyRef: { name: input.agentTokenSecretName, key, optional: true } },
+            })),
           ],
           volumeMounts: [{ name: 'workspace', mountPath: '/workspace' }],
           resources: {
@@ -242,7 +256,9 @@ function positiveInteger(value: number | undefined): number | undefined {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
     return undefined;
   }
+
   const rounded = Math.floor(value);
+
   return rounded > 0 ? rounded : undefined;
 }
 
@@ -281,7 +297,10 @@ export function defaultDenyNetworkPolicy(namespace: string): K8sObject {
   };
 }
 
-export function controlledEgressNetworkPolicy(namespace: string, additionalBlockedCidrs: readonly string[] = []): K8sObject {
+export function controlledEgressNetworkPolicy(
+  namespace: string,
+  additionalBlockedCidrs: readonly string[] = [],
+): K8sObject {
   return {
     apiVersion: 'networking.k8s.io/v1',
     kind: 'NetworkPolicy',
@@ -290,8 +309,17 @@ export function controlledEgressNetworkPolicy(namespace: string, additionalBlock
       podSelector: { matchLabels: { 'app.kubernetes.io/name': 'vibecore-workspace' } },
       policyTypes: ['Egress'],
       egress: [
-        { to: [{ namespaceSelector: { matchLabels: { 'kubernetes.io/metadata.name': 'kube-system' } } }], ports: [{ protocol: 'UDP', port: 53 }, { protocol: 'TCP', port: 53 }] },
-        { to: [{ ipBlock: { cidr: '0.0.0.0/0', except: workspaceEgressBlockedCidrs(additionalBlockedCidrs) } }], ports: [{ protocol: 'TCP', port: 443 }] },
+        {
+          to: [{ namespaceSelector: { matchLabels: { 'kubernetes.io/metadata.name': 'kube-system' } } }],
+          ports: [
+            { protocol: 'UDP', port: 53 },
+            { protocol: 'TCP', port: 53 },
+          ],
+        },
+        {
+          to: [{ ipBlock: { cidr: '0.0.0.0/0', except: workspaceEgressBlockedCidrs(additionalBlockedCidrs) } }],
+          ports: [{ protocol: 'TCP', port: 443 }],
+        },
       ],
     },
   };
@@ -338,6 +366,7 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
     try {
       await writeFile(manifest, JSON.stringify(object));
       await execFile(this.kubectl, ['apply', '-f', manifest]);
+
       return object;
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -349,13 +378,15 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
   }
 
   async getPod(namespace: string, name: string) {
-    const { stdout } = await execFile(this.kubectl, ['get', 'pod', name, '-n', namespace, '-o', 'json']).catch((error: any) => {
-      if (error?.code === 1) {
-        return { stdout: '' };
-      }
+    const { stdout } = await execFile(this.kubectl, ['get', 'pod', name, '-n', namespace, '-o', 'json']).catch(
+      (error: any) => {
+        if (error?.code === 1) {
+          return { stdout: '' };
+        }
 
-      throw error;
-    });
+        throw error;
+      },
+    );
 
     return stdout ? (JSON.parse(stdout) as K8sObject) : undefined;
   }
