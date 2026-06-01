@@ -10,8 +10,30 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   const state = url.searchParams.get('state');
   const expected = readCookie(request, oauthStateCookie);
 
+  /*
+   * When the provider rejects the request after the consent screen — the user
+   * declines, the OAuth app is still in "Testing" publishing mode so only
+   * allow-listed test users may proceed, or an admin policy blocks the app —
+   * it redirects back here with `?error=…` (and often `error_description`) and
+   * NO `code`. Surface that real reason instead of collapsing it into the
+   * generic `invalid_callback`, which hides why login fails after consent.
+   */
+  const providerError = url.searchParams.get('error');
+
+  if (providerError) {
+    const detail = url.searchParams.get('error_description') ?? undefined;
+    console.error('[oauth-callback]', provider, 'provider_error', providerError, detail ?? '');
+    throw redirect(
+      `/login?oauth=${provider}&error=${encodeURIComponent(providerError)}` +
+        (detail ? `&detail=${encodeURIComponent(detail)}` : ''),
+      { headers: { 'Set-Cookie': clearStateCookie() } },
+    );
+  }
+
   if (!code || !state || expected !== `${provider}:${state}`) {
-    throw redirect(`/login?oauth=${provider}&error=invalid_callback`);
+    throw redirect(`/login?oauth=${provider}&error=invalid_callback`, {
+      headers: { 'Set-Cookie': clearStateCookie() },
+    });
   }
 
   const response = await fetch(`${apiBaseUrl()}/auth/oauth/${provider}/callback`, {
@@ -42,9 +64,13 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   return redirect('/dashboard', {
     headers: [
       ['Set-Cookie', sessionCookie(result.token)],
-      ['Set-Cookie', `${oauthStateCookie}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`],
+      ['Set-Cookie', clearStateCookie()],
     ],
   });
+}
+
+function clearStateCookie() {
+  return `${oauthStateCookie}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
 }
 
 function providerName(value: string | undefined) {
