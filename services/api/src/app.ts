@@ -1224,6 +1224,34 @@ function serializeDbRows(rows: unknown) {
   ) as unknown;
 }
 
+/**
+ * Resolve a project's secrets into a decrypted `{ key: value }` map suitable for
+ * injecting into a runtime workspace. The values are decrypted from `valueEncrypted`
+ * via the shared crypto helper; they must never be logged. A secret whose ciphertext
+ * fails to decrypt is skipped rather than aborting the whole workspace boot.
+ */
+async function resolveProjectSecretValues(store: ApiStore, projectId: string): Promise<Record<string, string>> {
+  const secrets = await store.listProjectSecrets(projectId);
+  const entries = await Promise.all(
+    secrets.map(async (secret): Promise<[string, string] | undefined> => {
+      const full = await store.getProjectSecret(projectId, secret.key);
+
+      if (!full?.valueEncrypted) {
+        return undefined;
+      }
+
+      try {
+        return [secret.key, decryptJson<{ value: string }>(full.valueEncrypted).value];
+      } catch {
+        // Corrupt or unreadable ciphertext: skip so a single bad secret can't brick the pod.
+        return undefined;
+      }
+    }),
+  );
+
+  return Object.fromEntries(entries.filter((entry): entry is [string, string] => entry !== undefined));
+}
+
 async function listDatabaseConnections(store: ApiStore, projectId: string): Promise<DatabaseConnectionCandidate[]> {
   const envVars = await store.listProjectEnvVars(projectId);
   const secrets = await store.listProjectSecrets(projectId);
@@ -6835,6 +6863,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     ]);
     const env = Object.fromEntries(projectEnvVars.map((entry) => [entry.key, entry.value]));
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
+    const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId);
 
     const managerWorkspace = await managerRequest<any>('/workspaces/start', {
       method: 'POST',
@@ -6854,6 +6883,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           : undefined,
         env,
         allowedSecretKeys,
+        allowedSecrets,
       }),
     });
     metrics.increment('workspace_starts_total', {
@@ -6910,6 +6940,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     ]);
     const env = Object.fromEntries(projectEnvVars.map((entry) => [entry.key, entry.value]));
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
+    const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId);
 
     const managerWorkspace = await managerRequest<any>(`/workspaces/${authorized.workspaceId}/restart`, {
       method: 'POST',
@@ -6922,6 +6953,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         plan: process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
         env,
         allowedSecretKeys,
+        allowedSecrets,
       }),
     });
     await audit(request, store, {
@@ -7497,14 +7529,77 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/api/runtime/workspaces/:workspaceId/files/watch', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
-    normalizeRuntimeApiWebSocket(socket).send(
-      JSON.stringify({
-        path: '.',
-        type: 'update',
-        timestamp: new Date().toISOString(),
-        metadata: { workspaceId: authorized.workspaceId },
-      }),
-    );
+    const client = normalizeRuntimeApiWebSocket(socket);
+
+    // The workspace agent does not expose a native file-watch stream, so we
+    // keep the socket open, poll its file tree on an interval, and diff
+    // successive snapshots into the FileChange events the runtime client
+    // expects. Tree snapshots only reveal structural changes, so we emit
+    // create/delete transitions (content edits to existing files are not
+    // visible from the tree alone).
+    const flattenTree = (nodes: AgentNode[], acc = new Map<string, AgentNode['type']>()) => {
+      for (const node of nodes) {
+        acc.set(node.path, node.type);
+
+        if (node.children?.length) {
+          flattenTree(node.children, acc);
+        }
+      }
+
+      return acc;
+    };
+
+    const snapshotTree = async () =>
+      flattenTree(await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree'));
+
+    const emit = (path: string, type: 'create' | 'update' | 'delete') =>
+      client.send(
+        JSON.stringify({
+          path,
+          type,
+          timestamp: new Date().toISOString(),
+          metadata: { workspaceId: authorized.workspaceId },
+        }),
+      );
+
+    let previous = new Map<string, AgentNode['type']>();
+
+    try {
+      previous = await snapshotTree();
+    } catch {
+      // Agent not reachable yet; start from an empty baseline and let the poll catch up.
+    }
+
+    // Initial signal so the client refreshes its tree on connect.
+    emit('.', 'update');
+
+    const interval = setInterval(() => {
+      void (async () => {
+        let current: Map<string, AgentNode['type']>;
+
+        try {
+          current = await snapshotTree();
+        } catch {
+          return; // transient agent error; retry on the next tick
+        }
+
+        for (const path of current.keys()) {
+          if (!previous.has(path)) {
+            emit(path, 'create');
+          }
+        }
+
+        for (const path of previous.keys()) {
+          if (!current.has(path)) {
+            emit(path, 'delete');
+          }
+        }
+
+        previous = current;
+      })();
+    }, 2000);
+
+    client.onClose(() => clearInterval(interval));
   });
   app.get('/api/runtime/workspaces/:workspaceId/ports/watch', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
