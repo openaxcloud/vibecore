@@ -61,4 +61,26 @@ describe('<ProjectEditorToolbar />', () => {
       expect(button.hasAttribute('disabled')).toBe(true);
     }
   });
+
+  it('disables Monaco-only language actions with an explanatory tooltip when CodeMirror is active', () => {
+    render(
+      <ProjectEditorToolbar
+        fileLabel="/src/App.tsx"
+        hasDocument
+        minimapEnabled={false}
+        monacoActive={false}
+        {...handlers()}
+      />,
+    );
+
+    for (const name of ['Definition', 'References', 'Rename', 'Refactor']) {
+      const button = screen.getByRole('button', { name });
+      expect(button.hasAttribute('disabled')).toBe(true);
+      expect(button.getAttribute('title')).toBe('Available with Monaco editor');
+    }
+
+    // Format and Save are editor-agnostic and stay enabled with a document open.
+    expect(screen.getByRole('button', { name: 'Format' }).hasAttribute('disabled')).toBe(false);
+    expect(screen.getByRole('button', { name: 'Save' }).hasAttribute('disabled')).toBe(false);
+  });
 });

@@ -96,7 +96,7 @@ import { modelListFromResponse } from './modelList';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
-import { useResponsiveLayout } from '@vibecore/editor';
+import { editorKindForLayout, useResponsiveLayout } from '@vibecore/editor';
 import { useSwipeGesture } from '~/lib/hooks/useMobileGestures';
 import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
 import {
@@ -5520,8 +5520,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 fileLabel={currentDocument?.filePath?.replace(WORK_DIR, '') || 'No file selected'}
                 hasDocument={Boolean(currentDocument)}
                 minimapEnabled={editorMinimapEnabled}
+                monacoActive={editorKindForLayout(layout) === 'monaco'}
                 onToggleMinimap={() => setEditorMinimapEnabled((enabled) => !enabled)}
-                onFormat={() => workbenchStore.resetCurrentDocument()}
+                onFormat={() => {
+                  workbenchStore.formatCurrentDocument().catch((error) => {
+                    toast.error(`Format failed: ${(error as Error).message}`);
+                  });
+                }}
                 onGoToDefinition={() => runProjectEditorCommand('goToDefinition')}
                 onFindReferences={() => runProjectEditorCommand('findReferences')}
                 onRenameSymbol={() => runProjectEditorCommand('renameSymbol')}
@@ -5666,6 +5671,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         editorMinimapEnabled,
         editorProjectFiles,
         initialIdePanels,
+        layout,
         onProjectEditorSave,
         openIdeTool,
         openProjectFile,

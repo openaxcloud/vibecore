@@ -1197,6 +1197,27 @@ export class WorkbenchStore {
     this.setCurrentDocumentContent(file.content);
   }
 
+  /**
+   * Formats the current editor buffer in place with Prettier. Rejects (without
+   * mutating the buffer) when no document is open, the file type is
+   * unsupported, or the content fails to parse — callers surface the error.
+   */
+  async formatCurrentDocument() {
+    const currentDocument = this.currentDocument.get();
+
+    if (currentDocument === undefined) {
+      throw new Error('No file is open to format');
+    }
+
+    const { filePath, value } = currentDocument;
+    const { formatDocument } = await import('~/utils/formatDocument');
+    const formatted = await formatDocument(value, filePath);
+
+    if (formatted !== value) {
+      this.setCurrentDocumentContent(formatted);
+    }
+  }
+
   async saveAllFiles() {
     for (const filePath of this.unsavedFiles.get()) {
       await this.saveFile(filePath);
