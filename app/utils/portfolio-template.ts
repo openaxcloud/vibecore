@@ -554,6 +554,18 @@ function escapeAttribute(value: string) {
   return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+/*
+ * Portfolio prompts on a fresh workspace are served from a cached template
+ * instead of the LLM (api.chat.ts). Lead with a visible badge so the user
+ * knows this is an intentional Quick Start Template and that no AI tokens
+ * were spent — otherwise a cached response is indistinguishable from a
+ * generated one. The existing "cached portfolio app template" sentence is
+ * preserved for continuity and because tests assert on it.
+ */
+export const PORTFOLIO_TEMPLATE_INTRO =
+  '> 📦 **Quick Start Template** — using a pre-built portfolio template for fast setup. No AI tokens were used for this response.\n\n' +
+  "I matched this to Vibecore's cached portfolio app template, then customized the structure and copy for the request.\n\n";
+
 export function createPortfolioTemplateArtifact(messages: ChatLikeMessage[]) {
   const files = createPortfolioTemplateFiles(messages);
 
@@ -565,9 +577,7 @@ ${file.content}
     )
     .join('\n');
 
-  return `I matched this to Vibecore's cached portfolio app template, then customized the structure and copy for the request.
-
-<boltArtifact id="cached-portfolio-site" title="Portfolio website">
+  return `${PORTFOLIO_TEMPLATE_INTRO}<boltArtifact id="cached-portfolio-site" title="Portfolio website">
 ${actions}
 <boltAction type="start">
 npm run dev
@@ -578,10 +588,7 @@ npm run dev
 export function createPortfolioTemplateStreamChunks(messages: ChatLikeMessage[]) {
   const files = createPortfolioTemplateFiles(messages);
 
-  const chunks = [
-    "I matched this to Vibecore's cached portfolio app template, then customized the structure and copy for the request.\n\n",
-    '<boltArtifact id="cached-portfolio-site" title="Portfolio website">\n',
-  ];
+  const chunks = [PORTFOLIO_TEMPLATE_INTRO, '<boltArtifact id="cached-portfolio-site" title="Portfolio website">\n'];
 
   for (const file of files) {
     chunks.push(`<boltAction type="file" filePath="${escapeAttribute(file.path)}">
