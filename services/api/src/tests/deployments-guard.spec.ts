@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { assertDeploymentProviderConfigured, assertDeploymentRequestAllowed } from '../deployments.js';
+import {
+  assertDeploymentProviderConfigured,
+  assertDeploymentRequestAllowed,
+  deployProviderConfigError,
+} from '../deployments.js';
 
 const baseRequest = {
   provider: 'static' as const,
@@ -91,5 +95,32 @@ describe('assertDeploymentRequestAllowed', () => {
     expect(() =>
       assertDeploymentRequestAllowed({ ...baseRequest, provider: 'docker' }, 'pro', { NODE_ENV: 'test' }),
     ).toThrow(/Enterprise plan/);
+  });
+});
+
+describe('deployProviderConfigError', () => {
+  it('never blocks the in-process static provider', () => {
+    expect(deployProviderConfigError('static', {})).toBeNull();
+  });
+
+  it('reports an actionable error when a hook provider has no env configured', () => {
+    const result = deployProviderConfigError('vercel', {});
+    expect(result).toEqual({
+      error: 'PROVIDER_NOT_CONFIGURED',
+      message: expect.stringContaining('VERCEL_DEPLOY_HOOK_URL'),
+    });
+    expect(result?.message).toMatch(/Vercel/);
+  });
+
+  it('lists every missing variable for multi-secret providers', () => {
+    const result = deployProviderConfigError('github-pages', {});
+    expect(result?.error).toBe('PROVIDER_NOT_CONFIGURED');
+    expect(result?.message).toContain('GITHUB_DEPLOY_TOKEN');
+    expect(result?.message).toContain('GITHUB_PAGES_REPO');
+    expect(result?.message).toContain('GITHUB_PAGES_WORKFLOW');
+  });
+
+  it('passes once the provider hook env is present', () => {
+    expect(deployProviderConfigError('vercel', { VERCEL_DEPLOY_HOOK_URL: 'https://hook.example' })).toBeNull();
   });
 });

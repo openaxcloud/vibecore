@@ -69,6 +69,7 @@ import {
   assertDeploymentRequestAllowed,
   buildDeploymentUrl,
   createDeploymentLogs,
+  deployProviderConfigError,
   runStaticBuild,
   sanitizeDeploymentEnvVars,
   snapshotStaticBuild,
@@ -10787,6 +10788,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { portalUrl: session.url, sessionId: session.id };
   });
+  app.get('/orgs/:orgId/billing/invoices', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'billing:read');
+
+    const customer = await store.getBillingCustomer(orgId);
+
+    // No Stripe customer yet (e.g. free plan that never checked out) or Stripe
+    // not configured for this environment — there are simply no invoices to show.
+    if (!customer || !stripeClient) {
+      return { invoices: [], stripeConfigured: Boolean(stripeClient) };
+    }
+
+    const invoices = await stripeClient.listInvoices({ customerId: customer.externalId, limit: 20 });
+
+    return {
+      stripeConfigured: true,
+      invoices: invoices.map((invoice) => ({
+        id: invoice.id,
+        number: invoice.number ?? null,
+        status: invoice.status ?? null,
+        amountDueCents: invoice.amount_due ?? 0,
+        amountPaidCents: invoice.amount_paid ?? 0,
+        currency: invoice.currency ?? 'usd',
+        createdAt: invoice.created ? new Date(invoice.created * 1000).toISOString() : null,
+        hostedInvoiceUrl: invoice.hosted_invoice_url ?? null,
+        invoicePdf: invoice.invoice_pdf ?? null,
+      })),
+    };
+  });
   app.get('/billing/:orgId', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'billing:read');
@@ -11912,6 +11942,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const { subscription } = await billingState(project.organizationId);
     assertDeploymentRequestAllowed(body, subscription?.planKey ?? 'free');
+
+    // Reject non-static providers that have no deploy hook / credentials wired
+    // up rather than synthesizing a fake `*.vibecore.local` URL and marking the
+    // deployment READY (audit #1). The static provider builds in-process and
+    // never trips this guard.
+    const providerConfigError = deployProviderConfigError(body.provider);
+    if (providerConfigError) {
+      return reply.code(400).send(providerConfigError);
+    }
+
     await ensureQuota(request, project.organizationId, 'deployments.count');
 
     /*
@@ -12084,12 +12124,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await ensureQuota(request, project.organizationId, 'deployments.count');
 
+    // A redeploy must actually re-run the build, not just clone the previous
+    // READY row (audit #4). Reject hook providers that lost their configuration
+    // since the original deploy, the same way the create route does.
+    const providerConfigError = deployProviderConfigError(source.provider);
+    if (providerConfigError) {
+      return reply.code(400).send(providerConfigError);
+    }
+
     const redeploy = await store.createDeployment({
       projectId: project.id,
       workspaceId: source.workspaceId,
       provider: source.provider,
       environment: source.environment,
-      status: 'READY',
+      status: 'QUEUED',
       framework: source.framework,
       buildCommand: source.buildCommand,
       outputDirectory: source.outputDirectory,
@@ -12098,16 +12146,77 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       customDomain: source.customDomain,
       metadata: { ...source.metadata, redeployedFromId: source.id },
       startedAt: new Date().toISOString(),
-      finishedAt: new Date().toISOString(),
-      logs: [
-        { timestamp: new Date().toISOString(), level: 'info', message: `Redeployed from ${source.id}` },
-        ...source.logs,
-      ],
+      logs: [{ timestamp: new Date().toISOString(), level: 'info', message: `Redeploying from ${source.id}` }],
     });
+
+    const secondaryWorkspaceId = await resolveGitWorkspaceId(store, project.id, source.workspaceId ?? undefined);
+    const sourceMetadata = (source.metadata ?? {}) as Record<string, unknown>;
+    const sourceEnvVars = (sourceMetadata.envVars ?? {}) as Record<string, string>;
+    const sourceTimeoutSeconds = typeof sourceMetadata.timeoutSeconds === 'number' ? sourceMetadata.timeoutSeconds : 600;
+    const sourceArtifactSizeLimitMb =
+      typeof sourceMetadata.artifactSizeLimitMb === 'number' ? sourceMetadata.artifactSizeLimitMb : undefined;
+
+    const hookResult = await triggerProviderDeployHook(source.provider);
+
+    let staticBuildFailed = false;
+    const rebuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
+
+    if (source.provider === 'static') {
+      const staticBuild = await staticBuildRunner({
+        projectId: project.id,
+        workspaceId: secondaryWorkspaceId,
+        buildCommand: source.buildCommand ?? 'npm run build',
+        outputDirectory: source.outputDirectory ?? 'dist',
+        envVars: sourceEnvVars,
+        timeoutSeconds: sourceTimeoutSeconds,
+        artifactSizeLimitMb: sourceArtifactSizeLimitMb,
+      });
+
+      rebuildLogs.push(...staticBuild.logs);
+
+      if (staticBuild.ok && staticBuild.outputDir) {
+        try {
+          await snapshotStaticBuild(redeploy.id, staticBuild.outputDir);
+          rebuildLogs.push({
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            message: `Static deploy: snapshot stored at ${staticDeploymentSnapshotDir(redeploy.id)}`,
+          });
+        } catch (error) {
+          staticBuildFailed = true;
+          rebuildLogs.push({
+            timestamp: new Date().toISOString(),
+            level: 'error',
+            message: `Static deploy: snapshot failed (${(error as Error).message ?? 'unknown error'}).`,
+          });
+        }
+      } else {
+        staticBuildFailed = true;
+      }
+    } else if (hookResult) {
+      rebuildLogs.push({
+        timestamp: new Date().toISOString(),
+        level: hookResult.status === 'failed' ? 'error' : 'info',
+        message: hookResult.log,
+      });
+    }
+
+    const failed = hookResult?.status === 'failed' || staticBuildFailed;
+    const url = hookResult?.url ?? buildDeploymentUrl(project, redeploy);
+
     const ready = await store.updateDeployment(project.id, redeploy.id, {
-      url: buildDeploymentUrl(project, redeploy),
-      previewUrl: redeploy.environment === 'production' ? undefined : buildDeploymentUrl(project, redeploy),
-      productionUrl: redeploy.environment === 'production' ? buildDeploymentUrl(project, redeploy) : undefined,
+      status: failed ? 'FAILED' : 'READY',
+      url: failed ? undefined : url,
+      previewUrl: failed ? undefined : redeploy.environment === 'production' ? undefined : url,
+      productionUrl: failed ? undefined : redeploy.environment === 'production' ? url : undefined,
+      metadata: {
+        ...(redeploy.metadata as Record<string, unknown>),
+        providerBuildId: hookResult?.buildId,
+        hookStatus: hookResult?.status,
+        staticBuildOk: source.provider === 'static' ? !staticBuildFailed : undefined,
+      },
+      logs: [...redeploy.logs, ...rebuildLogs],
+      finishedAt: new Date().toISOString(),
     });
     await recordUsage(request, project.organizationId, 'deployments.count');
     await audit(request, store, {

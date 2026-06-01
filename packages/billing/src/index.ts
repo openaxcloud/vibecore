@@ -216,6 +216,18 @@ export function verifyStripeSignature(input: {
   }
 }
 
+export interface StripeInvoice {
+  id: string;
+  number?: string | null;
+  status?: string | null;
+  amount_due?: number;
+  amount_paid?: number;
+  currency?: string;
+  created?: number;
+  hosted_invoice_url?: string | null;
+  invoice_pdf?: string | null;
+}
+
 export class StripeBillingClient {
   constructor(
     private readonly input: {
@@ -255,6 +267,16 @@ export class StripeBillingClient {
       customer: input.customerId,
       return_url: input.returnUrl,
     });
+  }
+
+  async listInvoices(input: { customerId: string; limit?: number }) {
+    const params = new URLSearchParams({
+      customer: input.customerId,
+      limit: String(Math.min(Math.max(input.limit ?? 20, 1), 100)),
+    });
+    const response = await this.getJson(`/v1/invoices?${params.toString()}`);
+
+    return (response as { data?: StripeInvoice[] }).data ?? [];
   }
 
   async createCustomer(input: { organizationId: string; name: string; email?: string }) {

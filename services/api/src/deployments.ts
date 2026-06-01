@@ -131,6 +131,48 @@ export function assertDeploymentProviderConfigured(
   });
 }
 
+const providerDisplayName: Record<(typeof deploymentProviders)[number], string> = {
+  static: 'Static hosting',
+  vercel: 'Vercel',
+  netlify: 'Netlify',
+  'github-pages': 'GitHub Pages',
+  'cloudflare-pages': 'Cloudflare Pages',
+  'google-cloud-run': 'Google Cloud Run',
+  docker: 'Docker',
+};
+
+/**
+ * Returns a client-facing error when a non-static provider has no deploy hook /
+ * credentials configured, so the API can reject the request with an honest 400
+ * instead of synthesizing a fake `*.vibecore.local` URL and marking the
+ * deployment READY. The static provider always builds in-process, so it never
+ * requires external configuration and returns `null` here.
+ *
+ * Unlike {@link assertDeploymentProviderConfigured} (a production-only guard
+ * that throws 503), this check applies in every environment — a deploy that
+ * cannot actually run should never look like it succeeded, dev or prod.
+ */
+export function deployProviderConfigError(
+  provider: (typeof deploymentProviders)[number],
+  env: NodeJS.ProcessEnv = process.env,
+): { error: string; message: string } | null {
+  if (provider === 'static') {
+    return null;
+  }
+
+  const required = providerEnvRequirement[provider] ?? [];
+  const missing = required.filter((key) => !env[key]);
+
+  if (missing.length === 0) {
+    return null;
+  }
+
+  return {
+    error: 'PROVIDER_NOT_CONFIGURED',
+    message: `Deploy to ${providerDisplayName[provider]} requires ${missing.join(', ')} to be configured. Contact your admin.`,
+  };
+}
+
 export function assertDeploymentRequestAllowed(
   input: CreateDeploymentRequest,
   planKey: string,
