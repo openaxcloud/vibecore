@@ -1,5 +1,5 @@
 import { hashToken } from '@vibecore/auth';
-import { createDatabaseClient, type DatabaseClient } from '@vibecore/database';
+import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import type {
@@ -117,6 +117,8 @@ export class PrismaApiStore implements ApiStore {
     mfaSecretEncrypted?: string;
     platformAdmin?: boolean;
     language?: string | null;
+    timezone?: string | null;
+    preferences?: Record<string, unknown> | null;
   }) {
     return mapUser(
       await this.prisma.user.update({
@@ -133,9 +135,23 @@ export class PrismaApiStore implements ApiStore {
            * `language: null` clears the column (Prisma differentiates null
            * from undefined: undefined skips the field, null writes NULL).
            * The undefined case is the no-op we want when the caller didn't
-           * mention language at all.
+           * mention language at all. Same convention for `timezone`.
            */
           language: input.language === undefined ? undefined : input.language,
+          timezone: input.timezone === undefined ? undefined : input.timezone,
+          /*
+           * Json columns need Prisma's sentinel to write a NULL: a bare
+           * `null` is ambiguous (JSON null vs SQL NULL), so we map `null` →
+           * Prisma.DbNull to clear and skip on undefined. The caller is
+           * responsible for shallow-merging before passing an object — this
+           * write replaces the whole blob.
+           */
+          preferences:
+            input.preferences === undefined
+              ? undefined
+              : input.preferences === null
+                ? Prisma.DbNull
+                : (input.preferences as Prisma.InputJsonValue),
         },
       }),
     );
@@ -2024,6 +2040,11 @@ function mapUser(user: any): UserRecord {
     mfaSecretEncrypted: user.mfaSecretCiphertext ?? undefined,
     platformAdmin: user.platformAdmin,
     language: user.language ?? undefined,
+    timezone: user.timezone ?? undefined,
+    preferences:
+      user.preferences && typeof user.preferences === 'object' && !Array.isArray(user.preferences)
+        ? (user.preferences as Record<string, unknown>)
+        : undefined,
     createdAt: toIso(user.createdAt)!,
   };
 }

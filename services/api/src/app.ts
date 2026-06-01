@@ -231,6 +231,21 @@ const userProfileSchema = z.object({
    */
   language: supportedLanguageTagSchema.nullable().optional(),
 });
+
+/*
+ * IDE audit #3: the in-IDE settings panel persists here instead of
+ * localStorage-only. `language`/`timezone` are promoted to first-class User
+ * columns (SSR cookie + SaaS account-settings read them directly); everything
+ * else (notifications, event logs, feature toggles, profile fields) lives in
+ * the opaque `preferences` blob, shallow-merged server-side so a partial save
+ * never clobbers keys the client didn't send. `null` on language/timezone
+ * clears the column back to client-side detection.
+ */
+const userPreferencesSchema = z.object({
+  language: supportedLanguageTagSchema.nullable().optional(),
+  timezone: z.string().min(1).max(100).nullable().optional(),
+  preferences: z.record(z.string(), z.unknown()).optional(),
+});
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1).max(PASSWORD_MAX_LENGTH),
   newPassword: z.string().min(8).max(PASSWORD_MAX_LENGTH),
@@ -7535,6 +7550,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             mfaEnabled: user.mfaEnabled,
             platformAdmin: user.platformAdmin,
             language: user.language,
+            timezone: user.timezone,
+            preferences: user.preferences,
             createdAt: user.createdAt,
           }
         : request.currentUser,
@@ -7548,6 +7565,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       email: body.email,
       name: body.name,
       language: body.language,
+      timezone: body.timezone,
     });
 
     /*
@@ -7581,7 +7599,67 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return {
-      user: { id: user.id, email: user.email, name: user.name, language: user.language },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        language: user.language,
+        timezone: user.timezone,
+      },
+    };
+  });
+
+  /*
+   * IDE audit #3: the in-IDE settings panel (notifications, language,
+   * timezone, feature toggles, profile) reads/writes here so the DB — not
+   * localStorage — is the source of truth. The client still caches the blob
+   * in localStorage for fast/offline load and merges the backend response on
+   * top (backend wins).
+   */
+  app.get('/user/preferences', async (request) => {
+    const user = await store.findUserById(request.currentUser!.id);
+
+    return {
+      language: user?.language ?? null,
+      timezone: user?.timezone ?? null,
+      preferences: user?.preferences ?? {},
+    };
+  });
+
+  app.patch('/user/preferences', async (request) => {
+    const body = parse(userPreferencesSchema, request.body);
+    const existing = await store.findUserById(request.currentUser!.id);
+
+    /*
+     * Shallow-merge so a partial save (e.g. just `notifications`) preserves
+     * keys the client didn't send. Callers that need to drop a key send it
+     * explicitly as `null`/`undefined` in the merged result.
+     */
+    const mergedPreferences =
+      body.preferences === undefined ? undefined : { ...(existing?.preferences ?? {}), ...body.preferences };
+
+    const user = await store.updateUser({
+      userId: request.currentUser!.id,
+      language: body.language,
+      timezone: body.timezone,
+      preferences: mergedPreferences,
+    });
+
+    await audit(request, store, {
+      action: 'user.preferences.update',
+      resourceType: 'user',
+      resourceId: user.id,
+      metadata: {
+        language: body.language,
+        timezone: body.timezone,
+        preferenceKeys: body.preferences ? Object.keys(body.preferences) : [],
+      },
+    });
+
+    return {
+      language: user.language ?? null,
+      timezone: user.timezone ?? null,
+      preferences: user.preferences ?? {},
     };
   });
 

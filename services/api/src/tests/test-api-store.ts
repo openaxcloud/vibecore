@@ -156,6 +156,8 @@ export class TestApiStore implements ApiStore {
     mfaSecretEncrypted?: string;
     platformAdmin?: boolean;
     language?: string | null;
+    timezone?: string | null;
+    preferences?: Record<string, unknown> | null;
   }) {
     const user = this.users.get(input.userId);
 
@@ -172,6 +174,8 @@ export class TestApiStore implements ApiStore {
       mfaSecretEncrypted: input.mfaSecretEncrypted ?? user.mfaSecretEncrypted,
       platformAdmin: input.platformAdmin ?? user.platformAdmin,
       language: input.language === undefined ? user.language : (input.language ?? undefined),
+      timezone: input.timezone === undefined ? user.timezone : (input.timezone ?? undefined),
+      preferences: input.preferences === undefined ? user.preferences : (input.preferences ?? undefined),
     });
 
     return user;

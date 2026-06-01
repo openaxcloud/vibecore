@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import type { UserProfile } from '~/components/@settings/core/types';
 import { Switch } from '~/components/ui/Switch';
@@ -21,6 +21,29 @@ const getModifierSymbol = (modifier: string): string => {
   }
 };
 
+// Persist the panel's settings to the platform API (DB-backed, audit #3).
+// language/timezone are first-class user columns; notifications rides in the
+// `preferences` blob. Resolves false when the backend can't be reached (e.g.
+// an unauthenticated standalone IDE session) so callers fall back to the
+// localStorage cache without surfacing a hard error.
+async function persistPreferencesToBackend(settings: UserProfile): Promise<boolean> {
+  try {
+    const response = await fetch('/api/user/preferences', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        language: settings.language,
+        timezone: settings.timezone,
+        preferences: { notifications: settings.notifications },
+      }),
+    });
+
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export default function SettingsTab() {
   const [currentTimezone, setCurrentTimezone] = useState('');
 
@@ -35,26 +58,99 @@ export default function SettingsTab() {
         };
   });
 
+  /*
+   * Gate the save effect until the backend hydration below has run, and skip
+   * the one render the hydration merge itself triggers — otherwise we'd echo
+   * the freshly-fetched values straight back as a redundant PATCH. We compare
+   * against the last-known-persisted snapshot so only genuine user edits hit
+   * the network.
+   */
+  const hydratedRef = useRef(false);
+  const lastPersistedRef = useRef<string | null>(null);
+
   useEffect(() => {
     setCurrentTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
   }, []);
 
-  // Save settings automatically when they change
+  // Hydrate from the backend on mount; DB wins over the localStorage cache.
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const response = await fetch('/api/user/preferences', { headers: { accept: 'application/json' } });
+
+        if (response.ok) {
+          const data = (await response.json()) as {
+            language?: string | null;
+            timezone?: string | null;
+            preferences?: { notifications?: boolean } | null;
+          };
+
+          if (!cancelled) {
+            setSettings((prev) => {
+              const merged: UserProfile = {
+                ...prev,
+                notifications: data.preferences?.notifications ?? prev.notifications,
+                language: data.language ?? prev.language,
+                timezone: data.timezone ?? prev.timezone,
+              };
+
+              // Mirror into the cache and mark as already-persisted so the
+              // save effect below treats this merge as a no-op.
+              localStorage.setItem('bolt_user_profile', JSON.stringify({ ...prev, ...merged }));
+              lastPersistedRef.current = JSON.stringify(merged);
+
+              return merged;
+            });
+          }
+        }
+      } catch {
+        // Offline or no backend account — keep the localStorage cache.
+      } finally {
+        if (!cancelled) {
+          hydratedRef.current = true;
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Save settings when they change: localStorage cache first (always), then
+  // the DB (source of truth) once hydrated and only for real changes.
   useEffect(() => {
     try {
-      // Get existing profile data
       const existingProfile = JSON.parse(localStorage.getItem('bolt_user_profile') || '{}');
-
-      // Merge with new settings
       const updatedProfile = {
         ...existingProfile,
         notifications: settings.notifications,
         language: settings.language,
         timezone: settings.timezone,
       };
-
       localStorage.setItem('bolt_user_profile', JSON.stringify(updatedProfile));
-      toast.success('Settings updated');
+
+      if (!hydratedRef.current) {
+        return;
+      }
+
+      const snapshot = JSON.stringify({
+        notifications: settings.notifications,
+        language: settings.language,
+        timezone: settings.timezone,
+      });
+
+      if (snapshot === lastPersistedRef.current) {
+        return;
+      }
+
+      lastPersistedRef.current = snapshot;
+
+      persistPreferencesToBackend(settings).then((persisted) => {
+        toast.success(persisted ? 'Settings updated' : 'Settings saved locally');
+      });
     } catch (error) {
       console.error('Error saving settings:', error);
       toast.error('Failed to update settings');
@@ -129,15 +225,15 @@ export default function SettingsTab() {
                 };
                 localStorage.setItem('bolt_user_profile', JSON.stringify(updatedProfile));
 
-                // Dispatch storage event for other components
+                // Dispatch storage event so other components react in-tab.
+                // The success toast + backend persistence are owned by the
+                // save effect that the setSettings above triggers.
                 window.dispatchEvent(
                   new StorageEvent('storage', {
                     key: 'bolt_user_profile',
                     newValue: JSON.stringify(updatedProfile),
                   }),
                 );
-
-                toast.success(`Notifications ${checked ? 'enabled' : 'disabled'}`);
               }}
             />
           </div>

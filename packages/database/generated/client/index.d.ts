@@ -8881,6 +8881,7 @@ export namespace Prisma {
     mfaSecretCiphertext: string | null
     platformAdmin: boolean | null
     language: string | null
+    timezone: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -8895,6 +8896,7 @@ export namespace Prisma {
     mfaSecretCiphertext: string | null
     platformAdmin: boolean | null
     language: string | null
+    timezone: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -8909,6 +8911,8 @@ export namespace Prisma {
     mfaSecretCiphertext: number
     platformAdmin: number
     language: number
+    timezone: number
+    preferences: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -8925,6 +8929,7 @@ export namespace Prisma {
     mfaSecretCiphertext?: true
     platformAdmin?: true
     language?: true
+    timezone?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -8939,6 +8944,7 @@ export namespace Prisma {
     mfaSecretCiphertext?: true
     platformAdmin?: true
     language?: true
+    timezone?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -8953,6 +8959,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: true
     platformAdmin?: true
     language?: true
+    timezone?: true
+    preferences?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -9040,6 +9048,8 @@ export namespace Prisma {
     mfaSecretCiphertext: string | null
     platformAdmin: boolean
     language: string | null
+    timezone: string | null
+    preferences: JsonValue | null
     createdAt: Date
     updatedAt: Date
     _count: UserCountAggregateOutputType | null
@@ -9071,6 +9081,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: boolean
     platformAdmin?: boolean
     language?: boolean
+    timezone?: boolean
+    preferences?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     accounts?: boolean | User$accountsArgs<ExtArgs>
@@ -9113,6 +9125,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: boolean
     platformAdmin?: boolean
     language?: boolean
+    timezone?: boolean
+    preferences?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["user"]>
@@ -9127,6 +9141,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: boolean
     platformAdmin?: boolean
     language?: boolean
+    timezone?: boolean
+    preferences?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["user"]>
@@ -9141,11 +9157,13 @@ export namespace Prisma {
     mfaSecretCiphertext?: boolean
     platformAdmin?: boolean
     language?: boolean
+    timezone?: boolean
+    preferences?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "name" | "passwordHash" | "emailVerifiedAt" | "mfaEnabled" | "mfaSecretCiphertext" | "platformAdmin" | "language" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "name" | "passwordHash" | "emailVerifiedAt" | "mfaEnabled" | "mfaSecretCiphertext" | "platformAdmin" | "language" | "timezone" | "preferences" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     accounts?: boolean | User$accountsArgs<ExtArgs>
     sessions?: boolean | User$sessionsArgs<ExtArgs>
@@ -9220,6 +9238,8 @@ export namespace Prisma {
       mfaSecretCiphertext: string | null
       platformAdmin: boolean
       language: string | null
+      timezone: string | null
+      preferences: Prisma.JsonValue | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["user"]>
@@ -9681,6 +9701,8 @@ export namespace Prisma {
     readonly mfaSecretCiphertext: FieldRef<"User", 'String'>
     readonly platformAdmin: FieldRef<"User", 'Boolean'>
     readonly language: FieldRef<"User", 'String'>
+    readonly timezone: FieldRef<"User", 'String'>
+    readonly preferences: FieldRef<"User", 'Json'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
     readonly updatedAt: FieldRef<"User", 'DateTime'>
   }
@@ -95311,6 +95333,8 @@ export namespace Prisma {
     mfaSecretCiphertext: 'mfaSecretCiphertext',
     platformAdmin: 'platformAdmin',
     language: 'language',
+    timezone: 'timezone',
+    preferences: 'preferences',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -96393,19 +96417,19 @@ export namespace Prisma {
   export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
-  export const JsonNullValueInput: {
-    JsonNull: typeof JsonNull
-  };
-
-  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
-
-
   export const NullableJsonNullValueInput: {
     DbNull: typeof DbNull,
     JsonNull: typeof JsonNull
   };
 
   export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+  export const JsonNullValueInput: {
+    JsonNull: typeof JsonNull
+  };
+
+  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
   export const QueryMode: {
@@ -96416,14 +96440,6 @@ export namespace Prisma {
   export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
-  export const NullsOrder: {
-    first: 'first',
-    last: 'last'
-  };
-
-  export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
-
-
   export const JsonNullValueFilter: {
     DbNull: typeof DbNull,
     JsonNull: typeof JsonNull,
@@ -96431,6 +96447,14 @@ export namespace Prisma {
   };
 
   export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+  export const NullsOrder: {
+    first: 'first',
+    last: 'last'
+  };
+
+  export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
   /**
@@ -96474,20 +96498,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Int'
-   */
-  export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-  /**
-   * Reference to a field of type 'Int[]'
-   */
-  export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
-    
-
-
-  /**
    * Reference to a field of type 'Json'
    */
   export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
@@ -96498,6 +96508,20 @@ export namespace Prisma {
    * Reference to a field of type 'QueryMode'
    */
   export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+  /**
+   * Reference to a field of type 'Int'
+   */
+  export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+  /**
+   * Reference to a field of type 'Int[]'
+   */
+  export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -96671,6 +96695,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: StringNullableFilter<"User"> | string | null
     platformAdmin?: BoolFilter<"User"> | boolean
     language?: StringNullableFilter<"User"> | string | null
+    timezone?: StringNullableFilter<"User"> | string | null
+    preferences?: JsonNullableFilter<"User">
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     accounts?: AccountListRelationFilter
@@ -96712,6 +96738,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: SortOrderInput | SortOrder
     platformAdmin?: SortOrder
     language?: SortOrderInput | SortOrder
+    timezone?: SortOrderInput | SortOrder
+    preferences?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     accounts?: AccountOrderByRelationAggregateInput
@@ -96756,6 +96784,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: StringNullableFilter<"User"> | string | null
     platformAdmin?: BoolFilter<"User"> | boolean
     language?: StringNullableFilter<"User"> | string | null
+    timezone?: StringNullableFilter<"User"> | string | null
+    preferences?: JsonNullableFilter<"User">
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     accounts?: AccountListRelationFilter
@@ -96797,6 +96827,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: SortOrderInput | SortOrder
     platformAdmin?: SortOrder
     language?: SortOrderInput | SortOrder
+    timezone?: SortOrderInput | SortOrder
+    preferences?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserCountOrderByAggregateInput
@@ -96817,6 +96849,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: StringNullableWithAggregatesFilter<"User"> | string | null
     platformAdmin?: BoolWithAggregatesFilter<"User"> | boolean
     language?: StringNullableWithAggregatesFilter<"User"> | string | null
+    timezone?: StringNullableWithAggregatesFilter<"User"> | string | null
+    preferences?: JsonNullableWithAggregatesFilter<"User">
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
   }
@@ -102495,6 +102529,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -102536,6 +102572,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -102577,6 +102615,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -102618,6 +102658,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -102659,6 +102701,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -102673,6 +102717,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -102687,6 +102733,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -108754,6 +108802,29 @@ export namespace Prisma {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolFilter<$PrismaModel> | boolean
   }
+  export type JsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
 
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
@@ -109051,6 +109122,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: SortOrder
     platformAdmin?: SortOrder
     language?: SortOrder
+    timezone?: SortOrder
+    preferences?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -109065,6 +109138,7 @@ export namespace Prisma {
     mfaSecretCiphertext?: SortOrder
     platformAdmin?: SortOrder
     language?: SortOrder
+    timezone?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -109079,6 +109153,7 @@ export namespace Prisma {
     mfaSecretCiphertext?: SortOrder
     platformAdmin?: SortOrder
     language?: SortOrder
+    timezone?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -109139,6 +109214,32 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
+  }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -110164,29 +110265,6 @@ export namespace Prisma {
     roleKey?: SortOrder
     createdAt?: SortOrder
   }
-  export type JsonNullableFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-  }
 
   export type ProjectActivityCountOrderByAggregateInput = {
     id?: SortOrder
@@ -110211,32 +110289,6 @@ export namespace Prisma {
     actorUserId?: SortOrder
     action?: SortOrder
     createdAt?: SortOrder
-  }
-  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedJsonNullableFilter<$PrismaModel>
-    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type CollaborationPresenceProjectIdSessionIdCompoundUniqueInput = {
@@ -118248,6 +118300,29 @@ export namespace Prisma {
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
   }
+  export type NestedJsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
 
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
@@ -118327,29 +118402,6 @@ export namespace Prisma {
     _sum?: NestedFloatFilter<$PrismaModel>
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
-  }
-  export type NestedJsonNullableFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<NestedJsonNullableFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
-
-  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -120169,6 +120221,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutUserInput
@@ -120209,6 +120263,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
@@ -120265,6 +120321,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutUserNestedInput
@@ -120305,6 +120363,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -120345,6 +120405,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -120385,6 +120447,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -120441,6 +120505,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -120481,6 +120547,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -122191,6 +122259,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -122231,6 +122301,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -122393,6 +122465,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -122433,6 +122507,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -124170,6 +124246,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -124210,6 +124288,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -124266,6 +124346,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -124306,6 +124388,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -124662,6 +124746,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -124702,6 +124788,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -124910,6 +124998,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -124950,6 +125040,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -125229,6 +125321,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -125269,6 +125363,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -125406,6 +125502,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -125446,6 +125544,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -126185,6 +126285,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -126225,6 +126327,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -126362,6 +126466,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -126402,6 +126508,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -126517,6 +126625,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -126557,6 +126667,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -126694,6 +126806,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -126734,6 +126848,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -126849,6 +126965,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -126889,6 +127007,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -127026,6 +127146,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -127066,6 +127188,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -127181,6 +127305,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -127221,6 +127347,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -127358,6 +127486,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -127398,6 +127528,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -127513,6 +127645,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -127553,6 +127687,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -127690,6 +127826,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -127730,6 +127868,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -128979,6 +129119,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -129019,6 +129161,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -129156,6 +129300,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -129196,6 +129342,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -129739,6 +129887,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -129779,6 +129929,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -129918,6 +130070,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -129958,6 +130112,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -129998,6 +130154,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -130038,6 +130196,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -130094,6 +130254,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -130134,6 +130296,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -131317,6 +131481,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -131357,6 +131523,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -131522,6 +131690,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -131562,6 +131732,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -132288,6 +132460,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -132328,6 +132502,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -132467,6 +132643,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -132507,6 +132685,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -132707,6 +132887,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -132747,6 +132929,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -132803,6 +132987,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -132843,6 +133029,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -132883,6 +133071,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -132923,6 +133113,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -132979,6 +133171,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -133019,6 +133213,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -133059,6 +133255,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -133099,6 +133297,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -133155,6 +133355,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -133195,6 +133397,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -134272,6 +134476,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -134312,6 +134518,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -134451,6 +134659,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -134491,6 +134701,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -134531,6 +134743,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -134571,6 +134785,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -134627,6 +134843,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -134667,6 +134885,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -134804,6 +135024,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -134844,6 +135066,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -135032,6 +135256,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -135072,6 +135298,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -135266,6 +135494,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -135306,6 +135536,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -135512,6 +135744,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -135552,6 +135786,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -135835,6 +136071,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -135875,6 +136113,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -136018,6 +136258,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -136058,6 +136300,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -136309,6 +136553,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -136349,6 +136595,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -136543,6 +136791,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -136583,6 +136833,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -136700,6 +136952,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -136740,6 +136994,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -136935,6 +137191,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -136975,6 +137233,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -137299,6 +137559,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -137339,6 +137601,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
     language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -137472,6 +137736,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -137512,6 +137778,8 @@ export namespace Prisma {
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
     language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput

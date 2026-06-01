@@ -2458,6 +2458,104 @@ describe('SaaS API', () => {
     }
   });
 
+  it('lists Stripe invoices for the billing customer', async () => {
+    const previousSecretKey = process.env.STRIPE_SECRET_KEY;
+    const previousApiBase = process.env.STRIPE_API_BASE_URL;
+    process.env.STRIPE_SECRET_KEY = 'sk_test_invoices';
+
+    const requests: Array<{ url?: string }> = [];
+
+    const stripeServer = createServer((request, response) => {
+      requests.push({ url: request.url });
+      response.setHeader('content-type', 'application/json');
+      response.end(
+        JSON.stringify({
+          data: [
+            {
+              id: 'in_paid',
+              number: 'VC-0001',
+              status: 'paid',
+              amount_due: 2000,
+              amount_paid: 2000,
+              currency: 'usd',
+              created: 1_700_000_000,
+              hosted_invoice_url: 'https://invoice.stripe.local/in_paid',
+              invoice_pdf: 'https://invoice.stripe.local/in_paid.pdf',
+            },
+          ],
+        }),
+      );
+    });
+
+    await new Promise<void>((resolve) => stripeServer.listen(0, '127.0.0.1', () => resolve()));
+
+    const address = stripeServer.address();
+
+    if (typeof address !== 'object' || !address) {
+      throw new Error('Local billing endpoint did not start');
+    }
+
+    process.env.STRIPE_API_BASE_URL = `http://127.0.0.1:${address.port}`;
+
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'invoices@example.com', organizationName: 'Invoices Org' });
+    await store.upsertBillingCustomer({
+      organizationId: auth.organization.id,
+      provider: 'stripe',
+      externalId: 'cus_invoices',
+    });
+
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/orgs/${auth.organization.id}/billing/invoices`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const body = response.json();
+      expect(body.stripeConfigured).toBe(true);
+      expect(body.invoices).toHaveLength(1);
+      expect(body.invoices[0]).toMatchObject({
+        id: 'in_paid',
+        number: 'VC-0001',
+        status: 'paid',
+        amountDueCents: 2000,
+        amountPaidCents: 2000,
+        currency: 'usd',
+        hostedInvoiceUrl: 'https://invoice.stripe.local/in_paid',
+        invoicePdf: 'https://invoice.stripe.local/in_paid.pdf',
+      });
+      expect(body.invoices[0].createdAt).toBe(new Date(1_700_000_000 * 1000).toISOString());
+      expect(requests[0].url).toContain('/v1/invoices?');
+      expect(requests[0].url).toContain('customer=cus_invoices');
+    } finally {
+      process.env.STRIPE_SECRET_KEY = previousSecretKey;
+      process.env.STRIPE_API_BASE_URL = previousApiBase;
+      await app.close();
+      await new Promise<void>((resolve, reject) => stripeServer.close((error) => (error ? reject(error) : resolve())));
+    }
+  });
+
+  it('returns an empty invoice list when no billing customer exists', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'no-invoices@example.com', organizationName: 'No Invoices Org' });
+
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/orgs/${auth.organization.id}/billing/invoices`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().invoices).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
   it('maps checkout completed webhooks from checkout metadata when subscription items are absent', async () => {
     const previousSecret = process.env.STRIPE_WEBHOOK_SECRET;
     const previousTeamPrice = process.env.STRIPE_TEAM_PRICE_ID;
@@ -5173,6 +5271,106 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
     expect(clear.statusCode).toBe(200);
     expect(clear.json().user.language).toBeFalsy();
+
+    await app.close();
+  });
+
+  it('persists User.timezone through PATCH /auth/me and surfaces it on GET (audit #10)', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'tz-user@example.com', organizationName: 'TZ Org' });
+
+    const before = await app.inject({
+      method: 'GET',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(before.statusCode).toBe(200);
+    expect(before.json().user.timezone).toBeFalsy();
+
+    const setTz = await app.inject({
+      method: 'PATCH',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { timezone: 'Europe/Paris' },
+    });
+    expect(setTz.statusCode).toBe(200);
+    expect(setTz.json().user.timezone).toBe('Europe/Paris');
+
+    // Previously the field was accepted by the schema but dropped before the
+    // DB write, so it never survived a round trip — this is the regression guard.
+    const afterSet = await app.inject({
+      method: 'GET',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(afterSet.json().user.timezone).toBe('Europe/Paris');
+
+    await app.close();
+  });
+
+  it('persists and shallow-merges preferences through /user/preferences (audit #3)', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'prefs-user@example.com', organizationName: 'Prefs Org' });
+
+    // Fresh users have an empty preferences blob and no language/timezone.
+    const before = await app.inject({
+      method: 'GET',
+      url: '/user/preferences',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(before.statusCode).toBe(200);
+    expect(before.json()).toMatchObject({ language: null, timezone: null, preferences: {} });
+
+    const setAll = await app.inject({
+      method: 'PATCH',
+      url: '/user/preferences',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {
+        language: 'fr',
+        timezone: 'Europe/Paris',
+        preferences: { notifications: false, eventLogs: true },
+      },
+    });
+    expect(setAll.statusCode).toBe(200);
+    expect(setAll.json()).toMatchObject({
+      language: 'fr',
+      timezone: 'Europe/Paris',
+      preferences: { notifications: false, eventLogs: true },
+    });
+
+    /*
+     * A partial save must shallow-merge, not replace: toggling notifications
+     * back on leaves the unrelated eventLogs key intact.
+     */
+    const patchPartial = await app.inject({
+      method: 'PATCH',
+      url: '/user/preferences',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { preferences: { notifications: true } },
+    });
+    expect(patchPartial.statusCode).toBe(200);
+    expect(patchPartial.json().preferences).toEqual({ notifications: true, eventLogs: true });
+
+    // Persisted across a fresh read, and visible on GET /auth/me too.
+    const reload = await app.inject({
+      method: 'GET',
+      url: '/user/preferences',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(reload.json()).toMatchObject({
+      language: 'fr',
+      timezone: 'Europe/Paris',
+      preferences: { notifications: true, eventLogs: true },
+    });
+
+    const me = await app.inject({
+      method: 'GET',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(me.json().user.preferences).toEqual({ notifications: true, eventLogs: true });
 
     await app.close();
   });

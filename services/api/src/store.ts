@@ -18,6 +18,19 @@ export interface UserRecord {
    * account settings. Slice 2 of the Phase 0 #7 react-i18next migration.
    */
   language?: string;
+  /**
+   * IANA timezone name (e.g. `Europe/Paris`). Optional: unset until the user
+   * picks one in account/IDE settings, where the client otherwise detects it
+   * from `Intl.DateTimeFormat().resolvedOptions().timeZone`.
+   */
+  timezone?: string;
+  /**
+   * Free-form per-user preferences from the in-IDE settings panel
+   * (notifications, event logs, feature toggles, profile fields). The DB is
+   * the source of truth; localStorage is a client-side cache. Shallow-merged
+   * on update so partial saves never clobber unrelated keys.
+   */
+  preferences?: Record<string, unknown>;
   createdAt: string;
 }
 
@@ -573,6 +586,8 @@ export interface ApiStore {
     mfaSecretEncrypted?: string;
     platformAdmin?: boolean;
     language?: string | null;
+    timezone?: string | null;
+    preferences?: Record<string, unknown> | null;
   }): Promise<UserRecord>;
   deleteUser(userId: string): Promise<boolean>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;

@@ -52,6 +52,16 @@ model User {
   // and finally to "en". Drives SSR language selection via a cookie set
   // on session create.
   language                    String?
+  // IANA timezone name (e.g. "Europe/Paris"). Null until the user sets it
+  // in account/IDE settings; the client falls back to
+  // Intl.DateTimeFormat().resolvedOptions().timeZone.
+  timezone                    String?
+  // Free-form per-user preferences blob set from the in-IDE settings panel
+  // (notifications, event logs, feature toggles, profile fields). Shallow
+  // -merged on PATCH so partial updates never clobber unrelated keys.
+  // language/timezone stay first-class columns above because SSR + the SaaS
+  // account-settings route read them directly.
+  preferences                 Json?
   createdAt                   DateTime                       @default(now())
   updatedAt                   DateTime                       @updatedAt
   accounts                    Account[]
