@@ -17,18 +17,17 @@ import { LinkButton, PublicShell } from '~/components/dashboard/SaaSLayout';
  */
 
 export const loader = ({ request }: LoaderFunctionArgs) => {
-  // A thrown Response is the documented Remix way to signal an expected 404.
-  // It is intentionally NOT a thrown Error, so it is never logged at error level.
+  /*
+   * A thrown Response is the documented Remix way to signal an expected 404.
+   * It is intentionally NOT a thrown Error, so it is never logged at error level.
+   */
   throw new Response(`Not Found: ${new URL(request.url).pathname}`, {
     status: 404,
     statusText: 'Not Found',
   });
 };
 
-export const meta: MetaFunction = () => [
-  { title: 'Page not found · E-Code' },
-  { name: 'robots', content: 'noindex' },
-];
+export const meta: MetaFunction = () => [{ title: 'Page not found · E-Code' }, { name: 'robots', content: 'noindex' }];
 
 function NotFoundView({ status = 404 }: { status?: number }) {
   return (
@@ -75,13 +74,17 @@ export default function SplatRoute() {
 export function ErrorBoundary() {
   const error = useRouteError();
 
-  // 404s (and any other thrown Response) are expected here — render a clean page.
-  // Deliberately no console.error / logStore.logError: these are not incidents.
+  /*
+   * 404s (and any other thrown Response) are expected here — render a clean page.
+   * Deliberately no console.error / logStore.logError: these are not incidents.
+   */
   if (isRouteErrorResponse(error)) {
     return <NotFoundView status={error.status} />;
   }
 
-  // An unexpected non-Response error reached us. Render gracefully rather than
-  // bubbling to the root boundary; surfacing it as a 500-style page is enough.
+  /*
+   * An unexpected non-Response error reached us. Render gracefully rather than
+   * bubbling to the root boundary; surfacing it as a 500-style page is enough.
+   */
   return <NotFoundView status={500} />;
 }
