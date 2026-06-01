@@ -21,6 +21,25 @@ afterEach(() => {
   }
 });
 
+describe('GitCliProvider.createPullRequest', () => {
+  it('rejects with an honest NOT_SUPPORTED error instead of crashing', async () => {
+    const provider = new GitCliProvider();
+
+    await expect(
+      provider.createPullRequest({
+        projectId: 'project-without-remote',
+        title: 'Add feature',
+        sourceBranch: 'feature',
+        targetBranch: 'main',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 501,
+      code: 'NOT_SUPPORTED',
+      message: expect.stringContaining('connected GitHub account'),
+    });
+  });
+});
+
 describe('GitCliProvider workspace isolation', () => {
   it('does not traverse into the platform repository when a project has no git directory', async () => {
     const parent = await mkdtemp(join(tmpdir(), 'vibecore-parent-repo-'));

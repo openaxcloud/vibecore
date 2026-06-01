@@ -892,8 +892,18 @@ export class GitCliProvider implements GitProvider {
     targetBranch: string;
   }): Promise<{ url: string; number: number }> {
     void _input;
-    throw new Error(
-      'Pull request creation requires a GitHub integration provider; GitCliProvider does not create remote PRs.',
+
+    /*
+     * We back projects with a local git checkout, not the GitHub API, so there
+     * is no remote to open a PR against. Surface this as a 501 with actionable
+     * guidance rather than a 500 — the operation isn't broken, it's simply not
+     * supported by the local-git provider.
+     */
+    throw Object.assign(
+      new Error(
+        'Pull request creation requires a connected GitHub account. Use the Git tab to push your branch, then create the PR on GitHub.',
+      ),
+      { statusCode: 501, code: 'NOT_SUPPORTED' },
     );
   }
 }
