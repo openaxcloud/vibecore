@@ -52,7 +52,7 @@ describe('TerminalSessionManager (fallback shell)', () => {
 
   async function newManager() {
     const cwd = await mkdtemp(join(tmpdir(), 'vc-term-'));
-    const manager = new TerminalSessionManager({ cwd, reattachGraceMs: 50 });
+    const manager = new TerminalSessionManager({ cwd, reattachGraceMs: 2000 });
     managers.push(manager);
 
     return manager;
@@ -127,4 +127,44 @@ describe('TerminalSessionManager (fallback shell)', () => {
     const session = await manager.getOrCreate('mode');
     expect(session.backend.mode).toBe('pipe');
   });
+});
+
+describe('TerminalSessionManager (jsh OSC 654 emulation)', () => {
+  const managers: TerminalSessionManager[] = [];
+
+  afterEach(() => {
+    for (const manager of managers.splice(0)) {
+      manager.disposeAll();
+    }
+  });
+
+  async function newOscManager() {
+    const cwd = await mkdtemp(join(tmpdir(), 'vc-term-osc-'));
+    // Force bash so the OSC emulation (PROMPT_COMMAND/PS1) applies regardless of
+    // the host's $SHELL (e.g. zsh on dev machines).
+    const manager = new TerminalSessionManager({ cwd, shell: '/bin/bash', osc: true, reattachGraceMs: 2000 });
+    managers.push(manager);
+
+    return manager;
+  }
+
+  it('emits the interactive handshake marker on startup', async () => {
+    const manager = await newOscManager();
+    const session = await manager.getOrCreate('osc-init');
+
+    const output = await collectUntil(session, (buffer) => buffer.includes('\x1b]654;interactive\x07'));
+    expect(output).toContain('\x1b]654;interactive\x07');
+  });
+
+  it('emits an exit marker carrying the command exit code', async () => {
+    const manager = await newOscManager();
+    const session = await manager.getOrCreate('osc-exit');
+
+    // Wait for the prompt handshake, then run a command that fails with code 3.
+    await collectUntil(session, (buffer) => buffer.includes('\x1b]654;interactive\x07'));
+    session.write('(exit 3)\n');
+
+    const output = await collectUntil(session, (buffer) => /\x1b\]654;exit=3:3\x07/.test(buffer), 10_000);
+    expect(output).toMatch(/\x1b\]654;exit=3:3\x07/);
+  }, 15_000);
 });

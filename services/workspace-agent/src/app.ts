@@ -59,6 +59,11 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     cwd: root,
     env: process.env,
     maxSessions: maxProcesses,
+    // The Bolt client opens terminals as `/bin/jsh --osc` and the action-runner
+    // handshakes on OSC 654 markers; emulate that protocol over the real shell
+    // so the terminal and AI shell/start/build actions don't hang. See
+    // terminal-session.ts and app/utils/shell.ts.
+    osc: true,
   });
   let terminalSessions = 0;
 
