@@ -7558,12 +7558,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
     const client = normalizeRuntimeApiWebSocket(socket);
-    const logs = await managerRequest<{ logs: string[] }>(`/workspaces/${authorized.workspaceId}/logs`);
 
-    for (const line of logs.logs) {
+    // The workspace manager exposes logs as a point-in-time buffer, not a
+    // stream, so we keep the socket open and poll every 3s, sending only the
+    // lines we have not sent yet (tracked by offset) instead of fetching once
+    // and closing. The buffer is treated as append-only; if it shrinks (the
+    // manager rotated/truncated it) we reset and replay the current contents.
+    const send = (line: string) =>
       client.send(JSON.stringify({ type: 'stdout', data: line, timestamp: new Date().toISOString() }));
+
+    let sentCount = 0;
+
+    const poll = async () => {
+      const logs = await managerRequest<{ logs: string[] }>(`/workspaces/${authorized.workspaceId}/logs`);
+      const lines = logs.logs ?? [];
+
+      // Buffer shrank — treat as a rotation and replay from the top.
+      if (lines.length < sentCount) {
+        sentCount = 0;
+      }
+
+      for (let index = sentCount; index < lines.length; index += 1) {
+        send(lines[index]);
+      }
+
+      sentCount = lines.length;
+    };
+
+    try {
+      await poll();
+    } catch {
+      // Manager not reachable yet; the interval will retry.
     }
-    client.close();
+
+    const interval = setInterval(() => {
+      void poll().catch(() => {
+        // Swallow transient manager errors; the next tick resyncs.
+      });
+    }, 3000);
+
+    client.onClose(() => clearInterval(interval));
   });
   app.get('/api/runtime/workspaces/:workspaceId/logs/snapshot', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
