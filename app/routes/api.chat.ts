@@ -687,6 +687,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           designScheme,
           summary,
           messageSliceId,
+          /*
+           * Audit v3 (H): thread the request's abort signal into the *initial*
+           * generation too. Previously only the continuation call (above) got
+           * it, so clicking Stop aborted the client read but the provider kept
+           * generating the first segment server-side — and kept billing tokens.
+           */
+          abortSignal: request.signal,
           agentOrchestrationPlan: orchestrationPlan,
           agentOrchestrationContext,
           agentMemoryContext: agentMemory?.context,
