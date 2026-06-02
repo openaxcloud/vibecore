@@ -127,7 +127,7 @@ export class PrismaApiStore implements ApiStore {
     email?: string;
     name?: string;
     passwordHash?: string;
-    emailVerifiedAt?: string;
+    emailVerifiedAt?: string | null;
     mfaEnabled?: boolean;
     mfaSecretEncrypted?: string;
     platformAdmin?: boolean;
@@ -142,7 +142,18 @@ export class PrismaApiStore implements ApiStore {
           email: input.email?.toLowerCase(),
           name: input.name,
           passwordHash: input.passwordHash,
-          emailVerifiedAt: input.emailVerifiedAt ? new Date(input.emailVerifiedAt) : undefined,
+          /*
+           * `emailVerifiedAt: null` clears verification (e.g. when the user
+           * changes their email and must re-verify the new address); a string
+           * sets it; `undefined` leaves the column untouched. A bare falsy
+           * check previously made `null` indistinguishable from "skip".
+           */
+          emailVerifiedAt:
+            input.emailVerifiedAt === undefined
+              ? undefined
+              : input.emailVerifiedAt === null
+                ? null
+                : new Date(input.emailVerifiedAt),
           mfaEnabled: input.mfaEnabled,
           mfaSecretCiphertext: input.mfaSecretEncrypted,
           platformAdmin: input.platformAdmin,

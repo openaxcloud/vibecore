@@ -603,7 +603,7 @@ export interface ApiStore {
     email?: string;
     name?: string;
     passwordHash?: string;
-    emailVerifiedAt?: string;
+    emailVerifiedAt?: string | null;
     mfaEnabled?: boolean;
     mfaSecretEncrypted?: string;
     platformAdmin?: boolean;

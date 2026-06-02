@@ -7963,13 +7963,58 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.patch('/auth/me', async (request, reply) => {
     const body = parse(userProfileSchema, request.body);
 
+    /*
+     * Audit v3 (H): changing the email address must drop the verified flag
+     * and force re-verification. Previously `updateUser` left
+     * `emailVerifiedAt` untouched, so a verified account could move to an
+     * arbitrary unverified address while still presenting as "verified" — a
+     * verification-bypass. We detect a genuine change (case-insensitive),
+     * pre-check for collisions to return a clean 409 instead of a Prisma
+     * P2002 500, clear the flag, and issue a fresh verification token/email.
+     */
+    const emailChanged =
+      body.email !== undefined && body.email.toLowerCase() !== request.currentUser!.email.toLowerCase();
+
+    if (emailChanged) {
+      const existing = await store.findUserByEmail(body.email!);
+
+      if (existing && existing.id !== request.currentUser!.id) {
+        return reply.code(409).send({ error: 'Email already registered', code: 'AUTH_EMAIL_EXISTS' });
+      }
+    }
+
     const user = await store.updateUser({
       userId: request.currentUser!.id,
       email: body.email,
       name: body.name,
       language: body.language,
       timezone: body.timezone,
+      emailVerifiedAt: emailChanged ? null : undefined,
     });
+
+    if (emailChanged) {
+      const verificationToken = createOpaqueToken('verify');
+      await store.createEmailVerification({
+        userId: user.id,
+        token: verificationToken,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      });
+
+      /*
+       * A failed send must not roll back the email change (already committed)
+       * — log and continue so the user isn't left in a half-updated state.
+       * They can request another verification later.
+       */
+      try {
+        await emailProvider.send({
+          to: user.email,
+          subject: 'Verify your new email',
+          text: `Use this verification token to verify your new email address: ${verificationToken}`,
+        });
+      } catch (error) {
+        request.log.error({ err: error, userId: user.id }, 'failed to send email-change verification');
+      }
+    }
 
     /*
      * Slice 3 react-i18next — mirror the persisted language into a
@@ -8006,6 +8051,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         id: user.id,
         email: user.email,
         name: user.name,
+        emailVerifiedAt: user.emailVerifiedAt,
         language: user.language,
         timezone: user.timezone,
       },
