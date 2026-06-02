@@ -1,5 +1,5 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useLoaderData } from '@remix-run/react';
+import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import { Globe2, ShieldCheck } from 'lucide-react';
 import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
@@ -13,7 +13,13 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 
-type Domain = { id: string; domain: string; verifiedAt?: string; createdAt?: string };
+type Domain = {
+  id: string;
+  domain: string;
+  verificationToken: string;
+  verifiedAt?: string;
+  createdAt?: string;
+};
 type Project = { id: string; name: string; description?: string };
 
 export const meta: MetaFunction = () => [{ title: 'Custom domains - VibeCore' }];
@@ -52,9 +58,22 @@ export async function action({ request, params }: EnterpriseActionArgs) {
   const domain = String(form.get('domain') ?? '');
 
   if (intent === 'verify') {
-    await apiRequest(request, `/orgs/${organization.id}/domains/${encodeURIComponent(domain)}/verify`, {
-      method: 'POST',
-    });
+    try {
+      await apiRequest(request, `/orgs/${organization.id}/domains/${encodeURIComponent(domain)}/verify`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      /*
+       * The API performs a real DNS TXT lookup and returns 422 with a human-readable message when the
+       * record isn't visible yet. Surface that message inline instead of throwing to an error boundary.
+       */
+      if (error instanceof Response) {
+        const payload = (await error.json().catch(() => ({}))) as { error?: string };
+        return json({ error: payload.error ?? 'Domain verification failed. Check the DNS record and try again.' });
+      }
+
+      throw error;
+    }
   } else {
     await apiRequest(request, `/orgs/${organization.id}/domains`, { method: 'POST', body: JSON.stringify({ domain }) });
   }
@@ -64,6 +83,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
 export default function ProjectDomainsPage() {
   const { project, domains } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>() as { error?: string } | undefined;
 
   return (
     <ProjectShell
@@ -95,15 +115,45 @@ export default function ProjectDomainsPage() {
             />
             <Button type="submit">Add domain</Button>
           </Form>
-          {domains.map((item) => (
-            <Form key={item.id} method="post">
-              <input type="hidden" name="intent" value="verify" />
-              <input type="hidden" name="domain" value={item.domain} />
-              <Button type="submit" variant="outline">
-                Verify {item.domain}
-              </Button>
-            </Form>
-          ))}
+          {actionData?.error ? (
+            <p className="rounded-md border border-bolt-elements-icon-error bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-icon-error" role="alert">
+              {actionData.error}
+            </p>
+          ) : null}
+          {domains
+            .filter((item) => !item.verifiedAt)
+            .map((item) => (
+              <div
+                key={item.id}
+                className="grid gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
+              >
+                <p className="text-sm font-medium">Verify {item.domain}</p>
+                <p className="text-xs text-bolt-elements-textSecondary">
+                  Add this DNS TXT record at your domain registrar, then click Verify once it propagates:
+                </p>
+                <dl className="grid gap-1 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <dt className="text-bolt-elements-textTertiary">Type</dt>
+                    <dd className="font-mono">TXT</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <dt className="text-bolt-elements-textTertiary">Name / Host</dt>
+                    <dd className="select-all break-all font-mono">{`_vibecore.${item.domain}`}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <dt className="text-bolt-elements-textTertiary">Value</dt>
+                    <dd className="select-all break-all font-mono">{`vibecore-domain-verification=${item.verificationToken}`}</dd>
+                  </div>
+                </dl>
+                <Form method="post">
+                  <input type="hidden" name="intent" value="verify" />
+                  <input type="hidden" name="domain" value={item.domain} />
+                  <Button type="submit" variant="outline">
+                    Verify {item.domain}
+                  </Button>
+                </Form>
+              </div>
+            ))}
         </div>
       </div>
     </ProjectShell>
