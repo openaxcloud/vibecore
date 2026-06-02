@@ -7,6 +7,13 @@ export const meta: MetaFunction = () => [
   { name: 'description', content: 'E-code Free, Pro, Team and Enterprise pricing.' },
 ];
 
+/*
+ * IMPORTANT: these prices MUST match the source of truth in
+ * packages/billing/src/index.ts (`billingPlans[*].monthlyCents`), which drives
+ * Stripe checkout and the in-app /billing page. Pro = 2900 ($29), Team = 9900
+ * ($99). They previously read $20/$40 here and contradicted what users were
+ * actually charged. Update both places together if pricing changes.
+ */
 const plans = [
   {
     name: 'Free',
@@ -16,14 +23,14 @@ const plans = [
   },
   {
     name: 'Pro',
-    price: '$20',
-    detail: '$20 per user monthly for private projects, agents and deploys.',
+    price: '$29',
+    detail: '$29 per user monthly for private projects, agents and deploys.',
     features: ['Private projects', 'AI agents', 'Deployments'],
   },
   {
     name: 'Team',
-    price: '$40',
-    detail: '$40 per user monthly with roles, billing controls and shared secrets.',
+    price: '$99',
+    detail: '$99 per user monthly with roles, billing controls and shared secrets.',
     features: ['Roles', 'Billing controls', 'Shared secrets'],
   },
   {

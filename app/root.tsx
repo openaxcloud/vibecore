@@ -2,7 +2,9 @@
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
 import {
+  isRouteErrorResponse,
   Links,
+  Link,
   Meta,
   Outlet,
   Scripts,
@@ -10,7 +12,9 @@ import {
   useFetchers,
   useLocation,
   useNavigation,
+  useRouteError,
 } from '@remix-run/react';
+import { LinkButton, PublicShell } from './components/dashboard/SaaSLayout';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { installEditorPwaServiceWorker } from '@vibecore/editor';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
@@ -280,6 +284,59 @@ export default function App() {
       <AppErrorBoundary title="E-Code" boundaryId="app-root">
         <Outlet />
       </AppErrorBoundary>
+    </Layout>
+  );
+}
+
+/*
+ * Root-level Remix ErrorBoundary. Without this, an error thrown in any route
+ * loader/action that has no closer ErrorBoundary (151 of 153 routes) fell
+ * through to Remix's built-in unstyled "Application Error" page. This renders a
+ * branded fallback instead. Wrapped in <Layout> to match the default <App>
+ * tree so it gets the same chrome (theme, scripts, toaster).
+ */
+function RootErrorView({ status }: { status: number }) {
+  const isNotFound = status === 404;
+
+  return (
+    <PublicShell>
+      <section
+        className="mx-auto flex min-h-[60vh] w-full max-w-2xl flex-col items-center justify-center gap-6 px-6 py-24 text-center"
+        role="main"
+        aria-labelledby="root-error-heading"
+      >
+        <span className="text-sm font-semibold uppercase tracking-[0.2em] text-bolt-elements-textTertiary">
+          {isNotFound ? '404' : `Error ${status}`}
+        </span>
+        <h1 id="root-error-heading" className="text-3xl font-semibold text-bolt-elements-textPrimary">
+          {isNotFound ? 'This page could not be found' : 'Something went wrong'}
+        </h1>
+        <p className="max-w-md text-sm leading-6 text-bolt-elements-textSecondary">
+          {isNotFound
+            ? 'The page you are looking for may have been moved, renamed, or never existed.'
+            : 'An unexpected error interrupted this page. Try again, or head back to a known place.'}
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <LinkButton to="/">Back to homepage</LinkButton>
+          <LinkButton to="/dashboard" variant="outline">
+            Go to dashboard
+          </LinkButton>
+        </div>
+        <Link to="/help-center" className="text-xs text-bolt-elements-textTertiary underline-offset-4 hover:underline">
+          Visit the help center
+        </Link>
+      </section>
+    </PublicShell>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const status = isRouteErrorResponse(error) ? error.status : 500;
+
+  return (
+    <Layout>
+      <RootErrorView status={status} />
     </Layout>
   );
 }
