@@ -1127,10 +1127,13 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
       /*
        * The API returns the raw token exactly once (only its hash is persisted, so it can never be
-       * listed again). Build the redeemable /share/<token> URL and hand it back so the IDE can show it.
+       * listed again). Build the redeemable /projects/share/<token> URL (handled by
+       * app/routes/projects.share.$token.tsx → GET /collaboration/share-links/:token) and hand it
+       * back so the IDE can show it. NB: /share/<token> is the *chat*-share viewer — a project share
+       * token has no HMAC signature and would 404 there.
        */
       const shareUrl = created.token
-        ? new URL(`/share/${created.token}`, new URL(request.url).origin).toString()
+        ? new URL(`/projects/share/${created.token}`, new URL(request.url).origin).toString()
         : undefined;
 
       return json({ ok: true, shareLink: { ...(created.shareLink ?? {}), token: created.token, url: shareUrl } });

@@ -112,4 +112,103 @@ describe('project collaborator role enforcement', () => {
     expect(write.statusCode).toBe(200);
     await app.close();
   });
+
+  it('authorizes a collaborator who is NOT an organization member (e.g. redeemed a share link)', async () => {
+    const { store, app, owner, projectId } = await setup();
+    // `outsider` belongs only to their own org, never to the project's org.
+    const outsider = await register(app, 'outsider@example.com', 'Outsider Org');
+    await store.addProjectCollaborator({ projectId, userId: outsider.user.id, roleKey: 'editor' });
+
+    const read = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/files`,
+      headers: { authorization: `Bearer ${outsider.token}` },
+    });
+    expect(read.statusCode).toBe(200);
+
+    const write = await app.inject({
+      method: 'PATCH',
+      url: `/projects/${projectId}/settings`,
+      headers: { authorization: `Bearer ${outsider.token}` },
+      payload: { name: 'Renamed by outside editor' },
+    });
+    expect(write.statusCode).toBe(200);
+
+    await app.close();
+  });
+
+  it('keeps a collaborator-only viewer read-only', async () => {
+    const { store, app, owner, projectId } = await setup();
+    const outsider = await register(app, 'outside-viewer@example.com', 'Outside Viewer Org');
+    await store.addProjectCollaborator({ projectId, userId: outsider.user.id, roleKey: 'viewer' });
+
+    const read = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/files`,
+      headers: { authorization: `Bearer ${outsider.token}` },
+    });
+    expect(read.statusCode).toBe(200);
+
+    const write = await app.inject({
+      method: 'PATCH',
+      url: `/projects/${projectId}/settings`,
+      headers: { authorization: `Bearer ${outsider.token}` },
+      payload: { name: 'Should be blocked' },
+    });
+    expect(write.statusCode).toBe(403);
+    expect((write.json() as { code: string }).code).toBe('PROJECT_ROLE_READ_ONLY');
+
+    await app.close();
+  });
+
+  it('end-to-end: a non-member redeems a share link and gains project access', async () => {
+    const { app, owner, projectId } = await setup();
+    const outsider = await register(app, 'redeemer@example.com', 'Redeemer Org');
+
+    // Owner mints a write-capable (member) share link.
+    const created = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/collaboration/share-links`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { roleKey: 'member', expiresInMinutes: 60 },
+    });
+    expect(created.statusCode).toBe(201);
+    const token = (created.json() as { token: string }).token;
+    expect(token).toBeTruthy();
+
+    // Before redeeming, the outsider cannot reach the project.
+    const before = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/files`,
+      headers: { authorization: `Bearer ${outsider.token}` },
+    });
+    expect(before.statusCode).toBe(404);
+
+    // Redeem.
+    const redeem = await app.inject({
+      method: 'GET',
+      url: `/collaboration/share-links/${encodeURIComponent(token)}`,
+      headers: { authorization: `Bearer ${outsider.token}` },
+    });
+    expect(redeem.statusCode).toBe(200);
+    expect((redeem.json() as { redeemed: boolean }).redeemed).toBe(true);
+
+    // Now the outsider can read and write the project.
+    const after = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/files`,
+      headers: { authorization: `Bearer ${outsider.token}` },
+    });
+    expect(after.statusCode).toBe(200);
+
+    const write = await app.inject({
+      method: 'PATCH',
+      url: `/projects/${projectId}/settings`,
+      headers: { authorization: `Bearer ${outsider.token}` },
+      payload: { name: 'Renamed after redeem' },
+    });
+    expect(write.statusCode).toBe(200);
+
+    await app.close();
+  });
 });

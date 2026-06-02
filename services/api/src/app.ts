@@ -1819,22 +1819,35 @@ async function requireProject(
     throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
   }
 
-  await requireOrg(request, store, project.organizationId, permission);
+  // A user can reach a project two ways: as a member of its organization
+  // (authorized by their org role) or as an explicit project collaborator
+  // (authorized purely by their collaborator role — e.g. they redeemed a share
+  // link but are not an org member). Check org membership first; if the only
+  // problem is that they are not an org member but they DO hold a collaborator
+  // grant on this project, fall back to collaborator-based authorization for
+  // this single project instead of 404-ing them out.
+  const collaboratorRole = await projectCollaborationRole(store, projectId, request.currentUser?.id);
 
-  // Per-project collaborator role refines the org-level grant: a user added to
-  // this project as a read-only (viewer) collaborator cannot perform writes
-  // even if their organization role would otherwise allow it. Users who are not
-  // explicit collaborators (role undefined) are governed purely by the org
-  // permission checked above.
-  if (isWriteProjectPermission(permission)) {
-    const role = await projectCollaborationRole(store, projectId, request.currentUser?.id);
-
-    if (isReadOnlyProjectRole(role)) {
-      throw Object.assign(new Error('Read-only collaborators cannot modify this project'), {
-        statusCode: 403,
-        code: 'PROJECT_ROLE_READ_ONLY',
-      });
+  try {
+    await requireOrg(request, store, project.organizationId, permission);
+  } catch (error: any) {
+    // Fall back to collaborator-based authorization only when the sole problem
+    // is that the user isn't an org member but holds a collaborator grant on
+    // this project. Any other failure (401 unauth, 403 for an actual member
+    // lacking the permission) propagates unchanged.
+    if (error?.code !== 'ORG_NOT_FOUND' || !collaboratorRole) {
+      throw error;
     }
+  }
+
+  // Per-project collaborator role refines access: a read-only (viewer)
+  // collaborator can never write, even if an org role would otherwise allow it,
+  // and a collaborator-only user needs a write-capable role to perform writes.
+  if (isWriteProjectPermission(permission) && isReadOnlyProjectRole(collaboratorRole)) {
+    throw Object.assign(new Error('Read-only collaborators cannot modify this project'), {
+      statusCode: 403,
+      code: 'PROJECT_ROLE_READ_ONLY',
+    });
   }
 
   return project;
