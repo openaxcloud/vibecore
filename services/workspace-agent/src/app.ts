@@ -6,7 +6,7 @@ import { verifyAgentToken } from '@vibecore/workspace-sdk';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, readlink, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, relative, resolve } from 'node:path';
 import Fastify, { type FastifyRequest } from 'fastify';
 import { z } from 'zod';
@@ -164,7 +164,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     return { killed: Boolean(record), id };
   });
 
-  app.get('/ports', async () => ({ ports: detectPorts(processes) }));
+  app.get('/ports', async () => ({ ports: await detectPorts(processes) }));
 
   app.all('/preview/:port/*', async (request, reply) => {
     const port = Number((request.params as { port: string; '*': string }).port);
@@ -673,7 +673,164 @@ async function runCommandStream(
   });
 }
 
-function detectPorts(processes: Map<string, ProcessRecord>) {
+type DetectedPort = { port: number; processId: string };
+
+/*
+ * Authoritative port detection: read the kernel's listening TCP sockets from /proc/net/tcp(6) and
+ * attribute each to the managed process (or descendant) that owns it via the socket inode -> pid ->
+ * process-tree mapping. The workspace agent runs alone in its per-workspace container, so every
+ * listening socket here belongs to user processes — the agent's own control port is excluded because
+ * its pid is never a descendant of a tracked record. Falls back to the legacy log/heuristic scrape
+ * only when /proc is unavailable (e.g. macOS dev) or yields nothing.
+ */
+async function detectPorts(processes: Map<string, ProcessRecord>): Promise<DetectedPort[]> {
+  try {
+    const listening = await readListeningPorts();
+
+    if (listening.size > 0) {
+      const inodeToPid = await readSocketInodeToPid();
+      const managedPids = new Map<number, string>();
+
+      for (const record of processes.values()) {
+        if (typeof record.process.pid === 'number') {
+          managedPids.set(record.process.pid, record.id);
+        }
+      }
+
+      const detected: DetectedPort[] = [];
+
+      for (const [port, inode] of listening) {
+        const pid = inodeToPid.get(inode);
+        const processId = pid === undefined ? undefined : await owningManagedProcess(pid, managedPids);
+
+        if (processId) {
+          detected.push({ port, processId });
+        }
+      }
+
+      if (detected.length > 0) {
+        return detected;
+      }
+    }
+  } catch {
+    // /proc not readable (non-Linux dev host) — fall through to the heuristic scrape below.
+  }
+
+  return detectPortsFromOutput(processes);
+}
+
+// Parse listening (state 0A) IPv4/IPv6 TCP sockets into a port -> socket-inode map.
+async function readListeningPorts(): Promise<Map<number, number>> {
+  const ports = new Map<number, number>();
+
+  for (const file of ['/proc/net/tcp', '/proc/net/tcp6']) {
+    let content: string;
+
+    try {
+      content = await readFile(file, 'utf8');
+    } catch {
+      continue;
+    }
+
+    for (const line of content.split('\n').slice(1)) {
+      const cols = line.trim().split(/\s+/);
+
+      // Columns: sl local_address rem_address st ... uid timeout inode
+      if (cols.length < 10 || cols[3] !== '0A') {
+        continue;
+      }
+
+      const portHex = cols[1].split(':')[1];
+      const inode = Number(cols[9]);
+
+      if (!portHex || !Number.isFinite(inode)) {
+        continue;
+      }
+
+      const port = Number.parseInt(portHex, 16);
+
+      if (port > 0 && port <= 65535) {
+        ports.set(port, inode);
+      }
+    }
+  }
+
+  return ports;
+}
+
+// Map socket inodes to the pid holding them by scanning /proc/<pid>/fd symlinks (socket:[inode]).
+async function readSocketInodeToPid(): Promise<Map<number, number>> {
+  const map = new Map<number, number>();
+  let pids: string[];
+
+  try {
+    pids = (await readdir('/proc')).filter((name) => /^\d+$/.test(name));
+  } catch {
+    return map;
+  }
+
+  await Promise.all(
+    pids.map(async (pid) => {
+      let fds: string[];
+
+      try {
+        fds = await readdir(`/proc/${pid}/fd`);
+      } catch {
+        return;
+      }
+
+      await Promise.all(
+        fds.map(async (fd) => {
+          try {
+            const target = await readlink(`/proc/${pid}/fd/${fd}`);
+            const match = /^socket:\[(\d+)\]$/.exec(target);
+
+            if (match) {
+              map.set(Number(match[1]), Number(pid));
+            }
+          } catch {
+            // fd vanished between readdir and readlink — ignore.
+          }
+        }),
+      );
+    }),
+  );
+
+  return map;
+}
+
+// Walk the parent chain from `pid` until a tracked managed pid is reached, returning its record id.
+async function owningManagedProcess(pid: number, managedPids: Map<number, string>): Promise<string | undefined> {
+  let current: number | undefined = pid;
+
+  for (let depth = 0; current && current > 1 && depth < 32; depth += 1) {
+    const recordId = managedPids.get(current);
+
+    if (recordId) {
+      return recordId;
+    }
+
+    current = await parentPid(current);
+  }
+
+  return undefined;
+}
+
+async function parentPid(pid: number): Promise<number | undefined> {
+  try {
+    const stat = await readFile(`/proc/${pid}/stat`, 'utf8');
+
+    // Fields after the (comm) — which may contain spaces/parens — are: state ppid ...
+    const afterComm = stat.slice(stat.lastIndexOf(')') + 1).trim().split(/\s+/);
+    const ppid = Number(afterComm[1]);
+
+    return Number.isFinite(ppid) ? ppid : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function detectPortsFromOutput(processes: Map<string, ProcessRecord>): DetectedPort[] {
   return [...processes.values()].flatMap((record) => {
     const source = `${record.command}\n${record.output ?? ''}`;
     const matches = source.matchAll(
