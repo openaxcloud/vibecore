@@ -51,7 +51,8 @@ const adminSections: Record<string, AdminSectionConfig> = {
   },
   terminals: {
     title: 'Terminals',
-    description: 'Active terminal sessions associated with running workspaces.',
+    description:
+      'Estimated terminal activity — one entry per running workspace. The runtime exposes no per-session terminal enumeration, so these are derived, not real session ids.',
     endpoint: '/admin/terminals',
     primaryKey: 'terminals',
   },

@@ -11157,10 +11157,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const workspaces = await store.listAdminWorkspaces();
 
+    // The workspace-agent exposes terminal activity only as a Prometheus
+    // `terminal_sessions` gauge, not an enumerable per-session list, so we
+    // cannot surface real terminal ids here. We derive one estimated entry per
+    // running workspace and flag it `estimated: true` rather than presenting
+    // fabricated ids as real terminal sessions.
     return {
+      estimated: true,
       terminals: workspaces
         .filter((workspace) => ['PENDING', 'STARTING', 'RUNNING'].includes(workspace.status))
-        .map((workspace) => ({ id: `terminal:${workspace.id}`, workspaceId: workspace.id, status: workspace.status })),
+        .map((workspace) => ({
+          id: `workspace:${workspace.id}`,
+          workspaceId: workspace.id,
+          status: workspace.status,
+          estimated: true,
+        })),
     };
   });
 
