@@ -213,6 +213,7 @@ let saveDebounceMs = DEFAULT_SAVE_DEBOUNCE_MS;
 
 let storageListenerInstalled = false;
 export const PROJECT_IDE_MEMORY_STORAGE_PREFIX = 'vibecore.projectIdeMemory';
+export const PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS = 5_000;
 
 const SAVE_RETRY_DELAYS_MS = [1_000, 4_000, 12_000];
 const PROJECT_IDE_MEMORY_AUTH_STATUSES = new Set([401, 403]);
@@ -435,6 +436,21 @@ function readResponseHeader(response: Response, name: string): string | null {
   return headers.get(name) ?? null;
 }
 
+async function fetchProjectIdeMemory(endpoint: string): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS);
+
+  try {
+    return await fetch(endpoint, {
+      credentials: 'include',
+      headers: { accept: 'application/json' },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export function subscribeProjectIdeMemory(
   projectId: string,
   listener: (memory: ProjectIdeMemory) => void,
@@ -565,10 +581,7 @@ export async function getProjectIdeMemory(projectId: string, workspaceId?: strin
   const localMemory = readLocalProjectIdeMemory(id);
 
   try {
-    const response = await fetch(endpoint, {
-      credentials: 'include',
-      headers: { accept: 'application/json' },
-    });
+    const response = await fetchProjectIdeMemory(endpoint);
 
     if (PROJECT_IDE_MEMORY_AUTH_STATUSES.has(response.status)) {
       const memory = localMemory ?? {};

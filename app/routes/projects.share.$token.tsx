@@ -42,18 +42,17 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       `/collaboration/share-links/${encodeURIComponent(token)}`,
     );
 
-    // Redeemed (or already a collaborator) — drop the user into the project.
+    /* Redeemed (or already a collaborator) - drop the user into the project. */
     return redirect(legacyProjectIdePath(result.share.projectId));
   } catch (error) {
     if (isApiResponse(error, 404)) {
-      return json<LoaderData>(
-        { error: 'This share link is invalid, expired, or has been revoked.' },
-        { status: 404 },
-      );
+      return json<LoaderData>({ error: 'This share link is invalid, expired, or has been revoked.' }, { status: 404 });
     }
 
-    // `apiRequest` throws a redirect Response (e.g. → /login on 401) for page
-    // navigations; that and any other thrown Response must propagate.
+    /*
+     * `apiRequest` throws a redirect Response (e.g. -> /login on 401) for page
+     * navigations; that and any other thrown Response must propagate.
+     */
     if (error instanceof Response) {
       throw error;
     }

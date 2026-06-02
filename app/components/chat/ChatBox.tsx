@@ -201,7 +201,6 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           {() => (
             <div className={props.isModelSettingsCollapsed ? 'hidden' : ''}>
               <ModelSelector
-                key={`${props.provider?.name ?? 'provider'}:${modelList.length}`}
                 model={props.model}
                 setModel={props.setModel}
                 modelList={modelList}
@@ -490,6 +489,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                   <IconButton
                     title={settingsToggleTitle}
                     tooltip={settingsToggleTitle}
+                    data-testid="composer-tools-menu-settings"
                     className={classNames('bolt-chatbox-tools-menu-item', {
                       'is-active': props.isModelSettingsCollapsed,
                     })}

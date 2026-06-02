@@ -8,6 +8,7 @@ interface BaseIconButtonProps {
   className?: string;
   iconClassName?: string;
   disabledClassName?: string;
+  'data-testid'?: string;
   title?: string;
   tooltip?: string;
   tooltipLocked?: boolean;
@@ -40,6 +41,7 @@ export const IconButton = memo(
         className,
         iconClassName,
         disabledClassName,
+        'data-testid': dataTestId,
         disabled = false,
         title,
         tooltip,
@@ -70,6 +72,7 @@ export const IconButton = memo(
           aria-haspopup={ariaHasPopup}
           data-vc-tooltip={tooltip ?? title}
           data-vc-tooltip-locked={tooltipLocked ? 'true' : undefined}
+          data-testid={dataTestId}
           disabled={disabled}
           onClick={(event) => {
             if (disabled) {

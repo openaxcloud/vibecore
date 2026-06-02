@@ -1194,9 +1194,12 @@ body
 }
 
 .bolt-message-context-popover {
-  width: min(420px, calc(100vw - 32px));
-  max-width: calc(100vw - 32px);
-  max-height: min(70vh, 560px);
+  box-sizing: border-box;
+  width: min(390px, calc(100vw - 32px)) !important;
+  max-width: calc(100vw - 32px) !important;
+  max-height: min(62dvh, 480px) !important;
+  max-inline-size: calc(100vw - 32px) !important;
+  max-block-size: min(62dvh, 480px) !important;
   overflow: hidden;
   border-radius: 10px;
   background: var(--vc-ide-bg-elevated) !important;
@@ -1209,7 +1212,8 @@ body
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: min(70vh, 560px);
+  max-height: min(62dvh, 480px);
+  max-block-size: min(62dvh, 480px);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1310,14 +1314,18 @@ body
 
 @media (max-width: 1024px) {
   body .bolt-message-context-popover {
+    box-sizing: border-box;
     position: fixed !important;
     top: auto !important;
     right: max(12px, env(safe-area-inset-right, 0px)) !important;
     bottom: calc(var(--mobile-nav-height, 72px) + 18px + env(safe-area-inset-bottom, 0px)) !important;
     left: max(12px, env(safe-area-inset-left, 0px)) !important;
     width: auto !important;
-    max-width: none !important;
-    max-height: min(58dvh, 520px) !important;
+    inline-size: auto !important;
+    max-width: calc(100dvw - 24px) !important;
+    max-height: min(52dvh, 460px) !important;
+    max-inline-size: calc(100dvw - 24px) !important;
+    max-block-size: min(52dvh, 460px) !important;
     transform: none !important;
     border-radius: 12px;
     border-color: var(--mobile-nav-border);
@@ -1342,7 +1350,8 @@ body
   }
 
   body .bolt-message-context-panel {
-    max-height: calc(min(58dvh, 520px) - 12px);
+    max-height: calc(min(52dvh, 460px) - 12px);
+    max-block-size: calc(min(52dvh, 460px) - 12px);
     padding: 10px;
   }
 
@@ -1365,7 +1374,8 @@ body
   body .bolt-message-context-popover {
     left: 50% !important;
     right: auto !important;
-    width: min(560px, calc(100vw - 32px)) !important;
+    width: min(500px, calc(100dvw - 32px)) !important;
+    inline-size: min(500px, calc(100dvw - 32px)) !important;
     transform: translateX(-50%) !important;
   }
 }
@@ -3141,12 +3151,21 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
 .vc-sidebar {
   position: sticky;
   top: 0;
-  display: flex;
   height: 100dvh;
   max-height: 100dvh;
   flex-direction: column;
   overflow: visible;
   padding-bottom: 0;
+}
+
+.vc-sidebar--desktop {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .vc-sidebar--desktop {
+    display: flex;
+  }
 }
 
 .vc-sidebar nav {
@@ -3680,24 +3699,29 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-mobile-replit-run,
 .bolt-mobile-replit-tools {
+  position: relative;
   display: inline-flex;
   width: 44px;
   height: 44px;
   flex: 0 0 44px;
   align-items: center;
   justify-content: center;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 12px;
   color: var(--vc-ide-text-primary);
+  overflow: hidden;
   touch-action: manipulation;
   transition:
     background 150ms ease,
+    border-color 150ms ease,
     box-shadow 150ms ease,
+    color 150ms ease,
     transform 150ms ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 .bolt-mobile-replit-run {
+  border-color: color-mix(in srgb, #9d7cff, transparent 50%);
   background: linear-gradient(180deg, #c8b7ff 0%, #9d7cff 100%);
   color: #0c1021;
   box-shadow:
@@ -3708,6 +3732,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-mobile-replit-run--active,
 .bolt-mobile-replit-run[data-run-state='running'],
 .bolt-mobile-replit-run[data-run-state='static'] {
+  border-color: color-mix(in srgb, #fecaca, transparent 35%);
   background: linear-gradient(180deg, #ff6b6b 0%, #dc2626 100%);
   color: #ffffff;
   box-shadow:
@@ -3716,6 +3741,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-replit-run[data-run-state='starting'] {
+  border-color: color-mix(in srgb, #bfdbfe, transparent 35%);
   background: linear-gradient(180deg, #4cc9ff 0%, #2563eb 100%);
   color: #ffffff;
   box-shadow:
@@ -3724,6 +3750,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-replit-run[data-run-state='stopping'] {
+  border-color: color-mix(in srgb, #fecdd3, transparent 35%);
   background: linear-gradient(180deg, #fb7185 0%, #b91c1c 100%);
   color: #ffffff;
   box-shadow:
@@ -3732,6 +3759,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-replit-run[data-run-state='error'] {
+  border-color: color-mix(in srgb, #fef3c7, transparent 28%);
   background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
   color: #111827;
   box-shadow:
@@ -3740,7 +3768,26 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-replit-run span {
+  color: currentColor !important;
   font-size: 20px;
+}
+
+.bolt-mobile-replit-run[aria-busy='true']::after {
+  position: absolute;
+  inset: 5px;
+  border: 2px solid color-mix(in srgb, currentColor, transparent 78%);
+  border-top-color: currentColor;
+  border-radius: inherit;
+  content: '';
+  opacity: 0.65;
+  animation: bolt-mobile-run-spin 900ms linear infinite;
+  pointer-events: none;
+}
+
+@keyframes bolt-mobile-run-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .bolt-mobile-replit-tools {
@@ -4647,6 +4694,10 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-workbench-mobile-run-action:active:not(:disabled) {
   transform: scale(0.97);
+}
+
+.bolt-workbench-mobile-run-action span[class*='i-ph:'] {
+  color: currentColor !important;
 }
 
 .bolt-workbench-mobile-action:disabled {
@@ -6857,7 +6908,9 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-model-selector-trigger {
+  display: block;
   min-height: 42px;
+  text-align: left;
 }
 
 .bolt-model-selector-trigger-label,
@@ -6885,7 +6938,12 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-model-selector-option {
+  display: block;
+  width: 100%;
   min-width: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
 }
 
 .bolt-api-key-manager {
@@ -11491,6 +11549,10 @@ body :where(.lucide, svg[data-lucide]) {
       .bolt-project-package-content,
       .bolt-project-security-grid,
       .bolt-project-integrations-layout,
+      .bolt-project-integrations-grid,
+      .bolt-project-workflow-create,
+      .bolt-project-workflow-form,
+      .bolt-project-workflow-task-form,
       .bolt-project-settings-layout
     ) {
     grid-template-columns: minmax(0, 1fr) !important;
@@ -11504,10 +11566,17 @@ body :where(.lucide, svg[data-lucide]) {
       .bolt-project-package-install-form,
       .bolt-project-package-command-row,
       .bolt-project-security-summary,
+      .bolt-project-workflow-card footer,
+      .bolt-project-workflow-card header,
+      .bolt-project-workflow-task-actions,
+      .bolt-project-workflow-add-task,
       .bolt-project-workflows-head,
       .bolt-project-workflows-toolbar,
+      .bolt-project-integrations-actions,
       .bolt-project-integrations-head,
-      .bolt-project-integrations-section-head
+      .bolt-project-integrations-section-head,
+      .bolt-project-integrations-grid article footer,
+      .bolt-project-integrations-list article
     ) {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) !important;
@@ -11529,6 +11598,12 @@ body :where(.lucide, svg[data-lucide]) {
       .bolt-project-package-command-row button,
       .bolt-project-package-install-form button,
       .bolt-project-security-scan-form button,
+      .bolt-project-workflow-add-task button,
+      .bolt-project-workflow-task-actions button,
+      .bolt-project-workflows-head > button,
+      .bolt-project-integrations-actions button,
+      .bolt-project-integrations-section-head button,
+      .bolt-project-integrations-list article > button,
       .bolt-project-security-link,
       .bolt-project-deploy-actions a
     ) {
@@ -11582,7 +11657,17 @@ body :where(.lucide, svg[data-lucide]) {
       .bolt-project-security-scope span,
       .bolt-project-security-comparison-grid strong,
       .bolt-project-security-comparison-grid span,
-      .bolt-project-security-comparison-grid small
+      .bolt-project-security-comparison-grid small,
+      .bolt-project-workflow-card strong,
+      .bolt-project-workflow-card small,
+      .bolt-project-workflow-task strong,
+      .bolt-project-workflow-task small,
+      .bolt-project-integrations-grid article strong,
+      .bolt-project-integrations-grid article p,
+      .bolt-project-integrations-list article strong,
+      .bolt-project-integrations-list article small,
+      .bolt-project-integration-config strong,
+      .bolt-project-integration-config small
     ) {
     overflow: visible;
     text-overflow: clip;
@@ -13528,7 +13613,7 @@ body :where(.lucide, svg[data-lucide]) {
   border-bottom: 1px solid var(--vc-ide-border-visible);
   background: color-mix(in srgb, var(--vc-ide-bg-panel), transparent 35%);
   color: var(--vc-ide-text-primary);
-  font-size: var(--vc-type-interface-size);
+  font-size: 16px;
   outline: none;
   padding: 0 16px;
 }
@@ -16818,6 +16903,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-responsive-ide-mobile {
     --mobile-nav-height: 72px;
+    --vc-mobile-shell-top: calc(var(--vc-ide-topbar-height, 48px) + env(safe-area-inset-top, 0px));
+    --vc-mobile-shell-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
     --vc-mobile-panel-gutter: clamp(16px, 4vw, 30px);
     --vc-mobile-panel-gutter-tight: clamp(14px, 3.4vw, 24px);
     --vc-mobile-panel-row-gap: clamp(14px, 3.2vw, 22px);
@@ -16826,6 +16913,15 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     height: 100%;
     min-height: 0;
     background: var(--vc-ide-bg-app);
+  }
+
+  .bolt-responsive-ide-mobile :where(input:not([type='checkbox']):not([type='radio']), select, textarea) {
+    font-size: 16px !important;
+  }
+
+  .bolt-responsive-ide-mobile :where(button, input, select, textarea) {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   @media (min-width: 768px) {
@@ -16844,9 +16940,9 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile.fixed {
-    top: var(--vc-ide-topbar-height, 48px) !important;
+    top: var(--vc-mobile-shell-top) !important;
     right: 0 !important;
-    bottom: 0 !important;
+    bottom: var(--vc-mobile-shell-bottom) !important;
     left: 0 !important;
     z-index: 20;
     width: 100vw !important;
@@ -16862,16 +16958,19 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile.fixed .bolt-project-service-panel {
     height: 100%;
-    padding-bottom: calc(var(--mobile-nav-height) + 22px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 0;
   }
 
-  .bolt-responsive-ide-mobile .bolt-workbench-mobile.fixed .bolt-project-service-panel > .min-h-0 {
+  .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile.fixed:not(.bolt-workbench-mobile-service)
+    .bolt-project-service-panel
+    > .min-h-0 {
     padding: 0 !important;
   }
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service.fixed {
     position: fixed !important;
-    top: calc(var(--vc-ide-topbar-height, 48px) + env(safe-area-inset-top, 0px)) !important;
+    top: var(--vc-mobile-shell-top) !important;
     right: 0 !important;
     bottom: 0 !important;
     left: 0 !important;
@@ -16905,7 +17004,10 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     min-width: 0;
   }
 
-  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-service-panel > .min-h-0 {
+  .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile.bolt-workbench-mobile-service.fixed
+    .bolt-project-service-panel
+    > .min-h-0 {
     padding: var(--vc-mobile-panel-gutter-tight) var(--vc-mobile-panel-gutter)
       calc(var(--mobile-nav-height) + var(--vc-mobile-panel-gutter) + env(safe-area-inset-bottom, 0px)) !important;
     scroll-padding: var(--vc-mobile-panel-gutter);
@@ -17022,6 +17124,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-responsive-ide-mobile .bolt-project-agent-panel {
     --chat-max-width: min(100%, calc(100vw - 20px));
+    height: 100%;
+    max-height: 100%;
+    padding-bottom: 0;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-panel > [data-stick-to-bottom] {
+    min-height: 0;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-panel .max-w-chat {
@@ -17094,8 +17203,11 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-composer {
-    width: min(100%, calc(100vw - 20px));
-    max-width: calc(100vw - 20px);
+    width: min(100%, calc(100vw - 20px)) !important;
+    max-width: calc(100vw - 20px) !important;
+    inline-size: min(100%, calc(100vw - 20px)) !important;
+    max-inline-size: calc(100vw - 20px) !important;
+    align-self: center;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-suggestions {
@@ -17321,6 +17433,117 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     min-height: 34px;
   }
 
+  @media (max-height: 620px) {
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-project-webview-toolbar {
+      min-height: 40px;
+      padding-block: 4px;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-project-webview-frame {
+      padding: 6px;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-overlay,
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-splash {
+      align-items: stretch;
+      padding: 6px;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-card {
+      align-self: stretch;
+      width: 100%;
+      min-height: 0;
+      gap: 8px;
+      padding: 10px;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-spinner {
+      display: none;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-copy p {
+      display: none;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-steps {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 4px;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-steps li {
+      gap: 3px;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-steps strong {
+      font-size: 9px;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-card pre {
+      max-height: clamp(58px, 18dvh, 110px);
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-card button {
+      position: sticky;
+      z-index: 1;
+      bottom: 0;
+      min-height: 30px;
+      box-shadow: 0 -8px 18px color-mix(in srgb, var(--vc-ide-bg-card) 88%, transparent);
+    }
+  }
+
+  @media (max-width: 700px) and (max-height: 420px) {
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-project-webview-toolbar {
+      min-height: 36px;
+      padding-block: 2px;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-project-webview-frame {
+      padding: 4px;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-overlay,
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-splash {
+      padding: 4px;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-card {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 4px;
+      overflow: hidden;
+      padding: 4px 6px;
+      text-align: left;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-copy {
+      justify-items: start;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-copy > span,
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-steps,
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-card pre {
+      display: none;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-copy h3 {
+      font-size: 12px;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-progress {
+      grid-column: 1 / -1;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-loading-card button {
+      position: static;
+      grid-column: 2;
+      grid-row: 1;
+      min-height: 24px;
+      align-self: center;
+      box-shadow: none;
+      padding-inline: 8px;
+    }
+  }
+
   .bolt-responsive-ide-mobile
     .bolt-workbench-mobile-service
     :where(
@@ -17403,8 +17626,22 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
       .bolt-project-collaboration-role-guide,
       .bolt-project-database-tool,
       .bolt-project-security-grid,
+      .bolt-project-security-settings,
       .bolt-project-integrations-tool,
+      .bolt-project-integrations-layout,
+      .bolt-project-integrations-grid,
+      .bolt-project-integrations-form,
+      .bolt-project-integrations-connected-list,
       .bolt-project-settings-layout,
+      .bolt-project-settings-grid,
+      .bolt-project-settings-provider-grid,
+      .bolt-project-settings-keybindings,
+      .bolt-project-workflows-tool,
+      .bolt-project-workflows-section,
+      .bolt-project-workflow-create,
+      .bolt-project-workflow-task,
+      .bolt-project-workflow-form,
+      .bolt-project-workflow-task-form,
       .bolt-project-git-tool
     ) {
     grid-template-columns: 1fr !important;
@@ -17425,7 +17662,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
       .bolt-project-managed-panel,
       .bolt-project-packages-panel,
       .bolt-project-security-tool,
-      .bolt-project-settings-hub
+      .bolt-project-settings-hub,
+      .bolt-project-workflows-tool
     ) {
     gap: var(--vc-mobile-panel-row-gap);
   }
@@ -17441,13 +17679,18 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
       .bolt-project-domain-add-card,
       .bolt-project-domain-card,
       .bolt-project-dns-record,
+      .bolt-project-integration-config,
+      .bolt-project-integrations-grid article,
+      .bolt-project-integrations-list article,
+      .bolt-project-integrations-streams,
       .bolt-project-managed-panel,
       .bolt-project-package-list a,
       .bolt-project-package-sidebar article,
       .bolt-project-package-stat-grid article,
       .bolt-project-settings-card,
       .bolt-project-settings-sidebar,
-      .bolt-project-vulnerability-card
+      .bolt-project-vulnerability-card,
+      .bolt-project-workflow-card
     ) {
     border-radius: var(--vc-mobile-card-radius);
   }
@@ -17461,18 +17704,103 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
       .bolt-project-domain-card-header,
       .bolt-project-domains-hero,
       .bolt-project-extensions-hero,
+      .bolt-project-integrations-actions,
       .bolt-project-integrations-head,
+      .bolt-project-integrations-section-head,
+      .bolt-project-integrations-form,
       .bolt-project-package-action-header,
       .bolt-project-package-command-row,
       .bolt-project-package-install-form,
       .bolt-project-package-summary-header,
       .bolt-project-packages-hero,
-      .bolt-project-security-summary
+      .bolt-project-security-summary,
+      .bolt-project-workflow-add-task,
+      .bolt-project-workflow-card footer,
+      .bolt-project-workflow-card header,
+      .bolt-project-workflow-task-actions,
+      .bolt-project-workflows-head,
+      .bolt-project-workflows-toolbar
     ) {
     display: grid !important;
     grid-template-columns: 1fr !important;
     align-items: stretch !important;
     justify-content: stretch !important;
+  }
+
+  .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    :where(
+      .bolt-project-integrations-actions,
+      .bolt-project-integrations-tabs,
+      .bolt-project-workflow-add-task,
+      .bolt-project-workflow-task-actions
+    ) {
+    width: 100%;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-section-heading {
+    display: grid;
+    gap: 3px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-extensions-summary {
+    width: 100%;
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: start;
+    align-items: center;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-extension-categories {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-extension-categories::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-extension-categories button {
+    min-width: max-content;
+    min-height: 40px;
+    flex: 0 0 auto;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-extension-catalog {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    grid-auto-columns: minmax(0, 1fr) !important;
+    grid-auto-flow: row !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    justify-items: stretch;
+    overflow-x: hidden;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-extension-card {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-extension-card-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-extension-card-footer em {
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-extension-card-footer button {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
   }
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-tool-tabs {
@@ -17524,6 +17852,16 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
       .bolt-project-package-install-form button,
       .bolt-project-package-command-row button,
       .bolt-project-security-scan-form button,
+      .bolt-project-security-settings button,
+      .bolt-project-settings-card button,
+      .bolt-project-workflow-add-task button,
+      .bolt-project-workflow-task-actions button,
+      .bolt-project-workflow-task button,
+      .bolt-project-workflows-head > button,
+      .bolt-project-integrations-actions button,
+      .bolt-project-integrations-form button,
+      .bolt-project-integrations-section-head button,
+      .bolt-project-integrations-list article > button,
       .bolt-project-deploy-actions a
     ) {
     min-height: 42px;
@@ -17537,7 +17875,15 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
       .bolt-project-managed-form button,
       .bolt-project-package-install-form button,
       .bolt-project-deploy-actions a,
+      .bolt-project-workflow-add-task button,
+      .bolt-project-workflow-task-actions button,
+      .bolt-project-workflows-head > button,
+      .bolt-project-integrations-actions button,
+      .bolt-project-integrations-section-head button,
+      .bolt-project-integrations-list article > button,
       .bolt-project-security-scan-form button,
+      .bolt-project-security-settings button,
+      .bolt-project-settings-card button,
       .bolt-project-security-link
     ) {
     width: 100%;
@@ -17579,7 +17925,31 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
       .bolt-project-collaboration-row span,
       .bolt-project-domain-status-grid strong,
       .bolt-project-dns-record code,
-      .bolt-project-dns-record span
+      .bolt-project-dns-record span,
+      .bolt-project-workflow-card strong,
+      .bolt-project-workflow-card small,
+      .bolt-project-workflow-task strong,
+      .bolt-project-workflow-task small,
+      .bolt-project-workflows-head p,
+      .bolt-project-integrations-grid article strong,
+      .bolt-project-integrations-grid article p,
+      .bolt-project-integrations-list article strong,
+      .bolt-project-integrations-list article small,
+      .bolt-project-integration-config strong,
+      .bolt-project-integration-config small,
+      .bolt-project-integrations-sidebar button span:nth-child(2),
+      .bolt-project-security-settings label,
+      .bolt-project-security-settings span,
+      .bolt-project-settings-card strong,
+      .bolt-project-settings-card small,
+      .bolt-project-settings-card span,
+      .bolt-project-settings-card p,
+      .bolt-project-settings-card code,
+      .bolt-project-settings-card label,
+      .bolt-project-settings-card a,
+      .bolt-project-settings-list strong,
+      .bolt-project-settings-list small,
+      .bolt-project-settings-list span
     ) {
     overflow: visible;
     text-overflow: clip;
@@ -17595,7 +17965,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
       .bolt-project-collaboration-row,
       .bolt-project-secret-row,
       .bolt-project-env-row,
-      .bolt-project-activity-event-main
+      .bolt-project-activity-event-main,
+      .bolt-project-integrations-list article
     ) {
     grid-template-columns: minmax(0, 1fr) !important;
     align-items: stretch;
@@ -17607,14 +17978,26 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-env-row form,
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-secret-row form,
-  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-collaboration-row form {
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-collaboration-row form,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-security-settings,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-settings-card form,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-workflow-add-task form,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-workflow-task-actions form,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-workflow-task form,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-integrations-form,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-integrations-list article form {
     display: grid;
     width: 100%;
   }
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-env-row button,
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-secret-row button,
-  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-collaboration-row button {
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-collaboration-row button,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-workflow-add-task button,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-workflow-task-actions button,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-workflow-task button,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-integrations-form button,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-integrations-list article button {
     width: 100%;
   }
 
@@ -17703,21 +18086,47 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     gap: 12px;
   }
 
+  .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    :where(
+      .bolt-project-settings-card,
+      .bolt-project-settings-grid,
+      .bolt-project-settings-list,
+      .bolt-project-settings-profile,
+      .bolt-project-settings-provider-grid,
+      .bolt-project-settings-keybindings,
+      .bolt-project-settings-keybindings section
+    ) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-settings-card {
+    padding: clamp(14px, 3.5vw, 18px);
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-settings-card :where(label, a, button) {
+    max-width: 100%;
+  }
+
   .bolt-responsive-ide-mobile .bolt-project-settings-active-heading {
     display: none;
   }
 
   .bolt-workbench-mobile > div.fixed {
-    top: var(--vc-ide-topbar-height, 48px) !important;
+    top: var(--vc-mobile-shell-top, var(--vc-ide-topbar-height, 48px)) !important;
     right: 0 !important;
-    bottom: 0 !important;
+    bottom: var(
+      --vc-mobile-shell-bottom,
+      calc(var(--mobile-nav-height, 72px) + env(safe-area-inset-bottom, 0px))
+    ) !important;
     left: 0 !important;
     z-index: 20;
     width: 100vw !important;
   }
 
   .bolt-workbench-mobile > div.fixed > div {
-    padding: 0 0 calc(var(--mobile-nav-height) + 22px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 0 !important;
   }
 
   .bolt-workbench-mobile > div.fixed > div > div {
@@ -17923,7 +18332,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer {
-    padding-bottom: calc(var(--mobile-nav-height) + 10px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--vc-mobile-shell-bottom) + 8px) !important;
+    padding-bottom: 8px;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-chatbox textarea {

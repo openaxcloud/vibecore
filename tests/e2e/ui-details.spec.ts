@@ -13,6 +13,132 @@ async function readCompiledIdeStyles() {
   return compiledIdeStyles;
 }
 
+async function mountResponsiveAppShellDocument(page: Page) {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setContent(`
+    <html>
+      <head>
+        <style>
+          ${stylesheet}
+
+          :root {
+            color-scheme: dark;
+            --bolt-elements-background-depth-1: #0a0f1c;
+            --bolt-elements-background-depth-2: #101827;
+            --bolt-elements-background-depth-3: #182337;
+            --bolt-elements-borderColor: #2b3245;
+            --bolt-elements-textPrimary: #f5f9fc;
+            --bolt-elements-textSecondary: #c2c8cc;
+            --bolt-elements-textTertiary: #8b949e;
+            --vc-ide-accent-action: #0099ff;
+            --vc-ui-shadow-lg: 0 18px 48px rgb(0 4 20 / 0.55);
+            --vc-ui-tooltip-bg: #101827;
+            --vc-ui-tooltip-border: #2b3245;
+            --vc-ui-tooltip-text-size: 12px;
+          }
+
+          body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bolt-elements-background-depth-1);
+            color: var(--bolt-elements-textPrimary);
+            font-family:
+              Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          }
+
+          .vc-app-shell-grid {
+            display: grid;
+            min-height: 100vh;
+          }
+
+          .vc-shell-fixture-content {
+            min-width: 0;
+            padding: 24px;
+          }
+
+          .vc-shell-fixture-card {
+            min-height: 260px;
+            border: 1px solid var(--bolt-elements-borderColor);
+            border-radius: 8px;
+            background: var(--bolt-elements-background-depth-2);
+          }
+
+          @media (min-width: 1024px) {
+            .vc-app-shell-grid {
+              grid-template-columns: 240px minmax(0, 1fr);
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <main>
+          <div class="vc-app-shell-grid" data-testid="responsive-shell">
+            <aside
+              class="vc-sidebar vc-sidebar--desktop relative overflow-visible border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2"
+              data-testid="desktop-sidebar"
+              role="navigation"
+              aria-label="Main"
+            >
+              <nav aria-label="Application navigation">
+                <a class="vc-sidebar-cta" href="/projects/new">+</a>
+                ${['Search', 'Dashboard', 'Projects', 'Templates', 'Usage', 'Billing', 'Team', 'Support']
+                  .map(
+                    (label) => `
+                      <a class="vc-sidebar-nav-item" href="#${label.toLowerCase()}">
+                        <span class="vc-sidebar-nav-icon" aria-hidden="true"></span>
+                        <span class="vc-sidebar-fade-label">${label}</span>
+                      </a>
+                    `,
+                  )
+                  .join('')}
+              </nav>
+            </aside>
+            <div class="vc-sidebar-drawer-root" data-testid="mobile-drawer" aria-hidden="true">
+              <aside class="vc-sidebar-drawer-panel" role="navigation" aria-label="Mobile main"></aside>
+            </div>
+            <section class="vc-shell-fixture-content" data-testid="app-content">
+              <div class="vc-shell-fixture-card"></div>
+            </section>
+          </div>
+        </main>
+      </body>
+    </html>
+  `);
+}
+
+async function readResponsiveAppShellMetrics(page: Page) {
+  return page.evaluate(() => {
+    const sidebar = document.querySelector<HTMLElement>('[data-testid="desktop-sidebar"]');
+    const drawer = document.querySelector<HTMLElement>('[data-testid="mobile-drawer"]');
+    const content = document.querySelector<HTMLElement>('[data-testid="app-content"]');
+
+    if (!sidebar || !drawer || !content) {
+      throw new Error('Missing responsive app shell fixture nodes');
+    }
+
+    const sidebarRect = sidebar.getBoundingClientRect();
+    const contentRect = content.getBoundingClientRect();
+    const sidebarStyle = window.getComputedStyle(sidebar);
+    const drawerStyle = window.getComputedStyle(drawer);
+
+    return {
+      contentLeft: contentRect.left,
+      contentRight: contentRect.right,
+      contentWidth: contentRect.width,
+      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      drawerPointerEvents: drawerStyle.pointerEvents,
+      drawerVisibility: drawerStyle.visibility,
+      sidebarDisplay: sidebarStyle.display,
+      sidebarHeight: sidebarRect.height,
+      sidebarLeft: sidebarRect.left,
+      sidebarTop: sidebarRect.top,
+      sidebarWidth: sidebarRect.width,
+      viewportWidth: window.innerWidth,
+    };
+  });
+}
+
 async function mountAgentMessageContextDocument(page: Page) {
   const stylesheet = await readFile('app/styles/index.scss', 'utf8');
   const start = stylesheet.indexOf('.bolt-message-context-trigger');
@@ -412,7 +538,10 @@ async function mountFloatingSurfacesDocument(page: Page) {
             <div class="bolt-project-overflow-popover floating-surface" data-testid="floating-overflow" style="position: fixed; top: 360px; right: 8px; width: 360px; padding: 10px; border: 1px solid var(--vc-ide-border-visible); border-radius: 12px;">
               <div class="bolt-project-overflow-section bolt-project-overflow-section--grid">
                 ${['Help & support', 'Collaborators', 'Account', 'Sign out']
-                  .map((item) => `<button class="bolt-project-overflow-item" type="button"><span class="floating-token">${item}</span></button>`)
+                  .map(
+                    (item) =>
+                      `<button class="bolt-project-overflow-item" type="button"><span class="floating-token">${item}</span></button>`,
+                  )
                   .join('')}
               </div>
             </div>
@@ -478,16 +607,376 @@ function expectFloatingSurfacesConstrained(
     }
 
     if (
-      [
-        'floating-branches',
-        'floating-chatbox-tools',
-        'floating-statusbar',
-        'floating-notification',
-      ].includes(surface.id)
+      ['floating-branches', 'floating-chatbox-tools', 'floating-statusbar', 'floating-notification'].includes(
+        surface.id,
+      )
     ) {
       expect(surface.overflowY, `${label} ${surface.id} vertical overflow mode`).not.toBe('visible');
     }
   }
+}
+
+async function mountMobilePreviewShellDocument(page: Page) {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setContent(`
+    <html>
+      <head>
+        <style>
+          ${stylesheet}
+
+          :root {
+            color-scheme: dark;
+            --bolt-elements-background-depth-1: #0a0f1c;
+            --bolt-elements-borderColor: #2b3245;
+            --mobile-nav-bg: rgb(14 21 37 / 0.94);
+            --mobile-nav-border: rgb(43 50 69 / 0.9);
+            --mobile-nav-border-top: rgb(122 133 153 / 0.42);
+            --mobile-nav-height: 72px;
+            --mobile-nav-shadow: 0 20px 60px rgb(0 4 20 / 0.55);
+            --vc-font-code: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            --vc-ide-accent-action: #0099ff;
+            --vc-ide-accent-success: #3fb950;
+            --vc-ide-bg-app: #0a0f1c;
+            --vc-ide-bg-card: #1a2030;
+            --vc-ide-bg-hover: #2b3245;
+            --vc-ide-bg-panel: #0e1525;
+            --vc-ide-border-subtle: #1a2030;
+            --vc-ide-border-visible: #2b3245;
+            --vc-ide-text-muted: #6e7681;
+            --vc-ide-text-primary: #f5f9fc;
+            --vc-ide-text-secondary: #c2c8cc;
+            --vc-ui-shadow-xl: 0 24px 64px rgb(0 4 20 / 0.7);
+          }
+
+          * {
+            box-sizing: border-box;
+          }
+
+          body {
+            margin: 0;
+            width: 100vw;
+            min-height: 100dvh;
+            overflow: hidden;
+            background: var(--vc-ide-bg-app);
+            color: var(--vc-ide-text-primary);
+            font-family:
+              Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          }
+
+          .absolute {
+            position: absolute;
+          }
+
+          .fixed {
+            position: fixed;
+          }
+
+          .flex {
+            display: flex;
+          }
+
+          .flex-1 {
+            flex: 1 1 0%;
+          }
+
+          .flex-col {
+            flex-direction: column;
+          }
+
+          .h-full {
+            height: 100%;
+          }
+
+          .inset-0 {
+            inset: 0;
+          }
+
+          .items-center {
+            align-items: center;
+          }
+
+          .min-h-0 {
+            min-height: 0;
+          }
+
+          .overflow-hidden {
+            overflow: hidden;
+          }
+
+          .relative {
+            position: relative;
+          }
+
+          .w-full {
+            width: 100%;
+          }
+        </style>
+      </head>
+      <body>
+        <main class="bolt-responsive-ide-mobile" data-mobile-panel="preview" data-testid="mobile-preview-shell" style="height: 100dvh; --vc-ide-topbar-height: 48px;">
+          <section class="bolt-workbench-mobile" data-testid="mobile-workbench">
+            <div class="fixed top-[calc(var(--header-height)+3rem+env(safe-area-inset-top,0px))] bottom-[calc(4rem+env(safe-area-inset-bottom,0px))]" data-testid="mobile-workbench-fixed">
+              <div class="absolute inset-0 px-2 lg:px-4" data-testid="mobile-workbench-inset">
+                <div class="h-full flex flex-col bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor shadow-sm rounded-lg overflow-hidden">
+                  <div class="flex items-center" data-testid="mobile-workbench-toolbar" style="min-height: 48px;">Preview</div>
+                  <div class="relative flex-1 overflow-hidden">
+                    <div class="bolt-project-webview-tool w-full h-full flex flex-col relative" data-testid="mobile-webview-tool">
+                      <div class="bolt-project-webview-toolbar" data-testid="mobile-webview-toolbar">
+                        <div class="flex items-center gap-1">
+                          <button type="button">Back</button>
+                          <button type="button">Forward</button>
+                          <button type="button">Refresh</button>
+                        </div>
+                        <div class="bolt-preview-addressbar flex items-center gap-1">
+                          <input aria-label="Preview URL" value="/" readonly />
+                          <button type="button" class="bolt-preview-toolbar-button"><span>Copy</span></button>
+                        </div>
+                        <div class="flex items-center gap-1">
+                          <select aria-label="Preview device"><option>Desktop</option></select>
+                          <button type="button" class="bolt-preview-toolbar-button"><span>DevTools</span></button>
+                          <button type="button" class="bolt-preview-toolbar-button"><span>Open</span></button>
+                        </div>
+                      </div>
+                      <div class="bolt-project-webview-frame flex-1 flex" data-preview-device="desktop" data-testid="mobile-webview-frame">
+                        <div class="bolt-project-webview-viewport" data-testid="mobile-webview-viewport" style="position: relative; width: 100%; height: 100%;">
+                          <div class="bolt-preview-loading-overlay" data-testid="mobile-preview-loading-overlay">
+                            <div class="bolt-preview-loading-card" data-testid="mobile-preview-loading-card">
+                              <span class="bolt-preview-loading-spinner" aria-hidden></span>
+                              <div class="bolt-preview-loading-copy">
+                                <span>Webview startup</span>
+                                <h3>Building dependencies</h3>
+                                <p>Starting project workspace...</p>
+                              </div>
+                              <div class="bolt-preview-loading-progress"><span style="width: 28%;"></span></div>
+                              <ol class="bolt-preview-loading-steps">
+                                <li data-state="active"><span>1</span><strong>Building dependencies</strong></li>
+                                <li data-state="pending"><span>2</span><strong>Building</strong></li>
+                                <li data-state="pending"><span>3</span><strong>Starting dev server</strong></li>
+                                <li data-state="pending"><span>4</span><strong>Ready</strong></li>
+                              </ol>
+                              <pre data-testid="mobile-preview-loading-log">Dependency sync skipped before preview: The object can not be cloned.
+Preparing preview with npm install
+The object can not be cloned.</pre>
+                              <button type="button" data-testid="mobile-preview-view-logs">View logs</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <nav class="bolt-mobile-replit-nav" aria-label="IDE panels" data-testid="mobile-preview-nav">
+            <div class="bolt-mobile-replit-nav-bg" aria-hidden></div>
+            <div class="bolt-mobile-replit-nav-inner">
+              <button type="button" class="bolt-mobile-replit-run" aria-label="Start preview"><span aria-hidden></span></button>
+              <div class="bolt-mobile-replit-tabs">
+                <button type="button" class="bolt-mobile-replit-icon-tab bolt-mobile-replit-panel-tab" aria-label="Switch to Webview tab">
+                  <span aria-hidden></span><span class="bolt-mobile-replit-tab-label">Webview</span>
+                </button>
+                <button type="button" class="bolt-mobile-replit-icon-tab bolt-mobile-replit-panel-tab" aria-label="Switch to AI Agent tab" aria-current="page">
+                  <span aria-hidden></span><span class="bolt-mobile-replit-tab-label">AI Agent</span>
+                </button>
+                <button type="button" class="bolt-mobile-replit-icon-tab bolt-mobile-replit-panel-tab" aria-label="Switch to Deploy tab">
+                  <span aria-hidden></span><span class="bolt-mobile-replit-tab-label">Deploy</span>
+                </button>
+              </div>
+              <button type="button" class="bolt-mobile-replit-tools" aria-label="More options"><span aria-hidden></span></button>
+            </div>
+          </nav>
+        </main>
+      </body>
+    </html>
+  `);
+}
+
+async function mountMobileAgentComposerDocument(page: Page) {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setContent(`
+    <html>
+      <head>
+        <style>
+          ${stylesheet}
+
+          :root {
+            color-scheme: dark;
+            --mobile-nav-bg: rgb(14 21 37 / 0.94);
+            --mobile-nav-border: rgb(43 50 69 / 0.9);
+            --mobile-nav-border-top: rgb(122 133 153 / 0.42);
+            --mobile-nav-height: 72px;
+            --mobile-nav-shadow: 0 20px 60px rgb(0 4 20 / 0.55);
+            --vc-ide-bg-app: #0a0f1c;
+            --vc-ide-bg-card: #1a2030;
+            --vc-ide-bg-hover: #2b3245;
+            --vc-ide-bg-panel: #0e1525;
+            --vc-ide-border-visible: #2b3245;
+            --vc-ide-text-muted: #6e7681;
+            --vc-ide-text-primary: #f5f9fc;
+            --vc-ide-text-secondary: #c2c8cc;
+          }
+
+          * {
+            box-sizing: border-box;
+          }
+
+          body {
+            margin: 0;
+            min-height: 100dvh;
+            overflow: hidden;
+            background: var(--vc-ide-bg-app);
+            color: var(--vc-ide-text-primary);
+            font-family:
+              Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          }
+
+          .flex {
+            display: flex;
+          }
+
+          .flex-1 {
+            flex: 1 1 0%;
+          }
+
+          .flex-col {
+            flex-direction: column;
+          }
+
+          .h-full {
+            height: 100%;
+          }
+
+          .min-h-0 {
+            min-height: 0;
+          }
+
+          .sticky {
+            position: sticky;
+          }
+        </style>
+      </head>
+      <body>
+        <main class="bolt-responsive-ide-mobile" data-mobile-panel="chat" data-testid="mobile-agent-shell" style="height: 100dvh; --vc-ide-topbar-height: 48px;">
+          <section class="bolt-project-agent-panel flex h-full min-h-0 flex-col" data-testid="mobile-agent-panel">
+            <div class="modern-scrollbar flex-1 min-h-0" data-testid="mobile-agent-scroll">
+              <div style="height: 320px; padding: 16px;">Agent transcript content</div>
+            </div>
+            <div class="bolt-project-agent-composer sticky" data-testid="mobile-agent-composer">
+              <div class="bolt-project-chatbox" style="min-height: 112px; border: 1px solid var(--vc-ide-border-visible);">
+                <textarea aria-label="Prompt" style="width: 100%; min-height: 88px;">Describe what you want the agent to build, fix or refactor...</textarea>
+              </div>
+            </div>
+          </section>
+          <nav class="bolt-mobile-replit-nav" aria-label="IDE panels" data-testid="mobile-agent-nav">
+            <div class="bolt-mobile-replit-nav-bg" aria-hidden></div>
+            <div class="bolt-mobile-replit-nav-inner"></div>
+          </nav>
+        </main>
+      </body>
+    </html>
+  `);
+}
+
+async function readMobilePreviewShellDetails(page: Page) {
+  return page.getByTestId('mobile-preview-shell').evaluate(() => {
+    const rectFor = (selector: string) => {
+      const element = document.querySelector<HTMLElement>(selector);
+
+      if (!element) {
+        throw new Error(`Missing mobile shell element: ${selector}`);
+      }
+
+      const rect = element.getBoundingClientRect();
+
+      return {
+        bottom: rect.bottom,
+        height: rect.height,
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        width: rect.width,
+      };
+    };
+
+    return {
+      card: rectFor('[data-testid="mobile-preview-loading-card"]'),
+      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      fixed: rectFor('[data-testid="mobile-workbench-fixed"]'),
+      frame: rectFor('[data-testid="mobile-webview-frame"]'),
+      labels: Array.from(document.querySelectorAll<HTMLElement>('.bolt-mobile-replit-tab-label')).map((label) => {
+        const rect = label.getBoundingClientRect();
+        const style = window.getComputedStyle(label);
+
+        return {
+          display: style.display,
+          height: rect.height,
+          text: label.textContent ?? '',
+          width: rect.width,
+        };
+      }),
+      nav: rectFor('[data-testid="mobile-preview-nav"]'),
+      viewLogs: rectFor('[data-testid="mobile-preview-view-logs"]'),
+      viewportHeight: window.visualViewport?.height ?? window.innerHeight,
+      viewportWidth: window.visualViewport?.width ?? window.innerWidth,
+    };
+  });
+}
+
+async function readMobileAgentComposerDetails(page: Page) {
+  return page.getByTestId('mobile-agent-shell').evaluate(() => {
+    const composer = document.querySelector<HTMLElement>('[data-testid="mobile-agent-composer"]');
+    const nav = document.querySelector<HTMLElement>('[data-testid="mobile-agent-nav"]');
+
+    if (!composer || !nav) {
+      throw new Error('Missing mobile agent composer fixture');
+    }
+
+    const composerRect = composer.getBoundingClientRect();
+    const composerStyle = window.getComputedStyle(composer);
+    const navRect = nav.getBoundingClientRect();
+
+    return {
+      bottomOffset: composerStyle.bottom,
+      composerBottom: composerRect.bottom,
+      composerWidth: composerRect.width,
+      navHeight: navRect.height,
+      navTop: navRect.top,
+      paddingBottom: composerStyle.paddingBottom,
+      viewportWidth: window.visualViewport?.width ?? window.innerWidth,
+    };
+  });
+}
+
+function expectMobilePreviewShellConstrained(
+  details: Awaited<ReturnType<typeof readMobilePreviewShellDetails>>,
+  label: string,
+) {
+  expect(details.documentOverflowsX, `${label} document horizontal overflow`).toBe(false);
+  expect(details.fixed.top, `${label} workbench top`).toBeGreaterThanOrEqual(47);
+  expect(details.fixed.bottom, `${label} workbench bottom`).toBeLessThanOrEqual(details.nav.top + 1);
+  expect(details.frame.bottom, `${label} webview frame bottom`).toBeLessThanOrEqual(details.nav.top + 1);
+  expect(details.card.bottom, `${label} startup card bottom`).toBeLessThanOrEqual(details.frame.bottom + 1);
+  expect(details.viewLogs.bottom, `${label} view logs button bottom`).toBeLessThanOrEqual(details.frame.bottom + 1);
+
+  for (const navLabel of details.labels) {
+    expect(navLabel.display, `${label} bottom nav label ${navLabel.text}`).toBe('none');
+    expect(navLabel.width, `${label} bottom nav label ${navLabel.text} width`).toBe(0);
+    expect(navLabel.height, `${label} bottom nav label ${navLabel.text} height`).toBe(0);
+  }
+}
+
+function expectMobileAgentComposerConstrained(
+  details: Awaited<ReturnType<typeof readMobileAgentComposerDetails>>,
+  label: string,
+) {
+  expect(Number.parseFloat(details.bottomOffset), `${label} composer bottom offset`).toBeGreaterThanOrEqual(
+    details.navHeight + 6,
+  );
+  expect(Number.parseFloat(details.paddingBottom), `${label} composer padding bottom`).toBeLessThanOrEqual(8);
+  expect(details.composerWidth, `${label} composer width`).toBeLessThanOrEqual(details.viewportWidth - 20 + 1);
 }
 
 async function readAgentMessageContextDetails(page: Page) {
@@ -530,7 +1019,7 @@ function expectAgentMessageContextDetails(
   label: string,
 ) {
   const isCompact = details.viewportWidth <= 1024;
-  const expectedMaxWidth = !isCompact ? 430 : details.viewportWidth < 700 ? details.viewportWidth - 24 : 568;
+  const expectedMaxWidth = !isCompact ? 400 : details.viewportWidth < 700 ? details.viewportWidth - 24 : 508;
 
   expect(details.documentOverflowsX, `${label} document horizontal overflow`).toBe(false);
   expect(details.left, `${label} left edge`).toBeGreaterThanOrEqual(0);
@@ -539,7 +1028,7 @@ function expectAgentMessageContextDetails(
   expect(details.bottom, `${label} bottom edge`).toBeLessThanOrEqual(details.viewportHeight + 1);
   expect(details.width, `${label} popover width`).toBeLessThanOrEqual(expectedMaxWidth);
   expect(details.height, `${label} popover height`).toBeLessThanOrEqual(
-    isCompact ? Math.min(details.viewportHeight * 0.58, 520) + 18 : Math.min(details.viewportHeight * 0.7, 560) + 2,
+    isCompact ? Math.min(details.viewportHeight * 0.52, 460) + 18 : Math.min(details.viewportHeight * 0.62, 480) + 2,
   );
   expect(details.panelOverflowsX, `${label} panel horizontal overflow`).toBe(false);
   expect(details.panelOverflowY, `${label} panel overflow mode`).toBe('auto');
@@ -998,8 +1487,12 @@ test('public platform keeps agent message context popovers constrained', async (
 
   for (const viewport of [
     { label: 'desktop', width: 1280, height: 720 },
+    { label: 'desktop large', width: 1440, height: 900 },
     { label: 'tablet', width: 1024, height: 768 },
+    { label: 'tablet portrait', width: 820, height: 1180 },
     { label: 'mobile', width: 390, height: 844 },
+    { label: 'small mobile', width: 320, height: 568 },
+    { label: 'mobile landscape', width: 568, height: 320 },
   ]) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await injectAgentMessageContextFixture(page);
@@ -1017,6 +1510,55 @@ test('public platform keeps IDE floating menus constrained', async ({ page }) =>
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await mountFloatingSurfacesDocument(page);
     expectFloatingSurfacesConstrained(await readFloatingSurfaceDetails(page), viewport.label);
+  }
+});
+
+test('public platform hides the desktop app sidebar on mobile and tablet', async ({ page }) => {
+  for (const viewport of [
+    { label: 'mobile', width: 390, height: 844 },
+    { label: 'tablet', width: 768, height: 1024 },
+  ]) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await mountResponsiveAppShellDocument(page);
+
+    const metrics = await readResponsiveAppShellMetrics(page);
+
+    expect(metrics.documentOverflowsX, `${viewport.label} horizontal overflow`).toBe(false);
+    expect(metrics.sidebarDisplay, `${viewport.label} desktop sidebar display`).toBe('none');
+    expect(metrics.sidebarWidth, `${viewport.label} desktop sidebar width`).toBe(0);
+    expect(metrics.sidebarHeight, `${viewport.label} desktop sidebar height`).toBe(0);
+    expect(metrics.contentLeft, `${viewport.label} content left edge`).toBe(0);
+    expect(metrics.contentRight, `${viewport.label} content right edge`).toBeLessThanOrEqual(metrics.viewportWidth);
+    expect(metrics.drawerVisibility, `${viewport.label} closed drawer visibility`).toBe('hidden');
+    expect(metrics.drawerPointerEvents, `${viewport.label} closed drawer pointer events`).toBe('none');
+  }
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await mountResponsiveAppShellDocument(page);
+
+  const desktopMetrics = await readResponsiveAppShellMetrics(page);
+
+  expect(desktopMetrics.documentOverflowsX, 'desktop horizontal overflow').toBe(false);
+  expect(desktopMetrics.sidebarDisplay, 'desktop sidebar display').toBe('flex');
+  expect(desktopMetrics.sidebarWidth, 'desktop sidebar width').toBeGreaterThan(0);
+  expect(desktopMetrics.sidebarHeight, 'desktop sidebar height').toBe(720);
+  expect(desktopMetrics.contentLeft, 'desktop content offset').toBeGreaterThanOrEqual(desktopMetrics.sidebarWidth - 1);
+});
+
+test('public platform keeps mobile IDE chrome clear of the bottom navigation', async ({ page }) => {
+  for (const viewport of [
+    { label: 'tablet portrait', width: 820, height: 1180 },
+    { label: 'tablet landscape', width: 1024, height: 768 },
+    { label: 'mobile portrait', width: 390, height: 844 },
+    { label: 'small mobile', width: 320, height: 568 },
+    { label: 'mobile landscape', width: 568, height: 320 },
+  ]) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await mountMobilePreviewShellDocument(page);
+    expectMobilePreviewShellConstrained(await readMobilePreviewShellDetails(page), viewport.label);
+
+    await mountMobileAgentComposerDocument(page);
+    expectMobileAgentComposerConstrained(await readMobileAgentComposerDetails(page), viewport.label);
   }
 });
 

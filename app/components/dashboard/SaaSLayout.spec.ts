@@ -39,13 +39,22 @@ describe('public marketing brand', () => {
     const drawerRule = extractCssRule(stylesSource, '.vc-sidebar-drawer-panel');
 
     expect(layoutSource).toContain('min-h-0 flex-1 overflow-y-auto overflow-x-visible');
+    expect(layoutSource).toContain(
+      'vc-sidebar vc-sidebar--desktop relative overflow-visible border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2',
+    );
+    expect(layoutSource).not.toContain(
+      'vc-sidebar relative hidden overflow-visible border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 lg:block',
+    );
+    expect(layoutSource).not.toContain('vc-sidebar relative hidden overflow-visible');
     expect(layoutSource).toContain("!embedded && 'shrink-0 border-t border-bolt-elements-borderColor");
     expect(layoutSource).not.toContain('absolute inset-x-0 bottom-0');
 
     expect(sidebarRule).toContain('position: sticky');
-    expect(sidebarRule).toContain('display: flex');
+    expect(sidebarRule).not.toContain('display: flex');
     expect(sidebarRule).toContain('height: 100dvh');
     expect(sidebarRule).toContain('max-height: 100dvh');
+    expect(stylesSource).toContain('.vc-sidebar--desktop {\n  display: none;');
+    expect(stylesSource).toContain('@media (min-width: 1024px) {\n  .vc-sidebar--desktop {\n    display: flex;');
 
     expect(drawerRule).toContain('height: 100dvh');
     expect(drawerRule).toContain('max-height: 100dvh');

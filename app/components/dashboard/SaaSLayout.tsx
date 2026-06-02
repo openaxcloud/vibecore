@@ -859,7 +859,7 @@ function DesktopSidebar({ collapsed, toggleSidebar }: { collapsed: boolean; togg
   return (
     <aside
       className={classNames(
-        'vc-sidebar relative hidden overflow-visible border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 lg:block',
+        'vc-sidebar vc-sidebar--desktop relative overflow-visible border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2',
         collapsed && 'vc-sidebar--collapsed',
       )}
       role="navigation"

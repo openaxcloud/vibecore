@@ -29,6 +29,7 @@ import {
 import { IconButton } from '~/components/ui/IconButton';
 import { useChatHistory } from '~/lib/persistence';
 import {
+  type CompactPreviewRunState,
   compactPreviewRunAriaLabel,
   compactPreviewRunIcon,
   compactPreviewRunText,
@@ -446,28 +447,55 @@ export const Workbench = memo(
       workbenchStore.resetCurrentDocument();
     }, []);
 
-    const mobilePreviewRunState = resolveCompactPreviewRunState({
+    const [mobilePreviewRunFeedbackState, setMobilePreviewRunFeedbackState] = useState<CompactPreviewRunState | null>(
+      null,
+    );
+
+    const resolvedMobilePreviewRunState = resolveCompactPreviewRunState({
       previewServerStatus: previewServerState.status,
       runtimeRunning: hasReadyPreview || isWorkspaceReallyRunning(workspaceStatus),
       runtimeStarting: workspaceUiState(workspaceStatus) === 'starting',
     });
 
+    const mobilePreviewRunState = mobilePreviewRunFeedbackState ?? resolvedMobilePreviewRunState;
+
     const isMobilePreviewRunActive = isCompactPreviewRunActive(mobilePreviewRunState);
     const isMobilePreviewStopping = mobilePreviewRunState === 'stopping';
     const isMobilePreviewTransitioning = mobilePreviewRunState === 'starting' || mobilePreviewRunState === 'stopping';
+
+    useEffect(() => {
+      if (!mobilePreviewRunFeedbackState) {
+        return;
+      }
+
+      if (mobilePreviewRunFeedbackState === 'starting' && resolvedMobilePreviewRunState !== 'idle') {
+        setMobilePreviewRunFeedbackState(null);
+      }
+
+      if (
+        mobilePreviewRunFeedbackState === 'stopping' &&
+        (resolvedMobilePreviewRunState === 'stopping' || !isCompactPreviewRunActive(resolvedMobilePreviewRunState))
+      ) {
+        setMobilePreviewRunFeedbackState(null);
+      }
+    }, [mobilePreviewRunFeedbackState, resolvedMobilePreviewRunState]);
 
     const runMobilePreview = useCallback(() => {
       workbenchStore.currentView.set('preview');
 
       if (isMobilePreviewRunActive) {
+        setMobilePreviewRunFeedbackState('stopping');
         void workbenchStore.stopPreviewServer().catch((error) => {
+          setMobilePreviewRunFeedbackState(null);
           toast.error(error instanceof Error ? error.message : 'Failed to stop preview');
         });
 
         return;
       }
 
+      setMobilePreviewRunFeedbackState('starting');
       void workbenchStore.startPreviewServer().catch((error) => {
+        setMobilePreviewRunFeedbackState(null);
         toast.error(error instanceof Error ? error.message : 'Failed to start preview');
       });
     }, [isMobilePreviewRunActive]);

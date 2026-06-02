@@ -5,9 +5,33 @@ import { renderHeadToString } from 'remix-island';
 import { Head } from './root';
 import { themeStore } from '~/lib/stores/theme';
 
+export const SERVER_RENDER_READY_TIMEOUT_MS = 4_000;
+
 export function applyDocumentIsolationHeaders(responseHeaders: Headers) {
   responseHeaders.set('Cross-Origin-Embedder-Policy', 'credentialless');
   responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+}
+
+export async function waitForServerRenderReady(allReady: Promise<unknown>, timeoutMs = SERVER_RENDER_READY_TIMEOUT_MS) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const timeout = new Promise<'timeout'>((resolve) => {
+    timeoutId = setTimeout(() => resolve('timeout'), timeoutMs);
+  });
+
+  const result = await Promise.race([allReady.then(() => 'ready' as const), timeout]);
+
+  if (timeoutId) {
+    clearTimeout(timeoutId);
+  }
+
+  if (result === 'timeout') {
+    allReady.catch((error: unknown) => {
+      console.error('SSR allReady failed after timeout', error);
+    });
+  }
+
+  return result;
 }
 
 export default async function handleRequest(
@@ -32,13 +56,11 @@ export default async function handleRequest(
   });
 
   /*
-   * Block until every Suspense boundary has resolved. Under the Node runtime
-   * the streaming shell finishes before the route content is committed, which
-   * was producing a `<div id="root">` empty of any markup and a black page
-   * on the client. Awaiting allReady trades streaming for a complete SSR
-   * payload, which is the right tradeoff for the landing page and IDE shell.
+   * Prefer the complete SSR payload, but never let one unresolved Suspense
+   * boundary hold the whole document hostage. The client can hydrate the
+   * boot fallback while the route bundle finishes loading.
    */
-  await readable.allReady;
+  await waitForServerRenderReady(readable.allReady);
 
   const body = new ReadableStream({
     start(controller) {

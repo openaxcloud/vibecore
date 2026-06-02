@@ -110,6 +110,7 @@ import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
 import { useSearchParams } from '@remix-run/react';
 import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
 import {
+  type CompactPreviewRunState,
   compactPreviewRunAriaLabel,
   compactPreviewRunIcon,
   isCompactPreviewRunActive,
@@ -136,6 +137,7 @@ const TEXTAREA_MIN_HEIGHT = 76;
 const PROJECT_BOTTOM_TERMINAL_UI_STORAGE_KEY = 'vibecore-project-bottom-terminal-ui-v1';
 const PROJECT_IDE_GUIDED_TOUR_STORAGE_KEY = 'vibecore-project-ide-guided-tour-v1';
 const PROJECT_SECURITY_SCAN_TIMEOUT_MS = 90_000;
+const PROJECT_IDE_STATE_RESTORE_FALLBACK_MS = 6_000;
 const PROJECT_KEYBINDINGS = defaultProjectKeybindings;
 const SHELL_TERMINAL_LABEL = 'Shell (Terminal)';
 type ProjectThemePreference = Theme | 'system';
@@ -2473,6 +2475,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [mobileOverlayStorageKey],
     );
+    const blurActiveMobileControl = useCallback(() => {
+      if (typeof document === 'undefined') {
+        return;
+      }
+
+      const activeElement = document.activeElement;
+
+      if (activeElement instanceof HTMLElement) {
+        activeElement.blur();
+      }
+    }, []);
 
     useEffect(() => {
       setClientHydrated(true);
@@ -2530,31 +2543,34 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     const openMobileToolsSheet = useCallback(() => {
+      blurActiveMobileControl();
       setMobileTabSwitcherOpen(false);
       setMobileMoreMenuOpen(false);
       setMobileToolsQuery('');
       setMobileTabSearchQuery('');
       setMobileToolsSheetOpen(true);
       persistMobileOverlay('tools');
-    }, [persistMobileOverlay]);
+    }, [blurActiveMobileControl, persistMobileOverlay]);
 
     const openMobileTabSwitcher = useCallback(() => {
+      blurActiveMobileControl();
       setMobileToolsSheetOpen(false);
       setMobileMoreMenuOpen(false);
       setMobileToolsQuery('');
       setMobileTabSearchQuery('');
       setMobileTabSwitcherOpen(true);
       persistMobileOverlay('tabs');
-    }, [persistMobileOverlay]);
+    }, [blurActiveMobileControl, persistMobileOverlay]);
 
     const openMobileMoreMenu = useCallback(() => {
+      blurActiveMobileControl();
       setMobileToolsSheetOpen(false);
       setMobileTabSwitcherOpen(false);
       setMobileToolsQuery('');
       setMobileTabSearchQuery('');
       setMobileMoreMenuOpen(true);
       persistMobileOverlay('more');
-    }, [persistMobileOverlay]);
+    }, [blurActiveMobileControl, persistMobileOverlay]);
 
     useEffect(() => {
       if (!useMobileIde || !clientHydrated || !mobileOverlayStorageKey || typeof window === 'undefined') {
@@ -3001,17 +3017,40 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const previewServerStatus = previewServerState.status;
 
-    const mobilePreviewRunState = resolveCompactPreviewRunState({
+    const [mobilePreviewRunFeedbackState, setMobilePreviewRunFeedbackState] = useState<CompactPreviewRunState | null>(
+      null,
+    );
+
+    const resolvedMobilePreviewRunState = resolveCompactPreviewRunState({
       previewServerStatus,
       runtimeRunning: isRuntimeReallyRunning,
       runtimeStarting: runtimeUiState === 'starting',
     });
+
+    const mobilePreviewRunState = mobilePreviewRunFeedbackState ?? resolvedMobilePreviewRunState;
 
     const isMobilePreviewRunActive = isCompactPreviewRunActive(mobilePreviewRunState);
     const isMobilePreviewStopping = mobilePreviewRunState === 'stopping';
     const isMobilePreviewTransitioning = mobilePreviewRunState === 'starting' || mobilePreviewRunState === 'stopping';
     const mobilePreviewRunLabel = compactPreviewRunAriaLabel(mobilePreviewRunState);
     const mobilePreviewRunIcon = compactPreviewRunIcon(mobilePreviewRunState);
+
+    useEffect(() => {
+      if (!mobilePreviewRunFeedbackState) {
+        return;
+      }
+
+      if (mobilePreviewRunFeedbackState === 'starting' && resolvedMobilePreviewRunState !== 'idle') {
+        setMobilePreviewRunFeedbackState(null);
+      }
+
+      if (
+        mobilePreviewRunFeedbackState === 'stopping' &&
+        (resolvedMobilePreviewRunState === 'stopping' || !isCompactPreviewRunActive(resolvedMobilePreviewRunState))
+      ) {
+        setMobilePreviewRunFeedbackState(null);
+      }
+    }, [mobilePreviewRunFeedbackState, resolvedMobilePreviewRunState]);
 
     const runtimeStatusSummary = useMemo(
       () =>
@@ -3084,16 +3123,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setProjectPanelSearchParam('preview');
 
       if (isMobilePreviewRunActive) {
-        void workbenchStore
-          .stopPreviewServer()
-          .catch((error) => toast.error(error instanceof Error ? error.message : 'Failed to stop the preview server'));
+        setMobilePreviewRunFeedbackState('stopping');
+        void workbenchStore.stopPreviewServer().catch((error) => {
+          setMobilePreviewRunFeedbackState(null);
+          toast.error(error instanceof Error ? error.message : 'Failed to stop the preview server');
+        });
 
         return;
       }
 
-      void workbenchStore
-        .startPreviewServer()
-        .catch((error) => toast.error(error instanceof Error ? error.message : 'Failed to start the preview server'));
+      setMobilePreviewRunFeedbackState('starting');
+      void workbenchStore.startPreviewServer().catch((error) => {
+        setMobilePreviewRunFeedbackState(null);
+        toast.error(error instanceof Error ? error.message : 'Failed to start the preview server');
+      });
     }, [isMobilePreviewRunActive, setMobileIdePanel, setProjectPanelSearchParam]);
     const workspaceStatusTitle = useMemo(
       () =>
@@ -3502,6 +3545,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       let cancelled = false;
       restoredProjectId.current = projectId;
 
+      const restoreFallbackTimer = window.setTimeout(() => {
+        if (!cancelled) {
+          setProjectStateReady(true);
+        }
+      }, PROJECT_IDE_STATE_RESTORE_FALLBACK_MS);
+
       getProjectIdeMemory(projectId, currentWorkspaceId)
         .then((memory) => {
           if (cancelled) {
@@ -3586,7 +3635,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           if (
             ui?.mobilePanel &&
-            !useMobileIde &&
+            useMobileIde &&
             !activeProjectPanel &&
             ['chat', 'files', 'editor', 'search', 'locks', 'terminal', 'preview', 'deploy'].includes(ui.mobilePanel)
           ) {
@@ -3634,6 +3683,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           console.error('Failed to restore project IDE state', error);
         })
         .finally(() => {
+          window.clearTimeout(restoreFallbackTimer);
+
           if (!cancelled) {
             setProjectStateReady(true);
           }
@@ -3641,6 +3692,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       return () => {
         cancelled = true;
+        window.clearTimeout(restoreFallbackTimer);
       };
     }, [activeProjectPanel, projectFiles, projectIdeMode, projectId, currentWorkspaceId]);
 
@@ -6841,9 +6893,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         {commandPaletteOpen && (
           <div className="bolt-project-command-palette" role="dialog" aria-modal="true" aria-label="Command palette">
             <input
+              type="text"
               autoFocus
+              autoComplete="off"
+              inputMode="search"
               placeholder="Search tools, files, and commands..."
               aria-label="Search commands"
+              data-testid="project-command-palette-search"
               value={commandPaletteQuery}
               onChange={(event) => {
                 setCommandPaletteQuery(event.currentTarget.value);
@@ -7059,7 +7115,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         onClick={() => activateMobileTool(tab.id)}
                       >
                         {tab.icon === 'agent' ? <MobileReplitAgentIcon /> : <span className={tab.icon} aria-hidden />}
-                        <span className="bolt-mobile-replit-tab-label">{tab.name}</span>
+                        <span className="sr-only bolt-mobile-replit-tab-label">{tab.name}</span>
                         {isActive ? <span className="bolt-mobile-replit-tab-indicator" aria-hidden /> : null}
                       </button>
                     );
@@ -7731,6 +7787,43 @@ function ProjectIdeGuidedTour({
   );
 }
 
+const PROJECT_PANEL_FETCH_MAX_ATTEMPTS = 3;
+const PROJECT_PANEL_FETCH_BASE_RETRY_MS = 650;
+
+function projectPanelFetchMethod(init?: RequestInit) {
+  return (init?.method ?? 'GET').toUpperCase();
+}
+
+function projectPanelFetchRetryDelay(response: Response | undefined, attempt: number) {
+  const retryAfter = response?.headers.get('retry-after');
+  const retryAfterMs = retryAfter ? Number(retryAfter) * 1000 : Number.NaN;
+  const fallbackMs = PROJECT_PANEL_FETCH_BASE_RETRY_MS * 2 ** attempt;
+
+  return Math.min(5000, Math.max(500, Number.isFinite(retryAfterMs) ? retryAfterMs : fallbackMs));
+}
+
+function shouldRetryProjectPanelFetch(response: Response, method: string, attempt: number) {
+  if (attempt >= PROJECT_PANEL_FETCH_MAX_ATTEMPTS - 1) {
+    return false;
+  }
+
+  if (response.status === 429) {
+    return true;
+  }
+
+  const isIdempotentRead = method === 'GET' || method === 'HEAD';
+
+  return isIdempotentRead && (response.status === 408 || response.status >= 500);
+}
+
+function shouldRetryProjectPanelNetworkError(method: string, attempt: number) {
+  if (attempt >= PROJECT_PANEL_FETCH_MAX_ATTEMPTS - 1) {
+    return false;
+  }
+
+  return method === 'GET' || method === 'HEAD';
+}
+
 function ProjectIdeServicePanel({
   projectId,
   panel,
@@ -7783,16 +7876,31 @@ function ProjectIdeServicePanel({
     panel === 'workflows';
 
   const fetchPanel = useCallback(async (input: RequestInfo | URL, init?: RequestInit) => {
-    let response = await fetch(input, init);
+    const method = projectPanelFetchMethod(init);
 
-    if (response.status === 429) {
-      const retryAfter = response.headers.get('retry-after');
-      const retryMs = Math.min(5000, Math.max(750, Number(retryAfter ?? 1) * 1000 || 1200));
-      await new Promise((resolve) => window.setTimeout(resolve, retryMs));
-      response = await fetch(input, init);
+    let lastNetworkError: unknown;
+
+    for (let attempt = 0; attempt < PROJECT_PANEL_FETCH_MAX_ATTEMPTS; attempt += 1) {
+      try {
+        const response = await fetch(input, init);
+
+        if (!shouldRetryProjectPanelFetch(response, method, attempt)) {
+          return response;
+        }
+
+        await new Promise((resolve) => window.setTimeout(resolve, projectPanelFetchRetryDelay(response, attempt)));
+      } catch (error) {
+        lastNetworkError = error;
+
+        if (!shouldRetryProjectPanelNetworkError(method, attempt)) {
+          throw error;
+        }
+
+        await new Promise((resolve) => window.setTimeout(resolve, projectPanelFetchRetryDelay(undefined, attempt)));
+      }
     }
 
-    return response;
+    throw lastNetworkError instanceof Error ? lastNetworkError : new Error('Unable to reach IDE panel API');
   }, []);
 
   const loadPanel = useCallback(
@@ -12744,13 +12852,17 @@ function ProjectMonitoringActivitySparkline({
 }
 
 function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
-  // Extensions are MCP marketplace servers: install/enable/remove all map to
-  // real McpInstall records, which also surface in the MCP settings tab.
+  /*
+   * Extensions are MCP marketplace servers: install/enable/remove all map to
+   * real McpInstall records, which also surface in the MCP settings tab.
+   */
   const installs: any[] = Array.isArray(data.mcpInstalls) ? data.mcpInstalls : [];
   const catalog: any[] = Array.isArray(data.mcpCatalog) ? data.mcpCatalog : [];
 
-  // Legacy VIBECORE_EXTENSIONS env entries (pre-MCP) shown read-only so older
-  // projects don't appear to lose state.
+  /*
+   * Legacy VIBECORE_EXTENSIONS env entries (pre-MCP) shown read-only so older
+   * projects don't appear to lose state.
+   */
   const legacyInstalled = String(
     (data.envVars ?? []).find((item: any) => item.key === 'VIBECORE_EXTENSIONS')?.value ?? '',
   )
@@ -12767,6 +12879,7 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
 
   const visibleCatalog = catalog.filter((entry) => {
     const matchesDomain = domain === 'All' || entry.domain === domain;
+
     const matchesQuery =
       !normalizedQuery ||
       [entry.name, entry.author, entry.domain, entry.description, ...(entry.tags ?? [])]
@@ -12880,7 +12993,10 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
                   <div>
                     <strong>{entry.name}</strong>
                     <span>
-                      {entry.author} · {String(entry.domain ?? '').replace(/_/g, ' ').toLowerCase()}
+                      {entry.author} ·{' '}
+                      {String(entry.domain ?? '')
+                        .replace(/_/g, ' ')
+                        .toLowerCase()}
                       {entry.verified ? ' · verified' : ''}
                     </span>
                   </div>

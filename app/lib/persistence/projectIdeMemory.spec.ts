@@ -5,6 +5,7 @@ import {
   getProjectIdeMemory,
   getProjectIdeMemoryStorageKey,
   getProjectIdeMemoryVersionForTest,
+  PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS,
   saveProjectIdeMemory,
   setProjectIdeMemorySaveDebounceMsForTest,
 } from './projectIdeMemory';
@@ -148,6 +149,51 @@ describe('project IDE memory persistence', () => {
     expect(restored.ui?.paneTree?.type).toBe('leaf');
     expect(restored.ui?.agentWidth).toBe(640);
     expect(restored.ui?.terminalBottomHeight).toBe(444);
+  });
+
+  it('times out hung API reads and restores local IDE state', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const projectId = 'project-hung-read-fallback';
+      globalThis.localStorage.setItem(
+        getProjectIdeMemoryStorageKey(projectId),
+        JSON.stringify({
+          updatedAt: '2026-04-29T10:00:00.000Z',
+          ui: {
+            activeWorkspacePanel: 'settings',
+            agentWidth: 555,
+          },
+        }),
+      );
+
+      const fetchMock = vi.fn((_url: unknown, init?: RequestInit) => {
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+        });
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const restoredPromise = getProjectIdeMemory(projectId);
+
+      await vi.advanceTimersByTimeAsync(PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS);
+
+      await expect(restoredPromise).resolves.toMatchObject({
+        ui: {
+          activeWorkspacePanel: 'settings',
+          agentWidth: 555,
+        },
+      });
+      expect(fetchMock).toHaveBeenCalledWith(
+        `/api/projects/${projectId}/ide-state`,
+        expect.objectContaining({
+          credentials: 'include',
+          signal: expect.any(AbortSignal),
+        }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('uses an empty local state for unauthenticated IDE memory reads instead of throwing', async () => {

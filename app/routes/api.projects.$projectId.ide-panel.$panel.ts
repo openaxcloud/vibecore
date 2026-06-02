@@ -581,10 +581,12 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (['database', 'object-storage', 'monitoring', 'extensions'].includes(panel)) {
     if (panel === 'extensions') {
       try {
-        // Extensions ARE the MCP marketplace: installing one persists a real
-        // McpInstall (user-scoped) that also surfaces in the MCP settings tab.
-        // Legacy VIBECORE_EXTENSIONS env state is still surfaced read-only so
-        // pre-MCP installs remain visible.
+        /*
+         * Extensions ARE the MCP marketplace: installing one persists a real
+         * McpInstall (user-scoped) that also surfaces in the MCP settings tab.
+         * Legacy VIBECORE_EXTENSIONS env state is still surfaced read-only so
+         * pre-MCP installs remain visible.
+         */
         const [envVars, catalog, installs] = await Promise.all([
           apiRequest(request, `/projects/${projectId}/env-vars`).catch(() => ({ envVars: [] })),
           apiRequest(request, `/mcp/catalog?limit=100`).catch(() => ({ items: [] })),
@@ -1150,8 +1152,11 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     } else {
       await apiRequest(request, `/projects/${projectId}/collaborators`, {
         method: 'POST',
-        // Accept either an email (what users actually know) or a raw user id;
-        // the API resolves the email to a user server-side.
+
+        /*
+         * Accept either an email (what users actually know) or a raw user id;
+         * the API resolves the email to a user server-side.
+         */
         body: JSON.stringify({ userId: body.userId, email: body.email, roleKey: body.roleKey ?? 'member' }),
       });
     }
@@ -1421,8 +1426,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       body: JSON.stringify({ key: PACKAGES_STATE_ENV_KEY, value: JSON.stringify(normalizePackagesState(state)) }),
     });
   } else if (panel === 'extensions') {
-    // Extensions are MCP marketplace servers. Each action maps to a real
-    // McpInstall mutation so the result is visible here AND in the MCP tab.
+    /*
+     * Extensions are MCP marketplace servers. Each action maps to a real
+     * McpInstall mutation so the result is visible here AND in the MCP tab.
+     */
     const action = body.extensionAction ?? 'install';
 
     if (action === 'install') {
@@ -1433,11 +1440,12 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       }
 
       // Derive a valid alias from the slug (alphanumeric/dash/underscore, ≤64).
-      const alias = (body.alias ?? slug)
-        .toLowerCase()
-        .replace(/[^a-z0-9-_]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .slice(0, 64) || 'mcp';
+      const alias =
+        (body.alias ?? slug)
+          .toLowerCase()
+          .replace(/[^a-z0-9-_]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 64) || 'mcp';
 
       await apiRequest(request, `/mcp/installs`, {
         method: 'POST',

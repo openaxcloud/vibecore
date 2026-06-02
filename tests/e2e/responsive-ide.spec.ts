@@ -26,6 +26,24 @@ function apiBaseUrl() {
   return process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 }
 
+async function getWithNetworkRetry(page: import('@playwright/test').Page, url: string) {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      return await page.request.get(url);
+    } catch (error) {
+      lastError = error;
+
+      if (attempt < 4) {
+        await page.waitForTimeout(250 * attempt);
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(`Failed to GET ${url}`);
+}
+
 async function expectCompactIdeSurfaceFitsViewport(page: import('@playwright/test').Page, label: string) {
   const root = page.locator('.bolt-responsive-ide-mobile').first();
 
@@ -432,10 +450,7 @@ async function openAgentModelSettings(page: import('@playwright/test').Page) {
   await expect(toolsMenu).toBeVisible({ timeout: 10_000 });
   await expectFloatingSurfaceFitsViewport(toolsMenu, 'composer tools menu', { minInteractiveHeight: 44 });
 
-  const settingsButton = toolsMenu
-    .locator('button')
-    .filter({ hasText: /settings/i })
-    .last();
+  const settingsButton = toolsMenu.getByTestId('composer-tools-menu-settings');
   await expect(settingsButton).toBeVisible({ timeout: 10_000 });
   await settingsButton.click();
   await expect(selector).toBeVisible({ timeout: 10_000 });
@@ -1149,7 +1164,7 @@ test.describe('responsive IDE shell', () => {
       await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe(theme);
       await expect.poll(() => page.evaluate(() => window.localStorage.getItem('bolt_theme'))).toBe(theme);
 
-      const persistedSettings = await page.request.get(`/api/projects/${projectId}/ide-panel/settings`);
+      const persistedSettings = await getWithNetworkRetry(page, `/api/projects/${projectId}/ide-panel/settings`);
 
       expect(persistedSettings.ok(), await persistedSettings.text()).toBeTruthy();
 

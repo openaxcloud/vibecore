@@ -120,14 +120,14 @@ export const ModelSelector = ({
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
   const [focusedModelIndex, setFocusedModelIndex] = useState(-1);
   const modelSearchInputRef = useRef<HTMLInputElement>(null);
-  const modelOptionsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const modelOptionsRef = useRef<(HTMLButtonElement | null)[]>([]);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
   const [providerSearchQuery, setProviderSearchQuery] = useState('');
   const [debouncedProviderSearchQuery, setDebouncedProviderSearchQuery] = useState('');
   const [isProviderDropdownOpen, setIsProviderDropdownOpen] = useState(false);
   const [focusedProviderIndex, setFocusedProviderIndex] = useState(-1);
   const providerSearchInputRef = useRef<HTMLInputElement>(null);
-  const providerOptionsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const providerOptionsRef = useRef<(HTMLButtonElement | null)[]>([]);
   const providerDropdownRef = useRef<HTMLDivElement>(null);
   const [showFreeModelsOnly, setShowFreeModelsOnly] = useState(false);
 
@@ -453,7 +453,8 @@ export const ModelSelector = ({
         onKeyDown={handleProviderKeyDown}
         ref={providerDropdownRef}
       >
-        <div
+        <button
+          type="button"
           className={classNames(
             'bolt-model-selector-trigger w-full rounded-lg border border-bolt-elements-borderColor p-2',
             'bg-bolt-elements-prompt-background text-bolt-elements-textPrimary',
@@ -462,17 +463,10 @@ export const ModelSelector = ({
             isProviderDropdownOpen ? 'ring-2 ring-bolt-elements-focus' : undefined,
           )}
           onClick={() => setIsProviderDropdownOpen(!isProviderDropdownOpen)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setIsProviderDropdownOpen(!isProviderDropdownOpen);
-            }
-          }}
           role="combobox"
           aria-expanded={isProviderDropdownOpen}
           aria-controls="provider-listbox"
           aria-haspopup="listbox"
-          tabIndex={0}
           data-testid="agent-provider-combobox"
         >
           <div className="flex min-w-0 items-center justify-between gap-2">
@@ -505,7 +499,7 @@ export const ModelSelector = ({
               )}
             />
           </div>
-        </div>
+        </button>
 
         {isProviderDropdownOpen && (
           <div
@@ -514,6 +508,7 @@ export const ModelSelector = ({
             id="provider-listbox"
             data-testid="agent-provider-listbox"
             data-selector="provider"
+            onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="bolt-model-selector-popover-head px-2 pb-2">
               <div className="bolt-model-selector-search relative">
@@ -585,11 +580,15 @@ export const ModelSelector = ({
                 </div>
               ) : (
                 filteredProviders.map((providerOption, index) => (
-                  <div
-                    ref={(el) => (providerOptionsRef.current[index] = el)}
+                  <button
+                    type="button"
+                    ref={(el) => {
+                      providerOptionsRef.current[index] = el;
+                    }}
                     key={providerOption.name}
                     role="option"
                     aria-selected={provider?.name === providerOption.name}
+                    aria-label={`Select ${providerOption.name} provider`}
                     data-testid="agent-provider-option"
                     className={classNames(
                       'bolt-model-selector-option cursor-pointer px-3 py-2 text-sm',
@@ -640,7 +639,7 @@ export const ModelSelector = ({
                         }}
                       />
                     </div>
-                  </div>
+                  </button>
                 ))
               )}
             </div>
@@ -655,7 +654,8 @@ export const ModelSelector = ({
         onKeyDown={handleModelKeyDown}
         ref={modelDropdownRef}
       >
-        <div
+        <button
+          type="button"
           className={classNames(
             'bolt-model-selector-trigger w-full rounded-lg border border-bolt-elements-borderColor p-2',
             'bg-bolt-elements-prompt-background text-bolt-elements-textPrimary',
@@ -664,17 +664,10 @@ export const ModelSelector = ({
             isModelDropdownOpen ? 'ring-2 ring-bolt-elements-focus' : undefined,
           )}
           onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setIsModelDropdownOpen(!isModelDropdownOpen);
-            }
-          }}
           role="combobox"
           aria-expanded={isModelDropdownOpen}
           aria-controls="model-listbox"
           aria-haspopup="listbox"
-          tabIndex={0}
           data-testid="agent-model-combobox"
         >
           <div className="flex min-w-0 items-center justify-between gap-2">
@@ -688,7 +681,7 @@ export const ModelSelector = ({
               )}
             />
           </div>
-        </div>
+        </button>
 
         {isModelDropdownOpen && (
           <div
@@ -697,6 +690,7 @@ export const ModelSelector = ({
             id="model-listbox"
             data-testid="agent-model-listbox"
             data-selector="model"
+            onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="bolt-model-selector-popover-head space-y-2 px-2 pb-2">
               {/* Free Models Filter Toggle - Only show for OpenRouter */}
@@ -828,11 +822,15 @@ export const ModelSelector = ({
                 </div>
               ) : (
                 filteredModels.map((modelOption, index) => (
-                  <div
-                    ref={(el) => (modelOptionsRef.current[index] = el)}
+                  <button
+                    type="button"
+                    ref={(el) => {
+                      modelOptionsRef.current[index] = el;
+                    }}
                     key={modelOption.name}
                     role="option"
                     aria-selected={model === modelOption.name}
+                    aria-label={`Select ${modelOption.label} model`}
                     data-testid="agent-model-option"
                     className={classNames(
                       'bolt-model-selector-option cursor-pointer px-3 py-2 text-sm',
@@ -882,7 +880,7 @@ export const ModelSelector = ({
                         )}
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))
               )}
             </div>

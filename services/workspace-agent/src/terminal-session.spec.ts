@@ -52,6 +52,7 @@ describe('TerminalSessionManager (fallback shell)', () => {
 
   async function newManager() {
     const cwd = await mkdtemp(join(tmpdir(), 'vc-term-'));
+
     // Pin the shell to bash. The assertions use `echo x=[$VAR]`, whose `[...]`
     // is glob syntax; under zsh (the default $SHELL on dev macs) an unmatched
     // glob with `nomatch` aborts the command and exits the shell, making these
@@ -78,14 +79,21 @@ describe('TerminalSessionManager (fallback shell)', () => {
     const manager = await newManager();
     const a = await manager.getOrCreate('a');
     const b = await manager.getOrCreate('b');
+    const keepA = a.attach(() => undefined);
+    const keepB = b.attach(() => undefined);
 
-    a.write('export ONLY_IN_A=yes\n');
-    a.write('echo a=[$ONLY_IN_A]\n');
-    b.write('echo b=[$ONLY_IN_A]\n');
+    try {
+      a.write('export ONLY_IN_A=yes\n');
+      a.write('echo a=[$ONLY_IN_A]\n');
+      b.write('echo b=[$ONLY_IN_A]\n');
 
-    expect(await collectUntil(a, (buffer) => buffer.includes('a=[yes]'))).toContain('a=[yes]');
-    expect(await collectUntil(b, (buffer) => buffer.includes('b=[]'))).toContain('b=[]');
-    expect(manager.size).toBe(2);
+      expect(await collectUntil(a, (buffer) => buffer.includes('a=[yes]'))).toContain('a=[yes]');
+      expect(await collectUntil(b, (buffer) => buffer.includes('b=[]'))).toContain('b=[]');
+      expect(manager.size).toBe(2);
+    } finally {
+      keepA();
+      keepB();
+    }
   });
 
   it('reattaches to a running session and replays scrollback', async () => {
