@@ -39,9 +39,11 @@ const WithTooltip = forwardRef(
               side={position}
               className={`
                 z-[2000]
+                max-w-[calc(100vw-24px)]
                 px-2.5
                 py-1.5
-                max-h-[300px]
+                max-h-[min(300px,calc(100dvh-24px))]
+                overflow-hidden
                 select-none
                 rounded-md
                 border
@@ -57,8 +59,10 @@ const WithTooltip = forwardRef(
                 ${className}
               `}
               sideOffset={sideOffset}
+              collisionPadding={12}
+              hideWhenDetached
               style={{
-                maxWidth,
+                maxWidth: `min(${maxWidth}px, calc(100vw - 24px))`,
                 background: 'var(--vc-ui-tooltip-bg)',
                 borderColor: 'var(--vc-ui-tooltip-border)',
                 color: 'var(--vc-ide-text-primary)',
@@ -108,6 +112,8 @@ export function Tooltip({
           <TooltipPrimitive.Content
             side={side}
             align={align}
+            collisionPadding={12}
+            hideWhenDetached
             className={classNames(
               'z-[2000] max-w-[min(280px,calc(100vw-24px))] overflow-hidden rounded-md border px-3 py-1.5 text-xs leading-tight shadow-lg animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
               className,

@@ -28,6 +28,13 @@ import {
 } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { IconButton } from '~/components/ui/IconButton';
 import { useChatHistory } from '~/lib/persistence';
+import {
+  compactPreviewRunAriaLabel,
+  compactPreviewRunIcon,
+  compactPreviewRunText,
+  isCompactPreviewRunActive,
+  resolveCompactPreviewRunState,
+} from '~/lib/runtime/preview-run-state';
 import { streamingState } from '~/lib/stores/streaming';
 import type { FileHistory } from '~/types/actions';
 import { classNames } from '~/utils/classNames';
@@ -144,7 +151,7 @@ const FileModifiedDropdown = memo(
                 leaveFrom="transform scale-100 opacity-100"
                 leaveTo="transform scale-95 opacity-0"
               >
-                <Popover.Panel className="absolute right-0 z-20 mt-2 w-80 origin-top-right rounded-xl bg-bolt-elements-background-depth-2 shadow-xl border border-bolt-elements-borderColor">
+                <Popover.Panel className="absolute right-0 z-20 mt-2 w-[min(20rem,calc(100vw-24px))] max-h-[min(70dvh,420px)] origin-top-right overflow-hidden rounded-xl bg-bolt-elements-background-depth-2 shadow-xl border border-bolt-elements-borderColor">
                   <div className="p-2">
                     <div className="relative mx-2 mb-2">
                       <input
@@ -159,7 +166,7 @@ const FileModifiedDropdown = memo(
                       </div>
                     </div>
 
-                    <div className="max-h-60 overflow-y-auto">
+                    <div className="max-h-[min(60dvh,15rem)] overflow-y-auto">
                       {filteredFiles.length > 0 ? (
                         filteredFiles.map(([filePath, history]) => {
                           const extension = filePath.split('.').pop() || '';
@@ -331,6 +338,11 @@ export const Workbench = memo(
     // const modifiedFiles = Array.from(useStore(workbenchStore.unsavedFiles).keys());
 
     const hasPreview = useStore(computed(workbenchStore.previews, (previews) => previews.length > 0));
+
+    const hasReadyPreview = useStore(
+      computed(workbenchStore.previews, (previews) => previews.some((preview) => preview.ready)),
+    );
+
     const showWorkbench = useStore(workbenchStore.showWorkbench);
     const selectedFile = useStore(workbenchStore.selectedFile);
     const currentDocument = useStore(workbenchStore.currentDocument);
@@ -432,12 +444,30 @@ export const Workbench = memo(
       workbenchStore.resetCurrentDocument();
     }, []);
 
+    const mobilePreviewRunState = resolveCompactPreviewRunState({
+      previewServerStatus: previewServerState.status,
+      runtimeRunning: hasReadyPreview,
+    });
+
+    const isMobilePreviewRunActive = isCompactPreviewRunActive(mobilePreviewRunState);
+    const isMobilePreviewStopping = mobilePreviewRunState === 'stopping';
+    const isMobilePreviewTransitioning = mobilePreviewRunState === 'starting' || mobilePreviewRunState === 'stopping';
+
     const runMobilePreview = useCallback(() => {
       workbenchStore.currentView.set('preview');
+
+      if (isMobilePreviewRunActive) {
+        void workbenchStore.stopPreviewServer().catch((error) => {
+          toast.error(error instanceof Error ? error.message : 'Failed to stop preview');
+        });
+
+        return;
+      }
+
       void workbenchStore.startPreviewServer().catch((error) => {
         toast.error(error instanceof Error ? error.message : 'Failed to start preview');
       });
-    }, []);
+    }, [isMobilePreviewRunActive]);
 
     const handleSelectFile = useCallback((filePath: string) => {
       workbenchStore.setSelectedFile(filePath);
@@ -543,7 +573,7 @@ export const Workbench = memo(
                             </DropdownMenu.Trigger>
                             <DropdownMenu.Content
                               className={classNames(
-                                'min-w-[240px] z-[250]',
+                                'min-w-[min(240px,calc(100vw-24px))] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-24px))] overflow-auto z-[250]',
                                 'bg-bolt-elements-bg-depth-2',
                                 'rounded-lg shadow-lg',
                                 'border border-gray-200/50 dark:border-gray-800/50',
@@ -552,6 +582,8 @@ export const Workbench = memo(
                               )}
                               sideOffset={5}
                               align="end"
+                              collisionPadding={12}
+                              hideWhenDetached
                             >
                               <DropdownMenu.Item
                                 className={classNames(
@@ -594,20 +626,23 @@ export const Workbench = memo(
                     {useMobileWorkbench && mobilePanel === 'editor' && (
                       <div className="ml-auto flex items-center gap-2">
                         <button
-                          className="bolt-workbench-mobile-action"
+                          className={classNames('bolt-workbench-mobile-action bolt-workbench-mobile-run-action', {
+                            'is-running': isMobilePreviewRunActive,
+                            'is-error': mobilePreviewRunState === 'error',
+                          })}
                           type="button"
+                          aria-busy={isMobilePreviewTransitioning || undefined}
+                          aria-label={compactPreviewRunAriaLabel(mobilePreviewRunState)}
+                          aria-pressed={isMobilePreviewRunActive}
+                          data-preview-state={previewServerState.status}
+                          data-run-state={mobilePreviewRunState}
+                          data-testid="mobile-editor-run-toggle"
                           onClick={runMobilePreview}
-                          disabled={previewServerState.status === 'starting'}
+                          disabled={isMobilePreviewStopping}
+                          title={compactPreviewRunAriaLabel(mobilePreviewRunState)}
                         >
-                          <span
-                            className={
-                              previewServerState.status === 'starting'
-                                ? 'i-ph:arrows-clockwise animate-spin'
-                                : 'i-ph:play'
-                            }
-                            aria-hidden
-                          />
-                          <span>{previewServerState.status === 'starting' ? 'Running' : 'Run'}</span>
+                          <span className={compactPreviewRunIcon(mobilePreviewRunState)} aria-hidden />
+                          <span>{compactPreviewRunText(mobilePreviewRunState)}</span>
                         </button>
                         <button
                           className="bolt-workbench-mobile-action"

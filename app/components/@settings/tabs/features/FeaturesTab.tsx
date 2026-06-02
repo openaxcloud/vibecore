@@ -274,7 +274,7 @@ export default function FeaturesTab() {
               toast.success('Prompt template updated');
             }}
             className={classNames(
-              'p-2 rounded-lg text-sm min-w-[200px]',
+              'p-2 rounded-lg text-sm min-w-[min(200px,100%)] max-w-full',
               'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
               'text-bolt-elements-textPrimary',
               'focus:outline-none focus:ring-2 focus:ring-purple-500/30',

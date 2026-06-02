@@ -138,7 +138,7 @@ export const DeployButton = ({
           </DropdownMenu.Trigger>
           <DropdownMenu.Content
             className={classNames(
-              'z-[250]',
+              'z-[250] min-w-[min(240px,calc(100vw-24px))] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-24px))] overflow-auto',
               'bg-bolt-elements-background-depth-2',
               'rounded-lg shadow-lg',
               'border border-bolt-elements-borderColor',
@@ -147,6 +147,8 @@ export const DeployButton = ({
             )}
             sideOffset={5}
             align="end"
+            collisionPadding={12}
+            hideWhenDetached
           >
             <DropdownMenu.Item
               className={classNames(

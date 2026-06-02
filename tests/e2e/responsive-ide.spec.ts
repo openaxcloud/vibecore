@@ -9,8 +9,77 @@ function mobileBottomNavigation(page: import('@playwright/test').Page) {
   return page.getByTestId('mobile-bottom-navigation');
 }
 
+async function readButtonVisualState(locator: import('@playwright/test').Locator) {
+  return locator.evaluate((button) => {
+    const style = window.getComputedStyle(button);
+
+    return {
+      backgroundColor: style.backgroundColor,
+      backgroundImage: style.backgroundImage,
+      color: style.color,
+      runState: button.getAttribute('data-run-state'),
+    };
+  });
+}
+
 function apiBaseUrl() {
   return process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+}
+
+async function expectCompactIdeSurfaceFitsViewport(page: import('@playwright/test').Page, label: string) {
+  const root = page.locator('.bolt-responsive-ide-mobile').first();
+
+  if (!(await root.isVisible().catch(() => false))) {
+    return;
+  }
+
+  const metrics = await root.evaluate(() => {
+    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+    const selectors = [
+      '[data-testid="ide-service-panel"]',
+      '[data-testid="ide-agent-panel"]',
+      '[data-testid="responsive-code-editor"]',
+      '.bolt-workbench-mobile',
+      '.bolt-workbench-mobile-service',
+      '.bolt-project-agent-shell',
+      '.bolt-project-agent-composer',
+      '.bolt-project-ide-panel-header',
+      '.bolt-mobile-replit-nav',
+    ];
+
+    const surfaces = selectors.flatMap((selector) =>
+      Array.from(document.querySelectorAll<HTMLElement>(selector)).map((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+
+        return {
+          selector,
+          display: style.display,
+          visibility: style.visibility,
+          height: rect.height,
+          left: rect.left,
+          right: rect.right,
+          width: rect.width,
+        };
+      }),
+    );
+
+    return {
+      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      surfaces: surfaces.filter(
+        (surface) =>
+          surface.display !== 'none' && surface.visibility !== 'hidden' && surface.width > 0 && surface.height > 0,
+      ),
+      viewportWidth,
+    };
+  });
+
+  expect(metrics.documentOverflowsX, `${label} document horizontal overflow`).toBe(false);
+
+  for (const surface of metrics.surfaces) {
+    expect(surface.left, `${label} ${surface.selector} left edge`).toBeGreaterThanOrEqual(-1);
+    expect(surface.right, `${label} ${surface.selector} right edge`).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+  }
 }
 
 async function expectBottomTabLabelsHidden(page: import('@playwright/test').Page) {
@@ -53,6 +122,7 @@ async function expectMobileServicePanel(page: import('@playwright/test').Page, p
   await expect(page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).first()).toBeVisible({
     timeout: 45_000,
   });
+  await expectCompactIdeSurfaceFitsViewport(page, `${panel} service panel`);
 }
 
 async function expectMobileCodeMirrorEditor(page: import('@playwright/test').Page) {
@@ -1098,6 +1168,7 @@ test.describe('responsive IDE shell', () => {
     await page.goto(`/projects/${projectId}/ide?panel=agent`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 45_000 });
     await expect(page.getByTestId('ide-agent-composer')).toBeVisible({ timeout: 45_000 });
+    await expectCompactIdeSurfaceFitsViewport(page, 'agent panel');
 
     await expectAgentModelSelectorFitsViewport(page);
 
@@ -1221,11 +1292,16 @@ createServer((_request, response) => {
     await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 45_000 });
     await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 45_000 });
     await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'editor');
+    await expectCompactIdeSurfaceFitsViewport(page, 'editor run panel');
 
     const runButton = mobileBottomNavigation(page).getByTestId('button-play-stop');
     await expect(runButton).toBeVisible({ timeout: 15_000 });
 
     const initialRunLabel = await runButton.getAttribute('aria-label');
+    const initialRunVisualState = await readButtonVisualState(runButton);
+    const editorRunButton = page.getByTestId('mobile-editor-run-toggle');
+    await expect(editorRunButton).toBeVisible({ timeout: 15_000 });
+    const initialEditorRunVisualState = await readButtonVisualState(editorRunButton);
 
     if (initialRunLabel === 'Run project') {
       await runButton.click();
@@ -1240,9 +1316,16 @@ createServer((_request, response) => {
     }
 
     await expect(runButton).toHaveAttribute('aria-label', 'Stop running', { timeout: 45_000 });
-    await expect(runButton).toHaveAttribute('data-preview-state', /^(starting|running|static)$/);
+    await expect(runButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(runButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
     await expect(runButton).toHaveClass(/bolt-mobile-replit-run--active/);
     await expect(runButton.locator('span').first()).toHaveClass(/i-ph:square-fill/);
+
+    const activeRunVisualState = await readButtonVisualState(runButton);
+
+    if (initialRunLabel === 'Run project') {
+      expect(activeRunVisualState).not.toEqual(initialRunVisualState);
+    }
 
     await expect(
       page.getByTestId('preview-splash-sequence').or(page.getByTestId('preview-loading-overlay')).first(),
@@ -1252,6 +1335,22 @@ createServer((_request, response) => {
       timeout: 45_000,
     });
     await expect(runButton).toHaveAttribute('aria-label', 'Stop running', { timeout: 15_000 });
+    await expect(runButton).toHaveAttribute('data-run-state', /^(running|static)$/);
+
+    await mobileBottomNavigation(page).getByTestId('tab-editor').click();
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'editor', {
+      timeout: 15_000,
+    });
+    await expect(editorRunButton).toHaveAttribute('aria-label', 'Stop running', { timeout: 15_000 });
+    await expect(editorRunButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(editorRunButton).toHaveAttribute('data-run-state', /^(running|static)$/);
+    await expect(editorRunButton.locator('span').first()).toHaveClass(/i-ph:square-fill/);
+
+    const activeEditorRunVisualState = await readButtonVisualState(editorRunButton);
+
+    if (initialRunLabel === 'Run project') {
+      expect(activeEditorRunVisualState).not.toEqual(initialEditorRunVisualState);
+    }
   });
 
   test('mobile and tablet keep a visible webview startup state until the iframe renders', async ({

@@ -576,7 +576,7 @@ function IdeProjectTopBar({
             <div
               role="dialog"
               aria-label="More IDE actions"
-              className="bolt-project-overflow-popover absolute right-0 top-full z-50 mt-1 w-[360px] max-w-[calc(100vw-1rem)] rounded-xl border p-2"
+              className="bolt-project-overflow-popover absolute right-0 top-full z-50 mt-1 w-[min(360px,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] rounded-xl border p-2"
             >
               <div className="bolt-project-overflow-section">
                 <div className="bolt-project-notification-header">
@@ -671,7 +671,7 @@ function IdeProjectTopBar({
             <div
               role="menu"
               aria-label="Collaborate"
-              className="bolt-project-collaborate-popover absolute right-0 top-full z-50 mt-1 w-[220px] rounded-xl border p-2"
+              className="bolt-project-collaborate-popover absolute right-0 top-full z-50 mt-1 w-[min(220px,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] rounded-xl border p-2"
             >
               <Link
                 to={withProjectSearch(projectUrl, { panel: 'collaborators' })}

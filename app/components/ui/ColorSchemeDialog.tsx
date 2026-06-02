@@ -304,6 +304,7 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
             align="end"
             sideOffset={8}
             collisionPadding={12}
+            hideWhenDetached
             className="z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[min(620px,calc(100dvh-64px))] overflow-hidden rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-2 shadow-xl"
           >
             <div className="flex max-h-[min(620px,calc(100dvh-64px))] min-h-0 flex-col gap-4 px-4 py-4 overflow-hidden">

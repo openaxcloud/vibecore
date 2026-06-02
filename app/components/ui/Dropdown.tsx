@@ -41,7 +41,7 @@ export const Dropdown = ({ trigger, children, align = 'end', sideOffset = 5 }: D
       <DropdownMenu.Portal>
         <DropdownMenu.Content
           className={classNames(
-            'min-w-[220px] rounded-lg p-2',
+            'min-w-[min(220px,calc(100vw-24px))] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-24px))] overflow-auto rounded-lg p-2',
             'bg-bolt-elements-background-depth-2',
             'border border-bolt-elements-borderColor',
             'shadow-lg',
@@ -54,6 +54,8 @@ export const Dropdown = ({ trigger, children, align = 'end', sideOffset = 5 }: D
           )}
           sideOffset={sideOffset}
           align={align}
+          collisionPadding={12}
+          hideWhenDetached
         >
           {children}
         </DropdownMenu.Content>

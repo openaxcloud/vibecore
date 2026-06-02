@@ -196,10 +196,12 @@ const NotificationsTab = () => {
 
           <DropdownMenu.Portal>
             <DropdownMenu.Content
-              className="min-w-[200px] bg-white dark:bg-[#0A0A0A] rounded-lg shadow-lg py-1 z-[250] animate-in fade-in-0 zoom-in-95 border border-[#E5E5E5] dark:border-[#1A1A1A]"
+              className="min-w-[min(200px,calc(100vw-24px))] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-24px))] overflow-auto bg-white dark:bg-[#0A0A0A] rounded-lg shadow-lg py-1 z-[250] animate-in fade-in-0 zoom-in-95 border border-[#E5E5E5] dark:border-[#1A1A1A]"
               sideOffset={5}
               align="start"
               side="bottom"
+              collisionPadding={12}
+              hideWhenDetached
             >
               {filterOptions.map((option) => (
                 <DropdownMenu.Item

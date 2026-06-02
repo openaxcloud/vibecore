@@ -110,6 +110,12 @@ import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
 import { useSearchParams } from '@remix-run/react';
 import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
 import {
+  compactPreviewRunAriaLabel,
+  compactPreviewRunIcon,
+  isCompactPreviewRunActive,
+  resolveCompactPreviewRunState,
+} from '~/lib/runtime/preview-run-state';
+import {
   formatProjectPanelRefreshCadence,
   formatProjectPanelUpdatedLabel,
   projectPanelRefreshIntervalMs,
@@ -2987,22 +2993,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const previewServerStatus = previewServerState.status;
 
-    const isMobilePreviewRunActive =
-      isRuntimeReallyRunning ||
-      previewServerStatus === 'starting' ||
-      previewServerStatus === 'running' ||
-      previewServerStatus === 'static' ||
-      previewServerStatus === 'stopping';
+    const mobilePreviewRunState = resolveCompactPreviewRunState({
+      previewServerStatus,
+      runtimeRunning: isRuntimeReallyRunning,
+    });
 
-    const isMobilePreviewStopping = previewServerStatus === 'stopping';
-
-    const mobilePreviewRunLabel = isMobilePreviewRunActive
-      ? isMobilePreviewStopping
-        ? 'Stopping project'
-        : 'Stop running'
-      : 'Run project';
-
-    const mobilePreviewRunIcon = isMobilePreviewRunActive ? 'i-ph:square-fill' : 'i-ph:play-fill';
+    const isMobilePreviewRunActive = isCompactPreviewRunActive(mobilePreviewRunState);
+    const isMobilePreviewStopping = mobilePreviewRunState === 'stopping';
+    const isMobilePreviewTransitioning = mobilePreviewRunState === 'starting' || mobilePreviewRunState === 'stopping';
+    const mobilePreviewRunLabel = compactPreviewRunAriaLabel(mobilePreviewRunState);
+    const mobilePreviewRunIcon = compactPreviewRunIcon(mobilePreviewRunState);
 
     const runtimeUiState = workspaceUiState(projectRuntimeState.workspace, {
       ports: runtimePorts,
@@ -7011,12 +7011,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 className={classNames('bolt-mobile-replit-run', {
                   'bolt-mobile-replit-run--active': isMobilePreviewRunActive,
                 })}
-                aria-busy={isMobilePreviewStopping || undefined}
+                aria-busy={isMobilePreviewTransitioning || undefined}
                 aria-label={mobilePreviewRunLabel}
+                aria-pressed={isMobilePreviewRunActive}
+                data-run-state={mobilePreviewRunState}
                 data-testid="button-play-stop"
                 data-preview-state={previewServerStatus}
+                data-runtime-running={isRuntimeReallyRunning || undefined}
                 disabled={isMobilePreviewStopping}
                 onClick={handleMobilePreviewRunToggle}
+                title={mobilePreviewRunLabel}
               >
                 <span className={mobilePreviewRunIcon} aria-hidden />
               </button>
@@ -7531,6 +7535,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           side="top"
                           align="end"
                           sideOffset={6}
+                          collisionPadding={12}
+                          hideWhenDetached
                           className="bolt-project-statusbar-overflow-content"
                         >
                           <div className="bolt-project-statusbar-overflow-list" role="list">
@@ -15618,7 +15624,7 @@ function ProjectGitPanel({
             {conflicts.length ? <span className="text-red-500">{conflicts.length} conflicts</span> : null}
           </div>
         </div>
-        <form onSubmit={onSubmit} className="flex min-w-[220px] gap-2">
+        <form onSubmit={onSubmit} className="flex min-w-[min(220px,100%)] max-w-full gap-2">
           <input name="intent" value="checkout-branch" type="hidden" />
           <label className="sr-only" htmlFor="ide-git-branch-switch">
             Switch branch

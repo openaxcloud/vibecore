@@ -1490,6 +1490,9 @@ body
   bottom: calc(100% + 8px);
   left: 12px;
   z-index: 40;
+  box-sizing: border-box;
+  width: min(460px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
   animation: bolt-composer-overlay-pop 120ms ease-out;
   transform-origin: bottom left;
 }
@@ -1523,9 +1526,12 @@ body
 
 .bolt-file-mentions-palette {
   display: block;
-  min-width: 280px;
-  max-width: 420px;
-  max-height: 280px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  max-height: min(280px, calc(100dvh - 144px));
+  overflow-x: hidden;
   overflow-y: auto;
   background: var(--vc-ide-bg-elevated);
   border: 1px solid var(--vc-ide-border-subtle);
@@ -1589,9 +1595,12 @@ body
 /* Sprint 4 — slash commands palette. */
 .bolt-slash-commands-palette {
   display: block;
-  min-width: 280px;
-  max-width: 460px;
-  max-height: 320px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  max-height: min(320px, calc(100dvh - 144px));
+  overflow-x: hidden;
   overflow-y: auto;
   background: var(--vc-ide-bg-elevated);
   border: 1px solid var(--vc-ide-border-subtle);
@@ -1626,6 +1635,16 @@ body
   cursor: pointer;
   color: var(--vc-ide-text-primary);
   font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .bolt-composer-mentions-overlay,
+  .bolt-composer-slash-overlay {
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+  }
 }
 
 .bolt-slash-commands-item[data-active='true'] {
@@ -2241,9 +2260,12 @@ body
   top: calc(100% + 6px);
   right: 0;
   z-index: 50;
-  min-width: 260px;
-  max-width: 360px;
-  max-height: 320px;
+  box-sizing: border-box;
+  width: min(360px, calc(100vw - 24px));
+  min-width: min(260px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: min(320px, calc(100dvh - 24px));
+  overflow-x: hidden;
   overflow-y: auto;
   background: var(--vc-ide-bg-elevated);
   border: 1px solid var(--vc-ide-border-subtle);
@@ -2991,6 +3013,10 @@ body
 
 body :where([role='tooltip'], .tooltip, .vc-tooltip, .cm-tooltip, [data-radix-tooltip-content]) {
   z-index: 2500;
+  max-width: min(280px, calc(100vw - 24px));
+  max-height: min(320px, calc(100dvh - 24px));
+  overflow: hidden;
+  overflow-wrap: anywhere;
   border: 1px solid var(--vc-ui-tooltip-border);
   background: var(--vc-ui-tooltip-bg);
   color: var(--vc-ide-text-primary);
@@ -3205,6 +3231,11 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
 }
 
 .vc-sidebar-popover {
+  max-width: calc(100vw - 24px);
+  max-height: min(420px, calc(100dvh - 24px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
   animation: vc-sidebar-popover-in 120ms ease-out;
 }
 
@@ -3298,6 +3329,9 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   z-index: 80;
   margin-left: 10px;
   min-width: max-content;
+  max-width: min(220px, calc(100vw - 72px));
+  overflow: hidden;
+  text-overflow: ellipsis;
   transform: translateY(-50%) translateX(-4px) scale(0.98);
   border: 1px solid var(--vc-ui-tooltip-border);
   border-radius: 8px;
@@ -3649,14 +3683,45 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-replit-run {
-  background: #b8a5ff;
-  box-shadow: 0 10px 24px rgb(168 85 247 / 0.25);
+  background: linear-gradient(180deg, #c8b7ff 0%, #9d7cff 100%);
+  color: #0c1021;
+  box-shadow:
+    0 10px 24px rgb(124 58 237 / 0.32),
+    inset 0 1px 0 rgb(255 255 255 / 0.38);
 }
 
-.bolt-mobile-replit-run--active {
-  background: var(--vc-ide-text-primary);
-  color: var(--vc-ide-bg-app);
-  box-shadow: 0 10px 24px rgb(0 0 0 / 0.28);
+.bolt-mobile-replit-run--active,
+.bolt-mobile-replit-run[data-run-state='running'],
+.bolt-mobile-replit-run[data-run-state='static'] {
+  background: linear-gradient(180deg, #ff6b6b 0%, #dc2626 100%);
+  color: #ffffff;
+  box-shadow:
+    0 12px 28px rgb(220 38 38 / 0.38),
+    inset 0 1px 0 rgb(255 255 255 / 0.24);
+}
+
+.bolt-mobile-replit-run[data-run-state='starting'] {
+  background: linear-gradient(180deg, #4cc9ff 0%, #2563eb 100%);
+  color: #ffffff;
+  box-shadow:
+    0 12px 28px rgb(37 99 235 / 0.36),
+    inset 0 1px 0 rgb(255 255 255 / 0.26);
+}
+
+.bolt-mobile-replit-run[data-run-state='stopping'] {
+  background: linear-gradient(180deg, #fb7185 0%, #b91c1c 100%);
+  color: #ffffff;
+  box-shadow:
+    0 12px 28px rgb(185 28 28 / 0.3),
+    inset 0 1px 0 rgb(255 255 255 / 0.2);
+}
+
+.bolt-mobile-replit-run[data-run-state='error'] {
+  background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+  color: #111827;
+  box-shadow:
+    0 12px 28px rgb(217 119 6 / 0.32),
+    inset 0 1px 0 rgb(255 255 255 / 0.3);
 }
 
 .bolt-mobile-replit-run span {
@@ -4532,6 +4597,43 @@ body :where(.lucide, svg[data-lucide]) {
   touch-action: manipulation;
 }
 
+.bolt-workbench-mobile-run-action {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 52%);
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%);
+  color: var(--vc-ide-accent-action);
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.bolt-workbench-mobile-run-action[data-run-state='starting'] {
+  border-color: color-mix(in srgb, #2563eb, transparent 36%);
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.bolt-workbench-mobile-run-action.is-running,
+.bolt-workbench-mobile-run-action[data-run-state='running'],
+.bolt-workbench-mobile-run-action[data-run-state='static'],
+.bolt-workbench-mobile-run-action[data-run-state='stopping'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-error), transparent 24%);
+  background: var(--vc-ide-accent-error);
+  color: #ffffff;
+}
+
+.bolt-workbench-mobile-run-action.is-error,
+.bolt-workbench-mobile-run-action[data-run-state='error'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 24%);
+  background: var(--vc-ide-accent-warning);
+  color: #111827;
+}
+
+.bolt-workbench-mobile-run-action:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
 .bolt-workbench-mobile-action:disabled {
   opacity: 0.65;
 }
@@ -4703,6 +4805,12 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-notification-popover {
+  box-sizing: border-box;
+  max-width: calc(100vw - 24px);
+  max-height: min(70dvh, calc(100dvh - 24px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
   border-color: var(--vc-ide-border-visible) !important;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-card), white 4%), var(--vc-ide-bg-card)),
@@ -4753,7 +4861,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-notification-list {
   display: grid;
-  max-height: min(420px, calc(100vh - 96px));
+  max-height: min(420px, calc(100dvh - 96px));
   gap: 8px;
   overflow-y: auto;
   padding-right: 4px;
@@ -4905,6 +5013,12 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-collaborate-popover {
+  box-sizing: border-box;
+  max-width: calc(100vw - 24px);
+  max-height: min(420px, calc(100dvh - 24px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
   border-color: var(--vc-ide-border-visible) !important;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-card), white 3%), var(--vc-ide-bg-card)),
@@ -5138,6 +5252,12 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-overflow-popover {
+  box-sizing: border-box;
+  max-width: calc(100vw - 24px);
+  max-height: min(70dvh, calc(100dvh - 24px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
   border-color: var(--vc-ide-border-visible) !important;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-card), white 3%), var(--vc-ide-bg-card)),
@@ -6618,9 +6738,15 @@ body :where(.lucide, svg[data-lucide]) {
   bottom: calc(100% + 8px);
   left: 0;
   display: flex;
-  min-width: 232px;
+  box-sizing: border-box;
+  width: min(260px, calc(100vw - 24px));
+  min-width: min(232px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: min(420px, calc(100dvh - 120px));
   flex-direction: column;
   gap: 2px;
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 10px;
   background: var(--vc-ide-bg-card);
@@ -6670,6 +6796,13 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-chatbox-tools-menu-item:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+@media (max-width: 640px) {
+  .bolt-chatbox-tools-menu {
+    right: auto;
+    left: 0;
+  }
 }
 
 .bolt-chatbox-toolbar-supabase {
@@ -7676,10 +7809,10 @@ body :where(.lucide, svg[data-lucide]) {
   position: fixed;
   z-index: 120;
   display: flex;
-  width: 320px;
-  min-width: 320px;
-  inline-size: 320px;
-  max-height: 480px;
+  width: min(320px, calc(100vw - 24px));
+  min-width: min(320px, calc(100vw - 24px));
+  inline-size: min(320px, calc(100vw - 24px));
+  max-height: min(480px, calc(100dvh - 24px));
   box-sizing: border-box;
   flex: 0 0 auto;
   flex-direction: column;
@@ -7786,6 +7919,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-tool-footer {
   display: flex;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -7795,6 +7929,10 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-muted);
   font-size: 11px;
   padding: 8px 10px;
+}
+
+.bolt-project-tool-footer > :where(span, div) {
+  min-width: 0;
 }
 
 .bolt-project-tool-footer > span {
@@ -11123,7 +11261,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-package-install-form label {
   display: grid;
-  min-width: 260px;
+  min-width: min(260px, 100%);
   flex: 1;
   gap: 6px;
   color: var(--vc-ide-text-muted);
@@ -11143,7 +11281,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-package-install-form .bolt-project-package-checkbox {
   display: flex;
-  min-width: 150px;
+  min-width: min(150px, 100%);
   flex: 0 0 auto;
   align-items: center;
   gap: 8px;
@@ -13406,7 +13544,13 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-statusbar-overflow-content {
   z-index: 999;
-  min-width: 220px;
+  box-sizing: border-box;
+  width: min(280px, calc(100vw - 24px));
+  min-width: min(220px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: min(320px, calc(100dvh - 24px));
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 6px;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 8px;
@@ -13436,12 +13580,19 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-statusbar-overflow-label {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
   color: var(--vc-ide-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bolt-project-statusbar-overflow-value {
+  flex: 0 0 auto;
   color: var(--vc-ide-text-primary);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 @container statusbar (max-width: 880px) {
@@ -16496,8 +16647,15 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-ide-panel-header {
+    height: auto;
     min-height: 48px;
+    flex-wrap: wrap;
+    gap: 8px;
     padding-inline: 12px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-ide-panel-header > * {
+    min-width: 0;
   }
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-service-panel > .min-h-0 {
@@ -16515,6 +16673,9 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     :where(
       .bolt-workbench-mobile,
       .bolt-workbench-mobile-service,
+      .bolt-project-agent-panel,
+      .bolt-project-agent-shell,
+      .bolt-project-agent-composer,
       .bolt-project-service-panel,
       .bolt-project-service-panel > .min-h-0,
       .bolt-project-network-panel,
@@ -16531,6 +16692,159 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     overflow-x: hidden;
   }
 
+  .bolt-responsive-ide-mobile .bolt-project-agent-shell {
+    min-width: 0;
+    border-right: 0;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-panel {
+    --chat-max-width: min(100%, calc(100vw - 20px));
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-panel .max-w-chat {
+    width: min(100%, calc(100vw - 20px));
+    max-width: var(--chat-max-width);
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-panel [data-radix-scroll-area-viewport],
+  .bolt-responsive-ide-mobile .bolt-project-agent-panel .modern-scrollbar {
+    min-width: 0;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-header {
+    height: auto;
+    min-height: 48px;
+    gap: 6px;
+    padding: 8px 10px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-header > .ml-auto {
+    flex: 0 1 auto;
+    min-width: 0 !important;
+    max-width: min(58vw, 360px);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-header > .ml-auto::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-header .bolt-project-ide-icon-button {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    flex: 0 0 40px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-mode-bar {
+    gap: 7px;
+    overflow: hidden;
+    padding: 8px 10px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-mode-bar > .bolt-project-agent-mode--segmented {
+    width: 100%;
+    max-width: 100%;
+    align-self: stretch;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-mode-bar > .bolt-project-agent-mode--segmented::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-mode--segmented button {
+    min-width: max-content;
+    min-height: 30px;
+    padding-inline: 12px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-mode-description {
+    overflow-wrap: anywhere;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-composer {
+    width: min(100%, calc(100vw - 20px));
+    max-width: calc(100vw - 20px);
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-suggestions {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-suggestions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-suggestions button {
+    min-width: clamp(128px, 38vw, 180px);
+    min-height: 44px;
+    flex: 0 0 clamp(128px, 38vw, 180px);
+    scroll-snap-align: start;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-action-card {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-action-card > div,
+  .bolt-responsive-ide-mobile .bolt-project-agent-action-card strong,
+  .bolt-responsive-ide-mobile .bolt-project-agent-action-card small {
+    min-width: 0;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-action-card button {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-patch-review,
+  .bolt-responsive-ide-mobile .bolt-project-agent-patch-card,
+  .bolt-responsive-ide-mobile .bolt-project-agent-patch-hunk,
+  .bolt-responsive-ide-mobile .bolt-project-agent-patch-hunk pre {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-patch-review-head,
+  .bolt-responsive-ide-mobile .bolt-project-agent-patch-card-head,
+  .bolt-responsive-ide-mobile .bolt-project-agent-patch-actions,
+  .bolt-responsive-ide-mobile .bolt-project-agent-patch-review-bulk {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-patch-actions button,
+  .bolt-responsive-ide-mobile .bolt-project-agent-patch-review-bulk button {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
   .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-project-webview-tool {
     height: 100%;
     min-height: 0;
@@ -16538,6 +16852,10 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-project-webview-toolbar {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     height: auto;
     min-height: 44px;
     flex: 0 0 auto;
@@ -16549,6 +16867,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-project-webview-toolbar > .flex.items-center {
+    max-width: 100%;
     min-width: 0;
   }
 
@@ -16557,7 +16876,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-project-webview-toolbar > .flex.items-center:last-child {
-    flex: 1 1 180px;
+    flex: 1 1 min(180px, 100%);
     justify-content: flex-end;
     overflow-x: auto;
     overscroll-behavior-x: contain;
@@ -17529,7 +17848,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     max-height: min(70dvh, 540px);
     overflow: auto;
     margin-top: 0 !important;
-    transform: translateY(calc(100dvh - var(--vc-ide-topbar-height, 48px))) !important;
+    transform: none !important;
     border: 1px solid var(--mobile-nav-border);
     border-top-color: var(--mobile-nav-border-top);
     border-radius: 24px;
@@ -17552,6 +17871,12 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-project-action-group--overflow .bolt-project-overflow-section--grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 360px) {
+    .bolt-project-action-group--overflow .bolt-project-overflow-section--grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
   .bolt-responsive-ide-mobile .Toastify__toast-container {

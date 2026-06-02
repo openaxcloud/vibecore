@@ -110,7 +110,8 @@ export const FileBreadcrumb = memo<FileBreadcrumbProps>(({ files, pathSegments =
                       asChild
                       align="start"
                       side="bottom"
-                      avoidCollisions={false}
+                      collisionPadding={12}
+                      hideWhenDetached
                     >
                       <motion.div
                         ref={contextMenuRef}
@@ -120,7 +121,7 @@ export const FileBreadcrumb = memo<FileBreadcrumbProps>(({ files, pathSegments =
                         variants={contextMenuVariants}
                       >
                         <div className="rounded-lg overflow-hidden">
-                          <div className="max-h-[50vh] min-w-[300px] overflow-scroll bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor shadow-sm rounded-lg">
+                          <div className="min-w-[min(300px,calc(100vw-24px))] max-w-[calc(100vw-24px)] max-h-[min(50vh,calc(100dvh-24px))] overflow-auto bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor shadow-sm rounded-lg">
                             <FileTree
                               files={files}
                               hideRoot

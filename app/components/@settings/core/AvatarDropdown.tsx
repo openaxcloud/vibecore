@@ -39,7 +39,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
       <DropdownMenu.Portal>
         <DropdownMenu.Content
           className={classNames(
-            'min-w-[240px] z-[250]',
+            'min-w-[min(240px,calc(100vw-24px))] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-24px))] overflow-auto z-[250]',
             'bg-white dark:bg-[#141414]',
             'rounded-lg shadow-lg',
             'border border-gray-200/50 dark:border-gray-800/50',
@@ -48,6 +48,8 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
           )}
           sideOffset={5}
           align="end"
+          collisionPadding={12}
+          hideWhenDetached
         >
           <div
             className={classNames(

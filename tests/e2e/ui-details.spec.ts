@@ -1,5 +1,17 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
+import { compileAsync } from 'sass-embedded';
+
+let compiledIdeStyles: string | null = null;
+
+async function readCompiledIdeStyles() {
+  if (!compiledIdeStyles) {
+    const result = await compileAsync('app/styles/index.scss', { style: 'expanded' });
+    compiledIdeStyles = result.css;
+  }
+
+  return compiledIdeStyles;
+}
 
 async function mountAgentMessageContextDocument(page: Page) {
   const stylesheet = await readFile('app/styles/index.scss', 'utf8');
@@ -211,6 +223,271 @@ async function injectAgentMessageContextFixture(page: Page) {
     `;
     document.body.appendChild(fixture);
   });
+}
+
+async function mountFloatingSurfacesDocument(page: Page) {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setContent(`
+    <html>
+      <head>
+        <style>
+          ${stylesheet}
+
+          :root {
+            color-scheme: dark;
+            --bolt-elements-borderColor: #2b3245;
+            --bolt-elements-bg-depth-1: #0a0f1c;
+            --bolt-elements-bg-depth-2: #0e1525;
+            --bolt-elements-bg-depth-3: #1a2030;
+            --bolt-elements-textPrimary: #f5f9fc;
+            --mobile-nav-bg: rgb(14 21 37 / 0.94);
+            --mobile-nav-border: rgb(43 50 69 / 0.9);
+            --mobile-nav-border-top: rgb(122 133 153 / 0.42);
+            --mobile-nav-height: 72px;
+            --mobile-nav-shadow: 0 20px 60px rgb(0 4 20 / 0.55);
+            --vc-ide-accent-action: #0099ff;
+            --vc-ide-bg-app: #0a0f1c;
+            --vc-ide-bg-card: #1a2030;
+            --vc-ide-bg-card-hover: #2b3245;
+            --vc-ide-bg-elevated: #0e1525;
+            --vc-ide-bg-hover: #2b3245;
+            --vc-ide-bg-panel: #0e1525;
+            --vc-ide-border-subtle: #1a2030;
+            --vc-ide-border-visible: #2b3245;
+            --vc-ide-text-muted: #6e7681;
+            --vc-ide-text-primary: #f5f9fc;
+            --vc-ide-text-secondary: #c2c8cc;
+            --vc-ui-overlay-blur: blur(16px);
+            --vc-ui-radius-popover: 12px;
+            --vc-ui-shadow-lg: 0 12px 32px rgb(0 4 20 / 0.6);
+            --vc-ui-shadow-xl: 0 24px 64px rgb(0 4 20 / 0.7);
+          }
+
+          body {
+            margin: 0;
+            min-height: 100dvh;
+            overflow: hidden;
+            background: var(--vc-ide-bg-app);
+            color: var(--vc-ide-text-primary);
+            font-family:
+              Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          }
+
+          .floating-surface {
+            font-size: 12px;
+          }
+
+          .floating-token {
+            min-width: 0;
+            overflow-wrap: anywhere;
+          }
+        </style>
+      </head>
+      <body>
+        <main class="bolt-responsive-ide-mobile" data-testid="floating-surfaces-fixture">
+          <div class="bolt-composer-mentions-overlay floating-surface" data-testid="floating-mentions" style="position: fixed; bottom: 92px; left: 12px;">
+            <div class="bolt-file-mentions-palette">
+              <ul class="bolt-file-mentions-list">
+                ${Array.from(
+                  { length: 12 },
+                  (_, index) => `
+                    <li class="bolt-file-mentions-item">
+                      <span class="bolt-file-mentions-icon">F</span>
+                      <span class="bolt-file-mentions-basename">component-${index}.tsx</span>
+                      <span class="bolt-file-mentions-path">src/components/responsive/surface-${index}.tsx</span>
+                    </li>
+                  `,
+                ).join('')}
+              </ul>
+            </div>
+          </div>
+
+          <div class="bolt-composer-slash-overlay floating-surface" data-testid="floating-slash" style="position: fixed; bottom: 92px; right: 12px; left: auto;">
+            <div class="bolt-slash-commands-palette">
+              <ul class="bolt-slash-commands-list">
+                ${Array.from(
+                  { length: 12 },
+                  (_, index) => `
+                    <li class="bolt-slash-commands-item">
+                      <span class="bolt-slash-commands-keyword">/command-${index}</span>
+                      <span class="bolt-slash-commands-label">Run command ${index}</span>
+                      <span class="bolt-slash-commands-description">Executes a responsive IDE workflow without forcing horizontal overflow.</span>
+                    </li>
+                  `,
+                ).join('')}
+              </ul>
+            </div>
+          </div>
+
+          <div class="bolt-branches-menu-popover floating-surface" data-testid="floating-branches" style="position: fixed; top: 16px; right: 8px;">
+            <div class="bolt-branches-list">
+              ${Array.from(
+                { length: 16 },
+                (_, index) => `
+                  <div class="bolt-branches-row">
+                    <button class="bolt-branches-row-switch" type="button">
+                      <span class="bolt-branches-row-icon">B</span>
+                      <span class="bolt-branches-row-label">feature/responsive-floating-panel-${index}</span>
+                    </button>
+                  </div>
+                `,
+              ).join('')}
+            </div>
+          </div>
+
+          <div class="bolt-chatbox-tools-menu floating-surface" data-testid="floating-chatbox-tools" style="position: fixed; bottom: 92px; left: 8px;">
+            ${['Upload files', 'Design Palette', 'Fetch URL content', 'Voice input', 'Runtime tools', 'Project context']
+              .map(
+                (item) => `
+                  <button class="bolt-chatbox-tools-menu-item" type="button">
+                    <span class="floating-token">${item}</span>
+                  </button>
+                `,
+              )
+              .join('')}
+          </div>
+
+          <div class="bolt-project-statusbar-overflow-content floating-surface" data-testid="floating-statusbar" style="position: fixed; right: 8px; bottom: 12px;">
+            <div class="bolt-project-statusbar-overflow-list" role="list">
+              ${['Current cursor position', 'Indentation: 2 spaces', 'File encoding: UTF-8', 'Detected language mode']
+                .map(
+                  (label) => `
+                    <div class="bolt-project-statusbar-overflow-row" role="listitem">
+                      <span class="bolt-project-statusbar-overflow-label">${label}</span>
+                      <span class="bolt-project-statusbar-overflow-value">TypeScript</span>
+                    </div>
+                  `,
+                )
+                .join('')}
+            </div>
+          </div>
+
+          <div class="bolt-project-tool-menu floating-surface" data-testid="floating-project-tool" style="top: 80px; right: 8px;">
+            <header class="bolt-project-tool-menu-header">
+              <div class="bolt-project-tool-menu-title">
+                <strong>Project tool menu</strong>
+                <small>Responsive surface</small>
+              </div>
+            </header>
+            <div class="bolt-project-tool-menu-body">
+              ${Array.from({ length: 12 }, (_, index) => `<p class="floating-token">Tool action ${index} with production context.</p>`).join('')}
+            </div>
+            <footer class="bolt-project-tool-footer">
+              <span class="floating-token">Keyboard accessible</span>
+              <kbd>Esc</kbd>
+            </footer>
+          </div>
+
+          <div class="vc-sidebar-popover floating-surface" data-testid="floating-sidebar" style="position: fixed; top: 16px; left: 8px; width: 224px; padding: 8px; border: 1px solid var(--vc-ide-border-visible); border-radius: 10px; background: var(--vc-ide-bg-card);">
+            <p class="floating-token">Account menu with a long profile description that wraps instead of widening the popover.</p>
+          </div>
+
+          <div class="bolt-project-notification-popover floating-surface" data-testid="floating-notification" style="position: fixed; top: 160px; right: 8px; width: 420px; padding: 10px; border: 1px solid var(--vc-ide-border-visible); border-radius: 12px;">
+            <div class="bolt-project-notification-list">
+              ${Array.from(
+                { length: 8 },
+                (_, index) => `
+                  <div class="bolt-project-notification-item">
+                    <span class="bolt-project-notification-icon">N</span>
+                    <span class="floating-token">
+                      <span class="bolt-project-notification-title">Notification ${index}</span>
+                      <span class="bolt-project-notification-detail">Runtime, preview and backend event details wrap safely.</span>
+                    </span>
+                  </div>
+                `,
+              ).join('')}
+            </div>
+          </div>
+
+          <details class="bolt-project-collaborate-menu" open>
+            <summary>Collaborate</summary>
+            <div class="bolt-project-collaborate-popover floating-surface" data-testid="floating-collaborate" style="position: fixed; top: 260px; left: 8px; width: 220px; padding: 8px; border: 1px solid var(--vc-ide-border-visible); border-radius: 12px;">
+              <button class="bolt-project-overflow-item" type="button"><span class="floating-token">Share project with collaborators</span></button>
+              <button class="bolt-project-overflow-item" type="button"><span class="floating-token">Invite team members</span></button>
+            </div>
+          </details>
+
+          <div class="bolt-project-action-group--overflow">
+            <div class="bolt-project-overflow-popover floating-surface" data-testid="floating-overflow" style="position: fixed; top: 360px; right: 8px; width: 360px; padding: 10px; border: 1px solid var(--vc-ide-border-visible); border-radius: 12px;">
+              <div class="bolt-project-overflow-section bolt-project-overflow-section--grid">
+                ${['Help & support', 'Collaborators', 'Account', 'Sign out']
+                  .map((item) => `<button class="bolt-project-overflow-item" type="button"><span class="floating-token">${item}</span></button>`)
+                  .join('')}
+              </div>
+            </div>
+          </div>
+        </main>
+      </body>
+    </html>
+  `);
+}
+
+async function readFloatingSurfaceDetails(page: Page) {
+  return page.getByTestId('floating-surfaces-fixture').evaluate(() => {
+    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+
+    return {
+      documentOverflowsX: document.documentElement.scrollWidth > viewportWidth + 1,
+      surfaces: Array.from(document.querySelectorAll<HTMLElement>('.floating-surface')).map((surface) => {
+        const rect = surface.getBoundingClientRect();
+        const style = window.getComputedStyle(surface);
+
+        return {
+          id: surface.getAttribute('data-testid') ?? surface.className,
+          bottom: rect.bottom,
+          clientWidth: surface.clientWidth,
+          height: rect.height,
+          left: rect.left,
+          overflowX: style.overflowX,
+          overflowY: style.overflowY,
+          right: rect.right,
+          scrollHeight: surface.scrollHeight,
+          scrollWidth: surface.scrollWidth,
+          top: rect.top,
+          transform: style.transform,
+          width: rect.width,
+        };
+      }),
+      viewportHeight,
+      viewportWidth,
+    };
+  });
+}
+
+function expectFloatingSurfacesConstrained(
+  details: Awaited<ReturnType<typeof readFloatingSurfaceDetails>>,
+  label: string,
+) {
+  expect(details.documentOverflowsX, `${label} document horizontal overflow`).toBe(false);
+
+  for (const surface of details.surfaces) {
+    expect(surface.left, `${label} ${surface.id} left edge`).toBeGreaterThanOrEqual(0);
+    expect(surface.top, `${label} ${surface.id} top edge`).toBeGreaterThanOrEqual(0);
+    expect(surface.right, `${label} ${surface.id} right edge`).toBeLessThanOrEqual(details.viewportWidth + 1);
+    expect(surface.bottom, `${label} ${surface.id} bottom edge`).toBeLessThanOrEqual(details.viewportHeight + 1);
+    expect(surface.width, `${label} ${surface.id} width`).toBeLessThanOrEqual(details.viewportWidth - 12 + 1);
+    expect(surface.height, `${label} ${surface.id} height`).toBeLessThanOrEqual(details.viewportHeight - 12 + 1);
+    expect(surface.scrollWidth, `${label} ${surface.id} internal horizontal overflow`).toBeLessThanOrEqual(
+      surface.clientWidth + 1,
+    );
+
+    if (surface.id === 'floating-overflow' && details.viewportWidth <= 1199) {
+      expect(surface.transform, `${label} mobile overflow transform`).toBe('none');
+    }
+
+    if (
+      [
+        'floating-branches',
+        'floating-chatbox-tools',
+        'floating-statusbar',
+        'floating-notification',
+      ].includes(surface.id)
+    ) {
+      expect(surface.overflowY, `${label} ${surface.id} vertical overflow mode`).not.toBe('visible');
+    }
+  }
 }
 
 async function readAgentMessageContextDetails(page: Page) {
@@ -728,6 +1005,18 @@ test('public platform keeps agent message context popovers constrained', async (
     await injectAgentMessageContextFixture(page);
     await expect(page.getByRole('button', { name: 'Show agent message context' })).toBeVisible();
     expectAgentMessageContextDetails(await readAgentMessageContextDetails(page), viewport.label);
+  }
+});
+
+test('public platform keeps IDE floating menus constrained', async ({ page }) => {
+  for (const viewport of [
+    { label: 'desktop', width: 1280, height: 720 },
+    { label: 'tablet', width: 820, height: 1180 },
+    { label: 'mobile', width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await mountFloatingSurfacesDocument(page);
+    expectFloatingSurfacesConstrained(await readFloatingSurfaceDetails(page), viewport.label);
   }
 });
 

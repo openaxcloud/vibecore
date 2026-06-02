@@ -263,7 +263,7 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
   return (
     <RadixDialog.Root open={open}>
       <RadixDialog.Portal>
-        <div className="fixed inset-0 flex items-center justify-center z-[100] modern-scrollbar">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden p-3 modern-scrollbar sm:p-4">
           <RadixDialog.Overlay className="absolute inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-opacity duration-200" />
 
           <RadixDialog.Content
@@ -274,7 +274,7 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
           >
             <div
               className={classNames(
-                'w-[1200px] h-[90vh]',
+                'h-[min(90dvh,calc(100dvh-24px))] w-[min(1200px,calc(100vw-24px))]',
                 'bg-bolt-elements-background-depth-1',
                 'rounded-2xl shadow-2xl',
                 'border border-bolt-elements-borderColor',

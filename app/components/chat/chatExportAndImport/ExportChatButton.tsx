@@ -12,7 +12,7 @@ export const ExportChatButton = ({ exportChat }: { exportChat?: () => void }) =>
         </DropdownMenu.Trigger>
         <DropdownMenu.Content
           className={classNames(
-            'z-[250]',
+            'z-[250] min-w-[min(180px,calc(100vw-24px))] max-w-[calc(100vw-24px)] max-h-[min(320px,calc(100dvh-24px))] overflow-auto',
             'bg-bolt-elements-background-depth-2',
             'rounded-lg shadow-lg',
             'border border-bolt-elements-borderColor',
@@ -21,6 +21,8 @@ export const ExportChatButton = ({ exportChat }: { exportChat?: () => void }) =>
           )}
           sideOffset={5}
           align="end"
+          collisionPadding={12}
+          hideWhenDetached
         >
           <DropdownMenu.Item
             className={classNames(

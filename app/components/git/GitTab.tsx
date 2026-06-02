@@ -409,7 +409,7 @@ export function GitTab({ projectId }: GitTabProps) {
               <div className="mt-1 truncate text-xs text-bolt-elements-textSecondary">{project.gitRepositoryUrl}</div>
             ) : null}
           </div>
-          <form onSubmit={submitAction} className="flex min-w-[220px] gap-2">
+          <form onSubmit={submitAction} className="flex min-w-[min(220px,100%)] max-w-full gap-2">
             <input name="intent" value="checkout-branch" type="hidden" />
             <label className="sr-only" htmlFor="ide-git-tab-branch-switch">
               Switch branch
