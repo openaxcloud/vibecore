@@ -12740,140 +12740,73 @@ function ProjectMonitoringActivitySparkline({
   );
 }
 
-const PROJECT_EXTENSION_CATALOG = [
-  {
-    id: 'vscode-theme-defaults',
-    name: 'VS Code Theme Defaults',
-    category: 'Themes',
-    publisher: 'Vibecore',
-    description: 'Dark, light and high-contrast editor palettes aligned with VS Code defaults.',
-  },
-  {
-    id: 'material-icon-theme',
-    name: 'Material Icon Theme',
-    category: 'Themes',
-    publisher: 'PKief',
-    description: 'Recognizable file and folder icons for modern web, backend and config files.',
-  },
-  {
-    id: 'typescript-language-features',
-    name: 'TypeScript Language Features',
-    category: 'Languages',
-    publisher: 'Vibecore',
-    description: 'TypeScript, JavaScript and JSX language intelligence for project workspaces.',
-  },
-  {
-    id: 'python-language-support',
-    name: 'Python Language Support',
-    category: 'Languages',
-    publisher: 'Vibecore',
-    description: 'Python syntax, lint-ready settings and test discovery integration.',
-  },
-  {
-    id: 'eslint',
-    name: 'ESLint',
-    category: 'Linters',
-    publisher: 'Microsoft',
-    description: 'Project-aware JavaScript and TypeScript lint diagnostics.',
-  },
-  {
-    id: 'prettier',
-    name: 'Prettier',
-    category: 'Linters',
-    publisher: 'Prettier',
-    description: 'Consistent formatting defaults for JS, TS, CSS, JSON and Markdown.',
-  },
-  {
-    id: 'js-debug',
-    name: 'JavaScript Debugger',
-    category: 'Debuggers',
-    publisher: 'Microsoft',
-    description: 'Launch configs, breakpoints and browser/node debugging support.',
-  },
-  {
-    id: 'playwright-test',
-    name: 'Playwright Test',
-    category: 'Debuggers',
-    publisher: 'Microsoft',
-    description: 'Run, inspect and debug end-to-end tests from the IDE.',
-  },
-];
-
 function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
-  const envInstalled = String((data.envVars ?? []).find((item: any) => item.key === 'VIBECORE_EXTENSIONS')?.value ?? '')
+  // Extensions are MCP marketplace servers: install/enable/remove all map to
+  // real McpInstall records, which also surface in the MCP settings tab.
+  const installs: any[] = Array.isArray(data.mcpInstalls) ? data.mcpInstalls : [];
+  const catalog: any[] = Array.isArray(data.mcpCatalog) ? data.mcpCatalog : [];
+
+  // Legacy VIBECORE_EXTENSIONS env entries (pre-MCP) shown read-only so older
+  // projects don't appear to lose state.
+  const legacyInstalled = String(
+    (data.envVars ?? []).find((item: any) => item.key === 'VIBECORE_EXTENSIONS')?.value ?? '',
+  )
     .split(',')
     .map((extension) => extension.trim())
     .filter(Boolean);
-  const deploymentInstalled = (data.deployments ?? [])
-    .filter((deployment: any) => String(deployment.provider ?? '').startsWith('extension:'))
-    .map((deployment: any) => deployment.provider.replace('extension:', ''));
 
-  const extensionState = data.extensionsState?.extensions ?? {};
-  const installed = Array.from(new Set([...envInstalled, ...deploymentInstalled, ...Object.keys(extensionState)]));
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('All');
-  const categories = ['All', 'Installed', 'Themes', 'Languages', 'Linters', 'Debuggers'];
-  const installedSet = new Set(installed);
+  const [domain, setDomain] = useState('All');
   const normalizedQuery = query.trim().toLowerCase();
 
-  const installedCatalog = installed.map((id) => {
-    const catalogItem = PROJECT_EXTENSION_CATALOG.find((item) => item.id === id || item.name === id);
+  const domains = ['All', ...Array.from(new Set(catalog.map((entry) => String(entry.domain ?? '')).filter(Boolean)))];
+  const installedSlugs = new Set(installs.map((install) => install.catalogEntry?.slug));
 
-    return {
-      id,
-      name: catalogItem?.name ?? id,
-      category: catalogItem?.category ?? 'Installed',
-      publisher: catalogItem?.publisher ?? 'Workspace',
-      description: catalogItem?.description ?? 'Workspace extension persisted in backend project settings.',
-      enabled: extensionState[id]?.enabled !== false,
-    };
-  });
-
-  const catalogItems = PROJECT_EXTENSION_CATALOG.filter((item) => {
-    const matchesCategory = category === 'All' || category === 'Installed' || item.category === category;
-
+  const visibleCatalog = catalog.filter((entry) => {
+    const matchesDomain = domain === 'All' || entry.domain === domain;
     const matchesQuery =
       !normalizedQuery ||
-      [item.name, item.publisher, item.category, item.description].join(' ').toLowerCase().includes(normalizedQuery);
+      [entry.name, entry.author, entry.domain, entry.description, ...(entry.tags ?? [])]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedQuery);
 
-    return matchesCategory && matchesQuery;
+    return matchesDomain && matchesQuery;
   });
-
-  const visibleCatalogItems = category === 'Installed' ? installedCatalog : catalogItems;
 
   return (
     <div className="bolt-project-extensions-panel">
       <header className="bolt-project-extensions-hero">
         <div>
-          <strong>Extensions marketplace</strong>
+          <strong>Extensions</strong>
           <span>
-            Search compatible VS Code-style capabilities and persist workspace extension state in the backend.
+            Install MCP servers to extend the agent with new tools. Installs are shared with the MCP settings tab.
           </span>
         </div>
         <div className="bolt-project-extensions-summary" aria-label="Installed extension summary">
-          <strong>{installed.length}</strong>
+          <strong>{installs.length}</strong>
           <span>installed</span>
         </div>
       </header>
 
       <div className="bolt-project-panel-toolbar">
         <label>
-          Search VS Code marketplace
+          Search the MCP marketplace
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Theme, language, linter, debugger..."
+            placeholder="Name, author, tag or capability..."
           />
         </label>
-        <div className="bolt-project-extension-categories" role="tablist" aria-label="Extension categories">
-          {categories.map((item) => (
+        <div className="bolt-project-extension-categories" role="tablist" aria-label="Extension domains">
+          {domains.map((item) => (
             <button
               key={item}
               type="button"
-              className={category === item ? 'selected' : ''}
-              onClick={() => setCategory(item)}
+              className={domain === item ? 'selected' : ''}
+              onClick={() => setDomain(item)}
             >
-              {item}
+              {item === 'All' ? 'All' : String(item).replace(/_/g, ' ').toLowerCase()}
             </button>
           ))}
         </div>
@@ -12882,28 +12815,30 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
       <section className="bolt-project-installed-extensions" aria-label="Installed extensions">
         <div className="bolt-project-section-heading">
           <strong>Installed</strong>
-          <span>Enable, disable or remove project extensions without leaving the IDE.</span>
+          <span>Enable, disable or remove extensions without leaving the IDE.</span>
         </div>
-        {installedCatalog.length ? (
+        {installs.length ? (
           <div className="bolt-project-extension-catalog installed">
-            {installedCatalog.map((extension) => (
-              <article key={extension.id} className="bolt-project-extension-card" data-enabled={extension.enabled}>
+            {installs.map((install) => (
+              <article key={install.id} className="bolt-project-extension-card" data-enabled={install.enabled}>
                 <div>
-                  <strong>{extension.name}</strong>
-                  <span>{extension.publisher}</span>
+                  <strong>{install.catalogEntry?.name ?? install.alias}</strong>
+                  <span>
+                    {install.catalogEntry?.author ?? 'MCP'} · v{install.catalogEntry?.version ?? '1'}
+                  </span>
                 </div>
-                <p>{extension.description}</p>
+                <p>{install.catalogEntry?.description ?? `alias: ${install.alias}`}</p>
                 <div className="bolt-project-extension-card-footer">
-                  <em>{extension.enabled ? 'Enabled' : 'Disabled'}</em>
+                  <em>{install.enabled ? 'Enabled' : 'Disabled'}</em>
                   <form onSubmit={onSubmit}>
-                    <input name="extension" value={extension.id} type="hidden" />
-                    <input name="extensionAction" value={extension.enabled ? 'disable' : 'enable'} type="hidden" />
+                    <input name="installId" value={install.id} type="hidden" />
+                    <input name="extensionAction" value={install.enabled ? 'disable' : 'enable'} type="hidden" />
                     <PanelButton disabled={busy} variant="outline">
-                      {extension.enabled ? 'Disable' : 'Enable'}
+                      {install.enabled ? 'Disable' : 'Enable'}
                     </PanelButton>
                   </form>
                   <form onSubmit={onSubmit}>
-                    <input name="extension" value={extension.id} type="hidden" />
+                    <input name="installId" value={install.id} type="hidden" />
                     <input name="extensionAction" value="remove" type="hidden" />
                     <PanelButton disabled={busy} variant="outline">
                       Remove
@@ -12915,36 +12850,42 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
           </div>
         ) : (
           <div className="bolt-project-empty-panel">
-            No extensions installed yet. Install a theme, language pack, linter or debugger below.
+            No extensions installed yet. Install one from the marketplace below.
           </div>
         )}
+        {legacyInstalled.length ? (
+          <p className="bolt-project-extension-legacy-note">
+            Legacy workspace extensions (read-only): {legacyInstalled.join(', ')}
+          </p>
+        ) : null}
       </section>
 
       <section aria-label="Marketplace extensions">
         <div className="bolt-project-section-heading">
-          <strong>{category === 'Installed' ? 'Installed catalog view' : 'Marketplace'}</strong>
+          <strong>Marketplace</strong>
           <span>
-            {visibleCatalogItems.length} extension{visibleCatalogItems.length === 1 ? '' : 's'} shown
+            {visibleCatalog.length} extension{visibleCatalog.length === 1 ? '' : 's'} shown
           </span>
         </div>
-        {visibleCatalogItems.length ? (
+        {visibleCatalog.length ? (
           <div className="bolt-project-extension-catalog">
-            {visibleCatalogItems.map((extension) => {
-              const isInstalled = installedSet.has(extension.id);
+            {visibleCatalog.map((entry) => {
+              const isInstalled = installedSlugs.has(entry.slug);
 
               return (
-                <article key={extension.id} className="bolt-project-extension-card" data-enabled={isInstalled}>
+                <article key={entry.id} className="bolt-project-extension-card" data-enabled={isInstalled}>
                   <div>
-                    <strong>{extension.name}</strong>
+                    <strong>{entry.name}</strong>
                     <span>
-                      {extension.publisher} · {extension.category}
+                      {entry.author} · {String(entry.domain ?? '').replace(/_/g, ' ').toLowerCase()}
+                      {entry.verified ? ' · verified' : ''}
                     </span>
                   </div>
-                  <p>{extension.description}</p>
+                  <p>{entry.description}</p>
                   <div className="bolt-project-extension-card-footer">
-                    <em>{isInstalled ? 'Installed' : 'Available'}</em>
+                    <em>{isInstalled ? 'Installed' : `${entry.installCount ?? 0} installs`}</em>
                     <form onSubmit={onSubmit}>
-                      <input name="extension" value={extension.id} type="hidden" />
+                      <input name="extension" value={entry.slug} type="hidden" />
                       <input name="extensionAction" value="install" type="hidden" />
                       <PanelButton disabled={busy || isInstalled}>{isInstalled ? 'Installed' : 'Install'}</PanelButton>
                     </form>
@@ -12954,7 +12895,11 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
             })}
           </div>
         ) : (
-          <div className="bolt-project-empty-panel">No extensions match the current search and category filters.</div>
+          <div className="bolt-project-empty-panel">
+            {catalog.length
+              ? 'No extensions match the current search and domain filters.'
+              : 'The MCP marketplace catalog is empty or unavailable.'}
+          </div>
         )}
       </section>
     </div>

@@ -11131,6 +11131,12 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-accent-success);
 }
 
+.bolt-project-extension-legacy-note {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--vc-ide-text-tertiary, var(--vc-ide-text-secondary));
+}
+
 .bolt-project-extension-card-footer form {
   display: contents;
 }

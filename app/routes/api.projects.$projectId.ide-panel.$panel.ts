@@ -581,12 +581,22 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (['database', 'object-storage', 'monitoring', 'extensions'].includes(panel)) {
     if (panel === 'extensions') {
       try {
-        const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
+        // Extensions ARE the MCP marketplace: installing one persists a real
+        // McpInstall (user-scoped) that also surfaces in the MCP settings tab.
+        // Legacy VIBECORE_EXTENSIONS env state is still surfaced read-only so
+        // pre-MCP installs remain visible.
+        const [envVars, catalog, installs] = await Promise.all([
+          apiRequest(request, `/projects/${projectId}/env-vars`).catch(() => ({ envVars: [] })),
+          apiRequest(request, `/mcp/catalog?limit=100`).catch(() => ({ items: [] })),
+          apiRequest(request, `/mcp/installs`).catch(() => ({ installs: [] })),
+        ]);
 
         return json(
           panelEnvelope(panel, project.project, {
             ...(envVars as any),
             extensionsState: readExtensionsState(envVars),
+            mcpCatalog: (catalog as any)?.items ?? [],
+            mcpInstalls: (installs as any)?.installs ?? [],
           }),
         );
       } catch (error) {
@@ -1406,46 +1416,50 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       body: JSON.stringify({ key: PACKAGES_STATE_ENV_KEY, value: JSON.stringify(normalizePackagesState(state)) }),
     });
   } else if (panel === 'extensions') {
-    const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
-    const state = readExtensionsState(envVars);
+    // Extensions are MCP marketplace servers. Each action maps to a real
+    // McpInstall mutation so the result is visible here AND in the MCP tab.
     const action = body.extensionAction ?? 'install';
-    const requestedExtension = (body.extension ?? '').trim();
 
-    if (!requestedExtension) {
-      throw json({ error: 'extension is required' }, { status: 400 });
-    }
+    if (action === 'install') {
+      const slug = (body.extension ?? '').trim();
 
-    const existingExtensions = String(
-      (envVars as any)?.envVars?.find((item: any) => item.key === 'VIBECORE_EXTENSIONS')?.value ?? '',
-    )
-      .split(',')
-      .map((extension) => extension.trim())
-      .filter(Boolean);
+      if (!slug) {
+        throw json({ error: 'extension (catalog slug) is required' }, { status: 400 });
+      }
 
-    const extensions = new Set([...existingExtensions, ...Object.keys(state.extensions)]);
+      // Derive a valid alias from the slug (alphanumeric/dash/underscore, ≤64).
+      const alias = (body.alias ?? slug)
+        .toLowerCase()
+        .replace(/[^a-z0-9-_]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 64) || 'mcp';
 
-    if (action === 'remove') {
-      extensions.delete(requestedExtension);
-      delete state.extensions[requestedExtension];
+      await apiRequest(request, `/mcp/installs`, {
+        method: 'POST',
+        body: JSON.stringify({ catalogEntrySlug: slug, alias, config: {} }),
+      });
+    } else if (action === 'remove') {
+      const installId = (body.installId ?? '').trim();
+
+      if (!installId) {
+        throw json({ error: 'installId is required' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/mcp/installs/${encodeURIComponent(installId)}`, { method: 'DELETE' });
+    } else if (action === 'enable' || action === 'disable') {
+      const installId = (body.installId ?? '').trim();
+
+      if (!installId) {
+        throw json({ error: 'installId is required' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/mcp/installs/${encodeURIComponent(installId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ enabled: action === 'enable' }),
+      });
     } else {
-      extensions.add(requestedExtension);
-      state.extensions[requestedExtension] = {
-        ...state.extensions[requestedExtension],
-        id: requestedExtension,
-        enabled: action !== 'disable',
-        installedAt: state.extensions[requestedExtension]?.installedAt ?? new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      throw json({ error: `unsupported extensionAction: ${action}` }, { status: 400 });
     }
-
-    await apiRequest(request, `/projects/${projectId}/env-vars`, {
-      method: 'PUT',
-      body: JSON.stringify({ key: 'VIBECORE_EXTENSIONS', value: Array.from(extensions).sort().join(',') }),
-    });
-    await apiRequest(request, `/projects/${projectId}/env-vars`, {
-      method: 'PUT',
-      body: JSON.stringify({ key: EXTENSIONS_STATE_ENV_KEY, value: JSON.stringify(normalizeExtensionsState(state)) }),
-    });
   } else if (panel === 'integrations') {
     const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
     const state = readIntegrationsState(envVars);
