@@ -15,6 +15,15 @@ describe('entry server document isolation headers', () => {
     expect(headers.get('Cross-Origin-Opener-Policy')).toBe('same-origin');
   });
 
+  it('sets baseline document hardening headers', () => {
+    const headers = new Headers();
+
+    applyDocumentIsolationHeaders(headers);
+
+    expect(headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+  });
+
   it('bounds allReady so a suspended route cannot block the document forever', async () => {
     vi.useFakeTimers();
 

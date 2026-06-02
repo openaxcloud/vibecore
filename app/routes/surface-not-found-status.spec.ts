@@ -14,11 +14,11 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { loader as rootSurfaceLoader } from './$slug';
 import { loader as advancedLoader } from './advanced.$section';
 import { loader as compareLoader } from './compare.$slug';
 import { loader as marketingLoader } from './marketing.$slug';
 import { loader as solutionsLoader } from './solutions.$slug';
-import { loader as rootSurfaceLoader } from './$slug';
 
 type Loader = (args: { params: Record<string, string | undefined> }) => unknown;
 
@@ -36,12 +36,42 @@ function runLoader(loader: Loader, params: Record<string, string | undefined>): 
   }
 }
 
-const cases: Array<{ name: string; loader: Loader; knownParams: Record<string, string>; unknownParams: Record<string, string> }> = [
-  { name: '$slug (root surface)', loader: rootSurfaceLoader as Loader, knownParams: { slug: 'home' }, unknownParams: { slug: 'definitely-not-a-real-surface-xyz' } },
-  { name: 'advanced.$section', loader: advancedLoader as Loader, knownParams: { section: 'mobile' }, unknownParams: { section: 'definitely-not-a-real-section-xyz' } },
-  { name: 'solutions.$slug', loader: solutionsLoader as Loader, knownParams: { slug: 'app-builder' }, unknownParams: { slug: 'definitely-not-a-real-solution-xyz' } },
-  { name: 'compare.$slug', loader: compareLoader as Loader, knownParams: { slug: 'heroku' }, unknownParams: { slug: 'definitely-not-a-real-compare-xyz' } },
-  { name: 'marketing.$slug', loader: marketingLoader as Loader, knownParams: { slug: 'teams' }, unknownParams: { slug: 'definitely-not-a-real-campaign-xyz' } },
+const cases: Array<{
+  name: string;
+  loader: Loader;
+  knownParams: Record<string, string>;
+  unknownParams: Record<string, string>;
+}> = [
+  {
+    name: '$slug (root surface)',
+    loader: rootSurfaceLoader as Loader,
+    knownParams: { slug: 'home' },
+    unknownParams: { slug: 'definitely-not-a-real-surface-xyz' },
+  },
+  {
+    name: 'advanced.$section',
+    loader: advancedLoader as Loader,
+    knownParams: { section: 'mobile' },
+    unknownParams: { section: 'definitely-not-a-real-section-xyz' },
+  },
+  {
+    name: 'solutions.$slug',
+    loader: solutionsLoader as Loader,
+    knownParams: { slug: 'app-builder' },
+    unknownParams: { slug: 'definitely-not-a-real-solution-xyz' },
+  },
+  {
+    name: 'compare.$slug',
+    loader: compareLoader as Loader,
+    knownParams: { slug: 'heroku' },
+    unknownParams: { slug: 'definitely-not-a-real-compare-xyz' },
+  },
+  {
+    name: 'marketing.$slug',
+    loader: marketingLoader as Loader,
+    knownParams: { slug: 'teams' },
+    unknownParams: { slug: 'definitely-not-a-real-campaign-xyz' },
+  },
 ];
 
 describe('dynamic surface routes return a true HTTP 404 for unknown slugs', () => {

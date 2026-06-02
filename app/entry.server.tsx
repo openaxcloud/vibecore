@@ -10,6 +10,18 @@ export const SERVER_RENDER_READY_TIMEOUT_MS = 4_000;
 export function applyDocumentIsolationHeaders(responseHeaders: Headers) {
   responseHeaders.set('Cross-Origin-Embedder-Policy', 'credentialless');
   responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+
+  /*
+   * Baseline document hardening that is safe alongside the WebContainer
+   * isolation headers above. nosniff stops content-type sniffing on the HTML
+   * document; the referrer policy keeps full URLs (which can carry project
+   * slugs or tokens in the path) from leaking to cross-origin destinations
+   * while still sending the origin. We deliberately do NOT set X-Frame-Options
+   * or a framing CSP here — the IDE embeds preview/WebContainer iframes and a
+   * blanket frame ban would break them.
+   */
+  responseHeaders.set('X-Content-Type-Options', 'nosniff');
+  responseHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 }
 
 export async function waitForServerRenderReady(allReady: Promise<unknown>, timeoutMs = SERVER_RENDER_READY_TIMEOUT_MS) {
