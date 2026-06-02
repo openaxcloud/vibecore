@@ -1400,7 +1400,7 @@ export function SettingsForm({
   fields,
   submitLabel = 'Save changes',
 }: {
-  fields: Array<{ label: string; name: string; type?: string; placeholder?: string }>;
+  fields: Array<{ label: string; name: string; type?: string; placeholder?: string; defaultValue?: string }>;
   submitLabel?: string;
 }) {
   return (
@@ -1413,6 +1413,7 @@ export function SettingsForm({
             name={field.name}
             type={field.type ?? 'text'}
             placeholder={field.placeholder}
+            defaultValue={field.defaultValue}
           />
         </label>
       ))}
