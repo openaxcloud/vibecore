@@ -22,6 +22,30 @@ import { path } from '~/utils/path';
 
 const logger = createScopedLogger('FileTree');
 
+/*
+ * Audit v3 (C): binary files are held in the workbench store as a base64
+ * *string* (`{ content: <base64>, isBinary: true }`). `createFile` only
+ * treats content as binary when it's a `Uint8Array`; a base64 string is
+ * written verbatim, corrupting the copy. Rename/duplicate of an image, font,
+ * etc. therefore destroyed the file. Decode binary content back to bytes so
+ * `createFile`'s binary path re-encodes and writes it correctly. Browser-
+ * native (no Buffer dependency).
+ */
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return bytes;
+}
+
+function contentForCopy(entry: { content: string; isBinary?: boolean }): string | Uint8Array {
+  return entry.isBinary ? base64ToUint8Array(entry.content) : entry.content;
+}
+
 const NODE_BASE_PADDING_LEFT = 0;
 const NODE_PADDING_LEFT = 6;
 
@@ -761,7 +785,7 @@ function FileContextMenu({
           if (entry?.type === 'folder') {
             await workbenchStore.createFolder(renamedPath);
           } else if (entry?.type === 'file') {
-            await workbenchStore.createFile(renamedPath, entry.content);
+            await workbenchStore.createFile(renamedPath, contentForCopy(entry));
           }
         }
 
@@ -773,7 +797,7 @@ function FileContextMenu({
           throw new Error('File content not available');
         }
 
-        await workbenchStore.createFile(nextPath, entry.content);
+        await workbenchStore.createFile(nextPath, contentForCopy(entry));
         await workbenchStore.deleteFile(fullPath);
       }
 
@@ -811,7 +835,7 @@ function FileContextMenu({
           if (entry?.type === 'folder') {
             await workbenchStore.createFolder(copiedPath);
           } else if (entry?.type === 'file') {
-            await workbenchStore.createFile(copiedPath, entry.content);
+            await workbenchStore.createFile(copiedPath, contentForCopy(entry));
           }
         }
       } else {
@@ -821,7 +845,7 @@ function FileContextMenu({
           throw new Error('File content not available');
         }
 
-        await workbenchStore.createFile(duplicatePath, entry.content);
+        await workbenchStore.createFile(duplicatePath, contentForCopy(entry));
       }
 
       toast.success(`${isFolder ? 'Folder' : 'File'} duplicated`);
