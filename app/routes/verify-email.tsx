@@ -7,6 +7,28 @@ export async function action({ request }: EnterpriseActionArgs) {
   const body = formObject(await request.formData());
 
   try {
+    if (body.intent === 'resend') {
+      /*
+       * Re-issues a fresh token and emails it. Requires the just-registered session (signup logs the
+       * user in), and is rate-limited to 5/min on the API. In non-production the API echoes the token.
+       */
+      const result = await apiRequest<{ alreadyVerified?: boolean; verificationToken?: string }>(
+        request,
+        '/auth/send-verification',
+        { method: 'POST', redirectOn401: false, body: JSON.stringify({}) },
+      );
+
+      if (result.alreadyVerified) {
+        return json({ status: 'This email is already verified — you can continue using E-code.' });
+      }
+
+      return json({
+        status: result.verificationToken
+          ? `A new verification email was sent. Dev token: ${result.verificationToken}`
+          : 'A new verification email is on its way. Check your inbox (and spam).',
+      });
+    }
+
     await apiRequest(request, '/auth/verify-email', {
       method: 'POST',
       redirectOn401: false,
@@ -58,11 +80,12 @@ export default function VerifyEmailPage() {
       heroBody="Verifying your email enables team invites, deploy notifications and billing receipts."
       footer={
         <>
-          Need a new code?{' '}
+          Didn&apos;t get the email? Use{' '}
+          <span className="font-semibold">Resend verification email</span> above, or{' '}
           <Link to="/login" className="vc-auth-link font-semibold hover:underline">
-            Sign in
+            sign in
           </Link>{' '}
-          to request another.
+          from another device.
         </>
       }
     >
@@ -79,6 +102,16 @@ export default function VerifyEmailPage() {
           hint="The token expires 24 hours after registration."
         />
         <AuthSubmit label="Verify email" loadingLabel="Verifying..." isSubmitting={isSubmitting} />
+      </Form>
+      <Form method="post" className="mt-3">
+        <input type="hidden" name="intent" value="resend" />
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="vc-auth-link text-sm font-semibold hover:underline disabled:opacity-60"
+        >
+          Resend verification email
+        </button>
       </Form>
     </AuthScreen>
   );
