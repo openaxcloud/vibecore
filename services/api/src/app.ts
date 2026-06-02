@@ -68,8 +68,10 @@ import {
 import {
   assertDeploymentRequestAllowed,
   buildDeploymentUrl,
+  canPollDeploymentStatus,
   createDeploymentLogs,
   deployProviderConfigError,
+  pollProviderDeploymentStatus,
   runStaticBuild,
   sanitizeDeploymentEnvVars,
   snapshotStaticBuild,
@@ -123,6 +125,7 @@ import {
   type ApiKeyScope,
   type ApiStore,
   type CollaborationPresenceRecord,
+  type DeploymentRecord,
   type ProjectIdeStateRecord,
   type ProjectRecord,
   type SessionRecord,
@@ -1844,6 +1847,49 @@ async function requireProject(
  */
 function isWriteProjectPermission(permission: PermissionKey) {
   return !permission.endsWith(':read');
+}
+
+/*
+ * Reconcile a BUILDING deployment against the real provider build status. The
+ * deploy hook only queues a build, so a non-static deployment stays BUILDING
+ * until the provider reports READY/FAILED. This is invoked lazily whenever a
+ * deployment is read, so client polling of the deployment endpoints drives the
+ * status forward (stateless, multi-replica safe). A still-building or
+ * unpollable deployment is returned unchanged.
+ */
+async function reconcileDeploymentStatus(store: ApiStore, deployment: DeploymentRecord): Promise<DeploymentRecord> {
+  if (deployment.status !== 'BUILDING') {
+    return deployment;
+  }
+
+  const buildId = (deployment.metadata as Record<string, unknown> | undefined)?.providerBuildId as
+    | string
+    | undefined;
+
+  if (!canPollDeploymentStatus(deployment.provider, buildId)) {
+    return deployment;
+  }
+
+  const result = await pollProviderDeploymentStatus(deployment.provider, buildId as string).catch(() => undefined);
+
+  if (!result || result.state === 'building') {
+    return deployment;
+  }
+
+  const isReady = result.state === 'ready';
+  const url = isReady ? (result.url ?? deployment.url) : undefined;
+
+  return store.updateDeployment(deployment.projectId, deployment.id, {
+    status: isReady ? 'READY' : 'FAILED',
+    url,
+    previewUrl: isReady && deployment.environment !== 'production' ? url : undefined,
+    productionUrl: isReady && deployment.environment === 'production' ? url : undefined,
+    logs: [
+      ...deployment.logs,
+      { timestamp: new Date().toISOString(), level: isReady ? ('info' as const) : ('error' as const), message: result.log },
+    ],
+    finishedAt: new Date().toISOString(),
+  });
 }
 
 async function projectCollaborationRole(store: ApiStore, projectId: string, userId?: string) {
@@ -12835,7 +12881,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    return { deployments: await store.listDeployments(project.id).catch(() => []) };
+    const deployments = await store.listDeployments(project.id).catch(() => []);
+    // Reconcile any in-flight builds against the provider before returning, so
+    // a client polling this endpoint sees real status transitions.
+    const reconciled = await Promise.all(
+      deployments.map((deployment) => reconcileDeploymentStatus(store, deployment).catch(() => deployment)),
+    );
+
+    return { deployments: reconciled };
+  });
+  app.get('/projects/:projectId/deployments/:deploymentId', async (request, reply) => {
+    const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:read');
+    const deployment = await store.getDeployment(project.id, deploymentId);
+
+    if (!deployment) {
+      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    return { deployment: await reconcileDeploymentStatus(store, deployment).catch(() => deployment) };
   });
   app.post('/projects/:projectId/deployments', async (request, reply) => {
     const project = await requireProject(
@@ -12962,11 +13026,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const failed = hookResult?.status === 'failed' || staticBuildFailed;
 
+    /*
+     * For non-static providers the deploy hook only QUEUES a build at the
+     * provider — the build hasn't finished yet. When we can poll that
+     * provider's status API (credentials present), keep the deployment in
+     * BUILDING and let the real provider status drive READY/FAILED via
+     * reconcileDeploymentStatus (on read + polling). Only when we cannot poll
+     * do we report the hook's result directly (best available signal).
+     */
+    const pollable =
+      !failed &&
+      body.provider !== 'static' &&
+      hookResult?.status === 'queued' &&
+      canPollDeploymentStatus(body.provider, hookResult?.buildId);
+
+    const status = failed ? 'FAILED' : pollable ? 'BUILDING' : 'READY';
+    const isReady = status === 'READY';
+
     const ready = await store.updateDeployment(project.id, queued.id, {
-      status: failed ? 'FAILED' : 'READY',
+      status,
       url: failed ? undefined : url,
-      previewUrl: failed ? undefined : body.environment === 'production' ? undefined : url,
-      productionUrl: failed ? undefined : body.environment === 'production' ? url : undefined,
+      previewUrl: isReady && body.environment !== 'production' ? url : undefined,
+      productionUrl: isReady && body.environment === 'production' ? url : undefined,
       metadata: {
         ...(queued.metadata as Record<string, unknown>),
         providerBuildId: hookResult?.buildId,
@@ -12974,7 +13055,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         staticBuildOk: body.provider === 'static' ? !staticBuildFailed : undefined,
       },
       logs: augmentedLogs,
-      finishedAt: new Date().toISOString(),
+      finishedAt: status === 'BUILDING' ? undefined : new Date().toISOString(),
     });
     await recordUsage(request, project.organizationId, 'deployments.count');
     await audit(request, store, {
@@ -13126,11 +13207,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const failed = hookResult?.status === 'failed' || staticBuildFailed;
     const url = hookResult?.url ?? buildDeploymentUrl(project, redeploy);
 
+    // Same as create: a pollable non-static provider stays BUILDING until its
+    // real status is reconciled, rather than being faked READY on a queued hook.
+    const pollable =
+      !failed &&
+      source.provider !== 'static' &&
+      hookResult?.status === 'queued' &&
+      canPollDeploymentStatus(source.provider, hookResult?.buildId);
+    const redeployStatus = failed ? 'FAILED' : pollable ? 'BUILDING' : 'READY';
+    const redeployReady = redeployStatus === 'READY';
+
     const ready = await store.updateDeployment(project.id, redeploy.id, {
-      status: failed ? 'FAILED' : 'READY',
+      status: redeployStatus,
       url: failed ? undefined : url,
-      previewUrl: failed ? undefined : redeploy.environment === 'production' ? undefined : url,
-      productionUrl: failed ? undefined : redeploy.environment === 'production' ? url : undefined,
+      previewUrl: redeployReady && redeploy.environment !== 'production' ? url : undefined,
+      productionUrl: redeployReady && redeploy.environment === 'production' ? url : undefined,
       metadata: {
         ...(redeploy.metadata as Record<string, unknown>),
         providerBuildId: hookResult?.buildId,
@@ -13138,7 +13229,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         staticBuildOk: source.provider === 'static' ? !staticBuildFailed : undefined,
       },
       logs: [...redeploy.logs, ...rebuildLogs],
-      finishedAt: new Date().toISOString(),
+      finishedAt: redeployStatus === 'BUILDING' ? undefined : new Date().toISOString(),
     });
     await recordUsage(request, project.organizationId, 'deployments.count');
     await audit(request, store, {

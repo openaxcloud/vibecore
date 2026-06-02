@@ -461,6 +461,163 @@ export async function triggerProviderDeployHook(
   }
 }
 
+export interface ProviderStatusResult {
+  state: 'building' | 'ready' | 'failed';
+  url?: string;
+  log: string;
+}
+
+/*
+ * Build the provider status-API request for a queued build, or undefined when
+ * we cannot poll it (provider has no status API we support, or the read
+ * credentials are not configured). Uses the same tokens as rollback so polling
+ * is enabled by the same provider setup.
+ */
+function buildStatusSpec(
+  provider: string,
+  buildId: string,
+  env: Record<string, string | undefined>,
+): { url: string; headers: Record<string, string> } | undefined {
+  if (provider === 'vercel' && env.VERCEL_API_TOKEN) {
+    const teamSuffix = env.VERCEL_TEAM_ID ? `?teamId=${encodeURIComponent(env.VERCEL_TEAM_ID)}` : '';
+    return {
+      url: `https://api.vercel.com/v13/deployments/${encodeURIComponent(buildId)}${teamSuffix}`,
+      headers: { authorization: `Bearer ${env.VERCEL_API_TOKEN}` },
+    };
+  }
+
+  if (provider === 'netlify' && env.NETLIFY_AUTH_TOKEN) {
+    return {
+      url: `https://api.netlify.com/api/v1/deploys/${encodeURIComponent(buildId)}`,
+      headers: { authorization: `Bearer ${env.NETLIFY_AUTH_TOKEN}` },
+    };
+  }
+
+  if (
+    provider === 'cloudflare-pages' &&
+    env.CLOUDFLARE_API_TOKEN &&
+    env.CLOUDFLARE_ACCOUNT_ID &&
+    env.CLOUDFLARE_PAGES_PROJECT
+  ) {
+    return {
+      url: `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(env.CLOUDFLARE_ACCOUNT_ID)}/pages/projects/${encodeURIComponent(env.CLOUDFLARE_PAGES_PROJECT)}/deployments/${encodeURIComponent(buildId)}`,
+      headers: { authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}` },
+    };
+  }
+
+  return undefined;
+}
+
+/**
+ * Whether the real build status of a queued deployment can be polled from the
+ * provider. When false, the deploy is reported from the hook response alone
+ * (we cannot confirm completion).
+ */
+export function canPollDeploymentStatus(
+  provider: string,
+  buildId: string | undefined,
+  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+): boolean {
+  return Boolean(buildId) && buildStatusSpec(provider, buildId as string, env) !== undefined;
+}
+
+function parseStatusPayload(
+  provider: string,
+  payload: unknown,
+): ProviderStatusResult {
+  const body = (payload as Record<string, any>) ?? {};
+
+  if (provider === 'vercel') {
+    const readyState = String(body.readyState ?? body.status ?? '').toUpperCase();
+    const url = body.url ? (String(body.url).startsWith('http') ? String(body.url) : `https://${body.url}`) : undefined;
+
+    if (readyState === 'READY') {
+      return { state: 'ready', url, log: 'vercel: deployment is READY' };
+    }
+
+    if (readyState === 'ERROR' || readyState === 'CANCELED') {
+      return { state: 'failed', log: `vercel: deployment ${readyState}` };
+    }
+
+    return { state: 'building', log: `vercel: deployment ${readyState || 'BUILDING'}` };
+  }
+
+  if (provider === 'netlify') {
+    const state = String(body.state ?? '').toLowerCase();
+    const url = body.ssl_url ?? body.deploy_ssl_url ?? body.url;
+
+    if (state === 'ready') {
+      return { state: 'ready', url, log: 'netlify: deploy is ready' };
+    }
+
+    if (state === 'error' || state === 'rejected') {
+      return { state: 'failed', log: `netlify: deploy ${state}` };
+    }
+
+    return { state: 'building', log: `netlify: deploy ${state || 'building'}` };
+  }
+
+  // cloudflare-pages
+  const result = body.result ?? body;
+  const stage = result?.latest_stage ?? {};
+  const status = String(stage.status ?? '').toLowerCase();
+  const url = result?.url;
+
+  if (stage.name === 'deploy' && status === 'success') {
+    return { state: 'ready', url, log: 'cloudflare-pages: deploy succeeded' };
+  }
+
+  if (status === 'failure' || status === 'canceled') {
+    return { state: 'failed', log: `cloudflare-pages: ${stage.name ?? 'build'} ${status}` };
+  }
+
+  return { state: 'building', log: `cloudflare-pages: ${stage.name ?? 'build'} ${status || 'in progress'}` };
+}
+
+/**
+ * Query the provider for the real status of a queued build. Returns undefined
+ * when the provider is not pollable. A non-OK or unreachable status endpoint is
+ * treated as a transient "still building" so we never flip a deploy to failed
+ * on a flaky status read.
+ */
+export async function pollProviderDeploymentStatus(
+  provider: string,
+  buildId: string,
+  fetchImpl: typeof fetch = fetch,
+  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+): Promise<ProviderStatusResult | undefined> {
+  const spec = buildStatusSpec(provider, buildId, env);
+
+  if (!spec) {
+    return undefined;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+
+  try {
+    const response = await fetchImpl(spec.url, { headers: spec.headers, signal: controller.signal });
+
+    if (!response.ok) {
+      return { state: 'building', log: `${provider}: status check responded with ${response.status}` };
+    }
+
+    let payload: unknown = undefined;
+
+    try {
+      payload = await response.json();
+    } catch {
+      payload = undefined;
+    }
+
+    return parseStatusPayload(provider, payload);
+  } catch (error: any) {
+    return { state: 'building', log: `${provider}: status check failed: ${error?.message ?? 'unknown error'}` };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export function detectFramework(input: CreateDeploymentRequest) {
   if (input.framework) {
     return input.framework;
