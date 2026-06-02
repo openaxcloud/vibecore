@@ -1089,13 +1089,25 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         }),
       });
     } else if (intent === 'share-link') {
-      await apiRequest(request, `/projects/${projectId}/collaboration/share-links`, {
-        method: 'POST',
-        body: JSON.stringify({
-          roleKey: body.roleKey || 'viewer',
-          expiresInMinutes: body.expiresInMinutes || 1440,
-        }),
-      });
+      const created = await apiRequest<{ shareLink?: Record<string, unknown>; token?: string }>(
+        request,
+        `/projects/${projectId}/collaboration/share-links`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            roleKey: body.roleKey || 'viewer',
+            expiresInMinutes: body.expiresInMinutes || 1440,
+          }),
+        },
+      );
+
+      /*
+       * The API returns the raw token exactly once (only its hash is persisted, so it can never be
+       * listed again). Build the redeemable /share/<token> URL and hand it back so the IDE can show it.
+       */
+      const shareUrl = created.token ? new URL(`/share/${created.token}`, new URL(request.url).origin).toString() : undefined;
+
+      return json({ ok: true, shareLink: { ...(created.shareLink ?? {}), token: created.token, url: shareUrl } });
     } else if (intent === 'terminal-permission') {
       await apiRequest(request, `/projects/${projectId}/collaboration/terminal-permissions`, {
         method: 'POST',

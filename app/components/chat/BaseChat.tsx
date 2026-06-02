@@ -7727,6 +7727,8 @@ function ProjectIdeServicePanel({
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [panelActionsOpen, setPanelActionsOpen] = useState(false);
+  // One-time share link returned by the share-link action; the raw token is never re-listed afterwards.
+  const [createdShareLink, setCreatedShareLink] = useState<string | undefined>();
   const [refreshLabelNow, setRefreshLabelNow] = useState(() => new Date());
   const loadingPanelRef = useRef(false);
   const panelActionsRef = useRef<HTMLDivElement | null>(null);
@@ -7930,10 +7932,20 @@ function ProjectIdeServicePanel({
         body: formData,
       });
 
-      const result = (await response.json().catch(() => ({}))) as { error?: string };
+      const result = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        shareLink?: { url?: string };
+      };
 
       if (!response.ok) {
         throw new Error(result.error ?? 'Panel action failed');
+      }
+
+      if (result.shareLink?.url) {
+        setCreatedShareLink(result.shareLink.url);
+        void navigator.clipboard?.writeText(result.shareLink.url).catch(() => {
+          // Clipboard may be blocked; the URL is still shown for manual copy.
+        });
       }
 
       if (shouldResetIdePanelFormAfterSubmit(panel, intent)) {
@@ -8033,6 +8045,40 @@ function ProjectIdeServicePanel({
             >
               Retry
             </button>
+          </div>
+        ) : null}
+        {createdShareLink ? (
+          <div
+            className="mb-4 grid gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm"
+            role="status"
+          >
+            <span className="font-medium text-bolt-elements-textPrimary">
+              Share link created — copied to clipboard. It is shown only once:
+            </span>
+            <div className="flex items-center gap-2">
+              <input
+                readOnly
+                value={createdShareLink}
+                onFocus={(event) => event.currentTarget.select()}
+                className="min-w-0 flex-1 select-all rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 font-mono text-[12px] text-bolt-elements-textPrimary"
+                aria-label="Share link URL"
+              />
+              <button
+                type="button"
+                className="rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] hover:bg-bolt-elements-background-depth-3"
+                onClick={() => void navigator.clipboard?.writeText(createdShareLink).catch(() => {})}
+              >
+                Copy
+              </button>
+              <button
+                type="button"
+                className="rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] hover:bg-bolt-elements-background-depth-3"
+                onClick={() => setCreatedShareLink(undefined)}
+                aria-label="Dismiss share link"
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
         ) : null}
         {busy && !payload ? (
