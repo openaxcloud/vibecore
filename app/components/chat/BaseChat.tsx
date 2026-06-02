@@ -288,7 +288,6 @@ const IDE_MANAGEMENT_PANELS = [
   'object-storage',
   'packages',
   'monitoring',
-  'extensions',
   'integrations',
   'workflows',
   'debugger',
@@ -349,7 +348,6 @@ const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: st
   workflows: { id: 'workflows', name: 'Workflows', icon: 'i-ph:git-branch' },
   checkpoints: { id: 'checkpoints', name: 'Snapshots', icon: 'i-ph:stack' },
   snapshots: { id: 'snapshots', name: 'Snapshots', icon: 'i-ph:stack' },
-  extensions: { id: 'extensions', name: 'Extensions', icon: 'i-ph:puzzle-piece' },
   security: { id: 'security', name: 'Security', icon: 'i-ph:shield-check' },
   shell: { id: 'shell', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
   'kv-store': { id: 'kv-store', name: 'Database', icon: 'i-ph:database' },
@@ -478,13 +476,6 @@ const ECODE_MOBILE_TOOLS = [
     icon: 'i-ph:package',
   },
   {
-    id: 'extensions',
-    section: 'tools',
-    title: 'Extensions',
-    description: 'Marketplace',
-    icon: 'i-ph:puzzle-piece',
-  },
-  {
     id: 'collaborators',
     section: 'tools',
     title: 'Collaborators',
@@ -604,7 +595,6 @@ const ECODE_MOBILE_MORE_ITEMS = [
   'collaborators',
   'activity',
   'snapshots',
-  'extensions',
   'monitoring',
   'domains',
   'security',
@@ -625,7 +615,6 @@ const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> =
   'object-storage': 'File storage',
   packages: 'Dependencies manager',
   monitoring: 'App metrics',
-  extensions: 'Marketplace',
   integrations: 'Connected services',
   workflows: 'Task automation',
   debugger: 'Breakpoints and launch configs',
@@ -1718,7 +1707,6 @@ function inferAgentToolAction(message: string | undefined): AgentToolAction | nu
     ],
     [/\b(workflow|workflows|run button|automation|automate|script|task)\b/, 'workflows', 'Open Workflows'],
     [/\b(snapshot|checkpoint|restore|rollback)\b/, 'snapshots', 'Open Snapshots'],
-    [/\b(extension|marketplace)\b/, 'extensions', 'Open Extensions'],
     [/\bmonitoring|metrics|observability\b/, 'monitoring', 'Open Monitoring'],
     [/\bsettings|param(è|e)tres|configuration\b/, 'settings', 'Open Settings'],
   ];
@@ -4127,7 +4115,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           workflows: 'workflows',
           snapshots: 'snapshots',
           checkpoints: 'snapshots',
-          extensions: 'extensions',
           security: 'security',
           logs: 'logs',
           monitoring: 'monitoring',
@@ -6598,7 +6585,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             ['deployments', 'Deployments', 'Publish your app', ''],
             ['security', 'Security', 'Security scanner', ''],
             ['monitoring', 'Monitoring', 'App metrics', ''],
-            ['extensions', 'Extensions', 'Marketplace', ''],
             ['snapshots', 'Snapshots', 'Create or restore checkpoints', ''],
             ['settings', 'Settings', 'Project settings', formatKeybindingCombo('cmd+,')],
           ].map(([panel, title, description, shortcut]) => ({
@@ -9266,7 +9252,6 @@ function IdeTabBar({
     ],
     ['security', 'Security', 'Security scanner', 'i-ph:shield-check', 'var(--vc-ide-accent-error)', 'Security'],
     ['monitoring', 'Monitoring', 'App metrics', 'i-ph:chart-line', 'var(--vc-ide-accent-action)', 'Delivery'],
-    ['extensions', 'Extensions', 'Marketplace', 'i-ph:puzzle-piece', 'var(--vc-ide-text-secondary)', 'Project'],
     ['snapshots', 'Snapshots', 'Rollback points', 'i-ph:stack', 'var(--vc-ide-accent-ai-start)', 'Project'],
     ['activity', 'Activity', 'Project timeline', 'i-ph:activity', 'var(--vc-ide-accent-action)', 'Team'],
     ['collaborators', 'Collaborators', 'Team access', 'i-ph:users', 'var(--vc-ide-text-secondary)', 'Team'],
@@ -9721,10 +9706,6 @@ function ProjectIdePanelContent({
 
   if (panel === 'monitoring') {
     return <ProjectMonitoringPanel data={data} reload={reload} busy={busy} />;
-  }
-
-  if (panel === 'extensions') {
-    return <ProjectExtensionsPanel data={data} onSubmit={onSubmit} busy={busy} />;
   }
 
   if (panel === 'integrations') {
@@ -12634,226 +12615,6 @@ function ProjectMonitoringActivitySparkline({
   );
 }
 
-const PROJECT_EXTENSION_CATALOG = [
-  {
-    id: 'vscode-theme-defaults',
-    name: 'VS Code Theme Defaults',
-    category: 'Themes',
-    publisher: 'Vibecore',
-    description: 'Dark, light and high-contrast editor palettes aligned with VS Code defaults.',
-  },
-  {
-    id: 'material-icon-theme',
-    name: 'Material Icon Theme',
-    category: 'Themes',
-    publisher: 'PKief',
-    description: 'Recognizable file and folder icons for modern web, backend and config files.',
-  },
-  {
-    id: 'typescript-language-features',
-    name: 'TypeScript Language Features',
-    category: 'Languages',
-    publisher: 'Vibecore',
-    description: 'TypeScript, JavaScript and JSX language intelligence for project workspaces.',
-  },
-  {
-    id: 'python-language-support',
-    name: 'Python Language Support',
-    category: 'Languages',
-    publisher: 'Vibecore',
-    description: 'Python syntax, lint-ready settings and test discovery integration.',
-  },
-  {
-    id: 'eslint',
-    name: 'ESLint',
-    category: 'Linters',
-    publisher: 'Microsoft',
-    description: 'Project-aware JavaScript and TypeScript lint diagnostics.',
-  },
-  {
-    id: 'prettier',
-    name: 'Prettier',
-    category: 'Linters',
-    publisher: 'Prettier',
-    description: 'Consistent formatting defaults for JS, TS, CSS, JSON and Markdown.',
-  },
-  {
-    id: 'js-debug',
-    name: 'JavaScript Debugger',
-    category: 'Debuggers',
-    publisher: 'Microsoft',
-    description: 'Launch configs, breakpoints and browser/node debugging support.',
-  },
-  {
-    id: 'playwright-test',
-    name: 'Playwright Test',
-    category: 'Debuggers',
-    publisher: 'Microsoft',
-    description: 'Run, inspect and debug end-to-end tests from the IDE.',
-  },
-];
-
-function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
-  const envInstalled = String((data.envVars ?? []).find((item: any) => item.key === 'VIBECORE_EXTENSIONS')?.value ?? '')
-    .split(',')
-    .map((extension) => extension.trim())
-    .filter(Boolean);
-  const deploymentInstalled = (data.deployments ?? [])
-    .filter((deployment: any) => String(deployment.provider ?? '').startsWith('extension:'))
-    .map((deployment: any) => deployment.provider.replace('extension:', ''));
-
-  const extensionState = data.extensionsState?.extensions ?? {};
-  const installed = Array.from(new Set([...envInstalled, ...deploymentInstalled, ...Object.keys(extensionState)]));
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('All');
-  const categories = ['All', 'Installed', 'Themes', 'Languages', 'Linters', 'Debuggers'];
-  const installedSet = new Set(installed);
-  const normalizedQuery = query.trim().toLowerCase();
-
-  const installedCatalog = installed.map((id) => {
-    const catalogItem = PROJECT_EXTENSION_CATALOG.find((item) => item.id === id || item.name === id);
-
-    return {
-      id,
-      name: catalogItem?.name ?? id,
-      category: catalogItem?.category ?? 'Installed',
-      publisher: catalogItem?.publisher ?? 'Workspace',
-      description: catalogItem?.description ?? 'Workspace extension persisted in backend project settings.',
-      enabled: extensionState[id]?.enabled !== false,
-    };
-  });
-
-  const catalogItems = PROJECT_EXTENSION_CATALOG.filter((item) => {
-    const matchesCategory = category === 'All' || category === 'Installed' || item.category === category;
-
-    const matchesQuery =
-      !normalizedQuery ||
-      [item.name, item.publisher, item.category, item.description].join(' ').toLowerCase().includes(normalizedQuery);
-
-    return matchesCategory && matchesQuery;
-  });
-
-  const visibleCatalogItems = category === 'Installed' ? installedCatalog : catalogItems;
-
-  return (
-    <div className="bolt-project-extensions-panel">
-      <header className="bolt-project-extensions-hero">
-        <div>
-          <strong>Extensions marketplace</strong>
-          <span>
-            Search compatible VS Code-style capabilities and persist workspace extension state in the backend.
-          </span>
-        </div>
-        <div className="bolt-project-extensions-summary" aria-label="Installed extension summary">
-          <strong>{installed.length}</strong>
-          <span>installed</span>
-        </div>
-      </header>
-
-      <div className="bolt-project-panel-toolbar">
-        <label>
-          Search VS Code marketplace
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Theme, language, linter, debugger..."
-          />
-        </label>
-        <div className="bolt-project-extension-categories" role="tablist" aria-label="Extension categories">
-          {categories.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={category === item ? 'selected' : ''}
-              onClick={() => setCategory(item)}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <section className="bolt-project-installed-extensions" aria-label="Installed extensions">
-        <div className="bolt-project-section-heading">
-          <strong>Installed</strong>
-          <span>Enable, disable or remove project extensions without leaving the IDE.</span>
-        </div>
-        {installedCatalog.length ? (
-          <div className="bolt-project-extension-catalog installed">
-            {installedCatalog.map((extension) => (
-              <article key={extension.id} className="bolt-project-extension-card" data-enabled={extension.enabled}>
-                <div>
-                  <strong>{extension.name}</strong>
-                  <span>{extension.publisher}</span>
-                </div>
-                <p>{extension.description}</p>
-                <div className="bolt-project-extension-card-footer">
-                  <em>{extension.enabled ? 'Enabled' : 'Disabled'}</em>
-                  <form onSubmit={onSubmit}>
-                    <input name="extension" value={extension.id} type="hidden" />
-                    <input name="extensionAction" value={extension.enabled ? 'disable' : 'enable'} type="hidden" />
-                    <PanelButton disabled={busy} variant="outline">
-                      {extension.enabled ? 'Disable' : 'Enable'}
-                    </PanelButton>
-                  </form>
-                  <form onSubmit={onSubmit}>
-                    <input name="extension" value={extension.id} type="hidden" />
-                    <input name="extensionAction" value="remove" type="hidden" />
-                    <PanelButton disabled={busy} variant="outline">
-                      Remove
-                    </PanelButton>
-                  </form>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="bolt-project-empty-panel">
-            No extensions installed yet. Install a theme, language pack, linter or debugger below.
-          </div>
-        )}
-      </section>
-
-      <section aria-label="Marketplace extensions">
-        <div className="bolt-project-section-heading">
-          <strong>{category === 'Installed' ? 'Installed catalog view' : 'Marketplace'}</strong>
-          <span>
-            {visibleCatalogItems.length} extension{visibleCatalogItems.length === 1 ? '' : 's'} shown
-          </span>
-        </div>
-        {visibleCatalogItems.length ? (
-          <div className="bolt-project-extension-catalog">
-            {visibleCatalogItems.map((extension) => {
-              const isInstalled = installedSet.has(extension.id);
-
-              return (
-                <article key={extension.id} className="bolt-project-extension-card" data-enabled={isInstalled}>
-                  <div>
-                    <strong>{extension.name}</strong>
-                    <span>
-                      {extension.publisher} · {extension.category}
-                    </span>
-                  </div>
-                  <p>{extension.description}</p>
-                  <div className="bolt-project-extension-card-footer">
-                    <em>{isInstalled ? 'Installed' : 'Available'}</em>
-                    <form onSubmit={onSubmit}>
-                      <input name="extension" value={extension.id} type="hidden" />
-                      <input name="extensionAction" value="install" type="hidden" />
-                      <PanelButton disabled={busy || isInstalled}>{isInstalled ? 'Installed' : 'Install'}</PanelButton>
-                    </form>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="bolt-project-empty-panel">No extensions match the current search and category filters.</div>
-        )}
-      </section>
-    </div>
-  );
-}
 
 function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
   const state = data.workflowsState ?? {};

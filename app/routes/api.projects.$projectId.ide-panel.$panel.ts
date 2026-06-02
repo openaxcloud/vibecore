@@ -578,21 +578,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     }
   }
 
-  if (['database', 'object-storage', 'monitoring', 'extensions'].includes(panel)) {
-    if (panel === 'extensions') {
-      try {
-        const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
-
-        return json(
-          panelEnvelope(panel, project.project, {
-            ...(envVars as any),
-            extensionsState: readExtensionsState(envVars),
-          }),
-        );
-      } catch (error) {
-        return json(panelEnvelopeError(panel, project.project, error));
-      }
-    }
+  if (['database', 'object-storage', 'monitoring'].includes(panel)) {
 
     try {
       const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
@@ -1391,47 +1377,6 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       method: 'PUT',
       body: JSON.stringify({ key: PACKAGES_STATE_ENV_KEY, value: JSON.stringify(normalizePackagesState(state)) }),
     });
-  } else if (panel === 'extensions') {
-    const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
-    const state = readExtensionsState(envVars);
-    const action = body.extensionAction ?? 'install';
-    const requestedExtension = (body.extension ?? '').trim();
-
-    if (!requestedExtension) {
-      throw json({ error: 'extension is required' }, { status: 400 });
-    }
-
-    const existingExtensions = String(
-      (envVars as any)?.envVars?.find((item: any) => item.key === 'VIBECORE_EXTENSIONS')?.value ?? '',
-    )
-      .split(',')
-      .map((extension) => extension.trim())
-      .filter(Boolean);
-
-    const extensions = new Set([...existingExtensions, ...Object.keys(state.extensions)]);
-
-    if (action === 'remove') {
-      extensions.delete(requestedExtension);
-      delete state.extensions[requestedExtension];
-    } else {
-      extensions.add(requestedExtension);
-      state.extensions[requestedExtension] = {
-        ...state.extensions[requestedExtension],
-        id: requestedExtension,
-        enabled: action !== 'disable',
-        installedAt: state.extensions[requestedExtension]?.installedAt ?? new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-    }
-
-    await apiRequest(request, `/projects/${projectId}/env-vars`, {
-      method: 'PUT',
-      body: JSON.stringify({ key: 'VIBECORE_EXTENSIONS', value: Array.from(extensions).sort().join(',') }),
-    });
-    await apiRequest(request, `/projects/${projectId}/env-vars`, {
-      method: 'PUT',
-      body: JSON.stringify({ key: EXTENSIONS_STATE_ENV_KEY, value: JSON.stringify(normalizeExtensionsState(state)) }),
-    });
   } else if (panel === 'integrations') {
     const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
     const state = readIntegrationsState(envVars);
@@ -2129,7 +2074,6 @@ function integrationSecretKey(integrationId: string) {
 const TERMINAL_STATE_ENV_KEY = 'VIBECORE_TERMINAL_STATE';
 const PACKAGES_STATE_ENV_KEY = 'VIBECORE_PACKAGES_STATE';
 const DEBUGGER_STATE_ENV_KEY = 'VIBECORE_DEBUGGER_STATE';
-const EXTENSIONS_STATE_ENV_KEY = 'VIBECORE_EXTENSIONS_STATE';
 
 type ProjectPackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
 
@@ -2160,59 +2104,6 @@ function normalizePackagesState(input: any) {
   };
 }
 
-function readExtensionsState(envVarsResponse: unknown) {
-  const envVars = (envVarsResponse as any)?.envVars ?? [];
-  const raw = envVars.find((item: any) => item.key === EXTENSIONS_STATE_ENV_KEY)?.value;
-
-  const legacyExtensions = String(envVars.find((item: any) => item.key === 'VIBECORE_EXTENSIONS')?.value ?? '')
-    .split(',')
-    .map((extension) => extension.trim())
-    .filter(Boolean);
-
-  try {
-    return normalizeExtensionsState({
-      ...(typeof raw === 'string' && raw.trim() ? JSON.parse(raw) : {}),
-      legacyExtensions,
-    });
-  } catch {
-    return normalizeExtensionsState({ legacyExtensions });
-  }
-}
-
-function normalizeExtensionsState(input: any) {
-  const extensions: Record<string, any> = {};
-  const legacyExtensions = Array.isArray(input?.legacyExtensions) ? input.legacyExtensions : [];
-
-  for (const extension of legacyExtensions) {
-    if (typeof extension !== 'string' || !extension.trim()) {
-      continue;
-    }
-
-    extensions[extension.trim()] = {
-      id: extension.trim(),
-      enabled: true,
-      installedAt: undefined,
-      updatedAt: undefined,
-    };
-  }
-
-  if (input?.extensions && typeof input.extensions === 'object') {
-    for (const [id, value] of Object.entries(input.extensions)) {
-      if (!id.trim()) {
-        continue;
-      }
-
-      extensions[id] = {
-        id,
-        enabled: (value as any)?.enabled !== false,
-        installedAt: typeof (value as any)?.installedAt === 'string' ? (value as any).installedAt : undefined,
-        updatedAt: typeof (value as any)?.updatedAt === 'string' ? (value as any).updatedAt : undefined,
-      };
-    }
-  }
-
-  return { extensions };
-}
 
 function normalizePackageManager(value: string): ProjectPackageManager {
   const normalized = value.toLowerCase();

@@ -12,7 +12,6 @@ const ideServicePanels = [
   'object-storage',
   'packages',
   'monitoring',
-  'extensions',
   'integrations',
   'workflows',
   'debugger',
