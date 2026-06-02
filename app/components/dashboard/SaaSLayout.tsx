@@ -1678,13 +1678,6 @@ function NavButton({ to, children }: { to: string; children: React.ReactNode }) 
   );
 }
 
-export const dashboardStats = [
-  { label: 'Active workspaces', value: '1 / 4', detail: 'Remote runtime capacity available', icon: MonitorPlay },
-  { label: 'AI tokens', value: '42%', detail: 'Plan usage this billing period', icon: Sparkles },
-  { label: 'Deployments', value: '8', detail: 'Production and preview releases', icon: Rocket },
-  { label: 'Open issues', value: '0', detail: 'No critical workspace failures', icon: ShieldCheck },
-];
-
 export function statsFromUsage(input?: {
   projects?: number;
   activeWorkspaces?: number;
