@@ -534,6 +534,14 @@ async function requireFirstOrganization(request: Request) {
 export async function loader({ request, context }: EnterpriseLoaderArgs) {
   await requireFirstOrganization(request);
 
+  /*
+   * The homepage "Describe the app you want to build" form forwards its text as ?prompt=, and the
+   * signup flow carries it through to here after registration. Seed the composer with it so a visitor
+   * who typed an idea on the landing page doesn't have to retype it.
+   */
+  const requestedPrompt = new URL(request.url).searchParams.get('prompt') ?? '';
+  const initialPrompt = requestedPrompt.trim().slice(0, PROMPT_MAX_CHARS);
+
   const serverEnv = context.cloudflare?.env as unknown as Record<string, string> | undefined;
   const llmManager = LLMManager.getInstance(serverEnv);
   const allProviders = llmManager.getAllProviders();
@@ -547,7 +555,7 @@ export async function loader({ request, context }: EnterpriseLoaderArgs) {
     icon: provider.icon,
   }));
 
-  return json<ModelsPayload>({
+  return json<ModelsPayload & { initialPrompt: string }>({
     modelList: llmManager.getStaticModelList(),
     providers,
     defaultProvider: {
@@ -557,6 +565,7 @@ export async function loader({ request, context }: EnterpriseLoaderArgs) {
       labelForGetApiKey: defaultProvider.labelForGetApiKey,
       icon: defaultProvider.icon,
     },
+    initialPrompt,
   });
 }
 
@@ -714,7 +723,7 @@ export default function NewProjectPage() {
   const navigation = useNavigation();
   const providersSettings = useStore(providersStore);
   const isSubmitting = navigation.state === 'submitting';
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState(initialModelsPayload.initialPrompt ?? '');
   const [selectedCategory, setSelectedCategory] = useState(artifactCategories[0].id);
   const [promptSeed, setPromptSeed] = useState(0);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);

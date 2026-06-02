@@ -36,10 +36,26 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   const host = request.headers.get('host')?.toLowerCase() ?? '';
 
   if (host === 'e-code.ai' || host === 'www.e-code.ai') {
-    return redirect('https://app.e-code.ai/register', { status: 301 });
+    // Preserve ?prompt= (and any other query) so the homepage builder prompt survives the host hop.
+    const search = new URL(request.url).search;
+    return redirect(`https://app.e-code.ai/register${search}`, { status: 301 });
   }
 
   return null;
+}
+
+/*
+ * The homepage builder form sends the visitor's app idea as ?prompt=. After registration we forward
+ * it to the new-project composer so the first thing they see is their idea ready to build.
+ */
+function postRegisterDestination(request: Request): string {
+  const prompt = new URL(request.url).searchParams.get('prompt')?.trim();
+
+  if (prompt) {
+    return `/projects/new?prompt=${encodeURIComponent(prompt)}`;
+  }
+
+  return '/dashboard';
 }
 
 type ActionResult =
@@ -109,7 +125,7 @@ export async function action({ request }: EnterpriseActionArgs) {
      * `/verify-email`. This keeps the MVP path frictionless while we
      * wire up Resend / SES.
      */
-    return redirect('/dashboard', {
+    return redirect(postRegisterDestination(request), {
       headers: { 'Set-Cookie': sessionCookie(result.token) },
     });
   } catch (error) {
