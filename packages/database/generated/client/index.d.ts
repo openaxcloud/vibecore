@@ -76871,6 +76871,8 @@ export namespace Prisma {
     userId: string | null
     name: string | null
     keyHash: string | null
+    keyPrefix: string | null
+    lastUsedAt: Date | null
     expiresAt: Date | null
     createdAt: Date | null
   }
@@ -76881,6 +76883,8 @@ export namespace Prisma {
     userId: string | null
     name: string | null
     keyHash: string | null
+    keyPrefix: string | null
+    lastUsedAt: Date | null
     expiresAt: Date | null
     createdAt: Date | null
   }
@@ -76891,7 +76895,9 @@ export namespace Prisma {
     userId: number
     name: number
     keyHash: number
+    keyPrefix: number
     scopes: number
+    lastUsedAt: number
     expiresAt: number
     createdAt: number
     _all: number
@@ -76904,6 +76910,8 @@ export namespace Prisma {
     userId?: true
     name?: true
     keyHash?: true
+    keyPrefix?: true
+    lastUsedAt?: true
     expiresAt?: true
     createdAt?: true
   }
@@ -76914,6 +76922,8 @@ export namespace Prisma {
     userId?: true
     name?: true
     keyHash?: true
+    keyPrefix?: true
+    lastUsedAt?: true
     expiresAt?: true
     createdAt?: true
   }
@@ -76924,7 +76934,9 @@ export namespace Prisma {
     userId?: true
     name?: true
     keyHash?: true
+    keyPrefix?: true
     scopes?: true
+    lastUsedAt?: true
     expiresAt?: true
     createdAt?: true
     _all?: true
@@ -77008,7 +77020,9 @@ export namespace Prisma {
     userId: string | null
     name: string
     keyHash: string
+    keyPrefix: string | null
     scopes: string[]
+    lastUsedAt: Date | null
     expiresAt: Date | null
     createdAt: Date
     _count: ApiKeyCountAggregateOutputType | null
@@ -77036,7 +77050,9 @@ export namespace Prisma {
     userId?: boolean
     name?: boolean
     keyHash?: boolean
+    keyPrefix?: boolean
     scopes?: boolean
+    lastUsedAt?: boolean
     expiresAt?: boolean
     createdAt?: boolean
     organization?: boolean | ApiKey$organizationArgs<ExtArgs>
@@ -77049,7 +77065,9 @@ export namespace Prisma {
     userId?: boolean
     name?: boolean
     keyHash?: boolean
+    keyPrefix?: boolean
     scopes?: boolean
+    lastUsedAt?: boolean
     expiresAt?: boolean
     createdAt?: boolean
     organization?: boolean | ApiKey$organizationArgs<ExtArgs>
@@ -77062,7 +77080,9 @@ export namespace Prisma {
     userId?: boolean
     name?: boolean
     keyHash?: boolean
+    keyPrefix?: boolean
     scopes?: boolean
+    lastUsedAt?: boolean
     expiresAt?: boolean
     createdAt?: boolean
     organization?: boolean | ApiKey$organizationArgs<ExtArgs>
@@ -77075,12 +77095,14 @@ export namespace Prisma {
     userId?: boolean
     name?: boolean
     keyHash?: boolean
+    keyPrefix?: boolean
     scopes?: boolean
+    lastUsedAt?: boolean
     expiresAt?: boolean
     createdAt?: boolean
   }
 
-  export type ApiKeyOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "userId" | "name" | "keyHash" | "scopes" | "expiresAt" | "createdAt", ExtArgs["result"]["apiKey"]>
+  export type ApiKeyOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "userId" | "name" | "keyHash" | "keyPrefix" | "scopes" | "lastUsedAt" | "expiresAt" | "createdAt", ExtArgs["result"]["apiKey"]>
   export type ApiKeyInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | ApiKey$organizationArgs<ExtArgs>
     user?: boolean | ApiKey$userArgs<ExtArgs>
@@ -77106,7 +77128,9 @@ export namespace Prisma {
       userId: string | null
       name: string
       keyHash: string
+      keyPrefix: string | null
       scopes: string[]
+      lastUsedAt: Date | null
       expiresAt: Date | null
       createdAt: Date
     }, ExtArgs["result"]["apiKey"]>
@@ -77539,7 +77563,9 @@ export namespace Prisma {
     readonly userId: FieldRef<"ApiKey", 'String'>
     readonly name: FieldRef<"ApiKey", 'String'>
     readonly keyHash: FieldRef<"ApiKey", 'String'>
+    readonly keyPrefix: FieldRef<"ApiKey", 'String'>
     readonly scopes: FieldRef<"ApiKey", 'String[]'>
+    readonly lastUsedAt: FieldRef<"ApiKey", 'DateTime'>
     readonly expiresAt: FieldRef<"ApiKey", 'DateTime'>
     readonly createdAt: FieldRef<"ApiKey", 'DateTime'>
   }
@@ -98514,7 +98540,9 @@ export namespace Prisma {
     userId: 'userId',
     name: 'name',
     keyHash: 'keyHash',
+    keyPrefix: 'keyPrefix',
     scopes: 'scopes',
+    lastUsedAt: 'lastUsedAt',
     expiresAt: 'expiresAt',
     createdAt: 'createdAt'
   };
@@ -103466,7 +103494,9 @@ export namespace Prisma {
     userId?: StringNullableFilter<"ApiKey"> | string | null
     name?: StringFilter<"ApiKey"> | string
     keyHash?: StringFilter<"ApiKey"> | string
+    keyPrefix?: StringNullableFilter<"ApiKey"> | string | null
     scopes?: StringNullableListFilter<"ApiKey">
+    lastUsedAt?: DateTimeNullableFilter<"ApiKey"> | Date | string | null
     expiresAt?: DateTimeNullableFilter<"ApiKey"> | Date | string | null
     createdAt?: DateTimeFilter<"ApiKey"> | Date | string
     organization?: XOR<OrganizationNullableScalarRelationFilter, OrganizationWhereInput> | null
@@ -103479,7 +103509,9 @@ export namespace Prisma {
     userId?: SortOrderInput | SortOrder
     name?: SortOrder
     keyHash?: SortOrder
+    keyPrefix?: SortOrderInput | SortOrder
     scopes?: SortOrder
+    lastUsedAt?: SortOrderInput | SortOrder
     expiresAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     organization?: OrganizationOrderByWithRelationInput
@@ -103495,7 +103527,9 @@ export namespace Prisma {
     organizationId?: StringNullableFilter<"ApiKey"> | string | null
     userId?: StringNullableFilter<"ApiKey"> | string | null
     name?: StringFilter<"ApiKey"> | string
+    keyPrefix?: StringNullableFilter<"ApiKey"> | string | null
     scopes?: StringNullableListFilter<"ApiKey">
+    lastUsedAt?: DateTimeNullableFilter<"ApiKey"> | Date | string | null
     expiresAt?: DateTimeNullableFilter<"ApiKey"> | Date | string | null
     createdAt?: DateTimeFilter<"ApiKey"> | Date | string
     organization?: XOR<OrganizationNullableScalarRelationFilter, OrganizationWhereInput> | null
@@ -103508,7 +103542,9 @@ export namespace Prisma {
     userId?: SortOrderInput | SortOrder
     name?: SortOrder
     keyHash?: SortOrder
+    keyPrefix?: SortOrderInput | SortOrder
     scopes?: SortOrder
+    lastUsedAt?: SortOrderInput | SortOrder
     expiresAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: ApiKeyCountOrderByAggregateInput
@@ -103525,7 +103561,9 @@ export namespace Prisma {
     userId?: StringNullableWithAggregatesFilter<"ApiKey"> | string | null
     name?: StringWithAggregatesFilter<"ApiKey"> | string
     keyHash?: StringWithAggregatesFilter<"ApiKey"> | string
+    keyPrefix?: StringNullableWithAggregatesFilter<"ApiKey"> | string | null
     scopes?: StringNullableListFilter<"ApiKey">
+    lastUsedAt?: DateTimeNullableWithAggregatesFilter<"ApiKey"> | Date | string | null
     expiresAt?: DateTimeNullableWithAggregatesFilter<"ApiKey"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ApiKey"> | Date | string
   }
@@ -109657,7 +109695,9 @@ export namespace Prisma {
     id?: string
     name: string
     keyHash: string
+    keyPrefix?: string | null
     scopes?: ApiKeyCreatescopesInput | string[]
+    lastUsedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
     organization?: OrganizationCreateNestedOneWithoutApiKeysInput
@@ -109670,7 +109710,9 @@ export namespace Prisma {
     userId?: string | null
     name: string
     keyHash: string
+    keyPrefix?: string | null
     scopes?: ApiKeyCreatescopesInput | string[]
+    lastUsedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
   }
@@ -109679,7 +109721,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     keyHash?: StringFieldUpdateOperationsInput | string
+    keyPrefix?: NullableStringFieldUpdateOperationsInput | string | null
     scopes?: ApiKeyUpdatescopesInput | string[]
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneWithoutApiKeysNestedInput
@@ -109692,7 +109736,9 @@ export namespace Prisma {
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     keyHash?: StringFieldUpdateOperationsInput | string
+    keyPrefix?: NullableStringFieldUpdateOperationsInput | string | null
     scopes?: ApiKeyUpdatescopesInput | string[]
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -109703,7 +109749,9 @@ export namespace Prisma {
     userId?: string | null
     name: string
     keyHash: string
+    keyPrefix?: string | null
     scopes?: ApiKeyCreatescopesInput | string[]
+    lastUsedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
   }
@@ -109712,7 +109760,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     keyHash?: StringFieldUpdateOperationsInput | string
+    keyPrefix?: NullableStringFieldUpdateOperationsInput | string | null
     scopes?: ApiKeyUpdatescopesInput | string[]
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -109723,7 +109773,9 @@ export namespace Prisma {
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     keyHash?: StringFieldUpdateOperationsInput | string
+    keyPrefix?: NullableStringFieldUpdateOperationsInput | string | null
     scopes?: ApiKeyUpdatescopesInput | string[]
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -114574,7 +114626,9 @@ export namespace Prisma {
     userId?: SortOrder
     name?: SortOrder
     keyHash?: SortOrder
+    keyPrefix?: SortOrder
     scopes?: SortOrder
+    lastUsedAt?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
   }
@@ -114585,6 +114639,8 @@ export namespace Prisma {
     userId?: SortOrder
     name?: SortOrder
     keyHash?: SortOrder
+    keyPrefix?: SortOrder
+    lastUsedAt?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
   }
@@ -114595,6 +114651,8 @@ export namespace Prisma {
     userId?: SortOrder
     name?: SortOrder
     keyHash?: SortOrder
+    keyPrefix?: SortOrder
+    lastUsedAt?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
   }
@@ -121538,7 +121596,9 @@ export namespace Prisma {
     id?: string
     name: string
     keyHash: string
+    keyPrefix?: string | null
     scopes?: ApiKeyCreatescopesInput | string[]
+    lastUsedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
     organization?: OrganizationCreateNestedOneWithoutApiKeysInput
@@ -121549,7 +121609,9 @@ export namespace Prisma {
     organizationId?: string | null
     name: string
     keyHash: string
+    keyPrefix?: string | null
     scopes?: ApiKeyCreatescopesInput | string[]
+    lastUsedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
   }
@@ -122375,7 +122437,9 @@ export namespace Prisma {
     userId?: StringNullableFilter<"ApiKey"> | string | null
     name?: StringFilter<"ApiKey"> | string
     keyHash?: StringFilter<"ApiKey"> | string
+    keyPrefix?: StringNullableFilter<"ApiKey"> | string | null
     scopes?: StringNullableListFilter<"ApiKey">
+    lastUsedAt?: DateTimeNullableFilter<"ApiKey"> | Date | string | null
     expiresAt?: DateTimeNullableFilter<"ApiKey"> | Date | string | null
     createdAt?: DateTimeFilter<"ApiKey"> | Date | string
   }
@@ -123943,7 +124007,9 @@ export namespace Prisma {
     id?: string
     name: string
     keyHash: string
+    keyPrefix?: string | null
     scopes?: ApiKeyCreatescopesInput | string[]
+    lastUsedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
     user?: UserCreateNestedOneWithoutApiKeysInput
@@ -123954,7 +124020,9 @@ export namespace Prisma {
     userId?: string | null
     name: string
     keyHash: string
+    keyPrefix?: string | null
     scopes?: ApiKeyCreatescopesInput | string[]
+    lastUsedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
   }
@@ -141118,7 +141186,9 @@ export namespace Prisma {
     organizationId?: string | null
     name: string
     keyHash: string
+    keyPrefix?: string | null
     scopes?: ApiKeyCreatescopesInput | string[]
+    lastUsedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
   }
@@ -141431,7 +141501,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     keyHash?: StringFieldUpdateOperationsInput | string
+    keyPrefix?: NullableStringFieldUpdateOperationsInput | string | null
     scopes?: ApiKeyUpdatescopesInput | string[]
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneWithoutApiKeysNestedInput
@@ -141442,7 +141514,9 @@ export namespace Prisma {
     organizationId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     keyHash?: StringFieldUpdateOperationsInput | string
+    keyPrefix?: NullableStringFieldUpdateOperationsInput | string | null
     scopes?: ApiKeyUpdatescopesInput | string[]
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -141452,7 +141526,9 @@ export namespace Prisma {
     organizationId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     keyHash?: StringFieldUpdateOperationsInput | string
+    keyPrefix?: NullableStringFieldUpdateOperationsInput | string | null
     scopes?: ApiKeyUpdatescopesInput | string[]
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -142348,7 +142424,9 @@ export namespace Prisma {
     userId?: string | null
     name: string
     keyHash: string
+    keyPrefix?: string | null
     scopes?: ApiKeyCreatescopesInput | string[]
+    lastUsedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
   }
@@ -142917,7 +142995,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     keyHash?: StringFieldUpdateOperationsInput | string
+    keyPrefix?: NullableStringFieldUpdateOperationsInput | string | null
     scopes?: ApiKeyUpdatescopesInput | string[]
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneWithoutApiKeysNestedInput
@@ -142928,7 +143008,9 @@ export namespace Prisma {
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     keyHash?: StringFieldUpdateOperationsInput | string
+    keyPrefix?: NullableStringFieldUpdateOperationsInput | string | null
     scopes?: ApiKeyUpdatescopesInput | string[]
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -142938,7 +143020,9 @@ export namespace Prisma {
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     keyHash?: StringFieldUpdateOperationsInput | string
+    keyPrefix?: NullableStringFieldUpdateOperationsInput | string | null
     scopes?: ApiKeyUpdatescopesInput | string[]
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

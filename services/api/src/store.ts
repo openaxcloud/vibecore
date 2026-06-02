@@ -303,6 +303,23 @@ export interface SiemWebhookRecord {
   createdAt: string;
 }
 
+export type ApiKeyScope = 'read' | 'write' | 'admin';
+
+export const API_KEY_SCOPES: ApiKeyScope[] = ['read', 'write', 'admin'];
+
+export interface ApiKeyRecord {
+  id: string;
+  organizationId?: string;
+  userId?: string;
+  name: string;
+  keyHash: string;
+  keyPrefix?: string;
+  scopes: ApiKeyScope[];
+  lastUsedAt?: string;
+  expiresAt?: string;
+  createdAt: string;
+}
+
 export interface OrganizationInviteRecord {
   id: string;
   organizationId: string;
@@ -896,6 +913,19 @@ export interface ApiStore {
     enabled: boolean;
   }): Promise<SiemWebhookRecord>;
   listSiemWebhooks(organizationId: string): Promise<SiemWebhookRecord[]>;
+  createApiKey(input: {
+    userId?: string;
+    organizationId?: string;
+    name: string;
+    keyHash: string;
+    keyPrefix: string;
+    scopes: ApiKeyScope[];
+    expiresAt?: Date;
+  }): Promise<ApiKeyRecord>;
+  listApiKeys(scope: { userId?: string; organizationId?: string }): Promise<ApiKeyRecord[]>;
+  findApiKeyByHash(keyHash: string): Promise<ApiKeyRecord | undefined>;
+  touchApiKey(id: string): Promise<void>;
+  deleteApiKey(input: { id: string; userId?: string; organizationId?: string }): Promise<boolean>;
   createOrganizationInvite(input: {
     organizationId: string;
     email: string;

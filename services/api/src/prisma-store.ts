@@ -3,10 +3,13 @@ import { hashToken } from '@vibecore/auth';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import { API_KEY_SCOPES } from './store.js';
 import type {
   AbuseEventRecord,
   AgentPatchProposalRecord,
   AgentPatchProposalStatus,
+  ApiKeyRecord,
+  ApiKeyScope,
   ApiStore,
   AiCostLedgerRecord,
   AiConversationRecord,
@@ -1416,6 +1419,57 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.siemWebhook.findMany({ where: { organizationId } })).map(mapSiemWebhook);
   }
 
+  async createApiKey(input: {
+    userId?: string;
+    organizationId?: string;
+    name: string;
+    keyHash: string;
+    keyPrefix: string;
+    scopes: ApiKeyScope[];
+    expiresAt?: Date;
+  }) {
+    return mapApiKey(
+      await this.prisma.apiKey.create({
+        data: {
+          userId: input.userId,
+          organizationId: input.organizationId,
+          name: input.name,
+          keyHash: input.keyHash,
+          keyPrefix: input.keyPrefix,
+          scopes: input.scopes,
+          expiresAt: input.expiresAt,
+        },
+      }),
+    );
+  }
+
+  async listApiKeys(scope: { userId?: string; organizationId?: string }) {
+    const where = scope.organizationId ? { organizationId: scope.organizationId } : { userId: scope.userId };
+
+    return (await this.prisma.apiKey.findMany({ where, orderBy: { createdAt: 'desc' } })).map(mapApiKey);
+  }
+
+  async findApiKeyByHash(keyHash: string) {
+    const key = await this.prisma.apiKey.findUnique({ where: { keyHash } });
+
+    return key ? mapApiKey(key) : undefined;
+  }
+
+  async touchApiKey(id: string) {
+    await this.prisma.apiKey.update({ where: { id }, data: { lastUsedAt: new Date() } });
+  }
+
+  async deleteApiKey(input: { id: string; userId?: string; organizationId?: string }) {
+    const result = await this.prisma.apiKey.deleteMany({
+      where: {
+        id: input.id,
+        ...(input.organizationId ? { organizationId: input.organizationId } : { userId: input.userId }),
+      },
+    });
+
+    return result.count > 0;
+  }
+
   async createOrganizationInvite(input: {
     organizationId: string;
     email: string;
@@ -2532,6 +2586,23 @@ function mapSiemWebhook(webhook: any): SiemWebhookRecord {
     enabled: webhook.enabled,
     lastDeliveredAt: toIso(webhook.lastDeliveredAt),
     createdAt: toIso(webhook.createdAt)!,
+  };
+}
+
+function mapApiKey(key: any): ApiKeyRecord {
+  return {
+    id: key.id,
+    organizationId: key.organizationId ?? undefined,
+    userId: key.userId ?? undefined,
+    name: key.name,
+    keyHash: key.keyHash,
+    keyPrefix: key.keyPrefix ?? undefined,
+    scopes: ((key.scopes ?? []) as string[]).filter((scope): scope is ApiKeyScope =>
+      API_KEY_SCOPES.includes(scope as ApiKeyScope),
+    ),
+    lastUsedAt: toIso(key.lastUsedAt),
+    expiresAt: toIso(key.expiresAt),
+    createdAt: toIso(key.createdAt)!,
   };
 }
 

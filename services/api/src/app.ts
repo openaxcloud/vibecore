@@ -118,6 +118,8 @@ import {
   type StoredArchive,
 } from './project-storage.js';
 import {
+  API_KEY_SCOPES,
+  type ApiKeyScope,
   type ApiStore,
   type CollaborationPresenceRecord,
   type ProjectIdeStateRecord,
@@ -131,6 +133,7 @@ declare module 'fastify' {
   interface FastifyRequest {
     currentUser?: AuthenticatedUser;
     currentSession?: SessionRecord;
+    apiKeyAuth?: { id: string; scopes: ApiKeyScope[] };
     rawBody?: string;
     observability?: { startedAt: number; correlationId: string };
     observabilityMetrics?: {
@@ -813,6 +816,13 @@ const integrationOauthCallbackBodySchema = z.object({
 
 const userConnectionListQuerySchema = z.object({ provider: z.string().min(1).optional() });
 const userConnectionIdParams = z.object({ userConnectionId: z.string().min(1) });
+
+const apiKeyCreateSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  scopes: z.array(z.enum(API_KEY_SCOPES as [ApiKeyScope, ...ApiKeyScope[]])).min(1),
+  expiresInDays: z.number().int().positive().max(3650).optional(),
+});
+const apiKeyIdParams = z.object({ keyId: z.string().min(1) });
 const platformAdminParams = z.object({ userId: z.string().min(1) });
 const platformAdminSchema = z.object({ platformAdmin: z.boolean() });
 const adminUserParams = z.object({ userId: z.string().min(1) });
@@ -1565,11 +1575,101 @@ async function runDatabaseQuery(
   }
 }
 
+const API_KEY_TOKEN_PREFIX = 'vck_';
+
+/*
+ * Resolves the minimum scope a request needs from its HTTP method: read for
+ * safe reads, write for any mutation. `admin` is a strict superset and is
+ * checked explicitly by the handful of endpoints that demand it.
+ */
+function requiredScopeForMethod(method: string): ApiKeyScope {
+  return method === 'GET' || method === 'HEAD' || method === 'OPTIONS' ? 'read' : 'write';
+}
+
+function scopesSatisfy(granted: ApiKeyScope[], required: ApiKeyScope): boolean {
+  if (granted.includes('admin')) {
+    return true;
+  }
+
+  if (required === 'read') {
+    return granted.includes('read') || granted.includes('write');
+  }
+
+  return granted.includes(required);
+}
+
+/*
+ * Authenticates a request bearing a scoped API key (token prefix `vck_`).
+ * The full token is never stored — we look the key up by its SHA-256 hash,
+ * reject expired keys, resolve the owning user, stamp `lastUsedAt`, and gate
+ * the request on the scope its HTTP method requires. Org-scoped keys with no
+ * owning user are rejected because every authenticated endpoint runs in a
+ * user context.
+ */
+async function authenticateApiKey(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  store: ApiStore,
+  token: string,
+) {
+  const apiKey = await store.findApiKeyByHash(hashToken(token));
+
+  if (!apiKey) {
+    return authError(reply);
+  }
+
+  if (apiKey.expiresAt && new Date(apiKey.expiresAt).getTime() <= Date.now()) {
+    return reply.code(401).send({ error: 'API key expired', code: 'API_KEY_EXPIRED' });
+  }
+
+  if (!apiKey.userId) {
+    return reply
+      .code(403)
+      .send({ error: 'API key is not bound to a user', code: 'API_KEY_NO_USER' });
+  }
+
+  const user = await store.findUserById(apiKey.userId);
+
+  if (!user) {
+    return authError(reply);
+  }
+
+  if (await isUserSuspended(store, user.id)) {
+    return reply.code(403).send({ error: 'User is suspended', code: 'USER_SUSPENDED' });
+  }
+
+  const required = requiredScopeForMethod(request.method);
+
+  if (!scopesSatisfy(apiKey.scopes, required)) {
+    return reply.code(403).send({
+      error: `API key is missing the '${required}' scope`,
+      code: 'API_KEY_SCOPE_INSUFFICIENT',
+    });
+  }
+
+  // Best-effort usage stamp; never block the request on it.
+  void store.touchApiKey(apiKey.id).catch(() => {});
+
+  request.currentUser = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    emailVerifiedAt: user.emailVerifiedAt,
+    mfaEnabled: user.mfaEnabled,
+    platformAdmin: user.platformAdmin,
+  };
+  request.apiKeyAuth = { id: apiKey.id, scopes: apiKey.scopes };
+}
+
 async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: ApiStore) {
   const token = bearerToken(request);
 
   if (!token) {
     return authError(reply);
+  }
+
+  if (token.startsWith(API_KEY_TOKEN_PREFIX)) {
+    return authenticateApiKey(request, reply, store, token);
   }
 
   const session = await store.findSessionByToken(token);
@@ -5476,6 +5576,102 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       status: updated?.status ?? 'revoked',
       revokedAt: updated?.revokedAt ?? new Date().toISOString(),
     };
+  });
+
+  /*
+   * Scoped API keys. The full secret (`vck_…`) is returned exactly once, at
+   * creation time; only its SHA-256 hash and a non-secret prefix are stored.
+   * Keys authenticate requests through requireAuth/authenticateApiKey above.
+   */
+  function publicApiKey(key: {
+    id: string;
+    name: string;
+    keyPrefix?: string;
+    scopes: ApiKeyScope[];
+    lastUsedAt?: string;
+    expiresAt?: string;
+    createdAt: string;
+  }) {
+    return {
+      id: key.id,
+      name: key.name,
+      keyPrefix: key.keyPrefix ?? null,
+      scopes: key.scopes,
+      lastUsedAt: key.lastUsedAt ?? null,
+      expiresAt: key.expiresAt ?? null,
+      createdAt: key.createdAt,
+    };
+  }
+
+  app.get('/api/keys', async (request, reply) => {
+    if (!request.currentUser) {
+      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+    }
+
+    const keys = await store.listApiKeys({ userId: request.currentUser.id });
+
+    return { keys: keys.map(publicApiKey) };
+  });
+
+  app.post('/api/keys', async (request, reply) => {
+    if (!request.currentUser) {
+      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+    }
+
+    // Minting a long-lived credential is itself a privileged write; an existing
+    // API-key session must hold 'admin' scope to create further keys.
+    if (request.apiKeyAuth && !request.apiKeyAuth.scopes.includes('admin')) {
+      return reply
+        .code(403)
+        .send({ error: "Creating API keys requires the 'admin' scope", code: 'API_KEY_SCOPE_INSUFFICIENT' });
+    }
+
+    const body = parse(apiKeyCreateSchema, request.body);
+    const token = createOpaqueToken('vck');
+    const keyPrefix = token.slice(0, 12);
+    const expiresAt = body.expiresInDays
+      ? new Date(Date.now() + body.expiresInDays * 24 * 60 * 60 * 1000)
+      : undefined;
+
+    const created = await store.createApiKey({
+      userId: request.currentUser.id,
+      name: body.name,
+      keyHash: hashToken(token),
+      keyPrefix,
+      scopes: body.scopes,
+      expiresAt,
+    });
+
+    await audit(request, store, {
+      action: 'api_key.create',
+      resourceType: 'ApiKey',
+      resourceId: created.id,
+      metadata: { name: created.name, scopes: created.scopes },
+    });
+
+    // `token` is the only time the plaintext key is ever returned.
+    return reply.code(201).send({ key: { ...publicApiKey(created), token } });
+  });
+
+  app.delete('/api/keys/:keyId', async (request, reply) => {
+    if (!request.currentUser) {
+      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+    }
+
+    const params = parse(apiKeyIdParams, request.params);
+    const deleted = await store.deleteApiKey({ id: params.keyId, userId: request.currentUser.id });
+
+    if (!deleted) {
+      return reply.code(404).send({ error: 'API key not found', code: 'API_KEY_NOT_FOUND' });
+    }
+
+    await audit(request, store, {
+      action: 'api_key.revoke',
+      resourceType: 'ApiKey',
+      resourceId: params.keyId,
+    });
+
+    return { id: params.keyId, revoked: true };
   });
 
   async function resolveActiveGithubAccessToken(request: any, reply: any): Promise<string | null> {

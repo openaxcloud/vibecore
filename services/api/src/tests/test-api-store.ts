@@ -6,6 +6,8 @@ import type {
   AbuseEventRecord,
   AgentPatchProposalRecord,
   AgentPatchProposalStatus,
+  ApiKeyRecord,
+  ApiKeyScope,
   ApiStore,
   AiCostLedgerRecord,
   AiConversationRecord,
@@ -115,6 +117,7 @@ export class TestApiStore implements ApiStore {
   readonly scimTokens = new Map<string, ScimTokenRecord>();
   readonly customRoles = new Map<string, CustomRoleRecord>();
   readonly siemWebhooks = new Map<string, SiemWebhookRecord>();
+  readonly apiKeys = new Map<string, ApiKeyRecord>();
   readonly organizationInvites = new Map<string, OrganizationInviteRecord>();
   readonly oauthConnections = new Map<string, OAuthConnectionRecord>();
   readonly userConnections = new Map<string, UserConnectionRecord>();
@@ -1281,6 +1284,64 @@ export class TestApiStore implements ApiStore {
 
   async listSiemWebhooks(organizationId: string) {
     return [...this.siemWebhooks.values()].filter((webhook) => webhook.organizationId === organizationId);
+  }
+
+  async createApiKey(input: {
+    userId?: string;
+    organizationId?: string;
+    name: string;
+    keyHash: string;
+    keyPrefix: string;
+    scopes: ApiKeyScope[];
+    expiresAt?: Date;
+  }) {
+    const record: ApiKeyRecord = {
+      id: id('apikey'),
+      userId: input.userId,
+      organizationId: input.organizationId,
+      name: input.name,
+      keyHash: input.keyHash,
+      keyPrefix: input.keyPrefix,
+      scopes: input.scopes,
+      expiresAt: input.expiresAt?.toISOString(),
+      createdAt: now(),
+    };
+    this.apiKeys.set(record.id, record);
+
+    return record;
+  }
+
+  async listApiKeys(scope: { userId?: string; organizationId?: string }) {
+    return [...this.apiKeys.values()]
+      .filter((key) =>
+        scope.organizationId ? key.organizationId === scope.organizationId : key.userId === scope.userId,
+      )
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  }
+
+  async findApiKeyByHash(keyHash: string) {
+    return [...this.apiKeys.values()].find((key) => key.keyHash === keyHash);
+  }
+
+  async touchApiKey(id: string) {
+    const key = this.apiKeys.get(id);
+
+    if (key) {
+      key.lastUsedAt = now();
+    }
+  }
+
+  async deleteApiKey(input: { id: string; userId?: string; organizationId?: string }) {
+    const key = this.apiKeys.get(input.id);
+
+    if (
+      !key ||
+      (input.organizationId ? key.organizationId !== input.organizationId : key.userId !== input.userId)
+    ) {
+      return false;
+    }
+
+    return this.apiKeys.delete(input.id);
   }
 
   async createOrganizationInvite(input: {
