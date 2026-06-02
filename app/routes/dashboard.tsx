@@ -147,6 +147,7 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-6">
             <CommandPalettePreview />
+            <h2 className="text-lg font-semibold">System status</h2>
             <ActivityList
               items={[
                 { title: 'Usage checked', detail: 'Backend quotas protected project and AI actions.', icon: Activity },
