@@ -4284,9 +4284,33 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     }, [activeProjectPanel, openWorkspacePanel, projectIdeMode, projectStateReady, setMobileIdePanel, useMobileIde]);
 
-    const onProjectEditorSave = useCallback(() => {
-      workbenchStore.saveCurrentDocument().catch(() => undefined);
+    /*
+     * Audit v3 (M): surface save failures. Previously the result was
+     * `.catch(() => undefined)`, so a failed write — including the
+     * "Remote file changed since it was loaded" conflict guard and any
+     * runtime write error — left the user believing the file was saved when
+     * it was not (silent data loss).
+     */
+    const handleSaveError = useCallback((error: unknown) => {
+      toast.error(`Failed to save file: ${error instanceof Error ? error.message : 'unknown error'}`);
     }, []);
+
+    const onProjectEditorSave = useCallback(() => {
+      workbenchStore.saveCurrentDocument().catch(handleSaveError);
+    }, [handleSaveError]);
+
+    /*
+     * Audit v3 (M): save a specific tab's file. The per-tab dirty-dot save
+     * button used the generic `onProjectEditorSave`, which always saves the
+     * *currently active* document — so clicking the dot on an inactive dirty
+     * tab saved the wrong file. Target the tab's own path instead.
+     */
+    const saveProjectEditorFile = useCallback(
+      (filePath: string) => {
+        workbenchStore.saveFile(filePath).catch(handleSaveError);
+      },
+      [handleSaveError],
+    );
 
     const startTerminalResize = useCallback(
       (event: React.MouseEvent<HTMLDivElement>) => {
@@ -5351,14 +5375,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [paneTree, setProjectPanelSearchParam],
     );
 
-    const closePaneTabs = useCallback((paneId: string, mode: 'all' | 'others' | 'right', tabId?: string) => {
+    const closePaneTabs = useCallback((paneId: string, mode: 'all' | 'others' | 'right' | 'saved', tabId?: string) => {
       setPaneTree((currentTree) =>
         updateLeaf(currentTree, paneId, (leaf) => {
           const targetIndex = tabId ? leaf.tabs.findIndex((tab) => tab.id === tabId) : -1;
 
+          /*
+           * Audit v3 (H): 'saved' must keep tabs with unsaved changes.
+           * The "Close saved" menu item previously reused the 'all' handler,
+           * so it closed unsaved editors too — silent data loss. Read the live
+           * unsaved-files set from the store so this stays correct without
+           * adding a render dependency to the callback.
+           */
+          const unsaved = workbenchStore.unsavedFiles.get();
+
           const tabs = leaf.tabs.filter((tab, index) => {
             if (tab.pinned) {
               return true;
+            }
+
+            if (mode === 'saved') {
+              return unsaved instanceof Set && !!tab.filePath && unsaved.has(tab.filePath);
             }
 
             if (mode === 'all') {
@@ -5760,7 +5797,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     !!(tab.filePath ?? currentDocument.filePath) &&
                     unsavedFiles instanceof Set &&
                     unsavedFiles.has(tab.filePath ?? currentDocument.filePath),
-                  onSave: tab.panel === 'editor' ? onProjectEditorSave : undefined,
+                  onSave:
+                    tab.panel === 'editor'
+                      ? tab.filePath
+                        ? () => saveProjectEditorFile(tab.filePath!)
+                        : onProjectEditorSave
+                      : undefined,
                   closable: !tab.pinned,
                 };
               })}
@@ -5778,6 +5820,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               onCloseOthers={(tabId) => closePaneTabs(leaf.id, 'others', tabId)}
               onCloseToRight={(tabId) => closePaneTabs(leaf.id, 'right', tabId)}
               onCloseAll={() => closePaneTabs(leaf.id, 'all')}
+              onCloseSaved={() => closePaneTabs(leaf.id, 'saved')}
               onSplitActiveRight={(tabId) => splitPaneRight(leaf.id, tabId)}
               onSwapTab={(sourcePaneId, sourceTabId, targetTabId) =>
                 swapPaneTabs(sourcePaneId, sourceTabId, leaf.id, targetTabId)
@@ -5842,6 +5885,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         closeWorkspacePanel,
         currentDocument,
         onProjectEditorSave,
+        saveProjectEditorFile,
         openIdeTool,
         paneDropTarget,
         projectId,
@@ -8989,6 +9033,7 @@ function IdeTabBar({
   onCloseOthers,
   onCloseToRight,
   onCloseAll,
+  onCloseSaved,
   onSplitActiveRight,
   onSwapTab,
   onDragEnd,
@@ -9017,6 +9062,7 @@ function IdeTabBar({
   onCloseOthers?: (tabId: string) => void;
   onCloseToRight?: (tabId: string) => void;
   onCloseAll?: () => void;
+  onCloseSaved?: () => void;
   onSplitActiveRight?: (tabId?: string) => void;
   onSwapTab?: (sourcePaneId: string, sourceTabId: string, targetTabId?: string) => void;
   onDragEnd?: () => void;
@@ -9473,7 +9519,7 @@ function IdeTabBar({
               <button
                 type="button"
                 onClick={() => {
-                  onCloseAll?.();
+                  onCloseSaved?.();
                   setActionsOpen(false);
                 }}
               >
