@@ -40,6 +40,30 @@ describe('GitCliProvider.createPullRequest', () => {
   });
 });
 
+describe('GitCliProvider.commit', () => {
+  it('raises a friendly typed error when there is nothing to commit', async () => {
+    const parent = await mkdtemp(join(tmpdir(), 'vibecore-empty-commit-'));
+    const storage = join(parent, '.vibecore-project-storage');
+    process.env.PROJECT_STORAGE_DIR = storage;
+
+    const projectId = 'empty-commit-project';
+    const projectDir = join(storage, projectId);
+    await mkdir(projectDir, { recursive: true });
+    await writeFile(join(projectDir, 'README.md'), '# User project\n');
+
+    const provider = new GitCliProvider();
+
+    // First commit succeeds (README is new).
+    await provider.commit({ projectId, message: 'Initial', files: [] });
+
+    // Second commit with no changes must not bubble a raw git failure.
+    await expect(provider.commit({ projectId, message: 'No-op', files: [] })).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'GIT_NOTHING_TO_COMMIT',
+    });
+  });
+});
+
 describe('GitCliProvider workspace isolation', () => {
   it('does not traverse into the platform repository when a project has no git directory', async () => {
     const parent = await mkdtemp(join(tmpdir(), 'vibecore-parent-repo-'));

@@ -654,6 +654,19 @@ export class GitCliProvider implements GitProvider {
       const addArgs = selectedFiles.length ? ['add', '--', ...selectedFiles] : ['add', '--all'];
 
       await this.git(input.projectId, addArgs, input.workspaceId);
+
+      // Nothing staged → `git commit` exits non-zero with "nothing to commit",
+      // which would surface as a raw 500. Detect it and raise a friendly,
+      // typed error the UI can render as "No changes to commit".
+      const staged = await this.git(input.projectId, ['diff', '--cached', '--name-only'], input.workspaceId);
+
+      if (!staged.trim()) {
+        throw Object.assign(new Error('No changes to commit.'), {
+          statusCode: 400,
+          code: 'GIT_NOTHING_TO_COMMIT',
+        });
+      }
+
       await this.git(input.projectId, ['commit', '-m', input.message], input.workspaceId);
 
       const sha = await this.git(input.projectId, ['rev-parse', 'HEAD'], input.workspaceId);
