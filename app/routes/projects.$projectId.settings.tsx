@@ -40,7 +40,7 @@ export default function ProjectSettingsPage() {
     <ProjectShell
       projectId={project.id}
       title="Project settings"
-      description="Update persistent project metadata, visibility and runtime preferences."
+      description="Update persistent project metadata and Git repository settings."
     >
       <Form
         method="post"
