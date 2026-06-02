@@ -8663,9 +8663,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       })),
     };
   });
-  app.post('/auth/logout', async (request) => {
+  app.post('/auth/logout', async (request, reply) => {
     const sessionId = request.currentSession!.id;
     const revoked = await store.revokeSession(request.currentUser!.id, sessionId);
+    // Also clear the session cookie so the browser doesn't keep sending a now
+    // -revoked token (matches DELETE /auth/me). Server-side revocation already
+    // makes it unusable; this removes the dead cookie too.
+    reply.clearCookie('session', authCookieOptions(isProduction));
     await audit(request, store, { action: 'auth.session.logout', resourceType: 'session', resourceId: sessionId });
 
     return { revoked };
@@ -13132,7 +13136,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       logs: augmentedLogs,
       finishedAt: status === 'BUILDING' ? undefined : new Date().toISOString(),
     });
-    await recordUsage(request, project.organizationId, 'deployments.count');
+
+    // Don't bill a failed build against the deployment quota — repeated build
+    // failures would otherwise exhaust a user's plan with zero successful deploys.
+    if (status !== 'FAILED') {
+      await recordUsage(request, project.organizationId, 'deployments.count');
+    }
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'deployment.create',
@@ -13306,7 +13315,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       logs: [...redeploy.logs, ...rebuildLogs],
       finishedAt: redeployStatus === 'BUILDING' ? undefined : new Date().toISOString(),
     });
-    await recordUsage(request, project.organizationId, 'deployments.count');
+
+    // A failed rebuild shouldn't consume deployment quota (see create handler).
+    if (redeployStatus !== 'FAILED') {
+      await recordUsage(request, project.organizationId, 'deployments.count');
+    }
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'deployment.redeploy',
