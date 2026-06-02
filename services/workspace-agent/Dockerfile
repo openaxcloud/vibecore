@@ -1,5 +1,12 @@
 FROM node:24-alpine AS runtime
 
+# bash: REQUIRED by the terminal's jsh OSC 654 emulation (terminal-session.ts
+#   spawns an interactive /bin/bash whose PROMPT_COMMAND/PS1 emit the markers the
+#   Bolt client handshakes on). node:24-alpine ships only busybox ash, so without
+#   this the terminal and every AI shell/start/build action fail to start a shell.
+# git + curl: baseline tools a user expects in an interactive dev terminal.
+RUN apk add --no-cache bash git curl
+
 WORKDIR /app
 
 COPY packages/workspace-sdk ./packages/workspace-sdk
