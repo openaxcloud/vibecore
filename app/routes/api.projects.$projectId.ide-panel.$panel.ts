@@ -579,7 +579,6 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
   }
 
   if (['database', 'object-storage', 'monitoring'].includes(panel)) {
-
     try {
       const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
 
@@ -1105,7 +1104,9 @@ export async function action({ request, params }: EnterpriseActionArgs) {
        * The API returns the raw token exactly once (only its hash is persisted, so it can never be
        * listed again). Build the redeemable /share/<token> URL and hand it back so the IDE can show it.
        */
-      const shareUrl = created.token ? new URL(`/share/${created.token}`, new URL(request.url).origin).toString() : undefined;
+      const shareUrl = created.token
+        ? new URL(`/share/${created.token}`, new URL(request.url).origin).toString()
+        : undefined;
 
       return json({ ok: true, shareLink: { ...(created.shareLink ?? {}), token: created.token, url: shareUrl } });
     } else if (intent === 'terminal-permission') {
@@ -2115,7 +2116,6 @@ function normalizePackagesState(input: any) {
     runs: Array.isArray(input?.runs) ? input.runs.slice(0, 12) : [],
   };
 }
-
 
 function normalizePackageManager(value: string): ProjectPackageManager {
   const normalized = value.toLowerCase();

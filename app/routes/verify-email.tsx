@@ -80,8 +80,7 @@ export default function VerifyEmailPage() {
       heroBody="Verifying your email enables team invites, deploy notifications and billing receipts."
       footer={
         <>
-          Didn&apos;t get the email? Use{' '}
-          <span className="font-semibold">Resend verification email</span> above, or{' '}
+          Didn&apos;t get the email? Use <span className="font-semibold">Resend verification email</span> above, or{' '}
           <Link to="/login" className="vc-auth-link font-semibold hover:underline">
             sign in
           </Link>{' '}

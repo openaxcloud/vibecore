@@ -384,6 +384,11 @@ export class WorkbenchStore {
     }
 
     const payload = (await response.json()) as ProjectExportResponse;
+
+    if (this.#projectId !== projectId) {
+      return false;
+    }
+
     const archiveBase64 = payload.archive?.base64;
 
     if (!archiveBase64) {
@@ -391,6 +396,10 @@ export class WorkbenchStore {
     }
 
     const files = await this.#projectStorageFilesFromArchive(archiveBase64);
+
+    if (this.#projectId !== projectId) {
+      return false;
+    }
 
     if (!files.length) {
       return false;
@@ -443,6 +452,19 @@ export class WorkbenchStore {
   }
 
   async startPreviewServer() {
+    const previousPreviewState = this.previewServerState.get();
+
+    if (
+      previousPreviewState.status !== 'starting' &&
+      previousPreviewState.status !== 'running' &&
+      previousPreviewState.status !== 'static'
+    ) {
+      this.previewServerState.set({
+        status: 'starting',
+        command: previousPreviewState.command ?? 'Detecting preview command',
+      });
+    }
+
     await this.refreshRuntimePorts().catch(() => undefined);
 
     if (this.#previewStartPromise) {
@@ -487,7 +509,22 @@ export class WorkbenchStore {
       return 'existing preview server';
     }
 
-    const command = await this.#detectPreviewCommand(dependenciesChanged);
+    let command: PreviewCommand;
+
+    try {
+      command = await this.#detectPreviewCommand(dependenciesChanged);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.previewServerState.set({
+        status: 'error',
+        command: previousPreviewState.command ?? 'Detecting preview command',
+        error: message,
+      });
+      this.appendWorkspaceLog(message);
+
+      throw error;
+    }
+
     this.toggleTerminal(true);
 
     this.#previewStartPromise = Promise.resolve(command.label);

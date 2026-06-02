@@ -52,7 +52,7 @@ const mobileDeviceProfiles = [
 ] as const;
 
 const compactPanelProfiles = mobileDeviceProfiles.filter((profile) =>
-  ['iphone-pro-max', 'ipad-landscape'].includes(profile.name),
+  ['iphone-se', 'iphone-pro-max', 'android-landscape', 'ipad-mini-portrait', 'ipad-landscape'].includes(profile.name),
 );
 
 const compactIdePanels = [
@@ -752,6 +752,58 @@ async function assertCompactPanelLayout(page: Page, profileName: string, panel: 
           .slice(0, 8)
       : [];
 
+    const serviceInternalOverflow = servicePanel
+      ? Array.from(
+          servicePanel.querySelectorAll(
+            [
+              '.bolt-project-panel-toolbar',
+              '.bolt-project-managed-panel',
+              '.bolt-project-managed-form',
+              '.bolt-project-object-grid',
+              '.bolt-project-package-content',
+              '.bolt-project-package-list',
+              '.bolt-project-package-sidebar',
+              '.bolt-project-security-grid',
+              '.bolt-project-security-scope',
+              '.bolt-project-security-comparison-grid',
+              '.bolt-project-metric-grid',
+              '.bolt-project-deploy-tool',
+              '.bolt-project-integrations-layout',
+              '.bolt-project-settings-layout',
+              'article',
+              'section',
+              'form',
+              'header',
+            ].join(', '),
+          ),
+        )
+          .filter((element) => isVisible(element) && !isHorizontalScroller(element))
+          .map((element) => {
+            const node = element as HTMLElement;
+            const style = getComputedStyle(node);
+            const box = node.getBoundingClientRect();
+
+            return {
+              selector:
+                node.dataset.testid ??
+                node.className?.toString().split(/\s+/).filter(Boolean).slice(0, 2).join('.') ??
+                node.tagName.toLowerCase(),
+              clientWidth: node.clientWidth,
+              overflowX: style.overflowX,
+              scrollWidth: node.scrollWidth,
+              width: box.width,
+            };
+          })
+          .filter(
+            (box) =>
+              box.scrollWidth > box.clientWidth + 1 &&
+              box.width > 0 &&
+              box.overflowX !== 'auto' &&
+              box.overflowX !== 'scroll',
+          )
+          .slice(0, 8)
+      : [];
+
     const toolbarOverlaps = servicePanel
       ? Array.from(servicePanel.querySelectorAll('.bolt-project-panel-toolbar'))
           .filter(isVisible)
@@ -803,6 +855,7 @@ async function assertCompactPanelLayout(page: Page, profileName: string, panel: 
       active: activeRect,
       statusOverlapsNav: Boolean(statusRect && navRect && statusRect.bottom > navRect.top),
       serviceOverflow,
+      serviceInternalOverflow,
       toolbarOverlaps,
       managedPanelColumns,
     };
@@ -831,6 +884,7 @@ async function assertCompactPanelLayout(page: Page, profileName: string, panel: 
   }
 
   expect(layout.serviceOverflow, `${profileName} ${panel} service panel visible overflow`).toEqual([]);
+  expect(layout.serviceInternalOverflow, `${profileName} ${panel} service panel internal overflow`).toEqual([]);
   expect(layout.toolbarOverlaps, `${profileName} ${panel} toolbar control overlap`).toEqual([]);
 
   if (panel === 'object-storage') {

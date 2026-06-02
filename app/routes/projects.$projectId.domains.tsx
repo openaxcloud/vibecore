@@ -116,7 +116,10 @@ export default function ProjectDomainsPage() {
             <Button type="submit">Add domain</Button>
           </Form>
           {actionData?.error ? (
-            <p className="rounded-md border border-bolt-elements-icon-error bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-icon-error" role="alert">
+            <p
+              className="rounded-md border border-bolt-elements-icon-error bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-icon-error"
+              role="alert"
+            >
               {actionData.error}
             </p>
           ) : null}
