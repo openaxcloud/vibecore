@@ -7944,9 +7944,12 @@ function ProjectIdeServicePanel({
         throw new Error(result.error ?? 'Panel action failed');
       }
 
-      form.reset();
-      await loadPanel();
+      if (shouldResetIdePanelFormAfterSubmit(panel, intent)) {
+        form.reset();
+      }
+
       window.dispatchEvent(new CustomEvent('vibecore:ide-panel-action', { detail: { panel, intent, ok: true } }));
+      void loadPanel({ silent: true });
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : 'Panel action failed';
 
@@ -8079,6 +8082,14 @@ function ProjectIdeServicePanel({
       </div>
     </div>
   );
+}
+
+function shouldResetIdePanelFormAfterSubmit(panel: string, intent: string) {
+  if (panel !== 'settings') {
+    return true;
+  }
+
+  return intent === 'change-password' || intent === 'save-ai-key' || intent === 'delete-account';
 }
 
 function ProjectBottomTerminal({
