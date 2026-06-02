@@ -1,6 +1,6 @@
 import websocket from '@fastify/websocket';
 import { createPrometheusRegistry } from '@vibecore/observability';
-import { normalizeShellCommand, normalizeShellCommandArgs } from '@vibecore/runtime-contract';
+import { normalizeShellCommandArgs } from '@vibecore/runtime-contract';
 import { detectCommandAbuse, requireProductionSecret } from '@vibecore/security';
 import { verifyAgentToken } from '@vibecore/workspace-sdk';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -10,6 +10,7 @@ import { mkdir, readdir, readFile, readlink, rename, rm, stat, writeFile } from 
 import { basename, dirname, relative, resolve } from 'node:path';
 import Fastify, { type FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { TerminalSessionManager, type TerminalSession } from './terminal-session.js';
 
 export interface WorkspaceAgentOptions {
   workspaceRoot?: string;
@@ -54,6 +55,11 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   const maxProcesses = options.maxProcesses ?? Number(process.env.WORKSPACE_MAX_PROCESSES ?? 8);
   const processes = new Map<string, ProcessRecord>();
   const metrics = createPrometheusRegistry();
+  const terminalManager = new TerminalSessionManager({
+    cwd: root,
+    env: process.env,
+    maxSessions: maxProcesses,
+  });
   let terminalSessions = 0;
 
   const app = Fastify({ logger: false });
@@ -261,22 +267,77 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       });
     });
 
-    terminalApp.get('/terminal', { websocket: true }, (rawSocket) => {
+    // Real, persistent terminal. Each connection attaches to a shell session
+    // (one long-lived shell process) so cwd, exported env and history persist
+    // across commands. Reconnecting with the same ?sessionId reattaches to the
+    // running shell and repaints recent scrollback. Backed by a true PTY when
+    // node-pty is available, otherwise a process-group shell.
+    terminalApp.get('/terminal', { websocket: true }, (rawSocket, request) => {
       const socket = normalizeWebSocket(rawSocket);
-      let inputBuffer = '';
-      let activeProcess: ChildProcessWithoutNullStreams | undefined;
+      const requestUrl = new URL(request.url ?? '/terminal', 'http://workspace.local');
+      const requestedSessionId = (requestUrl.searchParams.get('sessionId') ?? '').trim();
+      const sessionId =
+        requestedSessionId ||
+        createHash('sha256').update(`terminal:${Date.now()}:${terminalSessions}`).digest('hex').slice(0, 16);
+      const cols = Number(requestUrl.searchParams.get('cols')) || 80;
+      const rows = Number(requestUrl.searchParams.get('rows')) || 24;
 
       terminalSessions += 1;
-      sendTerminalPrompt(socket, true);
+
+      let session: TerminalSession | undefined;
+      let detach: (() => void) | undefined;
+      let closed = false;
+      const earlyInput: string[] = [];
+
+      terminalManager
+        .getOrCreate(sessionId, { cols, rows })
+        .then((created) => {
+          if (closed) {
+            return;
+          }
+
+          session = created;
+
+          // Repaint the screen for a reattaching client.
+          const backlog = created.scrollback();
+
+          if (backlog) {
+            socket.send(backlog);
+          }
+
+          detach = created.attach((chunk) => socket.send(chunk));
+
+          // Flush any keystrokes that arrived before the shell was ready.
+          for (const data of earlyInput.splice(0)) {
+            created.write(data);
+          }
+        })
+        .catch((error) => {
+          socket.send(`\r\n[terminal error] ${error instanceof Error ? error.message : String(error)}\r\n`);
+        });
+
       socket.onMessage((message) => {
         const payload = parseTerminalMessage(message);
 
         if (payload.type === 'resize') {
+          session?.resize(payload.cols ?? cols, payload.rows ?? rows);
           return;
         }
 
         if (payload.type === 'kill') {
-          activeProcess?.kill('SIGTERM');
+          terminalManager.dispose(sessionId);
+          return;
+        }
+
+        if (payload.type === 'signal' || payload.signal) {
+          const signal = payload.signal ?? 'SIGINT';
+
+          if (signal === 'SIGINT') {
+            session?.interrupt();
+          } else {
+            session?.backend.kill(signal as NodeJS.Signals);
+          }
+
           return;
         }
 
@@ -286,41 +347,30 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           return;
         }
 
-        inputBuffer += data;
-
-        if (!inputBuffer.includes('\n') && !inputBuffer.includes('\r')) {
+        if (!session) {
+          earlyInput.push(data);
           return;
         }
 
-        const command = inputBuffer.replace(/\r/g, '\n').split('\n')[0]?.trim() ?? '';
-        inputBuffer = '';
-
-        if (!command) {
-          sendTerminalPrompt(socket);
-          return;
+        // For the no-PTY fallback, a bare Ctrl+C (ETX) can't raise SIGINT on its
+        // own, so deliver it to the foreground process group explicitly.
+        if (session.backend.mode === 'pipe' && data.includes('\x03')) {
+          session.interrupt();
         }
 
-        runTerminalCommand(root, command, {
-          maxOutputBytes,
-          maxProcesses,
-          processes,
-          socket,
-          onActiveProcess: (process) => {
-            activeProcess = process;
-          },
-          onComplete: () => {
-            activeProcess = undefined;
-          },
-        }).catch((error) => {
-          socket.send(`${error instanceof Error ? error.message : String(error)}\n`);
-          sendTerminalExit(socket, 1);
-          sendTerminalPrompt(socket);
-        });
+        session.write(data);
       });
+
       socket.onClose(() => {
-        activeProcess?.kill('SIGTERM');
+        closed = true;
+        // Detach the viewer but keep the shell alive briefly for reattach.
+        detach?.();
         terminalSessions = Math.max(0, terminalSessions - 1);
       });
+    });
+
+    terminalApp.addHook('onClose', async () => {
+      terminalManager.disposeAll();
     });
   });
 
@@ -391,13 +441,22 @@ function parseTerminalMessage(message: Buffer) {
   const text = message.toString();
 
   try {
-    const parsed = JSON.parse(text) as { type?: string; data?: string };
+    const parsed = JSON.parse(text) as {
+      type?: string;
+      data?: string;
+      cols?: number;
+      rows?: number;
+      signal?: string;
+    };
     return {
       type: parsed.type ?? 'stdin',
       data: typeof parsed.data === 'string' ? parsed.data : '',
+      cols: typeof parsed.cols === 'number' ? parsed.cols : undefined,
+      rows: typeof parsed.rows === 'number' ? parsed.rows : undefined,
+      signal: typeof parsed.signal === 'string' ? parsed.signal : undefined,
     };
   } catch {
-    return { type: 'stdin', data: text };
+    return { type: 'stdin', data: text, cols: undefined, rows: undefined, signal: undefined };
   }
 }
 
@@ -413,14 +472,6 @@ function parseCommandStreamMessage(message: Buffer): { command: string; args?: s
   }
 
   return undefined;
-}
-
-function sendTerminalPrompt(socket: ReturnType<typeof normalizeWebSocket>, interactive = false) {
-  socket.send(`${interactive ? '\x1b]654;interactive\x07' : ''}\x1b]654;prompt\x07`);
-}
-
-function sendTerminalExit(socket: ReturnType<typeof normalizeWebSocket>, exitCode: number) {
-  socket.send(`\x1b]654;exit=${exitCode}:${exitCode}\x07`);
 }
 
 function previewProxyHeaders(headers: FastifyRequest['headers']) {
@@ -553,64 +604,6 @@ async function runCommand(
       clearTimeout(timer);
       options.processes.delete(id);
       resolvePromise({ id, code, signal, stdout, stderr, truncated });
-    });
-  });
-}
-
-async function runTerminalCommand(
-  cwd: string,
-  command: string,
-  options: {
-    maxOutputBytes: number;
-    maxProcesses: number;
-    processes: Map<string, ProcessRecord>;
-    socket: ReturnType<typeof normalizeWebSocket>;
-    onActiveProcess: (process: ChildProcessWithoutNullStreams) => void;
-    onComplete: () => void;
-  },
-) {
-  if (options.processes.size >= options.maxProcesses) {
-    throw new Error('Process limit reached');
-  }
-
-  const normalizedCommand = normalizeShellCommand(command);
-  const signal = detectCommandAbuse('/bin/sh', ['-lc', normalizedCommand]);
-
-  if (signal) {
-    throw Object.assign(new Error(`Command blocked by abuse policy: ${signal.reason}`), {
-      statusCode: 409,
-      code: `ABUSE_${signal.type.toUpperCase()}`,
-    });
-  }
-
-  const id = createHash('sha256').update(`terminal:${normalizedCommand}:${Date.now()}`).digest('hex').slice(0, 12);
-  const child = spawn('/bin/sh', ['-lc', normalizedCommand], { cwd, shell: false, env: process.env });
-  const record: ProcessRecord = {
-    id,
-    command: normalizedCommand,
-    startedAt: new Date().toISOString(),
-    process: child,
-    output: '',
-  };
-  options.processes.set(id, record);
-  options.onActiveProcess(child);
-
-  const append = (chunk: Buffer) => {
-    const text = chunk.toString('utf8');
-    record.output = `${record.output ?? ''}${text}`.slice(-options.maxOutputBytes);
-    options.socket.send(text);
-  };
-
-  child.stdout.on('data', append);
-  child.stderr.on('data', append);
-
-  await new Promise<void>((resolvePromise) => {
-    child.on('close', (code) => {
-      sendTerminalExit(options.socket, code ?? 0);
-      sendTerminalPrompt(options.socket);
-      options.processes.delete(id);
-      options.onComplete();
-      resolvePromise();
     });
   });
 }
