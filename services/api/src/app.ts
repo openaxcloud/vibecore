@@ -8308,7 +8308,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { reauthenticated: true };
   });
-  app.post('/auth/mfa/setup', async (request) => {
+  app.post('/auth/mfa/setup', async (request, reply) => {
+    /*
+     * Audit v3 (H): refuse to re-enroll while MFA is already enabled.
+     * Previously setup unconditionally minted and stored a NEW secret. If an
+     * already-enrolled user re-ran setup and abandoned before re-verifying,
+     * their authenticator kept the OLD secret while the DB held a NEW one —
+     * and since `mfaEnabled` stayed true, the next login demanded a code no
+     * app could produce (lockout). To rotate, the user must disable first.
+     */
+    const current = await store.findUserById(request.currentUser!.id);
+
+    if (current?.mfaEnabled) {
+      return reply
+        .code(409)
+        .send({ error: 'MFA is already enabled; disable it before re-enrolling', code: 'MFA_ALREADY_ENABLED' });
+    }
+
     const secret = createTotpSecret();
     await store.updateUser({ userId: request.currentUser!.id, mfaSecretEncrypted: encryptJson({ secret }) });
     await audit(request, store, {
@@ -8352,6 +8368,47 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       return { enabled: true };
+    },
+  );
+
+  /*
+   * Audit v3 (M): self-service MFA disable. Previously the only way to turn
+   * MFA off was the platform-admin `reset-mfa` endpoint, so an enrolled user
+   * could never disable it themselves (and could not rotate their secret —
+   * see the setup guard above). Disabling requires possession of a valid
+   * current TOTP code or an unused recovery code, mirroring `verify`, then
+   * clears the secret and recovery codes the same way `reset-mfa` does.
+   */
+  app.post(
+    '/auth/mfa/disable',
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = parse(mfaVerifySchema, request.body);
+      const user = await store.findUserById(request.currentUser!.id);
+
+      if (!user?.mfaEnabled || !user.mfaSecretEncrypted) {
+        return reply.code(400).send({ error: 'MFA is not enabled', code: 'MFA_NOT_ENABLED' });
+      }
+
+      const { secret } = decryptJson<{ secret: string }>(user.mfaSecretEncrypted);
+
+      if (!verifyTotpCode(secret, body.code)) {
+        const consumed = await store.consumeRecoveryCode(request.currentUser!.id, hashRecoveryCode(body.code));
+
+        if (!consumed) {
+          return reply.code(401).send({ error: 'Invalid MFA code', code: 'MFA_INVALID_CODE' });
+        }
+      }
+
+      await store.updateUser({ userId: request.currentUser!.id, mfaEnabled: false, mfaSecretEncrypted: '' });
+      await store.setRecoveryCodes(request.currentUser!.id, []);
+      await audit(request, store, {
+        action: 'auth.mfa.disable',
+        resourceType: 'user',
+        resourceId: request.currentUser!.id,
+      });
+
+      return { enabled: false };
     },
   );
   app.post('/auth/recovery-codes', async (request) => {
