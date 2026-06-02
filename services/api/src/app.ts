@@ -6999,10 +6999,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (key === 'workspaces.active') {
-      const projects = await store.listProjects(organizationId);
-      const workspaces = (await Promise.all(projects.map((project) => store.listWorkspaces(project.id)))).flat();
-
-      return workspaces.filter((workspace) => ['PENDING', 'STARTING', 'RUNNING'].includes(workspace.status)).length;
+      // Single aggregate query instead of listing every project then its
+      // workspaces (was O(projects) DB round-trips per usage snapshot).
+      return store.countActiveWorkspaces(organizationId);
     }
 
     if (key === 'team.members') {
@@ -7010,13 +7009,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (key === 'snapshots.count') {
-      const projects = await store.listProjects(organizationId);
-      return (await Promise.all(projects.map((project) => store.listSnapshots(project.id)))).flat().length;
+      return store.countSnapshots(organizationId);
     }
 
     if (key === 'deployments.count') {
-      const projects = await store.listProjects(organizationId);
-      return (await Promise.all(projects.map((project) => store.listDeployments(project.id)))).flat().length;
+      return store.countDeployments(organizationId);
     }
 
     return store.sumUsage(organizationId, key);

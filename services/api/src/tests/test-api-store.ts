@@ -926,6 +926,31 @@ export class TestApiStore implements ApiStore {
     return [...this.workspaces.values()].filter((workspace) => workspace.projectId === projectId);
   }
 
+  #orgProjectIds(organizationId: string) {
+    return new Set(
+      [...this.projects.values()]
+        .filter((project) => project.organizationId === organizationId && !project.deletedAt)
+        .map((project) => project.id),
+    );
+  }
+
+  async countActiveWorkspaces(organizationId: string) {
+    const projectIds = this.#orgProjectIds(organizationId);
+    return [...this.workspaces.values()].filter(
+      (workspace) => projectIds.has(workspace.projectId) && ['PENDING', 'STARTING', 'RUNNING'].includes(workspace.status),
+    ).length;
+  }
+
+  async countSnapshots(organizationId: string) {
+    const projectIds = this.#orgProjectIds(organizationId);
+    return [...this.snapshots.values()].filter((snapshot) => projectIds.has(snapshot.projectId)).length;
+  }
+
+  async countDeployments(organizationId: string) {
+    const projectIds = this.#orgProjectIds(organizationId);
+    return [...this.deployments.values()].filter((deployment) => projectIds.has(deployment.projectId)).length;
+  }
+
   async createSnapshot(input: {
     projectId: string;
     label?: string;

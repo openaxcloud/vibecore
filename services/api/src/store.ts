@@ -808,6 +808,11 @@ export interface ApiStore {
   }): Promise<WorkspaceRecord>;
   getWorkspace(id: string): Promise<WorkspaceRecord | undefined>;
   listWorkspaces(projectId: string): Promise<WorkspaceRecord[]>;
+  // Organization-scoped aggregate counts for quota usage — single queries that
+  // avoid the per-project N+1 of listing every project then its children.
+  countActiveWorkspaces(organizationId: string): Promise<number>;
+  countSnapshots(organizationId: string): Promise<number>;
+  countDeployments(organizationId: string): Promise<number>;
   createSnapshot(input: {
     projectId: string;
     label?: string;

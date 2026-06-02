@@ -946,6 +946,23 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async countActiveWorkspaces(organizationId: string) {
+    return this.prisma.workspace.count({
+      where: {
+        project: { organizationId, deletedAt: null },
+        status: { in: ['PENDING', 'STARTING', 'RUNNING'] },
+      },
+    });
+  }
+
+  async countSnapshots(organizationId: string) {
+    return this.prisma.projectSnapshot.count({ where: { project: { organizationId, deletedAt: null } } });
+  }
+
+  async countDeployments(organizationId: string) {
+    return this.prisma.deployment.count({ where: { project: { organizationId, deletedAt: null } } });
+  }
+
   async createSnapshot(input: {
     projectId: string;
     label?: string;
