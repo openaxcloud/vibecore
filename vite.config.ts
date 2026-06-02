@@ -30,6 +30,8 @@ export default defineConfig((config) => {
         ignored: [
           '**/.claude/**',
           '**/.playwright-mcp/**',
+          '**/.serve-test-dist',
+          '**/.serve-test-dist/**',
           '**/.vibecore',
           '**/.vibecore/**',
           '**/.vibecore-project-storage',

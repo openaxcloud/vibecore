@@ -929,7 +929,7 @@ function SidebarBody({ collapsed }: { collapsed: boolean }) {
   return (
     <nav
       className={classNames(
-        'flex flex-col gap-3 overflow-y-auto overflow-x-visible px-3 py-3',
+        'min-h-0 flex-1 overflow-y-auto overflow-x-visible px-3 py-3',
         collapsed && 'items-center px-2',
       )}
       aria-label="Application navigation"
@@ -1000,10 +1000,10 @@ function MobileSidebarDrawer({ open, onClose }: { open: boolean; onClose: () => 
             <X className="h-4 w-4" aria-hidden />
           </button>
         </div>
-        <div onClick={onClose} role="presentation">
+        <div className="min-h-0 flex-1 overflow-hidden" onClick={onClose} role="presentation">
           <SidebarBody collapsed={false} />
         </div>
-        <div className="border-t border-bolt-elements-borderColor px-3 py-3">
+        <div className="shrink-0 border-t border-bolt-elements-borderColor px-3 py-3">
           <SidebarFooter collapsed={false} embedded />
         </div>
       </aside>
@@ -1029,8 +1029,7 @@ function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; em
     <div
       className={classNames(
         'vc-sidebar-footer',
-        !embedded &&
-          'absolute inset-x-0 bottom-0 border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-2',
+        !embedded && 'shrink-0 border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-2',
         collapsed ? 'px-2 py-2' : 'px-3 py-3',
         embedded && 'p-0',
       )}

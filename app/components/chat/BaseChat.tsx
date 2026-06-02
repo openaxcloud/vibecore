@@ -311,7 +311,7 @@ const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', .
 const IDE_URL_PANELS = [...IDE_WORKSPACE_PANELS, ...IDE_RIGHT_PANELS] as const;
 const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'search', 'locks', 'terminal', 'preview', 'deploy'] as const;
 
-const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deployments'] as const;
+const ECODE_MOBILE_DEFAULT_TABS = ['editor', 'preview', 'agent', 'deployments'] as const;
 const MOBILE_OVERLAY_RESTORE_WINDOW_MS = 120_000;
 type MobileOverlayKind = 'tools' | 'tabs' | 'more';
 
@@ -4316,8 +4316,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       if (isIdeWorkspacePanel(activeProjectPanel)) {
-        openWorkspacePanel(activeProjectPanel, { replaceUrl: false });
-
         if (useMobileIde) {
           if (activeProjectPanel === 'terminal') {
             setMobileIdePanel('terminal');
@@ -4336,7 +4334,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               activeTabId: ECODE_MOBILE_MANAGEMENT_PANEL_TABS[activeProjectPanel] ?? activeProjectPanel,
             });
           }
+
+          return;
         }
+
+        openWorkspacePanel(activeProjectPanel, { replaceUrl: false });
       }
     }, [activeProjectPanel, openWorkspacePanel, projectIdeMode, projectStateReady, setMobileIdePanel, useMobileIde]);
 
@@ -6734,7 +6736,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [],
     );
 
-    const mobileBottomTabSlotCount = layout.isTablet ? 4 : 3;
+    const mobileBottomTabSlotCount = 4;
 
     const mobileBottomTabs = useMemo(
       () => selectVisibleMobileBottomTabs(mobileOpenTabs, activeMobileOpenTabId, mobileBottomTabSlotCount),
@@ -7741,6 +7743,7 @@ function ProjectIdeServicePanel({
 }) {
   const [payload, setPayload] = useState<any>(() => initialPayload);
   const [error, setError] = useState<string>();
+  const [actionNotice, setActionNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [panelActionsOpen, setPanelActionsOpen] = useState(false);
 
@@ -7939,6 +7942,7 @@ function ProjectIdeServicePanel({
 
     setBusy(true);
     setError(undefined);
+    setActionNotice('Submitting action...');
 
     const formData = new FormData(form);
     const intent = String(formData.get('intent') ?? 'default');
@@ -7960,9 +7964,12 @@ function ProjectIdeServicePanel({
 
       if (result.shareLink?.url) {
         setCreatedShareLink(result.shareLink.url);
+        setActionNotice('Share link created.');
         void navigator.clipboard?.writeText(result.shareLink.url).catch(() => {
           // Clipboard may be blocked; the URL is still shown for manual copy.
         });
+      } else {
+        setActionNotice(formatProjectPanelActionNotice(panel, intent));
       }
 
       if (shouldResetIdePanelFormAfterSubmit(panel, intent)) {
@@ -7975,6 +7982,7 @@ function ProjectIdeServicePanel({
       const message = requestError instanceof Error ? requestError.message : 'Panel action failed';
 
       setError(message);
+      setActionNotice(undefined);
       window.dispatchEvent(
         new CustomEvent('vibecore:ide-panel-action', { detail: { panel, intent, ok: false, error: message } }),
       );
@@ -8064,6 +8072,16 @@ function ProjectIdeServicePanel({
             </button>
           </div>
         ) : null}
+        {!error && actionNotice ? (
+          <div
+            className="mb-4 flex items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm text-bolt-elements-textSecondary"
+            role="status"
+            aria-live="polite"
+          >
+            <span className={busy ? 'i-ph:spinner-gap animate-spin' : 'i-ph:check-circle'} aria-hidden />
+            <span>{actionNotice}</span>
+          </div>
+        ) : null}
         {createdShareLink ? (
           <div
             className="mb-4 grid gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm"
@@ -8145,6 +8163,26 @@ function shouldResetIdePanelFormAfterSubmit(panel: string, intent: string) {
   }
 
   return intent === 'change-password' || intent === 'save-ai-key' || intent === 'delete-account';
+}
+
+function formatProjectPanelActionNotice(panel: string, intent: string) {
+  const normalizedIntent = intent === 'default' ? 'settings' : intent;
+  const action = normalizedIntent.replace(/-/g, ' ');
+  const label = panelTitle(panel).toLowerCase();
+
+  if (normalizedIntent.startsWith('delete') || normalizedIntent.startsWith('revoke')) {
+    return `${action} submitted for ${label}.`;
+  }
+
+  if (normalizedIntent.startsWith('run') || normalizedIntent.startsWith('start')) {
+    return `${action} started.`;
+  }
+
+  if (normalizedIntent.startsWith('stop') || normalizedIntent === 'cancel') {
+    return `${action} requested.`;
+  }
+
+  return `${action} saved for ${label}.`;
 }
 
 function ProjectBottomTerminal({

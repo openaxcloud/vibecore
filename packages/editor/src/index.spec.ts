@@ -36,6 +36,14 @@ describe('responsive editor layout', () => {
     expect(state.safeArea.bottom).toContain('safe-area-inset-bottom');
   });
 
+  it('keeps large touch tablets on the compact tablet shell', () => {
+    const state = getResponsiveLayoutState(1280, 834, { coarsePointer: true });
+
+    expect(state.breakpoint).toBe('tablet-landscape');
+    expect(state.isTablet).toBe(true);
+    expect(state.isDesktop).toBe(false);
+  });
+
   it('uses Monaco only on desktop', () => {
     expect(editorKindForLayout(getResponsiveLayoutState(1440, 900))).toBe('monaco');
     expect(editorKindForLayout(getResponsiveLayoutState(1024, 768))).toBe('codemirror');

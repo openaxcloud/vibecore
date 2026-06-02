@@ -17,6 +17,7 @@ export const MOBILE_BREAKPOINT = 768;
 export const MOBILE_LANDSCAPE_MAX_HEIGHT = 500;
 export const TABLET_MIN_WIDTH = 768;
 export const TABLET_MAX_WIDTH = 1199;
+export const TOUCH_TABLET_MAX_WIDTH = 1366;
 
 export interface EditorAdapterValue {
   value: string;
@@ -107,20 +108,22 @@ export function detectMobileViewport(width: number, height = Number.POSITIVE_INF
   return height < MOBILE_LANDSCAPE_MAX_HEIGHT;
 }
 
-const breakpointFromViewport = (width: number, height: number): EditorBreakpoint => {
+const breakpointFromViewport = (width: number, height: number, coarsePointer = false): EditorBreakpoint => {
   if (detectMobileViewport(width, height)) {
     return 'mobile';
   }
 
-  if (width > TABLET_MAX_WIDTH) {
+  const isTouchTabletWidth = coarsePointer && width <= TOUCH_TABLET_MAX_WIDTH;
+
+  if (width > TABLET_MAX_WIDTH && !isTouchTabletWidth) {
     return 'desktop';
   }
 
-  if (width >= TABLET_MIN_WIDTH && width <= TABLET_MAX_WIDTH && width > height) {
+  if (width >= TABLET_MIN_WIDTH && (width <= TABLET_MAX_WIDTH || isTouchTabletWidth) && width > height) {
     return 'tablet-landscape';
   }
 
-  if (width >= TABLET_MIN_WIDTH && width <= TABLET_MAX_WIDTH) {
+  if (width >= TABLET_MIN_WIDTH && (width <= TABLET_MAX_WIDTH || isTouchTabletWidth)) {
     return 'tablet-portrait';
   }
 
@@ -134,7 +137,7 @@ export function getResponsiveLayoutState(
 ): ResponsiveLayoutState {
   const height = typeof heightOrOptions === 'number' ? heightOrOptions : Number.POSITIVE_INFINITY;
   const resolvedOptions = typeof heightOrOptions === 'number' ? options : heightOrOptions;
-  const breakpoint = breakpointFromViewport(width, height);
+  const breakpoint = breakpointFromViewport(width, height, resolvedOptions?.coarsePointer ?? false);
   const isLandscape = width > height;
 
   return {
@@ -164,7 +167,7 @@ export function useResponsiveLayout(): ResponsiveLayoutState {
     }
 
     return getResponsiveLayoutState(window.innerWidth, window.innerHeight, {
-      coarsePointer: window.matchMedia('(pointer: coarse)').matches,
+      coarsePointer: window.matchMedia('(pointer: coarse)').matches || window.navigator.maxTouchPoints > 0,
       reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     });
   };

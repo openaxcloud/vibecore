@@ -318,16 +318,16 @@ test.describe('compact IDE shell device matrix', () => {
     });
   }
 
-  test('renders every compact IDE panel full-screen on phone and tablet with a nonblank preview', async ({
-    browser,
-  }, testInfo) => {
-    test.skip(testInfo.project.name !== 'chromium', 'device matrix creates explicit browser contexts');
-    test.setTimeout(480_000);
+  for (const profile of compactPanelProfiles) {
+    test(`renders every compact IDE panel full-screen on ${profile.name} with a nonblank preview`, async ({
+      browser,
+    }, testInfo) => {
+      test.skip(testInfo.project.name !== 'chromium', 'device matrix creates explicit browser contexts');
+      test.setTimeout(300_000);
 
-    for (const profile of compactPanelProfiles) {
       await assertEveryCompactPanelForProfile(browser, auth, projectId, profile, testInfo);
-    }
-  });
+    });
+  }
 });
 
 async function assertCompactShellForProfile(
@@ -700,6 +700,19 @@ async function assertCompactPanelLayout(page: Page, profileName: string, panel: 
       Array.from(document.querySelectorAll(`[data-testid="ide-service-panel"][data-panel="${panelName}"]`)).find(
         isVisible,
       ) ?? null;
+    const serviceContentViewport =
+      servicePanel instanceof HTMLElement
+        ? Array.from(servicePanel.children).find((child): child is HTMLElement => child.classList.contains('min-h-0'))
+        : null;
+    const serviceContentViewportStyle = serviceContentViewport
+      ? window.getComputedStyle(serviceContentViewport)
+      : undefined;
+    const serviceContentPadding = serviceContentViewportStyle
+      ? {
+          inlineEnd: Number.parseFloat(serviceContentViewportStyle.paddingRight) || 0,
+          inlineStart: Number.parseFloat(serviceContentViewportStyle.paddingLeft) || 0,
+        }
+      : null;
 
     const isHorizontalScroller = (element: Element) =>
       Boolean(
@@ -858,6 +871,7 @@ async function assertCompactPanelLayout(page: Page, profileName: string, panel: 
       statusOverlapsNav: Boolean(statusRect && navRect && statusRect.bottom > navRect.top),
       serviceOverflow,
       serviceInternalOverflow,
+      serviceContentPadding,
       toolbarOverlaps,
       managedPanelColumns,
     };
@@ -888,6 +902,19 @@ async function assertCompactPanelLayout(page: Page, profileName: string, panel: 
   expect(layout.serviceOverflow, `${profileName} ${panel} service panel visible overflow`).toEqual([]);
   expect(layout.serviceInternalOverflow, `${profileName} ${panel} service panel internal overflow`).toEqual([]);
   expect(layout.toolbarOverlaps, `${profileName} ${panel} toolbar control overlap`).toEqual([]);
+
+  if (layout.serviceContentPadding) {
+    const minimumServiceGutter = layout.innerWidth >= 768 ? 20 : 14;
+
+    expect(
+      layout.serviceContentPadding.inlineStart,
+      `${profileName} ${panel} service panel left content gutter`,
+    ).toBeGreaterThanOrEqual(minimumServiceGutter);
+    expect(
+      layout.serviceContentPadding.inlineEnd,
+      `${profileName} ${panel} service panel right content gutter`,
+    ).toBeGreaterThanOrEqual(minimumServiceGutter);
+  }
 
   if (panel === 'object-storage') {
     expect(layout.managedPanelColumns, `${profileName} ${panel} managed panel columns`).not.toContain(2);

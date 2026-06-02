@@ -1427,12 +1427,17 @@ createServer((request, response) => {
     const projectId = await createTestProject(page, 'Responsive compact theme menu project');
 
     for (const theme of ['light', 'dark'] as const) {
-      await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await page.evaluate((nextTheme) => {
-        window.localStorage.setItem('bolt_theme', nextTheme);
-        document.documentElement.setAttribute('data-theme', nextTheme);
-        document.documentElement.classList.toggle('dark', nextTheme === 'dark');
-      }, theme);
+      const preferenceResponse = await page.request.post(`/api/projects/${projectId}/ide-panel/settings`, {
+        form: {
+          creditAlertThreshold: '80',
+          intent: 'preferences',
+          keyboardMode: 'false',
+          theme,
+        },
+      });
+
+      expect(preferenceResponse.ok()).toBe(true);
+
       await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
       await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'chat', {
         timeout: 15_000,

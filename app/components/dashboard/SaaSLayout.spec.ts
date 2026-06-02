@@ -32,6 +32,26 @@ describe('public marketing brand', () => {
     ]);
   });
 
+  it('keeps authenticated sidebars viewport-bound with a persistent account menu', () => {
+    const layoutSource = readFileSync(join(process.cwd(), 'app/components/dashboard/SaaSLayout.tsx'), 'utf8');
+    const stylesSource = readFileSync(join(process.cwd(), 'app/styles/index.scss'), 'utf8');
+    const sidebarRule = extractCssRule(stylesSource, '.vc-sidebar');
+    const drawerRule = extractCssRule(stylesSource, '.vc-sidebar-drawer-panel');
+
+    expect(layoutSource).toContain('min-h-0 flex-1 overflow-y-auto overflow-x-visible');
+    expect(layoutSource).toContain("!embedded && 'shrink-0 border-t border-bolt-elements-borderColor");
+    expect(layoutSource).not.toContain('absolute inset-x-0 bottom-0');
+
+    expect(sidebarRule).toContain('position: sticky');
+    expect(sidebarRule).toContain('display: flex');
+    expect(sidebarRule).toContain('height: 100dvh');
+    expect(sidebarRule).toContain('max-height: 100dvh');
+
+    expect(drawerRule).toContain('height: 100dvh');
+    expect(drawerRule).toContain('max-height: 100dvh');
+    expect(drawerRule).toContain('overflow: hidden');
+  });
+
   it('keeps marketing navigation mapped to real application routes and anchors', () => {
     const menuTargets = Object.values(publicMarketingMenus)
       .flat()
@@ -224,6 +244,34 @@ function collectConcretePublicRoutePatterns(): string[] {
       ...Object.keys(comparePages).map((slug) => `/compare/${slug}`),
     ]),
   ];
+}
+
+function extractCssRule(source: string, selector: string) {
+  const ruleStart = source.indexOf(`${selector} {`);
+
+  if (ruleStart === -1) {
+    throw new Error(`Missing CSS rule for ${selector}`);
+  }
+
+  const bodyStart = source.indexOf('{', ruleStart);
+
+  let depth = 0;
+
+  for (let index = bodyStart; index < source.length; index++) {
+    if (source[index] === '{') {
+      depth++;
+    }
+
+    if (source[index] === '}') {
+      depth--;
+
+      if (depth === 0) {
+        return source.slice(bodyStart + 1, index);
+      }
+    }
+  }
+
+  throw new Error(`Unterminated CSS rule for ${selector}`);
 }
 
 function routeFileToPatterns(file: string): string[] {
