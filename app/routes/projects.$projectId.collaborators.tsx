@@ -21,7 +21,7 @@ export const action = (args: EnterpriseActionArgs) =>
     default: async ({ request, projectId, body }) => {
       await apiRequest(request, `/projects/${projectId}/collaborators`, {
         method: 'POST',
-        body: JSON.stringify({ userId: body.userId, roleKey: body.roleKey ?? 'editor' }),
+        body: JSON.stringify({ email: body.email, roleKey: body.roleKey ?? 'editor' }),
       });
       return redirect(`/projects/${projectId}/collaborators`);
     },
@@ -48,7 +48,7 @@ export default function ProjectCollaboratorsPage() {
               : [
                   {
                     title: 'No project collaborators',
-                    detail: 'Add an organization member by user ID to grant project access.',
+                    detail: 'Add an organization member by email to grant project access.',
                     icon: Users,
                   },
                 ]
@@ -58,7 +58,7 @@ export default function ProjectCollaboratorsPage() {
           method="post"
           className="grid gap-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6"
         >
-          <Field label="User ID" name="userId" required />
+          <Field label="Email" name="email" type="email" required />
           <label className="grid gap-2 text-sm font-medium">
             Role
             <select
@@ -78,13 +78,14 @@ export default function ProjectCollaboratorsPage() {
   );
 }
 
-function Field(props: { label: string; name: string; required?: boolean }) {
+function Field(props: { label: string; name: string; type?: string; required?: boolean }) {
   return (
     <label className="grid gap-2 text-sm font-medium">
       {props.label}
       <input
         className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
         name={props.name}
+        type={props.type ?? 'text'}
         required={props.required}
       />
     </label>

@@ -1150,7 +1150,9 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     } else {
       await apiRequest(request, `/projects/${projectId}/collaborators`, {
         method: 'POST',
-        body: JSON.stringify({ userId: body.userId, roleKey: body.roleKey ?? 'member' }),
+        // Accept either an email (what users actually know) or a raw user id;
+        // the API resolves the email to a user server-side.
+        body: JSON.stringify({ userId: body.userId, email: body.email, roleKey: body.roleKey ?? 'member' }),
       });
     }
   } else if (panel === 'domains') {

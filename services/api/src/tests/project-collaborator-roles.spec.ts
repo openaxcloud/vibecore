@@ -161,6 +161,35 @@ describe('project collaborator role enforcement', () => {
     await app.close();
   });
 
+  it('adds a collaborator by email (resolved to a user server-side)', async () => {
+    const { store, app, owner, projectId } = await setup();
+    const teammate = await register(app, 'by-email@example.com', 'Teammate Org');
+    // Collaborators must already be org members.
+    await store.addMember({ organizationId: owner.organization.id, userId: teammate.user.id, roleKey: 'member' });
+
+    const added = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/collaborators`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { email: 'by-email@example.com', roleKey: 'editor' },
+    });
+    expect(added.statusCode).toBe(201);
+
+    const collaborators = await store.listProjectCollaborators(projectId);
+    expect(collaborators.some((c) => c.userId === teammate.user.id && c.roleKey === 'editor')).toBe(true);
+
+    // Unknown email → 404, not a crash.
+    const missing = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/collaborators`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { email: 'nobody@example.com', roleKey: 'editor' },
+    });
+    expect(missing.statusCode).toBe(404);
+
+    await app.close();
+  });
+
   it('end-to-end: a non-member redeems a share link and gains project access', async () => {
     const { app, owner, projectId } = await setup();
     const outsider = await register(app, 'redeemer@example.com', 'Redeemer Org');

@@ -503,10 +503,17 @@ const databaseQuerySchema = z.object({
   collection: z.string().min(1).max(160).optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
 });
-const collaboratorSchema = z.object({
-  userId: z.string().min(1),
-  roleKey: z.enum(['owner', 'admin', 'member', 'editor', 'viewer']),
-});
+const collaboratorSchema = z
+  .object({
+    // Either a raw user id or an email; email is what a person actually knows
+    // about a teammate, so the UI sends that and we resolve it server-side.
+    userId: z.string().min(1).optional(),
+    email: z.string().email().optional(),
+    roleKey: z.enum(['owner', 'admin', 'member', 'editor', 'viewer']),
+  })
+  .refine((value) => Boolean(value.userId || value.email), {
+    message: 'Provide a userId or email',
+  });
 const roleKeySchema = z
   .string()
   .min(2)
@@ -10240,13 +10247,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(collaboratorSchema, request.body);
-    const targetUser = await store.findUserById(body.userId);
+    const targetUser = body.userId
+      ? await store.findUserById(body.userId)
+      : await store.findUserByEmail(body.email!.trim().toLowerCase());
 
     if (!targetUser) {
       return reply.code(404).send({ error: 'User not found', code: 'USER_NOT_FOUND' });
     }
 
-    const targetMembership = await store.getMembership(body.userId, project.organizationId);
+    const targetMembership = await store.getMembership(targetUser.id, project.organizationId);
 
     if (!targetMembership) {
       return reply
@@ -10256,14 +10265,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const collaborator = await store.addProjectCollaborator({
       projectId: project.id,
-      userId: body.userId,
+      userId: targetUser.id,
       roleKey: body.roleKey,
     });
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
       action: 'project.collaborator.add',
-      metadata: { userId: body.userId, roleKey: body.roleKey },
+      metadata: { userId: targetUser.id, roleKey: body.roleKey },
     });
     await audit(request, store, {
       organizationId: project.organizationId,
