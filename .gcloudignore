@@ -11,6 +11,10 @@ dist
 dist-ssr
 *.local
 
+# Transient Vite config temp files (created/deleted during vite builds; race-crash gcloud archiver)
+*.timestamp-*.mjs
+vite.config.ts.timestamp-*.mjs
+
 .vscode/*
 .vscode/launch.json
 !.vscode/extensions.json
