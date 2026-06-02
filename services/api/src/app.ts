@@ -1743,6 +1743,50 @@ async function recordAdminAction(
   });
 }
 
+/*
+ * Public base URL of the web app, used to build clickable links in transactional
+ * emails. Prefer an explicit APP_PUBLIC_URL; otherwise fall back to the first
+ * configured CORS origin (which is the web app's origin), then to the local dev
+ * origin. Trailing slashes are trimmed so callers can append paths cleanly.
+ */
+function appPublicBaseUrl(): string {
+  const explicit = process.env.APP_PUBLIC_URL?.trim();
+
+  if (explicit) {
+    return explicit.replace(/\/+$/, '');
+  }
+
+  const corsOrigin = process.env.API_CORS_ORIGINS?.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)[0];
+
+  return (corsOrigin ?? 'http://localhost:5173').replace(/\/+$/, '');
+}
+
+/*
+ * Build a verification email with a clickable link to the web verify page
+ * (which reads ?token=…) plus the raw token as a paste-able fallback. The web
+ * page promised "click the verification link directly" but no email ever
+ * contained one — this closes that gap.
+ */
+function verificationEmailContent(token: string, label = 'email'): { text: string; html: string } {
+  const link = `${appPublicBaseUrl()}/verify-email?token=${encodeURIComponent(token)}`;
+
+  return {
+    text: `Verify your ${label} by opening this link:\n${link}\n\nOr paste this token into the verification page: ${token}`,
+    html: `<p>Verify your ${label} by clicking the link below:</p><p><a href="${link}">${link}</a></p><p>Or paste this token into the verification page: <code>${token}</code></p>`,
+  };
+}
+
+function passwordResetEmailContent(token: string): { text: string; html: string } {
+  const link = `${appPublicBaseUrl()}/reset-password?token=${encodeURIComponent(token)}`;
+
+  return {
+    text: `Reset your password by opening this link:\n${link}\n\nOr paste this token into the reset page: ${token}`,
+    html: `<p>Reset your password by clicking the link below:</p><p><a href="${link}">${link}</a></p><p>Or paste this token into the reset page: <code>${token}</code></p>`,
+  };
+}
+
 async function requireOrg(request: any, store: ApiStore, organizationId: string, permission: PermissionKey) {
   if (!request.currentUser) {
     throw Object.assign(new Error('Unauthorized'), { statusCode: 401, code: 'AUTH_REQUIRED' });
@@ -4673,7 +4717,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         await emailProvider.send({
           to: user.email,
           subject: 'Verify your email',
-          text: `Use this verification token to verify your email: ${verificationToken}`,
+          ...verificationEmailContent(verificationToken),
         });
       } catch (error) {
         request.log.error({ err: error, userId: user.id }, 'failed to send registration verification email');
@@ -4784,11 +4828,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           token: resetToken,
           expiresAt: new Date(Date.now() + 1000 * 60 * 30),
         });
-        await emailProvider.send({
-          to: user.email,
-          subject: 'Reset your password',
-          text: `Use this password reset token to continue: ${resetToken}`,
-        });
+        // Best-effort: a mail failure must not reveal whether the address
+        // exists, nor 500 the request (the response is intentionally uniform).
+        try {
+          await emailProvider.send({
+            to: user.email,
+            subject: 'Reset your password',
+            ...passwordResetEmailContent(resetToken),
+          });
+        } catch (error) {
+          request.log.error({ err: error, userId: user.id }, 'failed to send password reset email');
+        }
+
         await audit(request, store, {
           action: 'auth.password_reset.request',
           resourceType: 'user',
@@ -8348,7 +8399,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         await emailProvider.send({
           to: user.email,
           subject: 'Verify your new email',
-          text: `Use this verification token to verify your new email address: ${verificationToken}`,
+          ...verificationEmailContent(verificationToken, 'new email address'),
         });
       } catch (error) {
         request.log.error({ err: error, userId: user.id }, 'failed to send email-change verification');
@@ -8499,11 +8550,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         token: verificationToken,
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
       });
-      await emailProvider.send({
-        to: user.email,
-        subject: 'Verify your email',
-        text: `Use this verification token to verify your email: ${verificationToken}`,
-      });
+      try {
+        await emailProvider.send({
+          to: user.email,
+          subject: 'Verify your email',
+          ...verificationEmailContent(verificationToken),
+        });
+      } catch (error) {
+        request.log.error({ err: error, userId: user.id }, 'failed to resend verification email');
+      }
+
       await audit(request, store, {
         action: 'auth.email_verification.send',
         resourceType: 'user',
