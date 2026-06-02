@@ -19,6 +19,7 @@ import {
   GitBranch,
   Github,
   Globe2,
+  KeyRound,
   Layers,
   LifeBuoy,
   LogOut,
@@ -320,6 +321,7 @@ export const appNav = [...workspaceNav, { label: 'Create project', to: '/project
 export const accountNav = [
   { label: 'Account', to: '/account-settings', icon: Settings },
   { label: 'Security', to: '/security-settings', icon: ShieldCheck },
+  { label: 'API keys', to: '/api-keys', icon: KeyRound },
   { label: 'Connected accounts', to: '/connected-accounts', icon: Github },
   { label: 'Notifications', to: '/notifications', icon: Bell },
 ];
@@ -1453,6 +1455,7 @@ export function CommandPalettePreview() {
     { label: 'Import GitHub repository', to: '/import-github' },
     { label: 'View usage', to: '/usage' },
     { label: 'Invite teammate', to: '/invitations' },
+    { label: 'Rotate API key', to: '/api-keys' },
   ];
   return (
     <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 shadow-sm">

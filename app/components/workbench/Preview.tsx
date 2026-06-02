@@ -25,7 +25,6 @@ import { ScreenshotSelector } from './ScreenshotSelector';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
-import { getRuntimeMode } from '~/lib/runtime/RuntimeAdapterProvider';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { FileMap } from '~/lib/stores/files';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
@@ -376,14 +375,6 @@ export const Preview = memo(
     const [iframeUrl, setIframeUrl] = useState<string | undefined>();
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [isInspectorMode, setIsInspectorMode] = useState(false);
-
-    /*
-     * "Inspect to code" works by injecting /inspector-script.js into the preview iframe, which only
-     * happens for WebContainer-served previews. Remote (Kubernetes) previews are cross-origin pages
-     * served by the workspace agent and never receive the inspector bridge, so the toggle would be a
-     * no-op there. Hide it entirely outside WebContainer mode rather than offer a dead control.
-     */
-    const inspectorSupported = getRuntimeMode() === 'webcontainer';
     const [isDeviceModeOn, setIsDeviceModeOn] = useState(false);
     const [widthPercent, setWidthPercent] = useState<number>(37.5);
     const [currentWidth, setCurrentWidth] = useState<number>(0);
@@ -1668,16 +1659,14 @@ export const Preview = memo(
                 />
               </>
             )}
-            {inspectorSupported && (
-              <IconButton
-                icon="i-ph:cursor-click"
-                onClick={toggleInspectorMode}
-                className={
-                  isInspectorMode ? 'bg-bolt-elements-background-depth-3 !text-bolt-elements-item-contentAccent' : ''
-                }
-                title={isInspectorMode ? 'Disable inspect to code' : 'Enable inspect to code'}
-              />
-            )}
+            <IconButton
+              icon="i-ph:cursor-click"
+              onClick={toggleInspectorMode}
+              className={
+                isInspectorMode ? 'bg-bolt-elements-background-depth-3 !text-bolt-elements-item-contentAccent' : ''
+              }
+              title={isInspectorMode ? 'Disable inspect to code' : 'Enable inspect to code'}
+            />
             <button
               type="button"
               className="bolt-preview-toolbar-button"
@@ -2131,10 +2120,7 @@ export const Preview = memo(
           <section className="bolt-preview-devtools-panel" aria-label="Preview DevTools">
             <header>
               <div role="tablist" aria-label="Preview DevTools tabs">
-                {(inspectorSupported
-                  ? (['console', 'network', 'elements'] as const)
-                  : (['console', 'network'] as const)
-                ).map((tab) => (
+                {(['console', 'network', 'elements'] as const).map((tab) => (
                   <button
                     key={tab}
                     type="button"
