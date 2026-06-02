@@ -2180,6 +2180,7 @@ interface BaseChatProps {
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
   append?: (message: Message) => void;
+  onRewindToMessage?: (messageId: string) => void;
   resetChat?: () => void;
   designScheme?: DesignScheme;
   setDesignScheme?: (scheme: DesignScheme) => void;
@@ -2234,6 +2235,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       chatMode,
       setChatMode,
       append,
+      onRewindToMessage,
       resetChat,
       designScheme,
       setDesignScheme,
@@ -5216,6 +5218,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       provider={provider}
                       model={model}
                       projectIdeMode={projectIdeMode}
+                      onRewindToMessage={onRewindToMessage}
                       addToolResult={addToolResult}
                     />
                     {projectIdeMode && pendingAgentPatchProposals.length > 0 && (

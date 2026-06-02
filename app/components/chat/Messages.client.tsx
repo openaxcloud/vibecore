@@ -22,6 +22,12 @@ interface MessagesProps {
   model?: string;
   provider?: ProviderInfo;
   projectIdeMode?: boolean;
+  /*
+   * IDE-mode regenerate/rewind. The standalone chat rewinds via a ?rewindTo=
+   * URL param + IndexedDB history, which doesn't exist in the project IDE, so
+   * the IDE supplies an in-memory handler that truncates and regenerates.
+   */
+  onRewindToMessage?: (messageId: string) => void;
   addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
 }
 
@@ -31,6 +37,14 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
     const location = useLocation();
 
     const handleRewind = (messageId: string) => {
+      // In the project IDE the conversation lives in useChat state (not the
+      // IndexedDB-backed standalone history), so a ?rewindTo= reload is inert.
+      // Defer to the IDE-supplied in-memory regenerate handler there.
+      if (props.projectIdeMode && props.onRewindToMessage) {
+        props.onRewindToMessage(messageId);
+        return;
+      }
+
       const searchParams = new URLSearchParams(location.search);
       searchParams.set('rewindTo', messageId);
       window.location.search = searchParams.toString();

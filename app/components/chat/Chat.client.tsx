@@ -19,6 +19,7 @@ import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { computeRewindTruncation } from '~/utils/chat-rewind';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
@@ -994,6 +995,35 @@ export const ChatImpl = memo(
       [input, handleInputChange],
     );
 
+    /*
+     * IDE-mode "Regenerate from this prompt". The standalone chat rewinds via a
+     * ?rewindTo= URL param consumed by useChatHistory (IndexedDB), which does
+     * nothing in the project IDE where the conversation lives in the useChat
+     * state and is persisted to project memory. Here we drop the targeted
+     * assistant message and everything after it, then reload() to regenerate a
+     * fresh response from the preceding user prompt. onFinish persists the
+     * regenerated history; we persist the truncation eagerly so a failed/empty
+     * regeneration still reflects the rewind.
+     */
+    const handleRewindToMessage = useCallback(
+      (messageId: string) => {
+        if (isLoading) {
+          return;
+        }
+
+        const truncated = computeRewindTruncation(messages, messageId);
+
+        if (!truncated) {
+          return;
+        }
+
+        setMessages(truncated);
+        void persistMessageHistory(truncated);
+        void reload();
+      },
+      [isLoading, messages, setMessages, persistMessageHistory, reload],
+    );
+
     return (
       <BaseChat
         ref={animationScope}
@@ -1063,6 +1093,7 @@ export const ChatImpl = memo(
         chatMode={chatMode}
         setChatMode={setChatMode}
         append={append}
+        onRewindToMessage={handleRewindToMessage}
         resetChat={() => {
           if (projectIdeMode && projectId) {
             getProjectIdeMemory(projectId)
