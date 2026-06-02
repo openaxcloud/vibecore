@@ -20,6 +20,13 @@ describe('compact preview run state', () => {
 
   it('keeps transition states explicit for disabled and busy UI states', () => {
     expect(resolveCompactPreviewRunState({ previewServerStatus: 'starting', runtimeRunning: false })).toBe('starting');
+    expect(
+      resolveCompactPreviewRunState({
+        previewServerStatus: 'idle',
+        runtimeRunning: false,
+        runtimeStarting: true,
+      }),
+    ).toBe('starting');
     expect(resolveCompactPreviewRunState({ previewServerStatus: 'stopping', runtimeRunning: true })).toBe('stopping');
     expect(compactPreviewRunAriaLabel('starting')).toBe('Starting project');
     expect(compactPreviewRunAriaLabel('stopping')).toBe('Stopping project');

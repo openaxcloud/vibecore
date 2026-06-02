@@ -56,6 +56,16 @@ export function ProjectWorkspaceProvider({
         return;
       }
 
+      const persistedFilesHydration = workbenchStore.loadProjectStorageFiles().catch((error) => {
+        workbenchStore.appendWorkspaceLog(
+          error instanceof Error
+            ? `Persisted project file hydration skipped: ${error.message}`
+            : 'Persisted project file hydration skipped',
+        );
+
+        return false;
+      });
+
       try {
         await runtime.boot();
 
@@ -94,6 +104,7 @@ export function ProjectWorkspaceProvider({
         });
 
         try {
+          await persistedFilesHydration;
           await seedRuntimeFromProjectStorage(projectId, runtime);
         } catch (error) {
           const message = normalizeProjectFileSyncError(error);

@@ -3,16 +3,26 @@ export type CompactPreviewRunState = 'idle' | 'static' | 'starting' | 'running' 
 export function resolveCompactPreviewRunState({
   previewServerStatus,
   runtimeRunning = false,
+  runtimeStarting = false,
 }: {
   previewServerStatus: CompactPreviewRunState;
   runtimeRunning?: boolean;
+  runtimeStarting?: boolean;
 }): CompactPreviewRunState {
-  if (previewServerStatus === 'stopping' || previewServerStatus === 'starting' || previewServerStatus === 'static') {
-    return previewServerStatus;
+  if (previewServerStatus === 'stopping') {
+    return 'stopping';
   }
 
   if (runtimeRunning || previewServerStatus === 'running') {
     return 'running';
+  }
+
+  if (runtimeStarting || previewServerStatus === 'starting') {
+    return 'starting';
+  }
+
+  if (previewServerStatus === 'static') {
+    return 'static';
   }
 
   if (previewServerStatus === 'error') {

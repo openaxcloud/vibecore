@@ -35,6 +35,7 @@ import {
   isCompactPreviewRunActive,
   resolveCompactPreviewRunState,
 } from '~/lib/runtime/preview-run-state';
+import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { streamingState } from '~/lib/stores/streaming';
 import type { FileHistory } from '~/types/actions';
 import { classNames } from '~/utils/classNames';
@@ -343,6 +344,7 @@ export const Workbench = memo(
       computed(workbenchStore.previews, (previews) => previews.some((preview) => preview.ready)),
     );
 
+    const workspaceStatus = useStore(workbenchStore.workspaceStatus);
     const showWorkbench = useStore(workbenchStore.showWorkbench);
     const selectedFile = useStore(workbenchStore.selectedFile);
     const currentDocument = useStore(workbenchStore.currentDocument);
@@ -446,7 +448,8 @@ export const Workbench = memo(
 
     const mobilePreviewRunState = resolveCompactPreviewRunState({
       previewServerStatus: previewServerState.status,
-      runtimeRunning: hasReadyPreview,
+      runtimeRunning: hasReadyPreview || isWorkspaceReallyRunning(workspaceStatus),
+      runtimeStarting: workspaceUiState(workspaceStatus) === 'starting',
     });
 
     const isMobilePreviewRunActive = isCompactPreviewRunActive(mobilePreviewRunState);

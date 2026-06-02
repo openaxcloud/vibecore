@@ -2979,11 +2979,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const runtimePorts = projectRuntimeState.ports ?? [];
     const isRuntimeReallyRunning = isWorkspaceReallyRunning(projectRuntimeState.workspace, runtimePorts);
 
+    const runtimeUiState = workspaceUiState(projectRuntimeState.workspace, {
+      ports: runtimePorts,
+      loading: workspaceLoading,
+      error: workspaceError,
+    });
+
     const previewServerStatus = previewServerState.status;
 
     const mobilePreviewRunState = resolveCompactPreviewRunState({
       previewServerStatus,
       runtimeRunning: isRuntimeReallyRunning,
+      runtimeStarting: runtimeUiState === 'starting',
     });
 
     const isMobilePreviewRunActive = isCompactPreviewRunActive(mobilePreviewRunState);
@@ -2992,11 +2999,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const mobilePreviewRunLabel = compactPreviewRunAriaLabel(mobilePreviewRunState);
     const mobilePreviewRunIcon = compactPreviewRunIcon(mobilePreviewRunState);
 
-    const runtimeUiState = workspaceUiState(projectRuntimeState.workspace, {
-      ports: runtimePorts,
-      loading: workspaceLoading,
-      error: workspaceError,
-    });
     const runtimeStatusSummary = useMemo(
       () =>
         runtimeStatusText({
@@ -11076,9 +11078,11 @@ function ProjectSettingsPanel({
 
       setMemoryDraft('');
       setMemoryTags('');
+      setSettingsNotice('Memory saved.');
       await loadMemories();
     } catch (error) {
       setMemoryError(error instanceof Error ? error.message : 'Unable to save memory');
+      setSettingsNotice('Memory action failed.');
     } finally {
       setMemoryLoading(false);
     }
@@ -11100,9 +11104,11 @@ function ProjectSettingsPanel({
         throw new Error(payload.error ?? 'Unable to delete memory');
       }
 
+      setSettingsNotice('Memory deleted.');
       await loadMemories();
     } catch (error) {
       setMemoryError(error instanceof Error ? error.message : 'Unable to delete memory');
+      setSettingsNotice('Memory action failed.');
     } finally {
       setMemoryLoading(false);
     }
@@ -11128,8 +11134,10 @@ function ProjectSettingsPanel({
       }
 
       setMemoryEnabled(payload.preference?.enabled !== false);
+      setSettingsNotice(enabled ? 'Agent memory enabled.' : 'Agent memory disabled.');
     } catch (error) {
       setMemoryError(error instanceof Error ? error.message : 'Unable to update agent memory preference');
+      setSettingsNotice('Memory action failed.');
     } finally {
       setMemoryLoading(false);
     }
@@ -11170,9 +11178,11 @@ function ProjectSettingsPanel({
       setMemoryEditId(undefined);
       setMemoryEditDraft('');
       setMemoryEditTags('');
+      setSettingsNotice('Memory updated.');
       await loadMemories();
     } catch (error) {
       setMemoryError(error instanceof Error ? error.message : 'Unable to update memory');
+      setSettingsNotice('Memory action failed.');
     } finally {
       setMemoryLoading(false);
     }
@@ -11420,9 +11430,13 @@ function ProjectSettingsPanel({
                           <strong>{formatSessionDevice(session)}</strong>
                           <small>{formatSessionDetail(session)}</small>
                         </span>
-                        <button disabled={busy} aria-label={`Revoke ${formatSessionDevice(session)}`}>
+                        <PanelButton
+                          disabled={busy}
+                          variant="outline"
+                          aria-label={`Revoke ${formatSessionDevice(session)}`}
+                        >
                           Revoke
-                        </button>
+                        </PanelButton>
                       </form>
                     ))
                   ) : (
@@ -11558,23 +11572,23 @@ function ProjectSettingsPanel({
                 </small>
               </div>
               <div className="bolt-project-agent-policy" aria-label="Agent patch policy">
-                <label>
-                  Auto-apply successful patches
-                  <select defaultValue="enabled" disabled aria-label="Auto-apply successful patches setting">
-                    <option value="enabled">Enabled</option>
-                  </select>
-                  <small>
-                    Always enabled. Successful patches are applied automatically; failed validation stays in review with
-                    retry and reject actions.
-                  </small>
-                </label>
-                <label>
-                  Plan control
-                  <select defaultValue="composer" disabled aria-label="Plan control location">
-                    <option value="composer">Composer button</option>
-                  </select>
-                  <small>Use the Plan button in the prompt toolbar when you want approval before edits.</small>
-                </label>
+                <article>
+                  <span>
+                    <strong>Auto-apply successful patches</strong>
+                    <small>
+                      Successful patches are applied automatically; failed validation stays in review with retry and
+                      reject actions.
+                    </small>
+                  </span>
+                  <em>Enabled</em>
+                </article>
+                <article>
+                  <span>
+                    <strong>Plan control</strong>
+                    <small>Use the Plan button in the prompt toolbar when you want approval before edits.</small>
+                  </span>
+                  <em>Composer</em>
+                </article>
               </div>
               <form onSubmit={submitWithNotice('AI routing preferences saved.')} className="bolt-project-ai-routing">
                 <input name="intent" value="ai-routing" type="hidden" />
@@ -11653,7 +11667,7 @@ function ProjectSettingsPanel({
                             <option value="byok">Bring your own key</option>
                           </select>
                         </label>
-                        <button disabled={busy}>Save mode</button>
+                        <PanelButton disabled={busy}>Save mode</PanelButton>
                       </form>
                       <form onSubmit={submitWithNotice(`${provider.label} API key saved as a project secret.`)}>
                         <input name="intent" value="save-ai-key" type="hidden" />
@@ -11668,13 +11682,15 @@ function ProjectSettingsPanel({
                             aria-label={`${provider.label} API key`}
                           />
                         </label>
-                        <button disabled={busy}>Save key</button>
+                        <PanelButton disabled={busy}>Save key</PanelButton>
                       </form>
                       {configured && (
                         <form onSubmit={submitWithNotice(`${provider.label} API key removal submitted.`)}>
                           <input name="intent" value="delete-ai-key" type="hidden" />
                           <input name="provider" value={provider.id} type="hidden" />
-                          <button disabled={busy}>Remove key</button>
+                          <PanelButton disabled={busy} variant="outline">
+                            Remove key
+                          </PanelButton>
                         </form>
                       )}
                     </article>
@@ -11766,7 +11782,7 @@ function ProjectSettingsPanel({
                       setMemoryTags('');
                       setMemoryType('semantic');
                     }}
-                    disabled={memoryLoading || (!memoryDraft && !memoryTags)}
+                    disabled={memoryLoading || (!memoryDraft && !memoryTags && memoryType === 'semantic')}
                   >
                     Reset draft
                   </button>
@@ -12006,9 +12022,14 @@ function ProjectSettingsPanel({
                             <em>Push via native runtime</em>
                           </span>
                         </span>
-                        <button disabled={busy} aria-label={`${enabled ? 'Disable' : 'Enable'} ${label} notifications`}>
-                          {enabled ? 'On' : 'Off'}
-                        </button>
+                        <PanelButton
+                          disabled={busy}
+                          variant="outline"
+                          aria-label={`${enabled ? 'Disable' : 'Enable'} ${label} notifications`}
+                          aria-pressed={enabled}
+                        >
+                          {enabled ? 'Turn off' : 'Turn on'}
+                        </PanelButton>
                       </form>
                     );
                   })}
@@ -12660,7 +12681,6 @@ function ProjectMonitoringActivitySparkline({
     </section>
   );
 }
-
 
 function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
   const state = data.workflowsState ?? {};

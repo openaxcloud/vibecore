@@ -579,7 +579,6 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
   }
 
   if (['database', 'object-storage', 'monitoring'].includes(panel)) {
-
     try {
       const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
 
@@ -2115,7 +2114,6 @@ function normalizePackagesState(input: any) {
     runs: Array.isArray(input?.runs) ? input.runs.slice(0, 12) : [],
   };
 }
-
 
 function normalizePackageManager(value: string): ProjectPackageManager {
   const normalized = value.toLowerCase();

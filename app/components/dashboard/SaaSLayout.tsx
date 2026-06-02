@@ -1353,11 +1353,6 @@ export function TemplateGallery({
                 </LinkButton>
               )
             ) : (
-              /*
-               * Compact cards (homepage / new-project gallery) have no inline create form, so link to
-               * the full template gallery where the working "Use template" action lives instead of
-               * leaving the card as dead decoration.
-               */
               <LinkButton to={mode === 'authenticated' ? '/dashboard/templates' : '/templates'} variant="outline">
                 Use template
               </LinkButton>

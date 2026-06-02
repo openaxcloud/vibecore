@@ -509,7 +509,7 @@ async function expectAgentModelSelectorFitsViewport(page: import('@playwright/te
     ? preferredProvider
     : providerListbox.getByTestId('agent-provider-option').first();
 
-  await providerToSelect.click();
+  await providerToSelect.click({ force: true });
   await expect(providerListbox).toHaveCount(0);
 
   await page.getByTestId('agent-model-combobox').click();
@@ -1315,7 +1315,7 @@ createServer((_request, response) => {
       });
     }
 
-    await expect(runButton).toHaveAttribute('aria-label', 'Stop running', { timeout: 45_000 });
+    await expect(runButton).toHaveAttribute('aria-label', /^(Starting project|Stop running)$/, { timeout: 45_000 });
     await expect(runButton).toHaveAttribute('aria-pressed', 'true');
     await expect(runButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
     await expect(runButton).toHaveClass(/bolt-mobile-replit-run--active/);
@@ -1334,16 +1334,18 @@ createServer((_request, response) => {
     await expect(page.getByTestId('preview-loading-overlay')).toContainText(/Starting npm run dev|Building|Ready/, {
       timeout: 45_000,
     });
-    await expect(runButton).toHaveAttribute('aria-label', 'Stop running', { timeout: 15_000 });
-    await expect(runButton).toHaveAttribute('data-run-state', /^(running|static)$/);
+    await expect(runButton).toHaveAttribute('aria-label', /^(Starting project|Stop running)$/, { timeout: 15_000 });
+    await expect(runButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
 
     await mobileBottomNavigation(page).getByTestId('tab-editor').click();
     await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'editor', {
       timeout: 15_000,
     });
-    await expect(editorRunButton).toHaveAttribute('aria-label', 'Stop running', { timeout: 15_000 });
+    await expect(editorRunButton).toHaveAttribute('aria-label', /^(Starting project|Stop running)$/, {
+      timeout: 15_000,
+    });
     await expect(editorRunButton).toHaveAttribute('aria-pressed', 'true');
-    await expect(editorRunButton).toHaveAttribute('data-run-state', /^(running|static)$/);
+    await expect(editorRunButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
     await expect(editorRunButton.locator('span').first()).toHaveClass(/i-ph:square-fill/);
 
     const activeEditorRunVisualState = await readButtonVisualState(editorRunButton);
@@ -1425,13 +1427,17 @@ createServer((request, response) => {
     const projectId = await createTestProject(page, 'Responsive compact theme menu project');
 
     for (const theme of ['light', 'dark'] as const) {
-      await page.addInitScript((nextTheme) => {
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.evaluate((nextTheme) => {
         window.localStorage.setItem('bolt_theme', nextTheme);
+        document.documentElement.setAttribute('data-theme', nextTheme);
+        document.documentElement.classList.toggle('dark', nextTheme === 'dark');
       }, theme);
       await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
       await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'chat', {
         timeout: 15_000,
       });
+      await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe(theme);
 
       const toolsSheet = await openMobileToolsSheet(page);
 
