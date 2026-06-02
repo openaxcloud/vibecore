@@ -58,7 +58,7 @@ import {
 import type { FileMap } from '~/lib/stores/files';
 import { buildRuntimeDiagnostics, useDiagnosticsStore } from '~/lib/stores/diagnostics';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { themeStore } from '~/lib/stores/theme';
+import { DEFAULT_THEME, applyThemeToDocument, kTheme, themeStore, toggleTheme, type Theme } from '~/lib/stores/theme';
 import type { ProviderInfo } from '~/types/model';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
@@ -132,6 +132,41 @@ const PROJECT_IDE_GUIDED_TOUR_STORAGE_KEY = 'vibecore-project-ide-guided-tour-v1
 const PROJECT_SECURITY_SCAN_TIMEOUT_MS = 90_000;
 const PROJECT_KEYBINDINGS = defaultProjectKeybindings;
 const SHELL_TERMINAL_LABEL = 'Shell (Terminal)';
+type ProjectThemePreference = Theme | 'system';
+
+function isProjectThemePreference(preference: unknown): preference is ProjectThemePreference {
+  return preference === 'dark' || preference === 'light' || preference === 'system';
+}
+
+function resolveProjectThemePreference(preference: unknown): Theme {
+  if (!isProjectThemePreference(preference)) {
+    return DEFAULT_THEME;
+  }
+
+  if (preference === 'dark' || preference === 'light') {
+    return preference;
+  }
+
+  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+
+  return DEFAULT_THEME;
+}
+
+function applyProjectThemePreference(preference: unknown): Theme {
+  const resolvedTheme = resolveProjectThemePreference(preference);
+
+  themeStore.set(resolvedTheme);
+
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(kTheme, resolvedTheme);
+  }
+
+  applyThemeToDocument(resolvedTheme);
+
+  return resolvedTheme;
+}
 
 const IDE_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string }> = {
   Agent: { description: 'Focus the AI agent composer and project instructions.', shortcut: 'Cmd+J' },
@@ -4413,11 +4448,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         });
 
         const payload = (await response.json().catch(() => ({}))) as any;
-        const overrides = payload?.data?.settingsState?.keybindings?.overrides;
+        const settingsState = payload?.data?.settingsState;
+        const overrides = settingsState?.keybindings?.overrides;
 
         setProjectKeybindingOverrides(
           overrides && typeof overrides === 'object' && !Array.isArray(overrides) ? overrides : {},
         );
+
+        if (isProjectThemePreference(settingsState?.preferences?.theme)) {
+          applyProjectThemePreference(settingsState.preferences.theme);
+        }
       } catch {
         setProjectKeybindingOverrides({});
       }
@@ -6629,7 +6669,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           void workbenchStore.stopPreviewServer();
           openWorkspacePanel('logs');
         } else if (entry.command === 'theme') {
-          themeStore.set(theme === 'dark' ? 'light' : 'dark');
+          toggleTheme();
         }
       }
 
@@ -10652,9 +10692,11 @@ function ProjectSettingsPanel({
   const [memoryEditTags, setMemoryEditTags] = useState('');
   const [settingsNotice, setSettingsNotice] = useState('');
   const settingsNoticeRef = useRef('Settings saved.');
+  const pendingThemePreferenceRef = useRef<ProjectThemePreference | undefined>(undefined);
   const accountUser = data.account?.user ?? {};
   const sessions = data.sessions?.sessions ?? [];
   const state = data.settingsState ?? {};
+  const persistedThemePreference = state.preferences?.theme;
   const preferences = state.preferences ?? { theme: 'dark', keyboardMode: false, creditAlertThreshold: 80 };
   const notifications = state.notifications ?? {};
 
@@ -10762,6 +10804,14 @@ function ProjectSettingsPanel({
 
   function submitWithNotice(message: string) {
     return (event: React.FormEvent<HTMLFormElement>) => {
+      const formData = new FormData(event.currentTarget);
+      const intent = String(formData.get('intent') ?? '');
+
+      if (intent === 'preferences') {
+        const themePreference = formData.get('theme');
+        pendingThemePreferenceRef.current = isProjectThemePreference(themePreference) ? themePreference : DEFAULT_THEME;
+      }
+
       settingsNoticeRef.current = message;
       setSettingsNotice('Saving changes...');
       onSubmit(event);
@@ -10769,11 +10819,27 @@ function ProjectSettingsPanel({
   }
 
   useEffect(() => {
+    if (isProjectThemePreference(persistedThemePreference)) {
+      applyProjectThemePreference(persistedThemePreference);
+    }
+  }, [persistedThemePreference]);
+
+  useEffect(() => {
     function handlePanelAction(event: Event) {
       const detail = (event as CustomEvent).detail ?? {};
 
       if (detail.panel !== 'settings') {
         return;
+      }
+
+      if (detail.intent === 'preferences') {
+        const pendingThemePreference = pendingThemePreferenceRef.current;
+
+        if (detail.ok && isProjectThemePreference(pendingThemePreference)) {
+          applyProjectThemePreference(pendingThemePreference);
+        }
+
+        pendingThemePreferenceRef.current = undefined;
       }
 
       setSettingsNotice(detail.ok ? settingsNoticeRef.current : (detail.error ?? 'Settings action failed.'));

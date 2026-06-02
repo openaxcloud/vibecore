@@ -840,6 +840,48 @@ test.describe('responsive IDE shell', () => {
     await expectSettingsTabRailFitsViewport(page);
   });
 
+  test('mobile and tablet apply settings theme preferences', async ({ page }, testInfo) => {
+    test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
+    test.setTimeout(150_000);
+
+    const projectId = await createTestProject(page, 'Responsive settings theme project');
+
+    await page.goto(`/projects/${projectId}/ide?panel=settings`, { waitUntil: 'domcontentloaded' });
+    await expect(page).toHaveURL(/panel=settings/, { timeout: 90_000 });
+    await expect(page.locator('[data-testid="ide-service-panel"][data-panel="settings"]').first()).toBeVisible({
+      timeout: 90_000,
+    });
+    await expect(page.getByTestId('settings-hub-panel')).toBeVisible({ timeout: 45_000 });
+
+    await page.getByTestId('button-settings-tab-preferences').click();
+    await expect(page.getByText('Appearance & Keyboard')).toBeVisible({ timeout: 15_000 });
+
+    const preferencesForm = page
+      .locator('form')
+      .filter({ has: page.locator('input[name="intent"][value="preferences"]') })
+      .first();
+    const themeSelect = preferencesForm.locator('select[name="theme"]');
+    const settingsStatus = page.locator('.bolt-project-settings-status');
+
+    await expect(themeSelect).toBeVisible();
+
+    for (const theme of ['light', 'dark'] as const) {
+      await themeSelect.selectOption(theme);
+      await preferencesForm.getByRole('button', { name: 'Save preferences' }).click();
+      await expect(settingsStatus).toContainText('IDE preferences saved.', { timeout: 45_000 });
+      await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe(theme);
+      await expect.poll(() => page.evaluate(() => window.localStorage.getItem('bolt_theme'))).toBe(theme);
+
+      const persistedSettings = await page.request.get(`/api/projects/${projectId}/ide-panel/settings`);
+
+      expect(persistedSettings.ok(), await persistedSettings.text()).toBeTruthy();
+
+      const persistedPayload = await persistedSettings.json();
+
+      expect(persistedPayload.data?.settingsState?.preferences?.theme).toBe(theme);
+    }
+  });
+
   test('mobile and tablet keep agent model controls and composer menus usable', async ({ page }, testInfo) => {
     test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
     test.setTimeout(180_000);
