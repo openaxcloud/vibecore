@@ -4468,11 +4468,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const token = createOpaqueToken('session');
       await createLoginSession({ store, userId: user.id, organizationId: organization.id, token, request });
       reply.setCookie('session', token, authCookieOptions(isProduction));
-      await emailProvider.send({
-        to: user.email,
-        subject: 'Verify your email',
-        text: `Use this verification token to verify your email: ${verificationToken}`,
-      });
+
+      /*
+       * Audit v3 (M): the verification email is a best-effort side effect, not
+       * a precondition for the account. Previously an SMTP/webhook failure
+       * here threw *after* the user, org and session were already committed —
+       * returning a 500 to someone whose account actually exists, leaving them
+       * unable to register again (email now taken) or sign in cleanly. Log and
+       * continue; the account is usable and verification can be re-requested.
+       */
+      try {
+        await emailProvider.send({
+          to: user.email,
+          subject: 'Verify your email',
+          text: `Use this verification token to verify your email: ${verificationToken}`,
+        });
+      } catch (error) {
+        request.log.error({ err: error, userId: user.id }, 'failed to send registration verification email');
+      }
+
       await audit(request, store, {
         organizationId: organization.id,
         action: 'auth.register',
