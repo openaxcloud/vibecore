@@ -686,7 +686,25 @@ const runtimeFileCreateSchema = runtimeFileWriteSchema
   .extend({ path: z.string().min(1), directory: z.boolean().optional() });
 
 const runtimeFileMoveSchema = z.object({ path: z.string().min(1), newPath: z.string().min(1) });
-const runtimeSearchSchema = z.object({ query: z.string(), options: z.record(z.unknown()).optional() });
+const runtimeSearchSchema = z.object({
+  query: z.string(),
+  /*
+   * Audit v3 (H): the search options the IDE sends (regex / case-sensitivity
+   * toggles, include/exclude globs, result cap) were typed as an opaque
+   * `record` and then discarded by the handler — so the `.*` and `Aa`
+   * toggles were silent no-ops and the walk read every file including
+   * node_modules. Type them so the handler can honor them.
+   */
+  options: z
+    .object({
+      includes: z.array(z.string()).optional(),
+      excludes: z.array(z.string()).optional(),
+      caseSensitive: z.boolean().optional(),
+      isRegex: z.boolean().optional(),
+      resultLimit: z.number().int().positive().max(5000).optional(),
+    })
+    .optional(),
+});
 
 const runtimePatchSchema = z.object({
   operations: z.array(
@@ -3519,6 +3537,41 @@ function mapRuntimeNodes(nodes: AgentNode[]): RuntimeFileNode[] {
 
 function flattenRuntimeFiles(nodes: AgentNode[]): AgentNode[] {
   return nodes.flatMap((node) => (node.type === 'file' ? [node] : flattenRuntimeFiles(node.children ?? [])));
+}
+
+/*
+ * Minimal, dependency-free glob → RegExp for the runtime file-search
+ * include/exclude patterns (`**`, `*`, `?`). `**` spans path separators (and
+ * an immediately following `/` is optional so `**​/foo` also matches `foo` at
+ * the root); `*`/`?` stay within a single segment. Anchored to the whole path.
+ */
+function globToRegExp(glob: string): RegExp {
+  let pattern = '';
+
+  for (let i = 0; i < glob.length; i += 1) {
+    const char = glob[i];
+
+    if (char === '*') {
+      if (glob[i + 1] === '*') {
+        pattern += '.*';
+        i += 1;
+
+        if (glob[i + 1] === '/') {
+          i += 1;
+        }
+      } else {
+        pattern += '[^/]*';
+      }
+    } else if (char === '?') {
+      pattern += '[^/]';
+    } else if ('.+^${}()|[]\\'.includes(char)) {
+      pattern += `\\${char}`;
+    } else {
+      pattern += char;
+    }
+  }
+
+  return new RegExp(`^${pattern}$`);
 }
 
 function normalizeRuntimeApiWebSocket(rawSocket: unknown) {
@@ -7200,27 +7253,78 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(204).send();
   });
-  app.post('/api/runtime/workspaces/:workspaceId/files/search', async (request) => {
+  app.post('/api/runtime/workspaces/:workspaceId/files/search', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeSearchSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
     const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree');
+
+    const options = body.options ?? {};
+    const resultLimit = options.resultLimit ?? 500;
+
+    /*
+     * Audit v3 (H): honor the IDE's search options. Previously this was a
+     * hardcoded case-sensitive `indexOf` over every file, so the regex (`.*`)
+     * and case (`Aa`) toggles did nothing and node_modules/.git were scanned.
+     */
+    let findMatch: (line: string) => { start: number; length: number } | null;
+
+    if (options.isRegex) {
+      let regex: RegExp;
+
+      try {
+        regex = new RegExp(body.query, options.caseSensitive ? '' : 'i');
+      } catch {
+        return reply.code(400).send({ error: 'Invalid regular expression', code: 'RUNTIME_SEARCH_BAD_REGEX' });
+      }
+
+      findMatch = (line) => {
+        const match = regex.exec(line);
+        return match ? { start: match.index, length: match[0].length } : null;
+      };
+    } else {
+      const needle = options.caseSensitive ? body.query : body.query.toLowerCase();
+      findMatch = (line) => {
+        const haystack = options.caseSensitive ? line : line.toLowerCase();
+        const start = haystack.indexOf(needle);
+        return start >= 0 ? { start, length: body.query.length } : null;
+      };
+    }
+
+    const includeMatchers = (options.includes ?? []).map(globToRegExp);
+    const excludeMatchers = (options.excludes ?? []).map(globToRegExp);
+    const isPathSearchable = (path: string) => {
+      if (excludeMatchers.some((matcher) => matcher.test(path))) {
+        return false;
+      }
+
+      return includeMatchers.length === 0 || includeMatchers.some((matcher) => matcher.test(path));
+    };
+
     const matches = [];
 
     for (const file of flattenRuntimeFiles(nodes)) {
+      if (!isPathSearchable(file.path)) {
+        continue;
+      }
+
       const content = await agentFileContent(authorized.workspaceId, file.path);
 
       for (const [index, line] of content.split('\n').entries()) {
-        const start = line.indexOf(body.query);
+        const hit = findMatch(line);
 
-        if (start >= 0) {
+        if (hit) {
           matches.push({
             path: file.path,
             lineNumber: index + 1,
             line,
-            startColumn: start + 1,
-            endColumn: start + body.query.length + 1,
+            startColumn: hit.start + 1,
+            endColumn: hit.start + hit.length + 1,
           });
+
+          if (matches.length >= resultLimit) {
+            return matches;
+          }
         }
       }
     }
