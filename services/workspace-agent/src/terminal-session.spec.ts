@@ -52,7 +52,12 @@ describe('TerminalSessionManager (fallback shell)', () => {
 
   async function newManager() {
     const cwd = await mkdtemp(join(tmpdir(), 'vc-term-'));
-    const manager = new TerminalSessionManager({ cwd, reattachGraceMs: 2000 });
+    // Pin the shell to bash. The assertions use `echo x=[$VAR]`, whose `[...]`
+    // is glob syntax; under zsh (the default $SHELL on dev macs) an unmatched
+    // glob with `nomatch` aborts the command and exits the shell, making these
+    // tests non-deterministic. bash leaves the unmatched pattern literal —
+    // the behavior CI (bash) already exercises.
+    const manager = new TerminalSessionManager({ cwd, shell: '/bin/bash', reattachGraceMs: 2000 });
     managers.push(manager);
 
     return manager;
