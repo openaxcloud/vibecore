@@ -107,6 +107,7 @@ import {
   mcpUserConfigSchema,
   createDefaultMcpMarketplaceService,
 } from './mcp-marketplace.js';
+import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
   filesFromZipBase64,
@@ -5636,6 +5637,43 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const keys = await store.listApiKeys({ userId: request.currentUser.id });
 
     return { keys: keys.map(publicApiKey) };
+  });
+
+  /*
+   * Per-user feature flag evaluation. Returns the effective on/off state of
+   * every flag for the current user (org override over global, honouring
+   * staged rollout) so the client can gate UI. The same evaluation backs the
+   * server-side requireFeatureFlag() guard.
+   */
+  app.get('/feature-flags', async (request, reply) => {
+    if (!request.currentUser) {
+      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+    }
+
+    const organizationId = orgIdFromRequest(request) ?? undefined;
+    const flags = await store.listEffectiveFeatureFlags(organizationId);
+
+    const evaluated: Record<string, boolean> = {};
+
+    for (const flag of flags) {
+      evaluated[flag.key] = flagEnabledForUser(flag, request.currentUser.id);
+    }
+
+    return { flags: evaluated };
+  });
+
+  app.get('/feature-flags/:key', async (request, reply) => {
+    if (!request.currentUser) {
+      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+    }
+
+    const { key } = parse(z.object({ key: z.string().min(1) }), request.params);
+    const enabled = await evaluateFeatureFlag(store, key, {
+      userId: request.currentUser.id,
+      organizationId: orgIdFromRequest(request) ?? undefined,
+    });
+
+    return { key, enabled };
   });
 
   app.post('/api/keys', async (request, reply) => {

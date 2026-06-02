@@ -209,6 +209,8 @@ export interface FeatureFlagRecord {
   organizationId?: string;
   key: string;
   enabled: boolean;
+  /** 0–100 staged rollout. Undefined means 100 (fully on when enabled). */
+  rolloutPercent?: number;
 }
 
 export interface AbuseEventRecord {
@@ -857,8 +859,20 @@ export interface ApiStore {
   listDeployments(projectId: string): Promise<DeploymentRecord[]>;
   createSupportTicket(input: { organizationId: string; userId: string; subject: string }): Promise<SupportTicketRecord>;
   listSupportTickets(organizationId: string): Promise<SupportTicketRecord[]>;
-  setFeatureFlag(input: { organizationId?: string; key: string; enabled: boolean }): Promise<FeatureFlagRecord>;
+  setFeatureFlag(input: {
+    organizationId?: string;
+    key: string;
+    enabled: boolean;
+    rolloutPercent?: number;
+  }): Promise<FeatureFlagRecord>;
   listFeatureFlags(organizationId?: string): Promise<FeatureFlagRecord[]>;
+  /**
+   * Resolve the single effective flag for a key: the organization-specific
+   * override when present, otherwise the global (organizationId = null) flag.
+   */
+  findFeatureFlag(key: string, organizationId?: string): Promise<FeatureFlagRecord | undefined>;
+  /** Global flags merged with organization overrides (override wins per key). */
+  listEffectiveFeatureFlags(organizationId?: string): Promise<FeatureFlagRecord[]>;
   createAbuseEvent(input: {
     organizationId?: string;
     userId?: string;

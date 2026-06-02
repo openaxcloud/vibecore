@@ -1115,20 +1115,29 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.supportTicket.findMany({ where: { organizationId } })).map(mapSupportTicket);
   }
 
-  async setFeatureFlag(input: { organizationId?: string; key: string; enabled: boolean }) {
+  async setFeatureFlag(input: { organizationId?: string; key: string; enabled: boolean; rolloutPercent?: number }) {
     const existing = await this.prisma.featureFlag.findFirst({
       where: { organizationId: input.organizationId ?? null, key: input.key },
     });
 
+    // rolloutPercent lives in the `rules` JSON column; clamp to 0–100.
+    const rules =
+      input.rolloutPercent === undefined
+        ? undefined
+        : { rolloutPercent: Math.max(0, Math.min(100, Math.round(input.rolloutPercent))) };
+
     if (existing) {
       return mapFeatureFlag(
-        await this.prisma.featureFlag.update({ where: { id: existing.id }, data: { enabled: input.enabled } }),
+        await this.prisma.featureFlag.update({
+          where: { id: existing.id },
+          data: { enabled: input.enabled, ...(rules ? { rules } : {}) },
+        }),
       );
     }
 
     return mapFeatureFlag(
       await this.prisma.featureFlag.create({
-        data: { organizationId: input.organizationId, key: input.key, enabled: input.enabled },
+        data: { organizationId: input.organizationId, key: input.key, enabled: input.enabled, rules },
       }),
     );
   }
@@ -1137,6 +1146,41 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.featureFlag.findMany({ where: { organizationId: organizationId ?? null } })).map(
       mapFeatureFlag,
     );
+  }
+
+  async findFeatureFlag(key: string, organizationId?: string) {
+    if (organizationId) {
+      const scoped = await this.prisma.featureFlag.findFirst({ where: { organizationId, key } });
+
+      if (scoped) {
+        return mapFeatureFlag(scoped);
+      }
+    }
+
+    const global = await this.prisma.featureFlag.findFirst({ where: { organizationId: null, key } });
+
+    return global ? mapFeatureFlag(global) : undefined;
+  }
+
+  async listEffectiveFeatureFlags(organizationId?: string) {
+    const [globals, scoped] = await Promise.all([
+      this.prisma.featureFlag.findMany({ where: { organizationId: null } }),
+      organizationId
+        ? this.prisma.featureFlag.findMany({ where: { organizationId } })
+        : Promise.resolve([] as unknown[]),
+    ]);
+
+    const byKey = new Map<string, FeatureFlagRecord>();
+
+    for (const flag of globals) {
+      byKey.set((flag as any).key, mapFeatureFlag(flag));
+    }
+
+    for (const flag of scoped as any[]) {
+      byKey.set(flag.key, mapFeatureFlag(flag));
+    }
+
+    return [...byKey.values()];
   }
 
   async createAbuseEvent(input: { organizationId?: string; userId?: string; type: string; severity: string }) {
@@ -2498,7 +2542,19 @@ function mapSupportTicket(ticket: any): SupportTicketRecord {
 }
 
 function mapFeatureFlag(flag: any): FeatureFlagRecord {
-  return { id: flag.id, organizationId: flag.organizationId ?? undefined, key: flag.key, enabled: flag.enabled };
+  const rawRollout = flag.rules?.rolloutPercent;
+  const rolloutPercent =
+    typeof rawRollout === 'number' && Number.isFinite(rawRollout)
+      ? Math.max(0, Math.min(100, Math.round(rawRollout)))
+      : undefined;
+
+  return {
+    id: flag.id,
+    organizationId: flag.organizationId ?? undefined,
+    key: flag.key,
+    enabled: flag.enabled,
+    rolloutPercent,
+  };
 }
 
 function mapAbuseEvent(event: any): AbuseEventRecord {

@@ -1061,9 +1061,17 @@ export class TestApiStore implements ApiStore {
     return [...this.supportTickets.values()].filter((ticket) => ticket.organizationId === organizationId);
   }
 
-  async setFeatureFlag(input: { organizationId?: string; key: string; enabled: boolean }) {
+  async setFeatureFlag(input: { organizationId?: string; key: string; enabled: boolean; rolloutPercent?: number }) {
     const flagId = `${input.organizationId ?? 'system'}:${input.key}`;
-    const flag = { id: flagId, ...input };
+    const rolloutPercent =
+      input.rolloutPercent === undefined ? undefined : Math.max(0, Math.min(100, Math.round(input.rolloutPercent)));
+    const flag: FeatureFlagRecord = {
+      id: flagId,
+      organizationId: input.organizationId,
+      key: input.key,
+      enabled: input.enabled,
+      rolloutPercent,
+    };
     this.featureFlags.set(flagId, flag);
 
     return flag;
@@ -1071,6 +1079,40 @@ export class TestApiStore implements ApiStore {
 
   async listFeatureFlags(organizationId?: string) {
     return [...this.featureFlags.values()].filter((flag) => flag.organizationId === organizationId);
+  }
+
+  async findFeatureFlag(key: string, organizationId?: string) {
+    if (organizationId) {
+      const scoped = [...this.featureFlags.values()].find(
+        (flag) => flag.organizationId === organizationId && flag.key === key,
+      );
+
+      if (scoped) {
+        return scoped;
+      }
+    }
+
+    return [...this.featureFlags.values()].find((flag) => !flag.organizationId && flag.key === key);
+  }
+
+  async listEffectiveFeatureFlags(organizationId?: string) {
+    const byKey = new Map<string, FeatureFlagRecord>();
+
+    for (const flag of this.featureFlags.values()) {
+      if (!flag.organizationId) {
+        byKey.set(flag.key, flag);
+      }
+    }
+
+    if (organizationId) {
+      for (const flag of this.featureFlags.values()) {
+        if (flag.organizationId === organizationId) {
+          byKey.set(flag.key, flag);
+        }
+      }
+    }
+
+    return [...byKey.values()];
   }
 
   async createAbuseEvent(input: { organizationId?: string; userId?: string; type: string; severity: string }) {
