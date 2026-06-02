@@ -1336,10 +1336,10 @@ export function TemplateGallery({
             </div>
             <CardDescription>{template.stack}</CardDescription>
           </CardHeader>
-          {!compact ? (
-            <CardContent className="flex items-center justify-between">
-              <span className="text-sm text-bolt-elements-textSecondary">Production starter</span>
-              {mode === 'authenticated' ? (
+          <CardContent className="flex items-center justify-between">
+            <span className="text-sm text-bolt-elements-textSecondary">Production starter</span>
+            {!compact ? (
+              mode === 'authenticated' ? (
                 <Form method="post">
                   <input type="hidden" name="templateName" value={template.id} />
                   <input type="hidden" name="name" value={template.name} />
@@ -1351,9 +1351,18 @@ export function TemplateGallery({
                 <LinkButton to="/login" variant="outline">
                   Sign in to use
                 </LinkButton>
-              )}
-            </CardContent>
-          ) : null}
+              )
+            ) : (
+              /*
+               * Compact cards (homepage / new-project gallery) have no inline create form, so link to
+               * the full template gallery where the working "Use template" action lives instead of
+               * leaving the card as dead decoration.
+               */
+              <LinkButton to={mode === 'authenticated' ? '/dashboard/templates' : '/templates'} variant="outline">
+                Use template
+              </LinkButton>
+            )}
+          </CardContent>
         </Card>
       ))}
     </div>
