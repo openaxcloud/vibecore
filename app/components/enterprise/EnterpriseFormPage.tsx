@@ -39,6 +39,7 @@ export function TextField(props: {
   placeholder?: string;
   defaultValue?: string;
   required?: boolean;
+  autoComplete?: string;
 }) {
   return (
     <label className="block text-sm font-medium">
@@ -50,6 +51,7 @@ export function TextField(props: {
         type={props.type ?? 'text'}
         defaultValue={props.defaultValue}
         required={props.required}
+        autoComplete={props.autoComplete}
       />
     </label>
   );

@@ -26,6 +26,47 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   return json(data);
 }
 
+/*
+ * Admin billing mutations require BOTH platform-admin and a recent (≤5 min) re-authentication on the
+ * API. The page collects the admin's password and we step the session up via /auth/reauth before the
+ * mutation, then translate the API's typed 401/403 codes into actionable inline messages.
+ */
+async function reauthenticate(request: Request, password: string) {
+  try {
+    await apiRequest(request, '/auth/reauth', {
+      method: 'POST',
+      redirectOn401: false,
+      body: JSON.stringify({ password }),
+    });
+
+    return undefined;
+  } catch (error) {
+    if (error instanceof Response && error.status === 401) {
+      return 'Incorrect password. Re-enter your password to confirm this change.';
+    }
+
+    throw error;
+  }
+}
+
+async function adminMutationError(error: unknown): Promise<string> {
+  if (error instanceof Response) {
+    const payload = (await error.json().catch(() => ({}))) as { error?: string; code?: string };
+
+    if (payload.code === 'ADMIN_REAUTH_REQUIRED') {
+      return 'Re-authentication expired. Enter your password and submit again.';
+    }
+
+    if (payload.code === 'PLATFORM_ADMIN_REQUIRED') {
+      return 'This action requires a platform administrator account.';
+    }
+
+    return payload.error ?? 'The billing change could not be applied.';
+  }
+
+  return 'The billing service is not reachable. Please try again in a moment.';
+}
+
 export async function action({ request }: EnterpriseActionArgs) {
   const body = formObject(await request.formData()) as {
     intent?: string;
@@ -34,40 +75,53 @@ export async function action({ request }: EnterpriseActionArgs) {
     limit?: string;
     planKey?: string;
     reason?: string;
+    password?: string;
   };
+
+  if (!body.password) {
+    return json({ error: 'Enter your password to confirm this billing change.' }, { status: 400 });
+  }
 
   if (body.intent === 'plan') {
     if (!body.orgId || !body.planKey || !body.reason) {
       return json({ error: 'Organization ID, plan and reason are required.' }, { status: 400 });
     }
-
-    await apiRequest(request, '/admin/plan-overrides', {
-      method: 'POST',
-      body: JSON.stringify({
-        organizationId: body.orgId,
-        planKey: body.planKey,
-        reason: body.reason,
-      }),
-    });
-
-    return json({ status: 'Plan override created.' });
-  }
-
-  if (!body.orgId || !body.key || !body.limit) {
+  } else if (!body.orgId || !body.key || !body.limit) {
     return json({ error: 'Organization ID, quota key and limit are required.' }, { status: 400 });
   }
 
-  await apiRequest(request, '/admin/quota-overrides', {
-    method: 'POST',
-    body: JSON.stringify({
-      organizationId: body.orgId,
-      key: body.key,
-      limit: Number(body.limit),
-      reason: body.reason || 'Admin billing override',
-    }),
-  });
+  const reauthError = await reauthenticate(request, body.password);
 
-  return json({ status: 'Quota override created.' });
+  if (reauthError) {
+    return json({ error: reauthError }, { status: 401 });
+  }
+
+  try {
+    if (body.intent === 'plan') {
+      await apiRequest(request, '/admin/plan-overrides', {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ organizationId: body.orgId, planKey: body.planKey, reason: body.reason }),
+      });
+
+      return json({ status: 'Plan override created.' });
+    }
+
+    await apiRequest(request, '/admin/quota-overrides', {
+      method: 'POST',
+      redirectOn401: false,
+      body: JSON.stringify({
+        organizationId: body.orgId,
+        key: body.key,
+        limit: Number(body.limit),
+        reason: body.reason || 'Admin billing override',
+      }),
+    });
+
+    return json({ status: 'Quota override created.' });
+  } catch (error) {
+    return json({ error: await adminMutationError(error) }, { status: 403 });
+  }
 }
 
 export default function AdminBillingPage() {
@@ -87,6 +141,13 @@ export default function AdminBillingPage() {
         <TextField label="Quota key" name="key" placeholder="projects.count" required />
         <TextField label="Limit" name="limit" type="number" required />
         <TextField label="Reason" name="reason" placeholder="contract expansion" />
+        <TextField
+          label="Confirm with your password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+        />
         <PrimaryButton>Create override</PrimaryButton>
       </Form>
       <Form method="post" className="mt-6 space-y-4">
@@ -107,6 +168,13 @@ export default function AdminBillingPage() {
           </select>
         </label>
         <TextField label="Reason" name="reason" placeholder="contract correction" required />
+        <TextField
+          label="Confirm with your password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+        />
         <PrimaryButton>Apply plan override</PrimaryButton>
       </Form>
       <div className="mt-6 rounded-md border border-bolt-elements-borderColor p-3 text-xs text-bolt-elements-textSecondary">
