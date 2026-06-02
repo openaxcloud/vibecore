@@ -132,6 +132,10 @@ export class TestApiStore implements ApiStore {
   readonly auditLogs: AuditEvent[] = [];
   readonly adminAuditLogs: AdminAuditLogRecord[] = [];
 
+  async ping(): Promise<void> {
+    // In-memory store is always reachable.
+  }
+
   async createUser(input: { email: string; name?: string; passwordHash: string; platformAdmin?: boolean }) {
     const user = {
       id: id('user'),

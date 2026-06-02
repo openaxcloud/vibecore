@@ -98,6 +98,11 @@ export class PrismaApiStore implements ApiStore {
     private readonly resolveTxt: (hostname: string) => Promise<string[][]> = dnsPromises.resolveTxt,
   ) {}
 
+  async ping(): Promise<void> {
+    // Trivial round-trip to confirm the database connection is live.
+    await this.prisma.$queryRaw`SELECT 1`;
+  }
+
   async createUser(input: {
     email: string;
     name?: string;

@@ -570,6 +570,13 @@ export interface EmailDeliveryEventRecord {
 }
 
 export interface ApiStore {
+  /**
+   * Lightweight liveness probe that issues a trivial query against the backing
+   * database. Resolves when the database is reachable, rejects otherwise.
+   * Used by admin health checks to assert real connectivity rather than
+   * inferring it from environment-variable presence.
+   */
+  ping(): Promise<void>;
   createUser(input: {
     email: string;
     name?: string;

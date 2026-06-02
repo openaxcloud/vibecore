@@ -2239,15 +2239,62 @@ async function providerHealth(aiGatewayUrl: string) {
   }
 }
 
-async function adminHealthSummary() {
+async function adminHealthSummary(store: ApiStore) {
+  const databaseUrl = process.env.DATABASE_URL;
+  const redisUrl = process.env.REDIS_URL;
+
+  // Real connectivity probe against Postgres: issue a trivial query rather than
+  // inferring health from the presence of DATABASE_URL.
+  const database = await (async () => {
+    if (!databaseUrl) {
+      return { status: 'not-configured', provider: 'PostgreSQL' as const };
+    }
+
+    const startedAt = Date.now();
+
+    try {
+      await store.ping();
+      return { status: 'healthy' as const, provider: 'PostgreSQL' as const, latencyMs: Date.now() - startedAt };
+    } catch (error) {
+      return {
+        status: 'unreachable' as const,
+        provider: 'PostgreSQL' as const,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  })();
+
+  // Real connectivity probe against Redis: open a short-lived connection and
+  // PING it, mirroring the lazyConnect pattern used elsewhere in this service.
+  const redis = await (async () => {
+    if (!redisUrl) {
+      return { status: 'not-configured' as const };
+    }
+
+    const client = new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 });
+    const startedAt = Date.now();
+
+    try {
+      await client.connect();
+      await client.ping();
+      return { status: 'healthy' as const, latencyMs: Date.now() - startedAt };
+    } catch (error) {
+      return { status: 'unreachable' as const, error: error instanceof Error ? error.message : 'Unknown error' };
+    } finally {
+      client.disconnect();
+    }
+  })();
+
   return {
     kubernetes: {
       status: process.env.KUBERNETES_SERVICE_HOST ? 'healthy' : 'not-configured',
       runtimeClass: process.env.WORKSPACE_RUNTIME_CLASS ?? 'gvisor',
     },
-    queues: { status: process.env.REDIS_URL ? 'configured' : 'not-configured', provider: 'BullMQ' },
-    database: { status: process.env.DATABASE_URL ? 'configured' : 'not-configured', provider: 'PostgreSQL' },
-    redis: { status: process.env.REDIS_URL ? 'configured' : 'not-configured' },
+    // BullMQ rides on Redis, so reflect the real Redis probe result instead of
+    // a bare env-var presence check.
+    queues: { status: redis.status, provider: 'BullMQ' as const },
+    database,
+    redis,
   };
 }
 
@@ -11120,7 +11167,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         aiCostCents: aiCosts.reduce((sum, item) => sum + item.costCents, 0),
         usageEvents: usage.reduce((sum, item) => sum + item.quantity, 0),
       },
-      health: await adminHealthSummary(),
+      health: await adminHealthSummary(store),
       suspendedUserIds: await listSettingIds(store, 'admin.suspendedUserIds'),
       suspendedOrganizationIds: await listSettingIds(store, 'admin.suspendedOrganizationIds'),
     };
@@ -11347,7 +11394,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/health', async (request) => {
     await requirePlatformAdmin(request);
-    return adminHealthSummary();
+    return adminHealthSummary(store);
   });
 
   app.get('/admin/costs', async (request) => {
