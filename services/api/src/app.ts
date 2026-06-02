@@ -1817,7 +1817,32 @@ async function requireProject(
 
   await requireOrg(request, store, project.organizationId, permission);
 
+  // Per-project collaborator role refines the org-level grant: a user added to
+  // this project as a read-only (viewer) collaborator cannot perform writes
+  // even if their organization role would otherwise allow it. Users who are not
+  // explicit collaborators (role undefined) are governed purely by the org
+  // permission checked above.
+  if (isWriteProjectPermission(permission)) {
+    const role = await projectCollaborationRole(store, projectId, request.currentUser?.id);
+
+    if (isReadOnlyProjectRole(role)) {
+      throw Object.assign(new Error('Read-only collaborators cannot modify this project'), {
+        statusCode: 403,
+        code: 'PROJECT_ROLE_READ_ONLY',
+      });
+    }
+  }
+
   return project;
+}
+
+/*
+ * Permission keys follow a `resource:action` convention. Anything that is not
+ * an explicit read permission is treated as a mutating (write) permission for
+ * the purpose of read-only collaborator enforcement.
+ */
+function isWriteProjectPermission(permission: PermissionKey) {
+  return !permission.endsWith(':read');
 }
 
 async function projectCollaborationRole(store: ApiStore, projectId: string, userId?: string) {
