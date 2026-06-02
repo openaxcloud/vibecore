@@ -37,10 +37,12 @@ export const action: ActionFunction = async ({ request }) => {
 
     uniqueProjects.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    // Resolve the real organization the access token belongs to so the UI can
-    // show a truthful identity instead of the old hardcoded "Connected / Admin".
-    // The Supabase PAT is opaque (no owner email is recoverable from it), so the
-    // accessible organization is the closest real identity we can surface.
+    /*
+     * Resolve the real organization the access token belongs to so the UI can
+     * show a truthful identity instead of the old hardcoded "Connected / Admin".
+     * The Supabase PAT is opaque (no owner email is recoverable from it), so the
+     * accessible organization is the closest real identity we can surface.
+     */
     let organizations: Array<{ id: string; name: string; plan?: string | { name?: string }; created_at?: string }> = [];
 
     try {
@@ -63,8 +65,11 @@ export const action: ActionFunction = async ({ request }) => {
     const primaryOrgId = uniqueProjects[0]?.organization_id;
     const primaryOrg = organizations.find((org) => org.id === primaryOrgId) ?? organizations[0];
     const planName = typeof primaryOrg?.plan === 'string' ? primaryOrg.plan : primaryOrg?.plan?.name;
-    // uniqueProjects is sorted newest-first, so the last entry is the oldest
-    // project — a real "member since" proxy when the org has no created_at.
+
+    /*
+     * uniqueProjects is sorted newest-first, so the last entry is the oldest
+     * project — a real "member since" proxy when the org has no created_at.
+     */
     const oldestProjectCreatedAt = uniqueProjects[uniqueProjects.length - 1]?.created_at;
 
     return json({

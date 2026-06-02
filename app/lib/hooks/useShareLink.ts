@@ -100,11 +100,7 @@ export interface UseShareLinkResult {
    * Latest share state — `idle` before the user clicks Share, `building` while
    * the server mints the token, `ready` with the URL on success, or `error`.
    */
-  state:
-    | { kind: 'idle' }
-    | { kind: 'building' }
-    | { kind: 'ready'; url: string }
-    | { kind: 'error'; message: string };
+  state: { kind: 'idle' } | { kind: 'building' } | { kind: 'ready'; url: string } | { kind: 'error'; message: string };
 
   /** Mint the share link for the supplied snapshot and surface it in `state`. */
   build: (input: BuildShareRequestInput) => Promise<string | undefined>;

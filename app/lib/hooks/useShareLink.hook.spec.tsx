@@ -94,6 +94,7 @@ describe('useShareLink hook', () => {
 
   it('copyToClipboard writes the latest URL and returns true', async () => {
     mockFetchToken('cshare_abc.sig123');
+
     const { result } = renderHook(() => useShareLink({ origin: 'https://vibecore.io' }));
 
     await act(async () => {
@@ -124,6 +125,7 @@ describe('useShareLink hook', () => {
 
   it('reset() returns to idle', async () => {
     mockFetchToken();
+
     const { result } = renderHook(() => useShareLink({ origin: 'https://vibecore.io' }));
 
     await act(async () => {

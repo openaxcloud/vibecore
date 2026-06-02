@@ -43,9 +43,11 @@ async function supabaseUserLoader({ request, context }: { request: Request; cont
       created_at: string;
     }>;
 
-    // The Supabase /v1/projects endpoint exposes no user name or email, and the
-    // PAT is opaque, so we only surface the real organization id rather than
-    // fabricating a placeholder identity.
+    /*
+     * The Supabase /v1/projects endpoint exposes no user name or email, and the
+     * PAT is opaque, so we only surface the real organization id rather than
+     * fabricating a placeholder identity.
+     */
     const user = projects.length > 0 ? { id: projects[0].organization_id } : null;
 
     return json({
@@ -117,8 +119,10 @@ async function supabaseUserAction({ request, context }: { request: Request; cont
         created_at: string;
       }>;
 
-      // Only surface the real organization id; the endpoint exposes no user
-      // name or email, so we avoid fabricating a placeholder identity.
+      /*
+       * Only surface the real organization id; the endpoint exposes no user
+       * name or email, so we avoid fabricating a placeholder identity.
+       */
       const user = projects.length > 0 ? { id: projects[0].organization_id } : null;
 
       return json({

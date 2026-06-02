@@ -31,8 +31,11 @@ export async function action({ request }: ActionFunctionArgs) {
     const result = await apiRequest<{ token: string; expiresAt: string | null }>(request, '/chat-shares', {
       method: 'POST',
       body: JSON.stringify(body),
-      // Surface a 401 as an error to the caller rather than redirecting the
-      // fetch() to the login page (this is an XHR, not a page navigation).
+
+      /*
+       * Surface a 401 as an error to the caller rather than redirecting the
+       * fetch() to the login page (this is an XHR, not a page navigation).
+       */
       redirectOn401: false,
     });
 
