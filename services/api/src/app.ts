@@ -4483,6 +4483,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const statusCode = typeof error.statusCode === 'number' ? error.statusCode : 500;
 
     if (statusCode >= 500) {
+      // Log the full error (with stack) so 5xx failures are diagnosable from pod
+      // logs alone; previously only metrics + Sentry fired, leaving the request
+      // log with a bare `statusCode:500` and no clue what threw.
+      request.log.error(
+        { err: error, route: request.routeOptions.url ?? request.url, code: error.code ?? 'API_ERROR' },
+        'request failed with server error',
+      );
       metrics.increment('api_errors_total', {
         method: request.method,
         route: request.routeOptions.url ?? request.url.split('?')[0] ?? 'unknown',
@@ -6580,6 +6587,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { memory };
   });
 
+  // Workspace-manager / workspace-agent handlers legitimately return an empty
+  // body (e.g. the manager's `GET /workspaces/:id` returns `undefined` for a
+  // workspace it hasn't started yet, which Fastify serialises as an empty 200).
+  // Calling `response.json()` on an empty body throws an uncoded SyntaxError,
+  // which surfaced as a generic 500 on the runtime status poll. Treat both 204
+  // and any empty body as `undefined` so those callers get a clean value.
+  const readJsonBody = async (response: Response) => {
+    if (response.status === 204) {
+      return undefined;
+    }
+
+    const text = await response.text();
+
+    return text.length === 0 ? undefined : JSON.parse(text);
+  };
+
   const managerRequest = async <T = unknown>(path: string, init: RequestInit = {}) => {
     let response: Response;
 
@@ -6606,10 +6629,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         statusCode: 502,
         code: 'WORKSPACE_MANAGER_REQUEST_FAILED',
         publicMessage: 'Workspace manager request failed',
+        // Preserve the upstream status so callers can distinguish a genuine
+        // "workspace not found" (404) from a transient manager fault.
+        managerStatus: response.status,
       });
     }
 
-    return (response.status === 204 ? undefined : await response.json()) as T;
+    return (await readJsonBody(response)) as T;
   };
 
   const agentToken = async (workspaceId: string) => {
@@ -6650,11 +6676,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    if (response.status === 204) {
-      return undefined as T;
-    }
-
-    return (await response.json()) as T;
+    return (await readJsonBody(response)) as T;
   };
 
   const agentFileContent = async (workspaceId: string, path: string) => {
@@ -6712,6 +6734,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const isRuntimeManagerUnavailable = (error: unknown) =>
     (error as { code?: string } | undefined)?.code === 'WORKSPACE_MANAGER_UNAVAILABLE' ||
     (error instanceof Error && error.message === 'Workspace manager is unavailable');
+
+  // True when the manager has no record of the workspace (it returned 404) or is
+  // unreachable — i.e. there is nothing running to act on. Lets lifecycle
+  // operations like stop treat the request as already-satisfied / idempotent.
+  const isRuntimeWorkspaceGone = (error: unknown) =>
+    isRuntimeManagerUnavailable(error) || (error as { managerStatus?: number } | undefined)?.managerStatus === 404;
 
   const isRuntimeAgentUnavailable = (error: unknown) =>
     (error as { code?: string } | undefined)?.code === 'WORKSPACE_AGENT_REQUEST_FAILED';
@@ -7452,7 +7480,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const state = authorized.organizationId ? await billingState(authorized.organizationId) : undefined;
 
-    if (authorized.organizationId) {
+    // Runtime workspace ids are deterministic per (project, user), so a re-open
+    // reuses the same record. Only a genuinely new workspace consumes the
+    // active-workspace quota — charging on every (re)start counted the existing
+    // record against itself and locked free-tier users out of reopening their
+    // own IDE (used=1, limit=1 → used+1 > limit → 429).
+    const existingWorkspace = await store.getWorkspace(workspaceId);
+
+    if (authorized.organizationId && !existingWorkspace) {
       await ensureQuota(request, authorized.organizationId, 'workspaces.active');
     }
 
@@ -7511,8 +7546,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { runtimeMode: 'remote-kubernetes' },
     });
 
-    if (authorized.organizationId) {
+    if (authorized.organizationId && !existingWorkspace) {
       await recordUsage(request, authorized.organizationId, 'workspaces.active');
+    }
+
+    // Reconcile our own record to the running state. This matters when reopening
+    // a previously-stopped workspace: the active-workspace quota counts RUNNING
+    // records, so leaving a reopened workspace marked STOPPED would let the user
+    // exceed their concurrent limit.
+    if (managerWorkspace?.status !== 'FAILED' && managerWorkspace?.status !== 'STOPPED') {
+      await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' }).catch(() => undefined);
     }
 
     return runtimeSession(
@@ -7524,7 +7567,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/api/runtime/workspaces/:workspaceId/stop', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-    await managerRequest(`/workspaces/${authorized.workspaceId}/stop`, { method: 'POST' });
+
+    try {
+      await managerRequest(`/workspaces/${authorized.workspaceId}/stop`, { method: 'POST' });
+    } catch (error) {
+      // A workspace the manager has already reclaimed (or never started — e.g.
+      // one left PENDING) has nothing to stop. Without this, such a workspace
+      // would 502 here forever and permanently hold the org's active-workspace
+      // quota with no way for the user to free it. Treat "gone" as a no-op and
+      // still reconcile our own record below; rethrow genuine faults.
+      if (!isRuntimeWorkspaceGone(error)) {
+        throw error;
+      }
+    }
+
+    // The manager owns its own state; our Workspace table is separate and is
+    // what the active-workspace quota counts (PENDING/STARTING/RUNNING). Mark it
+    // stopped so the quota is actually released — the admin stop route already
+    // does this, the user-facing stop route previously did not.
+    await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STOPPED' }).catch(() => undefined);
+
     await audit(request, store, {
       organizationId: authorized.organizationId,
       action: 'runtime.workspace.stop',
@@ -7592,11 +7654,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       };
     }
 
-    return runtimeSession(
-      authorized.workspaceId,
-      managerWorkspace?.status === 'FAILED' ? 'failed' : managerWorkspace?.status === 'STOPPED' ? 'stopped' : 'running',
-      { managerWorkspace },
-    );
+    // The manager returns an empty body (→ undefined) for a workspace it has no
+    // record of, i.e. one that was created in our DB but never started. Report
+    // it as stopped rather than masquerading as running, so the IDE knows to boot.
+    const managerStatus = !managerWorkspace
+      ? 'stopped'
+      : managerWorkspace.status === 'FAILED'
+        ? 'failed'
+        : managerWorkspace.status === 'STOPPED'
+          ? 'stopped'
+          : 'running';
+
+    return runtimeSession(authorized.workspaceId, managerStatus, { managerWorkspace });
   });
   app.get('/api/runtime/workspaces/:workspaceId/files', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);

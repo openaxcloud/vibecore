@@ -230,7 +230,14 @@ export class WorkspaceManager {
   private async requireWorkspace(workspaceId: string) {
     const workspace = await this.store.get(workspaceId);
     if (!workspace) {
-      throw new Error('Workspace not found');
+      // Surface a real 404 (the manager has no Fastify error handler, so a bare
+      // Error would default to 500). Callers — notably the API stop route — need
+      // to tell "this workspace no longer exists" apart from a transient fault
+      // so they can treat a stop/delete of an unknown workspace as idempotent.
+      throw Object.assign(new Error('Workspace not found'), {
+        statusCode: 404,
+        code: 'WORKSPACE_NOT_FOUND',
+      });
     }
     return workspace;
   }

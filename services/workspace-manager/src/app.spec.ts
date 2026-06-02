@@ -113,6 +113,19 @@ describe('workspace-manager app', () => {
     await app.close();
   });
 
+  it('returns 404 (not 500) when acting on a workspace it has no record of', async () => {
+    process.env.WORKSPACE_RUNTIME_NAMESPACE = 'prod-workspaces';
+    const runtime = manager();
+    const app = buildWorkspaceManagerApp(runtime.manager);
+
+    const stopped = await app.inject({ method: 'POST', url: '/workspaces/missing-workspace/stop' });
+
+    expect(stopped.statusCode).toBe(404);
+    expect(stopped.json().code).toBe('WORKSPACE_NOT_FOUND');
+
+    await app.close();
+  });
+
   it('exposes preview proxy agent resolution only with the shared secret', async () => {
     process.env.WORKSPACE_RUNTIME_NAMESPACE = 'prod-workspaces';
     process.env.PREVIEW_PROXY_SHARED_SECRET = 'preview-secret\n';

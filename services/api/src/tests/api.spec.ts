@@ -236,7 +236,14 @@ class MemoryProjectStorage implements ProjectStorage {
 }
 
 async function startRuntimeServices(
-  options: { logs?: string[]; commandStdout?: string; commandStderr?: string; agentUnavailable?: boolean } = {},
+  options: {
+    logs?: string[];
+    commandStdout?: string;
+    commandStderr?: string;
+    agentUnavailable?: boolean;
+    managerWorkspaceEmpty?: boolean;
+    managerStopNotFound?: boolean;
+  } = {},
 ) {
   const files = new Map<string, string>([['README.md', '# Runtime project\n']]);
   const calls: string[] = [];
@@ -329,6 +336,17 @@ async function startRuntimeServices(
         response.end(JSON.stringify({ token: 'runtime-token' }));
       } else if (url.pathname.endsWith('/logs')) {
         response.end(JSON.stringify({ logs: options.logs ?? ['workspace ready'] }));
+      } else if (
+        options.managerWorkspaceEmpty &&
+        request.method === 'GET' &&
+        /^\/workspaces\/[^/]+$/.test(url.pathname)
+      ) {
+        // Mirror the real manager returning `undefined` (empty 200) for a
+        // workspace it has no record of — Fastify serialises that as no body.
+        response.end();
+      } else if (options.managerStopNotFound && url.pathname.endsWith('/stop')) {
+        // Mirror the manager 404 for stopping a workspace it has no record of.
+        response.writeHead(404).end(JSON.stringify({ error: 'Workspace not found', code: 'WORKSPACE_NOT_FOUND' }));
       } else {
         response.end(JSON.stringify({ status: 'RUNNING' }));
       }
@@ -4285,6 +4303,117 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       expect(runtime.files.get('src/App.tsx')).toContain('App');
       expect(runtime.calls).toContain('POST /files/write');
       expect(store.auditLogs.some((event) => event.action === 'ai.tool.write_file')).toBe(true);
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('reports a not-yet-started workspace as stopped instead of crashing on an empty manager body', async () => {
+    const runtime = await startRuntimeServices({ managerWorkspaceEmpty: true });
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, { email: 'runtime-status@example.com', organizationName: 'Runtime Status Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Status Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    try {
+      const status = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${projectId}/status`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+
+      expect(status.statusCode).toBe(200);
+      expect(status.json().status).toBe('stopped');
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('stops a workspace the manager no longer knows and frees the active-workspace quota', async () => {
+    const runtime = await startRuntimeServices({ managerStopNotFound: true });
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'runtime-stop@example.com', organizationName: 'Runtime Stop Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Stop Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    try {
+      const start = await app.inject({
+        method: 'POST',
+        url: '/api/runtime/workspaces',
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { projectId },
+      });
+      expect(start.statusCode).toBe(200);
+      const workspaceId = start.json().id as string;
+
+      // Stop must not 502 just because the manager has no record of the
+      // workspace — it has to mark our record stopped so the quota is released.
+      const stop = await app.inject({
+        method: 'POST',
+        url: `/api/runtime/workspaces/${workspaceId}/stop`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+      expect(stop.statusCode).toBe(204);
+
+      const record = await store.getWorkspace(workspaceId);
+      expect(record?.status).toBe('STOPPED');
+      expect(await store.countActiveWorkspaces(auth.organization.id)).toBe(0);
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('lets a free-tier user reopen an existing workspace without re-charging the quota', async () => {
+    const runtime = await startRuntimeServices();
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'runtime-reopen@example.com', organizationName: 'Runtime Reopen Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Reopen Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    try {
+      const first = await app.inject({
+        method: 'POST',
+        url: '/api/runtime/workspaces',
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { projectId },
+      });
+      expect(first.statusCode).toBe(200);
+
+      // Free plan allows a single active workspace. Reopening the SAME workspace
+      // reuses its deterministic id and must not be billed against the quota a
+      // second time (previously: used=1, limit=1 → used+1 > limit → 429).
+      const second = await app.inject({
+        method: 'POST',
+        url: '/api/runtime/workspaces',
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { projectId },
+      });
+      expect(second.statusCode).toBe(200);
+      expect(first.json().id).toBe(second.json().id);
     } finally {
       await runtime.close();
       await app.close();
