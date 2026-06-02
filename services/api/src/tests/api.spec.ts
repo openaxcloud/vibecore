@@ -3121,6 +3121,62 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('mints and reads server-stored, HMAC-signed chat shares (audit M5/M7)', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const author = await register(app, { email: 'share-author@example.com', organizationName: 'Share Org' });
+
+    const create = await app.inject({
+      method: 'POST',
+      url: '/chat-shares',
+      headers: { authorization: `Bearer ${author.token}` },
+      payload: {
+        conversationId: 'conv-1',
+        projectId: 'project-1',
+        title: 'My run',
+        visibleMessageIds: ['m1', 'm2'],
+        inlineMessages: [
+          { id: 'm1', role: 'user', content: 'hello' },
+          { id: 'm2', role: 'assistant', content: 'hi there' },
+        ],
+        allowFork: true,
+      },
+    });
+    expect(create.statusCode).toBe(201);
+
+    const token = create.json().token as string;
+    // Signed token = <raw>.<hmac>, and it is short — the conversation lives
+    // server-side, not in the URL.
+    expect(token).toContain('.');
+    expect(token.length).toBeLessThan(200);
+
+    // Public read (no auth) resolves the stored snapshot.
+    const read = await app.inject({ method: 'GET', url: `/chat-shares/${token}` });
+    expect(read.statusCode).toBe(200);
+    expect(read.json().share.title).toBe('My run');
+    expect(read.json().share.allowFork).toBe(true);
+    expect(read.json().share.payload.inlineMessages).toHaveLength(2);
+
+    // A tampered signature is rejected.
+    const tampered = `${token.slice(0, -3)}zzz`;
+    const tamperedRead = await app.inject({ method: 'GET', url: `/chat-shares/${tampered}` });
+    expect(tamperedRead.statusCode).toBe(404);
+
+    // A forged token with a bogus signature is rejected.
+    const forged = await app.inject({ method: 'GET', url: '/chat-shares/cshare_fake.deadbeef' });
+    expect(forged.statusCode).toBe(404);
+
+    // Creating a share requires authentication.
+    const unauth = await app.inject({
+      method: 'POST',
+      url: '/chat-shares',
+      payload: { conversationId: 'c', projectId: 'p' },
+    });
+    expect(unauth.statusCode).toBe(401);
+
+    await app.close();
+  });
+
   it('issues collaboration WebSocket tickets and streams ready state over a dedicated socket', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });

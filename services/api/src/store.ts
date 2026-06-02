@@ -470,6 +470,21 @@ export interface ProjectShareLinkRecord {
   createdAt: string;
 }
 
+export interface ChatShareRecord {
+  id: string;
+  tokenHash: string;
+  conversationId: string;
+  projectId: string;
+  authorUserId: string;
+  title?: string;
+  /** The stored ShareLinkPayload (messages + metadata). */
+  payload: unknown;
+  allowFork: boolean;
+  expiresAt?: string;
+  revokedAt?: string;
+  createdAt: string;
+}
+
 /*
  * Status enum mirrored from the client-side AgentPatchProposalStatus
  * (workbench.ts). Terminal statuses (`accepted`, `rejected`, `reverted`) are
@@ -731,6 +746,25 @@ export interface ApiStore {
    * mirroring {@link findSessionByToken}. Used to redeem share links.
    */
   findProjectShareLinkByToken(token: string): Promise<ProjectShareLinkRecord | undefined>;
+  /**
+   * Persist a shared conversation snapshot. The caller supplies the sha256
+   * hash of the (random) share token so the raw token is never stored.
+   */
+  createChatShare(input: {
+    tokenHash: string;
+    conversationId: string;
+    projectId: string;
+    authorUserId: string;
+    title?: string;
+    payload: unknown;
+    allowFork?: boolean;
+    expiresAt?: Date;
+  }): Promise<ChatShareRecord>;
+  /**
+   * Resolve a chat share by the sha256 hash of its token. Returns the record
+   * only when it exists, is unrevoked, and is unexpired.
+   */
+  findChatShareByTokenHash(tokenHash: string): Promise<ChatShareRecord | undefined>;
   upsertAgentPatchProposal(input: {
     id: string;
     projectId: string;

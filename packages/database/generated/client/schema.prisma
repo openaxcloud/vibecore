@@ -1085,6 +1085,27 @@ model McpUserConfig {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+// Server-side store for a shared conversation snapshot. Replaces embedding the
+// full conversation in the share URL: a share mints a random, HMAC-signed
+// token (stored here only as a hash) that the /share view redeems to fetch the
+// snapshot. Standalone (no FK) so a share can outlive its project/author.
+model ChatShare {
+  id             String    @id @default(cuid())
+  tokenHash      String    @unique
+  conversationId String
+  projectId      String
+  authorUserId   String
+  title          String?
+  payloadJson    Json
+  allowFork      Boolean   @default(false)
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([projectId])
+  @@index([authorUserId])
+}
+
 enum AgentRunStatus {
   PENDING
   RUNNING

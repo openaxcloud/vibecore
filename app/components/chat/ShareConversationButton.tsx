@@ -1,12 +1,11 @@
 /**
  * Header button that mints a public share URL for the current
- * conversation snapshot (Sprint 7 wiring).
+ * conversation snapshot (Sprint 7 wiring; hardened in audit M5/M7).
  *
  * Wraps the `useShareLink` hook + a toast announcing the copy. The
- * payload is built locally with no server roundtrip — the
- * server-side signing + ACL story is a follow-up, but the
- * read-only landing route at /share/:token already decodes the
- * payload so a copied link works end-to-end as a v1.
+ * snapshot is POSTed to the server (`/api/chat-share`), which persists
+ * it and returns a short, HMAC-signed token; the read-only landing
+ * route at /share/:token resolves that token server-side.
  *
  * Auto-apply does not affect this surface — it's an explicit
  * user-initiated read-only action.
@@ -35,7 +34,7 @@ export const ShareConversationButton = memo(
       const share = useShareLink();
 
       const handleClick = useCallback(async () => {
-        const url = share.build({
+        const url = await share.build({
           conversationId,
           projectId,
           authorUserId,
@@ -54,7 +53,7 @@ export const ShareConversationButton = memo(
         /*
          * Write directly to the clipboard with the freshly-built URL —
          * share.copyToClipboard reads the hook's React state which is
-         * still 'idle' inside this click handler's closure (the
+         * still 'building' inside this click handler's closure (the
          * setState in build() doesn't flush mid-callback).
          */
         if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {

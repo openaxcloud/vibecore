@@ -36,6 +36,7 @@ import type {
   ProjectRecord,
   ProjectSecretRecord,
   ProjectShareLinkRecord,
+  ChatShareRecord,
   ProjectStorageObjectRecord,
   ProjectTemplateRecord,
   RecoveryCodeRecord,
@@ -807,6 +808,42 @@ export class PrismaApiStore implements ApiStore {
     }
 
     return mapProjectShareLink(link);
+  }
+
+  async createChatShare(input: {
+    tokenHash: string;
+    conversationId: string;
+    projectId: string;
+    authorUserId: string;
+    title?: string;
+    payload: unknown;
+    allowFork?: boolean;
+    expiresAt?: Date;
+  }) {
+    return mapChatShare(
+      await this.prisma.chatShare.create({
+        data: {
+          tokenHash: input.tokenHash,
+          conversationId: input.conversationId,
+          projectId: input.projectId,
+          authorUserId: input.authorUserId,
+          title: input.title,
+          payloadJson: input.payload as Prisma.InputJsonValue,
+          allowFork: input.allowFork ?? false,
+          expiresAt: input.expiresAt,
+        },
+      }),
+    );
+  }
+
+  async findChatShareByTokenHash(tokenHash: string) {
+    const share = await this.prisma.chatShare.findUnique({ where: { tokenHash } });
+
+    if (!share || share.revokedAt || (share.expiresAt && share.expiresAt.getTime() < Date.now())) {
+      return undefined;
+    }
+
+    return mapChatShare(share);
   }
 
   async upsertAgentPatchProposal(input: {
@@ -2318,6 +2355,22 @@ function mapProjectShareLink(link: any): ProjectShareLinkRecord {
     createdByUserId: link.createdByUserId ?? undefined,
     revokedAt: toIso(link.revokedAt),
     createdAt: toIso(link.createdAt)!,
+  };
+}
+
+function mapChatShare(share: any): ChatShareRecord {
+  return {
+    id: share.id,
+    tokenHash: share.tokenHash,
+    conversationId: share.conversationId,
+    projectId: share.projectId,
+    authorUserId: share.authorUserId,
+    title: share.title ?? undefined,
+    payload: share.payloadJson,
+    allowFork: share.allowFork,
+    expiresAt: toIso(share.expiresAt),
+    revokedAt: toIso(share.revokedAt),
+    createdAt: toIso(share.createdAt)!,
   };
 }
 

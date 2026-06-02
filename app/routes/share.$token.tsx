@@ -1,30 +1,27 @@
 /**
- * Read-only share view for a conversation snapshot (Sprint 7).
+ * Read-only share view for a conversation snapshot (Sprint 7; hardened in
+ * audit M5/M7).
  *
- * The route decodes the base64url token via `decodeShareLinkPayload`
- * and renders the embedded conversation messages. The actual signing
- * + ACL check happens server-side once that endpoint exists; this
- * file is the public-facing landing surface that the share link the
- * agent panel hands the user lands on.
- *
- * For now we render whatever the payload claims — a future iteration
- * will hydrate full message bodies from a server-side store keyed by
- * `visibleMessageIds` (the payload only carries the id list to keep
- * the URL short).
+ * The token is no longer a self-describing base64 payload. The loader hands it
+ * to the API's `GET /chat-shares/:token`, which verifies the HMAC signature and
+ * returns the server-stored snapshot. A forged or tampered token never decodes
+ * to anything — it fails signature verification on the API and renders the
+ * "unavailable" state below.
  */
 
 import type { LoaderFunctionArgs, MetaFunction } from '@remix-run/cloudflare';
 import { json } from '@remix-run/cloudflare';
 import { useLoaderData } from '@remix-run/react';
 
-import { decodeShareLinkPayload, type ShareLinkPayload } from '~/lib/chat/share-link';
+import type { ShareLinkPayload } from '~/lib/chat/share-link';
+import { apiBaseUrl } from '~/lib/enterprise-api.server';
 
 interface LoaderData {
   payload?: ShareLinkPayload;
   error?: string;
 }
 
-export const loader = ({ params }: LoaderFunctionArgs) => {
+export const loader = async ({ params }: LoaderFunctionArgs) => {
   const token = params.token ?? '';
 
   if (!token) {
@@ -32,14 +29,27 @@ export const loader = ({ params }: LoaderFunctionArgs) => {
   }
 
   try {
-    const payload = decodeShareLinkPayload(token);
+    const response = await fetch(`${apiBaseUrl()}/chat-shares/${encodeURIComponent(token)}`, {
+      headers: { accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      return json<LoaderData>(
+        { error: 'This share link is invalid, expired, or has been revoked.' },
+        { status: response.status === 404 ? 404 : 400 },
+      );
+    }
+
+    const data = (await response.json()) as { share?: { payload?: ShareLinkPayload } };
+    const payload = data.share?.payload;
+
+    if (!payload) {
+      return json<LoaderData>({ error: 'The shared conversation is unavailable.' }, { status: 404 });
+    }
 
     return json<LoaderData>({ payload });
-  } catch (error) {
-    return json<LoaderData>(
-      { error: error instanceof Error ? error.message : 'Failed to decode share link.' },
-      { status: 400 },
-    );
+  } catch {
+    return json<LoaderData>({ error: 'Failed to load share link.' }, { status: 502 });
   }
 };
 

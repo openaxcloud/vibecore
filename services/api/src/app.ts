@@ -543,6 +543,28 @@ const collaborationShareLinkSchema = z.object({
 const collaborationShareLinkRedeemParams = z.object({
   token: z.string().min(1),
 });
+const chatShareInlineMessageSchema = z.object({
+  id: z.string().min(1),
+  role: z.enum(['user', 'assistant', 'system']),
+  content: z.string(),
+});
+const chatShareCreateSchema = z.object({
+  conversationId: z.string().min(1),
+  projectId: z.string().min(1),
+  title: z.string().max(500).optional(),
+  visibleMessageIds: z.array(z.string()).default([]),
+  inlineMessages: z.array(chatShareInlineMessageSchema).max(2000).optional(),
+  allowFork: z.boolean().default(false),
+  expiresInMinutes: z
+    .coerce.number()
+    .int()
+    .min(5)
+    .max(60 * 24 * 90)
+    .optional(),
+});
+const chatShareTokenParams = z.object({
+  token: z.string().min(1),
+});
 const collaborationAiSharingSchema = z.object({
   shared: z.boolean().default(true),
   mode: z.enum(['read-only', 'comment', 'pair-programming']).default('comment'),
@@ -1015,6 +1037,44 @@ function verifyCollaborationWebSocketTicket(ticket: string, input: { projectId: 
   } catch {
     return undefined;
   }
+}
+
+// Chat-share tokens (audit M5/M7). The stored snapshot is keyed by a random,
+// unguessable token; we additionally HMAC-sign the public token so the /share
+// view can reject tampered/garbage tokens before any DB lookup and so a token
+// cannot be forged without the server secret. The raw token (from
+// createOpaqueToken) never contains a '.', so it splits cleanly from the
+// trailing signature.
+function chatShareTokenSecret() {
+  return process.env.SHARE_LINK_SECRET ?? process.env.JWT_SECRET ?? process.env.COOKIE_SECRET ?? 'dev';
+}
+
+function signChatShareToken(raw: string) {
+  const signature = createHmac('sha256', chatShareTokenSecret()).update(raw).digest('base64url');
+
+  return `${raw}.${signature}`;
+}
+
+function verifyChatShareToken(token: string): string | undefined {
+  const separator = token.lastIndexOf('.');
+
+  if (separator <= 0 || separator === token.length - 1) {
+    return undefined;
+  }
+
+  const raw = token.slice(0, separator);
+  const signature = token.slice(separator + 1);
+  const expected = createHmac('sha256', chatShareTokenSecret()).update(raw).digest('base64url');
+
+  if (expected.length !== signature.length) {
+    return undefined;
+  }
+
+  if (!timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) {
+    return undefined;
+  }
+
+  return raw;
 }
 
 async function authenticateCollaborationWebSocketTicket(request: FastifyRequest, reply: FastifyReply, store: ApiStore) {
@@ -4867,7 +4927,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/billing/stripe/webhook') ||
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
-      request.url.startsWith('/static-deployments/')
+      request.url.startsWith('/static-deployments/') ||
+      // Public read of a shared conversation snapshot — the signed token is the
+      // capability. Only the token-scoped GET path is exempt; POST /chat-shares
+      // (create) has no trailing slash and still requires authentication.
+      (request.method === 'GET' && request.url.startsWith('/chat-shares/'))
     ) {
       return;
     }
@@ -10004,6 +10068,75 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         organizationId: project.organizationId,
         roleKey: link.roleKey,
         expiresAt: link.expiresAt,
+      },
+    };
+  });
+  // Mint a server-stored, HMAC-signed chat share (audit M5/M7). The full
+  // conversation snapshot is persisted server-side and addressed by a short,
+  // signed token instead of being embedded in the share URL. Requires
+  // authentication (enforced by the global auth hook).
+  app.post('/chat-shares', async (request, reply) => {
+    const body = parse(chatShareCreateSchema, request.body);
+    const userId = request.currentUser!.id;
+    const createdAt = new Date();
+    const raw = createOpaqueToken('cshare');
+
+    const payload = {
+      conversationId: body.conversationId,
+      projectId: body.projectId,
+      authorUserId: userId,
+      title: body.title,
+      createdAt: createdAt.toISOString(),
+      visibleMessageIds: body.visibleMessageIds,
+      inlineMessages: body.inlineMessages,
+      allowFork: body.allowFork,
+    };
+
+    const share = await store.createChatShare({
+      tokenHash: hashToken(raw),
+      conversationId: body.conversationId,
+      projectId: body.projectId,
+      authorUserId: userId,
+      title: body.title,
+      payload,
+      allowFork: body.allowFork,
+      expiresAt: body.expiresInMinutes ? new Date(createdAt.getTime() + body.expiresInMinutes * 60_000) : undefined,
+    });
+
+    return reply.code(201).send({
+      token: signChatShareToken(raw),
+      shareId: share.id,
+      expiresAt: share.expiresAt ?? null,
+    });
+  });
+  // Public read of a chat share: verify the HMAC signature, then resolve the
+  // stored snapshot by the token hash. Exempt from auth via the allowlist so a
+  // shared link works for logged-out recipients.
+  app.get('/chat-shares/:token', async (request, reply) => {
+    const { token } = parse(chatShareTokenParams, request.params);
+    const raw = verifyChatShareToken(token);
+
+    if (!raw) {
+      return reply.code(404).send({
+        error: { code: 'CHAT_SHARE_INVALID', message: 'Share link is invalid or has been tampered with.' },
+      });
+    }
+
+    const share = await store.findChatShareByTokenHash(hashToken(raw));
+
+    if (!share) {
+      return reply.code(404).send({
+        error: { code: 'CHAT_SHARE_NOT_FOUND', message: 'Share link is invalid, expired, or revoked.' },
+      });
+    }
+
+    return {
+      share: {
+        title: share.title ?? null,
+        projectId: share.projectId,
+        allowFork: share.allowFork,
+        createdAt: share.createdAt,
+        payload: share.payload,
       },
     };
   });

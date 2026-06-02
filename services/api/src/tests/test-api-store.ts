@@ -37,6 +37,7 @@ import type {
   ProjectRecord,
   ProjectSecretRecord,
   ProjectShareLinkRecord,
+  ChatShareRecord,
   ProjectStorageObjectRecord,
   ProjectTemplateRecord,
   RecoveryCodeRecord,
@@ -91,6 +92,7 @@ export class TestApiStore implements ApiStore {
   readonly collaborationPresence = new Map<string, CollaborationPresenceRecord>();
   readonly collaborationComments = new Map<string, CollaborationCommentRecord>();
   readonly projectShareLinks = new Map<string, ProjectShareLinkRecord>();
+  readonly chatShares = new Map<string, ChatShareRecord>();
   readonly agentPatchProposals = new Map<string, AgentPatchProposalRecord>();
   readonly projectTemplates = new Map<string, ProjectTemplateRecord>();
   readonly deployments = new Map<string, DeploymentRecord>();
@@ -807,6 +809,42 @@ export class TestApiStore implements ApiStore {
     }
 
     return link;
+  }
+
+  async createChatShare(input: {
+    tokenHash: string;
+    conversationId: string;
+    projectId: string;
+    authorUserId: string;
+    title?: string;
+    payload: unknown;
+    allowFork?: boolean;
+    expiresAt?: Date;
+  }) {
+    const share: ChatShareRecord = {
+      id: id('cshare'),
+      tokenHash: input.tokenHash,
+      conversationId: input.conversationId,
+      projectId: input.projectId,
+      authorUserId: input.authorUserId,
+      title: input.title,
+      payload: input.payload,
+      allowFork: input.allowFork ?? false,
+      expiresAt: input.expiresAt?.toISOString(),
+      createdAt: now(),
+    };
+    this.chatShares.set(share.tokenHash, share);
+    return share;
+  }
+
+  async findChatShareByTokenHash(tokenHash: string) {
+    const share = this.chatShares.get(tokenHash);
+
+    if (!share || share.revokedAt || (share.expiresAt && new Date(share.expiresAt).getTime() < Date.now())) {
+      return undefined;
+    }
+
+    return share;
   }
 
   async upsertAgentPatchProposal(input: {

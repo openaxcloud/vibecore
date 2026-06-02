@@ -1,28 +1,23 @@
 /**
  * Share-link composer hook for the agent panel (Sprint 7).
  *
- * Takes a conversation snapshot + the current user/project context and
- * produces a ready-to-copy URL via `encodeShareLinkPayload` and
- * `buildShareLinkUrl`. The actual network call to mint a server-signed
- * token lives one layer up; this hook handles the client-side payload
- * shape + the clipboard copy.
+ * Builds the conversation snapshot from the current user/project context and
+ * mints a share link via the server: it POSTs the snapshot to the
+ * `/api/chat-share` resource route, which persists it and returns a short,
+ * HMAC-signed token. The public URL is `${origin}/share/${token}` — the
+ * conversation itself is stored server-side, not embedded in the URL (audit
+ * M5/M7).
  *
- * Pure data construction — `buildShareUrl` is exported separately so it
- * can be unit-tested without React.
+ * `buildShareRequestBody` is exported separately so the (pure) payload
+ * construction can be unit-tested without React or the network.
  */
 
 import type { Message } from 'ai';
 import { useCallback, useEffect, useState } from 'react';
 
-import {
-  buildShareLinkUrl,
-  encodeShareLinkPayload,
-  selectShareableMessages,
-  type ShareLinkPayload,
-} from '~/lib/chat/share-link';
+import { selectShareableMessages } from '~/lib/chat/share-link';
 
-export interface BuildShareUrlInput {
-  origin: string;
+export interface BuildShareRequestInput {
   conversationId: string;
   projectId: string;
   authorUserId: string;
@@ -30,25 +25,27 @@ export interface BuildShareUrlInput {
   messages: readonly Message[];
   allowedMessageIds?: ReadonlySet<string>;
   allowFork?: boolean;
-  now?: () => Date;
 }
 
-/**
- * Pure: build the public share URL the user can copy. Filters the
- * message list by `allowedMessageIds` when provided. Throws if the
- * resulting payload exceeds the size cap (in practice >64 KB of ids).
- */
+export interface ChatShareRequestBody {
+  conversationId: string;
+  projectId: string;
+  title?: string;
+  visibleMessageIds: string[];
+  inlineMessages?: Array<{ id: string; role: 'user' | 'assistant' | 'system'; content: string }>;
+  allowFork: boolean;
+}
+
 /*
- * Inline-message content budget. The payload itself is capped at 64 KB
- * (cf. encodeShareLinkPayload). We reserve room for the metadata fields
- * + visibleMessageIds, so the inline-bodies budget is conservative.
+ * Inline-message content budget. The server caps the payload too, but we keep
+ * the request small so a single share never ships an unbounded conversation.
  */
 const INLINE_MESSAGES_CONTENT_BUDGET = 32 * 1024;
 
 function buildInlineMessages(
   messages: readonly { id?: string; role?: string; content?: string | unknown }[],
-): ShareLinkPayload['inlineMessages'] {
-  const inline: NonNullable<ShareLinkPayload['inlineMessages']> = [];
+): ChatShareRequestBody['inlineMessages'] {
+  const inline: NonNullable<ChatShareRequestBody['inlineMessages']> = [];
 
   let bytesUsed = 0;
 
@@ -74,27 +71,24 @@ function buildInlineMessages(
   return inline.length > 0 ? inline : undefined;
 }
 
-export function buildShareUrl(input: BuildShareUrlInput): string {
+/**
+ * Pure: build the request body POSTed to `/api/chat-share`. Filters the
+ * message list by `allowedMessageIds` when provided and drops messages that
+ * have no id from `visibleMessageIds`.
+ */
+export function buildShareRequestBody(input: BuildShareRequestInput): ChatShareRequestBody {
   const filtered = input.allowedMessageIds
     ? selectShareableMessages(input.messages, { allowedIds: new Set(input.allowedMessageIds) })
     : [...input.messages];
 
-  const now = input.now?.() ?? new Date();
-
-  const payload: ShareLinkPayload = {
+  return {
     conversationId: input.conversationId,
-    title: input.title,
     projectId: input.projectId,
-    authorUserId: input.authorUserId,
-    createdAt: now.toISOString(),
+    title: input.title,
     visibleMessageIds: filtered.map((message) => message.id).filter((id): id is string => Boolean(id)),
     inlineMessages: buildInlineMessages(filtered),
     allowFork: input.allowFork ?? false,
   };
-
-  const encoded = encodeShareLinkPayload(payload);
-
-  return buildShareLinkUrl(input.origin, encoded);
 }
 
 export interface UseShareLinkOptions {
@@ -103,13 +97,17 @@ export interface UseShareLinkOptions {
 
 export interface UseShareLinkResult {
   /**
-   * Latest copy/build state — `null` before the user clicks Share,
-   * the URL after a successful build, or an error description.
+   * Latest share state — `idle` before the user clicks Share, `building` while
+   * the server mints the token, `ready` with the URL on success, or `error`.
    */
-  state: { kind: 'idle' } | { kind: 'ready'; url: string } | { kind: 'error'; message: string };
+  state:
+    | { kind: 'idle' }
+    | { kind: 'building' }
+    | { kind: 'ready'; url: string }
+    | { kind: 'error'; message: string };
 
-  /** Build the URL for the supplied snapshot and surface it in `state`. */
-  build: (input: Omit<BuildShareUrlInput, 'origin' | 'now'>) => string | undefined;
+  /** Mint the share link for the supplied snapshot and surface it in `state`. */
+  build: (input: BuildShareRequestInput) => Promise<string | undefined>;
 
   /** Copy the latest built URL to the system clipboard. Resolves to true on success. */
   copyToClipboard: () => Promise<boolean>;
@@ -143,16 +141,40 @@ export function useShareLink(options: UseShareLinkOptions = {}): UseShareLinkRes
   }, [options.origin]);
 
   const build = useCallback<UseShareLinkResult['build']>(
-    (input) => {
+    async (input) => {
+      setState({ kind: 'building' });
+
       try {
-        const url = buildShareUrl({ ...input, origin });
+        const response = await fetch('/api/chat-share', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(buildShareRequestBody(input)),
+        });
+
+        if (!response.ok) {
+          const data = (await response.json().catch(() => ({}))) as { error?: string };
+          const message = data.error ?? `Failed to create share link (${response.status})`;
+          setState({ kind: 'error', message });
+
+          return undefined;
+        }
+
+        const data = (await response.json()) as { token?: string };
+
+        if (!data.token) {
+          setState({ kind: 'error', message: 'Share link response was missing a token' });
+
+          return undefined;
+        }
+
+        const url = `${origin.replace(/\/+$/, '')}/share/${data.token}`;
         setState({ kind: 'ready', url });
 
         return url;
       } catch (error) {
         setState({
           kind: 'error',
-          message: error instanceof Error ? error.message : 'Failed to build share link',
+          message: error instanceof Error ? error.message : 'Failed to create share link',
         });
 
         return undefined;

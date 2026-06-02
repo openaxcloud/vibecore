@@ -807,6 +807,20 @@ exports.Prisma.McpUserConfigScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ChatShareScalarFieldEnum = {
+  id: 'id',
+  tokenHash: 'tokenHash',
+  conversationId: 'conversationId',
+  projectId: 'projectId',
+  authorUserId: 'authorUserId',
+  title: 'title',
+  payloadJson: 'payloadJson',
+  allowFork: 'allowFork',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.AgentRunScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -1167,6 +1181,7 @@ exports.Prisma.ModelName = {
   McpCatalogEntry: 'McpCatalogEntry',
   McpInstall: 'McpInstall',
   McpUserConfig: 'McpUserConfig',
+  ChatShare: 'ChatShare',
   AgentRun: 'AgentRun',
   AgentRunResult: 'AgentRunResult',
   ConsensusRecord: 'ConsensusRecord',
