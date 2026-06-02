@@ -154,4 +154,60 @@ describe('preview-proxy', () => {
     expect(response.json()).toMatchObject({ code: 'PREVIEW_UPSTREAM_ERROR' });
     await app.close();
   });
+
+  it('serves the inspect-to-code bridge script', async () => {
+    const app = await buildPreviewProxyApp();
+    const response = await app.inject({ method: 'GET', url: '/__vibecore/inspector-script.js' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toContain('application/javascript');
+    expect(response.body).toContain('INSPECTOR_READY');
+    await app.close();
+  });
+
+  it('injects the inspector bridge into proxied HTML before </head>', async () => {
+    const html = '<!doctype html><html><head><title>App</title></head><body><h1>Hi</h1></body></html>';
+    const { fn: fetchImpl } = recordingFetch(
+      async () => new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } }),
+    );
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+    const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toContain('src="/__vibecore/inspector-script.js"');
+    expect(response.body).toContain('data-vibecore-inspector');
+    expect(response.body).toMatch(/<script[^>]*data-vibecore-inspector[^>]*><\/script><\/head>/);
+    expect(response.body).toContain('<h1>Hi</h1>');
+    expect(Number(response.headers['content-length'])).toBe(Buffer.byteLength(response.body));
+    await app.close();
+  });
+
+  it('does not inject into non-HTML responses', async () => {
+    const { fn: fetchImpl } = recordingFetch(
+      async () => new Response('body { color: red }', { status: 200, headers: { 'content-type': 'text/css' } }),
+    );
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+    const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/app.css' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toBe('body { color: red }');
+    await app.close();
+  });
+
+  it('honors injectInspector:false', async () => {
+    const html = '<html><head></head><body></body></html>';
+    const { fn: fetchImpl } = recordingFetch(
+      async () => new Response(html, { status: 200, headers: { 'content-type': 'text/html' } }),
+    );
+    const app = await buildPreviewProxyApp({
+      fetchImpl,
+      resolveAgent: async () => fakeAgent,
+      injectInspector: false,
+    });
+    const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
+
+    expect(response.body).toBe(html);
+    expect(response.body).not.toContain('inspector-script.js');
+    await app.close();
+  });
 });

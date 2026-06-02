@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
+import { INSPECTOR_SCRIPT } from './inspector-script.js';
 
 export interface PreviewProxyOptions {
   logger?: boolean;
@@ -8,7 +9,18 @@ export interface PreviewProxyOptions {
   fetchImpl?: typeof fetch;
   resolveAgent?: (workspaceId: string) => Promise<{ baseUrl: string; token: string } | undefined>;
   requestTimeoutMs?: number;
+  /**
+   * Inject the inspect-to-code bridge into proxied HTML so "Inspect to code"
+   * works on remote previews (the same capability WebContainer previews get).
+   * Defaults to true.
+   */
+  injectInspector?: boolean;
 }
+
+// Same-origin path the injected <script src> points at, served below. Same
+// origin keeps it compatible with a `script-src 'self'` CSP on the preview app.
+const INSPECTOR_SCRIPT_PATH = '/__vibecore/inspector-script.js';
+const INSPECTOR_MARKER = 'data-vibecore-inspector';
 
 type PreviewRouteParams = { workspaceId: string; port: string; '*'?: string };
 
@@ -21,9 +33,19 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
   const fetchImpl = options.fetchImpl ?? fetch;
   const requestTimeoutMs = options.requestTimeoutMs ?? 30_000;
+  const injectInspector = options.injectInspector ?? true;
   const app = Fastify({ logger: options.logger ?? false });
 
   app.get('/health', async () => ({ status: 'ok', service: 'preview-proxy' }));
+
+  // Serve the inspect-to-code bridge from the proxy origin so injected pages
+  // can load it under a `script-src 'self'` policy.
+  app.get(INSPECTOR_SCRIPT_PATH, async (_request, reply) => {
+    reply.header('content-type', 'application/javascript; charset=utf-8');
+    reply.header('cache-control', 'public, max-age=3600');
+
+    return reply.send(INSPECTOR_SCRIPT);
+  });
 
   const resolveAgent = options.resolveAgent ?? defaultResolveAgent(options, fetchImpl);
 
@@ -77,13 +99,19 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       });
 
       reply.status(upstreamResponse.status);
+
+      const contentType = upstreamResponse.headers.get('content-type') ?? '';
+      const isHtml = contentType.includes('text/html');
+
       upstreamResponse.headers.forEach((value, name) => {
         const lower = name.toLowerCase();
         if (
           lower === 'content-encoding' ||
           lower === 'transfer-encoding' ||
           lower === 'connection' ||
-          lower === 'keep-alive'
+          lower === 'keep-alive' ||
+          // recomputed after a possible body rewrite below
+          (isHtml && injectInspector && lower === 'content-length')
         ) {
           return;
         }
@@ -94,7 +122,17 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         return reply.send();
       }
 
-      return reply.send(Buffer.from(await upstreamResponse.arrayBuffer()));
+      const bodyBuffer = Buffer.from(await upstreamResponse.arrayBuffer());
+
+      if (isHtml && injectInspector) {
+        const injected = injectInspectorScript(bodyBuffer.toString('utf8'));
+        const outBuffer = Buffer.from(injected, 'utf8');
+        reply.header('content-length', String(outBuffer.length));
+
+        return reply.send(outBuffer);
+      }
+
+      return reply.send(bodyBuffer);
     } catch (error: any) {
       if (error?.name === 'AbortError') {
         return reply.code(504).send({ error: 'Preview upstream timeout', code: 'PREVIEW_UPSTREAM_TIMEOUT' });
@@ -115,6 +153,31 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
 function shouldStreamBody(method: string): boolean {
   return method !== 'GET' && method !== 'HEAD';
+}
+
+/*
+ * Insert the inspect-to-code bridge <script> into a proxied HTML document. The
+ * script is inert until the parent IDE activates it (INSPECTOR_ACTIVATE), so
+ * injecting it unconditionally has no effect on the running app. Idempotent:
+ * never injects twice, even if an upstream page already carries the marker.
+ */
+export function injectInspectorScript(html: string): string {
+  if (html.includes(INSPECTOR_MARKER)) {
+    return html;
+  }
+
+  const tag = `<script src="${INSPECTOR_SCRIPT_PATH}" ${INSPECTOR_MARKER}></script>`;
+
+  if (/<\/head>/i.test(html)) {
+    return html.replace(/<\/head>/i, `${tag}</head>`);
+  }
+
+  if (/<body[^>]*>/i.test(html)) {
+    return html.replace(/(<body[^>]*>)/i, `$1${tag}`);
+  }
+
+  // No <head>/<body> (fragment or minimal doc): prepend so it still loads.
+  return `${tag}${html}`;
 }
 
 function defaultResolveAgent(options: PreviewProxyOptions, fetchImpl: typeof fetch) {
