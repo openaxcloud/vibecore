@@ -27,6 +27,14 @@ describe('<ShareConversationButton />', () => {
       ...globalThis.navigator,
       clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
     });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 201,
+        json: vi.fn().mockResolvedValue({ token: 'cshare_abc.sig123' }),
+      }),
+    );
   });
 
   afterEach(() => {
@@ -62,6 +70,13 @@ describe('<ShareConversationButton />', () => {
     await waitFor(() => {
       expect(globalThis.navigator.clipboard.writeText).toHaveBeenCalledTimes(1);
     });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/api/chat-share',
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    );
 
     const copiedUrl = (globalThis.navigator.clipboard.writeText as unknown as { mock: { calls: string[][] } }).mock
       .calls[0][0];

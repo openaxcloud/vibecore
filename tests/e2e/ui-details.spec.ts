@@ -1,4 +1,92 @@
+import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
+
+async function mountAgentMessageContextDocument(page: Page) {
+  const stylesheet = await readFile('app/styles/index.scss', 'utf8');
+  const start = stylesheet.indexOf('.bolt-message-context-trigger');
+  const end = stylesheet.indexOf('/*\n * Sprint 2');
+
+  if (start === -1 || end === -1 || end <= start) {
+    throw new Error('Unable to locate agent message context styles');
+  }
+
+  await page.setContent(`
+    <html>
+      <head>
+        <style>
+          :root {
+            color-scheme: dark;
+            --bolt-elements-artifacts-inlineCode-background: #0a0f1c;
+            --bolt-elements-artifacts-inlineCode-text: #c2c8cc;
+            --bolt-elements-textPrimary: #f5f9fc;
+            --mobile-nav-bg: rgb(14 21 37 / 0.94);
+            --mobile-nav-border: rgb(43 50 69 / 0.9);
+            --mobile-nav-border-top: rgb(122 133 153 / 0.42);
+            --mobile-nav-height: 72px;
+            --mobile-nav-inner-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+            --mobile-nav-shadow: 0 20px 60px rgb(0 4 20 / 0.55);
+            --vc-animation-popover: 150ms;
+            --vc-ide-accent-action: #0099ff;
+            --vc-ide-bg-card: #1a2030;
+            --vc-ide-bg-elevated: #0e1525;
+            --vc-ide-bg-hover: #2b3245;
+            --vc-ide-bg-panel: #0e1525;
+            --vc-ide-border-subtle: #1a2030;
+            --vc-ide-border-visible: #2b3245;
+            --vc-ide-text-muted: #6e7681;
+            --vc-ide-text-primary: #f5f9fc;
+            --vc-ui-shadow-xl: 0 24px 64px rgb(0 4 20 / 0.7);
+          }
+
+          body {
+            margin: 0;
+            min-height: 100vh;
+            background: #0a0f1c;
+            color: var(--vc-ide-text-primary);
+            font-family:
+              Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          }
+
+          .grid {
+            display: grid;
+          }
+
+          .gap-2 {
+            gap: 0.5rem;
+          }
+
+          .text-xs {
+            font-size: 12px;
+            line-height: 16px;
+          }
+
+          .font-medium {
+            font-weight: 500;
+          }
+
+          .text-bolt-elements-textPrimary {
+            color: var(--bolt-elements-textPrimary);
+          }
+
+          @keyframes vc-popover-in {
+            from {
+              opacity: 0;
+              transform: translateY(2px);
+            }
+
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          ${stylesheet.slice(start, end)}
+        </style>
+      </head>
+      <body></body>
+    </html>
+  `);
+}
 
 async function injectUiDetailsFixture(page: Page) {
   await page.evaluate(() => {
@@ -45,9 +133,154 @@ async function injectUiDetailsFixture(page: Page) {
   });
 }
 
+async function injectAgentMessageContextFixture(page: Page) {
+  await page.evaluate(() => {
+    document.querySelector('[data-testid="agent-message-context-fixture"]')?.remove();
+    document.documentElement.style.setProperty('--mobile-nav-height', '72px');
+
+    const roles = [
+      ['Architect', 'Define architecture, state boundaries, API contracts, data ownership, and integration order.'],
+      [
+        'Frontend',
+        'Build components, layouts, state management, accessibility, responsive behavior, loading states, and error states.',
+      ],
+      [
+        'Backend',
+        'Build API routes, validation, persistence adapters, auth boundaries, realtime handlers, and error handling.',
+      ],
+      [
+        'DevOps',
+        'Create runtime scripts, dependency setup, environment examples, build config, and deploy configuration.',
+      ],
+      ['QA', 'Write critical-path tests, verify build/typecheck, inspect preview behavior, and fix failures.'],
+      ['Security', 'Validate tenant isolation, secrets handling, auditability, permissions, and recovery behavior.'],
+      ['Performance', 'Inspect bundle size, render cost, reconnect behavior, caching, and slow runtime workflows.'],
+      ['Observability', 'Confirm logs, metrics, healthchecks, diagnostics, and user-visible failure recovery.'],
+    ];
+
+    const roleCards = roles
+      .map(
+        ([title, responsibility]) => `
+          <div class="bolt-message-context-item">
+            <div class="text-xs font-medium text-bolt-elements-textPrimary">${title}</div>
+            <div class="bolt-message-context-meta">${responsibility}</div>
+          </div>
+        `,
+      )
+      .join('');
+
+    const fixture = document.createElement('section');
+    fixture.setAttribute('data-testid', 'agent-message-context-fixture');
+    fixture.innerHTML = `
+      <button type="button" class="bolt-message-context-trigger" aria-label="Show agent message context" data-testid="agent-message-context-trigger">
+        <span class="i-ph:info" aria-hidden="true"></span>
+      </button>
+      <div class="bolt-popover-content bolt-message-context-popover" data-testid="agent-message-context-popover" style="position: fixed; top: 64px; right: 16px;">
+        <div class="bolt-message-context-panel">
+          <div class="agent-orchestration bolt-message-context-card">
+            <div>
+              <h2 class="bolt-message-context-title">Agent orchestration</h2>
+              <p class="bolt-message-context-subtitle">Parallel specialist agents planned inside the active model.</p>
+            </div>
+            <div class="grid gap-2">${roleCards}</div>
+          </div>
+          <div class="summary bolt-message-context-card">
+            <h2 class="bolt-message-context-title">Summary</h2>
+            <div class="bolt-message-context-markdown">
+              <p><strong>Project:</strong> Production portfolio application with case studies, posts, contact workflows, backend routes, and visual QA.</p>
+              <ul>
+                <li>Current phase: responsive shell hardening and message context validation.</li>
+                <li>Risk focus: mobile information density, viewport-constrained panels, and accessible interaction targets.</li>
+                <li>Verification: typecheck, lint, build, tests, and compact viewport measurements before release.</li>
+              </ul>
+              <p>The summary intentionally contains enough content to require internal scrolling instead of expanding beyond the viewport.</p>
+            </div>
+          </div>
+          <div class="code-context bolt-message-context-card">
+            <h2 class="bolt-message-context-title">Context</h2>
+            <div class="bolt-message-context-file-list">
+              <button type="button" class="bolt-message-context-file"><code>src/App.tsx</code></button>
+              <button type="button" class="bolt-message-context-file"><code>src/components/PortfolioShell.tsx</code></button>
+              <button type="button" class="bolt-message-context-file"><code>app/components/chat/AssistantMessage.tsx</code></button>
+              <button type="button" class="bolt-message-context-file"><code>package.json</code></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <nav class="bolt-mobile-replit-nav" aria-label="IDE panels" data-testid="agent-message-context-mobile-nav" style="position: fixed; right: 12px; bottom: 0; left: 12px; display: flex; height: var(--mobile-nav-height, 72px);"></nav>
+    `;
+    document.body.appendChild(fixture);
+  });
+}
+
+async function readAgentMessageContextDetails(page: Page) {
+  return page.getByTestId('agent-message-context-popover').evaluate((surface) => {
+    const rect = surface.getBoundingClientRect();
+    const panel = surface.querySelector('.bolt-message-context-panel') as HTMLElement | null;
+    const trigger = document.querySelector('[data-testid="agent-message-context-trigger"]') as HTMLElement | null;
+    const mobileNav = document.querySelector('[data-testid="agent-message-context-mobile-nav"]') as HTMLElement | null;
+    const mobileNavRect = mobileNav?.getBoundingClientRect();
+    const triggerRect = trigger?.getBoundingClientRect();
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+
+    return {
+      bottom: rect.bottom,
+      cardCount: surface.querySelectorAll('.bolt-message-context-card').length,
+      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      hasInlineZoom: Array.from(surface.querySelectorAll<HTMLElement>('[style]')).some((element) =>
+        /(^|;)\s*zoom\s*:/i.test(element.getAttribute('style') ?? ''),
+      ),
+      height: rect.height,
+      left: rect.left,
+      mobileNavTop: mobileNavRect?.top,
+      panelOverflowsX: panel ? panel.scrollWidth > panel.clientWidth + 1 : true,
+      panelOverflowY: panel ? window.getComputedStyle(panel).overflowY : '',
+      panelScrolls: panel ? panel.scrollHeight > panel.clientHeight + 1 : false,
+      right: rect.right,
+      top: rect.top,
+      triggerHeight: triggerRect?.height ?? 0,
+      triggerWidth: triggerRect?.width ?? 0,
+      viewportHeight,
+      viewportWidth,
+      width: rect.width,
+    };
+  });
+}
+
+function expectAgentMessageContextDetails(
+  details: Awaited<ReturnType<typeof readAgentMessageContextDetails>>,
+  label: string,
+) {
+  const isCompact = details.viewportWidth <= 1024;
+  const expectedMaxWidth = !isCompact ? 430 : details.viewportWidth < 700 ? details.viewportWidth - 24 : 568;
+
+  expect(details.documentOverflowsX, `${label} document horizontal overflow`).toBe(false);
+  expect(details.left, `${label} left edge`).toBeGreaterThanOrEqual(0);
+  expect(details.top, `${label} top edge`).toBeGreaterThanOrEqual(0);
+  expect(details.right, `${label} right edge`).toBeLessThanOrEqual(details.viewportWidth + 1);
+  expect(details.bottom, `${label} bottom edge`).toBeLessThanOrEqual(details.viewportHeight + 1);
+  expect(details.width, `${label} popover width`).toBeLessThanOrEqual(expectedMaxWidth);
+  expect(details.height, `${label} popover height`).toBeLessThanOrEqual(
+    isCompact ? Math.min(details.viewportHeight * 0.58, 520) + 18 : Math.min(details.viewportHeight * 0.7, 560) + 2,
+  );
+  expect(details.panelOverflowsX, `${label} panel horizontal overflow`).toBe(false);
+  expect(details.panelOverflowY, `${label} panel overflow mode`).toBe('auto');
+  expect(details.panelScrolls, `${label} panel scroll`).toBe(true);
+  expect(details.cardCount, `${label} content cards`).toBeGreaterThanOrEqual(3);
+  expect(details.hasInlineZoom, `${label} inline zoom`).toBe(false);
+  expect(details.triggerWidth, `${label} trigger width`).toBeGreaterThanOrEqual(isCompact ? 32 : 28);
+  expect(details.triggerHeight, `${label} trigger height`).toBeGreaterThanOrEqual(isCompact ? 32 : 28);
+
+  if (isCompact && typeof details.mobileNavTop === 'number') {
+    expect(details.bottom, `${label} bottom navigation overlap`).toBeLessThanOrEqual(details.mobileNavTop - 8);
+  }
+}
+
 async function readUiDetails(page: Page) {
   return page.locator('[data-testid="ui-details-fixture"]').evaluate(() => {
-    const get = (selector: string, pseudo?: string) => window.getComputedStyle(document.querySelector(selector)!, pseudo);
+    const get = (selector: string, pseudo?: string) =>
+      window.getComputedStyle(document.querySelector(selector)!, pseudo);
     const root = window.getComputedStyle(document.documentElement);
     const body = window.getComputedStyle(document.body);
     const button = get('[data-testid="ui-details-button"]');
@@ -253,7 +486,10 @@ async function expectAnimationDetails(page: Page) {
     const dropZone = window.getComputedStyle(document.querySelector('[data-testid="ui-drop-zone"]')!);
     const typingDot = window.getComputedStyle(document.querySelector('[data-testid="ui-typing-indicator"] span')!);
     const runButton = window.getComputedStyle(document.querySelector('[data-testid="ui-run-button"]')!);
-    const runButtonBefore = window.getComputedStyle(document.querySelector('[data-testid="ui-run-button"]')!, '::before');
+    const runButtonBefore = window.getComputedStyle(
+      document.querySelector('[data-testid="ui-run-button"]')!,
+      '::before',
+    );
 
     return {
       tokenTabOpen: root.getPropertyValue('--vc-animation-tab-open').trim(),
@@ -326,7 +562,10 @@ async function expectButtonStates(page: Page) {
     const solid = window.getComputedStyle(document.querySelector('[data-testid="ui-button-solid"]')!);
     const disabled = window.getComputedStyle(document.querySelector('[data-testid="ui-button-disabled"]')!);
     const loading = window.getComputedStyle(document.querySelector('[data-testid="ui-button-loading"]')!);
-    const loadingBefore = window.getComputedStyle(document.querySelector('[data-testid="ui-button-loading"]')!, '::before');
+    const loadingBefore = window.getComputedStyle(
+      document.querySelector('[data-testid="ui-button-loading"]')!,
+      '::before',
+    );
     const loadingIcon = window.getComputedStyle(document.querySelector('[data-testid="ui-button-loading-icon"]')!);
 
     return {
@@ -475,6 +714,21 @@ test('public platform applies section 12 UI detail tokens', async ({ page }) => 
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await injectUiDetailsFixture(page);
   expectUiDetails(await readUiDetails(page));
+});
+
+test('public platform keeps agent message context popovers constrained', async ({ page }) => {
+  await mountAgentMessageContextDocument(page);
+
+  for (const viewport of [
+    { label: 'desktop', width: 1280, height: 720 },
+    { label: 'tablet', width: 1024, height: 768 },
+    { label: 'mobile', width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await injectAgentMessageContextFixture(page);
+    await expect(page.getByRole('button', { name: 'Show agent message context' })).toBeVisible();
+    expectAgentMessageContextDetails(await readAgentMessageContextDetails(page), viewport.label);
+  }
 });
 
 test('admin console applies section 12 UI detail tokens', async ({ page }) => {

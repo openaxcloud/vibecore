@@ -1555,8 +1555,20 @@ export const Preview = memo(
       [visiblePreviewUrl],
     );
 
+    const previewViewportWidth = isDeviceModeOn
+      ? showDeviceFrameInPreview
+        ? '100%'
+        : `${widthPercent}%`
+      : previewDevice === 'tablet'
+        ? 'min(768px, 100%)'
+        : previewDevice === 'mobile'
+          ? 'min(390px, 100%)'
+          : previewDevice === 'custom'
+            ? 'min(520px, 100%)'
+            : '100%';
+
     return (
-      <div ref={containerRef} className={`w-full h-full flex flex-col relative`}>
+      <div ref={containerRef} className="bolt-project-webview-tool w-full h-full flex flex-col relative">
         {isPortDropdownOpen && (
           <div className="z-iframe-overlay w-full h-full absolute" onClick={() => setIsPortDropdownOpen(false)} />
         )}
@@ -1806,10 +1818,14 @@ export const Preview = memo(
           </div>
         </div>
 
-        <div className="flex-1 border-t border-bolt-elements-borderColor flex justify-center items-center overflow-auto">
+        <div
+          className="bolt-project-webview-frame flex-1 border-t border-bolt-elements-borderColor flex justify-center items-center overflow-auto"
+          data-preview-device={previewDevice}
+        >
           <div
+            className="bolt-project-webview-viewport"
             style={{
-              width: isDeviceModeOn ? (showDeviceFrameInPreview ? '100%' : `${widthPercent}%`) : '100%',
+              width: previewViewportWidth,
               height: '100%',
               overflow: 'auto',
               background: 'var(--bolt-elements-background-depth-1)',
@@ -1992,21 +2008,23 @@ export const Preview = memo(
                         src="about:blank"
                       />
                     ) : null}
-                    <PreviewSplashSequence
-                      appName={projectId ? 'Project preview' : undefined}
-                      activeStep={previewBootProgress.activeStep}
-                      currentTask={
-                        previewStatus ??
-                        (workspaceReady
-                          ? 'Starting dev server and detecting runtime ports...'
-                          : 'Starting project workspace...')
-                      }
-                      isBusy={isStartingPreview || isRefreshingPorts || autoStart || !workspaceReady}
-                      progress={previewBootProgress.progress}
-                      logs={recentPreviewLogs}
-                      steps={previewBootSteps}
-                      onViewLogs={openPreviewLogs}
-                    />
+                    {!shouldShowPreviewStartupOverlay ? (
+                      <PreviewSplashSequence
+                        appName={projectId ? 'Project preview' : undefined}
+                        activeStep={previewBootProgress.activeStep}
+                        currentTask={
+                          previewStatus ??
+                          (workspaceReady
+                            ? 'Starting dev server and detecting runtime ports...'
+                            : 'Starting project workspace...')
+                        }
+                        isBusy={isStartingPreview || isRefreshingPorts || autoStart || !workspaceReady}
+                        progress={previewBootProgress.progress}
+                        logs={recentPreviewLogs}
+                        steps={previewBootSteps}
+                        onViewLogs={openPreviewLogs}
+                      />
+                    ) : null}
                     {shouldShowPreviewStartupOverlay ? (
                       <PreviewLoadingOverlay
                         activeStep={previewBootProgress.activeStep}

@@ -124,6 +124,64 @@ async function expectMobileToolsSheetFitsViewport(page: import('@playwright/test
   expect(metrics.visibleToolItems).toBeGreaterThanOrEqual(6);
 }
 
+async function expectMobileBottomNavigationIsTouchSafe(page: import('@playwright/test').Page) {
+  const metrics = await mobileBottomNavigation(page).evaluate((nav) => {
+    const navRect = nav.getBoundingClientRect();
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+
+    const buttons = Array.from(nav.querySelectorAll('button'))
+      .map((button) => {
+        const rect = button.getBoundingClientRect();
+        const style = window.getComputedStyle(button);
+
+        return {
+          ariaLabel: button.getAttribute('aria-label') ?? button.textContent?.trim() ?? '',
+          bottom: rect.bottom,
+          display: style.display,
+          height: rect.height,
+          left: rect.left,
+          right: rect.right,
+          visibility: style.visibility,
+          width: rect.width,
+        };
+      })
+      .filter(
+        (button) =>
+          button.display !== 'none' &&
+          button.visibility !== 'hidden' &&
+          button.width > 0 &&
+          button.height > 0 &&
+          button.right >= 0 &&
+          button.left <= viewportWidth,
+      );
+
+    return {
+      buttons,
+      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      navBottom: navRect.bottom,
+      navLeft: navRect.left,
+      navRight: navRect.right,
+      navTop: navRect.top,
+      viewportHeight,
+      viewportWidth,
+    };
+  });
+
+  expect(metrics.documentOverflowsX).toBe(false);
+  expect(metrics.navLeft).toBeGreaterThanOrEqual(0);
+  expect(metrics.navRight).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+  expect(metrics.navTop).toBeGreaterThanOrEqual(0);
+  expect(metrics.navBottom).toBeLessThanOrEqual(metrics.viewportHeight + 1);
+
+  for (const button of metrics.buttons) {
+    expect(button.left, `${button.ariaLabel} left edge`).toBeGreaterThanOrEqual(0);
+    expect(button.right, `${button.ariaLabel} right edge`).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+    expect(button.width, `${button.ariaLabel} touch width`).toBeGreaterThanOrEqual(44);
+    expect(button.height, `${button.ariaLabel} touch height`).toBeGreaterThanOrEqual(44);
+  }
+}
+
 async function expectSettingsTabRailFitsViewport(page: import('@playwright/test').Page) {
   const metrics = await page.getByTestId('settings-hub-panel').evaluate((hub) => {
     const rail = hub.querySelector('.bolt-project-settings-sidebar') as HTMLElement | null;
@@ -356,13 +414,14 @@ async function expectAgentModelSelectorFitsViewport(page: import('@playwright/te
   const providerListbox = page.getByTestId('agent-provider-listbox');
   await expect(providerListbox).toBeVisible({ timeout: 10_000 });
   await expect(providerListbox.getByTestId('agent-provider-option').first()).toBeVisible({ timeout: 10_000 });
+
   try {
     await expectFloatingSurfaceFitsViewport(providerListbox, 'provider selector dropdown', {
       minInteractiveHeight: 44,
       minVisibleOptions: 1,
       requireSearchFontSize: true,
     });
-  } catch (error) {
+  } catch {
     await page.getByTestId('agent-provider-combobox').click();
     await expect(providerListbox).toBeVisible({ timeout: 10_000 });
     await expectFloatingSurfaceFitsViewport(providerListbox, 'provider selector dropdown after reopen', {
@@ -595,6 +654,112 @@ async function createTestProjectFixture(
   return { projectId, auth };
 }
 
+async function expectMobileWebviewStartupFitsViewport(
+  page: import('@playwright/test').Page,
+  label: string,
+  outputPath?: string,
+) {
+  const webview = page.locator('.bolt-workbench-mobile .bolt-project-webview-tool').first();
+
+  await expect(webview).toBeVisible({ timeout: 45_000 });
+
+  const metrics = await webview.evaluate((tool) => {
+    function visible(element: Element | null) {
+      if (!element) {
+        return false;
+      }
+
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+
+      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+    }
+
+    const toolbar = tool.querySelector('.bolt-project-webview-toolbar') as HTMLElement | null;
+    const frame = tool.querySelector('.bolt-project-webview-frame') as HTMLElement | null;
+    const viewport = tool.querySelector('.bolt-project-webview-viewport') as HTMLElement | null;
+    const overlay = tool.querySelector('[data-testid="preview-loading-overlay"]') as HTMLElement | null;
+    const splash = tool.querySelector('[data-testid="preview-splash-sequence"]') as HTMLElement | null;
+    const card = tool.querySelector('.bolt-preview-loading-card') as HTMLElement | null;
+    const deviceSelect = tool.querySelector('select[aria-label="Preview device"]') as HTMLElement | null;
+    const mobileNav = document.querySelector('.bolt-mobile-replit-nav') as HTMLElement | null;
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+
+    if (!toolbar || !frame || !viewport || !overlay || !card) {
+      throw new Error('Missing mobile webview layout element');
+    }
+
+    const toolbarRect = toolbar.getBoundingClientRect();
+    const frameRect = frame.getBoundingClientRect();
+    const viewportRect = viewport.getBoundingClientRect();
+    const overlayRect = overlay.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    const selectRect = deviceSelect?.getBoundingClientRect();
+    const mobileNavStyle = mobileNav ? window.getComputedStyle(mobileNav) : undefined;
+
+    const mobileNavRect =
+      mobileNav &&
+      mobileNavStyle?.display !== 'none' &&
+      mobileNavStyle?.visibility !== 'hidden' &&
+      mobileNav.getBoundingClientRect().height > 0
+        ? mobileNav.getBoundingClientRect()
+        : undefined;
+
+    return {
+      cardBottom: cardRect.bottom,
+      cardTop: cardRect.top,
+      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      frameBottom: frameRect.bottom,
+      frameLeft: frameRect.left,
+      frameRight: frameRect.right,
+      mobileNavTop: mobileNavRect?.top,
+      overlayBottom: overlayRect.bottom,
+      overlayVisible: visible(overlay),
+      selectLeft: selectRect?.left,
+      selectRight: selectRect?.right,
+      splashVisible: visible(splash),
+      toolbarBottom: toolbarRect.bottom,
+      toolbarLeft: toolbarRect.left,
+      toolbarRight: toolbarRect.right,
+      toolbarTop: toolbarRect.top,
+      viewportBottom: viewportRect.bottom,
+      viewportHeight,
+      viewportLeft: viewportRect.left,
+      viewportRight: viewportRect.right,
+      viewportTop: viewportRect.top,
+      viewportWidth,
+    };
+  });
+
+  expect(metrics.documentOverflowsX, `${label} document horizontal overflow`).toBe(false);
+  expect(metrics.toolbarLeft, `${label} toolbar left`).toBeGreaterThanOrEqual(0);
+  expect(metrics.toolbarRight, `${label} toolbar right`).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+  expect(metrics.frameLeft, `${label} frame left`).toBeGreaterThanOrEqual(0);
+  expect(metrics.frameRight, `${label} frame right`).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+  expect(metrics.viewportLeft, `${label} viewport left`).toBeGreaterThanOrEqual(metrics.frameLeft - 1);
+  expect(metrics.viewportRight, `${label} viewport right`).toBeLessThanOrEqual(metrics.frameRight + 1);
+  expect(metrics.overlayVisible, `${label} startup overlay visible`).toBe(true);
+  expect(metrics.splashVisible, `${label} splash under startup overlay`).toBe(false);
+  expect(metrics.cardTop, `${label} loading card top`).toBeGreaterThanOrEqual(metrics.viewportTop - 1);
+  expect(metrics.cardBottom, `${label} loading card bottom`).toBeLessThanOrEqual(metrics.overlayBottom + 1);
+
+  if (typeof metrics.selectLeft === 'number' && typeof metrics.selectRight === 'number') {
+    expect(metrics.selectLeft, `${label} device select left`).toBeGreaterThanOrEqual(metrics.toolbarLeft - 1);
+    expect(metrics.selectRight, `${label} device select right`).toBeLessThanOrEqual(metrics.toolbarRight + 1);
+  }
+
+  if (typeof metrics.mobileNavTop === 'number') {
+    expect(metrics.frameBottom, `${label} frame bottom nav overlap`).toBeLessThanOrEqual(metrics.mobileNavTop - 1);
+  } else {
+    expect(metrics.frameBottom, `${label} frame bottom viewport`).toBeLessThanOrEqual(metrics.viewportHeight + 1);
+  }
+
+  if (outputPath) {
+    await page.screenshot({ path: outputPath, fullPage: false });
+  }
+}
+
 test.describe('responsive IDE shell', () => {
   test('desktop keeps the full IDE workspace available', async ({ page }, testInfo) => {
     test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
@@ -729,14 +894,16 @@ test.describe('responsive IDE shell', () => {
 
   test('mobile exposes icon-only tab navigation for core IDE panels', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile-only assertion');
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
 
     const projectId = await createTestProject(page, 'Responsive mobile project');
 
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 45_000 });
 
     const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
-    await expect(mobileNav).toBeVisible({ timeout: 15000 });
+    await expect(mobileNav).toBeVisible({ timeout: 45_000 });
+    await expectMobileBottomNavigationIsTouchSafe(page);
 
     await expect(page.getByTestId('tab-preview')).toBeVisible();
     await expect(page.getByTestId('tab-agent')).toBeVisible();
@@ -744,8 +911,26 @@ test.describe('responsive IDE shell', () => {
     await expectBottomTabLabelsHidden(page);
     await expect(mobileNav.getByTestId('button-add-tab')).toBeVisible();
     await expect(mobileNav.getByTestId('button-more')).toBeVisible();
+
+    await mobileNav.getByTestId('button-tab-switcher').click();
+
+    const tabSwitcher = page.getByTestId('mobile-tab-switcher');
+
+    await expect(tabSwitcher).toBeVisible({ timeout: 10_000 });
+    await expect(tabSwitcher.getByTestId('tab-card-preview')).toBeVisible();
+    await tabSwitcher.getByTestId('input-search-tabs').fill('deploy');
+    await expect(tabSwitcher.getByTestId('tab-card-deployments')).toBeVisible();
+    await expect(tabSwitcher.getByTestId('tab-card-agent')).toHaveCount(0);
+    await tabSwitcher.getByTestId('button-clear-search').click();
+    await expect(tabSwitcher.getByTestId('tab-card-agent')).toBeVisible();
+    await tabSwitcher.getByTestId('button-close-switcher').click();
+    await expect(tabSwitcher).toHaveCount(0);
+
     await mobileNav.getByTestId('button-more').click();
     await expect(page.getByTestId('mobile-more-menu-sheet')).toBeVisible({ timeout: 10_000 });
+    await expectFloatingSurfaceFitsViewport(page.getByTestId('mobile-more-menu-sheet'), 'mobile more menu', {
+      minInteractiveHeight: 44,
+    });
     await expect(page.getByTestId('mobile-more-menu-database')).toContainText('Database');
     await expect(page.getByTestId('mobile-more-menu-settings')).toContainText('Settings');
     await page.getByTestId('mobile-more-menu-close').click();
@@ -754,15 +939,17 @@ test.describe('responsive IDE shell', () => {
 
   test('tablet exposes icon-only tab navigation and one tools entry point', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'tablet', 'tablet-only assertion');
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
     await page.setViewportSize({ width: 1024, height: 768 });
 
     const projectId = await createTestProject(page, 'Responsive tablet named tabs project');
 
     await page.goto(`/projects/${projectId}/ide?panel=database`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 45_000 });
 
     const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
-    await expect(mobileNav).toBeVisible({ timeout: 15000 });
+    await expect(mobileNav).toBeVisible({ timeout: 45_000 });
+    await expectMobileBottomNavigationIsTouchSafe(page);
     await expectBottomTabLabelsHidden(page);
     await expect(mobileNav.getByTestId('button-add-tab')).toBeVisible();
     await expect(mobileNav.getByTestId('button-more')).toBeVisible();
@@ -773,11 +960,30 @@ test.describe('responsive IDE shell', () => {
     await expect(toolsSheet.getByTestId('tool-item-object-storage')).toContainText('Object Storage');
     await expect(toolsSheet.getByTestId('tool-item-commands')).toContainText('Commands');
     await expect(toolsSheet.getByTestId('tool-item-share')).toContainText('Share');
+    await toolsSheet.getByTestId('tool-item-settings').click();
+    await expectMobileServicePanel(page, 'settings');
+    await expectMobileBottomNavigationIsTouchSafe(page);
+    await mobileNav.getByTestId('tab-deployments').click();
+    await expectMobileServicePanel(page, 'deployments');
+
+    await mobileNav.getByTestId('button-tab-switcher').click();
+
+    const tabSwitcher = page.getByTestId('mobile-tab-switcher');
+
+    await expect(tabSwitcher).toBeVisible({ timeout: 10_000 });
+    await expect(tabSwitcher.getByTestId('tab-card-settings')).toBeVisible();
+    await tabSwitcher.getByTestId('button-close-tab-settings').click();
+    await expect(tabSwitcher.getByTestId('tab-card-settings')).toHaveCount(0);
+    await tabSwitcher.getByTestId('button-new-tab').click();
+    await expect(toolsSheet).toBeVisible({ timeout: 10_000 });
     await page.keyboard.press('Escape');
     await expect(toolsSheet).toBeHidden({ timeout: 10_000 });
 
     await mobileNav.getByTestId('button-more').click();
     await expect(page.getByTestId('mobile-more-menu-sheet')).toBeVisible({ timeout: 10_000 });
+    await expectFloatingSurfaceFitsViewport(page.getByTestId('mobile-more-menu-sheet'), 'tablet more menu', {
+      minInteractiveHeight: 44,
+    });
     await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Deployments');
     await expect(page.getByTestId('mobile-more-menu-object-storage')).toContainText('Object Storage');
     await page.keyboard.press('Escape');
@@ -860,6 +1066,7 @@ test.describe('responsive IDE shell', () => {
       .locator('form')
       .filter({ has: page.locator('input[name="intent"][value="preferences"]') })
       .first();
+
     const themeSelect = preferencesForm.locator('select[name="theme"]');
     const settingsStatus = page.locator('.bolt-project-settings-status');
 
@@ -1099,6 +1306,11 @@ createServer((request, response) => {
     await expect(loadingOverlay).toContainText(/Webview startup|Loading the webview|Waiting for the preview port/);
     await expect(page.getByTestId('preview-iframe')).toBeVisible({ timeout: 15_000 });
     await expect(loadingOverlay).toBeVisible();
+    await expectMobileWebviewStartupFitsViewport(
+      page,
+      testInfo.project.name,
+      testInfo.outputPath(`webview-startup-layout-${testInfo.project.name}.png`),
+    );
 
     await expect(page.frameLocator('iframe[title="preview"]').locator('[data-slow-preview="ready"]')).toContainText(
       'Slow preview ready',

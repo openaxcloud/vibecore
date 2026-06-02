@@ -92,6 +92,7 @@ export default function ConnectedAccountsPage() {
       .filter((connection) => !connection.revokedAt)
       .map((connection) => [connection.provider, connection]),
   );
+
   const identityByProvider = new Map(identityConnections.map((connection) => [connection.provider, connection]));
 
   return (
@@ -105,6 +106,7 @@ export default function ConnectedAccountsPage() {
 
           const integration =
             provider.kind === 'integration' ? integrationByProvider.get(provider.apiProvider) : undefined;
+
           const identity = provider.kind === 'identity' ? identityByProvider.get(provider.apiProvider) : undefined;
 
           const needsReconnect = integration?.status === 'needs_reconnect';
@@ -153,13 +155,6 @@ export default function ConnectedAccountsPage() {
                     Connect
                   </Link>
                 ) : isConnected && provider.kind === 'integration' && integration ? (
-                  /*
-                   * Audit v3 (H): the revoke endpoint
-                   * (POST /api/account/connections/:id/revoke) existed but no UI
-                   * ever called it, so a connected integration could never be
-                   * disconnected. Wire the button. (Identity providers have no
-                   * server-side unlink endpoint yet, so they remain read-only.)
-                   */
                   <IntegrationDisconnectButton connectionId={integration.id} />
                 ) : null}
               </div>

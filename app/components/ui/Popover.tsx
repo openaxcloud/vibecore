@@ -1,29 +1,54 @@
-import * as Popover from '@radix-ui/react-popover';
+import * as PopoverPrimitive from '@radix-ui/react-popover';
 import type { PropsWithChildren, ReactNode } from 'react';
+import { classNames } from '~/utils/classNames';
 
-export default ({
+type PopoverSide = 'top' | 'right' | 'bottom' | 'left';
+type PopoverAlign = 'center' | 'start' | 'end';
+
+interface PopoverProps {
+  align?: PopoverAlign;
+  arrowClassName?: string;
+  contentClassName?: string;
+  side?: PopoverSide;
+  sideOffset?: number;
+  testId?: string;
+  trigger: ReactNode;
+}
+
+export default function Popover({
   children,
+  contentClassName,
+  arrowClassName,
   trigger,
   side,
   align,
-}: PropsWithChildren<{
-  trigger: ReactNode;
-  side: 'top' | 'right' | 'bottom' | 'left' | undefined;
-  align: 'center' | 'start' | 'end' | undefined;
-}>) => (
-  <Popover.Root>
-    <Popover.Trigger asChild>{trigger}</Popover.Trigger>
-    <Popover.Anchor />
-    <Popover.Portal>
-      <Popover.Content
-        sideOffset={10}
-        side={side}
-        align={align}
-        className="bg-bolt-elements-background-depth-2 text-bolt-elements-item-contentAccent p-2 rounded-md shadow-xl z-workbench"
-      >
-        {children}
-        <Popover.Arrow className="bg-bolt-elements-item-background-depth-2" />
-      </Popover.Content>
-    </Popover.Portal>
-  </Popover.Root>
-);
+  sideOffset = 10,
+  testId,
+}: PropsWithChildren<PopoverProps>) {
+  return (
+    <PopoverPrimitive.Root>
+      <PopoverPrimitive.Trigger asChild>{trigger}</PopoverPrimitive.Trigger>
+      <PopoverPrimitive.Anchor />
+      <PopoverPrimitive.Portal>
+        <PopoverPrimitive.Content
+          align={align}
+          avoidCollisions
+          collisionPadding={16}
+          data-testid={testId}
+          hideWhenDetached
+          sideOffset={sideOffset}
+          side={side}
+          className={classNames(
+            'bolt-popover-content z-workbench max-h-[calc(100dvh-32px)] max-w-[calc(100vw-32px)] overflow-auto rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 text-bolt-elements-item-contentAccent shadow-xl',
+            contentClassName,
+          )}
+        >
+          {children}
+          <PopoverPrimitive.Arrow
+            className={classNames('bolt-popover-arrow fill-bolt-elements-background-depth-2', arrowClassName)}
+          />
+        </PopoverPrimitive.Content>
+      </PopoverPrimitive.Portal>
+    </PopoverPrimitive.Root>
+  );
+}

@@ -3785,34 +3785,86 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
     expect(missing.statusCode).toBe(404);
 
-    const vercel = await app.inject({
-      method: 'POST',
-      url: `/projects/${projectId}/deployments`,
-      headers: { authorization: `Bearer ${auth.token}` },
-      payload: {
-        provider: 'vercel',
-        environment: 'production',
-        buildCommand: 'npm run build',
-        outputDirectory: 'dist',
-      },
-    });
-    expect(vercel.statusCode).toBe(201);
-    expect(vercel.json().deployment.productionUrl).toContain('vercel.vibecore.local');
+    const previousDeployHooks = {
+      vercel: process.env.VERCEL_DEPLOY_HOOK_URL,
+      cloudRun: process.env.CLOUD_RUN_BUILD_TRIGGER_URL,
+      gcpToken: process.env.GCP_OAUTH_TOKEN,
+    };
 
-    const cloudRun = await app.inject({
-      method: 'POST',
-      url: `/projects/${projectId}/deployments`,
-      headers: { authorization: `Bearer ${auth.token}` },
-      payload: {
-        provider: 'google-cloud-run',
-        environment: 'staging',
-        buildCommand: 'npm run build',
-        outputDirectory: 'dist',
-        injectSecrets: ['DATABASE_URL'],
-      },
-    });
-    expect(cloudRun.statusCode).toBe(201);
-    expect(JSON.stringify(cloudRun.json().deployment.logs)).toContain('pushed image');
+    try {
+      process.env.VERCEL_DEPLOY_HOOK_URL = 'https://deploy-hooks.test/vercel';
+      process.env.CLOUD_RUN_BUILD_TRIGGER_URL = 'https://deploy-hooks.test/cloud-run';
+      process.env.GCP_OAUTH_TOKEN = 'ya29.test-token';
+
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (input: Parameters<typeof fetch>[0]) => {
+          const url = String(input);
+
+          if (url === 'https://deploy-hooks.test/vercel') {
+            return new Response(
+              JSON.stringify({
+                job: {
+                  id: 'job_vercel_1',
+                  url: 'https://deployable-app.vercel.vibecore.local',
+                },
+              }),
+              { status: 201, headers: { 'content-type': 'application/json' } },
+            );
+          }
+
+          if (url === 'https://deploy-hooks.test/cloud-run') {
+            return new Response(
+              JSON.stringify({
+                metadata: {
+                  build: {
+                    id: 'build_cloud_run_1',
+                    results: { images: [{ name: 'gcr.io/vibecore/deployable-app' }] },
+                  },
+                },
+              }),
+              { status: 200, headers: { 'content-type': 'application/json' } },
+            );
+          }
+
+          throw new Error(`Unexpected deploy hook request: ${url}`);
+        }),
+      );
+
+      const vercel = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/deployments`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {
+          provider: 'vercel',
+          environment: 'production',
+          buildCommand: 'npm run build',
+          outputDirectory: 'dist',
+        },
+      });
+      expect(vercel.statusCode).toBe(201);
+      expect(vercel.json().deployment.productionUrl).toContain('vercel.vibecore.local');
+
+      const cloudRun = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/deployments`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {
+          provider: 'google-cloud-run',
+          environment: 'staging',
+          buildCommand: 'npm run build',
+          outputDirectory: 'dist',
+          injectSecrets: ['DATABASE_URL'],
+        },
+      });
+      expect(cloudRun.statusCode).toBe(201);
+      expect(JSON.stringify(cloudRun.json().deployment.logs)).toContain('pushed image');
+    } finally {
+      restoreEnv('VERCEL_DEPLOY_HOOK_URL', previousDeployHooks.vercel);
+      restoreEnv('CLOUD_RUN_BUILD_TRIGGER_URL', previousDeployHooks.cloudRun);
+      restoreEnv('GCP_OAUTH_TOKEN', previousDeployHooks.gcpToken);
+      vi.unstubAllGlobals();
+    }
 
     const logs = await app.inject({
       method: 'GET',

@@ -2436,6 +2436,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const [mobileToolsSheetOpen, setMobileToolsSheetOpen] = useState(false);
     const [mobileToolsQuery, setMobileToolsQuery] = useState('');
+    const [mobileTabSearchQuery, setMobileTabSearchQuery] = useState('');
 
     const [mobileTabSwitcherOpen, setMobileTabSwitcherOpen] = useState(false);
     const [mobileMoreMenuOpen, setMobileMoreMenuOpen] = useState(false);
@@ -2497,6 +2498,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setMobileTabSwitcherOpen(false);
       setMobileMoreMenuOpen(false);
       setMobileToolsQuery('');
+      setMobileTabSearchQuery('');
       persistMobileOverlay(null);
     }, [persistMobileOverlay]);
 
@@ -2523,6 +2525,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setMobileTabSwitcherOpen(false);
       setMobileMoreMenuOpen(false);
       setMobileToolsQuery('');
+      setMobileTabSearchQuery('');
       setMobileToolsSheetOpen(true);
       persistMobileOverlay('tools');
     }, [persistMobileOverlay]);
@@ -2531,6 +2534,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setMobileToolsSheetOpen(false);
       setMobileMoreMenuOpen(false);
       setMobileToolsQuery('');
+      setMobileTabSearchQuery('');
       setMobileTabSwitcherOpen(true);
       persistMobileOverlay('tabs');
     }, [persistMobileOverlay]);
@@ -2539,6 +2543,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setMobileToolsSheetOpen(false);
       setMobileTabSwitcherOpen(false);
       setMobileToolsQuery('');
+      setMobileTabSearchQuery('');
       setMobileMoreMenuOpen(true);
       persistMobileOverlay('more');
     }, [persistMobileOverlay]);
@@ -2627,6 +2632,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           item.id.toLowerCase().includes(query),
       );
     }, [mobileToolsQuery]);
+    const filteredMobileOpenTabs = useMemo(() => {
+      const query = mobileTabSearchQuery.trim().toLowerCase();
+
+      if (!query) {
+        return mobileOpenTabs;
+      }
+
+      return mobileOpenTabs.filter(
+        (tab) =>
+          tab.name.toLowerCase().includes(query) ||
+          tab.id.toLowerCase().includes(query) ||
+          panelTitle(tab.id).toLowerCase().includes(query),
+      );
+    }, [mobileOpenTabs, mobileTabSearchQuery]);
     const goToAdjacentMobilePanel = useCallback(
       (direction: 1 | -1) => {
         const currentIndex = MOBILE_IDE_PANELS.indexOf(mobilePanel);
@@ -6712,9 +6731,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }),
       [],
     );
+
+    const mobileBottomTabSlotCount = layout.isTablet ? 4 : 3;
+
     const mobileBottomTabs = useMemo(
-      () => selectVisibleMobileBottomTabs(mobileOpenTabs, activeMobileOpenTabId, 3),
-      [activeMobileOpenTabId, mobileOpenTabs],
+      () => selectVisibleMobileBottomTabs(mobileOpenTabs, activeMobileOpenTabId, mobileBottomTabSlotCount),
+      [activeMobileOpenTabId, mobileBottomTabSlotCount, mobileOpenTabs],
     );
     const hiddenMobileBottomTabCount = useMemo(
       () => countHiddenMobileBottomTabs(mobileOpenTabs, mobileBottomTabs),
@@ -7010,26 +7032,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <span className="i-ph:squares-four" aria-hidden />
                 </button>
                 <span className="bolt-mobile-replit-divider" aria-hidden />
-                {mobileBottomTabs.map((tab) => {
-                  const isActive = activeMobileOpenTabId === tab.id;
+                <div className="bolt-mobile-replit-panel-scroll" role="group" aria-label="Open tabs">
+                  {mobileBottomTabs.map((tab) => {
+                    const isActive = activeMobileOpenTabId === tab.id;
 
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      className="bolt-mobile-replit-icon-tab bolt-mobile-replit-panel-tab"
-                      aria-label={`Switch to ${tab.name} tab`}
-                      aria-pressed={isActive}
-                      aria-current={isActive ? 'page' : undefined}
-                      data-testid={`tab-${tab.id}`}
-                      onClick={() => activateMobileTool(tab.id)}
-                    >
-                      {tab.icon === 'agent' ? <MobileReplitAgentIcon /> : <span className={tab.icon} aria-hidden />}
-                      <span className="bolt-mobile-replit-tab-label">{tab.name}</span>
-                      {isActive ? <span className="bolt-mobile-replit-tab-indicator" aria-hidden /> : null}
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        className="bolt-mobile-replit-icon-tab bolt-mobile-replit-panel-tab"
+                        aria-label={`Switch to ${tab.name} tab`}
+                        aria-pressed={isActive}
+                        aria-current={isActive ? 'page' : undefined}
+                        data-testid={`tab-${tab.id}`}
+                        onClick={() => activateMobileTool(tab.id)}
+                      >
+                        {tab.icon === 'agent' ? <MobileReplitAgentIcon /> : <span className={tab.icon} aria-hidden />}
+                        <span className="bolt-mobile-replit-tab-label">{tab.name}</span>
+                        {isActive ? <span className="bolt-mobile-replit-tab-indicator" aria-hidden /> : null}
+                      </button>
+                    );
+                  })}
+                </div>
                 {hiddenMobileBottomTabCount > 0 ? (
                   <button
                     type="button"
@@ -7130,47 +7154,47 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             aria-modal="true"
             aria-label="Tab switcher"
             data-testid="mobile-tab-switcher"
+            onKeyDownCapture={handleMobileOverlayEscapeKey}
           >
             <div className="bolt-mobile-tab-switcher-body">
               <div className="bolt-mobile-tab-switcher-content">
                 <div className="bolt-mobile-tab-switcher-grid">
-                  {mobileOpenTabs.map((tab) => (
-                    <button
+                  {filteredMobileOpenTabs.map((tab) => (
+                    <div
                       key={tab.id}
-                      type="button"
                       className="bolt-mobile-tab-switcher-card"
                       aria-current={activeMobileOpenTabId === tab.id ? 'true' : undefined}
                       data-testid={`tab-card-${tab.id}`}
-                      onClick={() => activateMobileTool(tab.id)}
                     >
-                      <span className="bolt-mobile-tab-switcher-card-icon" aria-hidden>
-                        {tab.icon === 'agent' ? <MobileReplitAgentIcon /> : <span className={tab.icon} />}
-                      </span>
-                      <span>{tab.name}</span>
+                      <button
+                        type="button"
+                        className="bolt-mobile-tab-switcher-card-main"
+                        aria-label={`Switch to ${tab.name} tab`}
+                        onClick={() => activateMobileTool(tab.id)}
+                      >
+                        <span className="bolt-mobile-tab-switcher-card-icon" aria-hidden>
+                          {tab.icon === 'agent' ? <MobileReplitAgentIcon /> : <span className={tab.icon} />}
+                        </span>
+                        <span>{tab.name}</span>
+                      </button>
                       {!ECODE_MOBILE_DEFAULT_TABS.includes(tab.id as any) ? (
-                        <span
-                          role="button"
-                          tabIndex={0}
+                        <button
+                          type="button"
                           className="bolt-mobile-tab-switcher-close"
                           aria-label={`Close ${tab.name} tab`}
                           data-testid={`button-close-tab-${tab.id}`}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            closeMobileOpenTab(tab.id);
-                          }}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              closeMobileOpenTab(tab.id);
-                            }
-                          }}
+                          onClick={() => closeMobileOpenTab(tab.id)}
                         >
                           <span className="i-ph:x" aria-hidden />
-                        </span>
+                        </button>
                       ) : null}
-                    </button>
+                    </div>
                   ))}
+                  {filteredMobileOpenTabs.length === 0 ? (
+                    <div className="bolt-mobile-tab-switcher-empty" role="status">
+                      No open tabs match your search.
+                    </div>
+                  ) : null}
                 </div>
               </div>
               <div className="bolt-mobile-tab-switcher-footer">
@@ -7204,10 +7228,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <div className="bolt-mobile-tab-switcher-search">
                   <label>
                     <span className="i-ph:files" aria-hidden />
-                    <input placeholder="Search tabs..." aria-label="Search open tabs" data-testid="input-search-tabs" />
+                    <input
+                      placeholder="Search tabs..."
+                      aria-label="Search open tabs"
+                      data-testid="input-search-tabs"
+                      value={mobileTabSearchQuery}
+                      onChange={(event) => setMobileTabSearchQuery(event.target.value)}
+                    />
                   </label>
-                  <button type="button" aria-label="Clear search" data-testid="button-clear-search">
-                    <span className="i-ph:magnifying-glass" aria-hidden />
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    data-testid="button-clear-search"
+                    onClick={() => setMobileTabSearchQuery('')}
+                  >
+                    <span className={mobileTabSearchQuery ? 'i-ph:x' : 'i-ph:magnifying-glass'} aria-hidden />
                   </button>
                   <button
                     type="button"

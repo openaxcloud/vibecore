@@ -158,24 +158,36 @@ export const AssistantMessage = memo(
         <>
           <div className="flex gap-1.5 items-center text-sm text-bolt-elements-textSecondary mb-1">
             {(codeContext || chatSummary || agentOrchestration || agentExecution || agentMemory) && (
-              <Popover side="right" align="start" trigger={<div className="i-ph:info" />}>
-                <div className="max-w-chat">
+              <Popover
+                side="right"
+                align="start"
+                sideOffset={8}
+                testId="agent-message-context-popover"
+                contentClassName="bolt-message-context-popover"
+                trigger={
+                  <button
+                    type="button"
+                    className="bolt-message-context-trigger"
+                    aria-label="Show agent message context"
+                  >
+                    <span className="i-ph:info" aria-hidden />
+                  </button>
+                }
+              >
+                <div className="bolt-message-context-panel">
                   {agentMemory && (
-                    <div className="agent-memory flex flex-col gap-3 p-4 border border-bolt-elements-borderColor rounded-md mb-3">
+                    <div className="agent-memory bolt-message-context-card">
                       <div>
-                        <h2 className="text-sm font-medium text-bolt-elements-textPrimary">Agent memory</h2>
-                        <p className="text-xs text-bolt-elements-textSecondary mt-1">
+                        <h2 className="bolt-message-context-title">Agent memory</h2>
+                        <p className="bolt-message-context-subtitle">
                           {agentMemory.memories.length} persistent memories used for this response
                         </p>
                       </div>
                       <div className="grid gap-2">
                         {agentMemory.memories.map((memory) => (
-                          <div
-                            key={memory.id}
-                            className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2"
-                          >
+                          <div key={memory.id} className="bolt-message-context-item">
                             <div className="text-xs font-medium text-bolt-elements-textPrimary">{memory.summary}</div>
-                            <div className="text-xs text-bolt-elements-textSecondary mt-1">
+                            <div className="bolt-message-context-meta">
                               {memory.scope}
                               {memory.memoryType ? ` · ${memory.memoryType}` : ''}
                               {typeof memory.score === 'number' ? ` · ${Math.round(memory.score * 100)}% match` : ''}
@@ -199,23 +211,20 @@ export const AssistantMessage = memo(
                     </div>
                   )}
                   {agentExecution && (
-                    <div className="agent-execution flex flex-col gap-3 p-4 border border-bolt-elements-borderColor rounded-md mb-3">
+                    <div className="agent-execution bolt-message-context-card">
                       <div>
-                        <h2 className="text-sm font-medium text-bolt-elements-textPrimary">Sub-agent execution</h2>
-                        <p className="text-xs text-bolt-elements-textSecondary mt-1">
+                        <h2 className="bolt-message-context-title">Sub-agent execution</h2>
+                        <p className="bolt-message-context-subtitle">
                           Run {agentExecution.runId} finished with status {agentExecution.status}
                         </p>
                       </div>
                       <div className="grid gap-2">
                         {agentExecution.results.map((result) => (
-                          <div
-                            key={result.roleId}
-                            className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2"
-                          >
+                          <div key={result.roleId} className="bolt-message-context-item">
                             <div className="text-xs font-medium text-bolt-elements-textPrimary">
                               {result.roleId} · {result.status}
                             </div>
-                            <div className="text-xs text-bolt-elements-textSecondary mt-1">{result.summary}</div>
+                            <div className="bolt-message-context-meta">{result.summary}</div>
                           </div>
                         ))}
                       </div>
@@ -311,10 +320,10 @@ export const AssistantMessage = memo(
                     </div>
                   )}
                   {agentOrchestration && (
-                    <div className="agent-orchestration flex flex-col gap-3 p-4 border border-bolt-elements-borderColor rounded-md mb-3">
+                    <div className="agent-orchestration bolt-message-context-card">
                       <div>
-                        <h2 className="text-sm font-medium text-bolt-elements-textPrimary">Agent orchestration</h2>
-                        <p className="text-xs text-bolt-elements-textSecondary mt-1">
+                        <h2 className="bolt-message-context-title">Agent orchestration</h2>
+                        <p className="bolt-message-context-subtitle">
                           {agentOrchestration.mode === 'parallel-subagents'
                             ? 'Parallel specialist agents planned'
                             : 'Specialist lanes planned inside the active model'}
@@ -322,43 +331,41 @@ export const AssistantMessage = memo(
                       </div>
                       <div className="grid gap-2">
                         {agentOrchestration.roles.map((role) => (
-                          <div
-                            key={role.id}
-                            className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2"
-                          >
+                          <div key={role.id} className="bolt-message-context-item">
                             <div className="text-xs font-medium text-bolt-elements-textPrimary">{role.title}</div>
-                            <div className="text-xs text-bolt-elements-textSecondary mt-1">{role.responsibility}</div>
+                            <div className="bolt-message-context-meta">{role.responsibility}</div>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
                   {chatSummary && (
-                    <div className="summary max-h-96 flex flex-col">
-                      <h2 className="border border-bolt-elements-borderColor rounded-md p4">Summary</h2>
-                      <div style={{ zoom: 0.7 }} className="overflow-y-auto m4">
+                    <div className="summary bolt-message-context-card">
+                      <h2 className="bolt-message-context-title">Summary</h2>
+                      <div className="bolt-message-context-markdown">
                         <Markdown>{chatSummary}</Markdown>
                       </div>
                     </div>
                   )}
                   {codeContext && (
-                    <div className="code-context flex flex-col p4 border border-bolt-elements-borderColor rounded-md">
-                      <h2>Context</h2>
-                      <div className="flex gap-4 mt-4 bolt" style={{ zoom: 0.6 }}>
+                    <div className="code-context bolt-message-context-card">
+                      <h2 className="bolt-message-context-title">Context</h2>
+                      <div className="bolt-message-context-file-list">
                         {codeContext.map((x) => {
                           const normalized = normalizedFilePath(x);
                           return (
                             <Fragment key={normalized}>
-                              <code
-                                className="bg-bolt-elements-artifacts-inlineCode-background text-bolt-elements-artifacts-inlineCode-text px-1.5 py-1 rounded-md text-bolt-elements-item-contentAccent hover:underline cursor-pointer"
+                              <button
+                                type="button"
+                                className="bolt-message-context-file"
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   openArtifactInWorkbench(normalized);
                                 }}
                               >
-                                {normalized}
-                              </code>
+                                <code>{normalized}</code>
+                              </button>
                             </Fragment>
                           );
                         })}
@@ -366,7 +373,6 @@ export const AssistantMessage = memo(
                     </div>
                   )}
                 </div>
-                <div className="context"></div>
               </Popover>
             )}
             <div className="flex w-full items-center justify-between">

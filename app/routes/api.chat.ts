@@ -687,6 +687,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           designScheme,
           summary,
           messageSliceId,
+
           /*
            * Audit v3 (H): thread the request's abort signal into the *initial*
            * generation too. Previously only the continuation call (above) got

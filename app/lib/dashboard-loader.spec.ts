@@ -40,6 +40,10 @@ describe('dashboard loader', () => {
           return jsonResponse({ error: 'Missing permission: billing:read', code: 'RBAC_FORBIDDEN' }, 403);
         }
 
+        if (url.endsWith('/orgs/org_1/ai/cost-summary')) {
+          return jsonResponse({ error: 'Missing permission: billing:read', code: 'RBAC_FORBIDDEN' }, 403);
+        }
+
         throw new Error(`Unexpected dashboard request: ${url}`);
       }),
     );
@@ -58,6 +62,7 @@ describe('dashboard loader', () => {
       activeWorkspaces: 0,
       planName: 'Unavailable',
       usageEvents: 0,
+      aiCostCents: 0,
     });
     expect(data.projects).toHaveLength(1);
     expect(data.projects[0]).toMatchObject({ id: 'project_1', name: 'Client Portal', sourceType: 'ai' });
