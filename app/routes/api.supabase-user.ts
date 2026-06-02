@@ -43,15 +43,10 @@ async function supabaseUserLoader({ request, context }: { request: Request; cont
       created_at: string;
     }>;
 
-    // Get user info from the first project (all projects belong to the same user)
-    const user =
-      projects.length > 0
-        ? {
-            id: projects[0].organization_id,
-            name: 'Supabase User', // Supabase doesn't provide user name in this endpoint
-            email: 'user@supabase.co', // Placeholder
-          }
-        : null;
+    // The Supabase /v1/projects endpoint exposes no user name or email, and the
+    // PAT is opaque, so we only surface the real organization id rather than
+    // fabricating a placeholder identity.
+    const user = projects.length > 0 ? { id: projects[0].organization_id } : null;
 
     return json({
       user,
@@ -122,15 +117,9 @@ async function supabaseUserAction({ request, context }: { request: Request; cont
         created_at: string;
       }>;
 
-      // Get user info from the first project
-      const user =
-        projects.length > 0
-          ? {
-              id: projects[0].organization_id,
-              name: 'Supabase User',
-              email: 'user@supabase.co',
-            }
-          : null;
+      // Only surface the real organization id; the endpoint exposes no user
+      // name or email, so we avoid fabricating a placeholder identity.
+      const user = projects.length > 0 ? { id: projects[0].organization_id } : null;
 
       return json({
         user,
