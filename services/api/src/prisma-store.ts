@@ -799,6 +799,16 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async findProjectShareLinkByToken(token: string) {
+    const link = await this.prisma.projectShareLink.findUnique({ where: { tokenHash: hashToken(token) } });
+
+    if (!link || link.revokedAt || link.expiresAt.getTime() < Date.now()) {
+      return undefined;
+    }
+
+    return mapProjectShareLink(link);
+  }
+
   async upsertAgentPatchProposal(input: {
     id: string;
     projectId: string;

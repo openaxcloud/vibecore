@@ -540,6 +540,9 @@ const collaborationShareLinkSchema = z.object({
     .max(60 * 24 * 30)
     .default(60 * 24),
 });
+const collaborationShareLinkRedeemParams = z.object({
+  token: z.string().min(1),
+});
 const collaborationAiSharingSchema = z.object({
   shared: z.boolean().default(true),
   mode: z.enum(['read-only', 'comment', 'pair-programming']).default('comment'),
@@ -9944,6 +9947,65 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { tokenHash: _tokenHash, ...safeLink } = link;
 
     return reply.code(201).send({ shareLink: safeLink, token });
+  });
+  // Redeem a project share link. Share tokens were previously minted but never
+  // consumable; this resolves the (unhashed) token, and for the authenticated
+  // recipient grants the link's role on the project unless they already
+  // collaborate on it. The token itself is the capability, so we never echo it
+  // back or expose other links.
+  app.get('/collaboration/share-links/:token', async (request, reply) => {
+    const { token } = parse(collaborationShareLinkRedeemParams, request.params);
+    const link = await store.findProjectShareLinkByToken(token);
+
+    if (!link) {
+      return reply.code(404).send({
+        error: { code: 'SHARE_LINK_INVALID', message: 'Share link is invalid, expired, or revoked.' },
+      });
+    }
+
+    const project = await store.getProject(link.projectId);
+
+    if (!project || project.deletedAt) {
+      return reply.code(404).send({
+        error: { code: 'SHARE_LINK_PROJECT_MISSING', message: 'The shared project no longer exists.' },
+      });
+    }
+
+    const userId = request.currentUser!.id;
+    const collaborators = await store.listProjectCollaborators(project.id);
+    const alreadyCollaborator = collaborators.some((collaborator) => collaborator.userId === userId);
+
+    let redeemed = false;
+
+    if (!alreadyCollaborator) {
+      await store.addProjectCollaborator({ projectId: project.id, userId, roleKey: link.roleKey });
+      await store.recordProjectActivity({
+        projectId: project.id,
+        actorUserId: userId,
+        action: 'project.collaboration.share_link.redeem',
+        metadata: { roleKey: link.roleKey },
+      });
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'project.collaboration.share_link.redeem',
+        resourceType: 'project',
+        resourceId: project.id,
+        metadata: { roleKey: link.roleKey },
+      });
+      redeemed = true;
+    }
+
+    return {
+      valid: true,
+      redeemed,
+      share: {
+        projectId: project.id,
+        projectName: project.name,
+        organizationId: project.organizationId,
+        roleKey: link.roleKey,
+        expiresAt: link.expiresAt,
+      },
+    };
   });
   app.post('/projects/:projectId/collaboration/ai-conversation', async (request) => {
     const project = await requireProject(

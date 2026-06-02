@@ -3065,6 +3065,41 @@ describe('SaaS API', () => {
     expect(shareLink.json().token).toMatch(/^share_/);
     expect(shareLink.json().shareLink.tokenHash).toBeUndefined();
 
+    const shareToken = shareLink.json().token as string;
+    const redeemer = await register(app, { email: 'collab-redeemer@example.com' });
+
+    const redeem = await app.inject({
+      method: 'GET',
+      url: `/collaboration/share-links/${shareToken}`,
+      headers: { authorization: `Bearer ${redeemer.token}` },
+    });
+    expect(redeem.statusCode).toBe(200);
+    expect(redeem.json().valid).toBe(true);
+    expect(redeem.json().redeemed).toBe(true);
+    expect(redeem.json().share.roleKey).toBe('viewer');
+    expect(redeem.json().share.projectId).toBe(projectId);
+
+    // Redeeming again is idempotent — the role is not granted twice.
+    const redeemAgain = await app.inject({
+      method: 'GET',
+      url: `/collaboration/share-links/${shareToken}`,
+      headers: { authorization: `Bearer ${redeemer.token}` },
+    });
+    expect(redeemAgain.statusCode).toBe(200);
+    expect(redeemAgain.json().redeemed).toBe(false);
+
+    // The redeemer is now a collaborator on the shared project.
+    const collaboratorsAfterRedeem = await store.listProjectCollaborators(projectId);
+    expect(collaboratorsAfterRedeem.some((collaborator) => collaborator.userId === redeemer.user.id)).toBe(true);
+
+    // An unknown token is rejected rather than silently accepted.
+    const invalidRedeem = await app.inject({
+      method: 'GET',
+      url: `/collaboration/share-links/share_not-a-real-token`,
+      headers: { authorization: `Bearer ${redeemer.token}` },
+    });
+    expect(invalidRedeem.statusCode).toBe(404);
+
     const cleanup = await app.inject({
       method: 'DELETE',
       url: `/projects/${projectId}/collaboration/presence/member-session`,

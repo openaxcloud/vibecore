@@ -798,6 +798,17 @@ export class TestApiStore implements ApiStore {
     return [...this.projectShareLinks.values()].filter((link) => link.projectId === projectId);
   }
 
+  async findProjectShareLinkByToken(token: string) {
+    const tokenHash = hashToken(token);
+    const link = [...this.projectShareLinks.values()].find((candidate) => candidate.tokenHash === tokenHash);
+
+    if (!link || link.revokedAt || new Date(link.expiresAt).getTime() < Date.now()) {
+      return undefined;
+    }
+
+    return link;
+  }
+
   async upsertAgentPatchProposal(input: {
     id: string;
     projectId: string;

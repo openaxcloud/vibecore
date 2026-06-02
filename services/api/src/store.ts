@@ -725,6 +725,12 @@ export interface ApiStore {
     createdByUserId?: string;
   }): Promise<ProjectShareLinkRecord>;
   listProjectShareLinks(projectId: string): Promise<ProjectShareLinkRecord[]>;
+  /**
+   * Resolve a project share link from its raw (unhashed) token. Returns the
+   * record only when the link exists, is unrevoked, and is unexpired —
+   * mirroring {@link findSessionByToken}. Used to redeem share links.
+   */
+  findProjectShareLinkByToken(token: string): Promise<ProjectShareLinkRecord | undefined>;
   upsertAgentPatchProposal(input: {
     id: string;
     projectId: string;
