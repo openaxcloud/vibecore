@@ -1218,6 +1218,20 @@ test.describe('responsive IDE shell', () => {
       await page.getByRole('button', { name: 'Cancel' }).click();
       await expect(page.getByPlaceholder('Enter API Key')).toHaveCount(0);
     }
+
+    await mobileBottomNavigation(page).getByTestId('tab-preview').click();
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'preview', {
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId('ide-agent-composer')).toHaveCount(0);
+    await expect(page.locator('.bolt-project-agent-suggestions')).toHaveCount(0);
+    await expectCompactIdeSurfaceFitsViewport(page, 'preview panel without agent composer');
+
+    await mobileBottomNavigation(page).getByTestId('tab-agent').click();
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'chat', {
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId('ide-agent-composer')).toBeVisible({ timeout: 45_000 });
   });
 
   test('mobile and tablet keep command palette and panel action menus inside the viewport', async ({

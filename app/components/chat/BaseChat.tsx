@@ -5222,6 +5222,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       toast.success('Conversation exportée');
     }, [description, messages, projectId]);
 
+    const shouldRenderAgentComposer = !projectIdeMode || !useMobileIde || mobilePanel === 'chat';
+
     const agentPanel = (
       <div
         data-testid="ide-agent-panel"
@@ -5290,159 +5292,161 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </ClientOnly>
             <ScrollToBottom />
           </StickToBottom.Content>
-          <div
-            className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
-              'sticky bottom-2': chatStarted,
-              'bolt-project-agent-composer bolt-project-agent-composer-stack': projectIdeMode,
-            })}
-          >
-            <div className="flex flex-col gap-2">
-              {deployAlert && (
-                <DeployChatAlert
-                  alert={deployAlert}
-                  clearAlert={() => clearDeployAlert?.()}
-                  postMessage={(message: string | undefined) => {
-                    sendMessage?.({} as any, message);
-                    clearSupabaseAlert?.();
-                  }}
-                />
-              )}
-              {supabaseAlert && (
-                <SupabaseChatAlert
-                  alert={supabaseAlert}
-                  clearAlert={() => clearSupabaseAlert?.()}
-                  postMessage={(message) => {
-                    sendMessage?.({} as any, message);
-                    clearSupabaseAlert?.();
-                  }}
-                />
-              )}
-              {actionAlert && (
-                <ChatAlert
-                  alert={actionAlert}
-                  clearAlert={() => clearAlert?.()}
-                  postMessage={(message) => {
-                    sendMessage?.({} as any, message);
-                    clearAlert?.();
-                  }}
-                />
-              )}
-              {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
-            </div>
-            {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
-            {projectIdeMode && isStreaming && (
-              <div className="vc-sr-only" role="status" aria-live="polite">
-                Agent is thinking
+          {shouldRenderAgentComposer && (
+            <div
+              className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
+                'sticky bottom-2': chatStarted,
+                'bolt-project-agent-composer bolt-project-agent-composer-stack': projectIdeMode,
+              })}
+            >
+              <div className="flex flex-col gap-2">
+                {deployAlert && (
+                  <DeployChatAlert
+                    alert={deployAlert}
+                    clearAlert={() => clearDeployAlert?.()}
+                    postMessage={(message: string | undefined) => {
+                      sendMessage?.({} as any, message);
+                      clearSupabaseAlert?.();
+                    }}
+                  />
+                )}
+                {supabaseAlert && (
+                  <SupabaseChatAlert
+                    alert={supabaseAlert}
+                    clearAlert={() => clearSupabaseAlert?.()}
+                    postMessage={(message) => {
+                      sendMessage?.({} as any, message);
+                      clearSupabaseAlert?.();
+                    }}
+                  />
+                )}
+                {actionAlert && (
+                  <ChatAlert
+                    alert={actionAlert}
+                    clearAlert={() => clearAlert?.()}
+                    postMessage={(message) => {
+                      sendMessage?.({} as any, message);
+                      clearAlert?.();
+                    }}
+                  />
+                )}
+                {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
               </div>
-            )}
-            {projectIdeMode && agentToolAction && (
-              <div className="bolt-project-agent-action-card" role="region" aria-label={agentToolAction.title}>
-                <div>
-                  <span className={agentToolAction.icon} aria-hidden />
-                  <span>
-                    <strong>{agentToolAction.title}</strong>
-                    <small>{agentToolAction.description}</small>
-                  </span>
+              {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
+              {projectIdeMode && isStreaming && (
+                <div className="vc-sr-only" role="status" aria-live="polite">
+                  Agent is thinking
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    openIdeTool(agentToolAction.panel);
-                    setAgentToolAction(null);
-                  }}
-                >
-                  Open →
-                </button>
-              </div>
-            )}
-            {projectIdeMode && (
-              <div className="bolt-project-agent-suggestions" aria-label="Agent suggestions">
-                {projectAgentSuggestions.map((suggestion) => (
+              )}
+              {projectIdeMode && agentToolAction && (
+                <div className="bolt-project-agent-action-card" role="region" aria-label={agentToolAction.title}>
+                  <div>
+                    <span className={agentToolAction.icon} aria-hidden />
+                    <span>
+                      <strong>{agentToolAction.title}</strong>
+                      <small>{agentToolAction.description}</small>
+                    </span>
+                  </div>
                   <button
-                    key={suggestion.id}
                     type="button"
-                    title={`${suggestion.label}: ${suggestion.reason}`}
-                    aria-label={`${suggestion.label}. ${suggestion.reason}`}
-                    onClick={(event) => handleProjectAgentSendMessage(event, suggestion.prompt)}
-                    disabled={isStreaming}
+                    onClick={() => {
+                      openIdeTool(agentToolAction.panel);
+                      setAgentToolAction(null);
+                    }}
                   >
-                    <span className={suggestion.icon} aria-hidden />
-                    <span>{suggestion.label}</span>
+                    Open →
                   </button>
-                ))}
-              </div>
-            )}
-            <ChatBox
-              isModelSettingsCollapsed={isModelSettingsCollapsed}
-              setIsModelSettingsCollapsed={setIsModelSettingsCollapsed}
-              provider={provider}
-              setProvider={setProvider}
-              providerList={providerList || (PROVIDER_LIST as ProviderInfo[])}
-              model={model}
-              setModel={setModel}
-              modelList={modelList}
-              apiKeys={apiKeys}
-              isModelLoading={isModelLoading}
-              onApiKeysChange={onApiKeysChange}
-              uploadedFiles={uploadedFiles}
-              setUploadedFiles={setUploadedFiles}
-              imageDataList={imageDataList}
-              setImageDataList={setImageDataList}
-              textareaRef={textareaRef}
-              input={input}
-              handleInputChange={handleInputChange}
-              handlePaste={handlePaste}
-              TEXTAREA_MIN_HEIGHT={TEXTAREA_MIN_HEIGHT}
-              TEXTAREA_MAX_HEIGHT={TEXTAREA_MAX_HEIGHT}
-              isStreaming={isStreaming}
-              handleStop={handleStop}
-              handleSendMessage={projectIdeMode ? handleProjectAgentSendMessage : handleSendMessage}
-              enhancingPrompt={enhancingPrompt}
-              enhancePrompt={enhancePrompt}
-              isListening={isListening}
-              startListening={startListening}
-              stopListening={stopListening}
-              chatStarted={chatStarted}
-              exportChat={exportChat}
-              qrModalOpen={qrModalOpen}
-              setQrModalOpen={setQrModalOpen}
-              handleFileUpload={handleFileUpload}
-              chatMode={chatMode}
-              setChatMode={setChatMode}
-              slashContext={{
-                planFirst: projectPlanFirst,
-                setPlanFirst: setProjectPlanFirst,
-                autoApplyEnabled: projectAutoApply,
-                insertIntoComposer,
-                createSnapshot: projectId ? createSnapshotCommand : undefined,
-                getLastPreviewError,
-                openFile: openFileFromSlash,
-                openDiff: openDiffFromSlash,
-                runShellCommand: runShellCommandFromSlash,
-              }}
-              projectId={projectId}
-              recentMentionedFilePaths={recentMentionedFilePaths}
-              recentSlashCommandIds={recentSlashCommandIds}
-              designScheme={designScheme}
-              setDesignScheme={setDesignScheme}
-              selectedElement={selectedElement}
-              setSelectedElement={setSelectedElement}
-              onWebSearchResult={onWebSearchResult}
-              projectIdeMode={projectIdeMode}
-              planFirstEnabled={projectPlanFirst}
-              onPlanFirstChange={setProjectPlanFirst}
-              placeholder={
-                projectIdeMode
-                  ? `${
-                      (
-                        PROJECT_AGENT_EXECUTION_MODES.find((mode) => mode.id === projectAgentExecutionMode) ??
-                        PROJECT_AGENT_EXECUTION_MODES[2]
-                      ).placeholder
-                    }${projectPlanFirst ? ' (Plan first)' : ''}`
-                  : undefined
-              }
-            />
-          </div>
+                </div>
+              )}
+              {projectIdeMode && (
+                <div className="bolt-project-agent-suggestions" aria-label="Agent suggestions">
+                  {projectAgentSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion.id}
+                      type="button"
+                      title={`${suggestion.label}: ${suggestion.reason}`}
+                      aria-label={`${suggestion.label}. ${suggestion.reason}`}
+                      onClick={(event) => handleProjectAgentSendMessage(event, suggestion.prompt)}
+                      disabled={isStreaming}
+                    >
+                      <span className={suggestion.icon} aria-hidden />
+                      <span>{suggestion.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <ChatBox
+                isModelSettingsCollapsed={isModelSettingsCollapsed}
+                setIsModelSettingsCollapsed={setIsModelSettingsCollapsed}
+                provider={provider}
+                setProvider={setProvider}
+                providerList={providerList || (PROVIDER_LIST as ProviderInfo[])}
+                model={model}
+                setModel={setModel}
+                modelList={modelList}
+                apiKeys={apiKeys}
+                isModelLoading={isModelLoading}
+                onApiKeysChange={onApiKeysChange}
+                uploadedFiles={uploadedFiles}
+                setUploadedFiles={setUploadedFiles}
+                imageDataList={imageDataList}
+                setImageDataList={setImageDataList}
+                textareaRef={textareaRef}
+                input={input}
+                handleInputChange={handleInputChange}
+                handlePaste={handlePaste}
+                TEXTAREA_MIN_HEIGHT={TEXTAREA_MIN_HEIGHT}
+                TEXTAREA_MAX_HEIGHT={TEXTAREA_MAX_HEIGHT}
+                isStreaming={isStreaming}
+                handleStop={handleStop}
+                handleSendMessage={projectIdeMode ? handleProjectAgentSendMessage : handleSendMessage}
+                enhancingPrompt={enhancingPrompt}
+                enhancePrompt={enhancePrompt}
+                isListening={isListening}
+                startListening={startListening}
+                stopListening={stopListening}
+                chatStarted={chatStarted}
+                exportChat={exportChat}
+                qrModalOpen={qrModalOpen}
+                setQrModalOpen={setQrModalOpen}
+                handleFileUpload={handleFileUpload}
+                chatMode={chatMode}
+                setChatMode={setChatMode}
+                slashContext={{
+                  planFirst: projectPlanFirst,
+                  setPlanFirst: setProjectPlanFirst,
+                  autoApplyEnabled: projectAutoApply,
+                  insertIntoComposer,
+                  createSnapshot: projectId ? createSnapshotCommand : undefined,
+                  getLastPreviewError,
+                  openFile: openFileFromSlash,
+                  openDiff: openDiffFromSlash,
+                  runShellCommand: runShellCommandFromSlash,
+                }}
+                projectId={projectId}
+                recentMentionedFilePaths={recentMentionedFilePaths}
+                recentSlashCommandIds={recentSlashCommandIds}
+                designScheme={designScheme}
+                setDesignScheme={setDesignScheme}
+                selectedElement={selectedElement}
+                setSelectedElement={setSelectedElement}
+                onWebSearchResult={onWebSearchResult}
+                projectIdeMode={projectIdeMode}
+                planFirstEnabled={projectPlanFirst}
+                onPlanFirstChange={setProjectPlanFirst}
+                placeholder={
+                  projectIdeMode
+                    ? `${
+                        (
+                          PROJECT_AGENT_EXECUTION_MODES.find((mode) => mode.id === projectAgentExecutionMode) ??
+                          PROJECT_AGENT_EXECUTION_MODES[2]
+                        ).placeholder
+                      }${projectPlanFirst ? ' (Plan first)' : ''}`
+                    : undefined
+                }
+              />
+            </div>
+          )}
         </StickToBottom>
         <div className="flex flex-col justify-center">
           {!chatStarted && (

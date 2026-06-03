@@ -18445,6 +18445,11 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     padding-bottom: 8px;
   }
 
+  .bolt-responsive-ide-mobile:not([data-mobile-panel='chat']) .bolt-project-agent-composer,
+  .bolt-responsive-ide-mobile:not([data-mobile-panel='chat']) .bolt-project-agent-suggestions {
+    display: none !important;
+  }
+
   .bolt-responsive-ide-mobile .bolt-project-chatbox textarea {
     padding-right: 62px !important;
     padding-bottom: 54px !important;
