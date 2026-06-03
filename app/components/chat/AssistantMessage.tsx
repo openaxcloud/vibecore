@@ -14,7 +14,11 @@ import { Markdown } from './Markdown';
 import { MessagePatchReview } from './MessagePatchReview';
 import { PlanChecklistView } from './PlanChecklist';
 import { ToolInvocations } from './ToolInvocations';
+import { ConnectionFailedNote } from './connector-cards/ConnectionFailedNote';
 import { ConnectionRequestCard } from './connector-cards/ConnectionRequestCard';
+import { ConnectionResolvedNote } from './connector-cards/ConnectionResolvedNote';
+import { ReconnectionRequiredBanner } from './connector-cards/ReconnectionRequiredBanner';
+import { SecretRequestCard } from './connector-cards/SecretRequestCard';
 import Popover from '~/components/ui/Popover';
 import WithTooltip from '~/components/ui/Tooltip';
 import { extractAndStripPlanChecklist } from '~/lib/chat/plan-checklist';
@@ -427,16 +431,22 @@ export const AssistantMessage = memo(
         {messageId ? <MessagePatchReview messageId={messageId} content={content} parts={parts} /> : null}
         {connectorAnnotations.length > 0
           ? connectorAnnotations.map((annotation) => {
-              if (annotation.payload.kind === 'connection_request') {
-                return <ConnectionRequestCard key={annotation.payload.messageId} payload={annotation.payload} />;
-              }
+              const { payload } = annotation;
 
-              /*
-               * The connection_resolved / connection_failed / secret_request /
-               * reconnection_required renderers ship in their own commits so the
-               * chat falls through silently for now.
-               */
-              return null;
+              switch (payload.kind) {
+                case 'connection_request':
+                  return <ConnectionRequestCard key={payload.messageId} payload={payload} />;
+                case 'connection_resolved':
+                  return <ConnectionResolvedNote key={payload.messageId} payload={payload} />;
+                case 'connection_failed':
+                  return <ConnectionFailedNote key={payload.messageId} payload={payload} />;
+                case 'secret_request':
+                  return <SecretRequestCard key={payload.messageId} payload={payload} />;
+                case 'reconnection_required':
+                  return <ReconnectionRequiredBanner key={payload.messageId} payload={payload} />;
+                default:
+                  return null;
+              }
             })
           : null}
         {toolInvocations && toolInvocations.length > 0 && (
