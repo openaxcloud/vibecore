@@ -101,6 +101,39 @@ export const loader = withSecurity(githubUserLoader, {
   allowedMethods: ['GET'],
 });
 
+/*
+ * Helper used by the action handler below: forwards to the API service's
+ * UserConnection-backed /api/github-proxy route. Returns the parsed
+ * payload on 2xx, returns null when the API answers 401
+ * CONNECTOR_NOT_LINKED so the caller can fall back to the legacy
+ * cookie/env token path. Any other failure bubbles up as a thrown
+ * Response so the Remix action layer can serialise it.
+ */
+async function githubProxyOrNull(
+  request: Request,
+  payload: { method: 'GET' | 'POST'; path: string; query?: Record<string, string>; body?: unknown },
+): Promise<unknown | null> {
+  try {
+    return await apiRequest(request, '/api/github-proxy', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    if (error instanceof Response && error.status === 401) {
+      const parsed = await error
+        .clone()
+        .json()
+        .catch(() => ({}) as { code?: string });
+
+      if ((parsed as { code?: string }).code === 'CONNECTOR_NOT_LINKED') {
+        return null;
+      }
+    }
+
+    throw error;
+  }
+}
+
 async function githubUserAction({ request, context }: { request: Request; context: any }) {
   try {
     let action: string | null = null;
@@ -123,6 +156,73 @@ async function githubUserAction({ request, context }: { request: Request; contex
       repoFullName = formData.get('repo') as string;
       searchQuery = formData.get('query') as string;
       perPage = parseInt(formData.get('per_page') as string) || 30;
+    }
+
+    /*
+     * Phase 1 migration: try the UserConnection-backed proxy first so the
+     * decrypted token never reaches the browser, then fall back to the
+     * legacy cookie/env PAT for existing builders who have not yet
+     * reconnected through OAuth.
+     */
+    if (action === 'get_repos' || action === 'get_branches' || action === 'search_repos' || action === 'get_token') {
+      let proxyPayload: { method: 'GET' | 'POST'; path: string; query?: Record<string, string> } | null = null;
+
+      if (action === 'get_repos') {
+        proxyPayload = { method: 'GET', path: '/user/repos', query: { sort: 'updated', per_page: '100' } };
+      } else if (action === 'get_branches' && repoFullName) {
+        proxyPayload = { method: 'GET', path: `/repos/${repoFullName}/branches` };
+      } else if (action === 'search_repos' && searchQuery) {
+        proxyPayload = {
+          method: 'GET',
+          path: '/search/repositories',
+          query: { q: searchQuery, per_page: String(perPage), sort: 'updated' },
+        };
+      } else if (action === 'get_token') {
+        proxyPayload = { method: 'GET', path: '/__token__' };
+      }
+
+      if (proxyPayload) {
+        try {
+          const proxied = await githubProxyOrNull(request, proxyPayload);
+
+          if (proxied !== null) {
+            if (action === 'get_repos') {
+              return json({ repos: proxied });
+            }
+
+            if (action === 'get_branches') {
+              return json({ branches: proxied });
+            }
+
+            if (action === 'search_repos') {
+              const search = proxied as {
+                total_count: number;
+                incomplete_results: boolean;
+                items: unknown[];
+              };
+
+              return json({
+                repos: search.items,
+                total_count: search.total_count,
+                incomplete_results: search.incomplete_results,
+              });
+            }
+
+            return json(proxied);
+          }
+        } catch (error) {
+          if (error instanceof Response) {
+            const parsed = await error
+              .clone()
+              .json()
+              .catch(() => ({}));
+
+            return json(parsed, { status: error.status });
+          }
+
+          throw error;
+        }
+      }
     }
 
     // Get API keys from cookies (server-side only)
