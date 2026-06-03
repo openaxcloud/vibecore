@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
 import * as Popover from '@radix-ui/react-popover';
-import { Form, Link, NavLink, useNavigate } from '@remix-run/react';
+import { Form, Link, NavLink, useNavigate, useNavigation } from '@remix-run/react';
 import {
   Activity,
   ArrowUpRight,
@@ -22,6 +22,7 @@ import {
   KeyRound,
   Layers,
   LifeBuoy,
+  Loader2,
   LogOut,
   Lock,
   MailPlus,
@@ -1399,12 +1400,26 @@ export function EmptyPanel({
 export function SettingsForm({
   fields,
   submitLabel = 'Save changes',
+  pendingLabel,
+  pendingHint,
 }: {
   fields: Array<{ label: string; name: string; type?: string; placeholder?: string; defaultValue?: string }>;
   submitLabel?: string;
+  pendingLabel?: string;
+  pendingHint?: string;
 }) {
+  /*
+   * Use Remix's <Form> + useNavigation (the same pending pattern as the auth
+   * screens and projects.new) so the button reflects in-flight submissions.
+   * A native <form> triggers a full-page navigation that React never sees, so
+   * the user gets no feedback while a slow action — like a GitHub import that
+   * clones and installs dependencies — runs for several seconds.
+   */
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === 'submitting';
+
   return (
-    <form className="grid gap-4" method="post">
+    <Form className="grid gap-4" method="post">
       {fields.map((field) => (
         <label key={field.name} className="grid gap-2 text-sm font-medium">
           {field.label}
@@ -1417,10 +1432,24 @@ export function SettingsForm({
           />
         </label>
       ))}
-      <div>
-        <Button type="submit">{submitLabel}</Button>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+              {pendingLabel ?? `${submitLabel}…`}
+            </>
+          ) : (
+            submitLabel
+          )}
+        </Button>
+        {isSubmitting && pendingHint ? (
+          <span className="text-xs text-bolt-elements-textTertiary" role="status">
+            {pendingHint}
+          </span>
+        ) : null}
       </div>
-    </form>
+    </Form>
   );
 }
 
