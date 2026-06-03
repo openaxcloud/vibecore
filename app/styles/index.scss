@@ -5772,6 +5772,10 @@ body :where(.lucide, svg[data-lucide]) {
   max-width: min(100%, var(--chat-max-width));
 }
 
+.bolt-project-agent-transcript {
+  min-width: 0;
+}
+
 .bolt-project-agent-panel textarea {
   min-width: 0;
 }
@@ -17124,6 +17128,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-responsive-ide-mobile .bolt-project-agent-panel {
     --chat-max-width: min(100%, calc(100vw - 20px));
+    --vc-agent-composer-reserved-space: clamp(236px, 36dvh, 360px);
     height: 100%;
     max-height: 100%;
     padding-bottom: 0;
@@ -17131,6 +17136,24 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-responsive-ide-mobile .bolt-project-agent-panel > [data-stick-to-bottom] {
     min-height: 0;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-scroll {
+    display: flex;
+    width: 100% !important;
+    min-height: 0;
+    flex-direction: column;
+    padding: var(--vc-mobile-panel-gutter-tight) 0 0 !important;
+    scroll-padding-bottom: var(--vc-agent-composer-reserved-space);
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-transcript {
+    width: min(100%, calc(100vw - 20px));
+    max-width: var(--chat-max-width);
+    min-width: 0;
+    flex: 1 0 auto;
+    margin-inline: auto;
+    padding-bottom: var(--vc-agent-composer-reserved-space);
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-panel .max-w-chat {
@@ -17203,33 +17226,104 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-composer {
+    position: sticky !important;
+    z-index: 50;
     width: min(100%, calc(100vw - 20px)) !important;
     max-width: calc(100vw - 20px) !important;
     inline-size: min(100%, calc(100vw - 20px)) !important;
     max-inline-size: calc(100vw - 20px) !important;
     align-self: center;
-  }
-
-  .bolt-responsive-ide-mobile .bolt-project-agent-suggestions {
-    display: flex;
-    width: 100%;
-    max-width: 100%;
-    grid-template-columns: none;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x proximity;
+    max-height: min(46dvh, 380px);
+    gap: 8px;
+    margin-bottom: 0 !important;
+    overflow-x: clip;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-top: 8px;
     scrollbar-width: none;
   }
 
-  .bolt-responsive-ide-mobile .bolt-project-agent-suggestions::-webkit-scrollbar {
+  .bolt-responsive-ide-mobile .bolt-project-agent-composer::-webkit-scrollbar {
     display: none;
   }
 
+  .bolt-responsive-ide-mobile .bolt-project-agent-suggestions {
+    display: grid;
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    overflow: visible;
+    padding: 0;
+    scroll-snap-type: none;
+  }
+
+  @media (min-width: 768px) {
+    .bolt-responsive-ide-mobile .bolt-project-agent-suggestions {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
   .bolt-responsive-ide-mobile .bolt-project-agent-suggestions button {
-    min-width: clamp(128px, 38vw, 180px);
+    width: 100%;
+    max-width: none;
+    min-width: 0;
     min-height: 44px;
-    flex: 0 0 clamp(128px, 38vw, 180px);
-    scroll-snap-align: start;
+    flex: initial;
+    justify-content: center;
+    padding-inline: 10px;
+    scroll-snap-align: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-suggestions button > span:last-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-composer .bolt-agent-tool-calls {
+    max-height: min(18dvh, 144px);
+    border-radius: 12px;
+    box-shadow: var(--vc-ui-shadow-soft);
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-composer .bolt-agent-tool-calls-header {
+    min-height: 52px;
+    grid-template-columns: minmax(0, 1fr) 24px;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-composer .bolt-agent-tool-calls-header-icon {
+    display: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-composer .bolt-agent-tool-calls-header-copy small {
+    font-size: 10px;
+  }
+
+  .bolt-responsive-ide-mobile
+    .bolt-project-agent-composer
+    .bolt-agent-tool-calls[data-expanded='false']
+    .bolt-agent-tool-calls-list {
+    display: none !important;
+    border-top: 0;
+  }
+
+  .bolt-responsive-ide-mobile
+    .bolt-project-agent-composer
+    .bolt-agent-tool-calls[data-expanded='true']
+    .bolt-agent-tool-calls-list {
+    max-height: min(18dvh, 128px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-composer .bolt-agent-tool-call-row {
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 8px;
+    padding: 7px 10px;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-action-card {
@@ -17261,6 +17355,19 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     max-width: 100%;
     min-width: 0;
     overflow-x: auto;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-patch-review {
+    max-height: min(38dvh, 340px);
+    gap: 8px;
+    overflow: hidden;
+    padding: 8px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-patch-review-list {
+    max-height: min(24dvh, 230px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-patch-review-head,
@@ -18333,6 +18440,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer {
     bottom: calc(var(--vc-mobile-shell-bottom) + 8px) !important;
+    z-index: 50;
+    margin-bottom: 0 !important;
     padding-bottom: 8px;
   }
 

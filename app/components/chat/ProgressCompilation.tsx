@@ -108,7 +108,12 @@ export default function ProgressCompilation({ data }: { data?: ProgressAnnotatio
 
   return (
     <AnimatePresence>
-      <section className="bolt-agent-tool-calls" aria-label="Agent tool calls">
+      <section
+        className="bolt-agent-tool-calls"
+        aria-label="Agent tool calls"
+        data-active-work={hasActiveWork ? 'true' : 'false'}
+        data-expanded={expanded ? 'true' : 'false'}
+      >
         <button
           type="button"
           className="bolt-agent-tool-calls-header"

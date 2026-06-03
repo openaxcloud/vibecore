@@ -813,10 +813,16 @@ async function mountMobileAgentComposerDocument(page: Page) {
             --vc-ide-bg-card: #1a2030;
             --vc-ide-bg-hover: #2b3245;
             --vc-ide-bg-panel: #0e1525;
+            --vc-ide-accent-error: #ff5d5d;
+            --vc-ide-accent-primary: #0099ff;
+            --vc-ide-accent-success: #20c997;
             --vc-ide-border-visible: #2b3245;
+            --vc-ide-border-subtle: #1a2030;
             --vc-ide-text-muted: #6e7681;
             --vc-ide-text-primary: #f5f9fc;
             --vc-ide-text-secondary: #c2c8cc;
+            --vc-ui-radius-card: 8px;
+            --vc-ui-shadow-soft: 0 8px 24px rgb(0 4 20 / 0.36);
           }
 
           * {
@@ -845,6 +851,14 @@ async function mountMobileAgentComposerDocument(page: Page) {
             flex-direction: column;
           }
 
+          .gap-2 {
+            gap: 0.5rem;
+          }
+
+          .gap-4 {
+            gap: 1rem;
+          }
+
           .h-full {
             height: 100%;
           }
@@ -853,20 +867,143 @@ async function mountMobileAgentComposerDocument(page: Page) {
             min-height: 0;
           }
 
+          .relative {
+            position: relative;
+          }
+
+          .w-full {
+            width: 100%;
+          }
+
+          .mx-auto {
+            margin-left: auto;
+            margin-right: auto;
+          }
+
+          .max-w-chat {
+            max-width: var(--chat-max-width);
+          }
+
+          .mb-6 {
+            margin-bottom: 1.5rem;
+          }
+
+          .pb-4 {
+            padding-bottom: 1rem;
+          }
+
           .sticky {
             position: sticky;
+          }
+
+          .modern-scrollbar {
+            overflow-y: auto;
+          }
+
+          .fixture-message {
+            border: 1px solid var(--vc-ide-border-visible);
+            border-radius: 10px;
+            background: var(--vc-ide-bg-card);
+            padding: 12px;
+          }
+
+          .fixture-message p {
+            margin: 0;
+            color: var(--vc-ide-text-secondary);
+            font-size: 13px;
+            line-height: 1.45;
           }
         </style>
       </head>
       <body>
         <main class="bolt-responsive-ide-mobile" data-mobile-panel="chat" data-testid="mobile-agent-shell" style="height: 100dvh; --vc-ide-topbar-height: 48px;">
           <section class="bolt-project-agent-panel flex h-full min-h-0 flex-col" data-testid="mobile-agent-panel">
-            <div class="modern-scrollbar flex-1 min-h-0" data-testid="mobile-agent-scroll">
-              <div style="height: 320px; padding: 16px;">Agent transcript content</div>
-            </div>
-            <div class="bolt-project-agent-composer sticky" data-testid="mobile-agent-composer">
-              <div class="bolt-project-chatbox" style="min-height: 112px; border: 1px solid var(--vc-ide-border-visible);">
-                <textarea aria-label="Prompt" style="width: 100%; min-height: 88px;">Describe what you want the agent to build, fix or refactor...</textarea>
+            <div class="modern-scrollbar flex flex-col flex-1 min-h-0 bolt-project-agent-scroll" data-stick-to-bottom data-testid="mobile-agent-scroll">
+              <div class="flex flex-col gap-4 relative bolt-project-agent-transcript" data-testid="mobile-agent-transcript">
+                <div class="fixture-message max-w-chat mx-auto">
+                  <p>Agent transcript content with enough height to verify sticky composer clearance on compact mobile viewports.</p>
+                </div>
+                <div class="bolt-project-agent-patch-review max-w-chat mx-auto" data-testid="mobile-agent-patch-review">
+                  <div class="bolt-project-agent-patch-review-head">
+                    <div>
+                      <strong>Review proposed changes</strong>
+                      <span>10 files need approval before apply.</span>
+                    </div>
+                    <span class="bolt-project-agent-patch-review-badge">Review</span>
+                  </div>
+                  <div class="bolt-project-agent-patch-review-bulk">
+                    <button class="bolt-project-agent-patch-review-bulk-accept" type="button">Accept all</button>
+                    <button class="bolt-project-agent-patch-review-bulk-reject" type="button">Reject all</button>
+                  </div>
+                  <div class="bolt-project-agent-patch-review-list" data-testid="mobile-agent-patch-list">
+                    ${Array.from(
+                      { length: 10 },
+                      (_, index) => `
+                        <article class="bolt-project-agent-patch-card">
+                          <div class="bolt-project-agent-patch-card-head">
+                            <div>
+                              <strong>src/components/AgentPanel${index}.tsx</strong>
+                              <span>Responsive composer and patch review update</span>
+                            </div>
+                            <div class="bolt-project-agent-patch-actions">
+                              <button type="button">Accept</button>
+                              <button type="button">Reject</button>
+                            </div>
+                          </div>
+                          <pre class="bolt-project-agent-patch-hunk bolt-project-agent-patch-hunk--flat"><code>+ responsive line ${index} with long content that must not widen the viewport</code></pre>
+                        </article>
+                      `,
+                    ).join('')}
+                  </div>
+                </div>
+                <div class="fixture-message max-w-chat mx-auto" data-testid="mobile-agent-transcript-tail">
+                  <p>Tail message must remain scrollable above the sticky composer.</p>
+                </div>
+              </div>
+              <div class="my-auto flex flex-col gap-2 w-full max-w-chat mx-auto mb-6 sticky bottom-2 bolt-project-agent-composer bolt-project-agent-composer-stack" data-testid="mobile-agent-composer">
+                <section class="bolt-agent-tool-calls" aria-label="Agent tool calls" data-active-work="false" data-expanded="false" data-testid="mobile-agent-tool-calls">
+                  <button type="button" class="bolt-agent-tool-calls-header" aria-expanded="false">
+                    <span class="bolt-agent-tool-calls-header-icon" aria-hidden></span>
+                    <span class="bolt-agent-tool-calls-header-copy">
+                      <strong>Agent tool calls</strong>
+                      <small>2/2 done · 100% · ETA complete</small>
+                      <span class="bolt-agent-tool-progress" role="progressbar" aria-label="Agent progress 100% complete. ETA complete." aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                        <span class="bolt-agent-tool-progress-fill" style="width: 100%;"></span>
+                      </span>
+                    </span>
+                    <span class="bolt-agent-tool-calls-chevron" aria-hidden></span>
+                  </button>
+                  <div class="bolt-agent-tool-calls-list" data-testid="mobile-agent-tool-list">
+                    <div class="bolt-agent-tool-call-row is-complete">
+                      <span class="bolt-agent-tool-call-status" data-status="complete" aria-hidden></span>
+                      <span class="bolt-agent-tool-call-copy">
+                        <strong>Response Generated</strong>
+                        <small>done · 0.3s</small>
+                      </span>
+                    </div>
+                  </div>
+                </section>
+                <div class="bolt-project-agent-suggestions" aria-label="Agent suggestions" data-testid="mobile-agent-suggestions">
+                  ${[
+                    'Get preview running',
+                    'Continue last request',
+                    'Improve responsive UI',
+                    'Run validation checks',
+                  ]
+                    .map(
+                      (label) => `
+                        <button type="button">
+                          <span aria-hidden></span>
+                          <span>${label}</span>
+                        </button>
+                      `,
+                    )
+                    .join('')}
+                </div>
+                <div class="bolt-project-chatbox" data-testid="mobile-agent-chatbox" style="min-height: 112px; border: 1px solid var(--vc-ide-border-visible);">
+                  <textarea aria-label="Prompt" style="width: 100%; min-height: 88px;">Describe what you want the agent to build, fix or refactor...</textarea>
+                  <button class="bolt-composer-send-button" type="button" aria-label="Send prompt"></button>
+                </div>
               </div>
             </div>
           </section>
@@ -929,23 +1066,76 @@ async function readMobileAgentComposerDetails(page: Page) {
   return page.getByTestId('mobile-agent-shell').evaluate(() => {
     const composer = document.querySelector<HTMLElement>('[data-testid="mobile-agent-composer"]');
     const nav = document.querySelector<HTMLElement>('[data-testid="mobile-agent-nav"]');
+    const patchReview = document.querySelector<HTMLElement>('[data-testid="mobile-agent-patch-review"]');
+    const patchList = document.querySelector<HTMLElement>('[data-testid="mobile-agent-patch-list"]');
+    const scroll = document.querySelector<HTMLElement>('[data-testid="mobile-agent-scroll"]');
+    const suggestions = document.querySelector<HTMLElement>('[data-testid="mobile-agent-suggestions"]');
+    const tail = document.querySelector<HTMLElement>('[data-testid="mobile-agent-transcript-tail"]');
+    const toolCalls = document.querySelector<HTMLElement>('[data-testid="mobile-agent-tool-calls"]');
+    const toolList = document.querySelector<HTMLElement>('[data-testid="mobile-agent-tool-list"]');
 
-    if (!composer || !nav) {
+    if (!composer || !nav || !patchReview || !patchList || !scroll || !suggestions || !tail || !toolCalls || !toolList) {
       throw new Error('Missing mobile agent composer fixture');
     }
+
+    scroll.scrollTop = scroll.scrollHeight;
 
     const composerRect = composer.getBoundingClientRect();
     const composerStyle = window.getComputedStyle(composer);
     const navRect = nav.getBoundingClientRect();
+    const patchListRect = patchList.getBoundingClientRect();
+    const patchReviewRect = patchReview.getBoundingClientRect();
+    const scrollStyle = window.getComputedStyle(scroll);
+    const suggestionsRect = suggestions.getBoundingClientRect();
+    const tailRect = tail.getBoundingClientRect();
+    const toolCallsRect = toolCalls.getBoundingClientRect();
+    const toolListStyle = window.getComputedStyle(toolList);
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+    const composerChildBottom = Math.max(
+      ...Array.from(composer.children).map((child) => child.getBoundingClientRect().bottom),
+    );
 
     return {
       bottomOffset: composerStyle.bottom,
+      composerChildBottom,
       composerBottom: composerRect.bottom,
+      composerClientHeight: composer.clientHeight,
+      composerHeight: composerRect.height,
+      composerLeft: composerRect.left,
+      composerOverflowY: composerStyle.overflowY,
+      composerRight: composerRect.right,
+      composerScrollHeight: composer.scrollHeight,
+      composerTop: composerRect.top,
       composerWidth: composerRect.width,
+      documentOverflowsX: document.documentElement.scrollWidth > viewportWidth + 1,
       navHeight: navRect.height,
       navTop: navRect.top,
       paddingBottom: composerStyle.paddingBottom,
-      viewportWidth: window.visualViewport?.width ?? window.innerWidth,
+      patchListHeight: patchListRect.height,
+      patchReviewHeight: patchReviewRect.height,
+      scrollPaddingBottom: scrollStyle.scrollPaddingBottom,
+      suggestionButtons: Array.from(suggestions.querySelectorAll<HTMLElement>('button')).map((button) => {
+        const rect = button.getBoundingClientRect();
+
+        return {
+          clientWidth: button.clientWidth,
+          left: rect.left,
+          right: rect.right,
+          scrollWidth: button.scrollWidth,
+          width: rect.width,
+        };
+      }),
+      suggestionsClientWidth: suggestions.clientWidth,
+      suggestionsDisplay: window.getComputedStyle(suggestions).display,
+      suggestionsLeft: suggestionsRect.left,
+      suggestionsRight: suggestionsRect.right,
+      suggestionsScrollWidth: suggestions.scrollWidth,
+      tailBottom: tailRect.bottom,
+      toolCallsHeight: toolCallsRect.height,
+      toolListDisplay: toolListStyle.display,
+      viewportHeight,
+      viewportWidth,
     };
   });
 }
@@ -972,11 +1162,53 @@ function expectMobileAgentComposerConstrained(
   details: Awaited<ReturnType<typeof readMobileAgentComposerDetails>>,
   label: string,
 ) {
+  expect(details.documentOverflowsX, `${label} document horizontal overflow`).toBe(false);
   expect(Number.parseFloat(details.bottomOffset), `${label} composer bottom offset`).toBeGreaterThanOrEqual(
     details.navHeight + 6,
   );
   expect(Number.parseFloat(details.paddingBottom), `${label} composer padding bottom`).toBeLessThanOrEqual(8);
+  expect(details.composerLeft, `${label} composer left edge`).toBeGreaterThanOrEqual(9);
+  expect(details.composerRight, `${label} composer right edge`).toBeLessThanOrEqual(details.viewportWidth - 9);
+  expect(details.composerBottom, `${label} composer bottom`).toBeLessThanOrEqual(details.navTop - 6);
+  expect(details.composerOverflowY, `${label} composer internal overflow mode`).toBe('auto');
+  expect(details.composerScrollHeight, `${label} composer scroll height`).toBeGreaterThanOrEqual(
+    details.composerClientHeight,
+  );
+
+  if (details.composerScrollHeight <= details.composerClientHeight + 1) {
+    expect(details.composerChildBottom, `${label} composer child content`).toBeLessThanOrEqual(
+      details.composerBottom + 1,
+    );
+  }
+
+  expect(details.composerHeight, `${label} composer height`).toBeLessThanOrEqual(
+    Math.min(details.viewportHeight * 0.46, 380) + 1,
+  );
   expect(details.composerWidth, `${label} composer width`).toBeLessThanOrEqual(details.viewportWidth - 20 + 1);
+  expect(details.patchReviewHeight, `${label} patch review height`).toBeLessThanOrEqual(
+    Math.min(details.viewportHeight * 0.38, 340) + 1,
+  );
+  expect(details.patchListHeight, `${label} patch list height`).toBeLessThanOrEqual(
+    Math.min(details.viewportHeight * 0.24, 230) + 1,
+  );
+  expect(Number.parseFloat(details.scrollPaddingBottom), `${label} scroll padding bottom`).toBeGreaterThanOrEqual(236);
+  expect(details.suggestionsDisplay, `${label} suggestions layout`).toBe('grid');
+  expect(details.suggestionsLeft, `${label} suggestions left edge`).toBeGreaterThanOrEqual(details.composerLeft - 1);
+  expect(details.suggestionsRight, `${label} suggestions right edge`).toBeLessThanOrEqual(details.composerRight + 1);
+  expect(details.suggestionsScrollWidth, `${label} suggestions horizontal overflow`).toBeLessThanOrEqual(
+    details.suggestionsClientWidth + 1,
+  );
+  expect(details.tailBottom, `${label} transcript tail above composer`).toBeLessThanOrEqual(details.composerTop - 4);
+  expect(details.toolCallsHeight, `${label} collapsed tool calls height`).toBeLessThanOrEqual(144);
+  expect(details.toolListDisplay, `${label} collapsed tool list display`).toBe('none');
+
+  for (const [index, button] of details.suggestionButtons.entries()) {
+    expect(button.left, `${label} suggestion ${index} left edge`).toBeGreaterThanOrEqual(details.suggestionsLeft - 1);
+    expect(button.right, `${label} suggestion ${index} right edge`).toBeLessThanOrEqual(details.suggestionsRight + 1);
+    expect(button.scrollWidth, `${label} suggestion ${index} text overflow`).toBeLessThanOrEqual(
+      button.clientWidth + 1,
+    );
+  }
 }
 
 async function readAgentMessageContextDetails(page: Page) {
@@ -1372,6 +1604,15 @@ async function expectButtonStates(page: Page) {
   expect(details.loadingBeforeBorderRadius).toBe('9999px');
   expect(details.loadingBeforeAnimationName).toBe('vc-button-spinner');
   expect(details.loadingIconOpacity).toBe('0');
+
+  await page.addStyleTag({
+    content: `
+      [data-testid="ui-button-hover"],
+      [data-testid="ui-button-active"] {
+        transition: none !important;
+      }
+    `,
+  });
 
   await page.getByTestId('ui-button-hover').hover();
   await expect(page.getByTestId('ui-button-hover')).toHaveCSS('background-color', 'rgb(43, 50, 69)');

@@ -5245,12 +5245,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         <StickToBottom
           className={classNames('pt-6 px-2 sm:px-6 relative', {
             'h-full flex flex-col modern-scrollbar': chatStarted,
+            'bolt-project-agent-scroll': projectIdeMode,
           })}
           resize="smooth"
           initial="smooth"
         >
           <StickToBottom.Content
-            className="flex flex-col gap-4 relative "
+            className={classNames('flex flex-col gap-4 relative', {
+              'bolt-project-agent-transcript': projectIdeMode,
+            })}
             role={projectIdeMode ? 'log' : undefined}
             aria-live={projectIdeMode ? 'polite' : undefined}
             aria-relevant={projectIdeMode ? 'additions text' : undefined}
@@ -5290,7 +5293,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <div
             className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
               'sticky bottom-2': chatStarted,
-              'bolt-project-agent-composer': projectIdeMode,
+              'bolt-project-agent-composer bolt-project-agent-composer-stack': projectIdeMode,
             })}
           >
             <div className="flex flex-col gap-2">
