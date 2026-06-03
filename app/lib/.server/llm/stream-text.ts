@@ -14,6 +14,7 @@ import {
   type FileMap,
 } from './constants';
 import { removeUnsupportedModelSettings } from './model-compat';
+import { resolveUsableProvider } from './provider-credentials';
 import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { PromptLibrary } from '~/lib/common/prompt-library';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
@@ -21,7 +22,7 @@ import { getSystemPrompt } from '~/lib/common/prompts/prompts';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { IProviderSetting } from '~/types/model';
-import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODIFICATIONS_TAG_NAME, PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
+import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODIFICATIONS_TAG_NAME, WORK_DIR } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
 import { allowedHTMLElements } from '~/utils/markdown';
 
@@ -136,7 +137,22 @@ export async function streamText(props: {
     return newMessage;
   });
 
-  const provider = PROVIDER_LIST.find((p) => p.name === currentProvider) || DEFAULT_PROVIDER;
+  /*
+   * If the user picked a provider we have no credential for (e.g. AmazonBedrock
+   * without AWS_BEDROCK_CONFIG in a managed deployment), provider.getModelInstance
+   * would throw "Missing API key" and the client renders a fatal "Authentication
+   * Error", killing code generation. Resolve to a credentialed provider instead.
+   */
+  const resolved = resolveUsableProvider({
+    requestedProvider: currentProvider,
+    requestedModel: currentModel,
+    apiKeys,
+    serverEnv: serverEnv as Record<string, string> | undefined,
+  });
+
+  const provider = resolved.provider;
+  currentModel = resolved.model;
+
   const staticModels = LLMManager.getInstance().getStaticModelListFromProvider(provider);
 
   let modelDetails = staticModels.find((m) => m.name === currentModel);
