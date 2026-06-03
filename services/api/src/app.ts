@@ -6073,6 +6073,94 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
 
+  /*
+   * Generic GitHub REST API proxy used by the legacy action handlers in
+   * app/routes/api.github-user.ts (get_repos, get_branches, search_repos)
+   * during the migration off the cookie / env token. The Remix actions
+   * call this endpoint first; on 401 CONNECTOR_NOT_LINKED they fall back
+   * to the legacy code path so existing builders are not stranded.
+   *
+   * For get_token specifically the client receives CONNECTOR_USE_BACKEND_
+   * GIT instead of the raw token so it knows to route push/pull through
+   * the existing /projects/:id/git/* endpoints, which already keep the
+   * token server-side.
+   */
+  app.post('/api/github-proxy', async (request, reply) => {
+    const body = request.body as
+      | { method?: string; path?: string; query?: Record<string, string>; body?: unknown }
+      | undefined;
+
+    if (!body || typeof body.path !== 'string') {
+      return reply.code(400).send({ error: 'path is required', code: 'PROXY_BAD_REQUEST' });
+    }
+
+    const method = (body.method ?? 'GET').toUpperCase();
+
+    if (method !== 'GET' && method !== 'POST' && method !== 'PUT' && method !== 'PATCH' && method !== 'DELETE') {
+      return reply.code(400).send({ error: 'Unsupported HTTP method', code: 'PROXY_BAD_REQUEST' });
+    }
+
+    if (!body.path.startsWith('/')) {
+      return reply.code(400).send({ error: 'path must start with /', code: 'PROXY_BAD_REQUEST' });
+    }
+
+    if (body.path === '/__token__') {
+      const connections = await store.listUserConnectionsByUser(request.currentUser?.id ?? '', { provider: 'github' });
+      const active = connections.find((row) => row.status === 'active');
+
+      if (active) {
+        return reply
+          .code(409)
+          .send({
+            token: null,
+            code: 'CONNECTOR_USE_BACKEND_GIT',
+            message:
+              'A server-side UserConnection is active; route git operations through /api/projects/:projectId/git/* instead of grabbing the token client-side.',
+          });
+      }
+
+      return reply.code(404).send({ token: null, code: 'CONNECTOR_NOT_LINKED' });
+    }
+
+    const accessToken = await resolveActiveGithubAccessToken(request, reply);
+
+    if (!accessToken) {
+      return reply;
+    }
+
+    const url = new URL(`https://api.github.com${body.path}`);
+
+    if (body.query) {
+      for (const [key, value] of Object.entries(body.query)) {
+        url.searchParams.set(key, String(value));
+      }
+    }
+
+    const response = await fetch(url, {
+      method,
+      headers: {
+        authorization: `token ${accessToken}`,
+        accept: 'application/vnd.github+json',
+        'user-agent': 'e-code-api',
+        'x-github-api-version': '2022-11-28',
+        ...(method !== 'GET' && body.body ? { 'content-type': 'application/json' } : {}),
+      },
+      body: method !== 'GET' && body.body ? JSON.stringify(body.body) : undefined,
+    });
+
+    if (!response.ok) {
+      return handleGithubProviderResponse(request, reply, response, 'PROVIDER_API_FAILED');
+    }
+
+    const contentType = response.headers.get('content-type') ?? '';
+
+    if (contentType.includes('application/json')) {
+      return await response.json();
+    }
+
+    return await response.text();
+  });
+
   app.post('/webhooks/github', async (request, reply) => {
     const signingSecret = process.env.INTEGRATION_GITHUB_WEBHOOK_SIGNING_SECRET;
 
