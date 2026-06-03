@@ -15,7 +15,7 @@ vi.mock('./hunk-validate', async () => {
   };
 });
 
-import { ActionRunner, extractSelfRepairContent } from './action-runner';
+import { ActionRunner, extractSelfRepairContent, isLongRunningInstallCommand } from './action-runner';
 import type { ActionCallbackData } from './message-parser';
 import { workspaceEvents } from './workspace-events';
 
@@ -163,6 +163,32 @@ describe('extractSelfRepairContent', () => {
   it('returns the raw response verbatim when no boltAction wrapper is present', () => {
     expect(extractSelfRepairContent('plain content')).toBe('plain content');
   });
+});
+
+describe('isLongRunningInstallCommand', () => {
+  it.each([
+    'npm install',
+    'npm i',
+    'npm ci',
+    'npm install --save-dev vite',
+    'pnpm install',
+    'pnpm add react',
+    'yarn install',
+    'yarn add lodash',
+    'bun install',
+    'cd app && npm install',
+    'npm install; npm run build',
+    'npx create-vite my-app',
+  ])('treats %s as a long-running install command', (command) => {
+    expect(isLongRunningInstallCommand(command)).toBe(true);
+  });
+
+  it.each(['npm run dev', 'npm run build', 'echo installing', 'ls node_modules', 'vite preview', 'git add .'])(
+    'does not treat %s as a long-running install command',
+    (command) => {
+      expect(isLongRunningInstallCommand(command)).toBe(false);
+    },
+  );
 });
 
 describe('ActionRunner self-repair retry loop', () => {

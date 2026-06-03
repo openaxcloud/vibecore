@@ -13,6 +13,18 @@ import { unreachable } from '~/utils/unreachable';
 const logger = createScopedLogger('ActionRunner');
 const TOOL_TIMEOUT_MS = 60_000;
 const FILE_TOOL_TIMEOUT_MS = 120_000;
+
+/*
+ * Dependency installs (and other package-manager work) routinely run well past
+ * the 60s generic tool budget on a cold workspace. When the install action hit
+ * that ceiling it was declared timed-out *while npm was still running in the
+ * terminal*; the next action's executeCommand() then sent Ctrl+C (\x03) to
+ * reclaim the prompt and killed the half-finished install — so the dev server
+ * started before node_modules existed, never bound a port, and the preview
+ * stayed blank with the workspace stuck on "starting". Give these commands a
+ * realistic budget so they finish before the next action can interrupt them.
+ */
+const INSTALL_TOOL_TIMEOUT_MS = 300_000;
 const TOOL_MAX_ATTEMPTS = 3;
 const TOOL_RETRY_BASE_DELAY_MS = 250;
 
@@ -45,6 +57,21 @@ export function extractSelfRepairContent(raw: string): string {
   }
 
   return raw;
+}
+
+/*
+ * Heuristic: does this shell command install dependencies (or otherwise run
+ * long enough that the generic 60s tool budget would cut it off)? Matches the
+ * package managers we support across npm/pnpm/yarn/bun, including `npm ci` and
+ * `add`. Kept deliberately conservative — a false negative just falls back to
+ * the normal timeout; a false positive only grants a longer budget to a
+ * command that was going to be quick anyway.
+ */
+const INSTALL_COMMAND_PATTERN =
+  /(^|[\s;&|])(?:(?:npm|pnpm|yarn|bun)\s+(?:install|i|ci|add)|(?:npx|pnpm\s+dlx|bunx)\s)/i;
+
+export function isLongRunningInstallCommand(command: string): boolean {
+  return INSTALL_COMMAND_PATTERN.test(command.trim());
 }
 
 async function callSelfRepairEndpoint(prompt: string, signal?: AbortSignal): Promise<string> {
@@ -400,8 +427,16 @@ export class ActionRunner {
     await new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  #timeoutMsForAction(action: Pick<ActionState, 'type'>) {
-    return action.type === 'file' ? FILE_TOOL_TIMEOUT_MS : TOOL_TIMEOUT_MS;
+  #timeoutMsForAction(action: Pick<ActionState, 'type'> & Partial<Pick<ActionState, 'content'>>) {
+    if (action.type === 'file') {
+      return FILE_TOOL_TIMEOUT_MS;
+    }
+
+    if (action.type === 'shell' && typeof action.content === 'string' && isLongRunningInstallCommand(action.content)) {
+      return INSTALL_TOOL_TIMEOUT_MS;
+    }
+
+    return TOOL_TIMEOUT_MS;
   }
 
   #formatActionError(error: unknown) {

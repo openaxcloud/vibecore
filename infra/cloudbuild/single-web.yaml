@@ -21,6 +21,14 @@ substitutions:
   _REPO: vibecore-prod-containers
   _DEPS_TAG: latest
   _SHORT_SHA: dev
+  # Browser runtime mode baked into the client bundle at `vite build` time.
+  # This is the prod web image, so it defaults to remote-kubernetes (the mode
+  # the whole workspace-manager / preview-proxy / workspace-agent backend is
+  # built for). Without this build arg the bundle silently ships WebContainer
+  # and the preview/port pipeline never touches the remote infra. Empty
+  # _VITE_RUNTIME_API_BASE_URL → the adapter uses the same-origin /api/runtime.
+  _VITE_RUNTIME_MODE: remote-kubernetes
+  _VITE_RUNTIME_API_BASE_URL: ''
 options:
   machineType: E2_HIGHCPU_8
   logging: CLOUD_LOGGING_ONLY
@@ -53,6 +61,8 @@ steps:
       - --target=bolt-ai-production
       - --build-arg=BUILDKIT_INLINE_CACHE=1
       - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_DEPS_TAG}
+      - --build-arg=VITE_RUNTIME_MODE=${_VITE_RUNTIME_MODE}
+      - --build-arg=VITE_RUNTIME_API_BASE_URL=${_VITE_RUNTIME_API_BASE_URL}
       - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest

@@ -113,11 +113,17 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::gcloud builds submit — single-web"
+          # VITE_RUNTIME_MODE is inlined into the client bundle at vite build
+          # time — it must be a Cloud Build substitution -> Docker build arg,
+          # not a runtime configmap value (which the browser never reads). Pin
+          # remote-kubernetes so the deployed IDE drives the workspace-manager /
+          # preview-proxy backend instead of silently falling back to
+          # WebContainer.
           gcloud builds submit \
             --project="${GCP_PROJECT_ID}" \
             --region="${GAR_LOCATION}" \
             --config=infra/cloudbuild/single-web.yaml \
-            --substitutions=_DEPS_TAG="${SHORT_SHA}",_SHORT_SHA="${SHORT_SHA}" \
+            --substitutions=_DEPS_TAG="${SHORT_SHA}",_SHORT_SHA="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes \
             --machine-type=e2-highcpu-8 \
             --timeout=1800s \
             .

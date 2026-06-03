@@ -43,6 +43,20 @@ ENV CI=true
 ARG VITE_PUBLIC_APP_URL
 ENV VITE_PUBLIC_APP_URL=${VITE_PUBLIC_APP_URL}
 
+# Runtime mode is resolved in the browser from `import.meta.env.VITE_RUNTIME_MODE`
+# (see app/lib/runtime/RuntimeAdapterProvider.ts `getRuntimeMode`). Vite inlines
+# VITE_* values at *build* time, so it MUST be a build arg here — setting it only
+# in the Helm configmap is a no-op for the client bundle, which then silently
+# falls back to WebContainer and never routes through workspace-manager /
+# preview-proxy. Left empty by default so a bare `docker build` keeps the
+# WebContainer dev default; the prod web Cloud Build (single-web.yaml) passes
+# remote-kubernetes. The API base URL defaults to the same-origin `/api/runtime`
+# when unset (RuntimeAdapterProvider), so it only needs overriding off-origin.
+ARG VITE_RUNTIME_MODE
+ENV VITE_RUNTIME_MODE=${VITE_RUNTIME_MODE}
+ARG VITE_RUNTIME_API_BASE_URL
+ENV VITE_RUNTIME_API_BASE_URL=${VITE_RUNTIME_API_BASE_URL}
+
 # Source overlay. When DEPS_IMAGE is the shared deps base, node_modules
 # is already populated and this COPY only adds source. When DEPS_IMAGE
 # is local-deps, node_modules is absent and we run the install below.
