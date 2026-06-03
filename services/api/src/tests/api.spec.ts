@@ -13,6 +13,13 @@ import type { EmailMessage, EmailProvider } from '../email.js';
 import type { GitProvider, ProjectFile, ProjectStorage, StoredArchive } from '../project-storage.js';
 import { TestApiStore } from './test-api-store.js';
 
+// Mirror runtimeWorkspaceId(projectId, userId) from the API: runtime endpoints
+// resolve a bare project id to this deterministic per-user workspace id, so a
+// test that drives an endpoint with a project id must expect the resolved id.
+function deterministicRuntimeWorkspaceId(projectId: string, userId: string) {
+  return `ws-${createHash('sha256').update(`${projectId}:${userId}`).digest('hex').slice(0, 16)}`;
+}
+
 class TestEmailProvider implements EmailProvider {
   readonly messages: EmailMessage[] = [];
 
@@ -4331,10 +4338,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const projectId = project.json().project.id as string;
 
     // Mirror runtimeWorkspaceId(projectId, userId) from the API.
-    const expectedWorkspaceId = `ws-${createHash('sha256')
-      .update(`${projectId}:${auth.user.id}`)
-      .digest('hex')
-      .slice(0, 16)}`;
+    const expectedWorkspaceId = deterministicRuntimeWorkspaceId(projectId, auth.user.id);
 
     try {
       const created = await app.inject({
@@ -4682,7 +4686,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
           port: 5173,
           type: 'open',
           ready: true,
-          url: `https://${projectId}-5173.preview.example.com`,
+          url: `https://${deterministicRuntimeWorkspaceId(projectId, auth.user.id)}-5173.preview.example.com`,
         }),
       ]);
     } finally {
@@ -4752,7 +4756,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
       expect(response.statusCode).toBe(200);
       expect(response.json()).toMatchObject({
-        workspaceId: projectId,
+        workspaceId: deterministicRuntimeWorkspaceId(projectId, auth.user.id),
         logs: expect.arrayContaining([
           expect.objectContaining({ message: 'vite ready in 120ms', source: 'workflow', level: 'info' }),
           expect.objectContaining({ message: 'GET /api/health 200', source: 'console', level: 'info' }),
@@ -4951,7 +4955,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       });
       expect(status.statusCode).toBe(200);
       expect(status.json()).toMatchObject({
-        id: projectId,
+        id: deterministicRuntimeWorkspaceId(projectId, auth.user.id),
         status: 'running',
         runtimeMode: 'local-dev',
         metadata: { localRuntime: true },
@@ -5035,7 +5039,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
           port: 5173,
           type: 'open',
           ready: true,
-          url: `/api/runtime/workspaces/${projectId}/preview/5173/proxy/`,
+          url: `/api/runtime/workspaces/${deterministicRuntimeWorkspaceId(projectId, auth.user.id)}/preview/5173/proxy/`,
         }),
       ]);
     } finally {

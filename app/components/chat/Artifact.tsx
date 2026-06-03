@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { atom, computed } from 'nanostores';
+import { computed, map } from 'nanostores';
 import { memo, useEffect, useRef, useState } from 'react';
 import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
 import type { ActionState } from '~/lib/runtime/action-runner';
@@ -20,7 +20,7 @@ const highlighterOptions = {
  * reset/recreated). Reading `artifact.runner.actions` directly in that window
  * throws "Cannot read properties of undefined (reading 'runner')".
  */
-const EMPTY_ACTIONS = atom<Record<string, ActionState>>({});
+const EMPTY_ACTIONS = map<Record<string, ActionState>>({});
 
 const shellHighlighter: HighlighterGeneric<BundledLanguage, BundledTheme> =
   import.meta.hot?.data.shellHighlighter ?? (await createHighlighter(highlighterOptions));
