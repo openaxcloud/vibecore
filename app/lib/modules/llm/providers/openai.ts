@@ -14,10 +14,35 @@ export default class OpenAIProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [
     /*
-     * Essential fallback models - only the most stable/reliable ones
-     * GPT-4o: 128k context, 4k standard output (64k with long output mode)
+     * Essential fallback models - only the most stable/reliable ones.
+     * GPT-4.1 family: 1M (1,047,576) token context window, 32k output. These MUST be
+     * listed statically with their true context window so multi-file generation is not
+     * truncated when the OpenAI /models endpoint is unavailable or mis-classifies them.
      */
-    { name: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI', maxTokenAllowed: 128000, maxCompletionTokens: 4096 },
+    {
+      name: 'gpt-4.1',
+      label: 'GPT-4.1',
+      provider: 'OpenAI',
+      maxTokenAllowed: 1047576,
+      maxCompletionTokens: 32768,
+    },
+    {
+      name: 'gpt-4.1-mini',
+      label: 'GPT-4.1 mini',
+      provider: 'OpenAI',
+      maxTokenAllowed: 1047576,
+      maxCompletionTokens: 32768,
+    },
+    {
+      name: 'gpt-4.1-nano',
+      label: 'GPT-4.1 nano',
+      provider: 'OpenAI',
+      maxTokenAllowed: 1047576,
+      maxCompletionTokens: 32768,
+    },
+
+    // GPT-4o: 128k context, 16k output on current snapshots.
+    { name: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI', maxTokenAllowed: 128000, maxCompletionTokens: 16384 },
 
     // GPT-4o Mini: 128k context, cost-effective alternative
     {
@@ -90,6 +115,12 @@ export default class OpenAIProvider extends BaseProvider {
       // OpenAI provides context_length in their API response
       if (m.context_length) {
         contextWindow = m.context_length;
+      } else if (m.id?.includes('gpt-4.1') || m.id?.includes('gpt-4.5')) {
+        /*
+         * Must be checked BEFORE the generic `gpt-4` branch below, otherwise
+         * `gpt-4.1`.includes('gpt-4') matches and truncates it to 8k.
+         */
+        contextWindow = 1047576;
       } else if (m.id?.includes('gpt-4o')) {
         contextWindow = 128000; // GPT-4o has 128k context
       } else if (m.id?.includes('gpt-4-turbo') || m.id?.includes('gpt-4-1106')) {
@@ -111,19 +142,26 @@ export default class OpenAIProvider extends BaseProvider {
         maxCompletionTokens = 32000; // Other o1 models: 32K limit
       } else if (m.id?.includes('o3') || m.id?.includes('o4')) {
         maxCompletionTokens = 100000; // o3/o4 models: 100K output limit
+      } else if (m.id?.includes('gpt-4.1') || m.id?.includes('gpt-4.5')) {
+        maxCompletionTokens = 32768; // GPT-4.1 family: 32K output limit
       } else if (m.id?.includes('gpt-4o')) {
-        maxCompletionTokens = 4096; // GPT-4o standard: 4K (64K with long output mode)
+        maxCompletionTokens = 16384; // GPT-4o current snapshots support 16K output
       } else if (m.id?.includes('gpt-4')) {
         maxCompletionTokens = 8192; // Standard GPT-4: 8K output limit
       } else if (m.id?.includes('gpt-3.5-turbo')) {
         maxCompletionTokens = 4096; // GPT-3.5-turbo: 4K output limit
       }
 
+      const label =
+        contextWindow >= 1_000_000
+          ? `${m.id} (${Math.round(contextWindow / 100_000) / 10}M context)`
+          : `${m.id} (${Math.floor(contextWindow / 1000)}k context)`;
+
       return {
         name: m.id,
-        label: `${m.id} (${Math.floor(contextWindow / 1000)}k context)`,
+        label,
         provider: this.name,
-        maxTokenAllowed: Math.min(contextWindow, 128000), // Cap at 128k for safety
+        maxTokenAllowed: contextWindow,
         maxCompletionTokens,
       };
     });

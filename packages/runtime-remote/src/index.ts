@@ -200,18 +200,49 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
   async openTerminal(request: Partial<CommandRequest> = {}): Promise<TerminalSession> {
     const terminalId = `terminal-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const cols = request.terminal?.cols ?? 80;
+    const rows = request.terminal?.rows ?? 24;
+
+    /*
+     * Pass the terminal id as `sessionId` (plus geometry) on the query string. The
+     * workspace agent keys its persistent shell on `?sessionId` and repaints scrollback
+     * on reattach, so reusing the same id across reconnects keeps a single shell alive
+     * instead of spawning a fresh one (and losing the running command) each time.
+     */
+    const terminalPath = `/workspaces/${this.#requireWorkspaceId()}/terminal?sessionId=${encodeURIComponent(
+      terminalId,
+    )}&cols=${cols}&rows=${rows}`;
+
     let stopped = false;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
     let reconnectAttempts = 0;
-    let socket = await this.#openSocket(`/workspaces/${this.#requireWorkspaceId()}/terminal`, {
+    let stableTimer: ReturnType<typeof setTimeout> | undefined;
+    let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+    let socket = await this.#openSocket(terminalPath, {
       terminalId,
       ...request,
     });
     const queue = new AsyncQueue<CommandEvent>();
-    const onMessage = (event: { data: string }) => queue.push(JSON.parse(event.data));
+    const onMessage = (event: { data: string }) => {
+      /*
+       * The socket only ever carries JSON CommandEvents. Guard against a malformed or
+       * non-JSON frame so a single bad message can't throw out of the listener and
+       * restart the reconnect loop.
+       */
+      try {
+        queue.push(JSON.parse(event.data));
+      } catch {
+        // Ignore frames that aren't valid CommandEvent JSON.
+      }
+    };
     const scheduleReconnect = () => {
       if (stopped || reconnectTimer) {
         return;
+      }
+
+      if (stableTimer) {
+        clearTimeout(stableTimer);
+        stableTimer = undefined;
       }
 
       const delay = Math.min(1000 * 2 ** reconnectAttempts, 10_000);
@@ -221,10 +252,53 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         void reconnect();
       }, delay);
     };
+    const unbindSocket = (prevSocket: WebSocketLike) => {
+      prevSocket.removeEventListener?.('message', onMessage);
+      prevSocket.removeEventListener?.('error', scheduleReconnect);
+      prevSocket.removeEventListener?.('close', scheduleReconnect);
+    };
+    const startHeartbeat = () => {
+      if (heartbeatTimer || stopped) {
+        return;
+      }
+
+      /*
+       * Keep the connection warm so ingress/load-balancer idle timeouts don't silently
+       * close an otherwise-healthy terminal (the classic reconnect-flap cause). The
+       * agent ignores unrecognised control frames.
+       */
+      heartbeatTimer = setInterval(() => {
+        try {
+          socket.send(JSON.stringify({ type: 'ping' }));
+        } catch {
+          // Send failures surface via the socket's close/error handlers.
+        }
+      }, 20_000);
+
+      /*
+       * Don't let the keepalive interval hold the Node event loop open (no-op in the
+       * browser, where the timer handle is a number).
+       */
+      (heartbeatTimer as unknown as { unref?: () => void }).unref?.();
+    };
     const bindSocket = (nextSocket: WebSocketLike) => {
       nextSocket.addEventListener('message', onMessage);
       nextSocket.addEventListener('error', scheduleReconnect);
       nextSocket.addEventListener('close', scheduleReconnect);
+
+      /*
+       * Only treat the connection as healthy (and reset the backoff) once it has stayed
+       * open for a few seconds. Resetting immediately turns a server that accepts then
+       * drops the socket into a tight 1s flap that never backs off.
+       */
+      if (stableTimer) {
+        clearTimeout(stableTimer);
+      }
+
+      stableTimer = setTimeout(() => {
+        stableTimer = undefined;
+        reconnectAttempts = 0;
+      }, 5_000);
     };
     const reconnect = async () => {
       if (stopped) {
@@ -232,19 +306,21 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       }
 
       try {
-        socket = await this.#openSocket(`/workspaces/${this.#requireWorkspaceId()}/terminal`, {
+        unbindSocket(socket);
+        socket = await this.#openSocket(terminalPath, {
           terminalId,
           ...request,
         });
-        reconnectAttempts = 0;
         this.#terminals.set(terminalId, socket);
         bindSocket(socket);
+        startHeartbeat();
         queue.push({ type: 'stdout', data: '\r\n[terminal reconnected]\r\n', timestamp: now() });
       } catch {
         scheduleReconnect();
       }
     };
     bindSocket(socket);
+    startHeartbeat();
     this.#terminals.set(terminalId, socket);
     this.#terminalStops.set(terminalId, () => {
       stopped = true;
@@ -252,16 +328,25 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       if (reconnectTimer) {
         clearTimeout(reconnectTimer);
       }
+
+      if (stableTimer) {
+        clearTimeout(stableTimer);
+      }
+
+      if (heartbeatTimer) {
+        clearInterval(heartbeatTimer);
+        heartbeatTimer = undefined;
+      }
     });
     this.#eventStreams.set(terminalId, queue);
 
     return {
       id: terminalId,
       processId: terminalId,
-      cols: request.terminal?.cols ?? 80,
-      rows: request.terminal?.rows ?? 15,
+      cols,
+      rows,
       write: (data) => socket.send(JSON.stringify({ type: 'stdin', data })),
-      resize: (cols, rows) => this.resizeTerminal(terminalId, cols, rows),
+      resize: (nextCols, nextRows) => this.resizeTerminal(terminalId, nextCols, nextRows),
       kill: () => this.killProcess(terminalId),
       events: queue,
     };

@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { computed } from 'nanostores';
+import { atom, computed } from 'nanostores';
 import { memo, useEffect, useRef, useState } from 'react';
 import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
 import type { ActionState } from '~/lib/runtime/action-runner';
@@ -13,6 +13,14 @@ const highlighterOptions = {
   langs: ['shell'],
   themes: ['light-plus', 'dark-plus'],
 };
+
+/*
+ * Stable empty actions store used when an artifact is momentarily absent from the
+ * workbench store (e.g. while a proposal is being accepted and artifacts are
+ * reset/recreated). Reading `artifact.runner.actions` directly in that window
+ * throws "Cannot read properties of undefined (reading 'runner')".
+ */
+const EMPTY_ACTIONS = atom<Record<string, ActionState>>({});
 
 const shellHighlighter: HighlighterGeneric<BundledLanguage, BundledTheme> =
   import.meta.hot?.data.shellHighlighter ?? (await createHighlighter(highlighterOptions));
@@ -35,7 +43,7 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
   const artifact = artifacts[artifactId];
 
   const actions = useStore(
-    computed(artifact.runner.actions, (actions) => {
+    computed(artifact?.runner.actions ?? EMPTY_ACTIONS, (actions) => {
       // Filter out Supabase actions except for migrations
       return Object.values(actions).filter((action) => {
         // Exclude actions with type 'supabase' or actions that contain 'supabase' in their content
@@ -54,7 +62,7 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
       setShowActions(true);
     }
 
-    if (actions.length !== 0 && artifact.type === 'bundled') {
+    if (actions.length !== 0 && artifact?.type === 'bundled') {
       const finished = !actions.find(
         (action) => action.status !== 'complete' && !(action.type === 'start' && action.status === 'running'),
       );
@@ -63,7 +71,15 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
         setAllActionFinished(finished);
       }
     }
-  }, [actions, artifact.type, allActionFinished]);
+  }, [actions, artifact?.type, allActionFinished]);
+
+  /*
+   * The artifact may briefly be missing from the store (e.g. during proposal
+   * accept/reset). Bail out after hooks have run rather than dereferencing it.
+   */
+  if (!artifact) {
+    return null;
+  }
 
   // Determine the dynamic title based on state for bundled artifacts
   const dynamicTitle =

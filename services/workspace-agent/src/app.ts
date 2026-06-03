@@ -294,6 +294,21 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       let closed = false;
       const earlyInput: string[] = [];
 
+      /*
+       * The remote-runtime client (packages/runtime-remote) consumes this socket as a
+       * stream of JSON `CommandEvent`s ({ type, data, timestamp }). Sending raw terminal
+       * bytes makes the client's JSON.parse throw on every chunk, which both loses all
+       * output and tears the socket down, producing an endless "[terminal reconnected]"
+       * flap. Always frame output as a stdout CommandEvent.
+       */
+      const sendOutput = (data: string) => {
+        if (!data) {
+          return;
+        }
+
+        socket.send(JSON.stringify({ type: 'stdout', data, timestamp: new Date().toISOString() }));
+      };
+
       terminalManager
         .getOrCreate(sessionId, { cols, rows })
         .then((created) => {
@@ -304,13 +319,9 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           session = created;
 
           // Repaint the screen for a reattaching client.
-          const backlog = created.scrollback();
+          sendOutput(created.scrollback());
 
-          if (backlog) {
-            socket.send(backlog);
-          }
-
-          detach = created.attach((chunk) => socket.send(chunk));
+          detach = created.attach((chunk) => sendOutput(chunk));
 
           // Flush any keystrokes that arrived before the shell was ready.
           for (const data of earlyInput.splice(0)) {
@@ -318,7 +329,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           }
         })
         .catch((error) => {
-          socket.send(`\r\n[terminal error] ${error instanceof Error ? error.message : String(error)}\r\n`);
+          sendOutput(`\r\n[terminal error] ${error instanceof Error ? error.message : String(error)}\r\n`);
         });
 
       socket.onMessage((message) => {
