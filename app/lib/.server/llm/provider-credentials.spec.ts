@@ -1,6 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { isProviderUsable, pickFallbackProvider, resolveUsableProvider } from './provider-credentials';
 import { DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
+
+const providerEnvKeys = Array.from(
+  new Set(
+    PROVIDER_LIST.flatMap((provider) => [provider.config.apiTokenKey, provider.config.baseUrlKey]).filter(
+      (key): key is string => Boolean(key),
+    ),
+  ),
+);
 
 const providerByName = (name: string) => {
   const provider = PROVIDER_LIST.find((p) => p.name === name);
@@ -11,6 +19,16 @@ const providerByName = (name: string) => {
 
   return provider;
 };
+
+beforeEach(() => {
+  for (const key of providerEnvKeys) {
+    vi.stubEnv(key, '');
+  }
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe('isProviderUsable', () => {
   it('treats a user-supplied API key as usable for any provider', () => {
@@ -50,6 +68,29 @@ describe('pickFallbackProvider', () => {
     expect(fallback).toBeDefined();
     expect(isProviderUsable(fallback!, { OpenAI: 'sk-openai-test-key' }, {})).toBe(true);
   });
+
+  it('never auto-falls-back to a loopback-only key-less provider (LM Studio / Ollama)', () => {
+    /*
+     * With no managed keys at all, the only providers `isProviderUsable`
+     * accepts are the key-less ones with a localhost default base URL. Those
+     * are unreachable in the hosted product, so the fallback must reject them
+     * rather than route the stream to a dead port ("No models found").
+     */
+    const fallback = pickFallbackProvider({}, {});
+
+    if (fallback) {
+      expect(['LMStudio', 'Ollama', 'OpenAILike']).not.toContain(fallback.name);
+    }
+  });
+
+  it('falls back to a keyed cloud provider, never a loopback provider', () => {
+    const fallback = pickFallbackProvider({ OpenAI: 'sk-openai-test-key' }, {});
+    expect(fallback).toBeDefined();
+
+    // Must be a real credentialed provider, never LM Studio / Ollama on localhost.
+    expect(['LMStudio', 'Ollama', 'OpenAILike']).not.toContain(fallback!.name);
+    expect(fallback!.config.apiTokenKey).toBeTruthy();
+  });
 });
 
 describe('resolveUsableProvider', () => {
@@ -80,5 +121,21 @@ describe('resolveUsableProvider', () => {
     // The returned model must be one the fallback provider actually serves.
     const fallbackModels = result.provider.staticModels.map((m) => m.name);
     expect(fallbackModels).toContain(result.model);
+  });
+
+  it('does not silently route to a loopback provider when no cloud key is configured', () => {
+    const result = resolveUsableProvider({
+      requestedProvider: 'AmazonBedrock',
+      requestedModel: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+      apiKeys: {},
+      serverEnv: {},
+    });
+
+    /*
+     * Nothing is credentialed, so there is no safe fallback. The resolver must
+     * stay on the requested provider (which then fails with a clear missing-key
+     * error) rather than route to LM Studio / Ollama on localhost.
+     */
+    expect(['LMStudio', 'Ollama', 'OpenAILike']).not.toContain(result.provider.name);
   });
 });

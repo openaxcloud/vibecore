@@ -1,10 +1,24 @@
 import { LLMManager } from '~/lib/modules/llm/manager';
+import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('provider-credentials');
 
 export type LLMProvider = (typeof PROVIDER_LIST)[number];
+
+/**
+ * A base URL that points at the machine running the server (or a Docker host
+ * alias) is only reachable for self-hosted / desktop installs where the user
+ * runs Ollama or LM Studio locally. In the hosted product these key-less
+ * providers must never be chosen as an automatic fallback: the request would
+ * be routed to a port nothing is listening on and die with "No models found".
+ */
+function isLoopbackBaseUrl(baseUrl: string): boolean {
+  return /^(https?:\/\/)?(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0|host\.docker\.internal)([:/]|$)/i.test(
+    baseUrl.trim(),
+  );
+}
 
 /**
  * A provider is usable when a credential can actually be resolved for it,
@@ -33,12 +47,19 @@ export function isProviderUsable(
 
   const manager = LLMManager.getInstance();
 
+  /*
+   * Read the genuine Node runtime env (globalThis.process.env). A bare
+   * `process.env` is the vite browser shim with an empty `env`, so managed
+   * keys set by the K8s deployment would otherwise look absent and every
+   * provider would be misclassified as unusable. Mirrors base-provider's
+   * getProviderBaseUrlAndKey so this check and the real LLM call agree.
+   */
   const readEnv = (key?: string): string | undefined => {
     if (!key) {
       return undefined;
     }
 
-    return serverEnv?.[key] || process?.env?.[key] || manager.env?.[key];
+    return serverEnv?.[key] || readRuntimeEnv(key) || manager.env?.[key];
   };
 
   const apiToken = readEnv(provider.config.apiTokenKey);
@@ -68,7 +89,29 @@ export function pickFallbackProvider(
 ): LLMProvider | undefined {
   const ordered = [DEFAULT_PROVIDER, ...PROVIDER_LIST.filter((p) => p.name !== DEFAULT_PROVIDER.name)];
 
-  return ordered.find((provider) => isProviderUsable(provider, apiKeys, serverEnv));
+  return ordered.find(
+    (provider) => isProviderUsable(provider, apiKeys, serverEnv) && isUsableAsFallback(provider, serverEnv),
+  );
+}
+
+/**
+ * Guard the *automatic* fallback against key-less providers that resolve to a
+ * loopback base URL (LM Studio's http://localhost:1234, Ollama, ...). They pass
+ * `isProviderUsable` because a default base URL exists, but in the hosted
+ * product nothing listens there — picking one turns a recoverable
+ * missing-credential case into a fatal "No models found" stream error. A
+ * loopback key-less provider only qualifies when its base URL was explicitly
+ * pointed somewhere reachable via env (self-hosted / desktop installs).
+ */
+function isUsableAsFallback(provider: LLMProvider, serverEnv?: Record<string, string>): boolean {
+  if (provider.config.apiTokenKey) {
+    return true;
+  }
+
+  const configuredBaseUrl = serverEnv?.[provider.config.baseUrlKey ?? ''] || readRuntimeEnv(provider.config.baseUrlKey);
+  const effectiveBaseUrl = configuredBaseUrl || provider.config.baseUrl;
+
+  return Boolean(effectiveBaseUrl && !isLoopbackBaseUrl(String(effectiveBaseUrl)));
 }
 
 /**

@@ -1,6 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import type { LanguageModelV1 } from 'ai';
 import { LLMManager } from './manager';
+import { readRuntimeEnv } from './runtime-env';
 import type { ProviderInfo, ProviderConfig, ModelInfo } from './types';
 import type { IProviderSetting } from '~/types/model';
 
@@ -84,7 +85,7 @@ export abstract class BaseProvider implements ProviderInfo {
     let baseUrl =
       settingsBaseUrl ||
       serverEnv?.[baseUrlKey] ||
-      process?.env?.[baseUrlKey] ||
+      readRuntimeEnv(baseUrlKey) ||
       manager.env?.[baseUrlKey] ||
       this.config.baseUrl;
 
@@ -95,7 +96,7 @@ export abstract class BaseProvider implements ProviderInfo {
     const apiTokenKey = this.config.apiTokenKey || defaultApiTokenKey;
 
     const apiKeyValue =
-      apiKeys?.[this.name] || serverEnv?.[apiTokenKey] || process?.env?.[apiTokenKey] || manager.env?.[apiTokenKey];
+      apiKeys?.[this.name] || serverEnv?.[apiTokenKey] || readRuntimeEnv(apiTokenKey) || manager.env?.[apiTokenKey];
 
     const apiKey = typeof apiKeyValue === 'string' ? apiKeyValue.replace(/\s+/g, '') : apiKeyValue;
 
