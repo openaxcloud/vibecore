@@ -6696,7 +6696,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const project = await requireProject(request, store, workspaceId, permission);
 
-    return { workspaceId: project.id, projectId: project.id, organizationId: project.organizationId };
+    /*
+     * The caller passed a project id rather than a runtime workspace id. Older
+     * call sites (and the per-project runtime adapter before startWorkspace has
+     * resolved its session) send the bare projectId, which we used verbatim as
+     * the agent hostname — but workspace pods are named `workspace-ws-<hash>`,
+     * so `workspace-<projectId>.workspaces.svc` never resolves (ENOTFOUND → 502
+     * on directories, ports/watch, and any other endpoint that slipped through
+     * before the ws- id was known). Resolve the project to its deterministic
+     * per-user runtime workspace id so every runtime call targets the real pod,
+     * exactly as the POST /workspaces start handler computes it.
+     */
+    const resolvedWorkspaceId = request.currentUser
+      ? runtimeWorkspaceId(project.id, request.currentUser.id)
+      : project.id;
+
+    return { workspaceId: resolvedWorkspaceId, projectId: project.id, organizationId: project.organizationId };
   };
 
   const ensureRuntimeWorkspaceRecord = async (workspaceId: string, project: ProjectRecord) => {

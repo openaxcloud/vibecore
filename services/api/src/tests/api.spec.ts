@@ -1,4 +1,4 @@
-import { generateKeyPairSync, createHmac, createSign } from 'node:crypto';
+import { generateKeyPairSync, createHash, createHmac, createSign } from 'node:crypto';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -4303,6 +4303,56 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       expect(runtime.files.get('src/App.tsx')).toContain('App');
       expect(runtime.calls).toContain('POST /files/write');
       expect(store.auditLogs.some((event) => event.action === 'ai.tool.write_file')).toBe(true);
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('resolves a bare project id to the deterministic ws- workspace for every runtime endpoint', async () => {
+    // Regression: directories-create and ports/watch were 502ing with
+    // `ENOTFOUND workspace-<projectId>.workspaces.svc` because callers that only
+    // know the project id (the per-project runtime adapter before startWorkspace
+    // resolves, the SSR file-write proxy, the ide-panel `?? projectId` fallback)
+    // sent the bare projectId, which the API used verbatim as the agent hostname.
+    // Workspace pods are named `workspace-ws-<hash>`, so the request must target
+    // the deterministic per-user runtime workspace id, never the project id.
+    const runtime = await startRuntimeServices();
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'ws-resolve@example.com', organizationName: 'WS Resolve Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'WS Resolve Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    // Mirror runtimeWorkspaceId(projectId, userId) from the API.
+    const expectedWorkspaceId = `ws-${createHash('sha256')
+      .update(`${projectId}:${auth.user.id}`)
+      .digest('hex')
+      .slice(0, 16)}`;
+
+    try {
+      const created = await app.inject({
+        method: 'POST',
+        url: `/api/runtime/workspaces/${projectId}/directories`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { path: 'src/components' },
+      });
+
+      expect(created.statusCode).toBe(204);
+      // The agent must have been reached via the resolved ws- id, not the
+      // project id — every agent-token lookup keys on the targeted workspace.
+      const tokenLookups = runtime.managerCalls
+        .map((call) => call.pathname)
+        .filter((pathname) => pathname.endsWith('/agent-token'));
+      expect(tokenLookups.length).toBeGreaterThan(0);
+      expect(tokenLookups.every((pathname) => pathname === `/workspaces/${expectedWorkspaceId}/agent-token`)).toBe(true);
+      expect(tokenLookups).not.toContain(`/workspaces/${projectId}/agent-token`);
     } finally {
       await runtime.close();
       await app.close();
