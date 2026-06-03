@@ -521,10 +521,7 @@ export function canPollDeploymentStatus(
   return Boolean(buildId) && buildStatusSpec(provider, buildId as string, env) !== undefined;
 }
 
-function parseStatusPayload(
-  provider: string,
-  payload: unknown,
-): ProviderStatusResult {
+function parseStatusPayload(provider: string, payload: unknown): ProviderStatusResult {
   const body = (payload as Record<string, any>) ?? {};
 
   if (provider === 'vercel') {
@@ -681,7 +678,12 @@ export function staticDeployPublicBaseUrl() {
 }
 
 export function projectStorageRoot() {
-  return process.env.PROJECT_STORAGE_DIR ?? (process.env.NODE_ENV === 'production' ? '/tmp/vibecore-project-storage' : join(process.cwd(), '.vibecore-project-storage'));
+  return (
+    process.env.PROJECT_STORAGE_DIR ??
+    (process.env.NODE_ENV === 'production'
+      ? '/tmp/vibecore-project-storage'
+      : join(process.cwd(), '.vibecore-project-storage'))
+  );
 }
 
 export function projectStorageDir(projectId: string) {
@@ -744,14 +746,14 @@ function detectPackageManager(projectDir: string) {
   }
 
   if (existsSync(join(projectDir, 'yarn.lock'))) {
-    return { manager: 'yarn', install: ['install'] } as const;
+    return { manager: 'yarn', install: ['install', '--production=false'] } as const;
   }
 
   if (existsSync(join(projectDir, 'bun.lockb'))) {
     return { manager: 'bun', install: ['install'] } as const;
   }
 
-  return { manager: 'npm', install: ['install', '--no-audit', '--no-fund'] } as const;
+  return { manager: 'npm', install: ['install', '--include=dev', '--no-audit', '--no-fund'] } as const;
 }
 
 function existsSync(targetPath: string) {
@@ -945,10 +947,24 @@ async function runProcess({
   });
 }
 
-function buildEnvForRun(envVars: Record<string, string>): NodeJS.ProcessEnv {
+async function prepareDeploymentHome(buildCwd: string) {
+  const home = join(buildCwd, '.vibecore-deploy-home');
+
+  await mkdir(join(home, '.npm-cache'), { recursive: true });
+  await mkdir(join(home, '.cache'), { recursive: true });
+  await mkdir(join(home, '.pnpm-store'), { recursive: true });
+  await mkdir(join(home, '.yarn-cache'), { recursive: true });
+
+  return home;
+}
+
+function buildEnvForRun(envVars: Record<string, string>, buildHome: string): NodeJS.ProcessEnv {
   /*
    * Inherit the host PATH so npm/pnpm/yarn/bun resolve, but DROP every other
    * host secret so the user's build can't read tokens from the server env.
+   * npm and friends need a writable HOME/cache. Never forward the server HOME:
+   * production containers may point at a missing /home/node, which makes
+   * dependency install fail before the project build even starts.
    */
   const userNodeEnv = envVars.NODE_ENV;
 
@@ -960,10 +976,31 @@ function buildEnvForRun(envVars: Record<string, string>): NodeJS.ProcessEnv {
   const sanitizedUserEnv = { ...envVars };
   delete sanitizedUserEnv.NODE_ENV;
   delete sanitizedUserEnv.PATH;
+  delete sanitizedUserEnv.HOME;
+  delete sanitizedUserEnv.USERPROFILE;
+  delete sanitizedUserEnv.XDG_CACHE_HOME;
+  delete sanitizedUserEnv.NPM_CONFIG_CACHE;
+  delete sanitizedUserEnv.npm_config_cache;
+  delete sanitizedUserEnv.NPM_CONFIG_PRODUCTION;
+  delete sanitizedUserEnv.npm_config_production;
+  delete sanitizedUserEnv.PNPM_HOME;
+  delete sanitizedUserEnv.PNPM_STORE_DIR;
+  delete sanitizedUserEnv.pnpm_config_store_dir;
+  delete sanitizedUserEnv.YARN_CACHE_FOLDER;
 
   const baseEnv: NodeJS.ProcessEnv = {
     PATH: process.env.PATH ?? '',
-    HOME: process.env.HOME ?? process.env.USERPROFILE ?? '',
+    HOME: buildHome,
+    USERPROFILE: buildHome,
+    XDG_CACHE_HOME: join(buildHome, '.cache'),
+    npm_config_cache: join(buildHome, '.npm-cache'),
+    NPM_CONFIG_CACHE: join(buildHome, '.npm-cache'),
+    npm_config_production: 'false',
+    NPM_CONFIG_PRODUCTION: 'false',
+    PNPM_HOME: buildHome,
+    PNPM_STORE_DIR: join(buildHome, '.pnpm-store'),
+    pnpm_config_store_dir: join(buildHome, '.pnpm-store'),
+    YARN_CACHE_FOLDER: join(buildHome, '.yarn-cache'),
     CI: '1',
     NODE_ENV: nodeEnv,
     ...sanitizedUserEnv,
@@ -996,9 +1033,11 @@ export async function runStaticBuild(options: RunStaticBuildOptions): Promise<Ru
   }
 
   const packageManager = detectPackageManager(buildCwd);
-  const env = buildEnvForRun(options.envVars);
+  const buildHome = await prepareDeploymentHome(buildCwd);
+  const env = buildEnvForRun(options.envVars, buildHome);
 
   log.push('info', `Static deploy: building in ${buildCwd}`);
+  log.push('info', `Static deploy: using isolated build home ${buildHome}`);
   log.push('info', `Static deploy: detected ${packageManager.manager} (lockfile-based)`);
 
   const nodeModulesPresent = await pathExists(join(buildCwd, 'node_modules'));
