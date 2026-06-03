@@ -25,10 +25,18 @@ substitutions:
   # This is the prod web image, so it defaults to remote-kubernetes (the mode
   # the whole workspace-manager / preview-proxy / workspace-agent backend is
   # built for). Without this build arg the bundle silently ships WebContainer
-  # and the preview/port pipeline never touches the remote infra. Empty
-  # _VITE_RUNTIME_API_BASE_URL → the adapter uses the same-origin /api/runtime.
+  # and the preview/port pipeline never touches the remote infra.
   _VITE_RUNTIME_MODE: remote-kubernetes
-  _VITE_RUNTIME_API_BASE_URL: ''
+  # The runtime API base URL is ALSO inlined at build time (RuntimeAdapter-
+  # Provider). It must point at the off-origin API host: the /api/runtime/*
+  # routes (POST /workspaces, terminal, files, commands, …) are served by the
+  # API service (services/api/src/app.ts) at api.e-code.ai. Leaving this empty
+  # made the adapter default to the same-origin /api/runtime, which lands on
+  # the web pod (Remix) — it has no runtime routes, so the workspace never
+  # provisions and the IDE shows "No backend workspace" / "Failed to spawn bolt
+  # shell". (The Helm configmap's VITE_RUNTIME_API_BASE_URL is a *runtime* env
+  # that the browser never reads — only this build arg reaches the bundle.)
+  _VITE_RUNTIME_API_BASE_URL: 'https://api.e-code.ai/api/runtime'
 options:
   machineType: E2_HIGHCPU_8
   logging: CLOUD_LOGGING_ONLY

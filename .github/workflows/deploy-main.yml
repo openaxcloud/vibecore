@@ -113,17 +113,22 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::gcloud builds submit — single-web"
-          # VITE_RUNTIME_MODE is inlined into the client bundle at vite build
-          # time — it must be a Cloud Build substitution -> Docker build arg,
-          # not a runtime configmap value (which the browser never reads). Pin
-          # remote-kubernetes so the deployed IDE drives the workspace-manager /
-          # preview-proxy backend instead of silently falling back to
-          # WebContainer.
+          # VITE_RUNTIME_MODE *and* VITE_RUNTIME_API_BASE_URL are inlined into
+          # the client bundle at vite build time — they must be Cloud Build
+          # substitutions -> Docker build args, not runtime configmap values
+          # (which the browser never reads). Pin remote-kubernetes so the
+          # deployed IDE drives the workspace-manager / preview-proxy backend
+          # instead of silently falling back to WebContainer, and pin the API
+          # base URL to the off-origin api.e-code.ai host — same-origin
+          # /api/runtime hits the web pod (Remix), which has no runtime routes,
+          # so the workspace never provisions ("No backend workspace" / "Failed
+          # to spawn bolt shell"). The /api/runtime/* routes live on the API
+          # service (services/api/src/app.ts), exposed at api.e-code.ai.
           gcloud builds submit \
             --project="${GCP_PROJECT_ID}" \
             --region="${GAR_LOCATION}" \
             --config=infra/cloudbuild/single-web.yaml \
-            --substitutions=_DEPS_TAG="${SHORT_SHA}",_SHORT_SHA="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes \
+            --substitutions=_DEPS_TAG="${SHORT_SHA}",_SHORT_SHA="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime \
             --machine-type=e2-highcpu-8 \
             --timeout=1800s \
             .
