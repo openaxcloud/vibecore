@@ -12312,13 +12312,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.query ?? {},
     );
 
-    const fromMs = query.from ? new Date(query.from).getTime() : 0;
-    const toMs = query.to ? new Date(query.to).getTime() : Number.POSITIVE_INFINITY;
-
-    const ledger = (await store.listAiCosts(orgId)).filter((row) => {
-      const created = new Date(row.createdAt).getTime();
-      return created >= fromMs && created <= toMs;
-    });
+    // Date-bound the query at the DB layer rather than loading the whole ledger.
+    const ledger = await store.listAiCosts(orgId, { from: query.from, to: query.to });
 
     let totalCostCents = 0;
     let totalInputTokens = 0;

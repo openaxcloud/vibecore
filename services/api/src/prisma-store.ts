@@ -652,14 +652,23 @@ export class PrismaApiStore implements ApiStore {
       };
     }
 
+    // Bound the query so a long-lived project's activity table (one row per AI
+    // action / file save / deploy) can't be loaded wholesale into memory. With
+    // no search filter, `take: limit` is identical to the old fetch-all + slice.
+    // With a search filter we still need to scan more rows than we return, so we
+    // cap at a generous safety ceiling rather than fetching the entire table.
+    const SAFETY_CAP = 1000;
+    const search = options.search?.trim().toLowerCase();
+    const take = search ? SAFETY_CAP : (limit ?? SAFETY_CAP);
+
     const records = (
       await this.prisma.projectActivity.findMany({
         where,
         orderBy: { createdAt: options.order ?? 'asc' },
+        take,
       })
     ).map(mapProjectActivity);
 
-    const search = options.search?.trim().toLowerCase();
     const filtered = search
       ? records.filter(
           (activity) =>
@@ -1872,10 +1881,21 @@ export class PrismaApiStore implements ApiStore {
     return mapAiCostLedger(await this.prisma.aiCostLedger.create({ data: input }));
   }
 
-  async listAiCosts(organizationId: string) {
-    return (await this.prisma.aiCostLedger.findMany({ where: { organizationId }, orderBy: { createdAt: 'desc' } })).map(
-      mapAiCostLedger,
-    );
+  async listAiCosts(organizationId: string, range?: { from?: string; to?: string }) {
+    // Push the date filter into the query for range-scoped callers (the billing
+    // summary dashboard) instead of loading the org's entire — fastest-growing —
+    // cost ledger into memory and filtering in JS. Callers that need everything
+    // (data export) simply omit the range.
+    const where: any = { organizationId };
+
+    if (range?.from || range?.to) {
+      where.createdAt = {
+        ...(range.from ? { gte: new Date(range.from) } : {}),
+        ...(range.to ? { lte: new Date(range.to) } : {}),
+      };
+    }
+
+    return (await this.prisma.aiCostLedger.findMany({ where, orderBy: { createdAt: 'desc' } })).map(mapAiCostLedger);
   }
 
   async upsertBillingPlan(input: {
@@ -2099,23 +2119,41 @@ export class PrismaApiStore implements ApiStore {
       return { event: mapEmailDeliveryEvent(existing), created: false };
     }
 
-    return {
-      event: mapEmailDeliveryEvent(
-        await this.prisma.emailDeliveryEvent.create({
-          data: {
-            provider: input.provider,
-            providerEventId: input.providerEventId,
-            type: input.type,
-            email: input.email,
-            emailMessageId: input.emailMessageId,
-            subject: input.subject,
-            fromAddress: input.fromAddress,
-            payload: input.payload as any,
+    // Mirror recordStripeEvent: email providers (Resend/SES) deliver retries
+    // concurrently, so two requests can both pass the findUnique above and the
+    // second create() then violates the provider_providerEventId unique
+    // constraint — previously an uncoded 500 + provider retry storm. Treat
+    // P2002 as "already recorded" to keep the side-effecting branch idempotent.
+    try {
+      const created = await this.prisma.emailDeliveryEvent.create({
+        data: {
+          provider: input.provider,
+          providerEventId: input.providerEventId,
+          type: input.type,
+          email: input.email,
+          emailMessageId: input.emailMessageId,
+          subject: input.subject,
+          fromAddress: input.fromAddress,
+          payload: input.payload as any,
+        },
+      });
+
+      return { event: mapEmailDeliveryEvent(created), created: true };
+    } catch (error) {
+      if ((error as { code?: string })?.code === 'P2002') {
+        const row = await this.prisma.emailDeliveryEvent.findUnique({
+          where: {
+            provider_providerEventId: { provider: input.provider, providerEventId: input.providerEventId },
           },
-        }),
-      ),
-      created: true,
-    };
+        });
+
+        if (row) {
+          return { event: mapEmailDeliveryEvent(row), created: false };
+        }
+      }
+
+      throw error;
+    }
   }
 
   async listEmailDeliveryEvents(filter?: { email?: string; type?: string; emailMessageId?: string; limit?: number }) {
