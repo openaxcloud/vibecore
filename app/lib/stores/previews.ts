@@ -32,6 +32,15 @@ export class PreviewsStore {
   #originalSetItem?: typeof localStorage.setItem;
   #reconnectTimer?: number;
   #disposed = false;
+  #storageSyncTimer?: ReturnType<typeof setTimeout>;
+
+  /*
+   * Client-only keys that have nothing to do with preview state. Writes to these
+   * must NOT trigger a cross-tab storage broadcast — otherwise every diagnostic
+   * log entry (eventLogs) or read-marker write would rebroadcast the entire
+   * localStorage and force-reload the preview iframe in every other tab.
+   */
+  #nonSyncedStorageKeys = new Set(['eventLogs', 'bolt_read_logs']);
 
   previews = atom<PreviewInfo[]>([]);
 
@@ -75,7 +84,13 @@ export class PreviewsStore {
 
       localStorage.setItem = (...args) => {
         originalSetItem(...args);
-        this._broadcastStorageSync();
+
+        // Skip noise keys, and coalesce bursts of writes into a single broadcast
+        // so a flurry of unrelated localStorage activity can't storm every tab's
+        // preview iframe with reloads.
+        if (!this.#nonSyncedStorageKeys.has(String(args[0]))) {
+          this.#scheduleStorageSync();
+        }
       };
       this.#storageSyncInstalled = true;
     }
@@ -150,6 +165,18 @@ export class PreviewsStore {
         }
       }
     }
+  }
+
+  // Debounce broadcasts so a burst of localStorage writes coalesces into one.
+  #scheduleStorageSync() {
+    if (this.#storageSyncTimer) {
+      clearTimeout(this.#storageSyncTimer);
+    }
+
+    this.#storageSyncTimer = setTimeout(() => {
+      this.#storageSyncTimer = undefined;
+      this._broadcastStorageSync();
+    }, 250);
   }
 
   // Broadcast storage state to other tabs
@@ -345,6 +372,11 @@ export class PreviewsStore {
     if (this.#reconnectTimer) {
       window.clearTimeout(this.#reconnectTimer);
       this.#reconnectTimer = undefined;
+    }
+
+    if (this.#storageSyncTimer) {
+      clearTimeout(this.#storageSyncTimer);
+      this.#storageSyncTimer = undefined;
     }
 
     if (this.#storageSyncInstalled && this.#originalSetItem && typeof window !== 'undefined') {
