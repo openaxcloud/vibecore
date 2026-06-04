@@ -8,6 +8,7 @@ import {
   workspacePvc,
   workspaceAgentSecret,
   workspacePod,
+  workspaceLimitRange,
   workspaceResourceQuota,
   workspaceRuntimeClass,
   type WorkspaceRuntimeInput,
@@ -72,6 +73,31 @@ describe('workspace Kubernetes manifests', () => {
       limits: { cpu: '1500m', memory: '3072Mi' },
     });
     expect(pvc.spec?.resources).toEqual({ requests: { storage: '30Gi' } });
+  });
+
+  it('clamps plan entitlements above the namespace LimitRange so enterprise pods are not rejected', () => {
+    // The enterprise billing tier entitles 16 vCPU / 64Gi, but the workspaces
+    // LimitRange caps a Container at 4 vCPU / 8Gi. Passing the entitlement through
+    // verbatim made every enterprise Pod fail admission, stranding the workspace
+    // with a blank editor and dead preview. Resolved limits must never exceed the
+    // LimitRange max.
+    const enterpriseInput = {
+      ...input,
+      plan: 'enterprise' as const,
+      resourceLimits: { cpuMillicores: 16_000, ramMb: 65_536, storageGb: 100 },
+    };
+    const pod = workspacePod(enterpriseInput);
+    const container = (pod.spec?.containers as any[])[0];
+
+    expect(container.resources).toMatchObject({
+      requests: { cpu: '1', memory: '2048Mi' },
+      limits: { cpu: '4', memory: '8192Mi' },
+    });
+
+    const limitRangeMax = (workspaceLimitRange('workspaces').spec as any).limits[0].max;
+    expect(container.resources.limits).toEqual(limitRangeMax);
+    // Storage is not constrained by the per-Container LimitRange, so it passes through.
+    expect(workspacePvc(enterpriseInput).spec?.resources).toEqual({ requests: { storage: '100Gi' } });
   });
 
   it('pins workspace PVCs to the configured storage class', () => {

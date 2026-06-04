@@ -237,10 +237,30 @@ export function workspaceResourceQuota(namespace: string): K8sObject {
   };
 }
 
+/*
+ * Workspace pods run on modest sandbox nodes (e2-standard-4: ~3.9 vCPU / ~13Gi
+ * allocatable) and the `workspaces` namespace enforces a per-Container LimitRange
+ * (see workspaceLimitRange). Billing plans grant nominal ceilings far above what a
+ * single sandbox node can host — enterprise entitles 16 vCPU / 64Gi — and those
+ * entitlements arrive here as `resourceLimits`. A Pod whose limits exceed the
+ * LimitRange max is REJECTED by admission ("maximum cpu usage per Container is 4,
+ * but limit is 16"); because the PVC and Secret are applied first and survive, the
+ * workspace is left stuck FAILED with a blank editor and a dead preview. Clamp the
+ * per-container ceilings to what the namespace actually allows so every plan
+ * provisions a working (if smaller) runtime instead of failing outright. These
+ * constants are the single source of truth for the LimitRange max below — keep them
+ * in sync so the clamp can never drift above admission again.
+ */
+export const WORKSPACE_CONTAINER_MAX_CPU_MILLICORES = 4000;
+export const WORKSPACE_CONTAINER_MAX_RAM_MB = 8192;
+
 function resolveWorkspaceResources(input: WorkspaceRuntimeInput) {
   const plan = planResources[input.plan];
-  const cpuMillicores = positiveInteger(input.resourceLimits?.cpuMillicores);
-  const ramMb = positiveInteger(input.resourceLimits?.ramMb);
+  const cpuMillicores = clampPositive(
+    positiveInteger(input.resourceLimits?.cpuMillicores),
+    WORKSPACE_CONTAINER_MAX_CPU_MILLICORES,
+  );
+  const ramMb = clampPositive(positiveInteger(input.resourceLimits?.ramMb), WORKSPACE_CONTAINER_MAX_RAM_MB);
   const storageGb = positiveInteger(input.resourceLimits?.storageGb);
 
   return {
@@ -262,6 +282,10 @@ function positiveInteger(value: number | undefined): number | undefined {
   return rounded > 0 ? rounded : undefined;
 }
 
+function clampPositive(value: number | undefined, max: number): number | undefined {
+  return value === undefined ? undefined : Math.min(value, max);
+}
+
 function formatCpuMillicores(value: number) {
   return value % 1000 === 0 ? String(value / 1000) : `${value}m`;
 }
@@ -281,7 +305,10 @@ export function workspaceLimitRange(namespace: string): K8sObject {
           type: 'Container',
           defaultRequest: { cpu: '250m', memory: '512Mi' },
           default: { cpu: '1', memory: '1Gi' },
-          max: { cpu: '4', memory: '8Gi' },
+          max: {
+            cpu: formatCpuMillicores(WORKSPACE_CONTAINER_MAX_CPU_MILLICORES),
+            memory: formatMemoryMb(WORKSPACE_CONTAINER_MAX_RAM_MB),
+          },
         },
       ],
     },
