@@ -211,12 +211,19 @@ export class WorkspaceManager {
   async garbageCollect(namespace: string, inactiveMs: number, deleteMs: number) {
     const now = Date.now();
     for (const workspace of await this.store.list()) {
-      const inactiveFor = now - new Date(workspace.lastActiveAt).getTime();
-      if (workspace.status === 'RUNNING' && inactiveFor > inactiveMs) {
-        await this.stopWorkspace(namespace, workspace.id);
-      }
-      if (workspace.status === 'STOPPED' && inactiveFor > deleteMs) {
-        await this.deleteWorkspace(namespace, workspace.id);
+      // Isolate each workspace: a transient kubectl/network error (or a row
+      // concurrently deleted by another sweep) must not abort the whole GC pass
+      // and leave every later workspace's pod/PVC leaking. Log and continue.
+      try {
+        const inactiveFor = now - new Date(workspace.lastActiveAt).getTime();
+        if (workspace.status === 'RUNNING' && inactiveFor > inactiveMs) {
+          await this.stopWorkspace(namespace, workspace.id);
+        }
+        if (workspace.status === 'STOPPED' && inactiveFor > deleteMs) {
+          await this.deleteWorkspace(namespace, workspace.id);
+        }
+      } catch (error) {
+        console.error('workspace garbage-collection failed', { workspaceId: workspace.id, error });
       }
     }
   }

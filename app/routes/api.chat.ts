@@ -22,7 +22,6 @@ import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
-import SwitchableStream from '~/lib/.server/llm/switchable-stream';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { checkChatQuota, recordChatUsage } from '~/lib/.server/ai-usage';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
@@ -112,13 +111,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     parseCookies(cookieHeader || '').providers || '{}',
   );
 
-  const stream = new SwitchableStream();
-
   const cumulativeUsage = {
     completionTokens: 0,
     promptTokens: 0,
     totalTokens: 0,
   };
+
+  // Real continuation counter. The previous bound used `stream.switches` from
+  // SwitchableStream, but streaming now flows through mergeIntoDataStream and
+  // `switchSource()` is never called — so `stream.switches` stayed 0 forever and
+  // a model that kept finishing with finishReason==='length' recursed without
+  // limit (runaway provider calls + token billing). This counter is incremented
+  // on each continuation and capped at MAX_RESPONSE_SEGMENTS.
+  let continuationSegments = 0;
 
   const encoder: TextEncoder = new TextEncoder();
 
@@ -622,13 +627,28 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               return;
             }
 
-            if (stream.switches >= MAX_RESPONSE_SEGMENTS) {
-              throw Error('Cannot continue message: Maximum segments reached');
+            if (continuationSegments >= MAX_RESPONSE_SEGMENTS) {
+              // Hard stop after MAX_RESPONSE_SEGMENTS continuations. End the
+              // stream cleanly with a truncation note rather than throwing (a
+              // throw here surfaces as a stream error to the client). Without
+              // this bound the 'length' continuation recursed forever.
+              streamRecovery.stop();
+              dataStream.writeData({
+                type: 'progress',
+                label: 'response',
+                status: 'complete',
+                order: progressCounter++,
+                message: 'Response truncated: maximum continuation segments reached',
+              } satisfies ProgressAnnotation);
+
+              return;
             }
 
-            const switchesLeft = MAX_RESPONSE_SEGMENTS - stream.switches;
+            continuationSegments += 1;
 
-            logger.info(`Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} switches left)`);
+            const switchesLeft = MAX_RESPONSE_SEGMENTS - continuationSegments;
+
+            logger.info(`Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} segments left)`);
 
             const lastUserMessage = processedMessages.filter((x) => x.role == 'user').slice(-1)[0];
             const { model, provider } = extractPropertiesFromMessage(lastUserMessage);

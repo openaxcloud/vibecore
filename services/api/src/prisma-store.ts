@@ -960,7 +960,14 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async countDeployments(organizationId: string) {
-    return this.prisma.deployment.count({ where: { project: { organizationId, deletedAt: null } } });
+    // Failed/canceled builds must not count against the deployment quota — they
+    // produced no live deployment. Counting every row (the create handler
+    // persists a QUEUED row before building, left FAILED on error) permanently
+    // consumed quota: free plan (limit 0) blocked all deploys after one failed
+    // build, and paid plans locked out once enough builds had failed.
+    return this.prisma.deployment.count({
+      where: { project: { organizationId, deletedAt: null }, status: { notIn: ['FAILED', 'CANCELED'] } },
+    });
   }
 
   async createSnapshot(input: {

@@ -94,7 +94,21 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     const workspaceId = (request.params as any).workspaceId as string;
     const workspace = await manager.store.get(workspaceId);
 
-    if (!workspace || workspace.status === 'DELETED' || workspace.status === 'FAILED') {
+    /*
+     * A STOPPED workspace has had its Pod garbage-collected while the row
+     * remains; returning a baseUrl pointed preview-proxy at a Service with no
+     * ready endpoints, producing an endless ENOTFOUND/connection-refused 502
+     * loop instead of a clean 404. 404 signals "agent not running" so the
+     * reopen flow re-provisions via POST /workspaces/start. (STARTING/PENDING
+     * are left served — the pod is legitimately coming up and a brief retry is
+     * expected; only DELETED/FAILED/STOPPED have no agent to reach.)
+     */
+    if (
+      !workspace ||
+      workspace.status === 'DELETED' ||
+      workspace.status === 'FAILED' ||
+      workspace.status === 'STOPPED'
+    ) {
       return reply.code(404).send({ error: 'Workspace agent not found', code: 'WORKSPACE_AGENT_NOT_FOUND' });
     }
 
