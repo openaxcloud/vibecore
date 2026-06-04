@@ -45,6 +45,7 @@ interface LogDetails extends Record<string, any> {
 }
 
 const MAX_LOGS = 1000; // Maximum number of logs to keep in memory
+const LOG_STORAGE_KEY = 'eventLogs';
 
 class LogStore {
   private _logs = map<Record<string, LogEntry>>({});
@@ -67,14 +68,26 @@ class LogStore {
   }
 
   private _loadLogs() {
-    const savedLogs = Cookies.get('eventLogs');
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    // Migrate off the legacy cookie: it was sent on every same-origin request
+    // (see _saveLogs) and could blow past the ~4KB cookie limit / trigger 431s.
+    const legacyCookie = Cookies.get(LOG_STORAGE_KEY);
+
+    if (legacyCookie) {
+      Cookies.remove(LOG_STORAGE_KEY);
+    }
+
+    const savedLogs = localStorage.getItem(LOG_STORAGE_KEY) ?? legacyCookie;
 
     if (savedLogs) {
       try {
         const parsedLogs = JSON.parse(savedLogs);
         this._logs.set(parsedLogs);
       } catch (error) {
-        logger.error('Failed to parse logs from cookies:', error);
+        logger.error('Failed to parse logs from storage:', error);
       }
     }
   }
@@ -97,8 +110,19 @@ class LogStore {
   }
 
   private _saveLogs() {
-    const currentLogs = this._logs.get();
-    Cookies.set('eventLogs', JSON.stringify(currentLogs));
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    // Persist to localStorage, NOT a cookie: these client-only diagnostic logs
+    // (up to MAX_LOGS entries embedding full API request/response payloads) must
+    // never be attached to outgoing HTTP requests.
+    try {
+      localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(this._logs.get()));
+    } catch (error) {
+      // QuotaExceeded etc. — logging must never throw into the caller.
+      logger.error('Failed to persist logs to storage:', error);
+    }
   }
 
   private _saveReadLogs() {
