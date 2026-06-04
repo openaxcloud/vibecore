@@ -32,6 +32,13 @@ $zIndexMax: 999;
   z-index: $zIndexMax;
 }
 
+/*
+ * Toasts must sit above every other layer. Dialogs render at z-[9999]/z-[10000]
+ * and mobile bottom-sheets at z 12000-12030, so the legacy `$zIndexMax + 1`
+ * (= 1000) painted every toast *behind* any open modal — success/error
+ * notifications raised from inside a dialog were invisible. Keep this above the
+ * modal and mobile-sheet tiers.
+ */
 .z-toast {
-  z-index: $zIndexMax + 1;
+  z-index: 12050;
 }

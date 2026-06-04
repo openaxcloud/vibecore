@@ -5674,9 +5674,15 @@ body :where(.lucide, svg[data-lucide]) {
   --project-agent-width: 420px;
   --project-agent-min-width: 340px;
   position: fixed;
+
+  /*
+   * `inset: 0` already sizes this to the viewport. The redundant `100vw`
+   * *includes the scrollbar gutter*, so whenever a document scrollbar appears
+   * this full-screen IDE shell becomes ~15px wider than the viewport and a
+   * horizontal scrollbar/shift appears. `100dvh` also tracks mobile browser
+   * chrome where `100vh` does not.
+   */
   inset: 0;
-  width: 100vw;
-  height: 100vh;
   background-color: var(--vc-ide-bg-app) !important;
   color: var(--vc-ide-text-primary) !important;
 }
