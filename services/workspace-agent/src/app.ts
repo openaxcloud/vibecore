@@ -69,6 +69,15 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
   const app = Fastify({ logger: false });
 
+  // Catch-all parser so the preview proxy can forward binary/multipart/other
+  // POST bodies as raw bytes instead of rejecting them with 415. This only
+  // handles content types Fastify has no built-in parser for — application/json
+  // and the urlencoded/text bodies the agent's own API routes rely on are still
+  // parsed by the built-in parsers.
+  app.addContentTypeParser('*', { parseAs: 'buffer' }, (_request, body, done) => {
+    done(null, body);
+  });
+
   app.addHook('onRequest', async (request, reply) => {
     if (request.url === '/health') {
       return;
@@ -195,7 +204,10 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const response = await fetch(target, {
       method: request.method,
       headers: previewProxyHeaders(request.headers),
-      body: request.method === 'GET' || request.method === 'HEAD' ? undefined : (request.body as any),
+      body:
+        request.method === 'GET' || request.method === 'HEAD'
+          ? undefined
+          : serializePreviewBody(request.body, request.headers['content-type']),
       redirect: 'manual',
     });
 
@@ -490,6 +502,35 @@ function parseCommandStreamMessage(message: Buffer): { command: string; args?: s
   return undefined;
 }
 
+/**
+ * Turn a parsed Fastify request body back into bytes/string suitable for
+ * `fetch`. Without this, a parsed JSON/form object was passed straight to fetch,
+ * which coerced it to the literal string "[object Object]" — corrupting every
+ * non-GET request (form submissions, API calls) the previewed app makes.
+ */
+function serializePreviewBody(
+  body: unknown,
+  contentType: string | undefined,
+): string | Buffer | undefined {
+  if (body === undefined || body === null) {
+    return undefined;
+  }
+
+  // Already raw (binary/multipart via the catch-all parser, or text/plain).
+  if (typeof body === 'string' || Buffer.isBuffer(body)) {
+    return body;
+  }
+
+  const ct = (contentType ?? '').toLowerCase();
+
+  if (ct.includes('application/x-www-form-urlencoded') && typeof body === 'object') {
+    return new URLSearchParams(body as Record<string, string>).toString();
+  }
+
+  // application/json (and any other object body) → faithful JSON.
+  return JSON.stringify(body);
+}
+
 function previewProxyHeaders(headers: FastifyRequest['headers']) {
   const forwarded = new Headers();
 
@@ -710,11 +751,23 @@ async function detectPorts(processes: Map<string, ProcessRecord>): Promise<Detec
 
       for (const [port, inode] of listening) {
         const pid = inodeToPid.get(inode);
-        const processId = pid === undefined ? undefined : await owningManagedProcess(pid, managedPids);
 
-        if (processId) {
-          detected.push({ port, processId });
+        if (pid === undefined || pid === process.pid) {
+          // No owning pid, or the agent's own control port — never a user
+          // preview. The workspace agent runs alone in its per-workspace
+          // container, so every other listening socket belongs to a user
+          // process.
+          continue;
         }
+
+        // Prefer attributing the port to a tracked managed command; otherwise
+        // it was started outside /commands/run — most importantly a dev server
+        // launched from the IDE terminal (the primary "run my app" flow), whose
+        // pid is not in the managed map. Previously these were dropped, so the
+        // preview never opened for terminal-started servers. Surface them with a
+        // synthetic, display-only owner id.
+        const managedId = await owningManagedProcess(pid, managedPids);
+        detected.push({ port, processId: managedId ?? `pid:${pid}` });
       }
 
       if (detected.length > 0) {
