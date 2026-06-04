@@ -1963,13 +1963,6 @@ export class PrismaApiStore implements ApiStore {
     currentPeriodEnd?: Date;
   }) {
     const plan = await this.ensurePlan(input.planKey);
-    const existing = input.externalId
-      ? await this.prisma.subscription.findUnique({ where: { externalId: input.externalId }, include: { plan: true } })
-      : await this.prisma.subscription.findFirst({
-          where: { organizationId: input.organizationId },
-          include: { plan: true },
-          orderBy: { createdAt: 'desc' },
-        });
     const data = {
       organizationId: input.organizationId,
       planId: plan.id,
@@ -1980,6 +1973,30 @@ export class PrismaApiStore implements ApiStore {
       currentPeriodStart: input.currentPeriodStart,
       currentPeriodEnd: input.currentPeriodEnd,
     };
+
+    // Common path: Stripe carries the subscription id (externalId). Use a real
+    // upsert keyed on the externalId unique constraint so two concurrent webhook
+    // deliveries can't both miss a find-then-create and insert duplicate rows.
+    if (input.externalId) {
+      return mapSubscription(
+        await this.prisma.subscription.upsert({
+          where: { externalId: input.externalId },
+          create: data,
+          update: data,
+          include: { plan: true },
+        }),
+      );
+    }
+
+    // Fallback (rare): no external id to key on, so the best we can do is
+    // update the most recent row for the org or create one. There's no unique
+    // constraint to make this atomic, but this branch only runs for events that
+    // arrive without a subscription id.
+    const existing = await this.prisma.subscription.findFirst({
+      where: { organizationId: input.organizationId },
+      include: { plan: true },
+      orderBy: { createdAt: 'desc' },
+    });
 
     if (existing) {
       return mapSubscription(
