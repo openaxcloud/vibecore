@@ -26,6 +26,7 @@ interface GithubUserResponse {
 
 export const githubConnector: ConnectorProvider = {
   provider: 'github',
+  authType: 'oauth',
 
   buildAuthorizeUrl({ credentials, state }) {
     const url = new URL(AUTHORIZE_URL);

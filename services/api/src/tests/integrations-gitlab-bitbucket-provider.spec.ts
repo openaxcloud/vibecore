@@ -26,7 +26,7 @@ describe('gitlabConnector', () => {
   };
 
   it('builds an OAuth authorize URL for GitLab', () => {
-    const url = new URL(gitlabConnector.buildAuthorizeUrl({ credentials, state: 'state-gl' }));
+    const url = new URL(gitlabConnector.buildAuthorizeUrl!({ credentials, state: 'state-gl' }));
 
     expect(url.origin + url.pathname).toBe('https://gitlab.com/oauth/authorize');
     expect(url.searchParams.get('response_type')).toBe('code');
@@ -50,7 +50,7 @@ describe('gitlabConnector', () => {
         ),
     );
 
-    const result = await gitlabConnector.exchangeCodeForToken({
+    const result = await gitlabConnector.exchangeCodeForToken!({
       credentials,
       code: 'code-gl',
       fetchImpl: fn,
@@ -108,7 +108,7 @@ describe('bitbucketConnector', () => {
   };
 
   it('builds an OAuth authorize URL for Bitbucket', () => {
-    const url = new URL(bitbucketConnector.buildAuthorizeUrl({ credentials, state: 'state-bb' }));
+    const url = new URL(bitbucketConnector.buildAuthorizeUrl!({ credentials, state: 'state-bb' }));
 
     expect(url.origin + url.pathname).toBe('https://bitbucket.org/site/oauth2/authorize');
     expect(url.searchParams.get('response_type')).toBe('code');
@@ -132,7 +132,7 @@ describe('bitbucketConnector', () => {
         ),
     );
 
-    const result = await bitbucketConnector.exchangeCodeForToken({
+    const result = await bitbucketConnector.exchangeCodeForToken!({
       credentials,
       code: 'code-bb',
       fetchImpl: fn,
