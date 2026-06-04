@@ -1,4 +1,5 @@
 import type { Message } from 'ai';
+import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';
 
 export type AgentRoleId = 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
 
@@ -239,33 +240,21 @@ export function buildAgentOrchestrationPlan(input: {
 }
 
 export function areParallelSubagentsAvailable(env?: AgentOrchestrationEnv): boolean {
-  const processEnv =
-    typeof process !== 'undefined'
-      ? (process.env as Record<string, string | undefined>)
-      : ({} as Record<string, string | undefined>);
-
-  const flag = env?.ECODE_PARALLEL_SUBAGENTS_ENABLED ?? processEnv.ECODE_PARALLEL_SUBAGENTS_ENABLED;
-  const endpoint = env?.ECODE_SUBAGENT_EXECUTOR_URL ?? processEnv.ECODE_SUBAGENT_EXECUTOR_URL;
+  // Use readRuntimeEnv (globalThis.process.env), not bare process.env: the vite node
+  // polyfill shims process.env to {} in the web-pod SSR bundle, so a bare-process.env
+  // fallback silently disabled the feature even when the deployment set the vars.
+  const flag = env?.ECODE_PARALLEL_SUBAGENTS_ENABLED ?? readRuntimeEnv('ECODE_PARALLEL_SUBAGENTS_ENABLED');
+  const endpoint = env?.ECODE_SUBAGENT_EXECUTOR_URL ?? readRuntimeEnv('ECODE_SUBAGENT_EXECUTOR_URL');
 
   return flag === '1' && Boolean(endpoint?.trim());
 }
 
 export function getSubagentExecutorUrl(env?: AgentOrchestrationEnv): string | undefined {
-  const processEnv =
-    typeof process !== 'undefined'
-      ? (process.env as Record<string, string | undefined>)
-      : ({} as Record<string, string | undefined>);
-
-  return env?.ECODE_SUBAGENT_EXECUTOR_URL ?? processEnv.ECODE_SUBAGENT_EXECUTOR_URL;
+  return env?.ECODE_SUBAGENT_EXECUTOR_URL ?? readRuntimeEnv('ECODE_SUBAGENT_EXECUTOR_URL');
 }
 
 export function getSubagentExecutorToken(env?: AgentOrchestrationEnv): string | undefined {
-  const processEnv =
-    typeof process !== 'undefined'
-      ? (process.env as Record<string, string | undefined>)
-      : ({} as Record<string, string | undefined>);
-
-  return env?.ECODE_SUBAGENT_EXECUTOR_TOKEN ?? processEnv.ECODE_SUBAGENT_EXECUTOR_TOKEN;
+  return env?.ECODE_SUBAGENT_EXECUTOR_TOKEN ?? readRuntimeEnv('ECODE_SUBAGENT_EXECUTOR_TOKEN');
 }
 
 function isAgentExecutionResponse(value: unknown): value is AgentExecutionResponse {
