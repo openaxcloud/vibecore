@@ -1,17 +1,22 @@
-import { useStore } from '@nanostores/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getNotifications, markNotificationRead, type Notification } from '~/lib/api/notifications';
 import { logStore } from '~/lib/stores/logs';
 
 export const useNotifications = () => {
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState<Notification[]>([]);
-  const logs = useStore(logStore.logs);
+  const mountedRef = useRef(true);
 
   const checkNotifications = async () => {
     try {
       const notifications = await getNotifications();
       const unread = notifications.filter((n) => !logStore.isRead(n.id));
+
+      // Guard against setState after unmount (the fetch may resolve late).
+      if (!mountedRef.current) {
+        return;
+      }
+
       setUnreadNotifications(unread);
       setHasUnreadNotifications(unread.length > 0);
     } catch (error) {
@@ -20,13 +25,22 @@ export const useNotifications = () => {
   };
 
   useEffect(() => {
-    // Check immediately and then every minute
+    mountedRef.current = true;
+
+    // Poll once immediately and then once a minute. This intentionally does NOT
+    // depend on the log store: `logStore.logs` is a nanostores map whose key set
+    // changes on essentially every logged event (API/system/provider/network),
+    // so keying the effect on it turned a 60s poll into a notifications fetch per
+    // log entry — a request storm during chat streaming / heavy API activity.
     checkNotifications();
 
     const interval = setInterval(checkNotifications, 60 * 1000);
 
-    return () => clearInterval(interval);
-  }, [logs]); // Re-run when logs change
+    return () => {
+      mountedRef.current = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const markAsRead = async (notificationId: string) => {
     try {

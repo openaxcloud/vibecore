@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 /**
  * Hook to initialize and provide access to the IndexedDB database
@@ -8,7 +8,15 @@ export function useIndexedDB() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Track the live handle in a ref so the unmount cleanup closes the *actual*
+  // connection. The effect runs once with an empty dep array, so a cleanup that
+  // closed over the `db` state value would always see the render-0 value (null)
+  // and never close the connection, leaking an IndexedDB handle per mount.
+  const dbRef = useRef<IDBDatabase | null>(null);
+
   useEffect(() => {
+    let cancelled = false;
+
     const initDB = async () => {
       try {
         setIsLoading(true);
@@ -31,6 +39,15 @@ export function useIndexedDB() {
 
         request.onsuccess = (event) => {
           const database = (event.target as IDBOpenDBRequest).result;
+
+          // The component unmounted before the async open resolved: close
+          // immediately rather than leaking the freshly-opened connection.
+          if (cancelled) {
+            database.close();
+            return;
+          }
+
+          dbRef.current = database;
           setDb(database);
           setIsLoading(false);
         };
@@ -48,8 +65,11 @@ export function useIndexedDB() {
     initDB();
 
     return () => {
-      if (db) {
-        db.close();
+      cancelled = true;
+
+      if (dbRef.current) {
+        dbRef.current.close();
+        dbRef.current = null;
       }
     };
   }, []);

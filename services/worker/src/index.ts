@@ -12,8 +12,14 @@ const connection = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', 
 export const workspaceQueue = new Queue('workspace-jobs', { connection });
 export const enterpriseQueue = new Queue('enterprise-jobs', { connection });
 
+// Single shared Prisma client for the lifetime of this long-running worker.
+// Previously each job handler called createDatabaseClient() per invocation,
+// which spins up a brand-new PrismaPg pool and was never $disconnect()'d — so
+// every cron tick leaked a Postgres connection pool until the worker (and the
+// shared DB) hit `too many clients`. One client, reused, is the correct shape.
+const prisma = createDatabaseClient();
+
 async function deliverSiemAuditEvents() {
-  const prisma = createDatabaseClient();
   const webhooks = await prisma.siemWebhook.findMany({ where: { enabled: true } });
 
   for (const webhook of webhooks) {
@@ -61,7 +67,6 @@ async function deliverSiemAuditEvents() {
 }
 
 async function enforceDataRetention() {
-  const prisma = createDatabaseClient();
   const settings = await prisma.enterpriseOrganizationSettings.findMany({ where: { legalHoldEnabled: false } });
 
   for (const setting of settings) {
@@ -137,12 +142,12 @@ export const enterpriseWorker = new Worker(
     }
 
     if (job.name === 'connector.healthcheck') {
-      const result = await runConnectorTokenHealthCheck({ prisma: createDatabaseClient() });
+      const result = await runConnectorTokenHealthCheck({ prisma });
       return result;
     }
 
     if (job.name === 'connector.notify.reconnect') {
-      const result = await runConnectorReconnectionNotifier({ prisma: createDatabaseClient() });
+      const result = await runConnectorReconnectionNotifier({ prisma });
       return result;
     }
 
