@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import GitLabConnection from './components/GitLabConnection';
 import { RepositoryList } from './components/RepositoryList';
 import { StatsDisplay } from './components/StatsDisplay';
+import { GitLabOauthConnectButton } from '~/components/@settings/shared/connectors';
 import { useGitLabConnection } from '~/lib/hooks';
 
 // GitLab logo SVG component
@@ -111,6 +112,14 @@ export default function GitLabTab() {
           Connect your GitLab account to enable advanced repository management features, statistics, and seamless
           integration.
         </p>
+        <div className="p-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 space-y-3">
+          <p className="text-sm text-bolt-elements-textPrimary font-medium">Recommended: connect with GitLab OAuth</p>
+          <p className="text-xs text-bolt-elements-textSecondary">
+            We never see your password and the encrypted token is stored server-side. Reconnect through this flow to
+            migrate off the legacy PAT below.
+          </p>
+          <GitLabOauthConnectButton />
+        </div>
         <GitLabConnection connectionTest={connectionTest} onTestConnection={handleTestConnection} />
       </div>
     );

@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react';
 import { motion } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
+import { ConnectorApiKeyConnectButton } from '~/components/@settings/shared/connectors';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
 import {
@@ -700,6 +701,23 @@ export default function SupabaseTab() {
         <div className="p-6 space-y-6">
           {!connection.user ? (
             <div className="space-y-4">
+              <div className="p-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 space-y-3">
+                <p className="text-sm text-bolt-elements-textPrimary font-medium">
+                  Recommended: server-side connection
+                </p>
+                <p className="text-xs text-bolt-elements-textSecondary">
+                  Your token is encrypted at rest and never reaches the browser after submission. Reconnect through this
+                  flow to migrate off the legacy cookie-based token below.
+                </p>
+                <ConnectorApiKeyConnectButton
+                  provider="supabase"
+                  displayName="Supabase"
+                  helpUrl="https://supabase.com/dashboard/account/tokens"
+                  helpLabel="Generate a Supabase token"
+                  tokenPlaceholder="Supabase Management API token"
+                />
+              </div>
+
               <div className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-1 p-3 rounded-lg mb-4">
                 <p className="flex items-center gap-1 mb-1">
                   <span className="i-ph:lightbulb w-3.5 h-3.5 text-bolt-elements-icon-success dark:text-bolt-elements-icon-success" />
