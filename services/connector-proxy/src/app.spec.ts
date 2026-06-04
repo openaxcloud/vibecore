@@ -266,6 +266,121 @@ describe('connector-proxy', () => {
     await app.close();
   });
 
+  it('forwards GET to api.vercel.com with a Bearer Authorization header', async () => {
+    const { fn, calls } = recordingFetch(async () => new Response('{}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }));
+    const app = await buildConnectorProxyApp({
+      accessTokenSecret: secret,
+      resolveConnection: async () => allowResolver('vercel', 'vrc-token-secret'),
+      fetchImpl: fn,
+    });
+
+    const token = signConnectorAccessToken({
+      payload: { ...basePayload, expiresAt: Date.now() + 60_000 },
+      secret,
+    });
+
+    await app.inject({
+      method: 'GET',
+      url: '/proxy/conn_v/v2/user',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url.toString()).toBe('https://api.vercel.com/v2/user');
+    const headers = calls[0].init.headers as Record<string, string>;
+    expect(headers.authorization).toBe('Bearer vrc-token-secret');
+    expect(headers.accept).toBe('application/json');
+    await app.close();
+  });
+
+  it('forwards GET to api.supabase.com with a Bearer Authorization header', async () => {
+    const { fn, calls } = recordingFetch(async () => new Response('[]', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }));
+    const app = await buildConnectorProxyApp({
+      accessTokenSecret: secret,
+      resolveConnection: async () => allowResolver('supabase', 'sb-token-secret'),
+      fetchImpl: fn,
+    });
+
+    const token = signConnectorAccessToken({
+      payload: { ...basePayload, expiresAt: Date.now() + 60_000 },
+      secret,
+    });
+
+    await app.inject({
+      method: 'GET',
+      url: '/proxy/conn_s/v1/projects',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(calls[0].url.toString()).toBe('https://api.supabase.com/v1/projects');
+    const headers = calls[0].init.headers as Record<string, string>;
+    expect(headers.authorization).toBe('Bearer sb-token-secret');
+    expect(headers.accept).toBe('application/json');
+    await app.close();
+  });
+
+  it('forwards GET to api.netlify.com with a Bearer Authorization header', async () => {
+    const { fn, calls } = recordingFetch(async () => new Response('{}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }));
+    const app = await buildConnectorProxyApp({
+      accessTokenSecret: secret,
+      resolveConnection: async () => allowResolver('netlify', 'nf-token-secret'),
+      fetchImpl: fn,
+    });
+
+    const token = signConnectorAccessToken({
+      payload: { ...basePayload, expiresAt: Date.now() + 60_000 },
+      secret,
+    });
+
+    await app.inject({
+      method: 'GET',
+      url: '/proxy/conn_n/user',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(calls[0].url.toString()).toBe('https://api.netlify.com/api/v1/user');
+    const headers = calls[0].init.headers as Record<string, string>;
+    expect(headers.authorization).toBe('Bearer nf-token-secret');
+    await app.close();
+  });
+
+  it('forwards GET to gitlab.com/api/v4 with a Bearer Authorization header', async () => {
+    const { fn, calls } = recordingFetch(async () => new Response('{}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }));
+    const app = await buildConnectorProxyApp({
+      accessTokenSecret: secret,
+      resolveConnection: async () => allowResolver('gitlab', 'gl-token-secret'),
+      fetchImpl: fn,
+    });
+
+    const token = signConnectorAccessToken({
+      payload: { ...basePayload, expiresAt: Date.now() + 60_000 },
+      secret,
+    });
+
+    await app.inject({
+      method: 'GET',
+      url: '/proxy/conn_g/user',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(calls[0].url.toString()).toBe('https://gitlab.com/api/v4/user');
+    const headers = calls[0].init.headers as Record<string, string>;
+    expect(headers.authorization).toBe('Bearer gl-token-secret');
+    await app.close();
+  });
+
   it('returns 502 with CONNECTOR_PROVIDER_UNREACHABLE when the upstream fetch throws', async () => {
     const fetchImpl = (async () => {
       throw new Error('ECONNRESET');

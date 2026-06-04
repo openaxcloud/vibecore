@@ -60,8 +60,13 @@ export interface ConnectorProxyOptions {
   fetchImpl?: typeof fetch;
 }
 
-const PROVIDER_UPSTREAMS: Record<string, { baseUrl: string; auth: 'bearer' | 'token' }> = {
-  github: { baseUrl: 'https://api.github.com', auth: 'token' },
+const PROVIDER_UPSTREAMS: Record<string, { baseUrl: string; auth: 'bearer' | 'token'; defaultAccept: string }> = {
+  github: { baseUrl: 'https://api.github.com', auth: 'token', defaultAccept: 'application/vnd.github+json' },
+  gitlab: { baseUrl: 'https://gitlab.com/api/v4', auth: 'bearer', defaultAccept: 'application/json' },
+  bitbucket: { baseUrl: 'https://api.bitbucket.org/2.0', auth: 'bearer', defaultAccept: 'application/json' },
+  vercel: { baseUrl: 'https://api.vercel.com', auth: 'bearer', defaultAccept: 'application/json' },
+  supabase: { baseUrl: 'https://api.supabase.com', auth: 'bearer', defaultAccept: 'application/json' },
+  netlify: { baseUrl: 'https://api.netlify.com/api/v1', auth: 'bearer', defaultAccept: 'application/json' },
 };
 
 const HOP_BY_HOP_HEADERS = new Set([
@@ -128,7 +133,7 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
     const upstreamPath = params['*'] ? `/${params['*']}` : '/';
     const queryString = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
     const upstreamUrl = `${upstream.baseUrl}${upstreamPath}${queryString}`;
-    const headers = buildUpstreamHeaders(request, resolution.accessToken, upstream.auth);
+    const headers = buildUpstreamHeaders(request, resolution.accessToken, upstream.auth, upstream.defaultAccept);
     const body = shouldStreamBody(request.method) ? (request.raw as unknown as ReadableStream<Uint8Array>) : undefined;
 
     let upstreamResponse: Response;
@@ -248,7 +253,12 @@ function verifyAccessTokenFromRequest(
   };
 }
 
-function buildUpstreamHeaders(request: FastifyRequest, accessToken: string, scheme: 'bearer' | 'token') {
+function buildUpstreamHeaders(
+  request: FastifyRequest,
+  accessToken: string,
+  scheme: 'bearer' | 'token',
+  defaultAccept: string,
+) {
   const headers: Record<string, string> = {};
 
   for (const [name, value] of Object.entries(request.headers)) {
@@ -269,7 +279,7 @@ function buildUpstreamHeaders(request: FastifyRequest, accessToken: string, sche
   headers['user-agent'] = 'e-code-connector-proxy';
 
   if (!headers.accept) {
-    headers.accept = 'application/vnd.github+json';
+    headers.accept = defaultAccept;
   }
 
   return headers;
