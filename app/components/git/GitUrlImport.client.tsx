@@ -102,6 +102,11 @@ ${escapeBoltTags(file.content)}
 
           await importChat(`Git Project:${repoUrl.split('/').slice(-1)[0]}`, messages, { gitUrl: repoUrl });
         }
+
+        // This flow renders <Chat /> inline (no navigation away) on success, so the
+        // blocking "cloning…" overlay must be cleared here — otherwise it stays mounted
+        // forever and permanently obscures the freshly imported project.
+        setLoading(false);
       } catch (error) {
         console.error('Error during import:', error);
         toast.error('Failed to import repository');

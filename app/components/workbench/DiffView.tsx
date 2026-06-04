@@ -20,6 +20,37 @@ interface CodeComparisonProps {
   darkTheme: string;
 }
 
+/*
+ * The grammars loaded into the shared shiki highlighter. getLanguageFromExtension can
+ * return languages outside this set (e.g. 'swift', 'bash'); passing one of those to
+ * codeToHtml throws synchronously inside dangerouslySetInnerHTML during a child render,
+ * which the DiffView try/catch cannot catch — crashing the whole diff panel. Any language
+ * not in this set is clamped to 'plaintext'.
+ */
+const DIFF_SUPPORTED_LANGS = [
+  'typescript',
+  'javascript',
+  'json',
+  'html',
+  'css',
+  'jsx',
+  'tsx',
+  'python',
+  'php',
+  'java',
+  'c',
+  'cpp',
+  'csharp',
+  'go',
+  'ruby',
+  'rust',
+  'plaintext',
+] as const;
+
+function safeDiffLanguage(language: string): string {
+  return (DIFF_SUPPORTED_LANGS as readonly string[]).includes(language) ? language : 'plaintext';
+}
+
 interface DiffBlock {
   lineNumber: number;
   content: string;
@@ -558,25 +589,7 @@ const getSharedHighlighter = async () => {
 
   highlighterPromise = getHighlighter({
     themes: ['github-dark', 'github-light'],
-    langs: [
-      'typescript',
-      'javascript',
-      'json',
-      'html',
-      'css',
-      'jsx',
-      'tsx',
-      'python',
-      'php',
-      'java',
-      'c',
-      'cpp',
-      'csharp',
-      'go',
-      'ruby',
-      'rust',
-      'plaintext',
-    ],
+    langs: [...DIFF_SUPPORTED_LANGS],
   });
 
   highlighterInstance = await highlighterPromise;
@@ -770,7 +783,7 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
 
   const history = fileHistory[selectedFile];
   const effectiveOriginalContent = history?.originalContent || originalContent;
-  const language = getLanguageFromExtension(selectedFile.split('.').pop() || '');
+  const language = safeDiffLanguage(getLanguageFromExtension(selectedFile.split('.').pop() || ''));
 
   try {
     return (

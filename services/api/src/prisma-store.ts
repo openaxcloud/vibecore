@@ -2055,14 +2055,28 @@ export class PrismaApiStore implements ApiStore {
       return { event: mapStripeEvent(existing), created: false };
     }
 
-    return {
-      event: mapStripeEvent(
-        await this.prisma.stripeEvent.create({
-          data: { id: input.id, organizationId: input.organizationId, type: input.type, payload: input.payload as any },
-        }),
-      ),
-      created: true,
-    };
+    // Stripe delivers retries concurrently; two requests can both pass the findUnique
+    // check, after which the second create() violates the id PK and previously threw an
+    // uncoded 500 (spurious webhook failure + retry). Treat a unique-violation as "already
+    // recorded" so the side-effecting branch (which only runs when created === true) stays
+    // idempotent under concurrency.
+    try {
+      const created = await this.prisma.stripeEvent.create({
+        data: { id: input.id, organizationId: input.organizationId, type: input.type, payload: input.payload as any },
+      });
+
+      return { event: mapStripeEvent(created), created: true };
+    } catch (error) {
+      if ((error as { code?: string })?.code === 'P2002') {
+        const row = await this.prisma.stripeEvent.findUnique({ where: { id: input.id } });
+
+        if (row) {
+          return { event: mapStripeEvent(row), created: false };
+        }
+      }
+
+      throw error;
+    }
   }
 
   async recordEmailDeliveryEvent(input: {

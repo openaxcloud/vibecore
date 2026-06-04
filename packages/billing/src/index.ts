@@ -184,16 +184,18 @@ export function verifyStripeSignature(input: {
     throw Object.assign(new Error('Missing Stripe signature'), { statusCode: 400, code: 'STRIPE_SIGNATURE_MISSING' });
   }
 
-  const values = Object.fromEntries(
-    input.signatureHeader.split(',').map((part) => {
-      const [key, value] = part.split('=');
-      return [key, value];
-    }),
-  );
-  const timestamp = Number(values.t);
-  const signature = values.v1;
+  // A Stripe-Signature header can carry MULTIPLE `v1=` signatures (one per active signing
+  // secret during a secret rotation). Collapsing them with Object.fromEntries kept only
+  // the last, so a legitimate event signed by our secret was rejected if it wasn't the
+  // final v1. Collect every v1 and accept if any matches.
+  const parts = input.signatureHeader.split(',').map((part) => {
+    const index = part.indexOf('=');
+    return index === -1 ? [part, ''] : [part.slice(0, index), part.slice(index + 1)];
+  });
+  const timestamp = Number(parts.find(([key]) => key === 't')?.[1]);
+  const signatures = parts.filter(([key]) => key === 'v1').map(([, value]) => value).filter(Boolean);
 
-  if (!timestamp || !signature) {
+  if (!timestamp || signatures.length === 0) {
     throw Object.assign(new Error('Invalid Stripe signature header'), {
       statusCode: 400,
       code: 'STRIPE_SIGNATURE_INVALID',
@@ -209,9 +211,12 @@ export function verifyStripeSignature(input: {
 
   const expected = createHmac('sha256', input.secret).update(`${timestamp}.${input.payload}`).digest('hex');
   const expectedBuffer = Buffer.from(expected);
-  const actualBuffer = Buffer.from(signature);
+  const matched = signatures.some((signature) => {
+    const actualBuffer = Buffer.from(signature);
+    return expectedBuffer.length === actualBuffer.length && timingSafeEqual(expectedBuffer, actualBuffer);
+  });
 
-  if (expectedBuffer.length !== actualBuffer.length || !timingSafeEqual(expectedBuffer, actualBuffer)) {
+  if (!matched) {
     throw Object.assign(new Error('Invalid Stripe signature'), { statusCode: 400, code: 'STRIPE_SIGNATURE_INVALID' });
   }
 }

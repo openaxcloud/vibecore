@@ -44,6 +44,15 @@ describe('workspace-agent', () => {
     expect(read.json()).toMatchObject({ content: 'export const ok = true;' });
   });
 
+  it('returns 404 (not 500) when reading a missing file', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const headers = { authorization: `Bearer ${token}` };
+
+    const read = await app.inject({ method: 'GET', url: '/files/read?path=does/not/exist.ts', headers });
+    expect(read.statusCode).toBe(404);
+    expect(read.json()).toMatchObject({ code: 'ENOENT' });
+  });
+
   it('blocks path traversal', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
     const response = await app.inject({

@@ -97,13 +97,17 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   app.get('/files/read', async (request) => {
     const { path } = filePathSchema.parse(request.query);
     const safePath = resolveWorkspacePath(root, path);
-    const fileStat = await stat(safePath);
+    const fileStat = await stat(safePath).catch(rethrowFsError);
 
     if (fileStat.size > maxFileBytes) {
       throw new Error('File is too large to read');
     }
 
-    return { path, content: await readFile(safePath, 'utf8'), size: fileStat.size };
+    if (fileStat.isDirectory()) {
+      throw Object.assign(new Error('Path is a directory'), { statusCode: 400, code: 'EISDIR' });
+    }
+
+    return { path, content: await readFile(safePath, 'utf8').catch(rethrowFsError), size: fileStat.size };
   });
 
   app.post('/files/write', async (request) => {
@@ -247,13 +251,19 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     await terminalApp.register(websocket);
     terminalApp.get('/commands/stream', { websocket: true }, (rawSocket) => {
       const socket = normalizeWebSocket(rawSocket);
-      let activeProcess: ChildProcessWithoutNullStreams | undefined;
+      // Track EVERY child spawned on this socket, not just the most recent one. A client
+      // can send multiple `hello` frames (or reconnect/re-handshake); previously only the
+      // last child was referenced, so earlier ones were orphaned on disconnect and — since
+      // streamed commands have no timeout — leaked until they exited on their own, filling
+      // the maxProcesses budget cluster-wide.
+      const activeChildren = new Set<ChildProcessWithoutNullStreams>();
+      let socketClosed = false;
 
       terminalSessions += 1;
       socket.onMessage((message) => {
         const payload = parseCommandStreamMessage(message);
 
-        if (!payload) {
+        if (!payload || socketClosed) {
           return;
         }
 
@@ -262,13 +272,18 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           maxProcesses,
           processes,
           socket,
+          isOpen: () => !socketClosed,
           onActiveProcess: (process) => {
-            activeProcess = process;
+            activeChildren.add(process);
           },
-          onComplete: () => {
-            activeProcess = undefined;
+          onComplete: (process) => {
+            activeChildren.delete(process);
           },
         }).catch((error) => {
+          if (socketClosed) {
+            return;
+          }
+
           socket.send(
             JSON.stringify({
               type: 'error',
@@ -279,7 +294,13 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
         });
       });
       socket.onClose(() => {
-        activeProcess?.kill('SIGTERM');
+        socketClosed = true;
+
+        for (const child of activeChildren) {
+          child.kill('SIGTERM');
+        }
+
+        activeChildren.clear();
         terminalSessions = Math.max(0, terminalSessions - 1);
       });
     });
@@ -446,6 +467,22 @@ function readBearerToken(request: FastifyRequest) {
     return new URL(request.url, 'http://workspace-agent.local').searchParams.get('token') ?? undefined;
   }
   return authorization.slice('Bearer '.length);
+}
+
+// Map common fs errors to proper HTTP statuses (Fastify honours error.statusCode) so a
+// missing file returns 404 instead of an opaque 500 with a raw Node error message.
+function rethrowFsError(error: unknown): never {
+  const code = (error as NodeJS.ErrnoException)?.code;
+
+  if (code === 'ENOENT') {
+    throw Object.assign(new Error('File not found'), { statusCode: 404, code: 'ENOENT' });
+  }
+
+  if (code === 'EISDIR') {
+    throw Object.assign(new Error('Path is a directory'), { statusCode: 400, code: 'EISDIR' });
+  }
+
+  throw error;
 }
 
 function resolveWorkspacePath(root: string, unsafePath: string) {
@@ -674,8 +711,9 @@ async function runCommandStream(
     maxProcesses: number;
     processes: Map<string, ProcessRecord>;
     socket: ReturnType<typeof normalizeWebSocket>;
+    isOpen: () => boolean;
     onActiveProcess: (process: ChildProcessWithoutNullStreams) => void;
-    onComplete: () => void;
+    onComplete: (process: ChildProcessWithoutNullStreams) => void;
   },
 ) {
   if (options.processes.size >= options.maxProcesses) {
@@ -707,6 +745,13 @@ async function runCommandStream(
   const send = (type: 'stdout' | 'stderr', chunk: Buffer) => {
     const data = chunk.toString('utf8');
     record.output = `${record.output ?? ''}${data}`.slice(-options.maxOutputBytes);
+
+    // Don't write to a closed socket — the client disconnected and the child is being
+    // torn down; the send would throw and the error would be swallowed nowhere useful.
+    if (!options.isOpen()) {
+      return;
+    }
+
     options.socket.send(JSON.stringify({ type, data, timestamp: new Date().toISOString() }));
   };
 
@@ -715,9 +760,12 @@ async function runCommandStream(
 
   await new Promise<void>((resolvePromise) => {
     child.on('close', (code) => {
-      options.socket.send(JSON.stringify({ type: 'exit', exitCode: code ?? 0, timestamp: new Date().toISOString() }));
+      if (options.isOpen()) {
+        options.socket.send(JSON.stringify({ type: 'exit', exitCode: code ?? 0, timestamp: new Date().toISOString() }));
+      }
+
       options.processes.delete(id);
-      options.onComplete();
+      options.onComplete(child);
       resolvePromise();
     });
   });
