@@ -29,7 +29,12 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   // only listed organizations[0], so a multi-org user silently never saw the
   // projects in their other orgs. Each project keeps its own org's slug so the
   // IDE link resolves to the correct org-scoped route.
-  const perOrg = await Promise.all(
+  //
+  // Use allSettled, not Promise.all: apiRequest throws on any non-2xx, so a
+  // single degraded org (revoked access, backend hiccup, timeout) would reject
+  // the whole page and the user would lose access to *every* org's projects.
+  // A failing org degrades to "no projects from that org" instead.
+  const perOrg = await Promise.allSettled(
     orgs.organizations.map(async (organization) => {
       const result = await apiRequest<{ projects: ApiProject[] }>(request, `/orgs/${organization.id}/projects`);
 
@@ -46,7 +51,15 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     }),
   );
 
-  return { projects: perOrg.flat() };
+  for (const settled of perOrg) {
+    if (settled.status === 'rejected') {
+      console.error('Failed to list projects for an organization:', settled.reason);
+    }
+  }
+
+  const projects = perOrg.flatMap((settled) => (settled.status === 'fulfilled' ? settled.value : []));
+
+  return { projects };
 }
 
 export default function ProjectsPage() {

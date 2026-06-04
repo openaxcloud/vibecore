@@ -76,9 +76,10 @@ export async function action({ request }: ActionFunctionArgs) {
     logger.error('Query execution error:', error);
     return new Response(
       JSON.stringify({
+        // Never leak the server stack trace to the client — it exposes internal
+        // file paths and module structure. The full error is logged above.
         error: {
           message: error instanceof Error ? error.message : 'Query execution failed',
-          stack: error instanceof Error ? error.stack : undefined,
         },
       }),
       {

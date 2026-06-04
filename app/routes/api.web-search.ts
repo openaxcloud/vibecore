@@ -1,8 +1,10 @@
 import { json } from '@remix-run/cloudflare';
 import type { ActionFunctionArgs } from '@remix-run/cloudflare';
-import { isAllowedUrl } from '~/utils/url';
+import { lookup } from 'node:dns/promises';
+import { isAllowedUrl, isPrivateIp } from '~/utils/url';
 
 const MAX_CONTENT_LENGTH = 8000;
+const MAX_REDIRECTS = 5;
 
 const FETCH_HEADERS = {
   'User-Agent':
@@ -47,6 +49,64 @@ function extractTextContent(html: string): string {
     .trim();
 }
 
+/**
+ * Reject a URL whose host resolves to an internal address. The string-level
+ * `isAllowedUrl` only inspects the hostname literal; this resolves DNS so a
+ * public hostname that maps to a private/link-local/loopback IP (DNS rebinding,
+ * or a redirect into the metadata server) is blocked.
+ */
+async function assertHostAllowed(rawUrl: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isAllowedUrl(rawUrl)) {
+    return { ok: false, error: 'URL is not allowed. Only public HTTP/HTTPS URLs are accepted.' };
+  }
+
+  const hostname = new URL(rawUrl).hostname;
+
+  try {
+    const records = await lookup(hostname, { all: true });
+
+    if (records.length === 0 || records.some((record) => isPrivateIp(record.address))) {
+      return { ok: false, error: 'URL resolves to a disallowed (internal) address.' };
+    }
+  } catch {
+    return { ok: false, error: 'Could not resolve the URL host.' };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Fetch following redirects manually so every hop's destination is
+ * re-validated against the SSRF allow-list. The default `redirect: 'follow'`
+ * would let a public URL 302 the request into an internal host.
+ */
+async function safeFetch(initialUrl: string): Promise<{ ok: true; response: Response } | { ok: false; status: number; error: string }> {
+  let currentUrl = initialUrl;
+
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const guard = await assertHostAllowed(currentUrl);
+
+    if (!guard.ok) {
+      return { ok: false, status: 400, error: guard.error };
+    }
+
+    const response = await fetch(currentUrl, {
+      headers: FETCH_HEADERS,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (response.status >= 300 && response.status < 400 && response.headers.has('location')) {
+      currentUrl = new URL(response.headers.get('location')!, currentUrl).toString();
+      continue;
+    }
+
+    return { ok: true, response };
+  }
+
+  return { ok: false, status: 502, error: 'Too many redirects' };
+}
+
 export async function action({ request }: ActionFunctionArgs) {
   if (request.method !== 'POST') {
     return json({ error: 'Method not allowed' }, { status: 405 });
@@ -59,14 +119,13 @@ export async function action({ request }: ActionFunctionArgs) {
       return json({ error: 'URL is required' }, { status: 400 });
     }
 
-    if (!isAllowedUrl(url)) {
-      return json({ error: 'URL is not allowed. Only public HTTP/HTTPS URLs are accepted.' }, { status: 400 });
+    const fetched = await safeFetch(url);
+
+    if (!fetched.ok) {
+      return json({ error: fetched.error }, { status: fetched.status });
     }
 
-    const response = await fetch(url, {
-      headers: FETCH_HEADERS,
-      signal: AbortSignal.timeout(10_000),
-    });
+    const response = fetched.response;
 
     if (!response.ok) {
       return json({ error: `Failed to fetch URL: ${response.status} ${response.statusText}` }, { status: 502 });

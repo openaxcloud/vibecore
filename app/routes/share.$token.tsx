@@ -79,7 +79,20 @@ export default function ShareRoute() {
         <h1>{payload.title ?? 'Shared conversation'}</h1>
         <p className="bolt-share-view-meta">
           Shared from project <code>{payload.projectId}</code> on{' '}
-          <time dateTime={payload.createdAt}>{new Date(payload.createdAt).toLocaleString()}</time>
+          {/*
+            Format with an explicit fixed locale + UTC timezone so the SSR render
+            (web pod, server TZ) and the client hydration (visitor TZ) produce the
+            same string. A bare toLocaleString() depends on the runtime locale and
+            caused a hydration mismatch on this public share page.
+          */}
+          <time dateTime={payload.createdAt}>
+            {new Date(payload.createdAt).toLocaleString('en-US', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+              timeZone: 'UTC',
+            })}{' '}
+            UTC
+          </time>
         </p>
       </header>
       <section className="bolt-share-view-message-list" aria-label="Message list">
