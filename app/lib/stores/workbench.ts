@@ -273,6 +273,16 @@ export class WorkbenchStore {
 
     if (changed) {
       this.#runtimeFilesLoadedProjectId = undefined;
+
+      /*
+       * Clear per-project state before (re)hydrating. The workbench is a module
+       * singleton, so without this reset project A's pending patch proposals,
+       * their captured original contents, the self-repair tracker, and the
+       * unsaved-file set all leak into project B — and #hydrateAgentPatchProposals
+       * merges (setKey) project B's proposals on top of the stale A entries.
+       * Accepting a leaked proposal would then apply A's diff against B's files.
+       */
+      this.#resetProjectScopedState();
     }
 
     /*
@@ -284,6 +294,13 @@ export class WorkbenchStore {
     if (changed && projectId) {
       void this.#hydrateAgentPatchProposals(projectId);
     }
+  }
+
+  #resetProjectScopedState() {
+    this.agentPatchProposals.set({});
+    this.#agentPatchOriginals.clear();
+    this.agentPatchSelfRepair.set({});
+    this.unsavedFiles.set(new Set<string>());
   }
 
   async #hydrateAgentPatchProposals(projectId: string) {

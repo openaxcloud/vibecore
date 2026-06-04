@@ -136,6 +136,20 @@ export class FilesStore {
     this.#runtime = runtime;
     this.#stopWatchingFiles?.();
     this.#stopWatchingFiles = undefined;
+
+    /*
+     * Reset the file map when rebinding to a different runtime (project switch /
+     * reconnect). #init only re-establishes the watcher; it does not clear the
+     * map, so without this the previous project's files (and their contents)
+     * stay rendered against the new runtime until an async reload happens to
+     * overwrite them — a cross-tenant content-exposure window, plus a stale
+     * dirty/size state. The caller (ProjectWorkspaceProvider) hydrates the new
+     * project's files immediately after via loadProjectStorageFiles().
+     */
+    this.files.set({});
+    this.#size = 0;
+    this.#modifiedFiles.clear();
+
     void this.#init();
   }
 
