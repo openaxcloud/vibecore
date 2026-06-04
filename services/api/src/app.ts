@@ -3831,6 +3831,7 @@ function normalizeRuntimeApiWebSocket(rawSocket: unknown) {
     send?: (message: string) => void;
     close?: () => void;
     terminate?: () => void;
+    ping?: (data?: unknown) => void;
     addEventListener?: (event: string, listener: (event: { data?: unknown }) => void) => void;
     on?: (event: string, listener: (message: Buffer) => void) => void;
   };
@@ -3847,6 +3848,19 @@ function normalizeRuntimeApiWebSocket(rawSocket: unknown) {
 
   return {
     send: candidate.send.bind(candidate),
+    /*
+     * Native WebSocket ping frame. Browsers auto-respond with a pong, so pinging
+     * the downstream client keeps the otherwise-silent API→browser direction warm
+     * and stops idle load-balancer/ingress timeouts from tearing down an open
+     * terminal (the reconnect-flap cause). No-op if the implementation can't ping.
+     */
+    ping: () => {
+      try {
+        candidate.ping?.();
+      } catch {
+        // Ignore ping failures; the socket's close/error handlers cover real loss.
+      }
+    },
     close: () => {
       if (typeof candidate.close === 'function') {
         candidate.close();
@@ -8406,7 +8420,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         pendingMessages.push(text);
       }
     });
-    client.onClose(() => upstream.close());
+
+    /*
+     * Long-lived runtime sockets (terminal/logs/watch) can sit idle for minutes
+     * while a shell waits for input. The browser client only pings the
+     * browser→API direction, so the API→browser leg stays silent and an idle
+     * load-balancer/ingress timeout (≈30s in front of nginx) closes the socket,
+     * producing the endless "[terminal reconnected]" flap. Ping both legs every
+     * 15s so neither direction idles out; ping frames are invisible to the
+     * client's JSON message stream.
+     */
+    const keepAlive = setInterval(() => {
+      client.ping();
+
+      if (upstream.readyState === WebSocket.OPEN) {
+        try {
+          upstream.ping();
+        } catch {
+          // Ignore; the socket's close/error handlers cover real loss.
+        }
+      }
+    }, 15_000);
+    (keepAlive as unknown as { unref?: () => void }).unref?.();
+
+    const stopKeepAlive = () => clearInterval(keepAlive);
+
+    upstream.addEventListener('close', stopKeepAlive);
+    client.onClose(() => {
+      stopKeepAlive();
+      upstream.close();
+    });
   };
 
   app.get('/api/runtime/workspaces/:workspaceId/commands/stream', { websocket: true }, async (socket, request) => {
@@ -8453,7 +8496,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    await proxyRuntimeSocket(socket, authorized.workspaceId, '/terminal');
+    /*
+     * The workspace agent's /terminal socket now frames its own output as JSON
+     * `CommandEvent`s (stdout frames), exactly like /commands/stream. Pass them
+     * through unwrapped — wrapping here would double-encode every frame, so the
+     * client would render the inner JSON as literal text instead of shell output.
+     */
+    await proxyRuntimeSocket(socket, authorized.workspaceId, '/terminal', false);
   });
   app.get('/api/runtime/workspaces/:workspaceId/logs', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);

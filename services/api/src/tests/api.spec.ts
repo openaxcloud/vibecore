@@ -7,7 +7,7 @@ import { createTotpCode } from '@vibecore/auth';
 import { decryptJson } from '@vibecore/security';
 import JSZip from 'jszip';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import WebSocket from 'ws';
+import WebSocket, { WebSocketServer } from 'ws';
 import { buildApiApp, type ApiAppOptions } from '../app.js';
 import type { EmailMessage, EmailProvider } from '../email.js';
 import type { GitProvider, ProjectFile, ProjectStorage, StoredArchive } from '../project-storage.js';
@@ -326,6 +326,36 @@ async function startRuntimeServices(
     throw new Error('Agent server failed to start');
   }
 
+  /*
+   * Mirror the real workspace-agent's persistent terminal socket: it frames its
+   * own output as JSON `CommandEvent`s ({ type: 'stdout', ... }) — never raw
+   * bytes. The API proxy must pass these through unwrapped, so this lets the
+   * framing regression test assert frames arrive single-encoded, not double.
+   */
+  const agentSockets = new WebSocketServer({ server: agent });
+  agentSockets.on('connection', (socket, request) => {
+    const url = new URL(request.url ?? '/', 'http://agent.local');
+    calls.push(`WS ${url.pathname}`);
+
+    if (url.pathname === '/terminal' || url.pathname === '/commands/stream') {
+      socket.send(JSON.stringify({ type: 'stdout', data: 'hello from shell\r\n', timestamp: 'now' }));
+      socket.on('message', (raw) => {
+        const text = raw.toString();
+
+        // Echo back stdin the way a shell would, still JSON-framed.
+        try {
+          const parsed = JSON.parse(text) as { type?: string; data?: string };
+
+          if (parsed.type === 'stdin' && parsed.data) {
+            socket.send(JSON.stringify({ type: 'stdout', data: parsed.data, timestamp: 'now' }));
+          }
+        } catch {
+          // Ignore control frames (ping/resize) the test does not exercise.
+        }
+      });
+    }
+  });
+
   const managerCalls: Array<{ pathname: string; body: any }> = [];
 
   const manager = createServer((request, response) => {
@@ -380,6 +410,7 @@ async function startRuntimeServices(
     async close() {
       process.env.WORKSPACE_MANAGER_URL = previousManager;
       process.env.WORKSPACE_AGENT_URL_TEMPLATE = previousAgent;
+      await new Promise<void>((resolve) => agentSockets.close(() => resolve()));
       await Promise.all(
         [agent, manager].map((server: Server) => new Promise<void>((resolve) => server.close(() => resolve()))),
       );
@@ -4313,6 +4344,59 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     } finally {
       await runtime.close();
       await app.close();
+    }
+  });
+
+  it('passes terminal output through the proxy as single, unwrapped CommandEvent frames', async () => {
+    // Regression: the workspace-agent frames terminal output as JSON CommandEvents,
+    // but the proxy still wrapped it again, double-encoding every frame so the IDE
+    // rendered the inner JSON as literal text ("commands don't execute"). The proxy
+    // must pass the agent's frames through verbatim, exactly like /commands/stream.
+    const runtime = await startRuntimeServices();
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'terminal-frame@example.com', organizationName: 'Terminal Frame Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Terminal Frame Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    const address = await app.listen({ port: 0, host: '127.0.0.1' });
+
+    const socket = new WebSocket(
+      `${address.replace(/^http/, 'ws')}/api/runtime/workspaces/${projectId}/terminal?sessionId=test-shell&token=${encodeURIComponent(
+        auth.token,
+      )}`,
+    );
+
+    try {
+      const firstFrame = await new Promise<string>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('terminal frame not received')), 4000);
+        socket.addEventListener('message', (event) => {
+          clearTimeout(timeout);
+          resolve(String(event.data));
+        });
+        socket.addEventListener('error', () => {
+          clearTimeout(timeout);
+          reject(new Error('terminal socket failed'));
+        });
+      });
+
+      const parsed = JSON.parse(firstFrame) as { type?: string; data?: unknown };
+
+      // Single-encoded: type is stdout and data is the literal shell text, NOT a
+      // nested JSON string (which is what double-wrapping would produce).
+      expect(parsed.type).toBe('stdout');
+      expect(parsed.data).toBe('hello from shell\r\n');
+      expect(typeof parsed.data === 'string' && parsed.data.trimStart().startsWith('{')).toBe(false);
+    } finally {
+      socket.close();
+      await app.close();
+      await runtime.close();
     }
   });
 

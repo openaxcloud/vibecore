@@ -39,6 +39,7 @@ export function Search() {
   const [isReplacing, setIsReplacing] = useState(false);
   const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({});
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchError, setSearchError] = useState<string | undefined>(undefined);
 
   const groupedResults = useMemo(() => groupResultsByFile(searchResults), [searchResults]);
 
@@ -59,6 +60,7 @@ export function Search() {
         setIsSearching(false);
         setExpandedFiles({});
         setHasSearched(false);
+        setSearchError(undefined);
 
         return;
       }
@@ -67,13 +69,16 @@ export function Search() {
       setSearchResults([]);
       setExpandedFiles({});
       setHasSearched(true);
+      setSearchError(undefined);
 
       const minLoaderTime = 300; // ms
       const start = Date.now();
 
       try {
         const options: FileSearchOptions = {
-          includes: ['**/*.*'],
+          // Index every file (including extensionless ones like Dockerfile/Makefile);
+          // the excludes below prune the noise. `**/*.*` would skip extensionless files.
+          includes: ['**/*'],
           excludes: ['**/node_modules/**', '**/package-lock.json', '**/.git/**', '**/dist/**', '**/*.lock'],
           resultLimit: 500,
           isRegex,
@@ -92,6 +97,11 @@ export function Search() {
         );
       } catch (error) {
         console.error('Failed to initiate search:', error);
+        setSearchError(
+          error instanceof Error
+            ? `Search failed: ${error.message}. The workspace runtime may still be starting — try again in a moment.`
+            : 'Search failed. The workspace runtime may still be starting — try again in a moment.',
+        );
       } finally {
         const elapsed = Date.now() - start;
 
@@ -270,9 +280,18 @@ export function Search() {
             <div className="i-ph:circle-notch animate-spin mr-2" /> Searching...
           </div>
         )}
-        {!isSearching && hasSearched && searchResults.length === 0 && searchQuery.trim() !== '' && (
-          <div className="flex items-center justify-center h-32 text-gray-500">No results found.</div>
+        {!isSearching && searchError && (
+          <div className="flex items-center justify-center h-32 px-4 text-center text-sm text-bolt-elements-icon-error">
+            {searchError}
+          </div>
         )}
+        {!isSearching &&
+          !searchError &&
+          hasSearched &&
+          searchResults.length === 0 &&
+          searchQuery.trim() !== '' && (
+            <div className="flex items-center justify-center h-32 text-gray-500">No results found.</div>
+          )}
         {!isSearching &&
           Object.keys(groupedResults).map((file) => (
             <div key={file} className="mb-2">
