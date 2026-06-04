@@ -1038,7 +1038,7 @@ export interface ApiStore {
     costCents: number;
     reason: string;
   }): Promise<AiCostLedgerRecord>;
-  listAiCosts(organizationId: string): Promise<AiCostLedgerRecord[]>;
+  listAiCosts(organizationId: string, range?: { from?: string; to?: string }): Promise<AiCostLedgerRecord[]>;
   upsertBillingPlan(input: {
     key: PlanKey;
     name: string;

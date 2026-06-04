@@ -1688,8 +1688,27 @@ export class TestApiStore implements ApiStore {
     return cost;
   }
 
-  async listAiCosts(organizationId: string) {
-    return [...this.aiCostLedger.values()].filter((cost) => cost.organizationId === organizationId);
+  async listAiCosts(organizationId: string, range?: { from?: string; to?: string }) {
+    const fromMs = range?.from ? new Date(range.from).getTime() : undefined;
+    const toMs = range?.to ? new Date(range.to).getTime() : undefined;
+
+    return [...this.aiCostLedger.values()].filter((cost) => {
+      if (cost.organizationId !== organizationId) {
+        return false;
+      }
+
+      const created = new Date(cost.createdAt).getTime();
+
+      if (fromMs !== undefined && created < fromMs) {
+        return false;
+      }
+
+      if (toMs !== undefined && created > toMs) {
+        return false;
+      }
+
+      return true;
+    });
   }
 
   async upsertBillingPlan(input: {
