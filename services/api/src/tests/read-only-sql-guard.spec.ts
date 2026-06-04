@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { assertReadOnlySql } from '../app';
+import { assertReadOnlySql } from '../app.js';
 
 /**
  * Regression coverage for the IDE database query editor's read-only guard.

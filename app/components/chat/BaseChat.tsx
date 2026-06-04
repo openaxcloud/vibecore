@@ -2011,6 +2011,14 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
   const pendingForBulk = visibleProposals.filter((proposal) => proposal.status !== 'applying');
 
   const acceptAll = () => {
+    // Apply the whole batch through the store's bulk path, which topologically
+    // sorts by import dependencies and awaits each accept sequentially. Firing
+    // the accepts concurrently here (the previous behaviour) raced the per-accept
+    // resetAllFileModifications/loadRuntimeFiles/saveFile calls against each other
+    // and could land an importer before the file it imports.
+    const ids: string[] = [];
+    const hunkSelections: Record<string, string[]> = {};
+
     for (const proposal of pendingForBulk) {
       const selected = selectedHunksByProposal[proposal.id] ?? new Set(proposal.hunks.map((hunk: any) => hunk.id));
 
@@ -2018,8 +2026,15 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
         continue;
       }
 
-      workbenchStore.acceptAgentPatchProposal(proposal.id, Array.from(selected));
+      ids.push(proposal.id);
+      hunkSelections[proposal.id] = Array.from(selected);
     }
+
+    if (ids.length === 0) {
+      return;
+    }
+
+    void workbenchStore.acceptAllAgentPatchProposals(ids, hunkSelections);
   };
   const rejectAll = () => {
     for (const proposal of pendingForBulk) {
@@ -2824,6 +2839,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * with an Undo action.
      */
     const autoAppliedRef = useRef<Map<string, string>>(new Map());
+    // Serializes silent auto-apply accepts. Each accept mutates shared workspace
+    // state (resetAllFileModifications, a full loadRuntimeFiles tree reload, file
+    // writes); firing them concurrently for a multi-file agent turn interleaved
+    // those mutations non-deterministically. Chaining keeps them one-at-a-time.
+    const autoApplyChainRef = useRef<Promise<void>>(Promise.resolve());
     const appliedToastBufferRef = useRef<Map<string, { filePath: string; proposalId: string }>>(new Map());
     const appliedToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -2893,13 +2913,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         autoAppliedRef.current.set(proposal.id, attemptKey);
 
         const filePath = proposal.relativePath;
-        void workbenchStore.acceptAgentPatchProposal(proposal.id).then((result) => {
-          if (result !== 'accepted') {
-            return;
-          }
-
-          scheduleAppliedFilesToast(filePath, proposal.id);
-        });
+        const proposalId = proposal.id;
+        autoApplyChainRef.current = autoApplyChainRef.current
+          .then(() => workbenchStore.acceptAgentPatchProposal(proposalId))
+          .then((result) => {
+            if (result === 'accepted') {
+              scheduleAppliedFilesToast(filePath, proposalId);
+            }
+          })
+          .catch(() => undefined);
       }
     }, [agentPatchProposals, scheduleAppliedFilesToast]);
 

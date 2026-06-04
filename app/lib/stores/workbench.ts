@@ -1410,7 +1410,7 @@ export class WorkbenchStore {
     }
   }
 
-  async acceptAllAgentPatchProposals(proposalIds?: string[]) {
+  async acceptAllAgentPatchProposals(proposalIds?: string[], hunkSelections?: Record<string, string[]>) {
     const proposals = this.agentPatchProposals.get();
 
     const ids = proposalIds?.length
@@ -1446,7 +1446,7 @@ export class WorkbenchStore {
     }
 
     for (const proposalId of orderedIds) {
-      await this.acceptAgentPatchProposal(proposalId);
+      await this.acceptAgentPatchProposal(proposalId, hunkSelections?.[proposalId]);
     }
   }
 

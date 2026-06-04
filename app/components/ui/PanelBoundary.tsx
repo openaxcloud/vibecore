@@ -1,4 +1,4 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Component, Fragment, type ErrorInfo, type ReactNode } from 'react';
 
 import { logStore } from '~/lib/stores/logs';
 
@@ -127,7 +127,12 @@ export class PanelBoundary extends Component<PanelBoundaryProps, PanelBoundarySt
       );
     }
 
-    return this.props.children;
+    // Key the subtree on retryCount so clearing the error (auto-retry or the
+    // manual "Reload" button) fully remounts children rather than re-rendering
+    // the identical failing element in place. Without the key, a deterministic
+    // mount/init error would re-throw immediately and the retry would be a
+    // no-op; remounting gives the child a clean lifecycle to recover.
+    return <Fragment key={this.state.retryCount}>{this.props.children}</Fragment>;
   }
 }
 

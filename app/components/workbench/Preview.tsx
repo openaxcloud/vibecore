@@ -818,7 +818,7 @@ export const Preview = memo(
     ]);
 
     useEffect(() => {
-      if (!autoStart || !workspaceReady || hasStaticPreview || previews.length > 0) {
+      if (!autoStart || !workspaceReady || hasStaticPreview || previews.length > 0 || previewRunFailed) {
         return undefined;
       }
 
@@ -847,7 +847,7 @@ export const Preview = memo(
       }, 2500);
 
       return () => window.clearInterval(interval);
-    }, [autoStart, hasStaticPreview, previews.length, workspaceReady]);
+    }, [autoStart, hasStaticPreview, previews.length, previewRunFailed, workspaceReady]);
 
     useEffect(() => {
       if (!autoStart || !workspaceReady || hasStaticPreview || previews.length > 0) {

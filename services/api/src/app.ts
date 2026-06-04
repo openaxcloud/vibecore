@@ -1970,10 +1970,21 @@ async function requireProject(
   store: ApiStore,
   projectId: string,
   permission: PermissionKey,
+  options?: { allowDeleted?: boolean },
 ): Promise<ProjectRecord> {
   const project = await store.getProject(projectId);
 
   if (!project) {
+    throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
+  }
+
+  // A soft-deleted project must behave as if it no longer exists for every
+  // endpoint except the explicit restore path (which opts in via allowDeleted).
+  // getProject() intentionally still resolves deleted rows so restore can find
+  // them; enforcing deletedAt here keeps the dashboard/slug routing consistent
+  // with the per-project API surface (files, settings, secrets, deploy, etc.)
+  // instead of letting a "deleted" project remain fully readable and mutable.
+  if (project.deletedAt && !options?.allowDeleted) {
     throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
   }
 
@@ -11491,6 +11502,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       store,
       parse(projectParams, request.params).projectId,
       'projects:write',
+      { allowDeleted: true },
     );
 
     const restored = await store.restoreProject(project.id);
