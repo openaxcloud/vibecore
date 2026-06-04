@@ -20,26 +20,33 @@ type ApiProject = {
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const orgs = await apiRequest<{ organizations: Organization[] }>(request, '/orgs');
-  const organization = orgs.organizations[0];
 
-  if (!organization) {
+  if (orgs.organizations.length === 0) {
     return { projects: [] satisfies ProjectCard[] };
   }
 
-  const result = await apiRequest<{ projects: ApiProject[] }>(request, `/orgs/${organization.id}/projects`);
+  // Aggregate across every organization the user belongs to. Previously this
+  // only listed organizations[0], so a multi-org user silently never saw the
+  // projects in their other orgs. Each project keeps its own org's slug so the
+  // IDE link resolves to the correct org-scoped route.
+  const perOrg = await Promise.all(
+    orgs.organizations.map(async (organization) => {
+      const result = await apiRequest<{ projects: ApiProject[] }>(request, `/orgs/${organization.id}/projects`);
 
-  const projects = result.projects.map((project) => ({
-    id: project.id,
-    name: project.name,
-    status: 'Ready',
-    updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
-    stack: project.gitRepositoryUrl ?? project.sourceType ?? 'Bolt project',
-    sourceType: project.sourceType,
-    previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
-    ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
-  }));
+      return result.projects.map((project) => ({
+        id: project.id,
+        name: project.name,
+        status: 'Ready',
+        updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
+        stack: project.gitRepositoryUrl ?? project.sourceType ?? 'Bolt project',
+        sourceType: project.sourceType,
+        previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
+        ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
+      }));
+    }),
+  );
 
-  return { projects };
+  return { projects: perOrg.flat() };
 }
 
 export default function ProjectsPage() {

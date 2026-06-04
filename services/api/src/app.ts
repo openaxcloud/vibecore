@@ -1032,6 +1032,11 @@ function bearerToken(request: FastifyRequest) {
   return request.cookies.session;
 }
 
+// Upper bound on a single inbound collaboration WS frame. Presence cursor /
+// selection payloads are small; this leaves generous headroom while preventing
+// a peer from fanning out oversized frames to the whole room.
+const MAX_COLLABORATION_MESSAGE_BYTES = 64 * 1024;
+
 function collaborationTicketSecret() {
   return process.env.COLLABORATION_WS_TICKET_SECRET ?? process.env.JWT_SECRET ?? process.env.COOKIE_SECRET ?? 'dev';
 }
@@ -1058,7 +1063,15 @@ function createCollaborationWebSocketTicket(input: { projectId: string; userId: 
 function verifyCollaborationWebSocketTicket(ticket: string, input: { projectId: string; sessionId?: string }) {
   const [payload, signature] = ticket.split('.');
 
-  if (!payload || !signature || signCollaborationTicket(payload) !== signature) {
+  if (!payload || !signature) {
+    return undefined;
+  }
+
+  // Constant-time signature comparison (matches verifyChatShareToken) so the
+  // HMAC check doesn't leak a timing oracle on the expected signature.
+  const expected = signCollaborationTicket(payload);
+
+  if (expected.length !== signature.length || !timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) {
     return undefined;
   }
 
@@ -1664,7 +1677,20 @@ async function runDatabaseQuery(
   await client.connect();
 
   try {
-    const parsed = JSON.parse(query) as Record<string, unknown>;
+    let parsed: Record<string, unknown>;
+
+    try {
+      parsed = JSON.parse(query) as Record<string, unknown>;
+    } catch (error) {
+      // A malformed query is user error, not a server fault — return a coded
+      // 400 instead of letting the raw SyntaxError surface as a generic 500.
+      throw Object.assign(new Error('MongoDB query must be valid JSON'), {
+        statusCode: 400,
+        code: 'DB_QUERY_INVALID_JSON',
+        cause: error,
+      });
+    }
+
     const database = client.db();
     const targetCollection = collection || String(parsed.collection ?? '');
 
@@ -4068,9 +4094,25 @@ function createCollaborationBroker() {
   }
 
   function broadcastLocal(projectId: string, message: string, except?: CollaborationSocket) {
-    for (const peer of rooms.get(projectId) ?? []) {
-      if (peer !== except) {
+    const room = rooms.get(projectId);
+
+    if (!room) {
+      return;
+    }
+
+    for (const peer of room) {
+      if (peer === except) {
+        continue;
+      }
+
+      // A peer whose socket is closing throws inside send(). Without this guard
+      // one stale peer aborts the whole broadcast loop (later peers miss the
+      // message) and, on the un-try/caught join broadcast, rejects the async
+      // connection handler. Swallow per-peer and drop the dead socket.
+      try {
         peer.send(message);
+      } catch {
+        room.delete(peer);
       }
     }
   }
@@ -6967,7 +7009,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const text = await response.text();
 
-    return text.length === 0 ? undefined : JSON.parse(text);
+    if (text.length === 0) {
+      return undefined;
+    }
+
+    // The manager/agent should always return JSON here, but an intermediary
+    // (e.g. an ingress error page) can return a 200 with non-JSON garbage.
+    // A raw JSON.parse throw would surface as an uncoded 500; convert it to the
+    // same coded 502 the callers already handle as an upstream fault.
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      throw Object.assign(new Error('Workspace runtime returned a malformed response'), {
+        statusCode: 502,
+        code: 'WORKSPACE_RUNTIME_BAD_RESPONSE',
+        cause: error,
+      });
+    }
+  };
+
+  // Node's global fetch has no default timeout. Without one, a workspace-manager
+  // or workspace-agent pod that accepts the TCP connection but never responds
+  // (half-dead / GC'd workspace, network partition) would hang the request
+  // indefinitely and, under load, exhaust the API pod's connection pool.
+  const RUNTIME_PROXY_TIMEOUT_MS = 15000;
+
+  const withRequestTimeout = (init: RequestInit): { init: RequestInit; done: () => void } => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), RUNTIME_PROXY_TIMEOUT_MS);
+
+    // Respect a caller-supplied signal too: aborting it aborts our fetch.
+    if (init.signal) {
+      if (init.signal.aborted) {
+        controller.abort();
+      } else {
+        init.signal.addEventListener('abort', () => controller.abort(), { once: true });
+      }
+    }
+
+    return { init: { ...init, signal: controller.signal }, done: () => clearTimeout(timer) };
   };
 
   const managerRequest = async <T = unknown>(path: string, init: RequestInit = {}) => {
@@ -6980,9 +7060,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim() || process.env.PREVIEW_PROXY_SHARED_SECRET?.trim()
     );
 
+    const { init: timedInit, done } = withRequestTimeout(init);
+
     try {
       response = await fetch(`${workspaceManagerUrl()}${path}`, {
-        ...init,
+        ...timedInit,
         headers: {
           accept: 'application/json',
           ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}),
@@ -6997,6 +7079,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         publicMessage: 'Workspace manager is unavailable',
         cause: error,
       });
+    } finally {
+      done();
     }
 
     if (!response.ok) {
@@ -7030,18 +7114,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     let response: Response;
 
+    const { init: timedInit, done } = withRequestTimeout({ ...init, headers });
+
     try {
-      response = await fetch(`${agentBaseUrl(workspaceId)}${path}`, { ...init, headers });
+      response = await fetch(`${agentBaseUrl(workspaceId)}${path}`, timedInit);
     } catch (error) {
       // The agent pod may not be reachable yet (workspace still provisioning)
-      // or may have been reclaimed. A rejected fetch would otherwise surface as
-      // an uncoded 500; return the same coded 502 as a non-ok agent response so
-      // callers (and the local-runtime fallback) treat it as agent-unavailable.
+      // or may have been reclaimed. A rejected fetch (including our timeout
+      // abort) would otherwise surface as an uncoded 500; return the same coded
+      // 502 as a non-ok agent response so callers (and the local-runtime
+      // fallback) treat it as agent-unavailable.
       throw Object.assign(new Error('Workspace agent is unavailable'), {
         statusCode: 502,
         code: 'WORKSPACE_AGENT_REQUEST_FAILED',
         cause: error,
       });
+    } finally {
+      done();
     }
 
     if (!response.ok) {
@@ -8810,7 +8899,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         previous = current;
-      })();
+      })().catch(() => {
+        // emit()'s client.send can throw synchronously on a closing socket;
+        // swallow so it never becomes an unhandled rejection (matches the
+        // logs/ports watchers). The onClose handler clears the interval.
+      });
     }, 2000);
 
     client.onClose(() => clearInterval(interval));
@@ -11399,6 +11492,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
     client.onMessage(async (message) => {
       try {
+        // Bound the inbound payload: cursor/selection are free-form (z.unknown),
+        // so without a cap a single authenticated peer could push huge frames
+        // that fan out (incl. via Redis) to every other peer in the room.
+        if (message.length > MAX_COLLABORATION_MESSAGE_BYTES) {
+          client.send(
+            JSON.stringify({
+              type: 'error',
+              error: { message: 'Collaboration message too large' },
+              timestamp: new Date().toISOString(),
+            }),
+          );
+
+          return;
+        }
+
         const event = JSON.parse(message.toString()) as { type?: string; payload?: unknown };
 
         if (event.type === 'presence.update') {
@@ -11438,14 +11546,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           return;
         }
 
-        collaborationBroker.publish(project.id, event, client);
+        // Only the two validated, server-mediated events above are accepted from
+        // a client. Other relayable event types (document.sync, ai_conversation.share)
+        // are emitted server-side via their own authenticated HTTP endpoints, never
+        // relayed verbatim from a peer — so an unknown type is rejected rather than
+        // re-broadcast (which was an unbounded, unauthenticated peer-to-peer relay).
+        client.send(
+          JSON.stringify({
+            type: 'error',
+            error: { message: `Unsupported collaboration event: ${String(event.type)}` },
+            timestamp: new Date().toISOString(),
+          }),
+        );
       } catch (error: any) {
         client.send(
           JSON.stringify({ type: 'error', error: { message: error.message }, timestamp: new Date().toISOString() }),
         );
       }
     });
+    // A quiet collaboration session (no cursor movement) keeps the API→browser
+    // leg silent, so the ≈30s idle load-balancer/ingress timeout tears it down
+    // and the client enters its reconnect/backoff flap — the same failure the
+    // runtime sockets solved with a keepalive. Ping every 15s; ping frames are
+    // invisible to the client's JSON message stream.
+    const keepAlive = setInterval(() => {
+      client.ping();
+    }, 15_000);
+    (keepAlive as unknown as { unref?: () => void }).unref?.();
+
     client.onClose(async () => {
+      clearInterval(keepAlive);
       collaborationBroker.leave(project.id, client);
       await store.removeCollaborationPresence(project.id, sessionId);
       collaborationBroker.publish(project.id, { type: 'presence.leave', sessionId }, client);
