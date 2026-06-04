@@ -1155,6 +1155,14 @@ describe('SaaS API', () => {
       vi.restoreAllMocks();
     });
 
+    // The OAuth code flow now requires a valid (HMAC-signed) state for login-CSRF
+    // protection, mirroring the real client which always carries the state issued by
+    // /auth/oauth/github/start. Pull a genuine state from the start endpoint.
+    const githubState = async (app: Awaited<ReturnType<typeof buildTestApiApp>>) => {
+      const start = await app.inject({ method: 'GET', url: '/auth/oauth/github/start' });
+      return new URL((start.json() as { authorizationUrl: string }).authorizationUrl).searchParams.get('state') as string;
+    };
+
     it('falls back to /user/emails when GitHub returns a null email for a private profile', async () => {
       process.env.GITHUB_CLIENT_ID = 'gh-code-client-id';
       process.env.GITHUB_CLIENT_SECRET = 'gh-code-client-secret';
@@ -1199,7 +1207,7 @@ describe('SaaS API', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/auth/oauth/github/callback',
-        payload: { code: 'gh-auth-code' },
+        payload: { code: 'gh-auth-code', state: await githubState(app) },
       });
 
       expect(response.statusCode).toBe(200);
@@ -1266,7 +1274,7 @@ describe('SaaS API', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/auth/oauth/github/callback',
-        payload: { code: 'gh-public-code' },
+        payload: { code: 'gh-public-code', state: await githubState(app) },
       });
 
       expect(response.statusCode).toBe(200);
@@ -1309,11 +1317,30 @@ describe('SaaS API', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/auth/oauth/github/callback',
-        payload: { code: 'gh-noemail-code' },
+        payload: { code: 'gh-noemail-code', state: await githubState(app) },
       });
 
       expect(response.statusCode).toBe(400);
       expect(response.json()).toMatchObject({ code: 'OAUTH_PROFILE_INCOMPLETE' });
+      await app.close();
+    });
+
+    it('rejects an OAuth code flow that omits the state parameter (login-CSRF protection)', async () => {
+      process.env.GITHUB_CLIENT_ID = 'gh-code-client-id';
+      process.env.GITHUB_CLIENT_SECRET = 'gh-code-client-secret';
+      process.env.GITHUB_REDIRECT_URI = 'https://app.e-code.ai/auth/oauth/github/callback';
+
+      const store = new TestApiStore();
+      const app = await buildTestApiApp({ store });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/auth/oauth/github/callback',
+        payload: { code: 'gh-auth-code' },
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(response.json()).toMatchObject({ code: 'OAUTH_STATE_INVALID' });
       await app.close();
     });
   });
