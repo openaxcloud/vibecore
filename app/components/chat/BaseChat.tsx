@@ -3456,7 +3456,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       } else {
         eventSource = new EventSource(`/api/projects/${projectId}/ide-panel/overview?stream=1`);
 
+        // EventSource auto-reconnects on transient drops. Resetting this counter
+        // on every successful open/message means a single network blip — or the
+        // server recycling the stream on its periodic interval — no longer
+        // strands the panel on 30s polling for the rest of the session.
+        let consecutiveErrors = 0;
+
+        eventSource.onopen = () => {
+          consecutiveErrors = 0;
+        };
+
         eventSource.addEventListener('overview', (event) => {
+          consecutiveErrors = 0;
+
           try {
             const envelope = JSON.parse((event as MessageEvent<string>).data) as {
               data?: ProjectIdeBackendState;
@@ -3472,8 +3484,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         });
 
         eventSource.onerror = () => {
-          if (!cancelled) {
-            console.warn('Project IDE overview stream disconnected; falling back to slow refresh.');
+          if (cancelled) {
+            return;
+          }
+
+          consecutiveErrors += 1;
+
+          // Only give up on the live stream once the browser has permanently
+          // closed it, or after several consecutive failures (a genuinely dead
+          // endpoint that EventSource would otherwise retry forever). A lone
+          // transient error is left to EventSource's own reconnect.
+          if (eventSource?.readyState === EventSource.CLOSED || consecutiveErrors >= 3) {
+            console.warn('Project IDE overview stream unhealthy; falling back to slow refresh.');
             eventSource?.close();
             startFallbackPolling();
           }
@@ -15670,8 +15692,21 @@ function ProjectSecretsPanel({
     <div className="bolt-project-secrets-tool">
       <form onSubmit={onSubmit} className="bolt-project-inline-form">
         <input name="intent" value="upsert" type="hidden" />
-        <PanelInput name="key" placeholder="STRIPE_SECRET_KEY" required defaultValue={editingKey} />
-        <PanelInput name="value" placeholder="Secret value" type="password" required />
+        {/*
+         * `key` forces the uncontrolled inputs to remount whenever the user
+         * clicks "Edit" (which sets editingKey). Without it, defaultValue is only
+         * read on first mount, so clicking Edit changed the button label to
+         * "Update secret" but never populated the key field — forcing the user to
+         * retype the key from scratch.
+         */}
+        <PanelInput
+          key={`secret-key-${editingKey}`}
+          name="key"
+          placeholder="STRIPE_SECRET_KEY"
+          required
+          defaultValue={editingKey}
+        />
+        <PanelInput key={`secret-value-${editingKey}`} name="value" placeholder="Secret value" type="password" required />
         <PanelButton disabled={busy}>{editingKey ? 'Update secret' : '+ New secret'}</PanelButton>
       </form>
       {message && <div className="bolt-project-empty-panel">{message}</div>}

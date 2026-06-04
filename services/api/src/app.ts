@@ -1290,11 +1290,92 @@ function inferGitRemoteProvider(value: string) {
   return 'custom';
 }
 
-function assertReadOnlySql(query: string) {
-  const normalized = query.trim().replace(/;\s*$/, '').toLowerCase();
+/**
+ * Strip SQL string literals, quoted identifiers and comments so structural
+ * checks (statement count, keyword scan) can't be fooled by a `;` or keyword
+ * that lives inside a string. Handles single-quoted strings (with '' escapes),
+ * double-quoted and backtick identifiers, and `--` / block comments.
+ */
+function stripSqlLiteralsAndComments(query: string): string {
+  let out = '';
+  let i = 0;
+
+  while (i < query.length) {
+    const ch = query[i];
+    const next = query[i + 1];
+
+    // Line comment: -- ... \n
+    if (ch === '-' && next === '-') {
+      const nl = query.indexOf('\n', i + 2);
+      i = nl === -1 ? query.length : nl;
+      continue;
+    }
+
+    // Block comment: /* ... */
+    if (ch === '/' && next === '*') {
+      const end = query.indexOf('*/', i + 2);
+      i = end === -1 ? query.length : end + 2;
+      continue;
+    }
+
+    // Quoted spans: ' (string), " (identifier), ` (mysql identifier)
+    if (ch === "'" || ch === '"' || ch === '`') {
+      const quote = ch;
+      i += 1;
+      while (i < query.length) {
+        if (query[i] === quote) {
+          // Doubled quote is an escaped quote, not the terminator.
+          if (query[i + 1] === quote) {
+            i += 2;
+            continue;
+          }
+          i += 1;
+          break;
+        }
+        i += 1;
+      }
+      out += ' ';
+      continue;
+    }
+
+    out += ch;
+    i += 1;
+  }
+
+  return out;
+}
+
+export function assertReadOnlySql(query: string) {
+  const stripped = stripSqlLiteralsAndComments(query);
+
+  // Reject anything that smuggles in a second statement (e.g.
+  // `SELECT 1; DROP TABLE users;`). Postgres' simple-query protocol — used by
+  // `pg`'s client.query(string) — happily runs every `;`-separated statement,
+  // so a single leading SELECT is not enough to make the payload read-only.
+  const statements = stripped.split(';').map((part) => part.trim()).filter(Boolean);
+
+  if (statements.length > 1) {
+    throw Object.assign(new Error('Only a single read-only SQL statement is allowed in the IDE query editor'), {
+      statusCode: 400,
+      code: 'DATABASE_QUERY_NOT_READ_ONLY',
+    });
+  }
+
+  const normalized = (statements[0] ?? '').toLowerCase();
 
   if (!/^(select|show|describe|desc|explain|with)\b/.test(normalized)) {
     throw Object.assign(new Error('Only read-only SQL statements are allowed in the IDE query editor'), {
+      statusCode: 400,
+      code: 'DATABASE_QUERY_NOT_READ_ONLY',
+    });
+  }
+
+  // A leading `WITH` can still wrap a data-modifying CTE
+  // (`WITH t AS (DELETE FROM users RETURNING *) SELECT * FROM t`). The engine-level
+  // read-only transaction in runDatabaseQuery is the real backstop, but reject the
+  // obvious cases up front for a clearer error.
+  if (normalized.startsWith('with') && /\b(insert|update|delete|merge|drop|alter|create|truncate|grant|revoke)\b/.test(normalized)) {
+    throw Object.assign(new Error('Data-modifying statements are not allowed in the IDE query editor'), {
       statusCode: 400,
       code: 'DATABASE_QUERY_NOT_READ_ONLY',
     });
@@ -1513,13 +1594,23 @@ async function runDatabaseQuery(
     await client.connect();
 
     try {
-      const result = await client.query(query);
+      // Engine-level enforcement: a READ ONLY transaction makes Postgres reject
+      // any write — INSERT/UPDATE/DELETE/DDL and data-modifying CTEs — with
+      // "cannot execute ... in a read-only transaction", regardless of how the
+      // SQL is phrased. This is the real backstop behind assertReadOnlySql.
+      await client.query('BEGIN TRANSACTION READ ONLY');
 
-      return {
-        columns: result.fields.map((field) => field.name),
-        rows: serializeDbRows(result.rows),
-        rowCount: result.rowCount,
-      };
+      try {
+        const result = await client.query(query);
+
+        return {
+          columns: result.fields.map((field) => field.name),
+          rows: serializeDbRows(result.rows),
+          rowCount: result.rowCount,
+        };
+      } finally {
+        await client.query('ROLLBACK').catch(() => undefined);
+      }
     } finally {
       await client.end();
     }
@@ -1528,16 +1619,24 @@ async function runDatabaseQuery(
   if (connection.kind === 'mysql') {
     assertReadOnlySql(query);
 
-    const client = await mysql.createConnection(connection.value);
+    // Force multipleStatements off even if the user's connection string sets it,
+    // so a single client.query() can never run a chained write.
+    const client = await mysql.createConnection({ uri: connection.value, multipleStatements: false });
 
     try {
-      const [rows, fields] = await client.query(query);
+      await client.query('START TRANSACTION READ ONLY');
 
-      return {
-        columns: Array.isArray(fields) ? fields.map((field: any) => field.name).filter(Boolean) : [],
-        rows: serializeDbRows(rows),
-        rowCount: Array.isArray(rows) ? rows.length : undefined,
-      };
+      try {
+        const [rows, fields] = await client.query(query);
+
+        return {
+          columns: Array.isArray(fields) ? fields.map((field: any) => field.name).filter(Boolean) : [],
+          rows: serializeDbRows(rows),
+          rowCount: Array.isArray(rows) ? rows.length : undefined,
+        };
+      } finally {
+        await client.query('ROLLBACK').catch(() => undefined);
+      }
     } finally {
       await client.end();
     }
@@ -7583,7 +7682,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     toolName: (typeof aiToolNames)[number],
     input: z.infer<typeof aiToolSchema>,
   ) => {
-    const workspaceId = input.workspaceId ?? project.id;
+    /*
+     * When the caller omits an explicit runtime workspace id, resolve the
+     * deterministic per-(project,user) id the same way the runtime routes do
+     * (authorizeRuntimeWorkspace). Falling back to the bare project.id produced
+     * `workspace-<projectId>.workspaces.svc`, which never resolves — pods are
+     * named `workspace-ws-<hash>` — so every AI tool call (list_files,
+     * read_file, write_file, run_command, …) 502'd with ENOTFOUND.
+     */
+    const workspaceId =
+      input.workspaceId ?? (request.currentUser ? runtimeWorkspaceId(project.id, request.currentUser.id) : project.id);
 
     const writeTools = new Set([
       'write_file',
@@ -7805,15 +7913,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { runtimeMode: 'remote-kubernetes' },
     });
 
-    if (authorized.organizationId && !existingWorkspace) {
+    const startFailed = managerWorkspace?.status === 'FAILED';
+
+    if (authorized.organizationId && !existingWorkspace && !startFailed) {
       await recordUsage(request, authorized.organizationId, 'workspaces.active');
     }
 
-    // Reconcile our own record to the running state. This matters when reopening
-    // a previously-stopped workspace: the active-workspace quota counts RUNNING
-    // records, so leaving a reopened workspace marked STOPPED would let the user
-    // exceed their concurrent limit.
-    if (managerWorkspace?.status !== 'FAILED' && managerWorkspace?.status !== 'STOPPED') {
+    // Reconcile our own record to the manager's state. The active-workspace
+    // quota counts records in PENDING/STARTING/RUNNING (countActiveWorkspaces),
+    // so we must never leave a record "active" when nothing is actually running:
+    //  - RUNNING → mark RUNNING. Reopening a previously-stopped workspace would
+    //    otherwise stay STOPPED and let the user exceed their concurrent limit.
+    //  - FAILED → mark FAILED so the freshly-created PENDING record stops
+    //    counting. Previously a single failed start left the record PENDING,
+    //    which permanently consumed a free user's only active-workspace slot and
+    //    locked them out of starting any project until they manually hit /stop.
+    if (startFailed) {
+      await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' }).catch(() => undefined);
+    } else if (managerWorkspace?.status !== 'STOPPED') {
       await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' }).catch(() => undefined);
     }
 
@@ -7887,6 +8004,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceType: 'workspace',
       resourceId: authorized.workspaceId,
     });
+
+    // Reconcile our own record to the manager's state, mirroring the start
+    // handler. Restarting a previously-STOPPED workspace brings the pod back up;
+    // without this the record stayed STOPPED while a pod ran, under-counting the
+    // active-workspace quota (a stop→restart cycle could exceed the limit) and
+    // showing a running workspace as stopped in usage dashboards.
+    if (managerWorkspace?.status === 'FAILED') {
+      await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' }).catch(() => undefined);
+    } else {
+      await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' }).catch(() => undefined);
+    }
 
     return runtimeSession(authorized.workspaceId, managerWorkspace?.status === 'FAILED' ? 'failed' : 'running', {
       managerWorkspace,
@@ -8267,14 +8395,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(400).send({ error: 'invalid_port' });
     }
 
-    if (authorized.organizationId) {
-      await ensureQuota(request, authorized.organizationId, 'previews.public');
-      await recordUsage(request, authorized.organizationId, 'previews.public', 1, {
-        workspaceId: authorized.workspaceId,
-        port,
-      });
-    }
-
+    /*
+     * Do NOT meter `previews.public` here. This proxy is the asset-serving hot
+     * path: a single preview page load fans out into dozens of HTTP requests
+     * (HTML, CSS, JS, images, HMR polls), and `previews.public` is a cumulative
+     * sumUsage quota with tiny limits (free=1, pro=10) meant to count *preview
+     * opens*, not individual assets. Charging per request 429'd the 2nd asset
+     * for free users (the 11th for pro), permanently breaking every preview.
+     * Metering happens once on the preview-open endpoint above
+     * (`GET /preview/:port`). Authorization is still enforced.
+     */
     const token = await agentToken(authorized.workspaceId);
     const proxyPath = params['*'] ?? '';
     const agentUrl = new URL(`${agentBaseUrl(authorized.workspaceId)}/preview/${port}/${proxyPath}`);
@@ -8707,8 +8837,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       known = current;
     };
 
-    // Emit the current set immediately, then watch for transitions.
-    await sync();
+    // Emit the current set immediately, then watch for transitions. The first
+    // sync must not reject the WebSocket handler: when the workspace pod has
+    // been garbage-collected the agent hostname stops resolving (ENOTFOUND →
+    // WORKSPACE_AGENT_REQUEST_FAILED), and a thrown handler closes the socket,
+    // which the client immediately reconnects — producing an endless 502 storm
+    // against a dead agent. Keep the socket open and let the interval resync;
+    // it recovers automatically once the project is reopened and the
+    // deterministic workspace id is re-provisioned. Mirrors the file-tree watch
+    // above, whose initial snapshot is likewise guarded.
+    try {
+      await sync();
+    } catch {
+      // Agent not reachable yet (provisioning) or reclaimed; resync on the next tick.
+    }
 
     const interval = setInterval(() => {
       void sync().catch(() => {
