@@ -21,6 +21,12 @@ interface DiagnosticsState {
   clearDiagnosticsForSource: (source: string) => void;
 }
 
+// Cap the retained diagnostics so a noisy, long-running preview that emits many
+// distinct error lines can't grow the array (and the per-update full re-sort +
+// Problems-panel re-render) without bound. sortDiagnostics orders errors first
+// then most-recent, so the cap keeps the most relevant entries.
+const MAX_DIAGNOSTICS = 200;
+
 function countBySeverity(diagnostics: Diagnostic[]) {
   return diagnostics.reduce(
     (counts, diagnostic) => {
@@ -54,7 +60,7 @@ export const useDiagnosticsStore = create<DiagnosticsState>((set, get) => ({
     const nextDiagnostics = sortDiagnostics([
       ...get().diagnostics.filter((diagnostic) => diagnostic.source !== source),
       ...diagnostics.map((diagnostic) => ({ ...diagnostic, source })),
-    ]);
+    ]).slice(0, MAX_DIAGNOSTICS);
 
     const counts = countBySeverity(nextDiagnostics);
 
