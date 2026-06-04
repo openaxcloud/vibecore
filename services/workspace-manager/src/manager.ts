@@ -134,17 +134,37 @@ export class WorkspaceManager {
       secretEnv,
       env: { ...input.env, WORKSPACE_ID: input.workspaceId },
     };
-    const record = await this.store.create({
+    const baseRecord = {
       id: input.workspaceId,
       orgId: input.orgId,
       projectId: input.projectId,
       plan: input.plan,
-      status: 'STARTING',
+      status: 'STARTING' as const,
       pvcName,
       podName: `workspace-${input.workspaceId}`,
       serviceName: `workspace-${input.workspaceId}`,
       agentTokenSecretName,
-    });
+    };
+
+    /*
+     * Workspace ids are deterministic per (project, user), so reopening a
+     * project re-enters this path with the SAME id. GC never drops the row —
+     * stopWorkspace/deleteWorkspace only flip status to STOPPED/DELETED — so a
+     * blind create() collides on the unique id under the Prisma store (the JSON
+     * store silently overwrote, masking this in tests) and the workspace could
+     * never be re-provisioned: the start 500s, the API returns 502, and the IDE
+     * shows "Crashed runtime" forever. Reuse the existing row instead, resetting
+     * it to STARTING and clearing any prior failure so a fresh pod/PVC/Service
+     * is provisioned below. This also makes restartWorkspace (stop→start) work.
+     */
+    const existing = await this.store.get(input.workspaceId);
+    const record = existing
+      ? await this.store.update(input.workspaceId, {
+          ...baseRecord,
+          error: undefined,
+          lastActiveAt: new Date().toISOString(),
+        })
+      : await this.store.create(baseRecord);
 
     try {
       await this.k8s.apply(workspacePvc(runtimeInput));

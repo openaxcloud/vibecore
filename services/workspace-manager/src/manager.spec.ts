@@ -70,6 +70,22 @@ class TestWorkspaceStore implements WorkspaceStore {
   }
 }
 
+/*
+ * Mirrors the Prisma store, whose create() rejects a duplicate id with a
+ * unique-constraint violation. The plain TestWorkspaceStore (like the JSON
+ * store) overwrites on create, which silently masked the reopen regression in
+ * production — only this strict store reproduces it.
+ */
+class StrictTestWorkspaceStore extends TestWorkspaceStore {
+  override async create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>) {
+    if (this.workspaces.has(input.id)) {
+      throw Object.assign(new Error('Unique constraint failed on the fields: (`id`)'), { code: 'P2002' });
+    }
+
+    return super.create(input);
+  }
+}
+
 class TestEventBus implements EventBus {
   readonly events: WorkspaceEvent[] = [];
 
@@ -156,5 +172,39 @@ describe('WorkspaceManager', () => {
     );
     expect(k8s.objects.has('workspaces:PersistentVolumeClaim:pvc-workspace_1')).toBe(false);
     expect(k8s.objects.has('workspaces:Secret:agent-token-workspace_1')).toBe(false);
+  });
+
+  it('re-provisions a fresh pod when reopening a garbage-collected workspace (deterministic id is reused)', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new StrictTestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    expect((await manager.startWorkspace(input)).status).toBe('RUNNING');
+
+    // Simulate workspace-gc reaping the idle workspace: the pod/Service/PVC are
+    // deleted but the DB row survives with status DELETED.
+    await manager.deleteWorkspace('workspaces', input.workspaceId);
+    expect((await store.get(input.workspaceId))?.status).toBe('DELETED');
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(false);
+
+    // Reopening the project re-enters startWorkspace with the same id. Before
+    // the fix this threw P2002 (create() on an existing row) and the workspace
+    // could never come back; now it reuses the row and re-applies resources.
+    const reopened = await manager.startWorkspace(input);
+    expect(reopened.status).toBe('RUNNING');
+    expect(reopened.error).toBeUndefined();
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(true);
+    expect(k8s.objects.has('workspaces:Service:workspace-workspace_1')).toBe(true);
+    expect(k8s.objects.has('workspaces:PersistentVolumeClaim:pvc-workspace_1')).toBe(true);
+  });
+
+  it('restarts a stopped workspace under a Prisma-style store that rejects duplicate creates', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new StrictTestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+    expect((await manager.stopWorkspace('workspaces', input.workspaceId)).status).toBe('STOPPED');
+    expect((await manager.restartWorkspace(input)).status).toBe('RUNNING');
   });
 });
