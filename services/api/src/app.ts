@@ -828,6 +828,11 @@ const integrationOauthCallbackBodySchema = z.object({
   state: z.string().min(1),
 });
 
+const integrationApiKeyConfigureBodySchema = z.object({
+  apiKey: z.string().trim().min(1).max(2048),
+  projectId: z.string().min(1).optional(),
+});
+
 const userConnectionListQuerySchema = z.object({ provider: z.string().min(1).optional() });
 const userConnectionIdParams = z.object({ userConnectionId: z.string().min(1) });
 
@@ -5675,6 +5680,120 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         throw error;
       }
+    },
+  );
+
+  app.post(
+    '/api/integrations/api-key/:provider/configure',
+    {
+      config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      if (!request.currentUser) {
+        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      }
+
+      const params = parse(integrationOauthProviderParams, request.params);
+      const body = parse(integrationApiKeyConfigureBodySchema, request.body);
+
+      const connector = connectorProviderFor(params.provider);
+
+      if (!connector) {
+        return reply.code(400).send({
+          error: `Unsupported connector provider: ${params.provider}`,
+          code: 'CONNECTOR_UNKNOWN_PROVIDER',
+        });
+      }
+
+      if (connector.authType !== 'api_key' || !connector.testApiKey) {
+        return reply.code(400).send({
+          error: `Provider ${params.provider} is an OAuth connector and cannot be configured with an API key.`,
+          code: 'CONNECTOR_AUTH_TYPE_MISMATCH',
+        });
+      }
+
+      let projectId: string | undefined;
+      let organizationId: string;
+
+      if (body.projectId) {
+        const project = await requireProject(request, store, body.projectId, 'projects:write');
+        projectId = project.id;
+        organizationId = project.organizationId;
+      } else {
+        const orgs = await store.listOrganizations(request.currentUser.id);
+
+        if (orgs.length === 0) {
+          return reply.code(400).send({
+            error: 'Account is not a member of any organization.',
+            code: 'NO_ORGANIZATION_MEMBERSHIP',
+          });
+        }
+
+        organizationId = orgs[0].id;
+      }
+
+      const testResult = await connector.testApiKey({ apiKey: body.apiKey });
+
+      if (!testResult.ok) {
+        const status = testResult.code === 'API_KEY_INVALID' || testResult.code === 'API_KEY_EXPIRED' ? 400
+          : testResult.code === 'API_KEY_INSUFFICIENT_SCOPE' ? 403
+          : 502;
+
+        return reply.code(status).send({
+          error: testResult.detail ?? `Provider ${params.provider} rejected the API key.`,
+          code: testResult.code ?? 'API_KEY_INVALID',
+        });
+      }
+
+      const userInfo = testResult.userInfo;
+
+      if (!userInfo) {
+        return reply.code(502).send({
+          error: `Provider ${params.provider} accepted the API key but returned no account info.`,
+          code: 'PROVIDER_RESPONSE_MALFORMED',
+        });
+      }
+
+      const accessTokenEncrypted = encryptJson({ value: body.apiKey });
+
+      const userConnection = await store.upsertUserConnection({
+        userId: request.currentUser.id,
+        provider: params.provider,
+        externalAccountId: userInfo.externalAccountId,
+        externalAccountLabel: userInfo.externalAccountLabel,
+        accessTokenEncrypted,
+        scopes: [],
+        forAgentUse: true,
+        oauthAppSource: 'e_code_default',
+        createdByUserId: request.currentUser.id,
+      });
+
+      if (projectId) {
+        await store.linkProjectToUserConnection({
+          projectId,
+          userConnectionId: userConnection.id,
+          linkedByUserId: request.currentUser.id,
+        });
+      }
+
+      await audit(request, store, {
+        organizationId,
+        action: `connector.api_key.${params.provider}.configure`,
+        resourceType: 'UserConnection',
+        resourceId: userConnection.id,
+        metadata: {
+          projectId: projectId ?? null,
+          scope: projectId ? 'project' : 'account',
+          provider: params.provider,
+          accountLabel: userInfo.externalAccountLabel,
+        },
+      });
+
+      return {
+        userConnectionId: userConnection.id,
+        provider: params.provider,
+        accountLabel: userInfo.externalAccountLabel,
+      };
     },
   );
 
