@@ -29,6 +29,7 @@ interface BitbucketUserResponse {
 
 export const bitbucketConnector: ConnectorProvider = {
   provider: 'bitbucket',
+  authType: 'oauth',
 
   buildAuthorizeUrl({ credentials, state }) {
     const url = new URL(AUTHORIZE_URL);

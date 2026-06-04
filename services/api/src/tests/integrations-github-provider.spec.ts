@@ -26,7 +26,7 @@ function recordingFetch(handler: (input: URL, init: RequestInit) => Promise<Resp
 
 describe('githubConnector.buildAuthorizeUrl', () => {
   it('encodes the client id, redirect URI, scope list and state', () => {
-    const url = githubConnector.buildAuthorizeUrl({
+    const url = githubConnector.buildAuthorizeUrl!({
       credentials,
       state: 'state-abc',
     });
@@ -48,7 +48,7 @@ describe('githubConnector.exchangeCodeForToken', () => {
       { status: 200, headers: { 'content-type': 'application/json' } },
     ));
 
-    const result = await githubConnector.exchangeCodeForToken({
+    const result = await githubConnector.exchangeCodeForToken!({
       credentials,
       code: 'auth-code-123',
       fetchImpl: fn,
@@ -70,7 +70,7 @@ describe('githubConnector.exchangeCodeForToken', () => {
     const fn = (async () => new Response('boom', { status: 502 })) as unknown as typeof fetch;
 
     await expect(
-      githubConnector.exchangeCodeForToken({ credentials, code: 'x', fetchImpl: fn }),
+      githubConnector.exchangeCodeForToken!({ credentials, code: 'x', fetchImpl: fn }),
     ).rejects.toMatchObject({ code: 'PROVIDER_TOKEN_EXCHANGE_FAILED', httpStatus: 502 });
   });
 
@@ -81,7 +81,7 @@ describe('githubConnector.exchangeCodeForToken', () => {
     )) as unknown as typeof fetch;
 
     await expect(
-      githubConnector.exchangeCodeForToken({ credentials, code: 'x', fetchImpl: fn }),
+      githubConnector.exchangeCodeForToken!({ credentials, code: 'x', fetchImpl: fn }),
     ).rejects.toBeInstanceOf(ConnectorProviderError);
   });
 
@@ -92,7 +92,7 @@ describe('githubConnector.exchangeCodeForToken', () => {
     })) as unknown as typeof fetch;
 
     await expect(
-      githubConnector.exchangeCodeForToken({ credentials, code: 'x', fetchImpl: fn }),
+      githubConnector.exchangeCodeForToken!({ credentials, code: 'x', fetchImpl: fn }),
     ).rejects.toMatchObject({ code: 'PROVIDER_RESPONSE_MALFORMED' });
   });
 });

@@ -92,6 +92,9 @@ import {
 import { bitbucketConnector, resolveBitbucketCredentials } from './integrations/providers/bitbucket.js';
 import { githubConnector, resolveGithubCredentials } from './integrations/providers/github.js';
 import { gitlabConnector, resolveGitLabCredentials } from './integrations/providers/gitlab.js';
+import { netlifyConnector } from './integrations/providers/netlify.js';
+import { supabaseConnector } from './integrations/providers/supabase.js';
+import { vercelConnector } from './integrations/providers/vercel.js';
 import {
   ConnectorProviderError,
   type ConnectorOAuthCredentials,
@@ -3697,6 +3700,12 @@ function connectorProviderFor(provider: string): ConnectorProvider | undefined {
       return gitlabConnector;
     case 'bitbucket':
       return bitbucketConnector;
+    case 'vercel':
+      return vercelConnector;
+    case 'supabase':
+      return supabaseConnector;
+    case 'netlify':
+      return netlifyConnector;
     default:
       return undefined;
   }
@@ -5480,6 +5489,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
+      if (connector.authType !== 'oauth' || !connector.buildAuthorizeUrl) {
+        return reply.code(400).send({
+          error: `Provider ${params.provider} is an API-key connector and cannot start an OAuth flow.`,
+          code: 'CONNECTOR_AUTH_TYPE_MISMATCH',
+        });
+      }
+
       let projectId: string | undefined;
       let organizationId: string;
 
@@ -5547,6 +5563,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.code(400).send({
           error: `Unsupported connector provider: ${params.provider}`,
           code: 'CONNECTOR_UNKNOWN_PROVIDER',
+        });
+      }
+
+      if (connector.authType !== 'oauth' || !connector.exchangeCodeForToken) {
+        return reply.code(400).send({
+          error: `Provider ${params.provider} is an API-key connector and cannot complete an OAuth callback.`,
+          code: 'CONNECTOR_AUTH_TYPE_MISMATCH',
         });
       }
 
