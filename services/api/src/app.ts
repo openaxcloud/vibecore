@@ -300,7 +300,19 @@ const createProjectFromAiSchema = z.object({
   model: z.string().min(1).max(120).optional(),
 });
 const githubImportSchema = z.object({
-  repositoryUrl: z.string().url(),
+  repositoryUrl: z
+    .string()
+    .url()
+    .refine(
+      (value) => {
+        try {
+          return ['http:', 'https:'].includes(new URL(value).protocol);
+        } catch {
+          return false;
+        }
+      },
+      { message: 'Repository URL must be an http(s) Git URL, e.g. https://github.com/org/repo.' },
+    ),
   branch: z.string().min(1).optional(),
   name: z.string().min(1).optional(),
   slug: z.string().min(2).optional(),

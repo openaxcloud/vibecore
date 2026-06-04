@@ -4204,6 +4204,27 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     await app.close();
   });
 
+  it('rejects GitHub import URLs that are not http(s)', async () => {
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, { email: 'git-scheme@example.com', organizationName: 'Git Scheme Org' });
+
+    for (const repositoryUrl of [
+      'file:///etc/passwd',
+      'ftp://example.com/repo.git',
+      'ssh://git@example.com/org/repo.git',
+    ]) {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects/import/github`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { repositoryUrl },
+      });
+      expect(response.statusCode, `${repositoryUrl} should be rejected`).toBe(400);
+    }
+
+    await app.close();
+  });
+
   it('discovers database connections without exposing secret values and blocks unsafe queries', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'database@example.com', organizationName: 'Database Org' });

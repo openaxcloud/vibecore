@@ -492,6 +492,64 @@ async function clearTreePreservingSecondaryWorkspaces(target: string) {
   }
 }
 
+/*
+ * GitHub import runs `git clone` inside the request lifecycle. Without an
+ * explicit timeout a slow, huge or unreachable repository — or a private repo
+ * that makes git block on a credential prompt — would hang until some upstream
+ * proxy gave up minutes later, surfacing to the user as an opaque 500. We cap
+ * the clone, disable interactive prompts, and translate failures into typed
+ * 4xx errors the UI can render inline. Overridable via env for large repos.
+ */
+const GIT_IMPORT_CLONE_TIMEOUT_MS = Number(process.env.GIT_IMPORT_TIMEOUT_MS) || 120_000;
+const GIT_IMPORT_METADATA_TIMEOUT_MS = Number(process.env.GIT_IMPORT_METADATA_TIMEOUT_MS) || 15_000;
+const GIT_IMPORT_MAX_BUFFER_BYTES = 64 * 1024 * 1024;
+const ALLOWED_GIT_IMPORT_PROTOCOLS = new Set(['http:', 'https:']);
+
+function assertHttpRepositoryUrl(repositoryUrl: string) {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(repositoryUrl);
+  } catch {
+    throw Object.assign(new Error('Enter a valid repository URL, for example https://github.com/org/repo.'), {
+      statusCode: 400,
+      code: 'INVALID_REPOSITORY_URL',
+    });
+  }
+
+  // `git clone` understands transports like file:// and ext:: that read local
+  // files or execute arbitrary commands. Only allow plain http(s) fetches.
+  if (!ALLOWED_GIT_IMPORT_PROTOCOLS.has(parsed.protocol)) {
+    throw Object.assign(new Error('Only http(s) Git repository URLs can be imported.'), {
+      statusCode: 400,
+      code: 'INVALID_REPOSITORY_URL',
+    });
+  }
+}
+
+function repositoryImportError(error: unknown) {
+  const failure = error as NodeJS.ErrnoException & { killed?: boolean; signal?: NodeJS.Signals | null };
+
+  // `execFile`'s `timeout` kills the process (killed=true, signal SIGTERM) when
+  // the clone overruns. Treat it as a user-actionable 4xx, not a server crash.
+  if (failure?.killed || failure?.signal === 'SIGTERM' || failure?.code === 'ETIMEDOUT') {
+    return Object.assign(
+      new Error('The repository took too long to import. Try a smaller repository or a specific branch.'),
+      { statusCode: 422, code: 'GIT_IMPORT_TIMEOUT' },
+    );
+  }
+
+  /*
+   * Never echo raw git stderr to the client: it can contain a token baked into
+   * the URL or internal paths. Return a sanitized, actionable message — the 4xx
+   * status keeps this out of the 5xx error log / Sentry noise.
+   */
+  return Object.assign(
+    new Error('Could not clone the repository. Check the URL and branch are correct and the repository is public.'),
+    { statusCode: 422, code: 'GIT_IMPORT_FAILED' },
+  );
+}
+
 export class GitCliProvider implements GitProvider {
   private workspacePath(projectId: string, workspaceId?: string) {
     if (!workspaceId) {
@@ -595,28 +653,51 @@ export class GitCliProvider implements GitProvider {
   }
 
   async importRepository(input: { repositoryUrl: string; branch?: string }) {
+    assertHttpRepositoryUrl(input.repositoryUrl);
+
     const projectId = `import-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
     return withProjectLock(projectId, async () => {
       const target = safeProjectPath(projectId);
       await mkdir(dirname(target), { recursive: true });
-      await execFile(
-        'git',
-        ['clone', '--depth=1', ...(input.branch ? ['--branch', input.branch] : []), input.repositoryUrl, target],
-        {
-          env: this.gitEnv(),
-        },
-      );
 
-      const files = await walkFiles(target);
+      try {
+        try {
+          await execFile(
+            'git',
+            // `--` separates options from the URL so a repo arg can't be parsed
+            // as a flag; GIT_TERMINAL_PROMPT=0 fails fast instead of blocking on
+            // a credential prompt for private repos.
+            ['clone', '--depth=1', ...(input.branch ? ['--branch', input.branch] : []), '--', input.repositoryUrl, target],
+            {
+              env: { ...this.gitEnv(), GIT_TERMINAL_PROMPT: '0' },
+              timeout: GIT_IMPORT_CLONE_TIMEOUT_MS,
+              maxBuffer: GIT_IMPORT_MAX_BUFFER_BYTES,
+            },
+          );
+        } catch (error) {
+          throw repositoryImportError(error);
+        }
 
-      const defaultBranch =
-        input.branch ??
-        commandStdout(
-          await execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: target, env: this.gitEnv() }),
-        ).trim();
+        const files = await walkFiles(target);
 
-      return { files, defaultBranch, remoteUrl: input.repositoryUrl };
+        const defaultBranch =
+          input.branch ??
+          commandStdout(
+            await execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+              cwd: target,
+              env: this.gitEnv(),
+              timeout: GIT_IMPORT_METADATA_TIMEOUT_MS,
+            }),
+          ).trim();
+
+        return { files, defaultBranch, remoteUrl: input.repositoryUrl };
+      } finally {
+        // The clone is throwaway staging: walkFiles already pulled the contents
+        // into memory and the caller re-persists them under the real project id.
+        // Drop the copy so each import doesn't leak a full repo tree on disk.
+        await rm(target, { recursive: true, force: true }).catch(() => undefined);
+      }
     });
   }
 
