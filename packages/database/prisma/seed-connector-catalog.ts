@@ -131,7 +131,7 @@ export const CONNECTOR_CATALOG_SEEDS: ConnectorCatalogSeed[] = [
     minPlanTier: 'pro',
     forAgentUse: true,
     displayOrder: 30,
-    enabled: false,
+    enabled: true,
   },
   {
     provider: 'supabase',
@@ -154,7 +154,7 @@ export const CONNECTOR_CATALOG_SEEDS: ConnectorCatalogSeed[] = [
     minPlanTier: 'pro',
     forAgentUse: true,
     displayOrder: 40,
-    enabled: false,
+    enabled: true,
   },
   {
     provider: 'netlify',
@@ -176,7 +176,7 @@ export const CONNECTOR_CATALOG_SEEDS: ConnectorCatalogSeed[] = [
     minPlanTier: 'pro',
     forAgentUse: true,
     displayOrder: 35,
-    enabled: false,
+    enabled: true,
   },
   {
     provider: 'gitlab',
@@ -194,7 +194,7 @@ export const CONNECTOR_CATALOG_SEEDS: ConnectorCatalogSeed[] = [
     minPlanTier: 'pro',
     forAgentUse: true,
     displayOrder: 20,
-    enabled: false,
+    enabled: true,
   },
 ];
 
