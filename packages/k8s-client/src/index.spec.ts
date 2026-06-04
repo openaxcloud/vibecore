@@ -11,6 +11,7 @@ import {
   workspaceLimitRange,
   workspaceResourceQuota,
   workspaceRuntimeClass,
+  WORKSPACE_CONTAINER_MAX_DISK_GB,
   type WorkspaceRuntimeInput,
 } from './index.js';
 
@@ -96,8 +97,25 @@ describe('workspace Kubernetes manifests', () => {
 
     const limitRangeMax = (workspaceLimitRange('workspaces').spec as any).limits[0].max;
     expect(container.resources.limits).toEqual(limitRangeMax);
-    // Storage is not constrained by the per-Container LimitRange, so it passes through.
+    // At the per-workspace disk cap (100Gi), the entitlement passes through unchanged.
     expect(workspacePvc(enterpriseInput).spec?.resources).toEqual({ requests: { storage: '100Gi' } });
+  });
+
+  it('clamps an oversized storage entitlement to the per-workspace disk cap', () => {
+    // The enterprise plan's `storage.gb: 10_000` is an account-wide allotment, but the
+    // API forwarded it verbatim as the per-workspace PVC size. A 10_000Gi disk exceeds
+    // the regional DISKS_TOTAL_GB quota on its own, so the CSI provisioner rejected it
+    // (QUOTA_EXCEEDED), the PVC stayed Pending and the Pod never scheduled. The resolved
+    // disk must never exceed WORKSPACE_CONTAINER_MAX_DISK_GB.
+    const oversizedInput = {
+      ...input,
+      plan: 'enterprise' as const,
+      resourceLimits: { cpuMillicores: 16_000, ramMb: 65_536, storageGb: 10_000 },
+    };
+
+    expect(workspacePvc(oversizedInput).spec?.resources).toEqual({
+      requests: { storage: `${WORKSPACE_CONTAINER_MAX_DISK_GB}Gi` },
+    });
   });
 
   it('pins workspace PVCs to the configured storage class', () => {

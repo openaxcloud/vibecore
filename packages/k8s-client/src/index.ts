@@ -250,9 +250,19 @@ export function workspaceResourceQuota(namespace: string): K8sObject {
  * provisions a working (if smaller) runtime instead of failing outright. These
  * constants are the single source of truth for the LimitRange max below — keep them
  * in sync so the clamp can never drift above admission again.
+ *
+ * Storage has the same failure mode through a different gate: the per-workspace PVC
+ * size arrives as `resourceLimits.storageGb`, but callers may hand us an account-wide
+ * entitlement (e.g. the Enterprise plan's `storage.gb: 10_000` total allotment) rather
+ * than a per-workspace size. A 10_000Gi PVC exceeds the regional `DISKS_TOTAL_GB`
+ * quota on its own, so the CSI provisioner rejects it (QUOTA_EXCEEDED), the PVC stays
+ * Pending, and the Pod never schedules — same blank-editor / dead-preview outcome.
+ * Clamp the per-workspace disk to the largest plan default so an oversized entitlement
+ * can never wedge provisioning.
  */
 export const WORKSPACE_CONTAINER_MAX_CPU_MILLICORES = 4000;
 export const WORKSPACE_CONTAINER_MAX_RAM_MB = 8192;
+export const WORKSPACE_CONTAINER_MAX_DISK_GB = 100;
 
 function resolveWorkspaceResources(input: WorkspaceRuntimeInput) {
   const plan = planResources[input.plan];
@@ -261,7 +271,7 @@ function resolveWorkspaceResources(input: WorkspaceRuntimeInput) {
     WORKSPACE_CONTAINER_MAX_CPU_MILLICORES,
   );
   const ramMb = clampPositive(positiveInteger(input.resourceLimits?.ramMb), WORKSPACE_CONTAINER_MAX_RAM_MB);
-  const storageGb = positiveInteger(input.resourceLimits?.storageGb);
+  const storageGb = clampPositive(positiveInteger(input.resourceLimits?.storageGb), WORKSPACE_CONTAINER_MAX_DISK_GB);
 
   return {
     cpuRequest: cpuMillicores ? formatCpuMillicores(Math.max(50, Math.floor(cpuMillicores / 4))) : plan.cpuRequest,
