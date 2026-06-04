@@ -66,8 +66,51 @@ function normalizeSharedSecret(value: string | undefined): string | undefined {
   return normalized ? normalized : undefined;
 }
 
+/**
+ * Control-plane auth for the manager's mutating/sensitive routes. The manager can mint
+ * agent tokens (cross-tenant workspace access), start/stop/delete arbitrary workspaces
+ * and trigger GC — so when a shared secret is configured every non-health route must
+ * present it as a bearer. The secret is `WORKSPACE_MANAGER_SHARED_SECRET`, falling back
+ * to `PREVIEW_PROXY_SHARED_SECRET` (already wired between api↔manager) so existing
+ * deployments are protected the moment either is set. In production an unset secret is a
+ * hard misconfiguration and is rejected (fail-closed); outside production it is allowed
+ * so local/dev and tests keep working without a secret.
+ */
+function controlPlaneSecret(): string | undefined {
+  return (
+    normalizeSharedSecret(process.env.WORKSPACE_MANAGER_SHARED_SECRET) ??
+    normalizeSharedSecret(process.env.PREVIEW_PROXY_SHARED_SECRET)
+  );
+}
+
 export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   const app = Fastify({ logger: false });
+
+  app.addHook('onRequest', async (request, reply) => {
+    if (request.url === '/health' || request.url.startsWith('/health?')) {
+      return;
+    }
+
+    const expected = controlPlaneSecret();
+
+    if (!expected) {
+      if (process.env.NODE_ENV === 'production') {
+        return reply
+          .code(503)
+          .send({ error: 'Workspace manager shared secret is not configured', code: 'WORKSPACE_MANAGER_NOT_CONFIGURED' });
+      }
+
+      return; // dev/test convenience only
+    }
+
+    const authorization = request.headers.authorization;
+    const value = Array.isArray(authorization) ? authorization[0] : authorization;
+    const token = normalizeSharedSecret(value?.replace(/^Bearer\s+/i, ''));
+
+    if (token !== expected) {
+      return reply.code(401).send({ error: 'Unauthorized workspace manager request', code: 'WORKSPACE_MANAGER_UNAUTHORIZED' });
+    }
+  });
 
   app.get('/health', async () => ({ status: 'ok' }));
   app.post('/workspaces/start', async (request) => manager.startWorkspace(startSchema.parse(request.body)));

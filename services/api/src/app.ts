@@ -2797,7 +2797,17 @@ const wellKnownOauthEndpoints: Record<
 };
 
 async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthCallbackSchema>) {
+  // Test-only seam: accept a pre-resolved profile without performing a real provider
+  // code exchange. This MUST never be reachable in production — otherwise any caller
+  // could POST an arbitrary { email, externalId, accessToken } and be issued a session
+  // for that identity (full account takeover / auto-provisioning of any email).
   if (body.email && body.externalId && body.accessToken) {
+    if (process.env.NODE_ENV === 'production') {
+      throw Object.assign(new Error('Pre-resolved OAuth profiles are test-only'), {
+        statusCode: 400,
+        code: 'OAUTH_INVALID_CALLBACK',
+      });
+    }
     return {
       email: body.email.toLowerCase(),
       name: body.name,
@@ -5123,7 +5133,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const provider = (request.params as { provider: string }).provider;
       const body = parse(oauthCallbackSchema, request.body);
 
-      if (body.code && body.state && !verifyOauthState(body.state, provider)) {
+      // The real OAuth code flow requires a valid state parameter (login-CSRF protection).
+      // State must be mandatory whenever a code is present — a missing state previously
+      // skipped validation entirely.
+      if (body.code && (!body.state || !verifyOauthState(body.state, provider))) {
         return reply.code(401).send({ error: 'Invalid or expired OAuth state', code: 'OAUTH_STATE_INVALID' });
       }
 
@@ -5206,7 +5219,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     async (request, reply) => {
       const body = parse(oidcCallbackSchema, request.body);
 
-      if (body.code && body.state && !verifyOauthState(body.state, 'oidc')) {
+      if (body.code && (!body.state || !verifyOauthState(body.state, 'oidc'))) {
         return reply.code(401).send({ error: 'Invalid or expired OIDC state', code: 'OAUTH_STATE_INVALID' });
       }
 
@@ -6949,11 +6962,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const managerRequest = async <T = unknown>(path: string, init: RequestInit = {}) => {
     let response: Response;
 
+    // The workspace manager gates its control-plane routes behind a shared secret
+    // (WORKSPACE_MANAGER_SHARED_SECRET, falling back to PREVIEW_PROXY_SHARED_SECRET).
+    // Forward it as a bearer so authenticated api→manager calls succeed.
+    const managerSecret = (
+      process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim() || process.env.PREVIEW_PROXY_SHARED_SECRET?.trim()
+    );
+
     try {
       response = await fetch(`${workspaceManagerUrl()}${path}`, {
         ...init,
         headers: {
           accept: 'application/json',
+          ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}),
           ...(init.body && typeof init.body === 'string' ? { 'content-type': 'application/json' } : {}),
           ...(init.headers as Record<string, string> | undefined),
         },

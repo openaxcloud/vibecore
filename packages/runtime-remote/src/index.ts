@@ -62,6 +62,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   #terminals = new Map<string, WebSocketLike>();
   #terminalStops = new Map<string, () => void>();
   #eventStreams = new Map<string, AsyncQueue<CommandEvent>>();
+  #socketConnectTimeoutMs = 30_000;
 
   constructor(options: RemoteKubernetesRuntimeAdapterOptions) {
     this.#baseUrl = options.baseUrl.replace(/\/+$/, '');
@@ -187,14 +188,45 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   async *streamCommand(request: CommandRequest): AsyncIterable<CommandEvent> {
     const socket = await this.#openSocket(`/workspaces/${this.#requireWorkspaceId()}/commands/stream`, request);
     const queue = new AsyncQueue<CommandEvent>();
-    socket.addEventListener('message', (event: { data: string }) => queue.push(JSON.parse(event.data)));
-    socket.addEventListener('error', () =>
-      queue.push({ type: 'error', error: new RuntimeError('Command stream failed'), timestamp: now() }),
-    );
+    socket.addEventListener('message', (event: { data: string }) => {
+      let parsed: CommandEvent;
+
+      try {
+        parsed = JSON.parse(event.data) as CommandEvent;
+      } catch {
+        // Ignore a malformed frame rather than throwing out of the WS message dispatch
+        // (which would otherwise leave the queue open and hang the consumer).
+        return;
+      }
+
+      queue.push(parsed);
+
+      // The command is done once the agent reports exit/error. Close the queue so the
+      // consumer's `for await` terminates even if the agent keeps the socket open.
+      if (parsed.type === 'exit' || parsed.type === 'error') {
+        queue.close();
+      }
+    });
+    socket.addEventListener('error', () => {
+      queue.push({ type: 'error', error: new RuntimeError('Command stream failed'), timestamp: now() });
+      queue.close();
+    });
     socket.addEventListener('close', () => queue.close());
 
-    for await (const event of queue) {
-      yield event;
+    // Always tear down the socket — including when the consumer breaks/throws out of the
+    // loop early — so we never leak a live WebSocket + listeners per cancelled command.
+    try {
+      for await (const event of queue) {
+        yield event;
+      }
+    } finally {
+      queue.close();
+
+      try {
+        socket.close();
+      } catch {
+        // socket may already be closing/closed
+      }
     }
   }
 
@@ -399,7 +431,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async restoreSnapshot(snapshotId: string): Promise<void> {
-    await this.#request(`/workspaces/${this.#requireWorkspaceId()}/snapshots/${snapshotId}/restore`, {
+    await this.#request(`/workspaces/${this.#requireWorkspaceId()}/snapshots/${encodeURIComponent(snapshotId)}/restore`, {
       method: 'POST',
     });
   }
@@ -480,14 +512,58 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     const socket = new this.#WebSocket(url.toString());
 
     await new Promise<void>((resolve, reject) => {
-      socket.addEventListener('open', () => {
+      let settled = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+
+      const onOpen = () => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        cleanup();
+
         if (hello) {
           socket.send(JSON.stringify({ type: 'hello', payload: hello }));
         }
 
         resolve();
-      });
-      socket.addEventListener('error', () => reject(new RuntimeError('Remote runtime WebSocket failed to connect')));
+      };
+
+      const onError = () => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        cleanup();
+
+        // Close the half-open socket so a failed connect doesn't leak it (reconnect
+        // backoff loops would otherwise accumulate dead sockets + listeners).
+        try {
+          socket.close();
+        } catch {
+          // already closing/closed
+        }
+
+        reject(new RuntimeError('Remote runtime WebSocket failed to connect'));
+      };
+
+      const cleanup = () => {
+        if (timer) {
+          clearTimeout(timer);
+        }
+
+        socket.removeEventListener?.('open', onOpen);
+        socket.removeEventListener?.('error', onError);
+      };
+
+      // Guard against a socket that connects at the TCP/TLS layer but never receives the
+      // upgrade/open event (hung LB) — without this the awaiting caller hangs forever.
+      timer = setTimeout(onError, this.#socketConnectTimeoutMs);
+
+      socket.addEventListener('open', onOpen);
+      socket.addEventListener('error', onError);
     });
 
     return socket;
@@ -499,6 +575,17 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
 
+    // The per-caller onMessage callbacks JSON.parse the frame inline; a single malformed
+    // frame (or a throwing consumer callback) would otherwise throw out of the WS message
+    // dispatch and silently kill the watch without triggering reconnect. Swallow it.
+    const safeOnMessage = (event: { data: string }) => {
+      try {
+        onMessage(event);
+      } catch {
+        // ignore malformed frame / callback error; keep the stream alive
+      }
+    };
+
     const connect = async () => {
       if (stopped) {
         return;
@@ -507,7 +594,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       try {
         socket = await this.#openSocket(path, hello);
         attempts = 0;
-        socket.addEventListener('message', onMessage);
+        socket.addEventListener('message', safeOnMessage);
         socket.addEventListener('close', scheduleReconnect);
         socket.addEventListener('error', scheduleReconnect);
       } catch {
@@ -538,7 +625,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       }
 
       if (socket) {
-        socket.removeEventListener?.('message', onMessage);
+        socket.removeEventListener?.('message', safeOnMessage);
         socket.removeEventListener?.('close', scheduleReconnect);
         socket.removeEventListener?.('error', scheduleReconnect);
         socket.close();
@@ -586,10 +673,10 @@ class AsyncQueue<T> implements AsyncIterable<T> {
   [Symbol.asyncIterator](): AsyncIterator<T> {
     return {
       next: () => {
-        const value = this.#values.shift();
-
-        if (value) {
-          return Promise.resolve({ value, done: false });
+        // Check length, not truthiness: a falsy-but-valid payload (0, '', false, null)
+        // must still be delivered, not silently dropped and the iterator desynchronized.
+        if (this.#values.length > 0) {
+          return Promise.resolve({ value: this.#values.shift() as T, done: false });
         }
 
         if (this.#closed) {

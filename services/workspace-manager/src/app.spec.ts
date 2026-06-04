@@ -126,6 +126,34 @@ describe('workspace-manager app', () => {
     await app.close();
   });
 
+  it('requires the shared secret on control-plane routes when one is configured', async () => {
+    process.env.WORKSPACE_RUNTIME_NAMESPACE = 'prod-workspaces';
+    process.env.PREVIEW_PROXY_SHARED_SECRET = 'cp-secret';
+    const runtime = manager();
+    const app = buildWorkspaceManagerApp(runtime.manager);
+
+    const unauthorized = await app.inject({
+      method: 'GET',
+      url: '/workspaces/some-ws/agent-token',
+    });
+    expect(unauthorized.statusCode).toBe(401);
+    expect(unauthorized.json().code).toBe('WORKSPACE_MANAGER_UNAUTHORIZED');
+
+    const authorized = await app.inject({
+      method: 'GET',
+      url: '/workspaces/some-ws/agent-token',
+      headers: { authorization: 'Bearer cp-secret' },
+    });
+    // Passes auth; agent-token mints regardless of whether the workspace record exists.
+    expect(authorized.statusCode).toBe(200);
+
+    // /health stays open for liveness probes.
+    const health = await app.inject({ method: 'GET', url: '/health' });
+    expect(health.statusCode).toBe(200);
+
+    await app.close();
+  });
+
   it('exposes preview proxy agent resolution only with the shared secret', async () => {
     process.env.WORKSPACE_RUNTIME_NAMESPACE = 'prod-workspaces';
     process.env.PREVIEW_PROXY_SHARED_SECRET = 'preview-secret\n';

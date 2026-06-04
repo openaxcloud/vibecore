@@ -272,6 +272,48 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     }
   });
 
+  it('streams command output, delivers empty frames, and terminates on exit without a socket close', async () => {
+    FakeWebSocket.instances = [];
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token-stream',
+      workspaceId: 'ws-1',
+      fetchImpl: createFetchMock() as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    const events: Array<{ type: string; data?: string }> = [];
+    const drained = (async () => {
+      for await (const event of adapter.streamCommand({ command: 'echo', args: ['hi'] })) {
+        events.push(event as { type: string; data?: string });
+      }
+    })();
+
+    // Let #openSocket resolve (open is emitted on a microtask) and the generator register
+    // its message listener before we push frames.
+    for (let i = 0; i < 5 && FakeWebSocket.instances.length === 0; i += 1) {
+      await Promise.resolve();
+    }
+    const socket = FakeWebSocket.instances.at(-1)!;
+    for (let i = 0; i < 5; i += 1) {
+      await Promise.resolve();
+    }
+
+    // An empty-string (falsy) stdout frame must still be delivered, not dropped.
+    socket.emit('message', { data: JSON.stringify({ type: 'stdout', data: '', timestamp: 'now' }) });
+    socket.emit('message', { data: JSON.stringify({ type: 'stdout', data: 'hi', timestamp: 'now' }) });
+    socket.emit('message', { data: 'not-json' }); // malformed frame must be ignored, not throw
+    socket.emit('message', { data: JSON.stringify({ type: 'exit', exitCode: 0, timestamp: 'now' }) });
+
+    // Resolves because the `exit` event closes the queue — even though the socket is never
+    // closed by the server.
+    await drained;
+
+    expect(events.map((event) => event.type)).toEqual(['stdout', 'stdout', 'exit']);
+    expect(events[0].data).toBe('');
+  });
+
   it('surfaces workspace start failures and quota exceeded responses', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
