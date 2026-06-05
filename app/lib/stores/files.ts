@@ -72,7 +72,7 @@ export class FilesStore {
    * Map of files that matches the state of the active runtime.
    */
   files: MapStore<FileMap> = import.meta.hot?.data.files ?? map({});
-  #urlObserver?: MutationObserver;
+  #urlPollInterval?: ReturnType<typeof setInterval>;
   #lockRefreshInterval?: ReturnType<typeof setInterval>;
   #lockRefreshTimeout?: ReturnType<typeof setTimeout>;
   #stopWatchingFiles?: () => void;
@@ -111,12 +111,16 @@ export class FilesStore {
       import.meta.hot.data.deletedPaths = this.#deletedPaths;
     }
 
-    // Listen for URL changes to detect chat ID changes
+    // Detect chat-ID changes from SPA navigation to reload locks. This used to
+    // be a document-wide MutationObserver({subtree, childList}), which fired its
+    // callback on EVERY DOM mutation in the app — every CodeMirror keystroke and
+    // every streamed chat token — turning a simple URL check into a per-frame CPU
+    // storm. Lock reloading is not latency-critical, so poll the URL at a low,
+    // fixed cadence instead (also catches popstate/pushState uniformly).
     if (typeof window !== 'undefined') {
       let lastChatId = getCurrentChatId();
 
-      // Use MutationObserver to detect URL changes (for SPA navigation)
-      this.#urlObserver = new MutationObserver(() => {
+      this.#urlPollInterval = setInterval(() => {
         const currentChatId = getCurrentChatId();
 
         if (currentChatId !== lastChatId) {
@@ -124,9 +128,7 @@ export class FilesStore {
           lastChatId = currentChatId;
           this.#loadLockedFiles(currentChatId);
         }
-      });
-
-      this.#urlObserver.observe(document, { subtree: true, childList: true });
+      }, 1000);
     }
 
     this.#init();
@@ -746,7 +748,10 @@ export class FilesStore {
   }
 
   dispose() {
-    this.#urlObserver?.disconnect();
+    if (this.#urlPollInterval) {
+      clearInterval(this.#urlPollInterval);
+    }
+
     this.#stopWatchingFiles?.();
 
     if (this.#lockRefreshTimeout) {
