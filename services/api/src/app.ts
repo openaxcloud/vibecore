@@ -72,6 +72,7 @@ import {
   createDeploymentLogs,
   deployProviderConfigError,
   pollProviderDeploymentStatus,
+  removeStaticDeploymentSnapshot,
   runStaticBuild,
   sanitizeDeploymentEnvVars,
   snapshotStaticBuild,
@@ -1667,7 +1668,21 @@ async function runDatabaseQuery(
       const [command, ...args] = query.trim().split(/\s+/);
       const result = await redis.call(command, ...args);
 
-      return { columns: ['result'], rows: [{ result: serializeDbRows(result) }], rowCount: 1 };
+      // Read-only commands like KEYS/SMEMBERS/LRANGE/ZRANGE can return the entire
+      // keyspace/collection. The SQL and Mongo paths honour `limit`; the Redis
+      // path ignored it and serialized everything, so a single `KEYS *` could
+      // dump a huge payload (and block the Redis server). Cap array results to
+      // the same row limit and report whether the result was truncated.
+      const cap = Math.max(1, Math.min(limit, 200));
+      const truncated = Array.isArray(result) && result.length > cap;
+      const capped = truncated ? result.slice(0, cap) : result;
+
+      return {
+        columns: ['result'],
+        rows: [{ result: serializeDbRows(capped) }],
+        rowCount: Array.isArray(capped) ? capped.length : 1,
+        truncated: truncated || undefined,
+      };
     } finally {
       redis.disconnect();
     }
@@ -13824,6 +13839,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           });
         } catch (error) {
           staticBuildFailed = true;
+          // A snapshot that throws mid-copy leaves a partial artifact directory
+          // behind; remove it so failed deploys don't slowly accumulate on disk.
+          await removeStaticDeploymentSnapshot(queued.id).catch(() => undefined);
           staticBuildLogs.push({
             timestamp: new Date().toISOString(),
             level: 'error',
@@ -14020,6 +14038,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           });
         } catch (error) {
           staticBuildFailed = true;
+          await removeStaticDeploymentSnapshot(redeploy.id).catch(() => undefined);
           rebuildLogs.push({
             timestamp: new Date().toISOString(),
             level: 'error',

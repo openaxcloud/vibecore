@@ -498,8 +498,11 @@ export class McpMarketplaceService {
 
     await this.deps.prisma.$transaction(async (tx) => {
       await tx.mcpInstall.delete({ where: { id: install.id } });
-      await tx.mcpCatalogEntry.update({
-        where: { id: install.catalogEntryId },
+      // Decrement only while positive so seed/import drift (or a rolled-back
+      // increment) can't drive installCount negative — the catalog sorts and
+      // displays this value. updateMany is a no-op when the guard doesn't match.
+      await tx.mcpCatalogEntry.updateMany({
+        where: { id: install.catalogEntryId, installCount: { gt: 0 } },
         data: { installCount: { decrement: 1 } },
       });
     });

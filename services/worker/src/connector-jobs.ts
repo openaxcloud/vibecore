@@ -165,6 +165,10 @@ export async function runConnectorTokenHealthCheck(
           accept: 'application/vnd.github+json',
           'x-github-api-version': '2022-11-28',
         },
+        // The candidates are checked serially; without a timeout a single hung
+        // provider connection stalls the whole sweep (and the worker tick)
+        // indefinitely. Treat a slow/hung call as unreachable and move on.
+        signal: AbortSignal.timeout(10_000),
       });
     } catch {
       unreachable += 1;
