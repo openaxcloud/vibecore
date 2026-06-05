@@ -39,7 +39,10 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   const response = await fetch(`${apiBaseUrl()}/auth/oauth/${provider}/callback`, {
     method: 'POST',
     headers: { accept: 'application/json', 'content-type': 'application/json' },
-    body: JSON.stringify({ code }),
+    // Forward the signed state so the API can verify its HMAC signature. The
+    // cookie check above already proved it round-tripped untampered; the API
+    // re-validates the signature + expiry statelessly (login-CSRF protection).
+    body: JSON.stringify({ code, state }),
   });
 
   if (!response.ok) {

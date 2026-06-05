@@ -114,9 +114,19 @@ export async function triggerWorkspaceGarbageCollect(jobData: Record<string, unk
     deleteMs: (jobData.deleteMs as number | undefined) ?? 24 * 60 * 60_000,
   };
 
+  // The manager gates its control-plane routes (including /workspaces/gc) behind a shared
+  // secret — WORKSPACE_MANAGER_SHARED_SECRET, falling back to PREVIEW_PROXY_SHARED_SECRET,
+  // matching the api↔manager wiring. Without the bearer the manager fail-closes with 401 in
+  // production and GC silently never runs, so leaked pods/PVCs accumulate. Forward the secret.
+  const managerSecret =
+    process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim() || process.env.PREVIEW_PROXY_SHARED_SECRET?.trim();
+
   const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/workspaces/gc`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}),
+    },
     body: JSON.stringify(body),
   });
 

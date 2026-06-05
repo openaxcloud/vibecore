@@ -15,9 +15,20 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     throw redirect(`/login?oauth=${provider}&error=not_configured`);
   }
 
-  const state = createOAuthState();
   const url = new URL(result.authorizationUrl);
-  url.searchParams.set('state', state);
+
+  // The API embeds an HMAC-signed state in the authorization URL — login-CSRF
+  // protection that the API callback verifies statelessly (so it holds across
+  // all api replicas). Persist that exact value so we can (a) detect a tampered
+  // state returned by the provider and (b) forward it to the API callback for
+  // signature verification. Overwriting it with a locally generated UUID — as
+  // this route used to — meant the API callback always saw a missing/invalid
+  // state and rejected every login with OAUTH_STATE_INVALID.
+  const state = url.searchParams.get('state');
+
+  if (!state) {
+    throw redirect(`/login?oauth=${provider}&error=not_configured`);
+  }
 
   return redirect(url.toString(), {
     headers: {
@@ -32,8 +43,4 @@ function providerName(value: string | undefined) {
   }
 
   return value;
-}
-
-function createOAuthState() {
-  return globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
 }
