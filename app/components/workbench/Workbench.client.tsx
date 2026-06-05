@@ -300,7 +300,9 @@ const FileModifiedDropdown = memo(
                     <div className="border-t border-bolt-elements-borderColor p-2">
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(filteredFiles.map(([filePath]) => filePath).join('\n'));
+                          navigator.clipboard
+                            ?.writeText(filteredFiles.map(([filePath]) => filePath).join('\n'))
+                            ?.catch(() => {});
                           toast('File list copied to clipboard', {
                             icon: <div className="i-ph:check-circle text-accent-500" />,
                           });

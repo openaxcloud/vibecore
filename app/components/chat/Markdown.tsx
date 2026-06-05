@@ -108,7 +108,7 @@ export const Markdown = memo(
             firstChild &&
             firstChild.type === 'element' &&
             firstChild.tagName === 'code' &&
-            firstChild.children[0].type === 'text'
+            firstChild.children[0]?.type === 'text'
           ) {
             const { className, ...codeProps } = firstChild.properties;
             const [, language = 'plaintext'] = /language-(\w+)/.exec(String(className) || '') ?? [];

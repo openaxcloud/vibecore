@@ -9,6 +9,10 @@ export const action: ActionFunction = async ({ request }) => {
   try {
     const { token } = (await request.json()) as any;
 
+    if (!token || typeof token !== 'string') {
+      return json({ error: 'A Supabase access token is required' }, { status: 400 });
+    }
+
     const projectsResponse = await fetch('https://api.supabase.com/v1/projects', {
       headers: {
         Authorization: `Bearer ${token}`,

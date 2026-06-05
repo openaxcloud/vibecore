@@ -62,7 +62,12 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     throw redirect(`/login?oauth=${provider}&error=callback_failed&detail=${encodeURIComponent(detail)}`);
   }
 
-  const result = (await response.json()) as { token: string };
+  const result = (await response.json()) as { token?: string };
+
+  if (!result.token || typeof result.token !== 'string') {
+    console.error('[oauth-callback]', provider, 'missing token in successful response');
+    throw redirect(`/login?oauth=${provider}&error=callback_failed&detail=missing_token`);
+  }
 
   return redirect('/dashboard', {
     headers: [

@@ -16,6 +16,14 @@ export async function action({ request }: ActionFunctionArgs) {
 
   try {
     const { projectId, query } = (await request.json()) as any;
+
+    if (!projectId || typeof projectId !== 'string' || !query || typeof query !== 'string') {
+      return new Response(JSON.stringify({ error: { message: 'projectId and query are required' } }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     logger.debug('Executing query:', { projectId, query });
 
     const response = await fetch(`https://api.supabase.com/v1/projects/${projectId}/database/query`, {

@@ -967,7 +967,12 @@ export const ChatImpl = memo(
       const storedApiKeys = Cookies.get('apiKeys');
 
       if (storedApiKeys) {
-        setApiKeys(JSON.parse(storedApiKeys));
+        try {
+          setApiKeys(JSON.parse(storedApiKeys));
+        } catch {
+          // A corrupted cookie must not crash the chat on mount.
+          setApiKeys({});
+        }
       }
     }, []);
 
