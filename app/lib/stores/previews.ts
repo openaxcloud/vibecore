@@ -1,6 +1,5 @@
 import type { RuntimeAdapter, WorkspacePort } from '@vibecore/runtime-contract';
 import { atom } from 'nanostores';
-import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 
 // Extend Window interface to include our custom property
 declare global {
@@ -385,13 +384,7 @@ export class PreviewsStore {
   }
 }
 
-// Create a singleton instance
-let previewsStore: PreviewsStore | null = null;
-
-export function usePreviewStore() {
-  if (!previewsStore) {
-    previewsStore = new PreviewsStore(runtimeAdapter);
-  }
-
-  return previewsStore;
-}
+// NOTE: there is intentionally no standalone singleton here. The single source
+// of truth is WorkbenchStore's own #previewsStore (exposed via
+// workbenchStore.previews / refreshAllPreviews). A separate module singleton
+// double-patched localStorage.setItem and went stale on project switches.

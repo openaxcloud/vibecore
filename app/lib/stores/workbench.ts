@@ -459,6 +459,10 @@ export class WorkbenchStore {
     return files;
   }
 
+  refreshAllPreviews() {
+    this.#previewsStore.refreshAllPreviews();
+  }
+
   async refreshRuntimePorts() {
     await this.#previewsStore.refreshPorts();
 

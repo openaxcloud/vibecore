@@ -18,7 +18,6 @@ import { GitTab } from '~/components/git/GitTab';
 import { PanelBoundary } from '~/components/ui/PanelBoundary';
 import useViewport from '~/lib/hooks';
 
-import { usePreviewStore } from '~/lib/stores/previews';
 import { chatStore } from '~/lib/stores/chat';
 import type { ElementInfo } from './Inspector';
 import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportChatButton';
@@ -433,9 +432,11 @@ export const Workbench = memo(
       workbenchStore
         .saveCurrentDocument()
         .then(() => {
-          // Explicitly refresh all previews after a file save
-          const previewStore = usePreviewStore();
-          previewStore.refreshAllPreviews();
+          // Refresh all previews via the workbench's own previews store. Using
+          // the standalone usePreviewStore() singleton instead spun up a SECOND
+          // PreviewsStore — double-patching localStorage.setItem and refreshing a
+          // store bound to a stale runtime after a project switch.
+          workbenchStore.refreshAllPreviews();
           toast.success(filePath ? `Saved ${filePath.split('/').pop()}` : 'File saved', { toastId: 'file-saved' });
         })
         .catch(() => {
