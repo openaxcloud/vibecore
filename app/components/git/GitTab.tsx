@@ -655,7 +655,7 @@ export function GitTab({ projectId }: GitTabProps) {
                   placeholder={stagedFiles.length ? `Commit ${stagedFiles.length} staged files` : 'Commit message'}
                 />
               </label>
-              <PanelButton disabled={busy || changedFiles.length === 0}>Commit changes</PanelButton>
+              <PanelButton disabled={busy || stagedFiles.length === 0}>Commit changes</PanelButton>
             </form>
 
             <GitBranchSyncControls branch={branch} busy={busy} idPrefix="git-tab" onSubmit={submitAction} />

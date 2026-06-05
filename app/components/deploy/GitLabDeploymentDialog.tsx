@@ -128,6 +128,8 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
       const gitlabUrl = connection.gitlabUrl || 'https://gitlab.com';
       const apiService = new GitLabApiService(connection.token, gitlabUrl);
 
+      let repoUrl = '';
+
       // Warn user if repository name was changed
       if (sanitizedRepoName !== repoName && sanitizedRepoName !== repoName.toLowerCase()) {
         toast.info(`Repository name sanitized to "${sanitizedRepoName}" to meet GitLab requirements`);
@@ -163,14 +165,16 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
         // Update project with files
         toast.info('Uploading files to existing repository...');
         await apiService.updateProjectWithFiles(existingProject.id, files);
-        setCreatedRepoUrl(existingProject.http_url_to_repo);
+        repoUrl = existingProject.http_url_to_repo;
+        setCreatedRepoUrl(repoUrl);
         toast.success('Repository updated successfully!');
       } else {
         // Create new project with files
         toast.info('Creating new repository...');
 
         const newProject = await apiService.createProjectWithFiles(sanitizedRepoName, isPrivate, files);
-        setCreatedRepoUrl(newProject.http_url_to_repo);
+        repoUrl = newProject.http_url_to_repo;
+        setCreatedRepoUrl(repoUrl);
         toast.success('Repository created successfully!');
       }
 
@@ -184,14 +188,16 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
       setShowSuccessDialog(true);
 
       // Save repository info
-      localStorage.setItem(
-        `gitlab-repo-${currentChatId}`,
-        JSON.stringify({
-          owner: connection.user.username,
-          name: sanitizedRepoName,
-          url: createdRepoUrl,
-        }),
-      );
+      if (currentChatId) {
+        localStorage.setItem(
+          `gitlab-repo-${currentChatId}`,
+          JSON.stringify({
+            owner: connection.user.username,
+            name: sanitizedRepoName,
+            url: repoUrl,
+          }),
+        );
+      }
 
       logStore.logInfo('GitLab deployment completed successfully', {
         type: 'system',

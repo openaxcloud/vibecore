@@ -278,7 +278,11 @@ export default function SettingsTab() {
               'transition-all duration-200',
             )}
           >
-            <option value={currentTimezone}>{currentTimezone}</option>
+            {Array.from(new Set([currentTimezone, settings.timezone].filter(Boolean))).map((tz) => (
+              <option key={tz} value={tz}>
+                {tz}
+              </option>
+            ))}
           </select>
         </div>
       </motion.div>

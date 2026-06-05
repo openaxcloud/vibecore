@@ -71,7 +71,13 @@ export default function McpTab() {
   }, [mcpConfigText]);
 
   const handleMaxLLMCallChange = (value: string) => {
-    setMaxLLMSteps(parseInt(value, 10));
+    const parsed = parseInt(value, 10);
+
+    if (Number.isNaN(parsed)) {
+      return;
+    }
+
+    setMaxLLMSteps(Math.min(20, Math.max(1, parsed)));
   };
 
   const handleSave = async () => {

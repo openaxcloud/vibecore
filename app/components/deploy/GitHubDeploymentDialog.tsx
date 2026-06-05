@@ -465,14 +465,17 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
 
       // Save the repository information for this chat
       const sanitizedRepoName = sanitizeRepoName(repoName);
-      localStorage.setItem(
-        `github-repo-${currentChatId}`,
-        JSON.stringify({
-          owner: connection.user.login,
-          name: sanitizedRepoName,
-          url: `https://github.com/${connection.user.login}/${sanitizedRepoName}`,
-        }),
-      );
+
+      if (currentChatId) {
+        localStorage.setItem(
+          `github-repo-${currentChatId}`,
+          JSON.stringify({
+            owner: connection.user.login,
+            name: sanitizedRepoName,
+            url: `https://github.com/${connection.user.login}/${sanitizedRepoName}`,
+          }),
+        );
+      }
 
       // Show success dialog
       setShowSuccessDialog(true);

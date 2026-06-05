@@ -144,6 +144,7 @@ export function useNetlifyDeploy() {
 
       let attempts = 0;
       let deploymentStatus;
+      let deployFailedError: string | null = null;
 
       while (attempts < maxAttempts) {
         try {
@@ -163,12 +164,12 @@ export function useNetlifyDeploy() {
           }
 
           if (deploymentStatus.state === 'error') {
-            // Notify that deployment failed
-            deployArtifact.runner.handleDeployAction('deploying', 'failed', {
-              error: 'Deployment failed: ' + (deploymentStatus.error_message || 'Unknown error'),
-              source: 'netlify',
-            });
-            throw new Error('Deployment failed: ' + (deploymentStatus.error_message || 'Unknown error'));
+            /*
+             * Capture the real failure and break so it isn't swallowed by this
+             * loop's own catch (which would degrade it into a generic timeout).
+             */
+            deployFailedError = 'Deployment failed: ' + (deploymentStatus.error_message || 'Unknown error');
+            break;
           }
 
           attempts++;
@@ -178,6 +179,15 @@ export function useNetlifyDeploy() {
           attempts++;
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
+      }
+
+      if (deployFailedError) {
+        // Notify that deployment failed
+        deployArtifact.runner.handleDeployAction('deploying', 'failed', {
+          error: deployFailedError,
+          source: 'netlify',
+        });
+        throw new Error(deployFailedError);
       }
 
       if (attempts >= maxAttempts) {

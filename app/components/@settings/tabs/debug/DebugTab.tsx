@@ -5,7 +5,21 @@ export default function DebugTab() {
   const [status, setStatus] = useState<DebugStatus>({ warnings: [], errors: [] });
 
   useEffect(() => {
-    getDebugStatus().then(setStatus);
+    let cancelled = false;
+
+    getDebugStatus()
+      .then((next) => {
+        if (!cancelled) {
+          setStatus(next);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to load debug status:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const issues = [...status.errors, ...status.warnings];

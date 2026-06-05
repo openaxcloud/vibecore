@@ -17,12 +17,15 @@ function useBoltHistoryDB() {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    let opened: IDBDatabase | null = null;
+
     const initDB = async () => {
       try {
         setIsLoading(true);
 
         const database = await openDatabase();
-        setDb(database || null);
+        opened = database || null;
+        setDb(opened);
         setIsLoading(false);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Unknown error initializing database'));
@@ -33,8 +36,8 @@ function useBoltHistoryDB() {
     initDB();
 
     return () => {
-      if (db) {
-        db.close();
+      if (opened) {
+        opened.close();
       }
     };
   }, []);
