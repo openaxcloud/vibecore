@@ -7,6 +7,23 @@ metadata:
     cert-manager.io/cluster-issuer: {{ .Values.ingress.issuerName | quote }}
     nginx.ingress.kubernetes.io/proxy-read-timeout: {{ .Values.ingress.proxyReadTimeoutSeconds | default 180 | quote }}
     nginx.ingress.kubernetes.io/proxy-send-timeout: {{ .Values.ingress.proxySendTimeoutSeconds | default 180 | quote }}
+    # Cookie session affinity pins each browser to one web pod for the life of the
+    # cookie. The frontend is a Vite/Remix build whose code is split into hashed
+    # chunks served from each pod's local disk. During a RollingUpdate two builds
+    # coexist (maxSurge), and without affinity nginx round-robins every request —
+    # so an HTML document rendered by the new-build pod pulls /assets/<hash>.js
+    # chunks that round-robin onto the old-build pod, which doesn't have that hash,
+    # and the request 503s. The result is the IDE stuck on "Loading E-Code" for
+    # any load that straddles a deploy. Affinity keeps a client's document and all
+    # its chunk requests on the same pod (same build); "persistent" mode avoids
+    # rebalancing a mid-session client onto a freshly-added (different-build) pod,
+    # so a deploy only affects users after their old pod is fully drained.
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/affinity-mode: "persistent"
+    nginx.ingress.kubernetes.io/session-cookie-name: "vc_upstream"
+    nginx.ingress.kubernetes.io/session-cookie-path: "/"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "3600"
+    nginx.ingress.kubernetes.io/session-cookie-samesite: "Lax"
   labels:
     app.kubernetes.io/part-of: vibecore
 spec:
