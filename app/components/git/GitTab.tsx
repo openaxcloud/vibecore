@@ -417,6 +417,7 @@ export function GitTab({ projectId }: GitTabProps) {
             <select
               id="ide-git-tab-branch-switch"
               name="branch"
+              key={branch}
               defaultValue={branch}
               className="h-9 min-w-0 flex-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
             >

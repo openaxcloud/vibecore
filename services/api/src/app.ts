@@ -1,5 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, createHmac, createVerify, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createReadStream } from 'node:fs';
 import { mkdir, readdir, readFile, realpath, stat, writeFile } from 'node:fs/promises';
 import { dirname, extname, sep, resolve } from 'node:path';
 import { Readable } from 'node:stream';
@@ -4908,12 +4909,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ error: 'Path is outside the deployment artifact', code: 'STATIC_DEPLOY_FORBIDDEN' });
     }
 
-    const body = await readFile(realFile);
+    /*
+     * Stream the (realpath-validated) artifact instead of buffering the whole
+     * file into memory — this is a public, unauthenticated route serving
+     * attacker-controlled build output, so a full read amplifies memory use.
+     */
     reply.header('cache-control', 'public, max-age=60, must-revalidate');
     reply.header('x-vibecore-static-deployment', deploymentId);
     reply.type(staticDeploymentMimeType(filePath));
 
-    return reply.send(body);
+    return reply.send(createReadStream(realFile));
   });
   app.get('/ready', async (_request, reply) => {
     const checks: Record<string, { status: 'ok' | 'unconfigured' | 'down'; latencyMs?: number; detail?: string }> = {};
@@ -5604,6 +5609,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
+
       /*
        * Public read of a shared conversation snapshot — the signed token is the
        * capability. Only the token-scoped GET path is exempt; POST /chat-shares

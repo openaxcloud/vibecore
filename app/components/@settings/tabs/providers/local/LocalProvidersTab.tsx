@@ -111,11 +111,14 @@ export default function LocalProvidersTab() {
     }
   }, [filteredProviders]);
 
+  // Honor a user-configured Ollama base URL instead of always hitting localhost.
+  const ollamaBaseUrl = filteredProviders.find((p) => p.name === 'Ollama')?.settings.baseUrl || OLLAMA_API_URL;
+
   const fetchOllamaModels = async () => {
     try {
       setIsLoadingModels(true);
 
-      const response = await fetch(`${OLLAMA_API_URL}/api/tags`);
+      const response = await fetch(`${ollamaBaseUrl}/api/tags`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch models');
@@ -195,7 +198,7 @@ export default function LocalProvidersTab() {
     try {
       setOllamaModels((prev) => prev.map((m) => (m.name === modelName ? { ...m, status: 'updating' } : m)));
 
-      const response = await fetch(`${OLLAMA_API_URL}/api/pull`, {
+      const response = await fetch(`${ollamaBaseUrl}/api/pull`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: modelName }),
@@ -266,7 +269,7 @@ export default function LocalProvidersTab() {
     }
 
     try {
-      const response = await fetch(`${OLLAMA_API_URL}/api/delete`, {
+      const response = await fetch(`${ollamaBaseUrl}/api/delete`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: modelName }),
