@@ -76,6 +76,8 @@ export class FilesStore {
   #lockRefreshInterval?: ReturnType<typeof setInterval>;
   #lockRefreshTimeout?: ReturnType<typeof setTimeout>;
   #stopWatchingFiles?: () => void;
+  #fileWatchRetryTimer?: ReturnType<typeof setTimeout>;
+  #disposed = false;
 
   get filesCount() {
     return this.#size;
@@ -138,6 +140,13 @@ export class FilesStore {
     this.#runtime = runtime;
     this.#stopWatchingFiles?.();
     this.#stopWatchingFiles = undefined;
+
+    // Cancel a retry queued against the previous runtime so it can't re-attach a watch
+    // to the old adapter after we've rebound; #init() below restarts the watch loop.
+    if (this.#fileWatchRetryTimer) {
+      clearTimeout(this.#fileWatchRetryTimer);
+      this.#fileWatchRetryTimer = undefined;
+    }
 
     /*
      * Reset the file map when rebinding to a different runtime (project switch /
@@ -701,13 +710,8 @@ export class FilesStore {
     // Clean up any files that were previously deleted
     this.#cleanupDeletedFiles();
 
-    // Set up file watcher
-    try {
-      this.#stopWatchingFiles?.();
-      this.#stopWatchingFiles = await this.#runtime.watchFiles([WORK_DIR], (change) => this.#processFileChange(change));
-    } catch (error) {
-      logger.warn('Runtime file watch is not ready yet', error);
-    }
+    // Set up file watcher (self-retrying until the runtime is attachable)
+    await this.#startFileWatch();
 
     // Get the current chat ID
     const currentChatId = getCurrentChatId();
@@ -747,7 +751,54 @@ export class FilesStore {
     }, 30000); // Reduced from 10s to 30s
   }
 
+  async #startFileWatch() {
+    if (this.#disposed) {
+      return;
+    }
+
+    try {
+      this.#stopWatchingFiles?.();
+      this.#stopWatchingFiles = await this.#runtime.watchFiles([WORK_DIR], (change) => this.#processFileChange(change));
+
+      // Watch attached — cancel any retry queued by an earlier failed attempt.
+      if (this.#fileWatchRetryTimer) {
+        clearTimeout(this.#fileWatchRetryTimer);
+        this.#fileWatchRetryTimer = undefined;
+      }
+    } catch (error) {
+      /*
+       * A remote workspace that is still completing its start/attach handshake throws
+       * "Remote workspace has not been started" here. configureRuntime() wires the watch
+       * up synchronously, racing startWorkspace(); when reopening a project whose pod is
+       * mid-attach the watch lost that race. Previously this failed once and never
+       * retried (PreviewsStore self-heals, FilesStore did not), so the file map stayed
+       * empty and the editor rendered blank forever — file content exists in storage but
+       * never reaches the editor. Retry until the watch attaches.
+       */
+      logger.warn('Runtime file watch is not ready yet, will retry', error);
+      this.#scheduleFileWatchRetry();
+    }
+  }
+
+  #scheduleFileWatchRetry() {
+    if (this.#disposed || this.#fileWatchRetryTimer) {
+      return;
+    }
+
+    this.#fileWatchRetryTimer = setTimeout(() => {
+      this.#fileWatchRetryTimer = undefined;
+      void this.#startFileWatch();
+    }, 2000);
+  }
+
   dispose() {
+    this.#disposed = true;
+
+    if (this.#fileWatchRetryTimer) {
+      clearTimeout(this.#fileWatchRetryTimer);
+      this.#fileWatchRetryTimer = undefined;
+    }
+
     if (this.#urlPollInterval) {
       clearInterval(this.#urlPollInterval);
     }
