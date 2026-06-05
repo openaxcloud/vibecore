@@ -43,7 +43,22 @@ export function LockManager() {
         }
       });
 
-      setLockedItems(items);
+      /*
+       * Only update state when the locked set actually changed, otherwise the
+       * 5s interval forces a full re-render every tick for no reason.
+       */
+      setLockedItems((prev) => {
+        const prevKey = prev
+          .map((i) => `${i.type}:${i.path}`)
+          .sort()
+          .join('|');
+        const nextKey = items
+          .map((i) => `${i.type}:${i.path}`)
+          .sort()
+          .join('|');
+
+        return prevKey === nextKey ? prev : items;
+      });
     };
 
     loadLockedItems();

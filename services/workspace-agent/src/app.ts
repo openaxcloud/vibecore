@@ -1,8 +1,8 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { mkdir, readdir, readFile, readlink, rename, rm, stat, writeFile } from 'node:fs/promises';
-import { basename, dirname, relative, resolve } from 'node:path';
+import { mkdir, readdir, readFile, readlink, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { basename, dirname, relative, resolve, sep } from 'node:path';
 import websocket from '@fastify/websocket';
 import { createPrometheusRegistry } from '@vibecore/observability';
 import { normalizeShellCommandArgs } from '@vibecore/runtime-contract';
@@ -118,7 +118,19 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   app.get('/files/read', async (request) => {
     const { path } = filePathSchema.parse(request.query);
     const safePath = resolveWorkspacePath(root, path);
-    const fileStat = await stat(safePath).catch(rethrowFsError);
+
+    /*
+     * Resolve symlinks and re-check containment so a link inside the workspace
+     * can't be followed to read a file outside the workspace root.
+     */
+    const realPath = await realpath(safePath).catch(rethrowFsError);
+    const realRel = relative(root, realPath);
+
+    if (realRel === '..' || realRel.startsWith(`..${sep}`)) {
+      throw Object.assign(new Error('Path escapes workspace root'), { statusCode: 400, code: 'EACCES' });
+    }
+
+    const fileStat = await stat(realPath).catch(rethrowFsError);
 
     if (fileStat.size > maxFileBytes) {
       throw new Error('File is too large to read');
@@ -128,7 +140,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       throw Object.assign(new Error('Path is a directory'), { statusCode: 400, code: 'EISDIR' });
     }
 
-    return { path, content: await readFile(safePath, 'utf8').catch(rethrowFsError), size: fileStat.size };
+    return { path, content: await readFile(realPath, 'utf8').catch(rethrowFsError), size: fileStat.size };
   });
 
   app.post('/files/write', async (request) => {
