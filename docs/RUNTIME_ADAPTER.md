@@ -61,6 +61,17 @@ Les dependances WebContainer restantes dans l'app sont volontairement limitees a
 - `app/routes/webcontainer.*`: routes de compatibilite preview/connect conservees pour l'UX Bolt existante.
 - `app/components/workbench/Preview.tsx`: ouvre directement les URLs remote et n'utilise `/webcontainer/preview/*` que pour les URLs WebContainer historiques.
 
+## Recuperation preview manifest
+
+Le workbench doit traiter `package.json` comme un fichier critique du runtime preview:
+
+- `ActionRunner` refuse d'ecrire un fichier JSON invalide, notamment un `package.json` tronque par une reponse IA interrompue.
+- `WorkbenchStore` ne persiste pas en fallback editeur une action fichier que le runner a marquee `failed`; il ajoute un log `AI file write blocked` et conserve la derniere version runtime valide.
+- A la fermeture d'un artifact, `WorkbenchStore` lance la reparation de manifest avant la validation des imports. Cela permet a `buildPreviewManifestRepair()` de reconstruire un `package.json` React/Vite minimal si le fichier existant est vide ou malforme, puis de relancer la preview.
+- Les erreurs de parsing JSON (`Invalid JSON`, `Unexpected end of JSON input`, `JSON.parse`) sont classees comme `INVALID_RESPONSE` pour eviter le message generique `UNKNOWN` et orienter l'utilisateur vers les diagnostics de fichier genere.
+
+Critere de regression: une emission IA qui coupe `package.json` au milieu ne doit ni ecraser le manifest valide precedent, ni bloquer le chemin de reparation preview au moment ou l'artifact se ferme.
+
 ## API backend attendue pour remote-kubernetes
 
 `RemoteKubernetesRuntimeAdapter` attend les endpoints suivants sous `RUNTIME_API_BASE_URL` ou `VITE_RUNTIME_API_BASE_URL`:
