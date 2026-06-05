@@ -1088,7 +1088,9 @@ export class WorkbenchStore {
   }
 
   setDocuments(files: FileMap) {
-    this.#editorStore.setDocuments(files);
+    // Pass the dirty set so the editor keeps unsaved edits instead of resetting
+    // them to on-disk content when the file tree updates for any reason.
+    this.#editorStore.setDocuments(files, this.unsavedFiles.get());
 
     if (this.#filesStore.filesCount > 0 && this.currentDocument.get() === undefined) {
       // we find the first file and select it

@@ -32,7 +32,7 @@ export class EditorStore {
     }
   }
 
-  setDocuments(files: FileMap) {
+  setDocuments(files: FileMap, keepUnsavedPaths?: ReadonlySet<string>) {
     const previousDocuments = this.documents.value;
 
     this.documents.set(
@@ -45,10 +45,16 @@ export class EditorStore {
 
             const previousDocument = previousDocuments?.[filePath];
 
+            // Preserve the in-editor value for files with unsaved edits. This
+            // runs on every `files` store change (AI writing a different file, a
+            // save echo, an external write); without this guard a dirty file is
+            // reset to its on-disk content and the user's unsaved edits are lost.
+            const preserveUnsaved = keepUnsavedPaths?.has(filePath) && previousDocument !== undefined;
+
             return [
               filePath,
               {
-                value: dirent.content,
+                value: preserveUnsaved ? previousDocument!.value : dirent.content,
                 filePath,
                 isBinary: dirent.isBinary, // Add this line
                 scroll: previousDocument?.scroll,
