@@ -47,7 +47,14 @@ export function verifyAgentToken(token: string | undefined, secret: string, work
     return false;
   }
 
-  const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { workspaceId: string; expiresAt: number };
+  let parsed: { workspaceId: string; expiresAt: number };
+
+  try {
+    parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { workspaceId: string; expiresAt: number };
+  } catch {
+    // A malformed payload must fail closed, not throw.
+    return false;
+  }
 
   return parsed.expiresAt > Date.now() && (!workspaceId || parsed.workspaceId === workspaceId);
 }

@@ -191,6 +191,8 @@ function defaultResolveAgent(options: PreviewProxyOptions, fetchImpl: typeof fet
 
     const response = await fetchImpl(`${managerUrl.replace(/\/$/, '')}/internal/workspaces/${workspaceId}/agent`, {
       headers: { authorization: `Bearer ${secret}` },
+      // Don't let a hung workspace-manager stall every preview request indefinitely.
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!response.ok) return undefined;

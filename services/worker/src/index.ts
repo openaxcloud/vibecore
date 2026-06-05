@@ -69,6 +69,8 @@ async function deliverSiemAuditEvents() {
     });
 
     if (!response.ok) {
+      // Drain the body so the failed-delivery connection is released instead of leaking.
+      await response.body?.cancel().catch(() => {});
       throw new Error(`SIEM webhook delivery failed: ${response.status}`);
     }
 
@@ -131,6 +133,8 @@ export async function triggerWorkspaceGarbageCollect(jobData: Record<string, unk
   });
 
   if (!response.ok) {
+    // Drain the body so the failed-GC connection is released instead of leaking.
+    await response.body?.cancel().catch(() => {});
     throw new Error(`workspace.gc upstream failed: ${response.status}`);
   }
 }

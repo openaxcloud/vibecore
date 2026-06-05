@@ -369,6 +369,16 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         clearInterval(heartbeatTimer);
         heartbeatTimer = undefined;
       }
+
+      // Close the live socket so stopping a terminal frees the connection instead
+      // of leaking it until the server or GC tears it down.
+      unbindSocket(socket);
+
+      try {
+        socket.close?.();
+      } catch {
+        // Already closing/closed.
+      }
     });
     this.#eventStreams.set(terminalId, queue);
 
