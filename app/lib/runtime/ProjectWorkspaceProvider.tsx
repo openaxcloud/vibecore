@@ -107,11 +107,24 @@ export function ProjectWorkspaceProvider({
           await persistedFilesHydration;
           await seedRuntimeFromProjectStorage(projectId, runtime);
         } catch (error) {
+          if (cancelled) {
+            return;
+          }
+
           const message = normalizeProjectFileSyncError(error);
 
           workbenchStore.workspaceError.set(message);
           workbenchStore.appendWorkspaceLog(message);
 
+          return;
+        }
+
+        /*
+         * The workspace switched/unmounted while we were seeding — don't wire the
+         * previous project's files/preview/log-watcher into the new workspace.
+         */
+        if (cancelled) {
+          await stopRemoteWorkspace(runtime, activeWorkspaceId ?? session.id);
           return;
         }
 

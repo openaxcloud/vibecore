@@ -36,6 +36,7 @@ export const Terminal = memo(
       const searchAddonRef = useRef<SearchAddon>();
       const resizeObserverRef = useRef<ResizeObserver>();
       const resizeFrameRef = useRef<number>();
+      const recoveryTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
       useEffect(() => {
         const element = terminalElementRef.current!;
@@ -72,8 +73,8 @@ export const Terminal = memo(
         } catch (error) {
           logger.error(`Failed to initialize terminal [${id}]:`, error);
 
-          // Attempt recovery
-          setTimeout(() => {
+          // Attempt recovery (tracked so it can't fire on a disposed terminal)
+          recoveryTimerRef.current = setTimeout(() => {
             try {
               terminal.open(element);
               fitAddon.fit();
@@ -112,6 +113,11 @@ export const Terminal = memo(
             if (resizeFrameRef.current) {
               cancelAnimationFrame(resizeFrameRef.current);
               resizeFrameRef.current = undefined;
+            }
+
+            if (recoveryTimerRef.current) {
+              clearTimeout(recoveryTimerRef.current);
+              recoveryTimerRef.current = undefined;
             }
 
             resizeObserver.disconnect();

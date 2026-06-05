@@ -36,29 +36,40 @@ export const Inspector = ({ isActive, iframeRef, onElementSelect }: InspectorPro
 
     // Listen for messages from the iframe
     const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'INSPECTOR_HOVER') {
-        const elementInfo = event.data.elementInfo;
+      /*
+       * Only trust messages from the inspected iframe; another frame/extension
+       * could otherwise post fake inspector events or corrupt coordinates.
+       */
+      if (event.source !== iframe.contentWindow) {
+        return;
+      }
 
-        // Adjust coordinates relative to iframe position
+      const type = event.data?.type;
+
+      /*
+       * Translate the iframe-local rect into page coordinates without mutating
+       * the shared event payload (the Preview handler reads it too).
+       */
+      const offsetRect = (info: any) => {
         const iframeRect = iframe.getBoundingClientRect();
-        elementInfo.rect.x += iframeRect.x;
-        elementInfo.rect.y += iframeRect.y;
-        elementInfo.rect.top += iframeRect.y;
-        elementInfo.rect.left += iframeRect.x;
 
-        setHoveredElement(elementInfo);
-      } else if (event.data.type === 'INSPECTOR_CLICK') {
-        const elementInfo = event.data.elementInfo;
+        return {
+          ...info,
+          rect: {
+            ...info.rect,
+            x: info.rect.x + iframeRect.x,
+            y: info.rect.y + iframeRect.y,
+            top: info.rect.top + iframeRect.y,
+            left: info.rect.left + iframeRect.x,
+          },
+        };
+      };
 
-        // Adjust coordinates relative to iframe position
-        const iframeRect = iframe.getBoundingClientRect();
-        elementInfo.rect.x += iframeRect.x;
-        elementInfo.rect.y += iframeRect.y;
-        elementInfo.rect.top += iframeRect.y;
-        elementInfo.rect.left += iframeRect.x;
-
-        onElementSelect(elementInfo);
-      } else if (event.data.type === 'INSPECTOR_LEAVE') {
+      if (type === 'INSPECTOR_HOVER' && event.data.elementInfo?.rect) {
+        setHoveredElement(offsetRect(event.data.elementInfo));
+      } else if (type === 'INSPECTOR_CLICK' && event.data.elementInfo?.rect) {
+        onElementSelect(offsetRect(event.data.elementInfo));
+      } else if (type === 'INSPECTOR_LEAVE') {
         setHoveredElement(null);
       }
     };
