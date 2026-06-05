@@ -294,18 +294,62 @@ export function buildPreviewManifestRepair(filesInput: Record<string, string>): 
 
   const shouldUseVite = hasViteEntryPoint(scopedFiles) || hasReact;
 
-  if (!existingPackageJsonPath && !shouldUseVite) {
+  // An AI-sourced project relies on the model to emit package.json; if that emission is
+  // empty or truncated (streaming cut off mid-file) the manifest lands as 0 bytes or
+  // invalid JSON. This repair pass exists precisely to synthesize a valid manifest, so a
+  // blank/unparseable existing file must be treated as "needs creating" rather than fed
+  // to a bare JSON.parse — otherwise the parse throws, the repair that would have fixed it
+  // is skipped, and the preview dies with "Invalid JSON in package.json: Unexpected end of
+  // JSON input" with no path to recovery.
+  let parsedPackageJson: Record<string, any> | undefined;
+
+  if (existingPackageJsonPath) {
+    const raw = files[existingPackageJsonPath];
+
+    if (raw && raw.trim()) {
+      try {
+        const candidate = JSON.parse(raw);
+
+        if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
+          parsedPackageJson = candidate as Record<string, any>;
+        }
+      } catch {
+        parsedPackageJson = undefined;
+      }
+    }
+  }
+
+  const hasValidExistingPackageJson = parsedPackageJson !== undefined;
+
+  const defaultPackageJson = (): Record<string, any> => ({
+    name: toPreviewPackageName(packageJsonPath),
+    private: true,
+    version: '0.0.0',
+    type: 'module',
+  });
+
+  if (!hasValidExistingPackageJson && !shouldUseVite) {
+    // Nothing requires a Vite/React toolchain. If a blank package.json physically exists
+    // we still overwrite it with a minimal valid one so the preview (and any other JSON
+    // consumer) doesn't choke on the empty/invalid file; otherwise there's nothing to do.
+    if (existingPackageJsonPath) {
+      return {
+        packageJson: {
+          path: packageJsonPath,
+          content: `${JSON.stringify(defaultPackageJson(), null, 2)}\n`,
+          created: true,
+          changed: true,
+          missingDependencies: [],
+          addedScripts: [],
+        },
+        supplementalFiles: [],
+      };
+    }
+
     return { supplementalFiles: [] };
   }
 
-  const packageJson = existingPackageJsonPath
-    ? (JSON.parse(files[existingPackageJsonPath]) as Record<string, any>)
-    : {
-        name: toPreviewPackageName(packageJsonPath),
-        private: true,
-        version: '0.0.0',
-        type: 'module',
-      };
+  const packageJson = parsedPackageJson ?? defaultPackageJson();
 
   const scripts =
     packageJson.scripts && typeof packageJson.scripts === 'object' && !Array.isArray(packageJson.scripts)
@@ -342,7 +386,7 @@ export function buildPreviewManifestRepair(filesInput: Record<string, string>): 
     (dependency) => !dependencies[dependency] && !devDependencies?.[dependency],
   );
 
-  let changed = !existingPackageJsonPath;
+  let changed = !hasValidExistingPackageJson;
 
   for (const dependency of new Set([...Object.keys(nextDependencies), ...neededDependencies])) {
     const pinnedVersion = RUNTIME_DEPENDENCY_VERSIONS[dependency];
@@ -388,7 +432,7 @@ export function buildPreviewManifestRepair(filesInput: Record<string, string>): 
     packageJson: {
       path: packageJsonPath,
       content,
-      created: !existingPackageJsonPath,
+      created: !hasValidExistingPackageJson,
       changed,
       missingDependencies,
       addedScripts,

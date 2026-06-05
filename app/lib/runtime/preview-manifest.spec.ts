@@ -94,6 +94,53 @@ describe('preview manifest repair', () => {
     expect(repair.supplementalFiles).toEqual([]);
   });
 
+  it('repairs an empty package.json (truncated AI emission) into a runnable React manifest', () => {
+    // The model is expected to emit package.json for AI projects; a cut-off stream lands
+    // it as a 0-byte / blank file. The repair must synthesize a valid manifest instead of
+    // throwing on JSON.parse — otherwise the preview dies with "Invalid JSON in package.json".
+    const { repair, packageJson } = packageJsonFromRepair({
+      'package.json': '',
+      'index.html': '<div id="root"></div><script type="module" src="/src/main.tsx"></script>',
+      'src/main.tsx': [
+        "import { createRoot } from 'react-dom/client';",
+        "import App from './App';",
+        'createRoot(document.getElementById("root")!).render(<App />);',
+        '',
+      ].join('\n'),
+      'src/App.tsx': 'export default function App() { return <main>Calc</main>; }\n',
+    });
+
+    expect(repair.packageJson?.created).toBe(true);
+    expect(repair.packageJson?.changed).toBe(true);
+    expect(packageJson.dependencies).toMatchObject({
+      react: '^18.3.1',
+      'react-dom': '^18.3.1',
+      vite: '^5.4.19',
+    });
+    expect(packageJson.scripts).toMatchObject({ dev: 'vite', build: 'vite build', preview: 'vite preview' });
+  });
+
+  it('overwrites a blank package.json with a minimal valid manifest even with no toolchain need', () => {
+    const repair = buildPreviewManifestRepair({
+      'package.json': '   \n',
+      'README.md': '# notes\n',
+    });
+
+    expect(repair.packageJson?.created).toBe(true);
+    expect(repair.packageJson?.path).toBe('package.json');
+    expect(() => JSON.parse(repair.packageJson!.content)).not.toThrow();
+  });
+
+  it('treats malformed (non-empty) package.json JSON as needing repair instead of throwing', () => {
+    const { packageJson } = packageJsonFromRepair({
+      'package.json': '{ "name": "broken", ', // truncated mid-object
+      'src/main.tsx': "import { createRoot } from 'react-dom/client';\n",
+    });
+
+    expect(() => packageJson).not.toThrow();
+    expect(packageJson.dependencies).toMatchObject({ react: '^18.3.1', vite: '^5.4.19' });
+  });
+
   it('does not create a React plugin config for vanilla Vite entries', () => {
     const { repair, packageJson } = packageJsonFromRepair({
       'src/main.ts': 'document.body.textContent = "hello";\n',
