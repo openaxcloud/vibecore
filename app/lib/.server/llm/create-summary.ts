@@ -97,7 +97,7 @@ you should also use this as historical message while providing the response to t
 ${summary.summary}`;
 
     if (chatId) {
-      let index = 0;
+      let index = -1;
 
       for (let i = 0; i < processedMessages.length; i++) {
         if (processedMessages[i].id === chatId) {
@@ -105,7 +105,14 @@ ${summary.summary}`;
           break;
         }
       }
-      slicedMessages = processedMessages.slice(index + 1);
+
+      // Only slice off everything up to and including the summary anchor when we
+      // actually found it. If the anchored message was pruned/rewound out of the
+      // current window, a default index of 0 would silently drop the genuine
+      // first message from the context fed to the summarizer — keep them all.
+      if (index >= 0) {
+        slicedMessages = processedMessages.slice(index + 1);
+      }
     }
   }
 

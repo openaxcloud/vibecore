@@ -1,5 +1,12 @@
 import { json } from '@remix-run/cloudflare';
 import JSZip from 'jszip';
+import { STARTER_TEMPLATES } from '~/utils/constants';
+
+// This endpoint proxies GitHub using the server's GITHUB_TOKEN, so it must only
+// ever fetch the curated starter templates. Without this allowlist an anonymous
+// caller could pass any `repo` and turn the server token into a private-repo
+// read oracle (and burn the server's GitHub rate budget on arbitrary repos).
+const ALLOWED_TEMPLATE_REPOS = new Set(STARTER_TEMPLATES.map((template) => template.githubRepo));
 
 // Function to detect if we're running in Cloudflare
 function isCloudflareEnvironment(context: any): boolean {
@@ -209,6 +216,10 @@ export async function loader({ request, context }: { request: Request; context: 
 
   if (!repo) {
     return json({ error: 'Repository name is required' }, { status: 400 });
+  }
+
+  if (!ALLOWED_TEMPLATE_REPOS.has(repo)) {
+    return json({ error: 'Repository is not an allowed starter template' }, { status: 403 });
   }
 
   try {

@@ -316,6 +316,10 @@ export const CodeMirrorEditor = memo(
         languageCompartment,
         autoFocusOnDocumentChange,
         doc as TextEditorDocument,
+        // getLanguage()/requestAnimationFrame resolve a tick later; if the user
+        // switched files in the meantime, applying this file's language, scroll
+        // and focus to the now-current document is wrong. Let the async work bail.
+        () => docRef.current?.filePath === doc.filePath,
       );
 
       // Check if the file is locked and update the editor state accordingly
@@ -456,6 +460,7 @@ function setEditorDocument(
   languageCompartment: Compartment,
   autoFocus: boolean,
   doc: TextEditorDocument,
+  isStillCurrent: () => boolean = () => true,
 ) {
   if (doc.value !== view.state.doc.toString()) {
     view.dispatch({
@@ -478,7 +483,9 @@ function setEditorDocument(
   });
 
   getLanguage(doc.filePath).then((languageSupport) => {
-    if (!languageSupport) {
+    // The active document may have changed while getLanguage() was pending —
+    // don't reconfigure/scroll/focus the editor for a file the user left.
+    if (!languageSupport || !isStillCurrent()) {
       return;
     }
 
@@ -487,6 +494,10 @@ function setEditorDocument(
     });
 
     requestAnimationFrame(() => {
+      if (!isStillCurrent()) {
+        return;
+      }
+
       const currentLeft = view.scrollDOM.scrollLeft;
       const currentTop = view.scrollDOM.scrollTop;
       const newLeft = doc.scroll?.left ?? 0;

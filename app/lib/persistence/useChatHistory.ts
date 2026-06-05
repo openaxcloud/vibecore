@@ -323,19 +323,25 @@ ${value.content}
       return;
     }
 
-    Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
-      key = toRuntimePath(key);
-
-      if (value?.type === 'folder') {
-        await runtimeAdapter.createDirectory(key);
+    // forEach(async …) fired every dir-create and file-write concurrently and
+    // unordered: files could be written before their parent directory existed
+    // and any rejection became an unhandled promise. Create all directories
+    // first, then write files, sequentially, so parents exist and errors surface.
+    try {
+      for (const [key, value] of Object.entries(validSnapshot.files)) {
+        if (value?.type === 'folder') {
+          await runtimeAdapter.createDirectory(toRuntimePath(key));
+        }
       }
-    });
-    Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
-      if (value?.type === 'file') {
-        await runtimeAdapter.writeFile(toRuntimePath(key), value.content);
-      } else {
+      for (const [key, value] of Object.entries(validSnapshot.files)) {
+        if (value?.type === 'file') {
+          await runtimeAdapter.writeFile(toRuntimePath(key), value.content);
+        }
       }
-    });
+    } catch (error) {
+      console.error('Failed to restore snapshot files:', error);
+      logStore.logError('Failed to restore snapshot files', error);
+    }
 
     // workbenchStore.files.setKey(snapshot?.files)
   }, []);
