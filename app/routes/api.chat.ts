@@ -117,12 +117,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     totalTokens: 0,
   };
 
-  // Real continuation counter. The previous bound used `stream.switches` from
-  // SwitchableStream, but streaming now flows through mergeIntoDataStream and
-  // `switchSource()` is never called — so `stream.switches` stayed 0 forever and
-  // a model that kept finishing with finishReason==='length' recursed without
-  // limit (runaway provider calls + token billing). This counter is incremented
-  // on each continuation and capped at MAX_RESPONSE_SEGMENTS.
+  /*
+   * Real continuation counter. The previous bound used `stream.switches` from
+   * SwitchableStream, but streaming now flows through mergeIntoDataStream and
+   * `switchSource()` is never called — so `stream.switches` stayed 0 forever and
+   * a model that kept finishing with finishReason==='length' recursed without
+   * limit (runaway provider calls + token billing). This counter is incremented
+   * on each continuation and capped at MAX_RESPONSE_SEGMENTS.
+   */
   let continuationSegments = 0;
 
   const encoder: TextEncoder = new TextEncoder();
@@ -628,10 +630,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             }
 
             if (continuationSegments >= MAX_RESPONSE_SEGMENTS) {
-              // Hard stop after MAX_RESPONSE_SEGMENTS continuations. End the
-              // stream cleanly with a truncation note rather than throwing (a
-              // throw here surfaces as a stream error to the client). Without
-              // this bound the 'length' continuation recursed forever.
+              /*
+               * Hard stop after MAX_RESPONSE_SEGMENTS continuations. End the
+               * stream cleanly with a truncation note rather than throwing (a
+               * throw here surfaces as a stream error to the client). Without
+               * this bound the 'length' continuation recursed forever.
+               */
               streamRecovery.stop();
               dataStream.writeData({
                 type: 'progress',

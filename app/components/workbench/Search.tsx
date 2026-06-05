@@ -285,13 +285,9 @@ export function Search() {
             {searchError}
           </div>
         )}
-        {!isSearching &&
-          !searchError &&
-          hasSearched &&
-          searchResults.length === 0 &&
-          searchQuery.trim() !== '' && (
-            <div className="flex items-center justify-center h-32 text-gray-500">No results found.</div>
-          )}
+        {!isSearching && !searchError && hasSearched && searchResults.length === 0 && searchQuery.trim() !== '' && (
+          <div className="flex items-center justify-center h-32 text-gray-500">No results found.</div>
+        )}
         {!isSearching &&
           Object.keys(groupedResults).map((file) => (
             <div key={file} className="mb-2">

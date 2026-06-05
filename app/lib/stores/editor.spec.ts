@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { FileMap } from './files';
 import { EditorStore } from './editor';
+import type { FileMap } from './files';
 
 function fileMap(entries: Record<string, string>): FileMap {
   return Object.fromEntries(
@@ -25,8 +25,10 @@ describe('EditorStore.setDocuments', () => {
     store.updateFile('a.ts', 'const a = 999; // unsaved');
     expect(store.documents.get()['a.ts'].value).toBe('const a = 999; // unsaved');
 
-    // The files store updates (e.g. the AI wrote b.ts). a.ts is still dirty, so
-    // its unsaved value must survive even though disk still has the old content.
+    /*
+     * The files store updates (e.g. the AI wrote b.ts). a.ts is still dirty, so
+     * its unsaved value must survive even though disk still has the old content.
+     */
     store.setDocuments(fileMap({ 'a.ts': 'const a = 1;', 'b.ts': 'const b = 42;' }), new Set(['a.ts']));
 
     expect(store.documents.get()['a.ts'].value).toBe('const a = 999; // unsaved');

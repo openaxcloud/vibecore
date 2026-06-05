@@ -14,10 +14,17 @@ export default class AnthropicProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [
     {
+      name: 'claude-opus-4-8',
+      label: 'Claude Opus 4.8',
+      provider: 'Anthropic',
+      maxTokenAllowed: 1_000_000,
+      maxCompletionTokens: 128000,
+    },
+    {
       name: 'claude-sonnet-4-6',
       label: 'Claude Sonnet 4.6',
       provider: 'Anthropic',
-      maxTokenAllowed: 200000,
+      maxTokenAllowed: 1_000_000,
       maxCompletionTokens: 64000,
     },
     {
@@ -77,12 +84,13 @@ export default class AnthropicProvider extends BaseProvider {
     const data = res.data.filter((model: any) => model.type === 'model' && !staticModelIds.includes(model.id));
 
     return data.map((m: any) => {
-      // Get accurate context window from Anthropic API
+      // Anthropic's Models API exposes input and output limits separately.
       let contextWindow = 32000; // default fallback
 
-      // Anthropic provides max_tokens in their API response
-      if (m.max_tokens) {
-        contextWindow = m.max_tokens;
+      if (m.max_input_tokens) {
+        contextWindow = m.max_input_tokens;
+      } else if (m.id?.includes('claude-opus-4-8') || m.id?.includes('claude-sonnet-4-6')) {
+        contextWindow = 1_000_000;
       } else if (m.id?.includes('claude-3-5-sonnet')) {
         contextWindow = 200000; // Claude 3.5 Sonnet has 200k context
       } else if (m.id?.includes('claude-3-haiku')) {
@@ -93,10 +101,13 @@ export default class AnthropicProvider extends BaseProvider {
         contextWindow = 200000; // Claude 3 Sonnet has 200k context
       }
 
-      // Determine completion token limits based on specific model
-      let maxCompletionTokens = 64000; // Anthropic caps Claude output at or below 64K unless a model advertises less
+      let maxCompletionTokens = 64000;
 
-      if (m.id?.includes('claude-opus-4')) {
+      if (m.max_tokens) {
+        maxCompletionTokens = m.max_tokens;
+      } else if (m.id?.includes('claude-opus-4-8')) {
+        maxCompletionTokens = 128000; // Claude Opus 4.8 synchronous Messages API limit
+      } else if (m.id?.includes('claude-opus-4')) {
         maxCompletionTokens = 32000; // Claude 4 Opus: 32K output limit
       } else if (m.id?.includes('claude-sonnet-4') || m.id?.includes('claude-haiku-4')) {
         maxCompletionTokens = 64000; // Claude 4 Sonnet: 64K output limit

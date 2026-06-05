@@ -84,9 +84,11 @@ export class PreviewsStore {
       localStorage.setItem = (...args) => {
         originalSetItem(...args);
 
-        // Skip noise keys, and coalesce bursts of writes into a single broadcast
-        // so a flurry of unrelated localStorage activity can't storm every tab's
-        // preview iframe with reloads.
+        /*
+         * Skip noise keys, and coalesce bursts of writes into a single broadcast
+         * so a flurry of unrelated localStorage activity can't storm every tab's
+         * preview iframe with reloads.
+         */
         if (!this.#nonSyncedStorageKeys.has(String(args[0]))) {
           this.#scheduleStorageSync();
         }
@@ -384,7 +386,9 @@ export class PreviewsStore {
   }
 }
 
-// NOTE: there is intentionally no standalone singleton here. The single source
-// of truth is WorkbenchStore's own #previewsStore (exposed via
-// workbenchStore.previews / refreshAllPreviews). A separate module singleton
-// double-patched localStorage.setItem and went stale on project switches.
+/*
+ * NOTE: there is intentionally no standalone singleton here. The single source
+ * of truth is WorkbenchStore's own #previewsStore (exposed via
+ * workbenchStore.previews / refreshAllPreviews). A separate module singleton
+ * double-patched localStorage.setItem and went stale on project switches.
+ */

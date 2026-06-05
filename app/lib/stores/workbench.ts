@@ -1092,8 +1092,10 @@ export class WorkbenchStore {
   }
 
   setDocuments(files: FileMap) {
-    // Pass the dirty set so the editor keeps unsaved edits instead of resetting
-    // them to on-disk content when the file tree updates for any reason.
+    /*
+     * Pass the dirty set so the editor keeps unsaved edits instead of resetting
+     * them to on-disk content when the file tree updates for any reason.
+     */
     this.#editorStore.setDocuments(files, this.unsavedFiles.get());
 
     if (this.#filesStore.filesCount > 0 && this.currentDocument.get() === undefined) {
@@ -1876,27 +1878,53 @@ export class WorkbenchStore {
         this.currentView.set('code');
       }
 
-      const doc = this.#editorStore.documents.get()[fullPath];
+      if (isStreaming) {
+        const doc = this.#editorStore.documents.get()[fullPath];
 
-      if (!doc) {
-        await artifact.runner.runAction(data, isStreaming);
+        if (!doc) {
+          await artifact.runner.runAction(data, true);
+        }
+
+        this.#editorStore.updateFile(fullPath, data.action.content);
+
+        return;
       }
 
-      this.#editorStore.updateFile(fullPath, data.action.content);
+      await artifact.runner.runAction(data);
 
-      if (!isStreaming && data.action.content) {
-        await this.saveFile(fullPath);
-      }
+      const completedAction = artifact.runner.actions.get()[data.actionId];
 
-      if (!isStreaming) {
-        await artifact.runner.runAction(data);
-        this.resetAllFileModifications();
-        this.#emitFileApplied(data.action.filePath, 'agent', {
-          artifactId: data.artifactId,
-          actionId: data.actionId,
+      if (completedAction?.status === 'failed') {
+        const message = completedAction.error || `Failed to write ${data.action.filePath}`;
+
+        this.actionAlert.set({
+          type: 'error',
+          title: 'AI file write blocked',
+          description: message,
+          content: message,
+          source: 'preview',
         });
-        this.#dropResolvedMissingImportFailures();
+        this.appendWorkspaceLog(`AI file write blocked: ${data.action.filePath}: ${message}`);
+
+        return;
       }
+
+      await this.loadRuntimeFiles('.').catch((error) => {
+        this.appendWorkspaceLog(
+          error instanceof Error
+            ? `File refresh skipped after AI write: ${error.message}`
+            : 'File refresh skipped after AI write',
+        );
+      });
+
+      const writtenFile = this.#filesStore.getFile(fullPath);
+      this.#editorStore.updateFile(fullPath, writtenFile?.content ?? data.action.content);
+      this.resetAllFileModifications();
+      this.#emitFileApplied(data.action.filePath, 'agent', {
+        artifactId: data.artifactId,
+        actionId: data.actionId,
+      });
+      this.#dropResolvedMissingImportFailures();
     } else {
       if (this.agentPatchReviewRequired.get() && this.#hasOpenAgentPatchProposalsForArtifact(artifactId)) {
         artifact.runner.skipAction(data.actionId);
@@ -2077,10 +2105,6 @@ export class WorkbenchStore {
       );
     });
 
-    if (!(await this.#validateWorkspaceImportsAfterArtifactClose(artifactId))) {
-      return;
-    }
-
     const previewManifestChanged = await this.#syncPreviewManifestFromRuntime().catch((error) => {
       this.appendWorkspaceLog(
         error instanceof Error
@@ -2093,6 +2117,10 @@ export class WorkbenchStore {
 
     if (previewManifestChanged) {
       await this.loadRuntimeFiles('.').catch(() => undefined);
+    }
+
+    if (!(await this.#validateWorkspaceImportsAfterArtifactClose(artifactId))) {
+      return;
     }
 
     await this.#persistRuntimeFilesToProjectStorage(artifactId);

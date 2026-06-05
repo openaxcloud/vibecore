@@ -1952,18 +1952,12 @@ function HeaderTip({
 function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any[]; autoApplyEnabled?: boolean }) {
   const [selectedHunksByProposal, setSelectedHunksByProposal] = useState<Record<string, Set<string>>>({});
 
-  /*
-   * When auto-apply is on, the caller has already accepted every pending
-   * proposal silently — the queue only needs to surface proposals that
-   * failed and require a manual retry / reject. When auto-apply is off,
-   * show every proposal as before.
-   */
   const visibleProposals = useMemo(() => {
-    if (!autoApplyEnabled) {
-      return proposals;
+    if (autoApplyEnabled) {
+      return [];
     }
 
-    return proposals.filter((proposal) => proposal.status === 'failed');
+    return proposals;
   }, [proposals, autoApplyEnabled]);
 
   useEffect(() => {
@@ -2011,11 +2005,13 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
   const pendingForBulk = visibleProposals.filter((proposal) => proposal.status !== 'applying');
 
   const acceptAll = () => {
-    // Apply the whole batch through the store's bulk path, which topologically
-    // sorts by import dependencies and awaits each accept sequentially. Firing
-    // the accepts concurrently here (the previous behaviour) raced the per-accept
-    // resetAllFileModifications/loadRuntimeFiles/saveFile calls against each other
-    // and could land an importer before the file it imports.
+    /*
+     * Apply the whole batch through the store's bulk path, which topologically
+     * sorts by import dependencies and awaits each accept sequentially. Firing
+     * the accepts concurrently here (the previous behaviour) raced the per-accept
+     * resetAllFileModifications/loadRuntimeFiles/saveFile calls against each other
+     * and could land an importer before the file it imports.
+     */
     const ids: string[] = [];
     const hunkSelections: Record<string, string[]> = {};
 
@@ -2839,10 +2835,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * with an Undo action.
      */
     const autoAppliedRef = useRef<Map<string, string>>(new Map());
-    // Serializes silent auto-apply accepts. Each accept mutates shared workspace
-    // state (resetAllFileModifications, a full loadRuntimeFiles tree reload, file
-    // writes); firing them concurrently for a multi-file agent turn interleaved
-    // those mutations non-deterministically. Chaining keeps them one-at-a-time.
+
+    /*
+     * Serializes silent auto-apply accepts. Each accept mutates shared workspace
+     * state (resetAllFileModifications, a full loadRuntimeFiles tree reload, file
+     * writes); firing them concurrently for a multi-file agent turn interleaved
+     * those mutations non-deterministically. Chaining keeps them one-at-a-time.
+     */
     const autoApplyChainRef = useRef<Promise<void>>(Promise.resolve());
     const appliedToastBufferRef = useRef<Map<string, { filePath: string; proposalId: string }>>(new Map());
     const appliedToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3478,10 +3477,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       } else {
         eventSource = new EventSource(`/api/projects/${projectId}/ide-panel/overview?stream=1`);
 
-        // EventSource auto-reconnects on transient drops. Resetting this counter
-        // on every successful open/message means a single network blip — or the
-        // server recycling the stream on its periodic interval — no longer
-        // strands the panel on 30s polling for the rest of the session.
+        /*
+         * EventSource auto-reconnects on transient drops. Resetting this counter
+         * on every successful open/message means a single network blip — or the
+         * server recycling the stream on its periodic interval — no longer
+         * strands the panel on 30s polling for the rest of the session.
+         */
         let consecutiveErrors = 0;
 
         eventSource.onopen = () => {
@@ -3512,10 +3513,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           consecutiveErrors += 1;
 
-          // Only give up on the live stream once the browser has permanently
-          // closed it, or after several consecutive failures (a genuinely dead
-          // endpoint that EventSource would otherwise retry forever). A lone
-          // transient error is left to EventSource's own reconnect.
+          /*
+           * Only give up on the live stream once the browser has permanently
+           * closed it, or after several consecutive failures (a genuinely dead
+           * endpoint that EventSource would otherwise retry forever). A lone
+           * transient error is left to EventSource's own reconnect.
+           */
           if (eventSource?.readyState === EventSource.CLOSED || consecutiveErrors >= 3) {
             console.warn('Project IDE overview stream unhealthy; falling back to slow refresh.');
             eventSource?.close();
@@ -5266,6 +5269,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       toast.success('Conversation exportée');
     }, [description, messages, projectId]);
 
+    const shouldRenderAgentPatchReviewQueue =
+      projectIdeMode && !projectAutoApply && pendingAgentPatchProposals.length > 0;
+
     const shouldRenderAgentComposer = !projectIdeMode || !useMobileIde || mobilePanel === 'chat';
 
     const agentPanel = (
@@ -5322,7 +5328,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       onRewindToMessage={onRewindToMessage}
                       addToolResult={addToolResult}
                     />
-                    {projectIdeMode && pendingAgentPatchProposals.length > 0 && (
+                    {shouldRenderAgentPatchReviewQueue && (
                       <div className="w-full max-w-chat mx-auto px-0 pb-4">
                         <AgentPatchReviewQueue
                           proposals={pendingAgentPatchProposals}
@@ -5343,7 +5349,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 'bolt-project-agent-composer bolt-project-agent-composer-stack': projectIdeMode,
               })}
             >
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 bolt-project-agent-notice-stack">
                 {deployAlert && (
                   <DeployChatAlert
                     alert={deployAlert}
@@ -5375,31 +5381,31 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   />
                 )}
                 {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
+                {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
+                {projectIdeMode && agentToolAction && (
+                  <div className="bolt-project-agent-action-card" role="region" aria-label={agentToolAction.title}>
+                    <div>
+                      <span className={agentToolAction.icon} aria-hidden />
+                      <span>
+                        <strong>{agentToolAction.title}</strong>
+                        <small>{agentToolAction.description}</small>
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        openIdeTool(agentToolAction.panel);
+                        setAgentToolAction(null);
+                      }}
+                    >
+                      Open →
+                    </button>
+                  </div>
+                )}
               </div>
-              {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
               {projectIdeMode && isStreaming && (
                 <div className="vc-sr-only" role="status" aria-live="polite">
                   Agent is thinking
-                </div>
-              )}
-              {projectIdeMode && agentToolAction && (
-                <div className="bolt-project-agent-action-card" role="region" aria-label={agentToolAction.title}>
-                  <div>
-                    <span className={agentToolAction.icon} aria-hidden />
-                    <span>
-                      <strong>{agentToolAction.title}</strong>
-                      <small>{agentToolAction.description}</small>
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      openIdeTool(agentToolAction.panel);
-                      setAgentToolAction(null);
-                    }}
-                  >
-                    Open →
-                  </button>
                 </div>
               )}
               {projectIdeMode && (
@@ -10104,6 +10110,7 @@ function ProjectIdePanelContent({
   if (panel === 'deployments') {
     const deployments = data.deployments ?? [];
     const latestDeployment = deployments[0];
+    const workspaceId = data.selectedWorkspaceId ?? data.workspaceId ?? data.workspace?.id ?? '';
 
     const inferredFramework = detectFrameworkFromDeployConfig({
       buildCommand: latestDeployment?.buildCommand,
@@ -10180,6 +10187,7 @@ function ProjectIdePanelContent({
         </section>
 
         <form onSubmit={onSubmit} className="bolt-project-deploy-wizard">
+          {workspaceId ? <input type="hidden" name="workspaceId" value={workspaceId} /> : null}
           <h3>Deployment wizard</h3>
           <p>
             Uses the existing Bolt build defaults and records the SaaS deployment with quotas, audit logs and redacted
@@ -15728,7 +15736,13 @@ function ProjectSecretsPanel({
           required
           defaultValue={editingKey}
         />
-        <PanelInput key={`secret-value-${editingKey}`} name="value" placeholder="Secret value" type="password" required />
+        <PanelInput
+          key={`secret-value-${editingKey}`}
+          name="value"
+          placeholder="Secret value"
+          type="password"
+          required
+        />
         <PanelButton disabled={busy}>{editingKey ? 'Update secret' : '+ New secret'}</PanelButton>
       </form>
       {message && <div className="bolt-project-empty-panel">{message}</div>}

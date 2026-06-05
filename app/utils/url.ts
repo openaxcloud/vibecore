@@ -35,8 +35,10 @@ export function isPrivateIp(ip: string): boolean {
     return true;
   }
 
-  // IPv4-mapped / -compatible IPv6 (e.g. ::ffff:169.254.169.254) — re-check the
-  // embedded v4 address against the private patterns.
+  /*
+   * IPv4-mapped / -compatible IPv6 (e.g. ::ffff:169.254.169.254) — re-check the
+   * embedded v4 address against the private patterns.
+   */
   const mappedV4 = addr.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
 
   if (addr.includes(':') && mappedV4 && PRIVATE_IP_PATTERNS.some((pattern) => pattern.test(mappedV4[1]))) {

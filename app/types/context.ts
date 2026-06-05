@@ -96,7 +96,7 @@ export const streamErrorCodeMessages: Record<StreamErrorCode, string> = {
   STREAM_ABORTED: 'Stream aborted',
   MODEL_NOT_FOUND: 'Invalid model selected. Please check that the model name is correct and available.',
   INVALID_RESPONSE:
-    'The AI service returned an invalid response. This may be due to an invalid model name, API rate limiting, or server issues. Try selecting a different model or check your API key.',
+    'The AI service or generated files returned invalid JSON. Check the generated file diagnostics and retry after the manifest is repaired.',
   AUTH_FAILED: 'Invalid or missing API key. Please check your API key configuration.',
   TOKEN_LIMIT:
     'Token limit exceeded. The conversation is too long for the selected model. Try using a model with larger context window or start a new conversation.',
@@ -111,28 +111,38 @@ export function classifyStreamError(error: unknown): StreamErrorCode {
   }
 
   const message = (error as { message?: string } | undefined)?.message ?? '';
+  const normalizedMessage = message.toLowerCase();
 
-  if (message.includes('model') && message.includes('not found')) {
+  if (normalizedMessage.includes('model') && normalizedMessage.includes('not found')) {
     return 'MODEL_NOT_FOUND';
   }
 
-  if (message.includes('Invalid JSON response')) {
+  if (
+    normalizedMessage.includes('invalid json') ||
+    normalizedMessage.includes('unexpected end of json') ||
+    normalizedMessage.includes('json.parse') ||
+    normalizedMessage.includes('json response')
+  ) {
     return 'INVALID_RESPONSE';
   }
 
-  if (message.includes('API key') || message.includes('unauthorized') || message.includes('authentication')) {
+  if (
+    normalizedMessage.includes('api key') ||
+    normalizedMessage.includes('unauthorized') ||
+    normalizedMessage.includes('authentication')
+  ) {
     return 'AUTH_FAILED';
   }
 
-  if (message.includes('token') && message.includes('limit')) {
+  if (normalizedMessage.includes('token') && normalizedMessage.includes('limit')) {
     return 'TOKEN_LIMIT';
   }
 
-  if (message.includes('rate limit') || message.includes('429')) {
+  if (normalizedMessage.includes('rate limit') || normalizedMessage.includes('429')) {
     return 'RATE_LIMIT';
   }
 
-  if (message.includes('network') || message.includes('timeout')) {
+  if (normalizedMessage.includes('network') || normalizedMessage.includes('timeout')) {
     return 'NETWORK_ERROR';
   }
 

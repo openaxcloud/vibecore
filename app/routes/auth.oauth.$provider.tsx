@@ -17,13 +17,15 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
   const url = new URL(result.authorizationUrl);
 
-  // The API embeds an HMAC-signed state in the authorization URL — login-CSRF
-  // protection that the API callback verifies statelessly (so it holds across
-  // all api replicas). Persist that exact value so we can (a) detect a tampered
-  // state returned by the provider and (b) forward it to the API callback for
-  // signature verification. Overwriting it with a locally generated UUID — as
-  // this route used to — meant the API callback always saw a missing/invalid
-  // state and rejected every login with OAUTH_STATE_INVALID.
+  /*
+   * The API embeds an HMAC-signed state in the authorization URL — login-CSRF
+   * protection that the API callback verifies statelessly (so it holds across
+   * all api replicas). Persist that exact value so we can (a) detect a tampered
+   * state returned by the provider and (b) forward it to the API callback for
+   * signature verification. Overwriting it with a locally generated UUID — as
+   * this route used to — meant the API callback always saw a missing/invalid
+   * state and rejected every login with OAUTH_STATE_INVALID.
+   */
   const state = url.searchParams.get('state');
 
   if (!state) {

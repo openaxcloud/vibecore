@@ -25,13 +25,17 @@ describe('estimatePromptTokens', () => {
 
 describe('resolveModelPricing', () => {
   it('returns the exact pricing row for canonical model names', () => {
+    expect(resolveModelPricing('claude-opus-4-8')).toEqual(MODEL_PRICING['claude-opus-4-8']);
     expect(resolveModelPricing('claude-opus-4-7')).toEqual(MODEL_PRICING['claude-opus-4-7']);
+    expect(resolveModelPricing('gpt-4.1')).toEqual(MODEL_PRICING['gpt-4.1']);
     expect(resolveModelPricing('gpt-4o-mini')).toEqual(MODEL_PRICING['gpt-4o-mini']);
   });
 
   it('matches versioned / dated suffixes via prefix fallback', () => {
+    expect(resolveModelPricing('claude-opus-4-8-20260601')).toEqual(MODEL_PRICING['claude-opus-4-8']);
     expect(resolveModelPricing('claude-opus-4-7-20260501')).toEqual(MODEL_PRICING['claude-opus-4-7']);
     expect(resolveModelPricing('claude-haiku-4-5-20251001')).toEqual(MODEL_PRICING['claude-haiku-4-5']);
+    expect(resolveModelPricing('gpt-4.1-mini-2025-04-14')).toEqual(MODEL_PRICING['gpt-4.1-mini']);
     expect(resolveModelPricing('gpt-4o-2024-08-06')).toEqual(MODEL_PRICING['gpt-4o']);
   });
 

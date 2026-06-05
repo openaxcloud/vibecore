@@ -106,10 +106,12 @@ ${summary.summary}`;
         }
       }
 
-      // Only slice off everything up to and including the summary anchor when we
-      // actually found it. If the anchored message was pruned/rewound out of the
-      // current window, a default index of 0 would silently drop the genuine
-      // first message from the context fed to the summarizer — keep them all.
+      /*
+       * Only slice off everything up to and including the summary anchor when we
+       * actually found it. If the anchored message was pruned/rewound out of the
+       * current window, a default index of 0 would silently drop the genuine
+       * first message from the context fed to the summarizer — keep them all.
+       */
       if (index >= 0) {
         slicedMessages = processedMessages.slice(index + 1);
       }

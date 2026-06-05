@@ -72,8 +72,10 @@ class LogStore {
       return;
     }
 
-    // Migrate off the legacy cookie: it was sent on every same-origin request
-    // (see _saveLogs) and could blow past the ~4KB cookie limit / trigger 431s.
+    /*
+     * Migrate off the legacy cookie: it was sent on every same-origin request
+     * (see _saveLogs) and could blow past the ~4KB cookie limit / trigger 431s.
+     */
     const legacyCookie = Cookies.get(LOG_STORAGE_KEY);
 
     if (legacyCookie) {
@@ -114,9 +116,11 @@ class LogStore {
       return;
     }
 
-    // Persist to localStorage, NOT a cookie: these client-only diagnostic logs
-    // (up to MAX_LOGS entries embedding full API request/response payloads) must
-    // never be attached to outgoing HTTP requests.
+    /*
+     * Persist to localStorage, NOT a cookie: these client-only diagnostic logs
+     * (up to MAX_LOGS entries embedding full API request/response payloads) must
+     * never be attached to outgoing HTTP requests.
+     */
     try {
       localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(this._logs.get()));
     } catch (error) {

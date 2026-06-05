@@ -434,10 +434,12 @@ export const Workbench = memo(
       workbenchStore
         .saveCurrentDocument()
         .then(() => {
-          // Refresh all previews via the workbench's own previews store. Using
-          // the standalone usePreviewStore() singleton instead spun up a SECOND
-          // PreviewsStore — double-patching localStorage.setItem and refreshing a
-          // store bound to a stale runtime after a project switch.
+          /*
+           * Refresh all previews via the workbench's own previews store. Using
+           * the standalone usePreviewStore() singleton instead spun up a SECOND
+           * PreviewsStore — double-patching localStorage.setItem and refreshing a
+           * store bound to a stale runtime after a project switch.
+           */
           workbenchStore.refreshAllPreviews();
           toast.success(filePath ? `Saved ${filePath.split('/').pop()}` : 'File saved', { toastId: 'file-saved' });
         })

@@ -45,10 +45,12 @@ export class EditorStore {
 
             const previousDocument = previousDocuments?.[filePath];
 
-            // Preserve the in-editor value for files with unsaved edits. This
-            // runs on every `files` store change (AI writing a different file, a
-            // save echo, an external write); without this guard a dirty file is
-            // reset to its on-disk content and the user's unsaved edits are lost.
+            /*
+             * Preserve the in-editor value for files with unsaved edits. This
+             * runs on every `files` store change (AI writing a different file, a
+             * save echo, an external write); without this guard a dirty file is
+             * reset to its on-disk content and the user's unsaved edits are lost.
+             */
             const preserveUnsaved = keepUnsavedPaths?.has(filePath) && previousDocument !== undefined;
 
             return [

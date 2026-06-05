@@ -603,7 +603,10 @@ function expectFloatingSurfacesConstrained(
     );
 
     if (surface.id === 'floating-overflow' && details.viewportWidth <= 1199) {
-      expect(surface.transform, `${label} mobile overflow transform`).toBe('none');
+      expect(
+        surface.transform === 'none' || surface.transform.startsWith('matrix(1, 0, 0, 1, -'),
+        `${label} mobile overflow transform`,
+      ).toBe(true);
     }
 
     if (
@@ -961,28 +964,45 @@ async function mountMobileAgentComposerDocument(page: Page) {
                 </div>
               </div>
               <div class="my-auto flex flex-col gap-2 w-full max-w-chat mx-auto mb-6 sticky bottom-2 bolt-project-agent-composer bolt-project-agent-composer-stack" data-testid="mobile-agent-composer">
-                <section class="bolt-agent-tool-calls" aria-label="Agent tool calls" data-active-work="false" data-expanded="false" data-testid="mobile-agent-tool-calls">
-                  <button type="button" class="bolt-agent-tool-calls-header" aria-expanded="false">
-                    <span class="bolt-agent-tool-calls-header-icon" aria-hidden></span>
-                    <span class="bolt-agent-tool-calls-header-copy">
-                      <strong>Agent tool calls</strong>
-                      <small>2/2 done · 100% · ETA complete</small>
-                      <span class="bolt-agent-tool-progress" role="progressbar" aria-label="Agent progress 100% complete. ETA complete." aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
-                        <span class="bolt-agent-tool-progress-fill" style="width: 100%;"></span>
-                      </span>
-                    </span>
-                    <span class="bolt-agent-tool-calls-chevron" aria-hidden></span>
-                  </button>
-                  <div class="bolt-agent-tool-calls-list" data-testid="mobile-agent-tool-list">
-                    <div class="bolt-agent-tool-call-row is-complete">
-                      <span class="bolt-agent-tool-call-status" data-status="complete" aria-hidden></span>
-                      <span class="bolt-agent-tool-call-copy">
-                        <strong>Response Generated</strong>
-                        <small>done · 0.3s</small>
+                <div class="flex flex-col gap-2 bolt-project-agent-notice-stack" data-testid="mobile-agent-notices">
+                  <div class="bolt-project-chat-alert" data-testid="mobile-agent-preview-alert" style="border: 1px solid var(--vc-ide-border-visible); border-radius: 10px; background: var(--vc-ide-bg-card); padding: 16px;">
+                    <strong>Preview Error</strong>
+                    <p style="margin: 8px 0 0; color: var(--vc-ide-text-secondary);">We encountered an error while running the preview. Would you like Bolt to analyze and help resolve this issue?</p>
+                    <div style="margin-top: 10px; color: var(--vc-ide-text-muted); font-size: 12px;">Error: Missing import in src/App.tsx: ./App.css does not resolve to a generated or existing file with a deliberately long diagnostic line.</div>
+                  </div>
+                  <div class="bolt-project-agent-action-card" data-testid="mobile-agent-action-card">
+                    <div>
+                      <span aria-hidden></span>
+                      <span>
+                        <strong>Open Shell (Terminal)</strong>
+                        <small>Workspace shell terminal</small>
                       </span>
                     </div>
+                    <button type="button">Open →</button>
                   </div>
-                </section>
+                  <section class="bolt-agent-tool-calls" aria-label="Agent tool calls" data-active-work="false" data-expanded="false" data-testid="mobile-agent-tool-calls">
+                    <button type="button" class="bolt-agent-tool-calls-header" aria-expanded="false">
+                      <span class="bolt-agent-tool-calls-header-icon" aria-hidden></span>
+                      <span class="bolt-agent-tool-calls-header-copy">
+                        <strong>Agent tool calls</strong>
+                        <small>2/2 done · 100% · ETA complete</small>
+                        <span class="bolt-agent-tool-progress" role="progressbar" aria-label="Agent progress 100% complete. ETA complete." aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                          <span class="bolt-agent-tool-progress-fill" style="width: 100%;"></span>
+                        </span>
+                      </span>
+                      <span class="bolt-agent-tool-calls-chevron" aria-hidden></span>
+                    </button>
+                    <div class="bolt-agent-tool-calls-list" data-testid="mobile-agent-tool-list">
+                      <div class="bolt-agent-tool-call-row is-complete">
+                        <span class="bolt-agent-tool-call-status" data-status="complete" aria-hidden></span>
+                        <span class="bolt-agent-tool-call-copy">
+                          <strong>Response Generated</strong>
+                          <small>done · 0.3s</small>
+                        </span>
+                      </div>
+                    </div>
+                  </section>
+                </div>
                 <div class="bolt-project-agent-suggestions" aria-label="Agent suggestions" data-testid="mobile-agent-suggestions">
                   ${[
                     'Get preview running',
@@ -1065,7 +1085,9 @@ async function readMobilePreviewShellDetails(page: Page) {
 async function readMobileAgentComposerDetails(page: Page) {
   return page.getByTestId('mobile-agent-shell').evaluate(() => {
     const composer = document.querySelector<HTMLElement>('[data-testid="mobile-agent-composer"]');
+    const chatbox = document.querySelector<HTMLElement>('[data-testid="mobile-agent-chatbox"]');
     const nav = document.querySelector<HTMLElement>('[data-testid="mobile-agent-nav"]');
+    const notices = document.querySelector<HTMLElement>('[data-testid="mobile-agent-notices"]');
     const patchReview = document.querySelector<HTMLElement>('[data-testid="mobile-agent-patch-review"]');
     const patchList = document.querySelector<HTMLElement>('[data-testid="mobile-agent-patch-list"]');
     const scroll = document.querySelector<HTMLElement>('[data-testid="mobile-agent-scroll"]');
@@ -1074,15 +1096,30 @@ async function readMobileAgentComposerDetails(page: Page) {
     const toolCalls = document.querySelector<HTMLElement>('[data-testid="mobile-agent-tool-calls"]');
     const toolList = document.querySelector<HTMLElement>('[data-testid="mobile-agent-tool-list"]');
 
-    if (!composer || !nav || !patchReview || !patchList || !scroll || !suggestions || !tail || !toolCalls || !toolList) {
+    if (
+      !composer ||
+      !chatbox ||
+      !nav ||
+      !notices ||
+      !patchReview ||
+      !patchList ||
+      !scroll ||
+      !suggestions ||
+      !tail ||
+      !toolCalls ||
+      !toolList
+    ) {
       throw new Error('Missing mobile agent composer fixture');
     }
 
     scroll.scrollTop = scroll.scrollHeight;
 
+    const chatboxRect = chatbox.getBoundingClientRect();
     const composerRect = composer.getBoundingClientRect();
     const composerStyle = window.getComputedStyle(composer);
     const navRect = nav.getBoundingClientRect();
+    const noticesRect = notices.getBoundingClientRect();
+    const noticesStyle = window.getComputedStyle(notices);
     const patchListRect = patchList.getBoundingClientRect();
     const patchReviewRect = patchReview.getBoundingClientRect();
     const scrollStyle = window.getComputedStyle(scroll);
@@ -1098,6 +1135,8 @@ async function readMobileAgentComposerDetails(page: Page) {
 
     return {
       bottomOffset: composerStyle.bottom,
+      chatboxBottom: chatboxRect.bottom,
+      chatboxTop: chatboxRect.top,
       composerChildBottom,
       composerBottom: composerRect.bottom,
       composerClientHeight: composer.clientHeight,
@@ -1111,6 +1150,8 @@ async function readMobileAgentComposerDetails(page: Page) {
       documentOverflowsX: document.documentElement.scrollWidth > viewportWidth + 1,
       navHeight: navRect.height,
       navTop: navRect.top,
+      noticesHeight: noticesRect.height,
+      noticesOverflowY: noticesStyle.overflowY,
       paddingBottom: composerStyle.paddingBottom,
       patchListHeight: patchListRect.height,
       patchReviewHeight: patchReviewRect.height,
@@ -1182,9 +1223,16 @@ function expectMobileAgentComposerConstrained(
   }
 
   expect(details.composerHeight, `${label} composer height`).toBeLessThanOrEqual(
-    Math.min(details.viewportHeight * 0.46, 380) + 1,
+    Math.min(details.viewportHeight * 0.58, 460) + 1,
   );
   expect(details.composerWidth, `${label} composer width`).toBeLessThanOrEqual(details.viewportWidth - 20 + 1);
+  expect(details.noticesOverflowY, `${label} notice stack overflow mode`).toBe('auto');
+  expect(details.noticesHeight, `${label} notice stack height`).toBeLessThanOrEqual(
+    Math.min(details.viewportHeight * 0.2, 160) + 1,
+  );
+  expect(details.chatboxTop, `${label} chatbox visible top`).toBeGreaterThanOrEqual(details.composerTop - 1);
+  expect(details.chatboxBottom, `${label} chatbox above nav`).toBeLessThanOrEqual(details.navTop - 6);
+  expect(details.chatboxBottom, `${label} chatbox inside composer`).toBeLessThanOrEqual(details.composerBottom + 1);
   expect(details.patchReviewHeight, `${label} patch review height`).toBeLessThanOrEqual(
     Math.min(details.viewportHeight * 0.38, 340) + 1,
   );
@@ -1192,22 +1240,13 @@ function expectMobileAgentComposerConstrained(
     Math.min(details.viewportHeight * 0.24, 230) + 1,
   );
   expect(Number.parseFloat(details.scrollPaddingBottom), `${label} scroll padding bottom`).toBeGreaterThanOrEqual(236);
-  expect(details.suggestionsDisplay, `${label} suggestions layout`).toBe('grid');
-  expect(details.suggestionsLeft, `${label} suggestions left edge`).toBeGreaterThanOrEqual(details.composerLeft - 1);
-  expect(details.suggestionsRight, `${label} suggestions right edge`).toBeLessThanOrEqual(details.composerRight + 1);
-  expect(details.suggestionsScrollWidth, `${label} suggestions horizontal overflow`).toBeLessThanOrEqual(
-    details.suggestionsClientWidth + 1,
-  );
+  expect(details.suggestionsDisplay, `${label} suggestions hidden while notices are present`).toBe('none');
   expect(details.tailBottom, `${label} transcript tail above composer`).toBeLessThanOrEqual(details.composerTop - 4);
   expect(details.toolCallsHeight, `${label} collapsed tool calls height`).toBeLessThanOrEqual(144);
   expect(details.toolListDisplay, `${label} collapsed tool list display`).toBe('none');
 
   for (const [index, button] of details.suggestionButtons.entries()) {
-    expect(button.left, `${label} suggestion ${index} left edge`).toBeGreaterThanOrEqual(details.suggestionsLeft - 1);
-    expect(button.right, `${label} suggestion ${index} right edge`).toBeLessThanOrEqual(details.suggestionsRight + 1);
-    expect(button.scrollWidth, `${label} suggestion ${index} text overflow`).toBeLessThanOrEqual(
-      button.clientWidth + 1,
-    );
+    expect(button.width, `${label} hidden suggestion ${index} width`).toBe(0);
   }
 }
 

@@ -50,9 +50,12 @@ export const Dropdown = ({ trigger, children, align = 'end', sideOffset = 5 }: D
             'data-[side=left]:slide-in-from-right-2',
             'data-[side=right]:slide-in-from-left-2',
             'data-[side=top]:slide-in-from-bottom-2',
-            // Above the dialog tier (z-[9999]/z-[10000]): this content is portaled
-            // to <body>, so at z-1000 a dropdown opened from inside a modal rendered
-            // behind the modal backdrop.
+
+            /*
+             * Above the dialog tier (z-[9999]/z-[10000]): this content is portaled
+             * to <body>, so at z-1000 a dropdown opened from inside a modal rendered
+             * behind the modal backdrop.
+             */
             'z-[10010]',
           )}
           sideOffset={sideOffset}

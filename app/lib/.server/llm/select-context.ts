@@ -234,8 +234,10 @@ export async function selectContext(props: {
       return;
     }
 
-    // Store under the relative key (matching contextFiles above) even if the model echoed
-    // back a `/home/project/`-prefixed path, so the merged FileMap has consistent keys.
+    /*
+     * Store under the relative key (matching contextFiles above) even if the model echoed
+     * back a `/home/project/`-prefixed path, so the merged FileMap has consistent keys.
+     */
     const relativePath = path.startsWith('/home/project/') ? path.replace('/home/project/', '') : path;
     filteredFiles[relativePath] = files[fullPath];
   });

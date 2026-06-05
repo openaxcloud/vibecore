@@ -95,9 +95,11 @@ describe('preview manifest repair', () => {
   });
 
   it('repairs an empty package.json (truncated AI emission) into a runnable React manifest', () => {
-    // The model is expected to emit package.json for AI projects; a cut-off stream lands
-    // it as a 0-byte / blank file. The repair must synthesize a valid manifest instead of
-    // throwing on JSON.parse — otherwise the preview dies with "Invalid JSON in package.json".
+    /*
+     * The model is expected to emit package.json for AI projects; a cut-off stream lands
+     * it as a 0-byte / blank file. The repair must synthesize a valid manifest instead of
+     * throwing on JSON.parse — otherwise the preview dies with "Invalid JSON in package.json".
+     */
     const { repair, packageJson } = packageJsonFromRepair({
       'package.json': '',
       'index.html': '<div id="root"></div><script type="module" src="/src/main.tsx"></script>',

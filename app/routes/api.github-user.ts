@@ -158,8 +158,10 @@ async function githubUserAction({ request, context }: { request: Request; contex
       perPage = parseInt(formData.get('per_page') as string) || 30;
     }
 
-    // GitHub caps per_page at 100; clamp to a valid range so a malformed or
-    // out-of-range value can't produce a 422 from the upstream API.
+    /*
+     * GitHub caps per_page at 100; clamp to a valid range so a malformed or
+     * out-of-range value can't produce a 422 from the upstream API.
+     */
     if (!Number.isFinite(perPage) || perPage < 1) {
       perPage = 30;
     } else if (perPage > 100) {

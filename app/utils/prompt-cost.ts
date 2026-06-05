@@ -16,7 +16,7 @@
  */
 
 /** Date the pricing table was last reconciled against provider pages. */
-export const PROMPT_PRICING_LAST_REVIEWED = '2026-05-14';
+export const PROMPT_PRICING_LAST_REVIEWED = '2026-06-03';
 
 export interface ModelPricing {
   /** USD per 1 000 000 input tokens. */
@@ -32,7 +32,8 @@ export interface ModelPricing {
  * `resolveModelPricing` so dated suffixes don't break the lookup.
  */
 export const MODEL_PRICING: Readonly<Record<string, ModelPricing>> = {
-  // Anthropic Claude 4.x family (USD / 1M tokens, public list price 2026-05).
+  // Anthropic Claude 4.x family (USD / 1M tokens, public list price 2026-06).
+  'claude-opus-4-8': { inputPer1MUsd: 5, outputPer1MUsd: 25 },
   'claude-opus-4-7': { inputPer1MUsd: 15, outputPer1MUsd: 75 },
   'claude-opus-4-6': { inputPer1MUsd: 15, outputPer1MUsd: 75 },
   'claude-sonnet-4-6': { inputPer1MUsd: 3, outputPer1MUsd: 15 },
@@ -40,6 +41,9 @@ export const MODEL_PRICING: Readonly<Record<string, ModelPricing>> = {
   'claude-haiku-4-5': { inputPer1MUsd: 0.8, outputPer1MUsd: 4 },
 
   // OpenAI GPT-4.x family.
+  'gpt-4.1': { inputPer1MUsd: 2, outputPer1MUsd: 8 },
+  'gpt-4.1-mini': { inputPer1MUsd: 0.4, outputPer1MUsd: 1.6 },
+  'gpt-4.1-nano': { inputPer1MUsd: 0.1, outputPer1MUsd: 0.4 },
   'gpt-4o': { inputPer1MUsd: 5, outputPer1MUsd: 15 },
   'gpt-4o-mini': { inputPer1MUsd: 0.15, outputPer1MUsd: 0.6 },
   'gpt-4-turbo': { inputPer1MUsd: 10, outputPer1MUsd: 30 },
@@ -53,11 +57,15 @@ export const MODEL_PRICING: Readonly<Record<string, ModelPricing>> = {
 };
 
 const PRICING_LOOKUP_PREFIXES: Readonly<Array<{ prefix: string; key: keyof typeof MODEL_PRICING }>> = [
+  { prefix: 'claude-opus-4-8', key: 'claude-opus-4-8' },
   { prefix: 'claude-opus-4-7', key: 'claude-opus-4-7' },
   { prefix: 'claude-opus-4-6', key: 'claude-opus-4-6' },
   { prefix: 'claude-sonnet-4-6', key: 'claude-sonnet-4-6' },
   { prefix: 'claude-sonnet-4-5', key: 'claude-sonnet-4-5' },
   { prefix: 'claude-haiku-4-5', key: 'claude-haiku-4-5' },
+  { prefix: 'gpt-4.1-mini', key: 'gpt-4.1-mini' },
+  { prefix: 'gpt-4.1-nano', key: 'gpt-4.1-nano' },
+  { prefix: 'gpt-4.1', key: 'gpt-4.1' },
   { prefix: 'gpt-4o-mini', key: 'gpt-4o-mini' },
   { prefix: 'gpt-4o', key: 'gpt-4o' },
   { prefix: 'gpt-4-turbo', key: 'gpt-4-turbo' },

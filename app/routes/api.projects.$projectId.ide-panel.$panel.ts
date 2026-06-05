@@ -89,6 +89,29 @@ function panelErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Runtime request failed';
 }
 
+export function scopeDeploymentsForWorkspace(
+  deployments: Array<Record<string, unknown>>,
+  selectedWorkspaceId?: string,
+  primaryWorkspaceId?: string,
+) {
+  return deployments.filter((deployment) => {
+    const deploymentWorkspaceId =
+      typeof deployment.workspaceId === 'string' && deployment.workspaceId.length > 0
+        ? deployment.workspaceId
+        : undefined;
+
+    if (!selectedWorkspaceId) {
+      return !deploymentWorkspaceId;
+    }
+
+    if (selectedWorkspaceId === primaryWorkspaceId) {
+      return !deploymentWorkspaceId || deploymentWorkspaceId === selectedWorkspaceId;
+    }
+
+    return deploymentWorkspaceId === selectedWorkspaceId;
+  });
+}
+
 interface PanelWorkspaceContext {
   workspaceList: Array<Record<string, unknown>>;
   primaryWorkspaceId?: string;
@@ -410,6 +433,37 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           activeWorkspaceId,
           primaryWorkspaceId,
           selectedWorkspaceId,
+        }),
+      );
+    } catch (error) {
+      return json(panelEnvelopeError(panel, project.project, error));
+    }
+  }
+
+  if (panel === 'deployments') {
+    try {
+      const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
+      const workspaceCtx = await resolvePanelWorkspace(request, projectId, requestedWorkspaceId);
+
+      const deployments = await apiRequest<{ deployments?: Array<Record<string, unknown>> }>(
+        request,
+        `/projects/${projectId}/deployments`,
+      );
+
+      const deploymentList = Array.isArray(deployments.deployments) ? deployments.deployments : [];
+      const selectedWorkspaceId = workspaceCtx.selectedWorkspaceId;
+      const primaryWorkspaceId = workspaceCtx.primaryWorkspaceId;
+      const scopedDeployments = scopeDeploymentsForWorkspace(deploymentList, selectedWorkspaceId, primaryWorkspaceId);
+
+      return json(
+        panelEnvelope(panel, project.project, {
+          deployments: scopedDeployments,
+          allDeployments: deploymentList,
+          workspaces: workspaceCtx.workspaceList,
+          primaryWorkspaceId,
+          activeWorkspaceId: workspaceCtx.activeWorkspaceId,
+          selectedWorkspaceId,
+          workspaceId: selectedWorkspaceId,
         }),
       );
     } catch (error) {
@@ -947,6 +1001,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
           commitSha: body.commitSha || undefined,
           customDomain: body.customDomain || undefined,
           previewDeployment: body.previewDeployment === 'on',
+          workspaceId: body.workspaceId || undefined,
           envVars: parseEnvVars(body.envVars ?? ''),
           injectSecrets: (body.injectSecrets ?? '')
             .split(',')

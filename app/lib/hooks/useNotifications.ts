@@ -27,11 +27,13 @@ export const useNotifications = () => {
   useEffect(() => {
     mountedRef.current = true;
 
-    // Poll once immediately and then once a minute. This intentionally does NOT
-    // depend on the log store: `logStore.logs` is a nanostores map whose key set
-    // changes on essentially every logged event (API/system/provider/network),
-    // so keying the effect on it turned a 60s poll into a notifications fetch per
-    // log entry — a request storm during chat streaming / heavy API activity.
+    /*
+     * Poll once immediately and then once a minute. This intentionally does NOT
+     * depend on the log store: `logStore.logs` is a nanostores map whose key set
+     * changes on essentially every logged event (API/system/provider/network),
+     * so keying the effect on it turned a 60s poll into a notifications fetch per
+     * log entry — a request storm during chat streaming / heavy API activity.
+     */
     checkNotifications();
 
     const interval = setInterval(checkNotifications, 60 * 1000);

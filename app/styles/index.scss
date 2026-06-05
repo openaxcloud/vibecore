@@ -241,10 +241,15 @@ body {
   --vc-status-neutral: var(--vc-ide-text-secondary);
   --ecode-accent: #f26207;
   --ecode-accent-hover: #ff7a2b;
+  --ecode-accent-contrast: #111827;
   --ecode-text-muted: var(--vc-ide-text-muted);
   --ecode-surface: #1c2333;
+  --ecode-surface-secondary: #262c3b;
+  --ecode-surface-elevated: #1c2333;
+  --ecode-surface-hover: #313744;
   --mobile-nav-height: 72px;
   --mobile-nav-bg: #1c2333;
+  --mobile-nav-bg-elevated: color-mix(in srgb, #1c2333 94%, transparent);
   --mobile-nav-border: #313744;
   --mobile-nav-border-top: #3d4455;
   --mobile-nav-shadow: 0 -1px 3px rgb(0 0 0 / 0.25), 0 -4px 20px -4px rgb(0 0 0 / 0.35);
@@ -258,7 +263,10 @@ body {
   --mobile-nav-inactive-opacity: 0.56;
   --mobile-nav-label-size: 11px;
   --mobile-nav-icon-size: 22px;
-  --mobile-nav-gradient: #1c2333;
+  --mobile-nav-gradient: linear-gradient(180deg, color-mix(in srgb, #262c3b 94%, transparent), #1c2333);
+  --vc-mobile-dock-max-width: 720px;
+  --vc-mobile-sheet-max-width: 760px;
+  --vc-mobile-sheet-radius: 20px;
   --bolt-elements-borderColor: var(--vc-ide-border-subtle);
   --bolt-elements-borderColorActive: var(--vc-ide-border-visible);
   --bolt-elements-bg-depth-1: var(--vc-ide-bg-app);
@@ -431,9 +439,14 @@ body {
   --vc-status-neutral: var(--vc-ide-text-secondary);
   --ecode-accent: #f26207;
   --ecode-accent-hover: #d04e00;
+  --ecode-accent-contrast: #111827;
   --ecode-text-muted: var(--vc-ide-text-muted);
   --ecode-surface: #ffffff;
+  --ecode-surface-secondary: #eef2f7;
+  --ecode-surface-elevated: #ffffff;
+  --ecode-surface-hover: #e2e8f0;
   --mobile-nav-bg: #ffffff;
+  --mobile-nav-bg-elevated: color-mix(in srgb, #ffffff 96%, transparent);
   --mobile-nav-border: #e5e7eb;
   --mobile-nav-border-top: #f8f9fa;
   --mobile-nav-shadow: 0 -1px 3px rgb(15 23 42 / 0.08), 0 -4px 16px -4px rgb(15 23 42 / 0.06);
@@ -443,7 +456,10 @@ body {
   --mobile-nav-active-bg: #fef3e8;
   --mobile-nav-active-border: #fdcaa8;
   --mobile-nav-inactive-opacity: 0.62;
-  --mobile-nav-gradient: #ffffff;
+  --mobile-nav-gradient: linear-gradient(180deg, color-mix(in srgb, #ffffff 96%, transparent), #f8fafc);
+  --vc-mobile-dock-max-width: 720px;
+  --vc-mobile-sheet-max-width: 760px;
+  --vc-mobile-sheet-radius: 20px;
   --bolt-elements-borderColor: var(--vc-ide-border-subtle);
   --bolt-elements-borderColorActive: var(--vc-ide-border-visible);
   --bolt-elements-bg-depth-1: var(--vc-ide-bg-app);
@@ -3666,7 +3682,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-ecode-header-agent {
-  color: #7c65c1 !important;
+  color: var(--ecode-accent) !important;
 }
 
 .bolt-mobile-replit-nav {
@@ -3676,25 +3692,39 @@ body :where(.lucide, svg[data-lucide]) {
   left: 0;
   z-index: 1000;
   display: none;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding: 0 max(10px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px))
+    max(10px, env(safe-area-inset-left, 0px));
+  pointer-events: none;
 }
 
 .bolt-mobile-replit-nav-bg {
   position: absolute;
-  inset: 0;
-  border-top: 1px solid color-mix(in srgb, var(--mobile-nav-border), transparent 18%);
-  background: color-mix(in srgb, var(--mobile-nav-bg) 95%, transparent);
+  inset: auto 0 0;
+  height: calc(var(--mobile-nav-height) + 26px + env(safe-area-inset-bottom, 0px));
+  border-top: 0;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--vc-ide-bg-app) 92%, transparent) 46%);
   backdrop-filter: blur(20px);
+  pointer-events: none;
 }
 
 .bolt-mobile-replit-nav-inner {
   position: relative;
   display: flex;
-  height: var(--mobile-nav-height);
+  width: min(100%, var(--vc-mobile-dock-max-width));
+  height: calc(var(--mobile-nav-height) - 8px);
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--mobile-nav-border), transparent 10%);
+  border-top-color: var(--mobile-nav-border-top);
+  border-radius: var(--mobile-nav-radius);
+  background: var(--mobile-nav-gradient);
+  box-shadow:
+    var(--mobile-nav-shadow),
+    var(--mobile-nav-inner-shadow);
+  margin-inline: auto;
+  padding: 0 10px;
+  pointer-events: auto;
 }
 
 .bolt-mobile-replit-run,
@@ -3721,11 +3751,11 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-replit-run {
-  border-color: color-mix(in srgb, #9d7cff, transparent 50%);
-  background: linear-gradient(180deg, #c8b7ff 0%, #9d7cff 100%);
-  color: #0c1021;
+  border-color: color-mix(in srgb, var(--ecode-accent), transparent 38%);
+  background: linear-gradient(180deg, var(--ecode-accent-hover) 0%, var(--ecode-accent) 100%);
+  color: var(--ecode-accent-contrast);
   box-shadow:
-    0 10px 24px rgb(124 58 237 / 0.32),
+    0 10px 24px color-mix(in srgb, var(--ecode-accent), transparent 68%),
     inset 0 1px 0 rgb(255 255 255 / 0.38);
 }
 
@@ -3897,7 +3927,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-mobile-replit-icon-tab[aria-current='page'] svg,
 .bolt-mobile-replit-icon-tab[aria-current='page']
   > span:not(.sr-only):not(.bolt-mobile-replit-tab-label):not(.bolt-mobile-replit-tab-indicator) {
-  color: #7c65c1;
+  color: var(--ecode-accent);
 }
 
 .bolt-mobile-replit-tab-indicator {
@@ -3907,7 +3937,7 @@ body :where(.lucide, svg[data-lucide]) {
   width: 4px;
   height: 4px;
   border-radius: 999px;
-  background: #7c65c1;
+  background: var(--ecode-accent);
   transform: translateX(-50%);
 }
 
@@ -4024,8 +4054,8 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-tab-switcher-card[aria-current='true'] {
-  border-color: #7c65c1;
-  background: color-mix(in srgb, #7c65c1, transparent 88%);
+  border-color: color-mix(in srgb, var(--ecode-accent), transparent 32%);
+  background: color-mix(in srgb, var(--ecode-accent), transparent 88%);
   color: var(--vc-ide-text-primary);
 }
 
@@ -4040,7 +4070,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-tab-switcher-card[aria-current='true'] .bolt-mobile-tab-switcher-card-icon {
-  color: #7c65c1;
+  color: var(--ecode-accent);
 }
 
 .bolt-mobile-tab-switcher-card-icon svg,
@@ -4220,8 +4250,8 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-mobile-more-sheet {
   position: fixed;
-  right: 0;
-  left: 0;
+  right: auto;
+  left: 50%;
   top: max(
     env(safe-area-inset-top, 0px),
     calc(var(--vc-mobile-visual-viewport-height) - var(--vc-mobile-sheet-height))
@@ -4229,15 +4259,15 @@ body :where(.lucide, svg[data-lucide]) {
   bottom: auto;
   z-index: 12021;
   display: flex;
-  height: var(--vc-mobile-sheet-height);
+  width: min(calc(100vw - 24px), var(--vc-mobile-sheet-max-width));
+  height: min(var(--vc-mobile-sheet-height), calc(100dvh - env(safe-area-inset-top, 0px) - 12px));
   max-height: calc(var(--vc-mobile-visual-viewport-height) - env(safe-area-inset-top, 0px));
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--mobile-nav-border);
   border-top-color: var(--mobile-nav-border-top);
-  border-bottom: 0;
-  border-radius: 16px 16px 0 0;
-  background: var(--mobile-nav-bg);
+  border-radius: var(--vc-mobile-sheet-radius);
+  background: var(--mobile-nav-bg-elevated);
   box-shadow:
     var(--mobile-nav-shadow),
     0 24px 80px rgb(0 0 0 / 0.46);
@@ -4245,7 +4275,7 @@ body :where(.lucide, svg[data-lucide]) {
   padding-bottom: env(safe-area-inset-bottom, 0px);
   animation: none !important;
   opacity: 1 !important;
-  transform: none !important;
+  transform: translateX(-50%) !important;
   transform-origin: center bottom !important;
 }
 
@@ -4296,7 +4326,7 @@ body :where(.lucide, svg[data-lucide]) {
   min-height: 42px;
   border: 1px solid transparent;
   border-radius: 10px;
-  background: var(--vc-ide-bg-card);
+  background: var(--ecode-surface-secondary);
   color: var(--vc-ide-text-primary);
   font-size: 16px !important;
   line-height: 1.2;
@@ -4339,7 +4369,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-mobile-more-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
   gap: 8px;
   padding: 0;
 }
@@ -4353,7 +4383,7 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 10px;
   border: 1px solid var(--mobile-nav-border);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--vc-ide-bg-card) 86%, transparent);
+  background: color-mix(in srgb, var(--ecode-surface-secondary) 88%, transparent);
   color: var(--vc-ide-text-primary);
   padding: 10px;
   text-align: left;
@@ -4398,7 +4428,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-more-item[data-tone='agent'] .bolt-mobile-more-item-icon {
-  color: #7c65c1;
+  color: var(--ecode-accent);
 }
 
 .bolt-mobile-more-item[data-tone='assistant'] .bolt-mobile-more-item-icon,
@@ -4486,19 +4516,19 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-mobile-more-menu-sheet {
   position: fixed;
-  right: 0;
+  right: auto;
   bottom: 0;
-  left: 0;
+  left: 50%;
   z-index: 12011;
   display: flex;
+  width: min(calc(100vw - 24px), var(--vc-mobile-sheet-max-width));
   max-height: min(70dvh, 560px);
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--mobile-nav-border);
   border-top-color: var(--mobile-nav-border-top);
-  border-bottom: 0;
-  border-radius: 16px 16px 0 0;
-  background: var(--mobile-nav-bg);
+  border-radius: var(--vc-mobile-sheet-radius) var(--vc-mobile-sheet-radius) 0 0;
+  background: var(--mobile-nav-bg-elevated);
   box-shadow:
     var(--mobile-nav-shadow),
     0 24px 80px color-mix(in srgb, var(--vc-ide-bg-app) 54%, transparent);
@@ -4506,7 +4536,7 @@ body :where(.lucide, svg[data-lucide]) {
   padding-bottom: env(safe-area-inset-bottom, 0px);
   animation: none !important;
   opacity: 1 !important;
-  transform: none !important;
+  transform: translateX(-50%) !important;
 }
 
 .bolt-mobile-more-menu-handle {
@@ -4556,7 +4586,7 @@ body :where(.lucide, svg[data-lucide]) {
   display: grid;
   min-height: 0;
   flex: 1 1 auto;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
   gap: 8px;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -4573,7 +4603,7 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 6px;
   border: 1px solid transparent;
   border-radius: 12px;
-  background: transparent;
+  background: color-mix(in srgb, var(--ecode-surface-secondary) 50%, transparent);
   color: var(--vc-ide-text-muted);
   font-size: 11px;
   font-weight: 700;
@@ -4605,7 +4635,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-mobile-more-menu-item[aria-current='page'] .bolt-mobile-more-menu-icon,
 .bolt-mobile-more-menu-item[data-tone='agent'] .bolt-mobile-more-menu-icon {
-  color: #7c65c1;
+  color: var(--ecode-accent);
 }
 
 .bolt-mobile-more-menu-item[data-tone='success'] .bolt-mobile-more-menu-icon {
@@ -5906,6 +5936,13 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-agent-action-card button:hover {
   background: var(--vc-ide-bg-hover);
+}
+
+.bolt-project-agent-notice-stack {
+  width: min(100%, var(--chat-max-width));
+  max-width: min(100%, var(--chat-max-width));
+  min-width: 0;
+  margin-inline: auto;
 }
 
 .bolt-agent-tool-calls {
@@ -17075,13 +17112,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   .bolt-responsive-ide-mobile .bolt-model-selector-popover {
     position: fixed !important;
     top: auto !important;
-    right: max(12px, env(safe-area-inset-right, 0px)) !important;
+    right: auto !important;
     bottom: calc(var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
-    left: max(12px, env(safe-area-inset-left, 0px)) !important;
+    left: 50% !important;
     z-index: 12030 !important;
     display: grid;
-    width: auto !important;
-    max-width: none;
+    width: min(calc(100vw - 24px), var(--vc-mobile-sheet-max-width)) !important;
+    max-width: var(--vc-mobile-sheet-max-width);
     max-height: min(58dvh, 520px);
     grid-template-rows: auto minmax(0, 1fr);
     overflow: hidden;
@@ -17089,13 +17126,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     isolation: isolate;
     border-color: var(--mobile-nav-border);
     border-top-color: var(--mobile-nav-border-top);
-    border-radius: 16px;
-    background: var(--mobile-nav-bg);
+    border-radius: var(--vc-mobile-sheet-radius);
+    background: var(--mobile-nav-bg-elevated);
     box-shadow:
       var(--mobile-nav-shadow),
       0 24px 80px rgb(0 0 0 / 0.45);
     padding: 10px 0 0;
-    transform: none !important;
+    transform: translateX(-50%) !important;
   }
 
   .bolt-responsive-ide-mobile .bolt-model-selector-popover::before {
@@ -17233,13 +17270,15 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-responsive-ide-mobile .bolt-project-agent-composer {
     position: sticky !important;
+    display: flex;
+    flex-direction: column;
     z-index: 50;
     width: min(100%, calc(100vw - 20px)) !important;
     max-width: calc(100vw - 20px) !important;
     inline-size: min(100%, calc(100vw - 20px)) !important;
     max-inline-size: calc(100vw - 20px) !important;
     align-self: center;
-    max-height: min(46dvh, 380px);
+    max-height: min(58dvh, 460px);
     gap: 8px;
     margin-bottom: 0 !important;
     overflow-x: clip;
@@ -17253,7 +17292,35 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     display: none;
   }
 
+  .bolt-responsive-ide-mobile .bolt-project-agent-notice-stack {
+    order: 1;
+    flex: 0 1 auto;
+    width: 100%;
+    max-height: min(20dvh, 160px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 2px;
+    scrollbar-width: thin;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-notice-stack > * {
+    flex: 0 0 auto;
+    margin-bottom: 0 !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-chat-alert {
+    padding: 12px !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-chat-alert p,
+  .bolt-responsive-ide-mobile .bolt-project-chat-alert div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   .bolt-responsive-ide-mobile .bolt-project-agent-suggestions {
+    order: 2;
     display: grid;
     width: 100%;
     max-width: 100%;
@@ -17286,6 +17353,17 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .bolt-responsive-ide-mobile
+    .bolt-project-agent-composer:has(.bolt-project-agent-notice-stack > :not(.vc-sr-only))
+    .bolt-project-agent-suggestions {
+    display: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-composer .bolt-project-chatbox {
+    order: 3;
+    flex: 0 0 auto;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-composer .bolt-agent-tool-calls {
@@ -18498,13 +18576,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   .bolt-responsive-ide-mobile .bolt-model-selector-popover {
     position: fixed !important;
     top: auto !important;
-    right: max(12px, env(safe-area-inset-right, 0px)) !important;
+    right: auto !important;
     bottom: calc(var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
-    left: max(12px, env(safe-area-inset-left, 0px)) !important;
+    left: 50% !important;
     z-index: 12030 !important;
     display: grid;
-    width: auto !important;
-    max-width: none;
+    width: min(calc(100vw - 24px), var(--vc-mobile-sheet-max-width)) !important;
+    max-width: var(--vc-mobile-sheet-max-width);
     max-height: min(58dvh, 520px);
     grid-template-rows: auto minmax(0, 1fr);
     overflow: hidden;
@@ -18512,13 +18590,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     isolation: isolate;
     border-color: var(--mobile-nav-border);
     border-top-color: var(--mobile-nav-border-top);
-    border-radius: 16px;
-    background: var(--mobile-nav-bg);
+    border-radius: var(--vc-mobile-sheet-radius);
+    background: var(--mobile-nav-bg-elevated);
     box-shadow:
       var(--mobile-nav-shadow),
       0 24px 80px rgb(0 0 0 / 0.45);
     padding: 10px 0 0;
-    transform: none !important;
+    transform: translateX(-50%) !important;
   }
 
   .bolt-responsive-ide-mobile .bolt-model-selector-popover::before {
@@ -18648,24 +18726,25 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu {
     position: fixed !important;
     top: auto !important;
-    right: max(12px, env(safe-area-inset-right, 0px)) !important;
+    right: auto !important;
     bottom: calc(var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
-    left: max(12px, env(safe-area-inset-left, 0px)) !important;
+    left: 50% !important;
     z-index: 12022;
-    width: auto;
+    width: min(calc(100vw - 24px), var(--vc-mobile-sheet-max-width));
     min-width: 0;
+    max-width: var(--vc-mobile-sheet-max-width);
     max-height: min(64dvh, 520px);
     overflow-y: auto;
     overscroll-behavior: contain;
     border-color: var(--mobile-nav-border);
     border-top-color: var(--mobile-nav-border-top);
-    border-radius: 16px;
-    background: var(--mobile-nav-bg);
+    border-radius: var(--vc-mobile-sheet-radius);
+    background: var(--mobile-nav-bg-elevated);
     box-shadow:
       var(--mobile-nav-shadow),
       0 24px 80px rgb(0 0 0 / 0.45);
     padding: 10px;
-    transform: none !important;
+    transform: translateX(-50%) !important;
   }
 
   .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu::before {
@@ -18691,16 +18770,17 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-responsive-ide-mobile .bolt-project-command-palette {
     top: calc(var(--vc-ide-topbar-height, 48px) + 8px + env(safe-area-inset-top, 0px)) !important;
-    right: max(10px, env(safe-area-inset-right, 0px)) !important;
+    right: auto !important;
     bottom: calc(var(--mobile-nav-height, 72px) + 12px + env(safe-area-inset-bottom, 0px)) !important;
-    left: max(10px, env(safe-area-inset-left, 0px)) !important;
+    left: 50% !important;
     z-index: 12018;
-    width: auto !important;
+    width: min(calc(100vw - 20px), var(--vc-mobile-sheet-max-width)) !important;
+    max-width: var(--vc-mobile-sheet-max-width);
     max-height: none;
     overflow-y: auto;
     overscroll-behavior: contain;
-    border-radius: 16px;
-    transform: none !important;
+    border-radius: var(--vc-mobile-sheet-radius);
+    transform: translateX(-50%) !important;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-command-palette input {
@@ -18748,19 +18828,19 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   .bolt-project-action-group--overflow .bolt-project-overflow-popover {
     position: fixed !important;
     top: auto !important;
-    right: 12px !important;
+    right: auto !important;
     bottom: calc(var(--mobile-nav-height) + 18px + env(safe-area-inset-bottom, 0px)) !important;
-    left: 12px !important;
-    width: auto !important;
-    max-width: none;
+    left: 50% !important;
+    width: min(calc(100vw - 24px), var(--vc-mobile-sheet-max-width)) !important;
+    max-width: var(--vc-mobile-sheet-max-width);
     max-height: min(70dvh, 540px);
     overflow: auto;
     margin-top: 0 !important;
-    transform: none !important;
+    transform: translateX(-50%) !important;
     border: 1px solid var(--mobile-nav-border);
     border-top-color: var(--mobile-nav-border-top);
-    border-radius: 24px;
-    background: var(--mobile-nav-bg);
+    border-radius: var(--vc-mobile-sheet-radius);
+    background: var(--mobile-nav-bg-elevated);
     box-shadow:
       var(--mobile-nav-shadow),
       0 24px 80px rgb(0 0 0 / 0.45);
@@ -18778,7 +18858,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-project-action-group--overflow .bolt-project-overflow-section--grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
   }
 
   @media (max-width: 360px) {

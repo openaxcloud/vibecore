@@ -323,16 +323,19 @@ ${value.content}
       return;
     }
 
-    // forEach(async …) fired every dir-create and file-write concurrently and
-    // unordered: files could be written before their parent directory existed
-    // and any rejection became an unhandled promise. Create all directories
-    // first, then write files, sequentially, so parents exist and errors surface.
+    /*
+     * forEach(async …) fired every dir-create and file-write concurrently and
+     * unordered: files could be written before their parent directory existed
+     * and any rejection became an unhandled promise. Create all directories
+     * first, then write files, sequentially, so parents exist and errors surface.
+     */
     try {
       for (const [key, value] of Object.entries(validSnapshot.files)) {
         if (value?.type === 'folder') {
           await runtimeAdapter.createDirectory(toRuntimePath(key));
         }
       }
+
       for (const [key, value] of Object.entries(validSnapshot.files)) {
         if (value?.type === 'file') {
           await runtimeAdapter.writeFile(toRuntimePath(key), value.content);

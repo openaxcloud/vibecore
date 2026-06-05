@@ -340,10 +340,12 @@ export class ActionRunner {
             return;
           }
           default: {
-            // An action type the runner doesn't handle (e.g. a new/typo'd type
-            // from the model) must not fall through and get marked "complete" —
-            // that silently drops a file write or command. Surface it as a
-            // failure so the user sees something went wrong.
+            /*
+             * An action type the runner doesn't handle (e.g. a new/typo'd type
+             * from the model) must not fall through and get marked "complete" —
+             * that silently drops a file write or command. Surface it as a
+             * failure so the user sees something went wrong.
+             */
             throw new Error(`Unsupported action type: ${String((action as { type?: unknown }).type ?? 'unknown')}`);
           }
         }

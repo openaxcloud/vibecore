@@ -113,12 +113,14 @@ export class FilesStore {
       import.meta.hot.data.deletedPaths = this.#deletedPaths;
     }
 
-    // Detect chat-ID changes from SPA navigation to reload locks. This used to
-    // be a document-wide MutationObserver({subtree, childList}), which fired its
-    // callback on EVERY DOM mutation in the app — every CodeMirror keystroke and
-    // every streamed chat token — turning a simple URL check into a per-frame CPU
-    // storm. Lock reloading is not latency-critical, so poll the URL at a low,
-    // fixed cadence instead (also catches popstate/pushState uniformly).
+    /*
+     * Detect chat-ID changes from SPA navigation to reload locks. This used to
+     * be a document-wide MutationObserver({subtree, childList}), which fired its
+     * callback on EVERY DOM mutation in the app — every CodeMirror keystroke and
+     * every streamed chat token — turning a simple URL check into a per-frame CPU
+     * storm. Lock reloading is not latency-critical, so poll the URL at a low,
+     * fixed cadence instead (also catches popstate/pushState uniformly).
+     */
     if (typeof window !== 'undefined') {
       let lastChatId = getCurrentChatId();
 
@@ -141,8 +143,10 @@ export class FilesStore {
     this.#stopWatchingFiles?.();
     this.#stopWatchingFiles = undefined;
 
-    // Cancel a retry queued against the previous runtime so it can't re-attach a watch
-    // to the old adapter after we've rebound; #init() below restarts the watch loop.
+    /*
+     * Cancel a retry queued against the previous runtime so it can't re-attach a watch
+     * to the old adapter after we've rebound; #init() below restarts the watch loop.
+     */
     if (this.#fileWatchRetryTimer) {
       clearTimeout(this.#fileWatchRetryTimer);
       this.#fileWatchRetryTimer = undefined;

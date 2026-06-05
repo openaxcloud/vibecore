@@ -27,6 +27,13 @@ describe('findAiModel', () => {
     expect(model?.provider).toBe('anthropic');
   });
 
+  it('includes the current Anthropic flagship model with real public pricing', () => {
+    const model = findAiModel('claude-opus-4-8', 'anthropic');
+    expect(model?.inputCentsPerMillion).toBe(500);
+    expect(model?.outputCentsPerMillion).toBe(2500);
+    expect(model?.contextWindow).toBe(1_000_000);
+  });
+
   it('uses provider as a tiebreaker for shared ids', () => {
     const direct = findAiModel('gpt-4.1', 'openai');
     const proxied = findAiModel('openai/gpt-4.1', 'openrouter');

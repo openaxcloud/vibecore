@@ -316,9 +316,12 @@ export const CodeMirrorEditor = memo(
         languageCompartment,
         autoFocusOnDocumentChange,
         doc as TextEditorDocument,
-        // getLanguage()/requestAnimationFrame resolve a tick later; if the user
-        // switched files in the meantime, applying this file's language, scroll
-        // and focus to the now-current document is wrong. Let the async work bail.
+
+        /*
+         * getLanguage()/requestAnimationFrame resolve a tick later; if the user
+         * switched files in the meantime, applying this file's language, scroll
+         * and focus to the now-current document is wrong. Let the async work bail.
+         */
         () => docRef.current?.filePath === doc.filePath,
       );
 
@@ -483,8 +486,10 @@ function setEditorDocument(
   });
 
   getLanguage(doc.filePath).then((languageSupport) => {
-    // The active document may have changed while getLanguage() was pending —
-    // don't reconfigure/scroll/focus the editor for a file the user left.
+    /*
+     * The active document may have changed while getLanguage() was pending —
+     * don't reconfigure/scroll/focus the editor for a file the user left.
+     */
     if (!languageSupport || !isStillCurrent()) {
       return;
     }

@@ -1,6 +1,6 @@
+import { lookup } from 'node:dns/promises';
 import { json } from '@remix-run/cloudflare';
 import type { ActionFunctionArgs } from '@remix-run/cloudflare';
-import { lookup } from 'node:dns/promises';
 import { isAllowedUrl, isPrivateIp } from '~/utils/url';
 
 const MAX_CONTENT_LENGTH = 8000;
@@ -80,7 +80,9 @@ async function assertHostAllowed(rawUrl: string): Promise<{ ok: true } | { ok: f
  * re-validated against the SSRF allow-list. The default `redirect: 'follow'`
  * would let a public URL 302 the request into an internal host.
  */
-async function safeFetch(initialUrl: string): Promise<{ ok: true; response: Response } | { ok: false; status: number; error: string }> {
+async function safeFetch(
+  initialUrl: string,
+): Promise<{ ok: true; response: Response } | { ok: false; status: number; error: string }> {
   let currentUrl = initialUrl;
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {

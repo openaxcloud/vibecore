@@ -294,13 +294,15 @@ export function buildPreviewManifestRepair(filesInput: Record<string, string>): 
 
   const shouldUseVite = hasViteEntryPoint(scopedFiles) || hasReact;
 
-  // An AI-sourced project relies on the model to emit package.json; if that emission is
-  // empty or truncated (streaming cut off mid-file) the manifest lands as 0 bytes or
-  // invalid JSON. This repair pass exists precisely to synthesize a valid manifest, so a
-  // blank/unparseable existing file must be treated as "needs creating" rather than fed
-  // to a bare JSON.parse — otherwise the parse throws, the repair that would have fixed it
-  // is skipped, and the preview dies with "Invalid JSON in package.json: Unexpected end of
-  // JSON input" with no path to recovery.
+  /*
+   * An AI-sourced project relies on the model to emit package.json; if that emission is
+   * empty or truncated (streaming cut off mid-file) the manifest lands as 0 bytes or
+   * invalid JSON. This repair pass exists precisely to synthesize a valid manifest, so a
+   * blank/unparseable existing file must be treated as "needs creating" rather than fed
+   * to a bare JSON.parse — otherwise the parse throws, the repair that would have fixed it
+   * is skipped, and the preview dies with "Invalid JSON in package.json: Unexpected end of
+   * JSON input" with no path to recovery.
+   */
   let parsedPackageJson: Record<string, any> | undefined;
 
   if (existingPackageJsonPath) {
@@ -329,9 +331,11 @@ export function buildPreviewManifestRepair(filesInput: Record<string, string>): 
   });
 
   if (!hasValidExistingPackageJson && !shouldUseVite) {
-    // Nothing requires a Vite/React toolchain. If a blank package.json physically exists
-    // we still overwrite it with a minimal valid one so the preview (and any other JSON
-    // consumer) doesn't choke on the empty/invalid file; otherwise there's nothing to do.
+    /*
+     * Nothing requires a Vite/React toolchain. If a blank package.json physically exists
+     * we still overwrite it with a minimal valid one so the preview (and any other JSON
+     * consumer) doesn't choke on the empty/invalid file; otherwise there's nothing to do.
+     */
     if (existingPackageJsonPath) {
       return {
         packageJson: {

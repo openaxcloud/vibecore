@@ -240,9 +240,11 @@ export function buildAgentOrchestrationPlan(input: {
 }
 
 export function areParallelSubagentsAvailable(env?: AgentOrchestrationEnv): boolean {
-  // Use readRuntimeEnv (globalThis.process.env), not bare process.env: the vite node
-  // polyfill shims process.env to {} in the web-pod SSR bundle, so a bare-process.env
-  // fallback silently disabled the feature even when the deployment set the vars.
+  /*
+   * Use readRuntimeEnv (globalThis.process.env), not bare process.env: the vite node
+   * polyfill shims process.env to {} in the web-pod SSR bundle, so a bare-process.env
+   * fallback silently disabled the feature even when the deployment set the vars.
+   */
   const flag = env?.ECODE_PARALLEL_SUBAGENTS_ENABLED ?? readRuntimeEnv('ECODE_PARALLEL_SUBAGENTS_ENABLED');
   const endpoint = env?.ECODE_SUBAGENT_EXECUTOR_URL ?? readRuntimeEnv('ECODE_SUBAGENT_EXECUTOR_URL');
 

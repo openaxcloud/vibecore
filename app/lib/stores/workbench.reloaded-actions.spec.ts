@@ -2,17 +2,45 @@
  * @vitest-environment jsdom
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WorkbenchStore } from './workbench';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
 
-const { runtimeAdapterMock } = vi.hoisted(() => ({
-  runtimeAdapterMock: {
-    workdir: '/home/project',
-    mode: 'test',
-    listFiles: vi.fn(async () => []),
-  },
-}));
+const { runtimeAdapterMock, runtimeFiles } = vi.hoisted(() => {
+  const runtimeFiles = new Map<string, string>();
+
+  const fileNodes = () =>
+    [...runtimeFiles.entries()].map(([filePath, content]) => ({
+      type: 'file' as const,
+      name: filePath.split('/').pop() ?? filePath,
+      path: filePath,
+      content,
+      encoding: 'utf8' as const,
+    }));
+
+  return {
+    runtimeFiles,
+    runtimeAdapterMock: {
+      workdir: '/home/project',
+      mode: 'test',
+      listFiles: vi.fn(async () => fileNodes()),
+      readFile: vi.fn(async (filePath: string) => runtimeFiles.get(filePath) ?? ''),
+      writeFile: vi.fn(async (filePath: string, content: string) => {
+        runtimeFiles.set(filePath, content);
+      }),
+      createFile: vi.fn(async (filePath: string, content: string) => {
+        runtimeFiles.set(filePath, content);
+      }),
+      createDirectory: vi.fn(async () => undefined),
+      listProcesses: vi.fn(async () => []),
+      killProcess: vi.fn(async () => undefined),
+      streamCommand: vi.fn(async function* () {
+        yield { type: 'exit' as const, exitCode: 0 };
+      }),
+      runCommand: vi.fn(async () => ({ exitCode: 0, output: '' })),
+    },
+  };
+});
 
 vi.mock('~/lib/runtime/RuntimeAdapterProvider', () => ({
   runtimeAdapter: runtimeAdapterMock,
@@ -40,6 +68,22 @@ vi.mock('./files', async () => {
       filesCount = 0;
 
       setRuntime = vi.fn();
+
+      async reloadFromRuntime() {
+        const nodes = await runtimeAdapterMock.listFiles('.');
+        const nextFiles: Record<string, { type: 'file'; content: string; isBinary: boolean }> = {};
+
+        for (const node of nodes) {
+          nextFiles[`/home/project/${node.path.replace(/^\/+/, '')}`] = {
+            type: 'file',
+            content: node.content ?? '',
+            isBinary: node.encoding === 'binary',
+          };
+        }
+
+        this.filesCount = Object.keys(nextFiles).length;
+        this.files.set(nextFiles);
+      }
 
       getFile(filePath: string) {
         return this.files.get()[filePath];
@@ -146,6 +190,19 @@ function actionStatus(store: WorkbenchStore, actionId: string) {
 }
 
 describe('WorkbenchStore reloaded and review-first actions', () => {
+  beforeEach(() => {
+    runtimeFiles.clear();
+    runtimeAdapterMock.listFiles.mockClear();
+    runtimeAdapterMock.readFile.mockClear();
+    runtimeAdapterMock.writeFile.mockClear();
+    runtimeAdapterMock.createFile.mockClear();
+    runtimeAdapterMock.createDirectory.mockClear();
+    runtimeAdapterMock.listProcesses.mockClear();
+    runtimeAdapterMock.killProcess.mockClear();
+    runtimeAdapterMock.streamCommand.mockClear();
+    runtimeAdapterMock.runCommand.mockClear();
+  });
+
   it('marks reloaded message actions complete without replaying them', async () => {
     const store = new WorkbenchStore();
     const artifact = artifactData();
@@ -188,6 +245,78 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
     });
     expect(store.workspaceLogs.get()).toContain(
       'AI command skipped until reviewed file changes are accepted or rejected.',
+    );
+  });
+
+  it('does not persist a truncated package.json after the file runner rejects it', async () => {
+    runtimeFiles.set('package.json', '{"name":"last-valid"}');
+
+    const store = new WorkbenchStore();
+    const artifact = artifactData();
+
+    const truncatedAction: ActionCallbackData = {
+      artifactId: 'artifact-1',
+      messageId: 'assistant-1',
+      actionId: 'package-json',
+      action: {
+        type: 'file',
+        filePath: 'package.json',
+        content: '{ "name": "stream-valid", "scripts": { "dev": "vite"',
+      },
+    };
+
+    store.addArtifact(artifact);
+    store.addAction(truncatedAction);
+    store.runAction(truncatedAction);
+
+    await vi.waitFor(() => {
+      expect(actionStatus(store, 'package-json')).toBe('failed');
+    });
+
+    expect(runtimeFiles.get('package.json')).toBe('{"name":"last-valid"}');
+    expect(store.workspaceLogs.get()).toEqual(
+      expect.arrayContaining([expect.stringContaining('AI file write blocked: package.json')]),
+    );
+  });
+
+  it('repairs a malformed package.json before validating files on artifact close', async () => {
+    runtimeFiles.set('package.json', '{ "scripts": { "dev": "vite" ');
+    runtimeFiles.set('index.html', '<div id="root"></div><script type="module" src="/src/main.tsx"></script>');
+    runtimeFiles.set(
+      'src/main.tsx',
+      [
+        "import { createRoot } from 'react-dom/client';",
+        "import App from './App';",
+        'createRoot(document.getElementById("root")!).render(<App />);',
+        '',
+      ].join('\n'),
+    );
+    runtimeFiles.set('src/App.tsx', 'export default function App() { return <main>Preview repaired</main>; }\n');
+
+    const store = new WorkbenchStore();
+    const artifact = artifactData();
+
+    store.addArtifact(artifact);
+    await store.loadRuntimeFiles('.');
+    store.updateArtifact(artifact, { closed: true });
+
+    await vi.waitFor(() => {
+      expect(runtimeAdapterMock.writeFile).toHaveBeenCalledWith(
+        'package.json',
+        expect.stringContaining('"dev": "vite"'),
+      );
+    });
+
+    expect(JSON.parse(runtimeFiles.get('package.json') ?? '{}')).toMatchObject({
+      scripts: { dev: 'vite', build: 'vite build', preview: 'vite preview' },
+      dependencies: expect.objectContaining({
+        react: '^18.3.1',
+        'react-dom': '^18.3.1',
+        vite: '^5.4.19',
+      }),
+    });
+    expect(store.workspaceLogs.get()).not.toEqual(
+      expect.arrayContaining([expect.stringContaining('Preview restart blocked after artifact-1')]),
     );
   });
 });
