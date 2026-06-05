@@ -1,5 +1,5 @@
 import { generateKeyPairSync, createHash, createHmac, createSign } from 'node:crypto';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -3792,6 +3792,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
         await writeFile(join(fakeOutputDir, 'assets', 'main.js'), 'console.log("vibecore");', 'utf8');
         await writeFile(join(fakeOutputDir, 'assets', 'main.css'), 'body { color: tomato; }', 'utf8');
 
+        // Attacker-controlled build output: plant a symlink that escapes the
+        // output dir to a host secret. fs.cp copies symlinks verbatim, so the
+        // snapshot will contain it; the public serve route must NOT follow it.
+        await writeFile(join(root, 'host-secret.txt'), 'TOP-SECRET-SYMLINK-LEAK', 'utf8');
+        await symlink(join(root, 'host-secret.txt'), join(fakeOutputDir, 'leak.txt'));
+
         return {
           ok: true,
           outputDir: fakeOutputDir,
@@ -3867,6 +3873,16 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       url: `/static-deployments/${deploymentId}-does-not-exist/`,
     });
     expect(missing.statusCode).toBe(404);
+
+    // The planted symlink lexically lives inside the snapshot, so the path guard
+    // passes — but realpath escapes the snapshot root, so the route must refuse
+    // to serve it and must never leak the host secret it points at.
+    const symlinkEscape = await app.inject({
+      method: 'GET',
+      url: `/static-deployments/${deploymentId}/leak.txt`,
+    });
+    expect([403, 404]).toContain(symlinkEscape.statusCode);
+    expect(symlinkEscape.body).not.toContain('TOP-SECRET-SYMLINK-LEAK');
 
     const previousDeployHooks = {
       vercel: process.env.VERCEL_DEPLOY_HOOK_URL,

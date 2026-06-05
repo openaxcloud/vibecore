@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, createHmac, createVerify, randomUUID, timingSafeEqual } from 'node:crypto';
-import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, realpath, stat, writeFile } from 'node:fs/promises';
 import { dirname, extname, sep, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import cookie from '@fastify/cookie';
@@ -4077,15 +4077,33 @@ function createCollaborationBroker() {
   const rooms = new Map<string, Set<CollaborationSocket>>();
   const redisUrl = process.env.REDIS_URL;
   const channelPrefix = process.env.COLLABORATION_REDIS_CHANNEL_PREFIX ?? 'vibecore:collaboration';
+  // Identifies this broker instance (one per API replica). Published messages
+  // carry it so a node can distinguish its own Redis loopback from a peer node's.
+  const nodeId = randomUUID();
   const publisher = redisUrl ? new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 }) : undefined;
   const subscriber = redisUrl ? new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 }) : undefined;
 
   if (publisher && subscriber) {
     publisher.connect().catch(() => undefined);
     subscriber.connect().catch(() => undefined);
-    subscriber.on('message', (channel, message) => {
+    subscriber.on('message', (channel, payload) => {
       const projectId = channel.slice(`${channelPrefix}:`.length);
-      broadcastLocal(projectId, message);
+      // Every node (including the publisher) receives its own publishes back over
+      // Redis. publish() already fanned the message out to local peers — and
+      // honoured `except` — so re-broadcasting our own loopback would deliver each
+      // message twice locally and echo it back to the sender it was meant to skip
+      // (notably document.sync, clobbering the author's in-flight edits). Skip
+      // messages we originated; only relay those from other replicas.
+      let envelope: { nodeId?: string; message?: string };
+      try {
+        envelope = JSON.parse(payload) as { nodeId?: string; message?: string };
+      } catch {
+        return;
+      }
+      if (!envelope.message || envelope.nodeId === nodeId) {
+        return;
+      }
+      broadcastLocal(projectId, envelope.message);
     });
   }
 
@@ -4140,7 +4158,9 @@ function createCollaborationBroker() {
         timestamp: new Date().toISOString(),
       });
       broadcastLocal(projectId, message, except);
-      publisher?.publish(channel(projectId), message).catch(() => undefined);
+      // Wrap in a node-tagged envelope so the subscriber can drop our own
+      // loopback (see the subscriber handler) instead of double-delivering.
+      publisher?.publish(channel(projectId), JSON.stringify({ nodeId, message })).catch(() => undefined);
     },
     async close() {
       await Promise.allSettled([publisher?.quit(), subscriber?.quit()].filter(Boolean) as Array<Promise<unknown>>);
@@ -4755,7 +4775,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'File not found in deployment', code: 'STATIC_DEPLOY_FILE_NOT_FOUND' });
     }
 
-    const body = await readFile(filePath);
+    // The startsWith() guard above is purely lexical. The build output is
+    // attacker-controlled (any user can run a static build), and `fs.cp` copies
+    // symlinks verbatim, so a `dist/leak -> /etc/passwd` link — or a symlinked
+    // intermediate directory — would pass the lexical check while stat()/readFile()
+    // follow it off-tree, leaking arbitrary host files (secrets, /etc/passwd)
+    // through this PUBLIC route. Resolve real paths and re-assert containment.
+    let realFile: string;
+    let realRoot: string;
+    try {
+      realRoot = await realpath(snapshotRoot);
+      realFile = await realpath(filePath);
+    } catch {
+      return reply.code(404).send({ error: 'File not found in deployment', code: 'STATIC_DEPLOY_FILE_NOT_FOUND' });
+    }
+    if (realFile !== realRoot && !realFile.startsWith(`${realRoot}${sep}`)) {
+      return reply
+        .code(403)
+        .send({ error: 'Path is outside the deployment artifact', code: 'STATIC_DEPLOY_FORBIDDEN' });
+    }
+
+    const body = await readFile(realFile);
     reply.header('cache-control', 'public, max-age=60, must-revalidate');
     reply.header('x-vibecore-static-deployment', deploymentId);
     reply.type(staticDeploymentMimeType(filePath));
