@@ -9,13 +9,26 @@ interface Profile {
 // Initialize with stored profile or defaults
 const storedProfile = typeof window !== 'undefined' ? localStorage.getItem('bolt_profile') : null;
 
-const initialProfile: Profile = storedProfile
-  ? JSON.parse(storedProfile)
-  : {
-      username: '',
-      bio: '',
-      avatar: '',
-    };
+const defaultProfile: Profile = {
+  username: '',
+  bio: '',
+  avatar: '',
+};
+
+function parseStoredProfile(raw: string | null): Profile {
+  if (!raw) {
+    return defaultProfile;
+  }
+
+  try {
+    return { ...defaultProfile, ...(JSON.parse(raw) as Partial<Profile>) };
+  } catch {
+    // Corrupt localStorage must not crash module initialization.
+    return defaultProfile;
+  }
+}
+
+const initialProfile: Profile = parseStoredProfile(storedProfile);
 
 export const profileStore = atom<Profile>(initialProfile);
 

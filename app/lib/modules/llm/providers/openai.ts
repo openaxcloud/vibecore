@@ -98,6 +98,10 @@ export default class OpenAIProvider extends BaseProvider {
       },
     });
 
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${this.name} models: ${response.status} ${response.statusText}`);
+    }
+
     const res = (await response.json()) as any;
     const staticModelIds = this.staticModels.map((m) => m.name);
 

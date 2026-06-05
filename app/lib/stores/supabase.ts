@@ -61,16 +61,29 @@ const storage =
 const savedConnection = storage ? storage.getItem('supabase_connection') : null;
 const savedCredentials = storage ? storage.getItem('supabaseCredentials') : null;
 
-const initialState: SupabaseConnectionState = savedConnection
-  ? JSON.parse(savedConnection)
-  : {
-      user: null,
-      token: '',
-      stats: undefined,
-      selectedProjectId: undefined,
-      isConnected: false,
-      project: undefined,
-    };
+const defaultState: SupabaseConnectionState = {
+  user: null,
+  token: '',
+  stats: undefined,
+  selectedProjectId: undefined,
+  isConnected: false,
+  project: undefined,
+};
+
+function parseSavedConnection(raw: string | null): SupabaseConnectionState {
+  if (!raw) {
+    return { ...defaultState };
+  }
+
+  try {
+    return JSON.parse(raw) as SupabaseConnectionState;
+  } catch {
+    // Corrupt localStorage must not crash module initialization.
+    return { ...defaultState };
+  }
+}
+
+const initialState: SupabaseConnectionState = parseSavedConnection(savedConnection);
 
 if (savedCredentials && !initialState.credentials) {
   try {

@@ -70,6 +70,10 @@ export default class HyperbolicProvider extends BaseProvider {
       },
     });
 
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${this.name} models: ${response.status} ${response.statusText}`);
+    }
+
     const res = (await response.json()) as any;
 
     const data = res.data.filter((model: any) => model.object === 'model' && model.supports_chat);

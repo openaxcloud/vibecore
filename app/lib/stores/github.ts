@@ -5,13 +5,26 @@ import type { GitHubConnection } from '~/types/GitHub';
 // Initialize with stored connection or defaults
 const storedConnection = typeof window !== 'undefined' ? localStorage.getItem('github_connection') : null;
 
-const initialConnection: GitHubConnection = storedConnection
-  ? JSON.parse(storedConnection)
-  : {
-      user: null,
-      token: '',
-      tokenType: 'classic',
-    };
+function parseStoredGitHubConnection(raw: string | null): GitHubConnection {
+  const fallback: GitHubConnection = {
+    user: null,
+    token: '',
+    tokenType: 'classic',
+  };
+
+  if (!raw) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(raw) as GitHubConnection;
+  } catch {
+    // Corrupt localStorage must not crash module initialization.
+    return fallback;
+  }
+}
+
+const initialConnection: GitHubConnection = parseStoredGitHubConnection(storedConnection);
 
 export const githubConnection = atom<GitHubConnection>(initialConnection);
 export const isConnecting = atom<boolean>(false);

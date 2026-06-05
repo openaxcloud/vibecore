@@ -62,6 +62,10 @@ export default class TogetherProvider extends BaseProvider {
       },
     });
 
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${this.name} models: ${response.status} ${response.statusText}`);
+    }
+
     const res = (await response.json()) as any;
     const data = (res || []).filter((model: any) => model.type === 'chat');
 
