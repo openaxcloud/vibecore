@@ -370,14 +370,52 @@ export async function archiveFiles(files: Array<{ path: string; content: string 
   return zip.generateAsync({ type: 'nodebuffer' });
 }
 
-export async function filesFromZipBase64(base64: string): Promise<Array<{ path: string; content: string }>> {
-  const zip = await JSZip.loadAsync(Buffer.from(base64, 'base64'));
-  const files: Array<{ path: string; content: string }> = [];
+// Bound decompression so a small, highly-compressed archive (a "zip bomb")
+// cannot expand to gigabytes and exhaust the API pod's memory/disk on import or
+// snapshot restore. A normal project is well under these limits.
+const MAX_ZIP_ENTRIES = 5_000;
+const MAX_ZIP_FILE_BYTES = 25 * 1024 * 1024; // 25 MB per file
+const MAX_ZIP_TOTAL_BYTES = 200 * 1024 * 1024; // 200 MB decompressed total
 
-  for (const [path, entry] of Object.entries(zip.files)) {
-    if (!entry.dir) {
-      files.push({ path, content: await entry.async('string') });
+function zipLimitError(code: string, message: string) {
+  return Object.assign(new Error(message), { statusCode: 413, code });
+}
+
+export async function filesFromZipBase64(base64: string): Promise<Array<{ path: string; content: string }>> {
+  return filesFromZip(await JSZip.loadAsync(Buffer.from(base64, 'base64')));
+}
+
+export async function filesFromZip(zip: JSZip): Promise<Array<{ path: string; content: string }>> {
+  const entries = Object.entries(zip.files).filter(([, entry]) => !entry.dir);
+
+  if (entries.length > MAX_ZIP_ENTRIES) {
+    throw zipLimitError('ZIP_TOO_MANY_ENTRIES', `Archive contains too many files (limit ${MAX_ZIP_ENTRIES})`);
+  }
+
+  const files: Array<{ path: string; content: string }> = [];
+  let totalBytes = 0;
+
+  for (const [path, entry] of entries) {
+    // Reject an entry whose declared uncompressed size already exceeds the cap
+    // BEFORE decompressing it, so a malicious header can't force a huge inflate.
+    const declaredSize = (entry as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize;
+    if (typeof declaredSize === 'number' && declaredSize > MAX_ZIP_FILE_BYTES) {
+      throw zipLimitError('ZIP_FILE_TOO_LARGE', `Archive entry ${path} exceeds the per-file size limit`);
     }
+
+    const content = await entry.async('string');
+    const byteLength = Buffer.byteLength(content, 'utf8');
+
+    if (byteLength > MAX_ZIP_FILE_BYTES) {
+      throw zipLimitError('ZIP_FILE_TOO_LARGE', `Archive entry ${path} exceeds the per-file size limit`);
+    }
+
+    totalBytes += byteLength;
+    if (totalBytes > MAX_ZIP_TOTAL_BYTES) {
+      throw zipLimitError('ZIP_TOTAL_TOO_LARGE', 'Archive exceeds the total decompressed size limit');
+    }
+
+    files.push({ path, content });
   }
 
   return files;

@@ -115,6 +115,7 @@ import {
 import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
+  filesFromZip,
   filesFromZipBase64,
   GitCliProvider,
   LocalProjectStorage,
@@ -4514,6 +4515,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       : undefined;
 
   const collaborationBroker = createCollaborationBroker();
+  // Tracks the socket that currently owns each (projectId, sessionId) presence
+  // row on this replica. The browser session id is stable across reconnects, so
+  // a new socket overwrites the presence row while the previous socket's delayed
+  // onClose still fires — without this guard that stale close deletes the live
+  // row and broadcasts a false presence.leave, making a connected user vanish.
+  const collaborationPresenceOwners = new Map<string, CollaborationSocket>();
   const metrics = createPrometheusRegistry();
   const sentry = createSentryReporter({ environment: process.env.NODE_ENV, release: process.env.SENTRY_RELEASE });
   const localRuntimeProcesses = new Map<string, Map<string, LocalRuntimeProcess>>();
@@ -8644,15 +8651,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { targetPath = '.' } = parse(z.object({ targetPath: z.string().default('.') }), request.query);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
     const zip = await JSZip.loadAsync(request.body as Buffer);
+    // filesFromZip enforces entry-count and decompressed-size caps so a zip bomb
+    // can't fan out unbounded /files/write calls into the workspace agent.
+    const entries = await filesFromZip(zip);
+    const prefix = targetPath === '.' ? '' : `${targetPath.replace(/\/+$/, '')}/`;
 
-    for (const [path, entry] of Object.entries(zip.files)) {
-      if (!entry.dir) {
-        const prefix = targetPath === '.' ? '' : `${targetPath.replace(/\/+$/, '')}/`;
-        await agentRequest(authorized.workspaceId, '/files/write', {
-          method: 'POST',
-          body: JSON.stringify({ path: `${prefix}${path}`, content: await entry.async('string') }),
-        });
-      }
+    for (const file of entries) {
+      await agentRequest(authorized.workspaceId, '/files/write', {
+        method: 'POST',
+        body: JSON.stringify({ path: `${prefix}${file.path}`, content: file.content }),
+      });
     }
 
     return reply.code(204).send();
@@ -11520,6 +11528,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       status: 'online',
     });
     collaborationBroker.join(project.id, client);
+    const presenceOwnerKey = `${project.id}:${sessionId}`;
+    collaborationPresenceOwners.set(presenceOwnerKey, client);
     collaborationBroker.publish(project.id, { type: 'presence.join', presence }, client);
     client.send(
       JSON.stringify({
@@ -11617,6 +11627,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     client.onClose(async () => {
       clearInterval(keepAlive);
       collaborationBroker.leave(project.id, client);
+      // Only retire the presence row if THIS socket still owns it. A reconnect
+      // under the same (stable) sessionId installs a new owner; letting this
+      // stale close delete the row would evict a user who is in fact connected.
+      if (collaborationPresenceOwners.get(presenceOwnerKey) !== client) {
+        return;
+      }
+      collaborationPresenceOwners.delete(presenceOwnerKey);
       await store.removeCollaborationPresence(project.id, sessionId);
       collaborationBroker.publish(project.id, { type: 'presence.leave', sessionId }, client);
     });

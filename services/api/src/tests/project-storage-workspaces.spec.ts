@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildApiApp } from '../app.js';
 import type { EmailMessage, EmailProvider } from '../email.js';
-import { GitCliProvider, LocalProjectStorage } from '../project-storage.js';
+import { archiveFiles, filesFromZipBase64, GitCliProvider, LocalProjectStorage } from '../project-storage.js';
 import { TestApiStore } from './test-api-store.js';
 
 const previousProjectStorageDir = process.env.PROJECT_STORAGE_DIR;
@@ -30,6 +30,43 @@ class TestEmailProvider implements EmailProvider {
     this.messages.push(message);
   }
 }
+
+describe('filesFromZipBase64 bounds decompression (zip-bomb defence)', () => {
+  it('round-trips a normal archive', async () => {
+    const buffer = await archiveFiles([
+      { path: 'index.html', content: '<h1>hi</h1>' },
+      { path: 'src/app.ts', content: 'export const x = 1;' },
+    ]);
+    const files = await filesFromZipBase64(buffer.toString('base64'));
+    expect(files).toEqual(
+      expect.arrayContaining([
+        { path: 'index.html', content: '<h1>hi</h1>' },
+        { path: 'src/app.ts', content: 'export const x = 1;' },
+      ]),
+    );
+  });
+
+  it('rejects an archive with too many entries', async () => {
+    const buffer = await archiveFiles(
+      Array.from({ length: 5_001 }, (_, index) => ({ path: `file-${index}.txt`, content: 'x' })),
+    );
+    await expect(filesFromZipBase64(buffer.toString('base64'))).rejects.toMatchObject({
+      code: 'ZIP_TOO_MANY_ENTRIES',
+      statusCode: 413,
+    });
+  });
+
+  it('rejects an archive entry larger than the per-file cap', async () => {
+    // A single 30 MB highly-compressible entry (>25 MB cap) keeps the compressed
+    // archive tiny — the classic single-entry zip-bomb shape — and is rejected
+    // before it is written anywhere.
+    const buffer = await archiveFiles([{ path: 'bomb.txt', content: 'a'.repeat(30 * 1024 * 1024) }]);
+    await expect(filesFromZipBase64(buffer.toString('base64'))).rejects.toMatchObject({
+      code: 'ZIP_FILE_TOO_LARGE',
+      statusCode: 413,
+    });
+  });
+});
 
 describe('LocalProjectStorage.restoreSnapshot preserves secondary workspaces', () => {
   it('keeps `.vibecore-workspaces/<id>/` intact when the primary tree is restored', async () => {
