@@ -207,4 +207,53 @@ describe('WorkspaceManager', () => {
     expect((await manager.stopWorkspace('workspaces', input.workspaceId)).status).toBe('STOPPED');
     expect((await manager.restartWorkspace(input)).status).toBe('RUNNING');
   });
+
+  it('garbage-collects a FAILED workspace whose Pod/PVC leaked', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+    // Simulate a provisioning failure that left the runtime resources behind:
+    // before the fix, GC only walked RUNNING→STOPPED→DELETED and never reaped
+    // FAILED rows, so the Pod/PVC sat leaked (Pending pod spinning autoscaler).
+    await store.update(input.workspaceId, {
+      status: 'FAILED',
+      lastActiveAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    });
+
+    await manager.garbageCollect('workspaces', 5 * 60 * 1000, 30 * 60 * 1000);
+
+    expect((await store.get(input.workspaceId))?.status).toBe('DELETED');
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(false);
+    expect(k8s.objects.has('workspaces:PersistentVolumeClaim:pvc-workspace_1')).toBe(false);
+  });
+
+  it('does not delete a workspace re-provisioned since the GC snapshot (TOCTOU)', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    // list() yields the stale STOPPED+idle snapshot the GC pass started from,
+    // but get() returns the live row that a concurrent startWorkspace just
+    // flipped to STARTING. GC must re-read and skip — deleting here would pull
+    // the PVC out from under the freshly created pod.
+    class RaceStore extends TestWorkspaceStore {
+      override async list() {
+        return [...this.workspaces.values()].map((workspace) => ({
+          ...workspace,
+          status: 'STOPPED' as const,
+          lastActiveAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        }));
+      }
+    }
+    const store = new RaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+    await store.update(input.workspaceId, { status: 'STARTING', lastActiveAt: new Date().toISOString() });
+
+    await manager.garbageCollect('workspaces', 5 * 60 * 1000, 30 * 60 * 1000);
+
+    expect((await store.get(input.workspaceId))?.status).toBe('STARTING');
+    expect(k8s.objects.has('workspaces:PersistentVolumeClaim:pvc-workspace_1')).toBe(true);
+    expect(k8s.events).not.toContain('delete:PersistentVolumeClaim:pvc-workspace_1');
+  });
 });

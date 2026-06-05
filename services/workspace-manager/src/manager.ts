@@ -210,20 +210,42 @@ export class WorkspaceManager {
 
   async garbageCollect(namespace: string, inactiveMs: number, deleteMs: number) {
     const now = Date.now();
-    for (const workspace of await this.store.list()) {
+    for (const snapshot of await this.store.list()) {
       // Isolate each workspace: a transient kubectl/network error (or a row
       // concurrently deleted by another sweep) must not abort the whole GC pass
       // and leave every later workspace's pod/PVC leaking. Log and continue.
       try {
+        // Re-read each row under its freshest state before acting. store.list()
+        // is a point-in-time snapshot, and workspace ids are deterministic per
+        // (project, user): reopening a project re-enters startWorkspace for the
+        // SAME id, flipping the row STOPPED→STARTING and bumping lastActiveAt.
+        // Acting on the stale snapshot raced that re-provision — GC deleted the
+        // PVC in the window between startWorkspace's PVC-apply and Pod-apply, so
+        // the freshly created pod referenced a now-deleted claim and sat Pending
+        // forever ("persistentvolumeclaim not found"), spinning the cluster
+        // autoscaler at real cost. Re-evaluating against live state closes it.
+        const workspace = await this.store.get(snapshot.id);
+        if (!workspace) {
+          continue;
+        }
         const inactiveFor = now - new Date(workspace.lastActiveAt).getTime();
         if (workspace.status === 'RUNNING' && inactiveFor > inactiveMs) {
           await this.stopWorkspace(namespace, workspace.id);
-        }
-        if (workspace.status === 'STOPPED' && inactiveFor > deleteMs) {
+        } else if (workspace.status === 'STOPPED' && inactiveFor > deleteMs) {
+          await this.deleteWorkspace(namespace, workspace.id);
+        } else if ((workspace.status === 'FAILED' || workspace.status === 'STARTING') && inactiveFor > deleteMs) {
+          // Reap abandoned provisioning. A FAILED start (readiness timeout, or a
+          // PVC reaped out from under it) — and a STARTING row orphaned by a
+          // manager crash mid-provision — were never collected: GC only walked
+          // RUNNING→STOPPED→DELETED. Their Pod/PVC/Secret leaked indefinitely and
+          // any Pending pod kept the autoscaler retrying scale-up. lastActiveAt is
+          // stamped at start, so a legitimately in-flight start (seconds to the
+          // ~180s readiness window, far below deleteMs) is never caught here. The
+          // row goes DELETED and reopening re-provisions via the reuse path.
           await this.deleteWorkspace(namespace, workspace.id);
         }
       } catch (error) {
-        console.error('workspace garbage-collection failed', { workspaceId: workspace.id, error });
+        console.error('workspace garbage-collection failed', { workspaceId: snapshot.id, error });
       }
     }
   }
