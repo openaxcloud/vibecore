@@ -94,7 +94,7 @@ export default class HyperbolicProvider extends BaseProvider {
   }): LanguageModelV1 {
     const { model, serverEnv, apiKeys, providerSettings } = options;
 
-    const { apiKey } = this.getProviderBaseUrlAndKey({
+    const { baseUrl, apiKey } = this.getProviderBaseUrlAndKey({
       apiKeys,
       providerSettings: providerSettings?.[this.name],
       serverEnv: serverEnv as any,
@@ -107,7 +107,7 @@ export default class HyperbolicProvider extends BaseProvider {
     }
 
     const openai = createOpenAI({
-      baseURL: 'https://api.hyperbolic.xyz/v1/',
+      baseURL: baseUrl || 'https://api.hyperbolic.xyz/v1/',
       apiKey,
     });
 

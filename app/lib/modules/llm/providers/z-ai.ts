@@ -64,7 +64,7 @@ export default class ZaiProvider extends BaseProvider {
     }
 
     try {
-      const response = await fetch(`${baseUrl}/models`, {
+      const response = await fetch(`${baseUrl || this.config.baseUrl}/models`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
