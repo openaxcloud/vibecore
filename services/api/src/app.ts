@@ -85,6 +85,7 @@ import {
   redactDeploymentLog,
 } from './deployments.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
+import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
 import {
   resolveIntegrationOauthStateSecret,
   signIntegrationOauthState,
@@ -95,12 +96,12 @@ import { githubConnector, resolveGithubCredentials } from './integrations/provid
 import { gitlabConnector, resolveGitLabCredentials } from './integrations/providers/gitlab.js';
 import { netlifyConnector } from './integrations/providers/netlify.js';
 import { supabaseConnector } from './integrations/providers/supabase.js';
-import { vercelConnector } from './integrations/providers/vercel.js';
 import {
   ConnectorProviderError,
   type ConnectorOAuthCredentials,
   type ConnectorProvider,
 } from './integrations/providers/types.js';
+import { vercelConnector } from './integrations/providers/vercel.js';
 import {
   McpMarketplaceService,
   McpMarketplaceError,
@@ -113,7 +114,6 @@ import {
   mcpUserConfigSchema,
   createDefaultMcpMarketplaceService,
 } from './mcp-marketplace.js';
-import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
   filesFromZip,
@@ -282,10 +282,12 @@ const membershipParams = orgParams.extend({ userId: z.string().min(1) });
 const domainParams = orgParams.extend({ domain: z.string().min(3) });
 const sessionParams = z.object({ sessionId: z.string().min(1) });
 const projectParams = z.object({ projectId: z.string().min(1) });
+
 const projectResolveQuerySchema = z.object({
   accountSlug: z.string().min(1).max(120),
   projectSlug: z.string().min(1).max(160),
 });
+
 const workspaceParams = z.object({ workspaceId: z.string().min(1) });
 
 const createProjectSchema = z.object({
@@ -510,8 +512,10 @@ const databaseQuerySchema = z.object({
 });
 const collaboratorSchema = z
   .object({
-    // Either a raw user id or an email; email is what a person actually knows
-    // about a teammate, so the UI sends that and we resolve it server-side.
+    /*
+     * Either a raw user id or an email; email is what a person actually knows
+     * about a teammate, so the UI sends that and we resolve it server-side.
+     */
     userId: z.string().min(1).optional(),
     email: z.string().email().optional(),
     roleKey: z.enum(['owner', 'admin', 'member', 'editor', 'viewer']),
@@ -574,8 +578,8 @@ const chatShareCreateSchema = z.object({
   visibleMessageIds: z.array(z.string()).default([]),
   inlineMessages: z.array(chatShareInlineMessageSchema).max(2000).optional(),
   allowFork: z.boolean().default(false),
-  expiresInMinutes: z
-    .coerce.number()
+  expiresInMinutes: z.coerce
+    .number()
     .int()
     .min(5)
     .max(60 * 24 * 90)
@@ -607,17 +611,22 @@ const createSnapshotSchema = z.object({
 });
 
 const snapshotParams = z.object({ snapshotId: z.string().min(1) });
+
 const workspaceIdField = z
   .string()
   .regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/, 'workspaceId must be alphanumeric (with - or _).')
   .optional();
+
 const gitWorkspaceQuerySchema = z.object({ workspaceId: workspaceIdField });
+
 const gitCommitSchema = z.object({
   message: z.string().min(1),
   files: z.array(z.string().min(1)).optional(),
   workspaceId: workspaceIdField,
 });
+
 const gitBranchSchema = z.object({ branch: z.string().min(1).default('main'), workspaceId: workspaceIdField });
+
 const gitRemoteSchema = z.object({
   remoteUrl: gitRemoteUrlSchema,
   branch: z.string().min(1).default('main'),
@@ -632,11 +641,13 @@ const gitCheckoutBranchSchema = z.object({
 });
 
 const gitStashSchema = z.object({ message: z.string().optional(), workspaceId: workspaceIdField });
+
 const gitStashApplySchema = z.object({
   stashRef: z.string().min(1),
   drop: z.boolean().default(false),
   workspaceId: workspaceIdField,
 });
+
 const gitCherryPickSchema = z.object({ sha: z.string().min(4), workspaceId: workspaceIdField });
 
 const gitConflictResolutionSchema = z.object({
@@ -705,8 +716,10 @@ const runtimeFileCreateSchema = runtimeFileWriteSchema
   .extend({ path: z.string().min(1), directory: z.boolean().optional() });
 
 const runtimeFileMoveSchema = z.object({ path: z.string().min(1), newPath: z.string().min(1) });
+
 const runtimeSearchSchema = z.object({
   query: z.string(),
+
   /*
    * Audit v3 (H): the search options the IDE sends (regex / case-sensitivity
    * toggles, include/exclude globs, result cap) were typed as an opaque
@@ -843,6 +856,7 @@ const apiKeyCreateSchema = z.object({
   scopes: z.array(z.enum(API_KEY_SCOPES as [ApiKeyScope, ...ApiKeyScope[]])).min(1),
   expiresInDays: z.number().int().positive().max(3650).optional(),
 });
+
 const apiKeyIdParams = z.object({ keyId: z.string().min(1) });
 const platformAdminParams = z.object({ userId: z.string().min(1) });
 const platformAdminSchema = z.object({ platformAdmin: z.boolean() });
@@ -1034,9 +1048,11 @@ function bearerToken(request: FastifyRequest) {
   return request.cookies.session;
 }
 
-// Upper bound on a single inbound collaboration WS frame. Presence cursor /
-// selection payloads are small; this leaves generous headroom while preventing
-// a peer from fanning out oversized frames to the whole room.
+/*
+ * Upper bound on a single inbound collaboration WS frame. Presence cursor /
+ * selection payloads are small; this leaves generous headroom while preventing
+ * a peer from fanning out oversized frames to the whole room.
+ */
 const MAX_COLLABORATION_MESSAGE_BYTES = 64 * 1024;
 
 function collaborationTicketSecret() {
@@ -1069,8 +1085,10 @@ function verifyCollaborationWebSocketTicket(ticket: string, input: { projectId: 
     return undefined;
   }
 
-  // Constant-time signature comparison (matches verifyChatShareToken) so the
-  // HMAC check doesn't leak a timing oracle on the expected signature.
+  /*
+   * Constant-time signature comparison (matches verifyChatShareToken) so the
+   * HMAC check doesn't leak a timing oracle on the expected signature.
+   */
   const expected = signCollaborationTicket(payload);
 
   if (expected.length !== signature.length || !timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) {
@@ -1101,12 +1119,14 @@ function verifyCollaborationWebSocketTicket(ticket: string, input: { projectId: 
   }
 }
 
-// Chat-share tokens (audit M5/M7). The stored snapshot is keyed by a random,
-// unguessable token; we additionally HMAC-sign the public token so the /share
-// view can reject tampered/garbage tokens before any DB lookup and so a token
-// cannot be forged without the server secret. The raw token (from
-// createOpaqueToken) never contains a '.', so it splits cleanly from the
-// trailing signature.
+/*
+ * Chat-share tokens (audit M5/M7). The stored snapshot is keyed by a random,
+ * unguessable token; we additionally HMAC-sign the public token so the /share
+ * view can reject tampered/garbage tokens before any DB lookup and so a token
+ * cannot be forged without the server secret. The raw token (from
+ * createOpaqueToken) never contains a '.', so it splits cleanly from the
+ * trailing signature.
+ */
 function chatShareTokenSecret() {
   return process.env.SHARE_LINK_SECRET ?? process.env.JWT_SECRET ?? process.env.COOKIE_SECRET ?? 'dev';
 }
@@ -1337,6 +1357,7 @@ function stripSqlLiteralsAndComments(query: string): string {
     if (ch === "'" || ch === '"' || ch === '`') {
       const quote = ch;
       i += 1;
+
       while (i < query.length) {
         if (query[i] === quote) {
           // Doubled quote is an escaped quote, not the terminator.
@@ -1344,9 +1365,11 @@ function stripSqlLiteralsAndComments(query: string): string {
             i += 2;
             continue;
           }
+
           i += 1;
           break;
         }
+
         i += 1;
       }
       out += ' ';
@@ -1363,11 +1386,16 @@ function stripSqlLiteralsAndComments(query: string): string {
 export function assertReadOnlySql(query: string) {
   const stripped = stripSqlLiteralsAndComments(query);
 
-  // Reject anything that smuggles in a second statement (e.g.
-  // `SELECT 1; DROP TABLE users;`). Postgres' simple-query protocol — used by
-  // `pg`'s client.query(string) — happily runs every `;`-separated statement,
-  // so a single leading SELECT is not enough to make the payload read-only.
-  const statements = stripped.split(';').map((part) => part.trim()).filter(Boolean);
+  /*
+   * Reject anything that smuggles in a second statement (e.g.
+   * `SELECT 1; DROP TABLE users;`). Postgres' simple-query protocol — used by
+   * `pg`'s client.query(string) — happily runs every `;`-separated statement,
+   * so a single leading SELECT is not enough to make the payload read-only.
+   */
+  const statements = stripped
+    .split(';')
+    .map((part) => part.trim())
+    .filter(Boolean);
 
   if (statements.length > 1) {
     throw Object.assign(new Error('Only a single read-only SQL statement is allowed in the IDE query editor'), {
@@ -1385,11 +1413,16 @@ export function assertReadOnlySql(query: string) {
     });
   }
 
-  // A leading `WITH` can still wrap a data-modifying CTE
-  // (`WITH t AS (DELETE FROM users RETURNING *) SELECT * FROM t`). The engine-level
-  // read-only transaction in runDatabaseQuery is the real backstop, but reject the
-  // obvious cases up front for a clearer error.
-  if (normalized.startsWith('with') && /\b(insert|update|delete|merge|drop|alter|create|truncate|grant|revoke)\b/.test(normalized)) {
+  /*
+   * A leading `WITH` can still wrap a data-modifying CTE
+   * (`WITH t AS (DELETE FROM users RETURNING *) SELECT * FROM t`). The engine-level
+   * read-only transaction in runDatabaseQuery is the real backstop, but reject the
+   * obvious cases up front for a clearer error.
+   */
+  if (
+    normalized.startsWith('with') &&
+    /\b(insert|update|delete|merge|drop|alter|create|truncate|grant|revoke)\b/.test(normalized)
+  ) {
     throw Object.assign(new Error('Data-modifying statements are not allowed in the IDE query editor'), {
       statusCode: 400,
       code: 'DATABASE_QUERY_NOT_READ_ONLY',
@@ -1439,6 +1472,7 @@ function serializeDbRows(rows: unknown) {
  */
 async function resolveProjectSecretValues(store: ApiStore, projectId: string): Promise<Record<string, string>> {
   const secrets = await store.listProjectSecrets(projectId);
+
   const entries = await Promise.all(
     secrets.map(async (secret): Promise<[string, string] | undefined> => {
       const full = await store.getProjectSecret(projectId, secret.key);
@@ -1609,10 +1643,12 @@ async function runDatabaseQuery(
     await client.connect();
 
     try {
-      // Engine-level enforcement: a READ ONLY transaction makes Postgres reject
-      // any write — INSERT/UPDATE/DELETE/DDL and data-modifying CTEs — with
-      // "cannot execute ... in a read-only transaction", regardless of how the
-      // SQL is phrased. This is the real backstop behind assertReadOnlySql.
+      /*
+       * Engine-level enforcement: a READ ONLY transaction makes Postgres reject
+       * any write — INSERT/UPDATE/DELETE/DDL and data-modifying CTEs — with
+       * "cannot execute ... in a read-only transaction", regardless of how the
+       * SQL is phrased. This is the real backstop behind assertReadOnlySql.
+       */
       await client.query('BEGIN TRANSACTION READ ONLY');
 
       try {
@@ -1634,8 +1670,10 @@ async function runDatabaseQuery(
   if (connection.kind === 'mysql') {
     assertReadOnlySql(query);
 
-    // Force multipleStatements off even if the user's connection string sets it,
-    // so a single client.query() can never run a chained write.
+    /*
+     * Force multipleStatements off even if the user's connection string sets it,
+     * so a single client.query() can never run a chained write.
+     */
     const client = await mysql.createConnection({ uri: connection.value, multipleStatements: false });
 
     try {
@@ -1668,11 +1706,13 @@ async function runDatabaseQuery(
       const [command, ...args] = query.trim().split(/\s+/);
       const result = await redis.call(command, ...args);
 
-      // Read-only commands like KEYS/SMEMBERS/LRANGE/ZRANGE can return the entire
-      // keyspace/collection. The SQL and Mongo paths honour `limit`; the Redis
-      // path ignored it and serialized everything, so a single `KEYS *` could
-      // dump a huge payload (and block the Redis server). Cap array results to
-      // the same row limit and report whether the result was truncated.
+      /*
+       * Read-only commands like KEYS/SMEMBERS/LRANGE/ZRANGE can return the entire
+       * keyspace/collection. The SQL and Mongo paths honour `limit`; the Redis
+       * path ignored it and serialized everything, so a single `KEYS *` could
+       * dump a huge payload (and block the Redis server). Cap array results to
+       * the same row limit and report whether the result was truncated.
+       */
       const cap = Math.max(1, Math.min(limit, 200));
       const truncated = Array.isArray(result) && result.length > cap;
       const capped = truncated ? result.slice(0, cap) : result;
@@ -1698,8 +1738,10 @@ async function runDatabaseQuery(
     try {
       parsed = JSON.parse(query) as Record<string, unknown>;
     } catch (error) {
-      // A malformed query is user error, not a server fault — return a coded
-      // 400 instead of letting the raw SyntaxError surface as a generic 500.
+      /*
+       * A malformed query is user error, not a server fault — return a coded
+       * 400 instead of letting the raw SyntaxError surface as a generic 500.
+       */
       throw Object.assign(new Error('MongoDB query must be valid JSON'), {
         statusCode: 400,
         code: 'DB_QUERY_INVALID_JSON',
@@ -1766,12 +1808,7 @@ function scopesSatisfy(granted: ApiKeyScope[], required: ApiKeyScope): boolean {
  * owning user are rejected because every authenticated endpoint runs in a
  * user context.
  */
-async function authenticateApiKey(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  store: ApiStore,
-  token: string,
-) {
+async function authenticateApiKey(request: FastifyRequest, reply: FastifyReply, store: ApiStore, token: string) {
   const apiKey = await store.findApiKeyByHash(hashToken(token));
 
   if (!apiKey) {
@@ -1783,9 +1820,7 @@ async function authenticateApiKey(
   }
 
   if (!apiKey.userId) {
-    return reply
-      .code(403)
-      .send({ error: 'API key is not bound to a user', code: 'API_KEY_NO_USER' });
+    return reply.code(403).send({ error: 'API key is not bound to a user', code: 'API_KEY_NO_USER' });
   }
 
   const user = await store.findUserById(apiKey.userId);
@@ -2020,40 +2055,48 @@ async function requireProject(
     throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
   }
 
-  // A soft-deleted project must behave as if it no longer exists for every
-  // endpoint except the explicit restore path (which opts in via allowDeleted).
-  // getProject() intentionally still resolves deleted rows so restore can find
-  // them; enforcing deletedAt here keeps the dashboard/slug routing consistent
-  // with the per-project API surface (files, settings, secrets, deploy, etc.)
-  // instead of letting a "deleted" project remain fully readable and mutable.
+  /*
+   * A soft-deleted project must behave as if it no longer exists for every
+   * endpoint except the explicit restore path (which opts in via allowDeleted).
+   * getProject() intentionally still resolves deleted rows so restore can find
+   * them; enforcing deletedAt here keeps the dashboard/slug routing consistent
+   * with the per-project API surface (files, settings, secrets, deploy, etc.)
+   * instead of letting a "deleted" project remain fully readable and mutable.
+   */
   if (project.deletedAt && !options?.allowDeleted) {
     throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
   }
 
-  // A user can reach a project two ways: as a member of its organization
-  // (authorized by their org role) or as an explicit project collaborator
-  // (authorized purely by their collaborator role — e.g. they redeemed a share
-  // link but are not an org member). Check org membership first; if the only
-  // problem is that they are not an org member but they DO hold a collaborator
-  // grant on this project, fall back to collaborator-based authorization for
-  // this single project instead of 404-ing them out.
+  /*
+   * A user can reach a project two ways: as a member of its organization
+   * (authorized by their org role) or as an explicit project collaborator
+   * (authorized purely by their collaborator role — e.g. they redeemed a share
+   * link but are not an org member). Check org membership first; if the only
+   * problem is that they are not an org member but they DO hold a collaborator
+   * grant on this project, fall back to collaborator-based authorization for
+   * this single project instead of 404-ing them out.
+   */
   const collaboratorRole = await projectCollaborationRole(store, projectId, request.currentUser?.id);
 
   try {
     await requireOrg(request, store, project.organizationId, permission);
   } catch (error: any) {
-    // Fall back to collaborator-based authorization only when the sole problem
-    // is that the user isn't an org member but holds a collaborator grant on
-    // this project. Any other failure (401 unauth, 403 for an actual member
-    // lacking the permission) propagates unchanged.
+    /*
+     * Fall back to collaborator-based authorization only when the sole problem
+     * is that the user isn't an org member but holds a collaborator grant on
+     * this project. Any other failure (401 unauth, 403 for an actual member
+     * lacking the permission) propagates unchanged.
+     */
     if (error?.code !== 'ORG_NOT_FOUND' || !collaboratorRole) {
       throw error;
     }
   }
 
-  // Per-project collaborator role refines access: a read-only (viewer)
-  // collaborator can never write, even if an org role would otherwise allow it,
-  // and a collaborator-only user needs a write-capable role to perform writes.
+  /*
+   * Per-project collaborator role refines access: a read-only (viewer)
+   * collaborator can never write, even if an org role would otherwise allow it,
+   * and a collaborator-only user needs a write-capable role to perform writes.
+   */
   if (isWriteProjectPermission(permission) && isReadOnlyProjectRole(collaboratorRole)) {
     throw Object.assign(new Error('Read-only collaborators cannot modify this project'), {
       statusCode: 403,
@@ -2086,9 +2129,7 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
     return deployment;
   }
 
-  const buildId = (deployment.metadata as Record<string, unknown> | undefined)?.providerBuildId as
-    | string
-    | undefined;
+  const buildId = (deployment.metadata as Record<string, unknown> | undefined)?.providerBuildId as string | undefined;
 
   if (!canPollDeploymentStatus(deployment.provider, buildId)) {
     return deployment;
@@ -2110,7 +2151,11 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
     productionUrl: isReady && deployment.environment === 'production' ? url : undefined,
     logs: [
       ...deployment.logs,
-      { timestamp: new Date().toISOString(), level: isReady ? ('info' as const) : ('error' as const), message: result.log },
+      {
+        timestamp: new Date().toISOString(),
+        level: isReady ? ('info' as const) : ('error' as const),
+        message: result.log,
+      },
     ],
     finishedAt: new Date().toISOString(),
   });
@@ -2152,9 +2197,11 @@ function slugifyRouteSegment(value: string) {
     .replace(/^-|-$/g, '');
 }
 
-// Accepts either ProjectIdeStateRecord or WorkspaceIdeStateRecord — both
-// expose the same `.state` payload, and downstream readers only touch that
-// payload, so the helpers in this file operate on the structural intersection.
+/*
+ * Accepts either ProjectIdeStateRecord or WorkspaceIdeStateRecord — both
+ * expose the same `.state` payload, and downstream readers only touch that
+ * payload, so the helpers in this file operate on the structural intersection.
+ */
 type PersistedIdeStateLike = { state: unknown } | undefined;
 
 function ideStateObject(state?: PersistedIdeStateLike) {
@@ -2226,7 +2273,9 @@ function projectFileManifestFromPersistedInput(input: unknown): {
 } {
   const manifest =
     input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
+
   const exists = Array.isArray(manifest.entries);
+
   return {
     exists,
     files: exists ? projectFilesFromPersistedFileManifest(input) : [],
@@ -2236,6 +2285,7 @@ function projectFileManifestFromPersistedInput(input: unknown): {
 function projectFilesFromPersistedFileManifest(input: unknown): Array<{ path: string; content: string }> {
   const manifest =
     input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
+
   const entries = Array.isArray(manifest.entries) ? manifest.entries : [];
   const files: Array<{ path: string; content: string }> = [];
 
@@ -2433,14 +2483,18 @@ async function listProjectFilesIncludingIdeState(
   workspaceId?: string,
 ): Promise<ProjectFile[]> {
   const existingFiles = await projectStorage.listFiles(projectId, workspaceId);
-  // Prefer the workspace-scoped IDE state so committing on workspace B uses the
-  // editor manifest captured for workspace B rather than the project-level
-  // state — that mismatch was the bug Fix 2 set out to close. When no workspace
-  // state has been persisted yet we fall back to the project-level state so
-  // workspaces created before per-workspace state existed keep working.
+
+  /*
+   * Prefer the workspace-scoped IDE state so committing on workspace B uses the
+   * editor manifest captured for workspace B rather than the project-level
+   * state — that mismatch was the bug Fix 2 set out to close. When no workspace
+   * state has been persisted yet we fall back to the project-level state so
+   * workspaces created before per-workspace state existed keep working.
+   */
   const ideState =
     (workspaceId ? await store.getWorkspaceIdeState(workspaceId) : undefined) ??
     (await store.getProjectIdeState(projectId));
+
   const persistedManifest = projectFileManifestFromPersistedIdeState(ideState);
 
   if (persistedManifest.exists) {
@@ -2720,8 +2774,10 @@ async function adminHealthSummary(store: ApiStore) {
   const databaseUrl = process.env.DATABASE_URL;
   const redisUrl = process.env.REDIS_URL;
 
-  // Real connectivity probe against Postgres: issue a trivial query rather than
-  // inferring health from the presence of DATABASE_URL.
+  /*
+   * Real connectivity probe against Postgres: issue a trivial query rather than
+   * inferring health from the presence of DATABASE_URL.
+   */
   const database = await (async () => {
     if (!databaseUrl) {
       return { status: 'not-configured', provider: 'PostgreSQL' as const };
@@ -2741,8 +2797,10 @@ async function adminHealthSummary(store: ApiStore) {
     }
   })();
 
-  // Real connectivity probe against Redis: open a short-lived connection and
-  // PING it, mirroring the lazyConnect pattern used elsewhere in this service.
+  /*
+   * Real connectivity probe against Redis: open a short-lived connection and
+   * PING it, mirroring the lazyConnect pattern used elsewhere in this service.
+   */
   const redis = await (async () => {
     if (!redisUrl) {
       return { status: 'not-configured' as const };
@@ -2754,6 +2812,7 @@ async function adminHealthSummary(store: ApiStore) {
     try {
       await client.connect();
       await client.ping();
+
       return { status: 'healthy' as const, latencyMs: Date.now() - startedAt };
     } catch (error) {
       return { status: 'unreachable' as const, error: error instanceof Error ? error.message : 'Unknown error' };
@@ -2767,8 +2826,11 @@ async function adminHealthSummary(store: ApiStore) {
       status: process.env.KUBERNETES_SERVICE_HOST ? 'healthy' : 'not-configured',
       runtimeClass: process.env.WORKSPACE_RUNTIME_CLASS ?? 'gvisor',
     },
-    // BullMQ rides on Redis, so reflect the real Redis probe result instead of
-    // a bare env-var presence check.
+
+    /*
+     * BullMQ rides on Redis, so reflect the real Redis probe result instead of
+     * a bare env-var presence check.
+     */
     queues: { status: redis.status, provider: 'BullMQ' as const },
     database,
     redis,
@@ -2850,10 +2912,12 @@ const wellKnownOauthEndpoints: Record<
 };
 
 async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthCallbackSchema>) {
-  // Test-only seam: accept a pre-resolved profile without performing a real provider
-  // code exchange. This MUST never be reachable in production — otherwise any caller
-  // could POST an arbitrary { email, externalId, accessToken } and be issued a session
-  // for that identity (full account takeover / auto-provisioning of any email).
+  /*
+   * Test-only seam: accept a pre-resolved profile without performing a real provider
+   * code exchange. This MUST never be reachable in production — otherwise any caller
+   * could POST an arbitrary { email, externalId, accessToken } and be issued a session
+   * for that identity (full account takeover / auto-provisioning of any email).
+   */
   if (body.email && body.externalId && body.accessToken) {
     if (process.env.NODE_ENV === 'production') {
       throw Object.assign(new Error('Pre-resolved OAuth profiles are test-only'), {
@@ -2861,6 +2925,7 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
         code: 'OAUTH_INVALID_CALLBACK',
       });
     }
+
     return {
       email: body.email.toLowerCase(),
       name: body.name,
@@ -3011,6 +3076,7 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
   };
 
   let email = profile.email ?? undefined;
+
   const externalId =
     profile.id !== undefined && profile.id !== null ? String(profile.id) : (profile.sub ?? profile.login);
 
@@ -3809,6 +3875,7 @@ function assertProductionWorkspaceManagerUrl(rawUrl = process.env.WORKSPACE_MANA
 
   const isInternalKubernetesService =
     url.protocol === 'http:' && (url.hostname.endsWith('.svc') || url.hostname.endsWith('.svc.cluster.local'));
+
   const isHttps = url.protocol === 'https:';
 
   if (!isHttps && !isInternalKubernetesService) {
@@ -4010,6 +4077,7 @@ function normalizeRuntimeApiWebSocket(rawSocket: unknown) {
 
   return {
     send: candidate.send.bind(candidate),
+
     /*
      * Native WebSocket ping frame. Browsers auto-respond with a pong, so pinging
      * the downstream client keeps the otherwise-silent API→browser direction warm
@@ -4093,8 +4161,11 @@ function createCollaborationBroker() {
   const rooms = new Map<string, Set<CollaborationSocket>>();
   const redisUrl = process.env.REDIS_URL;
   const channelPrefix = process.env.COLLABORATION_REDIS_CHANNEL_PREFIX ?? 'vibecore:collaboration';
-  // Identifies this broker instance (one per API replica). Published messages
-  // carry it so a node can distinguish its own Redis loopback from a peer node's.
+
+  /*
+   * Identifies this broker instance (one per API replica). Published messages
+   * carry it so a node can distinguish its own Redis loopback from a peer node's.
+   */
   const nodeId = randomUUID();
   const publisher = redisUrl ? new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 }) : undefined;
   const subscriber = redisUrl ? new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 }) : undefined;
@@ -4104,21 +4175,27 @@ function createCollaborationBroker() {
     subscriber.connect().catch(() => undefined);
     subscriber.on('message', (channel, payload) => {
       const projectId = channel.slice(`${channelPrefix}:`.length);
-      // Every node (including the publisher) receives its own publishes back over
-      // Redis. publish() already fanned the message out to local peers — and
-      // honoured `except` — so re-broadcasting our own loopback would deliver each
-      // message twice locally and echo it back to the sender it was meant to skip
-      // (notably document.sync, clobbering the author's in-flight edits). Skip
-      // messages we originated; only relay those from other replicas.
+
+      /*
+       * Every node (including the publisher) receives its own publishes back over
+       * Redis. publish() already fanned the message out to local peers — and
+       * honoured `except` — so re-broadcasting our own loopback would deliver each
+       * message twice locally and echo it back to the sender it was meant to skip
+       * (notably document.sync, clobbering the author's in-flight edits). Skip
+       * messages we originated; only relay those from other replicas.
+       */
       let envelope: { nodeId?: string; message?: string };
+
       try {
         envelope = JSON.parse(payload) as { nodeId?: string; message?: string };
       } catch {
         return;
       }
+
       if (!envelope.message || envelope.nodeId === nodeId) {
         return;
       }
+
       broadcastLocal(projectId, envelope.message);
     });
   }
@@ -4139,10 +4216,12 @@ function createCollaborationBroker() {
         continue;
       }
 
-      // A peer whose socket is closing throws inside send(). Without this guard
-      // one stale peer aborts the whole broadcast loop (later peers miss the
-      // message) and, on the un-try/caught join broadcast, rejects the async
-      // connection handler. Swallow per-peer and drop the dead socket.
+      /*
+       * A peer whose socket is closing throws inside send(). Without this guard
+       * one stale peer aborts the whole broadcast loop (later peers miss the
+       * message) and, on the un-try/caught join broadcast, rejects the async
+       * connection handler. Swallow per-peer and drop the dead socket.
+       */
       try {
         peer.send(message);
       } catch {
@@ -4174,8 +4253,11 @@ function createCollaborationBroker() {
         timestamp: new Date().toISOString(),
       });
       broadcastLocal(projectId, message, except);
-      // Wrap in a node-tagged envelope so the subscriber can drop our own
-      // loopback (see the subscriber handler) instead of double-delivering.
+
+      /*
+       * Wrap in a node-tagged envelope so the subscriber can drop our own
+       * loopback (see the subscriber handler) instead of double-delivering.
+       */
       publisher?.publish(channel(projectId), JSON.stringify({ nodeId, message })).catch(() => undefined);
     },
     async close() {
@@ -4530,11 +4612,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       : undefined;
 
   const collaborationBroker = createCollaborationBroker();
-  // Tracks the socket that currently owns each (projectId, sessionId) presence
-  // row on this replica. The browser session id is stable across reconnects, so
-  // a new socket overwrites the presence row while the previous socket's delayed
-  // onClose still fires — without this guard that stale close deletes the live
-  // row and broadcasts a false presence.leave, making a connected user vanish.
+
+  /*
+   * Tracks the socket that currently owns each (projectId, sessionId) presence
+   * row on this replica. The browser session id is stable across reconnects, so
+   * a new socket overwrites the presence row while the previous socket's delayed
+   * onClose still fires — without this guard that stale close deletes the live
+   * row and broadcasts a false presence.leave, making a connected user vanish.
+   */
   const collaborationPresenceOwners = new Map<string, CollaborationSocket>();
   const metrics = createPrometheusRegistry();
   const sentry = createSentryReporter({ environment: process.env.NODE_ENV, release: process.env.SENTRY_RELEASE });
@@ -4715,9 +4800,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const statusCode = typeof error.statusCode === 'number' ? error.statusCode : 500;
 
     if (statusCode >= 500) {
-      // Log the full error (with stack) so 5xx failures are diagnosable from pod
-      // logs alone; previously only metrics + Sentry fired, leaving the request
-      // log with a bare `statusCode:500` and no clue what threw.
+      /*
+       * Log the full error (with stack) so 5xx failures are diagnosable from pod
+       * logs alone; previously only metrics + Sentry fired, leaving the request
+       * log with a bare `statusCode:500` and no clue what threw.
+       */
       request.log.error(
         { err: error, route: request.routeOptions.url ?? request.url, code: error.code ?? 'API_ERROR' },
         'request failed with server error',
@@ -4797,20 +4884,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'File not found in deployment', code: 'STATIC_DEPLOY_FILE_NOT_FOUND' });
     }
 
-    // The startsWith() guard above is purely lexical. The build output is
-    // attacker-controlled (any user can run a static build), and `fs.cp` copies
-    // symlinks verbatim, so a `dist/leak -> /etc/passwd` link — or a symlinked
-    // intermediate directory — would pass the lexical check while stat()/readFile()
-    // follow it off-tree, leaking arbitrary host files (secrets, /etc/passwd)
-    // through this PUBLIC route. Resolve real paths and re-assert containment.
+    /*
+     * The startsWith() guard above is purely lexical. The build output is
+     * attacker-controlled (any user can run a static build), and `fs.cp` copies
+     * symlinks verbatim, so a `dist/leak -> /etc/passwd` link — or a symlinked
+     * intermediate directory — would pass the lexical check while stat()/readFile()
+     * follow it off-tree, leaking arbitrary host files (secrets, /etc/passwd)
+     * through this PUBLIC route. Resolve real paths and re-assert containment.
+     */
     let realFile: string;
     let realRoot: string;
+
     try {
       realRoot = await realpath(snapshotRoot);
       realFile = await realpath(filePath);
     } catch {
       return reply.code(404).send({ error: 'File not found in deployment', code: 'STATIC_DEPLOY_FILE_NOT_FOUND' });
     }
+
     if (realFile !== realRoot && !realFile.startsWith(`${realRoot}${sep}`)) {
       return reply
         .code(403)
@@ -5087,8 +5178,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           token: resetToken,
           expiresAt: new Date(Date.now() + 1000 * 60 * 30),
         });
-        // Best-effort: a mail failure must not reveal whether the address
-        // exists, nor 500 the request (the response is intentionally uniform).
+
+        /*
+         * Best-effort: a mail failure must not reveal whether the address
+         * exists, nor 500 the request (the response is intentionally uniform).
+         */
         try {
           await emailProvider.send({
             to: user.email,
@@ -5248,9 +5342,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const provider = (request.params as { provider: string }).provider;
       const body = parse(oauthCallbackSchema, request.body);
 
-      // The real OAuth code flow requires a valid state parameter (login-CSRF protection).
-      // State must be mandatory whenever a code is present — a missing state previously
-      // skipped validation entirely.
+      /*
+       * The real OAuth code flow requires a valid state parameter (login-CSRF protection).
+       * State must be mandatory whenever a code is present — a missing state previously
+       * skipped validation entirely.
+       */
       if (body.code && (!body.state || !verifyOauthState(body.state, provider))) {
         return reply.code(401).send({ error: 'Invalid or expired OAuth state', code: 'OAUTH_STATE_INVALID' });
       }
@@ -5272,6 +5368,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       try {
         let isNewUser = false;
         let user = await store.findUserByEmail(profile.email);
+
         if (!user) {
           user = await store.createUser({
             email: profile.email,
@@ -5280,6 +5377,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           });
           isNewUser = true;
         }
+
         await store.upsertOAuthConnection({
           userId: user.id,
           provider,
@@ -5290,8 +5388,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         // Auto-create organization for users who don't have one (new OAuth users)
         let organizationId = orgIdFromRequest(request);
+
         if (!organizationId) {
           const existingOrgs = await store.listOrganizations(user.id);
+
           if (existingOrgs.length > 0) {
             organizationId = existingOrgs[0].id;
           } else {
@@ -5341,6 +5441,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const profile = await resolveOAuthProfile('oidc', body);
 
       let user = await store.findUserByEmail(profile.email);
+
       if (!user) {
         user = await store.createUser({
           email: profile.email,
@@ -5348,6 +5449,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           passwordHash: hashPassword(createOpaqueToken('oidc')),
         });
       }
+
       await store.upsertOAuthConnection({
         userId: user.id,
         provider: 'oidc',
@@ -5358,8 +5460,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       // Auto-create organization for users who don't have one (new OIDC users)
       let oidcOrgId = body.orgId ?? orgIdFromRequest(request);
+
       if (!oidcOrgId) {
         const existingOrgs = await store.listOrganizations(user.id);
+
         if (existingOrgs.length > 0) {
           oidcOrgId = existingOrgs[0].id;
         } else {
@@ -5500,9 +5604,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
-      // Public read of a shared conversation snapshot — the signed token is the
-      // capability. Only the token-scoped GET path is exempt; POST /chat-shares
-      // (create) has no trailing slash and still requires authentication.
+      /*
+       * Public read of a shared conversation snapshot — the signed token is the
+       * capability. Only the token-scoped GET path is exempt; POST /chat-shares
+       * (create) has no trailing slash and still requires authentication.
+       */
       (request.method === 'GET' && request.url.startsWith('/chat-shares/'))
     ) {
       return;
@@ -5750,9 +5856,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         projectId = project.id;
         organizationId = project.organizationId;
       } else {
-        // Account-scoped connect (Settings → GitHub tab, no project context).
-        // Bind the resulting UserConnection to the first organization the
-        // builder belongs to so the AuditLog row carries an organizationId.
+        /*
+         * Account-scoped connect (Settings → GitHub tab, no project context).
+         * Bind the resulting UserConnection to the first organization the
+         * builder belongs to so the AuditLog row carries an organizationId.
+         */
         const orgs = await store.listOrganizations(request.currentUser.id);
 
         if (orgs.length === 0) {
@@ -5976,9 +6084,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const testResult = await connector.testApiKey({ apiKey: body.apiKey });
 
       if (!testResult.ok) {
-        const status = testResult.code === 'API_KEY_INVALID' || testResult.code === 'API_KEY_EXPIRED' ? 400
-          : testResult.code === 'API_KEY_INSUFFICIENT_SCOPE' ? 403
-          : 502;
+        const status =
+          testResult.code === 'API_KEY_INVALID' || testResult.code === 'API_KEY_EXPIRED'
+            ? 400
+            : testResult.code === 'API_KEY_INSUFFICIENT_SCOPE'
+              ? 403
+              : 502;
 
         return reply.code(status).send({
           error: testResult.detail ?? `Provider ${params.provider} rejected the API key.`,
@@ -6175,6 +6286,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const { key } = parse(z.object({ key: z.string().min(1) }), request.params);
+
     const enabled = await evaluateFeatureFlag(store, key, {
       userId: request.currentUser.id,
       organizationId: orgIdFromRequest(request) ?? undefined,
@@ -6188,8 +6300,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
     }
 
-    // Minting a long-lived credential is itself a privileged write; an existing
-    // API-key session must hold 'admin' scope to create further keys.
+    /*
+     * Minting a long-lived credential is itself a privileged write; an existing
+     * API-key session must hold 'admin' scope to create further keys.
+     */
     if (request.apiKeyAuth && !request.apiKeyAuth.scopes.includes('admin')) {
       return reply
         .code(403)
@@ -6199,9 +6313,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(apiKeyCreateSchema, request.body);
     const token = createOpaqueToken('vck');
     const keyPrefix = token.slice(0, 12);
-    const expiresAt = body.expiresInDays
-      ? new Date(Date.now() + body.expiresInDays * 24 * 60 * 60 * 1000)
-      : undefined;
+
+    const expiresAt = body.expiresInDays ? new Date(Date.now() + body.expiresInDays * 24 * 60 * 60 * 1000) : undefined;
 
     const created = await store.createApiKey({
       userId: request.currentUser.id,
@@ -6492,14 +6605,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const active = connections.find((row) => row.status === 'active');
 
       if (active) {
-        return reply
-          .code(409)
-          .send({
-            token: null,
-            code: 'CONNECTOR_USE_BACKEND_GIT',
-            message:
-              'A server-side UserConnection is active; route git operations through /api/projects/:projectId/git/* instead of grabbing the token client-side.',
-          });
+        return reply.code(409).send({
+          token: null,
+          code: 'CONNECTOR_USE_BACKEND_GIT',
+          message:
+            'A server-side UserConnection is active; route git operations through /api/projects/:projectId/git/* instead of grabbing the token client-side.',
+        });
       }
 
       return reply.code(404).send({ token: null, code: 'CONNECTOR_NOT_LINKED' });
@@ -6614,6 +6725,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    /*
+     * A failed audit write must not fail the webhook ack — otherwise the
+     * provider retries an already-processed, authentic delivery indefinitely.
+     */
     await audit(request, store, {
       action: 'connector.webhook.received',
       resourceType: 'GithubWebhook',
@@ -6626,7 +6741,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         repository: payload.repository?.full_name,
         sender: payload.sender?.login,
       },
-    });
+    }).catch((err) => request.log.warn({ err }, 'github webhook audit write failed'));
 
     return {
       received: true,
@@ -6682,6 +6797,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const timestampSeconds = Number.parseInt(svixTimestamp, 10);
+
     if (!Number.isFinite(timestampSeconds)) {
       return reply.code(401).send({
         error: 'Invalid svix-timestamp header.',
@@ -6696,6 +6812,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * leaks (e.g. via a misconfigured log sink).
      */
     const skewSeconds = Math.abs(Math.floor(Date.now() / 1000) - timestampSeconds);
+
     if (skewSeconds > 5 * 60) {
       return reply.code(401).send({
         error: 'Webhook timestamp is outside the allowed tolerance.',
@@ -6704,9 +6821,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const secretBase64 = rawSecret.startsWith('whsec_') ? rawSecret.slice('whsec_'.length) : rawSecret;
+
     let secretBytes: Buffer;
+
     try {
       secretBytes = Buffer.from(secretBase64, 'base64');
+
       if (secretBytes.length === 0) {
         throw new Error('empty secret');
       }
@@ -6733,8 +6853,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .map((token) => token.slice('v1,'.length));
 
     let signatureMatched = false;
+
     for (const candidate of providedSignatures) {
       let candidateBuffer: Buffer;
+
       try {
         candidateBuffer = Buffer.from(candidate, 'base64');
       } catch {
@@ -6820,6 +6942,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     if (created) {
+      /*
+       * The event is already persisted+deduped above; a failed audit write must
+       * not 500 the ack and trigger a redundant provider retry.
+       */
       await audit(request, store, {
         action: 'email.delivery_event.received',
         resourceType: 'EmailDeliveryEvent',
@@ -6831,7 +6957,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           emailMessageId: event.emailMessageId,
           recipient: event.email,
         },
-      });
+      }).catch((err) => request.log.warn({ err }, 'resend webhook audit write failed'));
     }
 
     return {
@@ -7006,9 +7132,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   });
 
-  // Audit H5: persist the MCP "Configuration" tab server-side. These power the
-  // chat/agent runtime, which reads the user's manually-configured servers and
-  // merges them with their marketplace installs (audit C2/H7).
+  /*
+   * Audit H5: persist the MCP "Configuration" tab server-side. These power the
+   * chat/agent runtime, which reads the user's manually-configured servers and
+   * merges them with their marketplace installs (audit C2/H7).
+   */
   app.get('/mcp/config', async (request) => {
     const service = requireMcpMarketplaceService(mcpMarketplace);
 
@@ -7058,12 +7186,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { memory };
   });
 
-  // Workspace-manager / workspace-agent handlers legitimately return an empty
-  // body (e.g. the manager's `GET /workspaces/:id` returns `undefined` for a
-  // workspace it hasn't started yet, which Fastify serialises as an empty 200).
-  // Calling `response.json()` on an empty body throws an uncoded SyntaxError,
-  // which surfaced as a generic 500 on the runtime status poll. Treat both 204
-  // and any empty body as `undefined` so those callers get a clean value.
+  /*
+   * Workspace-manager / workspace-agent handlers legitimately return an empty
+   * body (e.g. the manager's `GET /workspaces/:id` returns `undefined` for a
+   * workspace it hasn't started yet, which Fastify serialises as an empty 200).
+   * Calling `response.json()` on an empty body throws an uncoded SyntaxError,
+   * which surfaced as a generic 500 on the runtime status poll. Treat both 204
+   * and any empty body as `undefined` so those callers get a clean value.
+   */
   const readJsonBody = async (response: Response) => {
     if (response.status === 204) {
       return undefined;
@@ -7075,10 +7205,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return undefined;
     }
 
-    // The manager/agent should always return JSON here, but an intermediary
-    // (e.g. an ingress error page) can return a 200 with non-JSON garbage.
-    // A raw JSON.parse throw would surface as an uncoded 500; convert it to the
-    // same coded 502 the callers already handle as an upstream fault.
+    /*
+     * The manager/agent should always return JSON here, but an intermediary
+     * (e.g. an ingress error page) can return a 200 with non-JSON garbage.
+     * A raw JSON.parse throw would surface as an uncoded 500; convert it to the
+     * same coded 502 the callers already handle as an upstream fault.
+     */
     try {
       return JSON.parse(text);
     } catch (error) {
@@ -7090,10 +7222,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   };
 
-  // Node's global fetch has no default timeout. Without one, a workspace-manager
-  // or workspace-agent pod that accepts the TCP connection but never responds
-  // (half-dead / GC'd workspace, network partition) would hang the request
-  // indefinitely and, under load, exhaust the API pod's connection pool.
+  /*
+   * Node's global fetch has no default timeout. Without one, a workspace-manager
+   * or workspace-agent pod that accepts the TCP connection but never responds
+   * (half-dead / GC'd workspace, network partition) would hang the request
+   * indefinitely and, under load, exhaust the API pod's connection pool.
+   */
   const RUNTIME_PROXY_TIMEOUT_MS = 15000;
 
   const withRequestTimeout = (init: RequestInit): { init: RequestInit; done: () => void } => {
@@ -7115,12 +7249,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const managerRequest = async <T = unknown>(path: string, init: RequestInit = {}) => {
     let response: Response;
 
-    // The workspace manager gates its control-plane routes behind a shared secret
-    // (WORKSPACE_MANAGER_SHARED_SECRET, falling back to PREVIEW_PROXY_SHARED_SECRET).
-    // Forward it as a bearer so authenticated api→manager calls succeed.
-    const managerSecret = (
-      process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim() || process.env.PREVIEW_PROXY_SHARED_SECRET?.trim()
-    );
+    /*
+     * The workspace manager gates its control-plane routes behind a shared secret
+     * (WORKSPACE_MANAGER_SHARED_SECRET, falling back to PREVIEW_PROXY_SHARED_SECRET).
+     * Forward it as a bearer so authenticated api→manager calls succeed.
+     */
+    const managerSecret =
+      process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim() || process.env.PREVIEW_PROXY_SHARED_SECRET?.trim();
 
     const { init: timedInit, done } = withRequestTimeout(init);
 
@@ -7150,8 +7285,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         statusCode: 502,
         code: 'WORKSPACE_MANAGER_REQUEST_FAILED',
         publicMessage: 'Workspace manager request failed',
-        // Preserve the upstream status so callers can distinguish a genuine
-        // "workspace not found" (404) from a transient manager fault.
+
+        /*
+         * Preserve the upstream status so callers can distinguish a genuine
+         * "workspace not found" (404) from a transient manager fault.
+         */
         managerStatus: response.status,
       });
     }
@@ -7181,11 +7319,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       response = await fetch(`${agentBaseUrl(workspaceId)}${path}`, timedInit);
     } catch (error) {
-      // The agent pod may not be reachable yet (workspace still provisioning)
-      // or may have been reclaimed. A rejected fetch (including our timeout
-      // abort) would otherwise surface as an uncoded 500; return the same coded
-      // 502 as a non-ok agent response so callers (and the local-runtime
-      // fallback) treat it as agent-unavailable.
+      /*
+       * The agent pod may not be reachable yet (workspace still provisioning)
+       * or may have been reclaimed. A rejected fetch (including our timeout
+       * abort) would otherwise surface as an uncoded 500; return the same coded
+       * 502 as a non-ok agent response so callers (and the local-runtime
+       * fallback) treat it as agent-unavailable.
+       */
       throw Object.assign(new Error('Workspace agent is unavailable'), {
         statusCode: 502,
         code: 'WORKSPACE_AGENT_REQUEST_FAILED',
@@ -7276,9 +7416,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     (error as { code?: string } | undefined)?.code === 'WORKSPACE_MANAGER_UNAVAILABLE' ||
     (error instanceof Error && error.message === 'Workspace manager is unavailable');
 
-  // True when the manager has no record of the workspace (it returned 404) or is
-  // unreachable — i.e. there is nothing running to act on. Lets lifecycle
-  // operations like stop treat the request as already-satisfied / idempotent.
+  /*
+   * True when the manager has no record of the workspace (it returned 404) or is
+   * unreachable — i.e. there is nothing running to act on. Lets lifecycle
+   * operations like stop treat the request as already-satisfied / idempotent.
+   */
   const isRuntimeWorkspaceGone = (error: unknown) =>
     isRuntimeManagerUnavailable(error) || (error as { managerStatus?: number } | undefined)?.managerStatus === 404;
 
@@ -7428,9 +7570,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const listLocalRuntimePorts = (workspaceId: string) => ({
     ports: [...(localRuntimeProcesses.get(workspaceId)?.values() ?? [])].flatMap((record) => {
       const source = `${record.command}\n${record.output ?? ''}`;
+
       const matches = source.matchAll(
         /(?:https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[[^\]]+\])[:/]|localhost:|127\.0\.0\.1:|0\.0\.0\.0:|--port\s+|LISTEN\s+)(\d{2,5})/gi,
       );
+
       const ports = new Set([...matches].map((match) => Number(match[1])).filter((port) => port > 0 && port <= 65535));
 
       if (
@@ -7540,10 +7684,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }),
       });
     } catch (error) {
-      // Network-level failure (gateway unreachable / DNS / connection refused).
-      // Without this guard the rejected fetch bubbles up as an uncoded 500
-      // API_ERROR; surface a clean, retryable 502 like managerRequest does so
-      // clients can tell the difference between "AI is down" and a real bug.
+      /*
+       * Network-level failure (gateway unreachable / DNS / connection refused).
+       * Without this guard the rejected fetch bubbles up as an uncoded 500
+       * API_ERROR; surface a clean, retryable 502 like managerRequest does so
+       * clients can tell the difference between "AI is down" and a real bug.
+       */
       throw Object.assign(new Error('AI Gateway is unavailable'), {
         statusCode: 502,
         code: 'AI_GATEWAY_UNAVAILABLE',
@@ -7597,8 +7743,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (key === 'workspaces.active') {
-      // Single aggregate query instead of listing every project then its
-      // workspaces (was O(projects) DB round-trips per usage snapshot).
+      /*
+       * Single aggregate query instead of listing every project then its
+       * workspaces (was O(projects) DB round-trips per usage snapshot).
+       */
       return store.countActiveWorkspaces(organizationId);
     }
 
@@ -8030,11 +8178,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const state = authorized.organizationId ? await billingState(authorized.organizationId) : undefined;
 
-    // Runtime workspace ids are deterministic per (project, user), so a re-open
-    // reuses the same record. Only a genuinely new workspace consumes the
-    // active-workspace quota — charging on every (re)start counted the existing
-    // record against itself and locked free-tier users out of reopening their
-    // own IDE (used=1, limit=1 → used+1 > limit → 429).
+    /*
+     * Runtime workspace ids are deterministic per (project, user), so a re-open
+     * reuses the same record. Only a genuinely new workspace consumes the
+     * active-workspace quota — charging on every (re)start counted the existing
+     * record against itself and locked free-tier users out of reopening their
+     * own IDE (used=1, limit=1 → used+1 > limit → 429).
+     */
     const existingWorkspace = await store.getWorkspace(workspaceId);
 
     if (authorized.organizationId && !existingWorkspace) {
@@ -8050,6 +8200,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       store.listProjectEnvVars(authorized.projectId),
       store.listProjectSecrets(authorized.projectId),
     ]);
+
     const env = Object.fromEntries(projectEnvVars.map((entry) => [entry.key, entry.value]));
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
     const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId);
@@ -8102,19 +8253,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await recordUsage(request, authorized.organizationId, 'workspaces.active');
     }
 
-    // Reconcile our own record to the manager's state. The active-workspace
-    // quota counts records in PENDING/STARTING/RUNNING (countActiveWorkspaces),
-    // so we must never leave a record "active" when nothing is actually running:
-    //  - RUNNING → mark RUNNING. Reopening a previously-stopped workspace would
-    //    otherwise stay STOPPED and let the user exceed their concurrent limit.
-    //  - FAILED → mark FAILED so the freshly-created PENDING record stops
-    //    counting. Previously a single failed start left the record PENDING,
-    //    which permanently consumed a free user's only active-workspace slot and
-    //    locked them out of starting any project until they manually hit /stop.
+    /*
+     * Reconcile our own record to the manager's state. The active-workspace
+     * quota counts records in PENDING/STARTING/RUNNING (countActiveWorkspaces),
+     * so we must never leave a record "active" when nothing is actually running:
+     *  - RUNNING → mark RUNNING. Reopening a previously-stopped workspace would
+     *    otherwise stay STOPPED and let the user exceed their concurrent limit.
+     *  - FAILED → mark FAILED so the freshly-created PENDING record stops
+     *    counting. Previously a single failed start left the record PENDING,
+     *    which permanently consumed a free user's only active-workspace slot and
+     *    locked them out of starting any project until they manually hit /stop.
+     */
     if (startFailed) {
-      await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' }).catch(() => undefined);
+      await store
+        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
+        .catch(() => undefined);
     } else if (managerWorkspace?.status !== 'STOPPED') {
-      await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' }).catch(() => undefined);
+      await store
+        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' })
+        .catch(() => undefined);
     }
 
     return runtimeSession(
@@ -8130,21 +8287,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       await managerRequest(`/workspaces/${authorized.workspaceId}/stop`, { method: 'POST' });
     } catch (error) {
-      // A workspace the manager has already reclaimed (or never started — e.g.
-      // one left PENDING) has nothing to stop. Without this, such a workspace
-      // would 502 here forever and permanently hold the org's active-workspace
-      // quota with no way for the user to free it. Treat "gone" as a no-op and
-      // still reconcile our own record below; rethrow genuine faults.
+      /*
+       * A workspace the manager has already reclaimed (or never started — e.g.
+       * one left PENDING) has nothing to stop. Without this, such a workspace
+       * would 502 here forever and permanently hold the org's active-workspace
+       * quota with no way for the user to free it. Treat "gone" as a no-op and
+       * still reconcile our own record below; rethrow genuine faults.
+       */
       if (!isRuntimeWorkspaceGone(error)) {
         throw error;
       }
     }
 
-    // The manager owns its own state; our Workspace table is separate and is
-    // what the active-workspace quota counts (PENDING/STARTING/RUNNING). Mark it
-    // stopped so the quota is actually released — the admin stop route already
-    // does this, the user-facing stop route previously did not.
-    await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STOPPED' }).catch(() => undefined);
+    /*
+     * The manager owns its own state; our Workspace table is separate and is
+     * what the active-workspace quota counts (PENDING/STARTING/RUNNING). Mark it
+     * stopped so the quota is actually released — the admin stop route already
+     * does this, the user-facing stop route previously did not.
+     */
+    await store
+      .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STOPPED' })
+      .catch(() => undefined);
 
     await audit(request, store, {
       organizationId: authorized.organizationId,
@@ -8163,6 +8326,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       store.listProjectEnvVars(authorized.projectId),
       store.listProjectSecrets(authorized.projectId),
     ]);
+
     const env = Object.fromEntries(projectEnvVars.map((entry) => [entry.key, entry.value]));
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
     const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId);
@@ -8188,15 +8352,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: authorized.workspaceId,
     });
 
-    // Reconcile our own record to the manager's state, mirroring the start
-    // handler. Restarting a previously-STOPPED workspace brings the pod back up;
-    // without this the record stayed STOPPED while a pod ran, under-counting the
-    // active-workspace quota (a stop→restart cycle could exceed the limit) and
-    // showing a running workspace as stopped in usage dashboards.
+    /*
+     * Reconcile our own record to the manager's state, mirroring the start
+     * handler. Restarting a previously-STOPPED workspace brings the pod back up;
+     * without this the record stayed STOPPED while a pod ran, under-counting the
+     * active-workspace quota (a stop→restart cycle could exceed the limit) and
+     * showing a running workspace as stopped in usage dashboards.
+     */
     if (managerWorkspace?.status === 'FAILED') {
-      await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' }).catch(() => undefined);
+      await store
+        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
+        .catch(() => undefined);
     } else {
-      await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' }).catch(() => undefined);
+      await store
+        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' })
+        .catch(() => undefined);
     }
 
     return runtimeSession(authorized.workspaceId, managerWorkspace?.status === 'FAILED' ? 'failed' : 'running', {
@@ -8224,9 +8394,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       };
     }
 
-    // The manager returns an empty body (→ undefined) for a workspace it has no
-    // record of, i.e. one that was created in our DB but never started. Report
-    // it as stopped rather than masquerading as running, so the IDE knows to boot.
+    /*
+     * The manager returns an empty body (→ undefined) for a workspace it has no
+     * record of, i.e. one that was created in our DB but never started. Report
+     * it as stopped rather than masquerading as running, so the IDE knows to boot.
+     */
     const managerStatus = !managerWorkspace
       ? 'stopped'
       : managerWorkspace.status === 'FAILED'
@@ -8339,15 +8511,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       };
     } else {
       const needle = options.caseSensitive ? body.query : body.query.toLowerCase();
+
       findMatch = (line) => {
         const haystack = options.caseSensitive ? line : line.toLowerCase();
         const start = haystack.indexOf(needle);
+
         return start >= 0 ? { start, length: body.query.length } : null;
       };
     }
 
     const includeMatchers = (options.includes ?? []).map(globToRegExp);
     const excludeMatchers = (options.excludes ?? []).map(globToRegExp);
+
     const isPathSearchable = (path: string) => {
       if (excludeMatchers.some((matcher) => matcher.test(path))) {
         return false;
@@ -8568,6 +8743,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { port, url, ready: true };
   });
+
   const handleRuntimePreviewProxy = async (request: FastifyRequest, reply: FastifyReply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const params = request.params as { port: string; '*': string };
@@ -8666,8 +8842,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { targetPath = '.' } = parse(z.object({ targetPath: z.string().default('.') }), request.query);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
     const zip = await JSZip.loadAsync(request.body as Buffer);
-    // filesFromZip enforces entry-count and decompressed-size caps so a zip bomb
-    // can't fan out unbounded /files/write calls into the workspace agent.
+
+    /*
+     * filesFromZip enforces entry-count and decompressed-size caps so a zip bomb
+     * can't fan out unbounded /files/write calls into the workspace agent.
+     */
     const entries = await filesFromZip(zip);
     const prefix = targetPath === '.' ? '' : `${targetPath.replace(/\/+$/, '')}/`;
 
@@ -8823,11 +9002,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
     const client = normalizeRuntimeApiWebSocket(socket);
 
-    // The workspace manager exposes logs as a point-in-time buffer, not a
-    // stream, so we keep the socket open and poll every 3s, sending only the
-    // lines we have not sent yet (tracked by offset) instead of fetching once
-    // and closing. The buffer is treated as append-only; if it shrinks (the
-    // manager rotated/truncated it) we reset and replay the current contents.
+    /*
+     * The workspace manager exposes logs as a point-in-time buffer, not a
+     * stream, so we keep the socket open and poll every 3s, sending only the
+     * lines we have not sent yet (tracked by offset) instead of fetching once
+     * and closing. The buffer is treated as append-only; if it shrinks (the
+     * manager rotated/truncated it) we reset and replay the current contents.
+     */
     const send = (line: string) =>
       client.send(JSON.stringify({ type: 'stdout', data: line, timestamp: new Date().toISOString() }));
 
@@ -8897,12 +9078,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
     const client = normalizeRuntimeApiWebSocket(socket);
 
-    // The workspace agent does not expose a native file-watch stream, so we
-    // keep the socket open, poll its file tree on an interval, and diff
-    // successive snapshots into the FileChange events the runtime client
-    // expects. Tree snapshots only reveal structural changes, so we emit
-    // create/delete transitions (content edits to existing files are not
-    // visible from the tree alone).
+    /*
+     * The workspace agent does not expose a native file-watch stream, so we
+     * keep the socket open, poll its file tree on an interval, and diff
+     * successive snapshots into the FileChange events the runtime client
+     * expects. Tree snapshots only reveal structural changes, so we emit
+     * create/delete transitions (content edits to existing files are not
+     * visible from the tree alone).
+     */
     const flattenTree = (nodes: AgentNode[], acc = new Map<string, AgentNode['type']>()) => {
       for (const node of nodes) {
         acc.set(node.path, node.type);
@@ -8963,9 +9146,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         previous = current;
       })().catch(() => {
-        // emit()'s client.send can throw synchronously on a closing socket;
-        // swallow so it never becomes an unhandled rejection (matches the
-        // logs/ports watchers). The onClose handler clears the interval.
+        /*
+         * emit()'s client.send can throw synchronously on a closing socket;
+         * swallow so it never becomes an unhandled rejection (matches the
+         * logs/ports watchers). The onClose handler clears the interval.
+         */
       });
     }, 2000);
 
@@ -8976,9 +9161,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
     const client = normalizeRuntimeApiWebSocket(socket);
 
-    // The workspace agent has no port-change stream, so keep the socket open
-    // and poll /ports every 5s, emitting open/close events as ports appear and
-    // disappear instead of sending a single snapshot and closing.
+    /*
+     * The workspace agent has no port-change stream, so keep the socket open
+     * and poll /ports every 5s, emitting open/close events as ports appear and
+     * disappear instead of sending a single snapshot and closing.
+     */
     const pollPorts = async () => {
       try {
         return await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
@@ -9025,15 +9212,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       known = current;
     };
 
-    // Emit the current set immediately, then watch for transitions. The first
-    // sync must not reject the WebSocket handler: when the workspace pod has
-    // been garbage-collected the agent hostname stops resolving (ENOTFOUND →
-    // WORKSPACE_AGENT_REQUEST_FAILED), and a thrown handler closes the socket,
-    // which the client immediately reconnects — producing an endless 502 storm
-    // against a dead agent. Keep the socket open and let the interval resync;
-    // it recovers automatically once the project is reopened and the
-    // deterministic workspace id is re-provisioned. Mirrors the file-tree watch
-    // above, whose initial snapshot is likewise guarded.
+    /*
+     * Emit the current set immediately, then watch for transitions. The first
+     * sync must not reject the WebSocket handler: when the workspace pod has
+     * been garbage-collected the agent hostname stops resolving (ENOTFOUND →
+     * WORKSPACE_AGENT_REQUEST_FAILED), and a thrown handler closes the socket,
+     * which the client immediately reconnects — producing an endless 502 storm
+     * against a dead agent. Keep the socket open and let the interval resync;
+     * it recovers automatically once the project is reopened and the
+     * deterministic workspace id is re-provisioned. Mirrors the file-tree watch
+     * above, whose initial snapshot is likewise guarded.
+     */
     try {
       await sync();
     } catch {
@@ -9269,6 +9458,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         token: verificationToken,
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
       });
+
       try {
         await emailProvider.send({
           to: user.email,
@@ -9388,9 +9578,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/auth/logout', async (request, reply) => {
     const sessionId = request.currentSession!.id;
     const revoked = await store.revokeSession(request.currentUser!.id, sessionId);
-    // Also clear the session cookie so the browser doesn't keep sending a now
-    // -revoked token (matches DELETE /auth/me). Server-side revocation already
-    // makes it unusable; this removes the dead cookie too.
+
+    /*
+     * Also clear the session cookie so the browser doesn't keep sending a now
+     * -revoked token (matches DELETE /auth/me). Server-side revocation already
+     * makes it unusable; this removes the dead cookie too.
+     */
     reply.clearCookie('session', authCookieOptions(isProduction));
     await audit(request, store, { action: 'auth.session.logout', resourceType: 'session', resourceId: sessionId });
 
@@ -9571,9 +9764,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/orgs', async (request) => {
     let organizations = await store.listOrganizations(request.currentUser!.id);
+
     // Auto-provision a default organization for users who don't have one (e.g. OAuth users created before the auto-create fix)
     if (organizations.length === 0) {
       const user = request.currentUser!;
+
       const org = await store.createOrganization({
         name: `${user.name ?? user.email}'s Organization`,
         slug: `org-${user.id.slice(-8)}`,
@@ -9581,6 +9776,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
       organizations = [org];
     }
+
     return { organizations };
   });
   app.post('/orgs', async (request, reply) => {
@@ -10253,6 +10449,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       gitRepositoryUrl: imported.remoteUrl,
       gitDefaultBranch: imported.defaultBranch,
     });
+
     const files = await projectStorage.writeFiles(project.id, imported.files);
     await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await recordUsage(request, orgId, 'projects.count');
@@ -10476,6 +10673,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     let state = mergeProjectIdeState(existingState?.state, body.state);
+
     const generatedFiles = projectFilesFromIdeStateRoot(ideStateRecord(state));
 
     if (generatedFiles.length) {
@@ -10733,6 +10931,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const files = await ensureProjectStorageFromIdeState(store, projectStorage, project.id);
     const archive = await archiveProjectFiles(project.id, files);
     await persistProjectArchiveObject(archive, { projectId: project.id, kind: 'export' });
@@ -11026,6 +11225,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(collaboratorSchema, request.body);
+
     const targetUser = body.userId
       ? await store.findUserById(body.userId)
       : await store.findUserByEmail(body.email!.trim().toLowerCase());
@@ -11339,11 +11539,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ shareLink: safeLink, token });
   });
-  // Redeem a project share link. Share tokens were previously minted but never
-  // consumable; this resolves the (unhashed) token, and for the authenticated
-  // recipient grants the link's role on the project unless they already
-  // collaborate on it. The token itself is the capability, so we never echo it
-  // back or expose other links.
+
+  /*
+   * Redeem a project share link. Share tokens were previously minted but never
+   * consumable; this resolves the (unhashed) token, and for the authenticated
+   * recipient grants the link's role on the project unless they already
+   * collaborate on it. The token itself is the capability, so we never echo it
+   * back or expose other links.
+   */
   app.get('/collaboration/share-links/:token', async (request, reply) => {
     const { token } = parse(collaborationShareLinkRedeemParams, request.params);
     const link = await store.findProjectShareLinkByToken(token);
@@ -11398,10 +11601,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
     };
   });
-  // Mint a server-stored, HMAC-signed chat share (audit M5/M7). The full
-  // conversation snapshot is persisted server-side and addressed by a short,
-  // signed token instead of being embedded in the share URL. Requires
-  // authentication (enforced by the global auth hook).
+
+  /*
+   * Mint a server-stored, HMAC-signed chat share (audit M5/M7). The full
+   * conversation snapshot is persisted server-side and addressed by a short,
+   * signed token instead of being embedded in the share URL. Requires
+   * authentication (enforced by the global auth hook).
+   */
   app.post('/chat-shares', async (request, reply) => {
     const body = parse(chatShareCreateSchema, request.body);
     const userId = request.currentUser!.id;
@@ -11436,9 +11642,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       expiresAt: share.expiresAt ?? null,
     });
   });
-  // Public read of a chat share: verify the HMAC signature, then resolve the
-  // stored snapshot by the token hash. Exempt from auth via the allowlist so a
-  // shared link works for logged-out recipients.
+
+  /*
+   * Public read of a chat share: verify the HMAC signature, then resolve the
+   * stored snapshot by the token hash. Exempt from auth via the allowlist so a
+   * shared link works for logged-out recipients.
+   */
   app.get('/chat-shares/:token', async (request, reply) => {
     const { token } = parse(chatShareTokenParams, request.params);
     const raw = verifyChatShareToken(token);
@@ -11543,6 +11752,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       status: 'online',
     });
     collaborationBroker.join(project.id, client);
+
     const presenceOwnerKey = `${project.id}:${sessionId}`;
     collaborationPresenceOwners.set(presenceOwnerKey, client);
     collaborationBroker.publish(project.id, { type: 'presence.join', presence }, client);
@@ -11557,9 +11767,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
     client.onMessage(async (message) => {
       try {
-        // Bound the inbound payload: cursor/selection are free-form (z.unknown),
-        // so without a cap a single authenticated peer could push huge frames
-        // that fan out (incl. via Redis) to every other peer in the room.
+        /*
+         * Bound the inbound payload: cursor/selection are free-form (z.unknown),
+         * so without a cap a single authenticated peer could push huge frames
+         * that fan out (incl. via Redis) to every other peer in the room.
+         */
         if (message.length > MAX_COLLABORATION_MESSAGE_BYTES) {
           client.send(
             JSON.stringify({
@@ -11611,11 +11823,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           return;
         }
 
-        // Only the two validated, server-mediated events above are accepted from
-        // a client. Other relayable event types (document.sync, ai_conversation.share)
-        // are emitted server-side via their own authenticated HTTP endpoints, never
-        // relayed verbatim from a peer — so an unknown type is rejected rather than
-        // re-broadcast (which was an unbounded, unauthenticated peer-to-peer relay).
+        /*
+         * Only the two validated, server-mediated events above are accepted from
+         * a client. Other relayable event types (document.sync, ai_conversation.share)
+         * are emitted server-side via their own authenticated HTTP endpoints, never
+         * relayed verbatim from a peer — so an unknown type is rejected rather than
+         * re-broadcast (which was an unbounded, unauthenticated peer-to-peer relay).
+         */
         client.send(
           JSON.stringify({
             type: 'error',
@@ -11629,11 +11843,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         );
       }
     });
-    // A quiet collaboration session (no cursor movement) keeps the API→browser
-    // leg silent, so the ≈30s idle load-balancer/ingress timeout tears it down
-    // and the client enters its reconnect/backoff flap — the same failure the
-    // runtime sockets solved with a keepalive. Ping every 15s; ping frames are
-    // invisible to the client's JSON message stream.
+
+    /*
+     * A quiet collaboration session (no cursor movement) keeps the API→browser
+     * leg silent, so the ≈30s idle load-balancer/ingress timeout tears it down
+     * and the client enters its reconnect/backoff flap — the same failure the
+     * runtime sockets solved with a keepalive. Ping every 15s; ping frames are
+     * invisible to the client's JSON message stream.
+     */
     const keepAlive = setInterval(() => {
       client.ping();
     }, 15_000);
@@ -11642,12 +11859,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     client.onClose(async () => {
       clearInterval(keepAlive);
       collaborationBroker.leave(project.id, client);
-      // Only retire the presence row if THIS socket still owns it. A reconnect
-      // under the same (stable) sessionId installs a new owner; letting this
-      // stale close delete the row would evict a user who is in fact connected.
+
+      /*
+       * Only retire the presence row if THIS socket still owns it. A reconnect
+       * under the same (stable) sessionId installs a new owner; letting this
+       * stale close delete the row would evict a user who is in fact connected.
+       */
       if (collaborationPresenceOwners.get(presenceOwnerKey) !== client) {
         return;
       }
+
       collaborationPresenceOwners.delete(presenceOwnerKey);
       await store.removeCollaborationPresence(project.id, sessionId);
       collaborationBroker.publish(project.id, { type: 'presence.leave', sessionId }, client);
@@ -11767,6 +11988,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       name: body.name,
       slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
     });
+
     const sourceFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
     const duplicateFiles = await projectStorage.writeFiles(duplicate.id, sourceFiles);
     await persistProjectFileManifest(store, duplicate.id, duplicateFiles, request.currentUser!.id);
@@ -11971,6 +12193,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       files,
     });
     await persistProjectArchiveObject(archive, { projectId: project.id, kind: 'before-ai-change' });
+
     const snapshot = await store.createSnapshot({
       projectId: project.id,
       label: 'Before AI large change',
@@ -12589,8 +12812,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const customer = await store.getBillingCustomer(orgId);
 
-    // No Stripe customer yet (e.g. free plan that never checked out) or Stripe
-    // not configured for this environment — there are simply no invoices to show.
+    /*
+     * No Stripe customer yet (e.g. free plan that never checked out) or Stripe
+     * not configured for this environment — there are simply no invoices to show.
+     */
     if (!customer || !stripeClient) {
       return { invoices: [], stripeConfigured: Boolean(stripeClient) };
     }
@@ -12802,11 +13027,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const workspaces = await store.listAdminWorkspaces();
 
-    // The workspace-agent exposes terminal activity only as a Prometheus
-    // `terminal_sessions` gauge, not an enumerable per-session list, so we
-    // cannot surface real terminal ids here. We derive one estimated entry per
-    // running workspace and flag it `estimated: true` rather than presenting
-    // fabricated ids as real terminal sessions.
+    /*
+     * The workspace-agent exposes terminal activity only as a Prometheus
+     * `terminal_sessions` gauge, not an enumerable per-session list, so we
+     * cannot surface real terminal ids here. We derive one estimated entry per
+     * running workspace and flag it `estimated: true` rather than presenting
+     * fabricated ids as real terminal sessions.
+     */
     return {
       estimated: true,
       terminals: workspaces
@@ -13424,12 +13651,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
     const remote = await gitProvider.configureRemote({ projectId: project.id, workspaceId, remoteUrl: body.remoteUrl });
 
-    // When the caller targets a specific (non-primary) workspace, store the
-    // remote URL on the workspace record so different workspaces can point at
-    // different remotes. The project-level Project.gitRepositoryUrl is still
-    // updated for the primary workspace (where workspaceId resolves to
-    // undefined) so single-workspace projects keep their canonical remote on
-    // Project, matching pre-Fix-4 behavior.
+    /*
+     * When the caller targets a specific (non-primary) workspace, store the
+     * remote URL on the workspace record so different workspaces can point at
+     * different remotes. The project-level Project.gitRepositoryUrl is still
+     * updated for the primary workspace (where workspaceId resolves to
+     * undefined) so single-workspace projects keep their canonical remote on
+     * Project, matching pre-Fix-4 behavior.
+     */
     let updatedWorkspace: WorkspaceRecord | undefined;
 
     if (workspaceId) {
@@ -13725,8 +13954,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const deployments = await store.listDeployments(project.id).catch(() => []);
-    // Reconcile any in-flight builds against the provider before returning, so
-    // a client polling this endpoint sees real status transitions.
+
+    /*
+     * Reconcile any in-flight builds against the provider before returning, so
+     * a client polling this endpoint sees real status transitions.
+     */
     const reconciled = await Promise.all(
       deployments.map((deployment) => reconcileDeploymentStatus(store, deployment).catch(() => deployment)),
     );
@@ -13767,11 +13999,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { subscription } = await billingState(project.organizationId);
     assertDeploymentRequestAllowed(body, subscription?.planKey ?? 'free');
 
-    // Reject non-static providers that have no deploy hook / credentials wired
-    // up rather than synthesizing a fake `*.vibecore.local` URL and marking the
-    // deployment READY (audit #1). The static provider builds in-process and
-    // never trips this guard.
+    /*
+     * Reject non-static providers that have no deploy hook / credentials wired
+     * up rather than synthesizing a fake `*.vibecore.local` URL and marking the
+     * deployment READY (audit #1). The static provider builds in-process and
+     * never trips this guard.
+     */
     const providerConfigError = deployProviderConfigError(body.provider);
+
     if (providerConfigError) {
       return reply.code(400).send(providerConfigError);
     }
@@ -13839,8 +14074,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           });
         } catch (error) {
           staticBuildFailed = true;
-          // A snapshot that throws mid-copy leaves a partial artifact directory
-          // behind; remove it so failed deploys don't slowly accumulate on disk.
+
+          /*
+           * A snapshot that throws mid-copy leaves a partial artifact directory
+           * behind; remove it so failed deploys don't slowly accumulate on disk.
+           */
           await removeStaticDeploymentSnapshot(queued.id).catch(() => undefined);
           staticBuildLogs.push({
             timestamp: new Date().toISOString(),
@@ -13904,11 +14142,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       finishedAt: status === 'BUILDING' ? undefined : new Date().toISOString(),
     });
 
-    // Don't bill a failed build against the deployment quota — repeated build
-    // failures would otherwise exhaust a user's plan with zero successful deploys.
+    /*
+     * Don't bill a failed build against the deployment quota — repeated build
+     * failures would otherwise exhaust a user's plan with zero successful deploys.
+     */
     if (status !== 'FAILED') {
       await recordUsage(request, project.organizationId, 'deployments.count');
     }
+
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'deployment.create',
@@ -13973,15 +14214,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await ensureQuota(request, project.organizationId, 'deployments.count');
 
-    // A redeploy must actually re-run the build, not just clone the previous
-    // READY row (audit #4). Reject hook providers that lost their configuration
-    // since the original deploy, the same way the create route does.
-    //
-    // `source.provider` is persisted as a plain string by the store layer;
-    // narrow it back to the provider union (validated by the create route's
-    // zod schema before it was stored) so the provider helpers accept it.
+    /*
+     * A redeploy must actually re-run the build, not just clone the previous
+     * READY row (audit #4). Reject hook providers that lost their configuration
+     * since the original deploy, the same way the create route does.
+     *
+     * `source.provider` is persisted as a plain string by the store layer;
+     * narrow it back to the provider union (validated by the create route's
+     * zod schema before it was stored) so the provider helpers accept it.
+     */
     const sourceProvider = source.provider as (typeof deploymentProviders)[number];
     const providerConfigError = deployProviderConfigError(sourceProvider);
+
     if (providerConfigError) {
       return reply.code(400).send(providerConfigError);
     }
@@ -14006,13 +14250,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const secondaryWorkspaceId = await resolveGitWorkspaceId(store, project.id, source.workspaceId ?? undefined);
     const sourceMetadata = (source.metadata ?? {}) as Record<string, unknown>;
     const sourceEnvVars = (sourceMetadata.envVars ?? {}) as Record<string, string>;
-    const sourceTimeoutSeconds = typeof sourceMetadata.timeoutSeconds === 'number' ? sourceMetadata.timeoutSeconds : 600;
+
+    const sourceTimeoutSeconds =
+      typeof sourceMetadata.timeoutSeconds === 'number' ? sourceMetadata.timeoutSeconds : 600;
+
     const sourceArtifactSizeLimitMb =
       typeof sourceMetadata.artifactSizeLimitMb === 'number' ? sourceMetadata.artifactSizeLimitMb : undefined;
 
     const hookResult = await triggerProviderDeployHook(sourceProvider);
 
     let staticBuildFailed = false;
+
     const rebuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
 
     if (source.provider === 'static') {
@@ -14059,13 +14307,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const failed = hookResult?.status === 'failed' || staticBuildFailed;
     const url = hookResult?.url ?? buildDeploymentUrl(project, redeploy);
 
-    // Same as create: a pollable non-static provider stays BUILDING until its
-    // real status is reconciled, rather than being faked READY on a queued hook.
+    /*
+     * Same as create: a pollable non-static provider stays BUILDING until its
+     * real status is reconciled, rather than being faked READY on a queued hook.
+     */
     const pollable =
       !failed &&
       source.provider !== 'static' &&
       hookResult?.status === 'queued' &&
       canPollDeploymentStatus(source.provider, hookResult?.buildId);
+
     const redeployStatus = failed ? 'FAILED' : pollable ? 'BUILDING' : 'READY';
     const redeployReady = redeployStatus === 'READY';
 
@@ -14088,6 +14339,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (redeployStatus !== 'FAILED') {
       await recordUsage(request, project.organizationId, 'deployments.count');
     }
+
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'deployment.redeploy',
@@ -14105,6 +14357,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!target) {
       return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    if (target.status !== 'READY') {
+      return reply.code(409).send({
+        error: 'Can only roll back to a deployment that built successfully',
+        code: 'DEPLOYMENT_ROLLBACK_TARGET_NOT_READY',
+      });
     }
 
     const rollback = await store.createDeployment({

@@ -1,13 +1,13 @@
-import websocket from '@fastify/websocket';
-import { createPrometheusRegistry } from '@vibecore/observability';
-import { normalizeShellCommandArgs } from '@vibecore/runtime-contract';
-import { detectCommandAbuse, requireProductionSecret } from '@vibecore/security';
-import { verifyAgentToken } from '@vibecore/workspace-sdk';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, readdir, readFile, readlink, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, relative, resolve } from 'node:path';
+import websocket from '@fastify/websocket';
+import { createPrometheusRegistry } from '@vibecore/observability';
+import { normalizeShellCommandArgs } from '@vibecore/runtime-contract';
+import { detectCommandAbuse, requireProductionSecret } from '@vibecore/security';
+import { verifyAgentToken } from '@vibecore/workspace-sdk';
 import Fastify, { type FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { TerminalSessionManager, type TerminalSession } from './terminal-session.js';
@@ -32,48 +32,69 @@ interface ProcessRecord {
 
 const filePathSchema = z.object({ path: z.string().min(1) });
 const writeSchema = z.object({ path: z.string().min(1), content: z.string() });
-const createSchema = writeSchema.partial({ content: true }).extend({ path: z.string().min(1), directory: z.boolean().default(false) });
+
+const createSchema = writeSchema
+  .partial({ content: true })
+  .extend({ path: z.string().min(1), directory: z.boolean().default(false) });
+
 const renameSchema = z.object({ from: z.string().min(1), to: z.string().min(1) });
+
 const commandSchema = z.object({
   command: z.string().min(1),
   args: z.array(z.string()).default([]),
   timeoutMs: z.number().int().positive().optional(),
 });
+
 const snapshotSchema = z.object({ files: z.array(writeSchema).default([]) });
 
 export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   const root = resolve(options.workspaceRoot ?? process.env.WORKSPACE_ROOT ?? '/workspace');
+
   const tokenSecret = requireProductionSecret(
     'WORKSPACE_AGENT_TOKEN_SECRET',
     options.tokenSecret ?? process.env.WORKSPACE_AGENT_TOKEN_SECRET,
     'dev-workspace-agent-secret',
   );
+
   const workspaceId = options.workspaceId ?? process.env.WORKSPACE_ID;
-  const maxFileBytes = options.maxFileBytes ?? Number(process.env.WORKSPACE_MAX_FILE_BYTES ?? 2 * 1024 * 1024);
-  const maxOutputBytes = options.maxOutputBytes ?? Number(process.env.WORKSPACE_MAX_OUTPUT_BYTES ?? 1024 * 1024);
-  const commandTimeoutMs = options.commandTimeoutMs ?? Number(process.env.WORKSPACE_COMMAND_TIMEOUT_MS ?? 30_000);
-  const maxProcesses = options.maxProcesses ?? Number(process.env.WORKSPACE_MAX_PROCESSES ?? 8);
+
+  const numericEnv = (value: string | undefined, fallback: number) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  };
+
+  const maxFileBytes = options.maxFileBytes ?? numericEnv(process.env.WORKSPACE_MAX_FILE_BYTES, 2 * 1024 * 1024);
+  const maxOutputBytes = options.maxOutputBytes ?? numericEnv(process.env.WORKSPACE_MAX_OUTPUT_BYTES, 1024 * 1024);
+  const commandTimeoutMs = options.commandTimeoutMs ?? numericEnv(process.env.WORKSPACE_COMMAND_TIMEOUT_MS, 30_000);
+  const maxProcesses = options.maxProcesses ?? numericEnv(process.env.WORKSPACE_MAX_PROCESSES, 8);
   const processes = new Map<string, ProcessRecord>();
   const metrics = createPrometheusRegistry();
+
   const terminalManager = new TerminalSessionManager({
     cwd: root,
     env: process.env,
     maxSessions: maxProcesses,
-    // The Bolt client opens terminals as `/bin/jsh --osc` and the action-runner
-    // handshakes on OSC 654 markers; emulate that protocol over the real shell
-    // so the terminal and AI shell/start/build actions don't hang. See
-    // terminal-session.ts and app/utils/shell.ts.
+
+    /*
+     * The Bolt client opens terminals as `/bin/jsh --osc` and the action-runner
+     * handshakes on OSC 654 markers; emulate that protocol over the real shell
+     * so the terminal and AI shell/start/build actions don't hang. See
+     * terminal-session.ts and app/utils/shell.ts.
+     */
     osc: true,
   });
+
   let terminalSessions = 0;
 
   const app = Fastify({ logger: false });
 
-  // Catch-all parser so the preview proxy can forward binary/multipart/other
-  // POST bodies as raw bytes instead of rejecting them with 415. This only
-  // handles content types Fastify has no built-in parser for — application/json
-  // and the urlencoded/text bodies the agent's own API routes rely on are still
-  // parsed by the built-in parsers.
+  /*
+   * Catch-all parser so the preview proxy can forward binary/multipart/other
+   * POST bodies as raw bytes instead of rejecting them with 415. This only
+   * handles content types Fastify has no built-in parser for — application/json
+   * and the urlencoded/text bodies the agent's own API routes rely on are still
+   * parsed by the built-in parsers.
+   */
   app.addContentTypeParser('*', { parseAs: 'buffer' }, (_request, body, done) => {
     done(null, body);
   });
@@ -113,9 +134,11 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   app.post('/files/write', async (request) => {
     const body = writeSchema.parse(request.body);
     assertContentSize(body.content, maxFileBytes);
+
     const safePath = resolveWorkspacePath(root, body.path);
     await mkdir(dirname(safePath), { recursive: true });
     await writeFile(safePath, body.content, 'utf8');
+
     return { path: body.path, bytes: Buffer.byteLength(body.content) };
   });
 
@@ -132,12 +155,14 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     assertContentSize(content, maxFileBytes);
     await mkdir(dirname(safePath), { recursive: true });
     await writeFile(safePath, content, { flag: 'wx' });
+
     return { path: body.path, type: 'file' };
   });
 
   app.post('/files/delete', async (request) => {
     const { path } = filePathSchema.parse(request.body);
     await rm(resolveWorkspacePath(root, path), { recursive: true, force: true });
+
     return { path };
   });
 
@@ -147,17 +172,21 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const to = resolveWorkspacePath(root, body.to);
     await mkdir(dirname(to), { recursive: true });
     await rename(from, to);
+
     return { from: body.from, to: body.to };
   });
 
   app.post('/patch/apply', async (request) => {
     const body = z.object({ files: z.array(writeSchema) }).parse(request.body);
+
     for (const file of body.files) {
       assertContentSize(file.content, maxFileBytes);
+
       const safePath = resolveWorkspacePath(root, file.path);
       await mkdir(dirname(safePath), { recursive: true });
       await writeFile(safePath, file.content, 'utf8');
     }
+
     return { changedFiles: body.files.map((file) => file.path) };
   });
 
@@ -185,6 +214,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const record = processes.get(id);
     record?.process.kill('SIGTERM');
     processes.delete(id);
+
     return { killed: Boolean(record), id };
   });
 
@@ -232,18 +262,22 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
   app.post('/snapshots/restore', async (request) => {
     const body = snapshotSchema.parse(request.body);
+
     for (const file of body.files) {
       assertContentSize(file.content, maxFileBytes);
+
       const safePath = resolveWorkspacePath(root, file.path);
       await mkdir(dirname(safePath), { recursive: true });
       await writeFile(safePath, file.content, 'utf8');
     }
+
     return { restoredFiles: body.files.length };
   });
 
   app.get('/metrics', async (_request, reply) => {
     metrics.setGauge('active_workspaces', { workspaceId: workspaceId ?? 'local' }, 1);
     metrics.setGauge('terminal_sessions', { workspaceId: workspaceId ?? 'local' }, terminalSessions);
+
     return reply.header('content-type', 'text/plain; version=0.0.4; charset=utf-8').send(metrics.render());
   });
 
@@ -251,12 +285,16 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     await terminalApp.register(websocket);
     terminalApp.get('/commands/stream', { websocket: true }, (rawSocket) => {
       const socket = normalizeWebSocket(rawSocket);
-      // Track EVERY child spawned on this socket, not just the most recent one. A client
-      // can send multiple `hello` frames (or reconnect/re-handshake); previously only the
-      // last child was referenced, so earlier ones were orphaned on disconnect and — since
-      // streamed commands have no timeout — leaked until they exited on their own, filling
-      // the maxProcesses budget cluster-wide.
+
+      /*
+       * Track EVERY child spawned on this socket, not just the most recent one. A client
+       * can send multiple `hello` frames (or reconnect/re-handshake); previously only the
+       * last child was referenced, so earlier ones were orphaned on disconnect and — since
+       * streamed commands have no timeout — leaked until they exited on their own, filling
+       * the maxProcesses budget cluster-wide.
+       */
       const activeChildren = new Set<ChildProcessWithoutNullStreams>();
+
       let socketClosed = false;
 
       terminalSessions += 1;
@@ -305,18 +343,22 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       });
     });
 
-    // Real, persistent terminal. Each connection attaches to a shell session
-    // (one long-lived shell process) so cwd, exported env and history persist
-    // across commands. Reconnecting with the same ?sessionId reattaches to the
-    // running shell and repaints recent scrollback. Backed by a true PTY when
-    // node-pty is available, otherwise a process-group shell.
+    /*
+     * Real, persistent terminal. Each connection attaches to a shell session
+     * (one long-lived shell process) so cwd, exported env and history persist
+     * across commands. Reconnecting with the same ?sessionId reattaches to the
+     * running shell and repaints recent scrollback. Backed by a true PTY when
+     * node-pty is available, otherwise a process-group shell.
+     */
     terminalApp.get('/terminal', { websocket: true }, (rawSocket, request) => {
       const socket = normalizeWebSocket(rawSocket);
       const requestUrl = new URL(request.url ?? '/terminal', 'http://workspace.local');
       const requestedSessionId = (requestUrl.searchParams.get('sessionId') ?? '').trim();
+
       const sessionId =
         requestedSessionId ||
         createHash('sha256').update(`terminal:${Date.now()}:${terminalSessions}`).digest('hex').slice(0, 16);
+
       const cols = Number(requestUrl.searchParams.get('cols')) || 80;
       const rows = Number(requestUrl.searchParams.get('rows')) || 24;
 
@@ -325,6 +367,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       let session: TerminalSession | undefined;
       let detach: (() => void) | undefined;
       let closed = false;
+
       const earlyInput: string[] = [];
 
       /*
@@ -401,8 +444,10 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           return;
         }
 
-        // For the no-PTY fallback, a bare Ctrl+C (ETX) can't raise SIGINT on its
-        // own, so deliver it to the foreground process group explicitly.
+        /*
+         * For the no-PTY fallback, a bare Ctrl+C (ETX) can't raise SIGINT on its
+         * own, so deliver it to the foreground process group explicitly.
+         */
         if (session.backend.mode === 'pipe' && data.includes('\x03')) {
           session.interrupt();
         }
@@ -412,6 +457,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
       socket.onClose(() => {
         closed = true;
+
         // Detach the viewer but keep the shell alive briefly for reattach.
         detach?.();
         terminalSessions = Math.max(0, terminalSessions - 1);
@@ -428,13 +474,17 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
 function normalizeWebSocket(rawSocket: unknown) {
   const socket = (rawSocket as { socket?: unknown }).socket ?? rawSocket;
+
   const candidate = socket as {
     send?: (message: string) => void;
     addEventListener?: (event: string, listener: (event: { data?: unknown }) => void) => void;
     on?: (event: string, listener: (message: Buffer) => void) => void;
   };
 
-  if (typeof candidate.send !== 'function' || (typeof candidate.on !== 'function' && typeof candidate.addEventListener !== 'function')) {
+  if (
+    typeof candidate.send !== 'function' ||
+    (typeof candidate.on !== 'function' && typeof candidate.addEventListener !== 'function')
+  ) {
     throw new Error('Unsupported WebSocket implementation');
   }
 
@@ -459,6 +509,7 @@ function normalizeWebSocket(rawSocket: unknown) {
 
 function readBearerToken(request: FastifyRequest) {
   const authorization = request.headers.authorization;
+
   if (!authorization?.startsWith('Bearer ')) {
     if (typeof (request.query as { token?: unknown } | undefined)?.token === 'string') {
       return (request.query as { token: string }).token;
@@ -466,11 +517,14 @@ function readBearerToken(request: FastifyRequest) {
 
     return new URL(request.url, 'http://workspace-agent.local').searchParams.get('token') ?? undefined;
   }
+
   return authorization.slice('Bearer '.length);
 }
 
-// Map common fs errors to proper HTTP statuses (Fastify honours error.statusCode) so a
-// missing file returns 404 instead of an opaque 500 with a raw Node error message.
+/*
+ * Map common fs errors to proper HTTP statuses (Fastify honours error.statusCode) so a
+ * missing file returns 404 instead of an opaque 500 with a raw Node error message.
+ */
 function rethrowFsError(error: unknown): never {
   const code = (error as NodeJS.ErrnoException)?.code;
 
@@ -489,7 +543,7 @@ function resolveWorkspacePath(root: string, unsafePath: string) {
   const resolved = resolve(root, unsafePath.replace(/^\/+/, ''));
   const rel = relative(root, resolved);
 
-  if (rel.startsWith('..') || rel === '..' || resolve(root) === resolved && unsafePath.includes('..')) {
+  if (rel.startsWith('..') || rel === '..' || (resolve(root) === resolved && unsafePath.includes('..'))) {
     throw new Error('Path escapes workspace root');
   }
 
@@ -545,10 +599,7 @@ function parseCommandStreamMessage(message: Buffer): { command: string; args?: s
  * which coerced it to the literal string "[object Object]" — corrupting every
  * non-GET request (form submissions, API calls) the previewed app makes.
  */
-function serializePreviewBody(
-  body: unknown,
-  contentType: string | undefined,
-): string | Buffer | undefined {
+function serializePreviewBody(body: unknown, contentType: string | undefined): string | Buffer | undefined {
   if (body === undefined || body === null) {
     return undefined;
   }
@@ -588,8 +639,12 @@ function previewProxyHeaders(headers: FastifyRequest['headers']) {
   return forwarded;
 }
 
-async function listTree(root: string, current: string): Promise<{ path: string; type: 'file' | 'directory'; children?: unknown[] }[]> {
+async function listTree(
+  root: string,
+  current: string,
+): Promise<{ path: string; type: 'file' | 'directory'; children?: unknown[] }[]> {
   await mkdir(root, { recursive: true });
+
   const entries = await readdir(current, { withFileTypes: true });
   const nodes = [];
 
@@ -607,13 +662,18 @@ async function listTree(root: string, current: string): Promise<{ path: string; 
   return nodes;
 }
 
-async function listSnapshotFiles(root: string, current: string): Promise<Array<{ path: string; sha256: string; size: number }>> {
+async function listSnapshotFiles(
+  root: string,
+  current: string,
+): Promise<Array<{ path: string; sha256: string; size: number }>> {
   await mkdir(root, { recursive: true });
+
   const entries = await readdir(current, { withFileTypes: true });
   const files = [];
 
   for (const entry of entries) {
     const fullPath = resolve(current, entry.name);
+
     if (entry.isDirectory()) {
       files.push(...(await listSnapshotFiles(root, fullPath)));
       continue;
@@ -649,6 +709,7 @@ async function runCommand(
   if (options.processes.size >= options.maxProcesses) {
     throw new Error('Process limit reached');
   }
+
   const normalizedArgs = normalizeShellCommandArgs(command, args);
   const signal = detectCommandAbuse(command, normalizedArgs);
 
@@ -659,34 +720,53 @@ async function runCommand(
     });
   }
 
-  const id = createHash('sha256').update(`${command}:${normalizedArgs.join('\0')}:${Date.now()}`).digest('hex').slice(0, 12);
+  const id = createHash('sha256')
+    .update(`${command}:${normalizedArgs.join('\0')}:${Date.now()}`)
+    .digest('hex')
+    .slice(0, 12);
+
   const child = spawn(command, normalizedArgs, { cwd, shell: false, env: process.env });
-  const record = { id, command: [command, ...normalizedArgs].join(' '), startedAt: new Date().toISOString(), process: child, output: '' };
+
+  const record = {
+    id,
+    command: [command, ...normalizedArgs].join(' '),
+    startedAt: new Date().toISOString(),
+    process: child,
+    output: '',
+  };
   options.processes.set(id, record);
 
   let stdout = '';
   let stderr = '';
   let truncated = false;
+
   const timer = setTimeout(() => child.kill('SIGTERM'), options.timeoutMs);
 
   const append = (target: 'stdout' | 'stderr', chunk: Buffer) => {
     const next = (target === 'stdout' ? stdout : stderr) + chunk.toString('utf8');
+
     if (Buffer.byteLength(next) > options.maxOutputBytes) {
       truncated = true;
+
       const limited = next.slice(0, options.maxOutputBytes);
+
       if (target === 'stdout') {
         stdout = limited;
       } else {
         stderr = limited;
       }
+
       child.kill('SIGTERM');
+
       return;
     }
+
     if (target === 'stdout') {
       stdout = next;
     } else {
       stderr = next;
     }
+
     record.output = `${stdout}\n${stderr}`.slice(-options.maxOutputBytes);
   };
 
@@ -694,8 +774,25 @@ async function runCommand(
   child.stderr.on('data', (chunk) => append('stderr', chunk));
 
   return new Promise((resolvePromise) => {
+    /*
+     * Escalate to SIGKILL if the child ignores/traps SIGTERM, so a wedged
+     * process cannot permanently hold a slot and hang the request.
+     */
+    const sigkillTimer = setTimeout(() => {
+      try {
+        child.kill('SIGKILL');
+      } catch {
+        // already gone
+      }
+    }, options.timeoutMs + 5_000);
+
+    if (typeof sigkillTimer.unref === 'function') {
+      sigkillTimer.unref();
+    }
+
     child.on('close', (code, signal) => {
       clearTimeout(timer);
+      clearTimeout(sigkillTimer);
       options.processes.delete(id);
       resolvePromise({ id, code, signal, stdout, stderr, truncated });
     });
@@ -730,8 +827,13 @@ async function runCommandStream(
     });
   }
 
-  const id = createHash('sha256').update(`stream:${command}:${normalizedArgs.join('\0')}:${Date.now()}`).digest('hex').slice(0, 12);
+  const id = createHash('sha256')
+    .update(`stream:${command}:${normalizedArgs.join('\0')}:${Date.now()}`)
+    .digest('hex')
+    .slice(0, 12);
+
   const child = spawn(command, normalizedArgs, { cwd, shell: false, env: process.env });
+
   const record: ProcessRecord = {
     id,
     command: [command, ...normalizedArgs].join(' '),
@@ -746,8 +848,10 @@ async function runCommandStream(
     const data = chunk.toString('utf8');
     record.output = `${record.output ?? ''}${data}`.slice(-options.maxOutputBytes);
 
-    // Don't write to a closed socket — the client disconnected and the child is being
-    // torn down; the send would throw and the error would be swallowed nowhere useful.
+    /*
+     * Don't write to a closed socket — the client disconnected and the child is being
+     * torn down; the send would throw and the error would be swallowed nowhere useful.
+     */
     if (!options.isOpen()) {
       return;
     }
@@ -801,19 +905,23 @@ async function detectPorts(processes: Map<string, ProcessRecord>): Promise<Detec
         const pid = inodeToPid.get(inode);
 
         if (pid === undefined || pid === process.pid) {
-          // No owning pid, or the agent's own control port — never a user
-          // preview. The workspace agent runs alone in its per-workspace
-          // container, so every other listening socket belongs to a user
-          // process.
+          /*
+           * No owning pid, or the agent's own control port — never a user
+           * preview. The workspace agent runs alone in its per-workspace
+           * container, so every other listening socket belongs to a user
+           * process.
+           */
           continue;
         }
 
-        // Prefer attributing the port to a tracked managed command; otherwise
-        // it was started outside /commands/run — most importantly a dev server
-        // launched from the IDE terminal (the primary "run my app" flow), whose
-        // pid is not in the managed map. Previously these were dropped, so the
-        // preview never opened for terminal-started servers. Surface them with a
-        // synthetic, display-only owner id.
+        /*
+         * Prefer attributing the port to a tracked managed command; otherwise
+         * it was started outside /commands/run — most importantly a dev server
+         * launched from the IDE terminal (the primary "run my app" flow), whose
+         * pid is not in the managed map. Previously these were dropped, so the
+         * preview never opened for terminal-started servers. Surface them with a
+         * synthetic, display-only owner id.
+         */
         const managedId = await owningManagedProcess(pid, managedPids);
         detected.push({ port, processId: managedId ?? `pid:${pid}` });
       }
@@ -871,6 +979,7 @@ async function readListeningPorts(): Promise<Map<number, number>> {
 // Map socket inodes to the pid holding them by scanning /proc/<pid>/fd symlinks (socket:[inode]).
 async function readSocketInodeToPid(): Promise<Map<number, number>> {
   const map = new Map<number, number>();
+
   let pids: string[];
 
   try {
@@ -931,7 +1040,11 @@ async function parentPid(pid: number): Promise<number | undefined> {
     const stat = await readFile(`/proc/${pid}/stat`, 'utf8');
 
     // Fields after the (comm) — which may contain spaces/parens — are: state ppid ...
-    const afterComm = stat.slice(stat.lastIndexOf(')') + 1).trim().split(/\s+/);
+    const afterComm = stat
+      .slice(stat.lastIndexOf(')') + 1)
+      .trim()
+      .split(/\s+/);
+
     const ppid = Number(afterComm[1]);
 
     return Number.isFinite(ppid) ? ppid : undefined;
@@ -943,9 +1056,11 @@ async function parentPid(pid: number): Promise<number | undefined> {
 function detectPortsFromOutput(processes: Map<string, ProcessRecord>): DetectedPort[] {
   return [...processes.values()].flatMap((record) => {
     const source = `${record.command}\n${record.output ?? ''}`;
+
     const matches = source.matchAll(
       /(?:https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[[^\]]+\])[:/]|localhost:|127\.0\.0\.1:|0\.0\.0\.0:|--port\s+|LISTEN\s+)(\d{2,5})/gi,
     );
+
     const ports = new Set([...matches].map((match) => Number(match[1])).filter((port) => port > 0 && port <= 65535));
 
     if (!ports.size && /\b(vite|next dev|astro dev|remix dev|npm run dev|pnpm dev|yarn dev)\b/i.test(record.command)) {
