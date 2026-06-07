@@ -334,13 +334,18 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
             return;
           }
 
-          socket.send(
-            JSON.stringify({
-              type: 'error',
-              error: { message: error instanceof Error ? error.message : String(error) },
-              timestamp: new Date().toISOString(),
-            }),
-          );
+          try {
+            socket.send(
+              JSON.stringify({
+                type: 'error',
+                error: { message: error instanceof Error ? error.message : String(error) },
+                timestamp: new Date().toISOString(),
+              }),
+            );
+          } catch {
+            // The socket can transition to CLOSING after the socketClosed check
+            // above; sending then throws synchronously. Drop the late error frame.
+          }
         });
       });
       socket.onClose(() => {
@@ -394,7 +399,14 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           return;
         }
 
-        socket.send(JSON.stringify({ type: 'stdout', data, timestamp: new Date().toISOString() }));
+        // The PTY's attach() callback can fire after the client disconnects
+        // (scrollback flush, in-flight chunk). socket.send then throws on the
+        // closed socket; swallow it so the terminal teardown stays clean.
+        try {
+          socket.send(JSON.stringify({ type: 'stdout', data, timestamp: new Date().toISOString() }));
+        } catch {
+          // Socket closed; drop the chunk.
+        }
       };
 
       terminalManager
@@ -808,6 +820,26 @@ async function runCommand(
       options.processes.delete(id);
       resolvePromise({ id, code, signal, stdout, stderr, truncated });
     });
+
+    /*
+     * spawn() emits 'error' (e.g. ENOENT for an unknown command) without a
+     * matching 'close'. With no listener Node turns this into an uncaught
+     * exception that crashes the agent and leaves this promise unresolved,
+     * hanging the request. Surface it as a normal failed-command result.
+     */
+    child.on('error', (error) => {
+      clearTimeout(timer);
+      clearTimeout(sigkillTimer);
+      options.processes.delete(id);
+      resolvePromise({
+        id,
+        code: 1,
+        signal: null,
+        stdout,
+        stderr: `${stderr}${error instanceof Error ? error.message : String(error)}`,
+        truncated,
+      });
+    });
   });
 }
 
@@ -877,7 +909,38 @@ async function runCommandStream(
   await new Promise<void>((resolvePromise) => {
     child.on('close', (code) => {
       if (options.isOpen()) {
-        options.socket.send(JSON.stringify({ type: 'exit', exitCode: code ?? 0, timestamp: new Date().toISOString() }));
+        try {
+          options.socket.send(
+            JSON.stringify({ type: 'exit', exitCode: code ?? 0, timestamp: new Date().toISOString() }),
+          );
+        } catch {
+          // Socket closed between the isOpen() check and the send; nothing to deliver.
+        }
+      }
+
+      options.processes.delete(id);
+      options.onComplete(child);
+      resolvePromise();
+    });
+
+    /*
+     * Without an 'error' listener a failed spawn (ENOENT, EACCES, …) becomes an
+     * uncaught exception that crashes the agent and leaves the stream promise
+     * pending. Report it to the client and resolve cleanly instead.
+     */
+    child.on('error', (error) => {
+      if (options.isOpen()) {
+        try {
+          options.socket.send(
+            JSON.stringify({
+              type: 'error',
+              error: { message: error instanceof Error ? error.message : String(error) },
+              timestamp: new Date().toISOString(),
+            }),
+          );
+        } catch {
+          // Socket already gone; drop the message.
+        }
       }
 
       options.processes.delete(id);

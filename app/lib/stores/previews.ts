@@ -170,6 +170,15 @@ export class PreviewsStore {
 
   // Debounce broadcasts so a burst of localStorage writes coalesces into one.
   #scheduleStorageSync() {
+    /*
+     * The patched localStorage.setItem keeps calling this after dispose(), which
+     * would arm a timer that fires (and broadcasts) on an already-disposed store.
+     * Mirror #scheduleReconnect's disposed guard.
+     */
+    if (this.#disposed) {
+      return;
+    }
+
     if (this.#storageSyncTimer) {
       clearTimeout(this.#storageSyncTimer);
     }

@@ -175,6 +175,11 @@ export async function runConnectorTokenHealthCheck(
       continue;
     }
 
+    // This check only inspects the status code; the body is never read, so drain
+    // it once here to release the connection on every branch below instead of
+    // leaking a socket per scanned connection.
+    await response.body?.cancel().catch(() => {});
+
     if (response.status === 401 || response.status === 403) {
       await input.prisma.userConnection.update({
         where: { id: connection.id },

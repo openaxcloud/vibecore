@@ -11616,6 +11616,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.post('/chat-shares', async (request, reply) => {
     const body = parse(chatShareCreateSchema, request.body);
+
+    // Authorize the sharer against the project they're attributing the share to,
+    // otherwise any authenticated user can mint a share record pointing at an
+    // arbitrary projectId (which downstream fork flows resolve server-side).
+    await requireProject(request, store, body.projectId, 'projects:read');
+
     const userId = request.currentUser!.id;
     const createdAt = new Date();
     const raw = createOpaqueToken('cshare');

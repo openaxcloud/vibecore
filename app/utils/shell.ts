@@ -47,7 +47,18 @@ export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITermin
        * them at ingest so the user never sees `]]]]]]]]` runs.
        */
       const displayData = stripInternalOscMarkers(data);
-      terminal.write(displayData);
+
+      try {
+        terminal.write(displayData);
+      } catch {
+        /*
+         * The terminal can be disposed (component unmounted) while the remote
+         * session is still streaming. Writing to a disposed xterm throws; since
+         * this loop is fire-and-forget, an unhandled throw becomes an unhandled
+         * rejection. Stop consuming once the sink is gone.
+         */
+        break;
+      }
 
       try {
         import('~/utils/debugLogger')
@@ -302,7 +313,14 @@ export class BoltShell {
       const [, osc, , , code] = text.match(/\x1b\]654;([^\x07=]+)=?((-?\d+):(\d+))?\x07/) || [];
 
       if (osc === 'exit') {
-        exitCode = parseInt(code, 10);
+        /*
+         * A truncated/split exit marker can match `osc === 'exit'` with the
+         * `=code:pid` group absent, leaving `code` undefined → parseInt(NaN).
+         * A NaN exit code defeats every `exitCode !== 0` check downstream, so
+         * fall back to 0 when the code is missing/unparseable.
+         */
+        const parsed = parseInt(code ?? '', 10);
+        exitCode = Number.isNaN(parsed) ? 0 : parsed;
       }
 
       if (osc === waitCode) {

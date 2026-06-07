@@ -36,48 +36,60 @@ async function deliverSiemAuditEvents() {
   const webhooks = await prisma.siemWebhook.findMany({ where: { enabled: true } });
 
   for (const webhook of webhooks) {
-    if (!webhook.secretCiphertext) {
-      throw new Error(`SIEM webhook ${webhook.id} is missing an encrypted signing secret`);
-    }
+    // Isolate each webhook: a missing secret, decrypt failure, or delivery error
+    // for one endpoint must not abort the loop and starve every later webhook of
+    // its batch (lastDeliveredAt only advances on success, so a failed one is
+    // simply retried on the next scheduled run).
+    try {
+      if (!webhook.secretCiphertext) {
+        throw new Error(`SIEM webhook ${webhook.id} is missing an encrypted signing secret`);
+      }
 
-    const events = await prisma.auditLog.findMany({
-      where: {
-        organizationId: webhook.organizationId,
-        ...(webhook.lastDeliveredAt ? { createdAt: { gt: webhook.lastDeliveredAt } } : {}),
-      },
-      orderBy: { createdAt: 'asc' },
-      take: 250,
-    });
+      const events = await prisma.auditLog.findMany({
+        where: {
+          organizationId: webhook.organizationId,
+          ...(webhook.lastDeliveredAt ? { createdAt: { gt: webhook.lastDeliveredAt } } : {}),
+        },
+        orderBy: { createdAt: 'asc' },
+        take: 250,
+      });
 
-    if (events.length === 0) {
-      continue;
-    }
+      if (events.length === 0) {
+        continue;
+      }
 
-    const { secret } = decryptJson<{ secret: string }>(webhook.secretCiphertext);
-    const body = JSON.stringify({ type: 'audit.batch', organizationId: webhook.organizationId, events });
-    const timestamp = Math.floor(Date.now() / 1000).toString();
-    const signature = createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
+      const { secret } = decryptJson<{ secret: string }>(webhook.secretCiphertext);
+      const body = JSON.stringify({ type: 'audit.batch', organizationId: webhook.organizationId, events });
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+      const signature = createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
 
-    const response = await fetch(webhook.url, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-vibecore-timestamp': timestamp,
-        'x-vibecore-signature': `sha256=${signature}`,
-      },
-      body,
-    });
+      const response = await fetch(webhook.url, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-vibecore-timestamp': timestamp,
+          'x-vibecore-signature': `sha256=${signature}`,
+        },
+        body,
+      });
 
-    if (!response.ok) {
-      // Drain the body so the failed-delivery connection is released instead of leaking.
+      if (!response.ok) {
+        // Drain the body so the failed-delivery connection is released instead of leaking.
+        await response.body?.cancel().catch(() => {});
+        throw new Error(`SIEM webhook delivery failed: ${response.status}`);
+      }
+
+      // Drain the success body too — an unconsumed response keeps the underlying
+      // connection pinned in the pool and eventually exhausts the agent's sockets.
       await response.body?.cancel().catch(() => {});
-      throw new Error(`SIEM webhook delivery failed: ${response.status}`);
-    }
 
-    await prisma.siemWebhook.update({
-      where: { id: webhook.id },
-      data: { lastDeliveredAt: events.at(-1)!.createdAt },
-    });
+      await prisma.siemWebhook.update({
+        where: { id: webhook.id },
+        data: { lastDeliveredAt: events.at(-1)!.createdAt },
+      });
+    } catch (error) {
+      console.error(`SIEM webhook ${webhook.id} delivery failed; continuing with remaining webhooks`, error);
+    }
   }
 }
 
@@ -137,6 +149,10 @@ export async function triggerWorkspaceGarbageCollect(jobData: Record<string, unk
     await response.body?.cancel().catch(() => {});
     throw new Error(`workspace.gc upstream failed: ${response.status}`);
   }
+
+  // Drain the success body as well so the keep-alive connection is returned to
+  // the pool instead of being pinned open until GC.
+  await response.body?.cancel().catch(() => {});
 }
 
 export const worker = new Worker(

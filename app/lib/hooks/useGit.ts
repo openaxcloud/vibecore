@@ -34,12 +34,21 @@ export function useGit() {
   const [fs, setFs] = useState<PromiseFsClient>();
   const fileData = useRef<Record<string, { data: any; encoding?: string }>>({});
   useEffect(() => {
-    runtimeAdapter.startWorkspace().then(() => {
-      fileData.current = {};
-      setRuntime(runtimeAdapter);
-      setFs(getFs(runtimeAdapter, fileData));
-      setReady(true);
-    });
+    runtimeAdapter
+      .startWorkspace()
+      .then(() => {
+        fileData.current = {};
+        setRuntime(runtimeAdapter);
+        setFs(getFs(runtimeAdapter, fileData));
+        setReady(true);
+      })
+      .catch((error) => {
+        /*
+         * Without this catch a failed workspace start is an unhandled rejection
+         * and `ready` never flips, leaving every git operation hung forever.
+         */
+        console.error('Failed to start workspace for git operations', error);
+      });
   }, []);
 
   const gitClone = useCallback(

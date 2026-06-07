@@ -279,7 +279,7 @@ export const ChatImpl = memo(
 
         const savePromise = drainPendingSaves()
           .catch((error) => {
-            toast.error(error.message);
+            toast.error(error instanceof Error ? error.message : 'Failed to save chat history');
           })
           .finally(() => {
             persistInFlightRef.current = null;
@@ -1141,7 +1141,9 @@ export const ChatImpl = memo(
 
           setMessages([]);
           pendingPersistRef.current = null;
-          persistMessageHistory([]).catch((error) => toast.error(error.message));
+          persistMessageHistory([]).catch((error) =>
+            toast.error(error instanceof Error ? error.message : 'Failed to reset chat history'),
+          );
           setInput('');
           setData(undefined);
         }}
