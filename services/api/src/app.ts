@@ -8785,7 +8785,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const token = await agentToken(authorized.workspaceId);
     const proxyPath = params['*'] ?? '';
+
+    /*
+     * The wildcard arrives URL-decoded, so a `..` segment in `proxyPath` would
+     * let `new URL()` normalise the path back up out of `/preview/<port>/` and
+     * reach the agent's privileged endpoints (/files/write, /commands/run,
+     * /snapshots/restore) — all reachable with the Bearer token we attach below
+     * and only `workspaces:read` on the API side. Reject any traversal segment
+     * so the proxy can only ever address the preview subtree.
+     */
+    if (proxyPath.split('/').some((segment) => segment === '..')) {
+      return reply.code(400).send({ error: 'invalid_path', code: 'RUNTIME_PREVIEW_BAD_PATH' });
+    }
+
     const agentUrl = new URL(`${agentBaseUrl(authorized.workspaceId)}/preview/${port}/${proxyPath}`);
+
+    // Belt-and-braces: confirm normalisation kept us inside the preview subtree.
+    if (!agentUrl.pathname.startsWith(`/preview/${port}/`) && agentUrl.pathname !== `/preview/${port}`) {
+      return reply.code(400).send({ error: 'invalid_path', code: 'RUNTIME_PREVIEW_BAD_PATH' });
+    }
+
     const queryIndex = request.url.indexOf('?');
 
     if (queryIndex >= 0) {
@@ -8860,7 +8879,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const { targetPath = '.' } = parse(z.object({ targetPath: z.string().default('.') }), request.query);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-    const zip = await JSZip.loadAsync(request.body as Buffer);
+
+    /*
+     * targetPath is prepended verbatim to every imported entry path, so a `..`
+     * segment would let the import escape the workspace root (the agent only
+     * normalises the final path, and a relative `../` prefix can walk out).
+     * Reject traversal here before fanning the writes out to the agent.
+     */
+    if (targetPath !== '.' && targetPath.split(/[\\/]/).some((segment) => segment === '..')) {
+      return reply.code(400).send({ error: 'Invalid targetPath', code: 'RUNTIME_IMPORT_BAD_TARGET' });
+    }
+
+    let zip: JSZip;
+
+    try {
+      zip = await JSZip.loadAsync(request.body as Buffer);
+    } catch (error) {
+      throw Object.assign(new Error('Uploaded file is not a valid zip archive'), {
+        statusCode: 400,
+        code: 'RUNTIME_IMPORT_BAD_ZIP',
+        cause: error,
+      });
+    }
 
     /*
      * filesFromZip enforces entry-count and decompressed-size caps so a zip bomb
