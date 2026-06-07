@@ -2200,10 +2200,26 @@ export class WorkbenchStore {
   async #validateWorkspaceImportsAfterArtifactClose(artifactId: string) {
     const files = this.#workspaceImportValidationFiles();
 
-    const generatedFiles: GeneratedFile[] = [...files.entries()].map(([filePath, content]) => ({
-      path: filePath,
-      content,
-    }));
+    const generatedFiles: GeneratedFile[] = [...files.entries()]
+
+      /*
+       * Exclude package.json from this preview-path validation. A malformed or
+       * empty package.json (e.g. a project seeded from storage where an earlier
+       * write was cut short) must NOT hard-block the preview here: validateGeneratedFile
+       * JSON-parses every .json and throws, which returned early and surfaced a
+       * dead "Preview Error: Invalid JSON in package.json: Unexpected end of JSON
+       * input" — yet buildPreviewManifestRepair, which runs moments later in
+       * startPreviewServer, synthesizes a valid manifest from the source files.
+       * Blocking here defeated that recovery. The agent-apply path (validateGeneratedFiles
+       * at patch time) still rejects a corrupt manifest the model emits, so the
+       * agent feedback loop is unaffected. package.json has no imports, so dropping
+       * it loses nothing for the import check this method exists to perform.
+       */
+      .filter(([filePath]) => (filePath.split('/').pop() ?? '') !== 'package.json')
+      .map(([filePath, content]) => ({
+        path: filePath,
+        content,
+      }));
 
     try {
       await validateGeneratedFiles(generatedFiles);
