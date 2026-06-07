@@ -1837,9 +1837,19 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listAiMessages(conversationId: string) {
-    return (await this.prisma.aiMessage.findMany({ where: { conversationId }, orderBy: { createdAt: 'asc' } })).map(
-      mapAiMessage,
-    );
+    /*
+     * Cap the number of messages loaded so a long-lived conversation can't pull
+     * its entire (content-heavy) history into memory on every request. We take the
+     * most recent N rows, then restore chronological (ascending) order for callers.
+     */
+    const MAX_AI_MESSAGES = 500;
+    const rows = await this.prisma.aiMessage.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: 'desc' },
+      take: MAX_AI_MESSAGES,
+    });
+
+    return rows.reverse().map(mapAiMessage);
   }
 
   async createAiToolCall(input: { messageId: string; name: string; input?: unknown; output?: unknown }) {

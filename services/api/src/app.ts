@@ -916,7 +916,8 @@ const adminQuotaOverrideSchema = quotaOverrideSchema.extend({ organizationId: z.
 const aiConversationSchema = z.object({ title: z.string().min(1).optional() });
 
 const aiMessageSchema = z.object({
-  content: z.string().min(1),
+  // Cap content so an oversized body can't be buffered + forwarded upstream before any quota check resolves.
+  content: z.string().min(1).max(100_000),
   provider: z.string().optional(),
   model: z.string().optional(),
   stream: z.boolean().default(false),
@@ -5443,7 +5444,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.code(401).send({ error: 'Invalid or expired OIDC state', code: 'OAUTH_STATE_INVALID' });
       }
 
-      const profile = await resolveOAuthProfile('oidc', body);
+      let profile;
+
+      try {
+        profile = await resolveOAuthProfile('oidc', body);
+      } catch (err: any) {
+        request.log.error(
+          { code: err?.code, statusCode: err?.statusCode, msg: err?.message },
+          'oidc resolveOAuthProfile failed',
+        );
+        return reply
+          .code(err?.statusCode ?? 500)
+          .send({ error: err?.message ?? 'OIDC resolve failed', code: err?.code ?? 'OAUTH_RESOLVE_FAILED' });
+      }
 
       let user = await store.findUserByEmail(profile.email);
 
@@ -11965,6 +11978,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(transferProjectSchema, request.body);
     await requireOrg(request, store, body.targetOrganizationId, 'projects:write');
+    await requireOrganizationNotSuspended(store, body.targetOrganizationId);
+    await ensureQuota(request, body.targetOrganizationId, 'projects.count');
 
     const transferred = await store.transferProject({
       projectId: project.id,
@@ -11994,6 +12009,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(duplicateProjectSchema, request.body);
+    await ensureQuota(request, project.organizationId, 'projects.count');
 
     const duplicate = await store.duplicateProject({
       projectId: project.id,
@@ -12004,6 +12020,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const sourceFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
     const duplicateFiles = await projectStorage.writeFiles(duplicate.id, sourceFiles);
     await persistProjectFileManifest(store, duplicate.id, duplicateFiles, request.currentUser!.id);
+    await recordUsage(request, duplicate.organizationId, 'projects.count');
     await store.recordProjectActivity({
       projectId: duplicate.id,
       actorUserId: request.currentUser!.id,
@@ -12324,9 +12341,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(aiMessageSchema, request.body);
     const inputTokens = await estimateAiTokens(body.content);
+    // Enforce the per-message rate cap (not just the token cap) before the expensive gateway call.
+    await ensureQuota(request, project.organizationId, 'ai.messages', 1);
     await ensureAiQuota(request, project.organizationId, inputTokens);
-
-    const userMessage = await store.createAiMessage({ conversationId, role: 'user', content: body.content });
 
     const completion = await aiGatewayCompletion({
       project,
@@ -12334,6 +12351,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       provider: body.provider,
       model: body.model,
     });
+
+    /*
+     * Persist the user turn only after the gateway succeeds, so a failed completion
+     * doesn't leave an orphaned user message that gets re-sent/re-billed on retry.
+     */
+    const userMessage = await store.createAiMessage({ conversationId, role: 'user', content: body.content });
     const assistantMessage = await store.createAiMessage({
       conversationId,
       role: 'assistant',
@@ -12734,6 +12757,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!stripeClient) {
       throw Object.assign(new Error('Stripe is not configured'), { statusCode: 503, code: 'STRIPE_NOT_CONFIGURED' });
+    }
+
+    /*
+     * Block a second checkout when the org already has a live subscription, otherwise
+     * a double "upgrade" click creates two Stripe subscriptions on the same customer
+     * (the webhook keys on externalId) and the org gets billed twice. Plan changes
+     * must go through the billing portal instead.
+     */
+    const currentSubscription = await store.getSubscription(orgId);
+
+    if (
+      currentSubscription &&
+      ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(currentSubscription.status) &&
+      !currentSubscription.cancelAtPeriodEnd
+    ) {
+      throw Object.assign(
+        new Error('Organization already has an active subscription; use the billing portal to change plans.'),
+        { statusCode: 409, code: 'STRIPE_SUBSCRIPTION_ALREADY_ACTIVE' },
+      );
     }
 
     const organization = await store.getOrganization(orgId);

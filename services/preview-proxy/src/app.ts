@@ -36,6 +36,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   const injectInspector = options.injectInspector ?? true;
   const app = Fastify({ logger: options.logger ?? false });
 
+  /*
+   * We stream request.raw straight to the upstream agent, so Fastify's default
+   * application/json and text/plain parsers must NOT consume the body first.
+   * A catch-all no-op parser leaves request.raw intact for every content type;
+   * without it, POST/PUT/PATCH bodies are silently dropped.
+   */
+  app.addContentTypeParser('*', (_req, _payload, done) => done(null, undefined));
+
   app.get('/health', async () => ({ status: 'ok', service: 'preview-proxy' }));
 
   // Serve the inspect-to-code bridge from the proxy origin so injected pages
@@ -79,8 +87,22 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     for (const [name, value] of Object.entries(request.headers)) {
       if (typeof value !== 'string') continue;
       const lower = name.toLowerCase();
-      if (lower === 'host' || lower === 'authorization' || lower === 'cookie' || lower.startsWith('x-vibecore-'))
+      if (
+        lower === 'host' ||
+        lower === 'authorization' ||
+        lower === 'cookie' ||
+        lower === 'connection' ||
+        lower === 'keep-alive' ||
+        lower === 'transfer-encoding' ||
+        lower === 'content-length' ||
+        lower === 'upgrade' ||
+        lower === 'forwarded' ||
+        lower.startsWith('x-forwarded-') ||
+        lower.startsWith('x-vibecore-')
+      ) {
         continue;
+      }
+
       headers[name] = value;
     }
 
@@ -189,11 +211,14 @@ function defaultResolveAgent(options: PreviewProxyOptions, fetchImpl: typeof fet
       return undefined;
     }
 
-    const response = await fetchImpl(`${managerUrl.replace(/\/$/, '')}/internal/workspaces/${workspaceId}/agent`, {
-      headers: { authorization: `Bearer ${secret}` },
-      // Don't let a hung workspace-manager stall every preview request indefinitely.
-      signal: AbortSignal.timeout(10_000),
-    });
+    const response = await fetchImpl(
+      `${managerUrl.replace(/\/$/, '')}/internal/workspaces/${encodeURIComponent(workspaceId)}/agent`,
+      {
+        headers: { authorization: `Bearer ${secret}` },
+        // Don't let a hung workspace-manager stall every preview request indefinitely.
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
 
     if (!response.ok) return undefined;
 

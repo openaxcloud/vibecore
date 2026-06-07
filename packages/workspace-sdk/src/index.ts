@@ -40,8 +40,15 @@ export function verifyAgentToken(token: string | undefined, secret: string, work
     return false;
   }
 
-  const expected = createHmac('sha256', secret).update(payload).digest('base64url');
-  const valid = expected.length === signature.length && timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  /*
+   * Compare the raw HMAC digest bytes against the decoded signature bytes. The
+   * previous string-length pre-check let an attacker-supplied multibyte signature
+   * of equal string length but unequal byte length reach timingSafeEqual, which
+   * throws on length mismatch — and that throw was uncaught, crashing the caller.
+   */
+  const expectedBuf = createHmac('sha256', secret).update(payload).digest();
+  const signatureBuf = Buffer.from(signature, 'base64url');
+  const valid = expectedBuf.length === signatureBuf.length && timingSafeEqual(expectedBuf, signatureBuf);
 
   if (!valid) {
     return false;
@@ -67,6 +74,8 @@ export class WorkspaceAgentClient {
 
   async request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
+      // Bound the request so a hung agent can't leak the connection forever.
+      signal: AbortSignal.timeout(30_000),
       ...init,
       headers: {
         authorization: `Bearer ${this.token}`,
@@ -76,6 +85,8 @@ export class WorkspaceAgentClient {
     });
 
     if (!response.ok) {
+      // Drain the body so the socket is released instead of leaking until GC.
+      await response.body?.cancel().catch(() => undefined);
       throw new Error(`Workspace agent request failed: ${response.status}`);
     }
 
