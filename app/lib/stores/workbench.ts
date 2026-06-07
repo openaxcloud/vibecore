@@ -846,7 +846,66 @@ export class WorkbenchStore {
       return [];
     }
 
+    await this.#removeCorruptJsonLockfiles(packageJsonPath);
+
     return [this.#installCommandForPackage(packageJsonPath, pkg)];
+  }
+
+  /*
+   * A corrupt or empty package-lock.json / npm-shrinkwrap.json makes `npm install`
+   * abort before it does anything — npm parses the lockfile up front and dies with
+   * "Unexpected end of JSON input". node_modules then never populates and the dev
+   * server fails to boot with "Cannot find package 'vite'", leaving a permanently
+   * blank preview. This happened to a cached template seeded with a truncated
+   * lockfile. These files are machine-generated, so the safe recovery is to delete
+   * an unparseable one and let the install regenerate it from package.json. Only
+   * npm's lockfiles are JSON; yarn/pnpm lockfiles can't hit this failure mode.
+   */
+  async #removeCorruptJsonLockfiles(packageJsonPath: string) {
+    const cwd = this.#runtimeCwdForPackageJson(packageJsonPath);
+
+    for (const fileName of ['package-lock.json', 'npm-shrinkwrap.json']) {
+      const relativePath = cwd ? `${cwd}/${fileName}` : fileName;
+
+      let content: string;
+
+      try {
+        content = await this.#runtime.readFile(relativePath);
+      } catch {
+        // Absent (the common case) or unreadable — nothing to repair.
+        continue;
+      }
+
+      const isCorrupt =
+        !content.trim() ||
+        (() => {
+          try {
+            JSON.parse(content);
+            return false;
+          } catch {
+            return true;
+          }
+        })();
+
+      if (!isCorrupt) {
+        continue;
+      }
+
+      /*
+       * try/catch (not .catch) so a synchronous throw — e.g. a runtime adapter
+       * without deleteFile — can never abort preview-command detection.
+       */
+      try {
+        await this.#runtime.deleteFile(relativePath);
+        this.appendWorkspaceLog(`Removed corrupt ${fileName} so the install can regenerate it`);
+      } catch (error) {
+        this.appendWorkspaceLog(
+          error instanceof Error
+            ? `Could not remove corrupt ${fileName}: ${error.message}`
+            : `Could not remove corrupt ${fileName}`,
+        );
+      }
+    }
   }
 
   async #packageDirectoryHasInstalledPreviewDependencies(packageJsonPath: string, pkg: PreviewPackageManifest) {

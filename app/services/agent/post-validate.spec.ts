@@ -208,4 +208,26 @@ describe('agent post-generation import validation', () => {
       ]),
     ).rejects.toBeInstanceOf(GeneratedFileJsonError);
   });
+
+  it('does not reject a truncated package-lock.json (lockfiles are machine-generated)', async () => {
+    /*
+     * A cached template seeded a truncated package-lock.json; validating it as
+     * authored JSON threw GeneratedFileJsonError, which blocked the preview from
+     * starting and surfaced a dead "Preview Error: Invalid JSON in
+     * package-lock.json". Lockfiles are regenerated on install, so they must be
+     * skipped here regardless of how malformed they are.
+     */
+    await expect(
+      validateGeneratedFiles([
+        { path: 'package.json', content: '{ "name": "app", "private": true }' },
+        { path: 'package-lock.json', content: '{ "name": "app", "lockfileVersion": 3, "packages":' },
+      ]),
+    ).resolves.toBeUndefined();
+  });
+
+  it('skips lockfiles in nested package directories too', async () => {
+    await expect(
+      validateGeneratedFiles([{ path: 'apps/web/npm-shrinkwrap.json', content: '{ truncated' }]),
+    ).resolves.toBeUndefined();
+  });
 });
