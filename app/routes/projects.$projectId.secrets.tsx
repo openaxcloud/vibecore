@@ -39,8 +39,8 @@ export default function ProjectSecretsPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <ActivityList
           items={
-            data.secrets.length
-              ? data.secrets.map((secret) => ({
+            (data.secrets ?? []).length
+              ? (data.secrets ?? []).map((secret) => ({
                   title: secret.key,
                   detail: secret.updatedAt
                     ? `Encrypted, updated ${new Date(secret.updatedAt).toLocaleString()}`

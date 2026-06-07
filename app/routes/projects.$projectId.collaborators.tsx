@@ -39,8 +39,8 @@ export default function ProjectCollaboratorsPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <ActivityList
           items={
-            data.collaborators.length
-              ? data.collaborators.map((collaborator) => ({
+            (data.collaborators ?? []).length
+              ? (data.collaborators ?? []).map((collaborator) => ({
                   title: collaborator.userId,
                   detail: `Role: ${collaborator.roleKey}`,
                   icon: Users,

@@ -127,7 +127,7 @@ export function useNetlifyDeploy() {
         }),
       });
 
-      const data = (await response.json()) as any;
+      const data = (await response.json().catch(() => ({}))) as any;
 
       if (!response.ok || !data.deploy || !data.site) {
         console.error('Invalid deploy response:', data);
@@ -156,6 +156,10 @@ export function useNetlifyDeploy() {
               },
             },
           );
+
+          if (!statusResponse.ok) {
+            throw new Error(`Deployment status check failed (HTTP ${statusResponse.status})`);
+          }
 
           deploymentStatus = (await statusResponse.json()) as any;
 

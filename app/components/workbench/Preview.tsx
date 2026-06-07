@@ -1431,6 +1431,19 @@ export const Preview = memo(
 
     useEffect(() => {
       const handleMessage = (event: MessageEvent) => {
+        /*
+         * Ignore messages from anything other than our preview iframe, and any
+         * payload that isn't a structured message (extensions/libraries spam
+         * postMessage with strings/null that would throw on `.type`).
+         */
+        if (event.source !== iframeRef.current?.contentWindow) {
+          return;
+        }
+
+        if (!event.data || typeof event.data !== 'object') {
+          return;
+        }
+
         if (event.data.type === 'INSPECTOR_READY') {
           if (iframeRef.current?.contentWindow) {
             iframeRef.current.contentWindow.postMessage(
@@ -1444,12 +1457,16 @@ export const Preview = memo(
         } else if (event.data.type === 'INSPECTOR_CLICK') {
           const element = event.data.elementInfo;
 
+          if (!element) {
+            return;
+          }
+
           setSelectedElement?.(element);
           setSelectedPreviewElement(element);
           setDevToolsOpen(true);
           setActiveDevToolsTab('elements');
 
-          void navigator.clipboard?.writeText(element.displayText).catch(() => {
+          void navigator.clipboard?.writeText(element.displayText ?? '').catch(() => {
             // Selection must keep working even when the browser blocks clipboard access.
           });
         } else if (event.data.type === 'PREVIEW_ERROR') {

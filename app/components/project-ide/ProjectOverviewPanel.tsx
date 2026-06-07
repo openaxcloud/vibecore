@@ -74,7 +74,7 @@ function fallbackOverview(data: ProjectOverviewPanelProps['data'], project: Proj
       runtimeMode: data.workspace?.runtimeMode ?? 'unavailable',
       branch: data.git?.branch ?? project.gitDefaultBranch ?? 'main',
       fileCount: data.files?.length ?? 0,
-      activeMemberCount: 0,
+      activeMemberCount: collaborators.length,
       scriptCount: 0,
     },
     stack: [] as ProjectOverviewStackItem[],
@@ -249,7 +249,7 @@ function ActivityList({ activity }: { activity: ProjectOverviewActivity[] }) {
 }
 
 export function ProjectOverviewPanel({ data, project }: ProjectOverviewPanelProps) {
-  const overview = data.overview ?? fallbackOverview(data, project);
+  const overview = data.overview?.summary ? data.overview : fallbackOverview(data, project);
   const projectName = project.name ?? project.id ?? 'Project';
 
   return (

@@ -42,7 +42,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   const domains = await apiRequest<{ domains: Domain[] }>(request, `/orgs/${organization.id}/domains`);
 
-  return json({ project: projectResult.project, organization, domains: domains.domains });
+  return json({ project: projectResult.project, organization, domains: domains?.domains ?? [] });
 }
 
 export async function action({ request, params }: EnterpriseActionArgs) {

@@ -91,7 +91,7 @@ export const DeployButton = ({
       } else {
         const result = await handleGitHubDeploy();
 
-        if (result && result.success && result.files) {
+        if (result && result.success && result.files && Object.keys(result.files).length > 0) {
           setGithubDeploymentFiles(result.files);
           setGithubProjectName(result.projectName);
           setShowGitHubDeploymentDialog(true);
@@ -113,7 +113,7 @@ export const DeployButton = ({
       } else {
         const result = await handleGitLabDeploy();
 
-        if (result && result.success && result.files) {
+        if (result && result.success && result.files && Object.keys(result.files).length > 0) {
           setGitlabDeploymentFiles(result.files);
           setGitlabProjectName(result.projectName);
           setShowGitLabDeploymentDialog(true);

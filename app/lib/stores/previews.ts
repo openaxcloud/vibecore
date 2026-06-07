@@ -137,6 +137,10 @@ export class PreviewsStore {
 
   // Sync storage data between tabs
   private _syncStorage(storage: Record<string, string>) {
+    if (this.#disposed) {
+      return;
+    }
+
     if (typeof window !== 'undefined') {
       Object.entries(storage).forEach(([key, value]) => {
         try {
@@ -197,7 +201,7 @@ export class PreviewsStore {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
 
-        if (key) {
+        if (key && !this.#nonSyncedStorageKeys.has(key)) {
           storage[key] = localStorage.getItem(key) || '';
         }
       }
@@ -335,6 +339,11 @@ export class PreviewsStore {
 
     // Set a new timeout for this refresh
     const timeout = setTimeout(() => {
+      if (this.#disposed) {
+        this.#refreshTimeouts.delete(previewId);
+        return;
+      }
+
       const previews = this.previews.get();
       const preview = previews.find((p) => this.getPreviewId(p.baseUrl) === previewId);
 
@@ -343,6 +352,10 @@ export class PreviewsStore {
         this.previews.set([...previews]);
 
         requestAnimationFrame(() => {
+          if (this.#disposed) {
+            return;
+          }
+
           preview.ready = true;
           this.previews.set([...previews]);
         });

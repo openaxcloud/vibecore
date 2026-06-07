@@ -142,7 +142,7 @@ export default function ProjectDeploymentsPage() {
               tone={latest?.status === 'READY' ? 'good' : 'muted'}
             />
             <Metric label="Environment" value={latest?.environment ?? 'Not deployed'} />
-            <Metric label="Live URL" value={latest?.url ? new URL(latest.url).hostname : 'No URL'} />
+            <Metric label="Live URL" value={safeHostname(latest?.url) ?? 'No URL'} />
           </div>
 
           <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-md">
@@ -423,12 +423,25 @@ function Field({
   );
 }
 
+function safeHostname(url?: string): string | null {
+  if (!url) {
+    return null;
+  }
+
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
+
 function parseEnvVars(value: string) {
   return Object.fromEntries(
     value
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)
+      .filter((line) => line.includes('='))
       .map((line) => {
         const [key, ...rest] = line.split('=');
         return [key.trim(), rest.join('=').trim()];
