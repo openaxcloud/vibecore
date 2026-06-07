@@ -129,7 +129,11 @@ export const Terminal = memo(
       }, []);
 
       useEffect(() => {
-        const terminal = terminalRef.current!;
+        const terminal = terminalRef.current;
+
+        if (!terminal) {
+          return;
+        }
 
         // we render a transparent cursor in case the terminal is readonly
         terminal.options.theme = getTerminalTheme(readonly ? { cursor: '#00000000' } : {});

@@ -95,7 +95,11 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
   const activeSessionLabel = getSessionLabel(activeTerminal);
 
   const addTerminal = useCallback(() => {
-    if (terminalCount < MAX_TERMINALS) {
+    /*
+     * terminalCount counts the *extra* shells beyond the bolt terminal (index 0),
+     * and the render loops draw terminalCount + 1 panes, so the cap is MAX_TERMINALS - 1.
+     */
+    if (terminalCount < MAX_TERMINALS - 1) {
       const nextCount = terminalCount + 1;
       setTerminalCount(nextCount);
       setActiveTerminal(nextCount);
@@ -411,7 +415,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       </div>
                     );
                   })}
-                  {terminalCount < MAX_TERMINALS ? (
+                  {terminalCount < MAX_TERMINALS - 1 ? (
                     <button type="button" className="bolt-terminal-session-new" role="menuitem" onClick={addTerminal}>
                       <span className="i-ph:plus" aria-hidden />
                       <span>New Shell</span>

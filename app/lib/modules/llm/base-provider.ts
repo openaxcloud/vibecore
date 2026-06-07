@@ -33,7 +33,13 @@ export abstract class BaseProvider implements ProviderInfo {
 
     return Object.entries(env).reduce(
       (acc, [key, value]) => {
-        acc[key] = String(value);
+        /*
+         * Skip unset bindings so they don't become the literal strings
+         * "undefined"/"null", which would later pass the API-key string guard.
+         */
+        if (value !== undefined && value !== null) {
+          acc[key] = String(value);
+        }
 
         return acc;
       },
@@ -76,7 +82,7 @@ export abstract class BaseProvider implements ProviderInfo {
 
     const manager = LLMManager.getInstance();
 
-    if (settingsBaseUrl && settingsBaseUrl.length === 0) {
+    if (settingsBaseUrl !== undefined && settingsBaseUrl.trim().length === 0) {
       settingsBaseUrl = undefined;
     }
 

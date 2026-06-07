@@ -59,8 +59,16 @@ export function getCompletionTokenLimit(modelDetails: any): number {
 }
 
 function sanitizeText(text: string): string {
-  let sanitized = text.replace(/<div class=\\"__boltThought__\\">.*?<\/div>/s, '');
-  sanitized = sanitized.replace(/<think>.*?<\/think>/s, '');
+  /*
+   * Assistant messages can carry their payload in `parts` only, leaving `content`
+   * undefined; calling `.replace` on that would throw and kill the whole stream.
+   */
+  if (typeof text !== 'string') {
+    return text;
+  }
+
+  let sanitized = text.replace(/<div class=\\"__boltThought__\\">.*?<\/div>/gs, '');
+  sanitized = sanitized.replace(/<think>.*?<\/think>/gs, '');
   sanitized = sanitized.replace(/<boltAction type="file" filePath="package-lock\.json">[\s\S]*?<\/boltAction>/g, '');
 
   return sanitized.trim();
