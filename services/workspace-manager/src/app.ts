@@ -115,7 +115,24 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.get('/health', async () => ({ status: 'ok' }));
   app.post('/workspaces/start', async (request) => manager.startWorkspace(startSchema.parse(request.body)));
   app.get('/workspaces/:workspaceId', async (request) => manager.store.get((request.params as any).workspaceId));
-  app.get('/workspaces/:workspaceId/agent-token', async (request) => ({ token: manager.issueAgentToken((request.params as any).workspaceId) }));
+  app.get('/workspaces/:workspaceId/agent-token', async (request) => {
+    const workspaceId = (request.params as any).workspaceId;
+    /*
+     * Minting a token means the api is about to act on the workspace for a user
+     * — and the IDE's file/port watch pollers mint one every few seconds for the
+     * whole session — so treat it as activity. Without this the inactivity GC
+     * reaps live workspaces (blank preview until reload). Fire-and-forget and
+     * throttled so it never adds latency to the token mint.
+     */
+    void manager.touch(workspaceId).catch(() => undefined);
+    return { token: manager.issueAgentToken(workspaceId) };
+  });
+  // Explicit activity heartbeat for callers that keep a workspace open without
+  // minting tokens; same throttled bump as the agent-token side effect.
+  app.post('/workspaces/:workspaceId/touch', async (request) => {
+    const touched = await manager.touch((request.params as any).workspaceId);
+    return { ok: true, lastActiveAt: touched?.lastActiveAt };
+  });
   app.get('/workspaces/:workspaceId/logs', async (request) => {
     const logs = [];
     for await (const line of await manager.streamLogs(runtimeNamespace(), (request.params as any).workspaceId)) {

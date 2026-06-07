@@ -12,6 +12,16 @@ import {
 
 export type WorkspaceStatus = 'STARTING' | 'RUNNING' | 'STOPPED' | 'FAILED' | 'DELETED';
 
+/*
+ * Activity touches (see WorkspaceManager.touch) are throttled to at most one
+ * persisted write per workspace per this window. The IDE's file- and port-watch
+ * WebSockets fetch an agent token every 2-5s for the entire time a project is
+ * open, so without throttling every poll would be a DB write. The inactivity GC
+ * window is measured in minutes, so 30s granularity keeps a live session's
+ * lastActiveAt comfortably ahead of the reaper at negligible write cost.
+ */
+export const WORKSPACE_ACTIVITY_TOUCH_INTERVAL_MS = 30_000;
+
 export interface WorkspaceRecord {
   id: string;
   orgId: string;
@@ -113,6 +123,15 @@ export interface StartWorkspaceInput {
 }
 
 export class WorkspaceManager {
+  /*
+   * Per-workspace timestamp of the last persisted activity touch, used to
+   * throttle writes (see touch()). In-memory and per-replica: a split across
+   * the two manager replicas only means up to one extra write per window, which
+   * is harmless — lastActiveAt still advances monotonically. Reset on restart
+   * and pruned on stop/delete.
+   */
+  private readonly lastTouchAt = new Map<string, number>();
+
   constructor(
     readonly store: WorkspaceStore,
     readonly k8s: WorkspaceK8sClient,
@@ -186,6 +205,9 @@ export class WorkspaceManager {
     const workspace = await this.requireWorkspace(workspaceId);
     await this.k8s.delete('Pod', namespace, workspace.podName);
     const stopped = await this.store.update(workspaceId, { status: 'STOPPED' });
+    // Drop the throttle marker so a later reopen (same deterministic id) touches
+    // immediately instead of waiting out a stale window.
+    this.lastTouchAt.delete(workspaceId);
     await this.publish(stopped, 'workspace.stopped');
     return stopped;
   }
@@ -204,6 +226,7 @@ export class WorkspaceManager {
       this.k8s.delete('PersistentVolumeClaim', namespace, workspace.pvcName),
     ]);
     const deleted = await this.store.update(workspaceId, { status: 'DELETED' });
+    this.lastTouchAt.delete(workspaceId);
     await this.publish(deleted, 'workspace.deleted');
     return deleted;
   }
@@ -257,6 +280,44 @@ export class WorkspaceManager {
 
   issueAgentToken(workspaceId: string, expiresInMs = 60_000) {
     return signAgentToken({ workspaceId, expiresAt: Date.now() + expiresInMs, secret: this.tokenSecret });
+  }
+
+  /**
+   * Record that a workspace is actively in use, bumping its lastActiveAt so the
+   * inactivity GC does not stop a session the user is still working in. The api
+   * calls this (fire-and-forget) every time it mints an agent token on a user's
+   * behalf — i.e. on every runtime request and, crucially, on every tick of the
+   * always-open file/port watch pollers — so an open IDE keeps its workspace
+   * alive without any explicit heartbeat.
+   *
+   * Previously lastActiveAt was stamped only at start, so the GC reaped any
+   * session that outlived the inactivity window (default 30m) regardless of how
+   * actively it was being used, killing live workspaces mid-edit and leaving the
+   * preview blank until the user reloaded.
+   *
+   * Only RUNNING workspaces are touched: bumping a STOPPED/FAILED row would keep
+   * the delete-window reaper from ever cleaning it up, and STARTING rows are
+   * already freshly stamped by startWorkspace. Writes are throttled to one per
+   * WORKSPACE_ACTIVITY_TOUCH_INTERVAL_MS since the watch pollers fire every few
+   * seconds.
+   */
+  async touch(workspaceId: string) {
+    const now = Date.now();
+    const last = this.lastTouchAt.get(workspaceId) ?? 0;
+
+    if (now - last < WORKSPACE_ACTIVITY_TOUCH_INTERVAL_MS) {
+      return undefined;
+    }
+
+    this.lastTouchAt.set(workspaceId, now);
+
+    const workspace = await this.store.get(workspaceId);
+
+    if (!workspace || workspace.status !== 'RUNNING') {
+      return workspace;
+    }
+
+    return this.store.update(workspaceId, { lastActiveAt: new Date(now).toISOString() });
   }
 
   private async waitForReadiness(namespace: string, podName: string) {

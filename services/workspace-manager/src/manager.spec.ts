@@ -256,4 +256,59 @@ describe('WorkspaceManager', () => {
     expect(k8s.objects.has('workspaces:PersistentVolumeClaim:pvc-workspace_1')).toBe(true);
     expect(k8s.events).not.toContain('delete:PersistentVolumeClaim:pvc-workspace_1');
   });
+
+  it('touch() bumps lastActiveAt for a RUNNING workspace and spares it from the GC', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+    // Simulate a session that has been open past the inactivity window with the
+    // start-time stamp never refreshed — exactly the state that used to get reaped.
+    await store.update(input.workspaceId, { lastActiveAt: new Date(Date.now() - 60 * 60 * 1000).toISOString() });
+
+    const touched = await manager.touch(input.workspaceId);
+    expect(touched?.status).toBe('RUNNING');
+    expect(Date.now() - new Date((await store.get(input.workspaceId))!.lastActiveAt).getTime()).toBeLessThan(5_000);
+
+    // The reaper must now leave the freshly-touched live workspace alone.
+    await manager.garbageCollect('workspaces', 5 * 60 * 1000, 30 * 60 * 1000);
+    expect((await store.get(input.workspaceId))?.status).toBe('RUNNING');
+  });
+
+  it('throttles touch() writes within the activity window', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    let writes = 0;
+    class CountingStore extends TestWorkspaceStore {
+      override async update(workspaceId: string, patch: Partial<WorkspaceRecord>) {
+        writes += 1;
+        return super.update(workspaceId, patch);
+      }
+    }
+    const store = new CountingStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input); // start performs its own updates
+    writes = 0;
+
+    expect(await manager.touch(input.workspaceId)).toBeDefined(); // first touch persists
+    expect(await manager.touch(input.workspaceId)).toBeUndefined(); // throttled, no write
+    expect(await manager.touch(input.workspaceId)).toBeUndefined();
+    expect(writes).toBe(1);
+  });
+
+  it('does not bump or resurrect a STOPPED workspace via touch()', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+    await manager.stopWorkspace('workspaces', input.workspaceId);
+    const stoppedAt = (await store.get(input.workspaceId))!.lastActiveAt;
+
+    const result = await manager.touch(input.workspaceId);
+    expect(result?.status).toBe('STOPPED');
+    // lastActiveAt must stay frozen so the delete-window reaper can still collect it.
+    expect((await store.get(input.workspaceId))!.lastActiveAt).toBe(stoppedAt);
+  });
 });
