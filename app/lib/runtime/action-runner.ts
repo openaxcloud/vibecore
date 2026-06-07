@@ -419,6 +419,15 @@ export class ActionRunner {
 
     const timeout = new Promise<never>((_, reject) => {
       timeoutId = setTimeout(() => {
+        /*
+         * If the action was already aborted, the underlying promise is settling on
+         * its own; surfacing a timeout here would mask the abort with a misleading
+         * "timed out" error and defeat the retry/abort handling upstream.
+         */
+        if (action.abortSignal.aborted) {
+          return;
+        }
+
         reject(new ToolTimeoutError(action.type, timeoutMs));
       }, timeoutMs);
     });
@@ -482,8 +491,12 @@ export class ActionRunner {
     });
     logger.debug(`${action.type} Shell Response: [exit code:${resp?.exitCode}]`);
 
-    if (resp?.exitCode != 0) {
-      const enhancedError = this.#createEnhancedShellError(action.content, resp?.exitCode, resp?.output);
+    if (!resp || resp.exitCode !== 0) {
+      const enhancedError = this.#createEnhancedShellError(
+        action.content,
+        resp?.exitCode ?? 1,
+        resp?.output ?? 'No response from shell',
+      );
       throw new ActionCommandError(enhancedError.title, enhancedError.details);
     }
   }

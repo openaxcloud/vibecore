@@ -190,7 +190,7 @@ export class StreamingMessageParser {
 
             if ('type' in currentAction && currentAction.type === 'file') {
               // Remove markdown code block syntax if present and file is not markdown
-              if (!currentAction.filePath.endsWith('.md')) {
+              if (!currentAction.filePath?.endsWith('.md')) {
                 content = cleanFileActionContent(content);
               }
 
@@ -221,7 +221,7 @@ export class StreamingMessageParser {
             if ('type' in currentAction && currentAction.type === 'file') {
               let content = input.slice(i);
 
-              if (!currentAction.filePath.endsWith('.md')) {
+              if (!currentAction.filePath?.endsWith('.md')) {
                 content = cleanFileActionContent(content);
               }
 

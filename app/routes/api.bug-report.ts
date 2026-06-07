@@ -68,7 +68,11 @@ function getClientIP(request: Request): string {
   const xForwardedFor = request.headers.get('x-forwarded-for');
   const xRealIP = request.headers.get('x-real-ip');
 
-  return cfConnectingIP || xForwardedFor?.split(',')[0] || xRealIP || 'unknown';
+  /*
+   * Trim the first X-Forwarded-For hop so whitespace variations don't produce
+   * distinct rate-limit keys for the same client (a trivial limit bypass).
+   */
+  return cfConnectingIP || xForwardedFor?.split(',')[0]?.trim() || xRealIP || 'unknown';
 }
 
 // Basic spam detection
@@ -212,6 +216,10 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
     // Create GitHub issue
     const [owner, repo] = targetRepo.split('/');
+
+    if (!owner || !repo) {
+      return json({ error: 'Bug report repository is misconfigured. Expected "owner/repo" format.' }, { status: 500 });
+    }
 
     const issue = await octokit.rest.issues.create({
       owner,

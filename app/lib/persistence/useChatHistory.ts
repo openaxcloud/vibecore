@@ -178,7 +178,7 @@ export function useChatHistory() {
               startingIdx = snapshotIndex;
             }
 
-            if (snapshotIndex > 0 && storedMessages.messages[snapshotIndex].id == rewindId) {
+            if (snapshotIndex > 0 && storedMessages.messages[snapshotIndex].id === rewindId) {
               startingIdx = -1;
             }
 

@@ -4890,7 +4890,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         };
 
         setRecognition(recognition);
+
+        return () => {
+          /*
+           * Tear down the recognizer on unmount so it stops capturing the mic
+           * and releases the underlying SpeechRecognition resource.
+           */
+          recognition.onresult = null;
+          recognition.onerror = null;
+
+          try {
+            recognition.abort();
+          } catch {
+            // abort() throws if recognition was never started; ignore.
+          }
+        };
       }
+
+      return undefined;
     }, []);
 
     useEffect(() => {
@@ -4907,7 +4924,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         setIsModelLoading('all');
         fetch('/api/models')
-          .then((response) => response.json())
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`Failed to fetch model list: ${response.status}`);
+            }
+
+            return response.json();
+          })
           .then((data) => {
             setModelList(modelListFromResponse(data));
           })
@@ -4931,6 +4954,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       try {
         const response = await fetch(`/api/models/${encodeURIComponent(providerName)}`);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch models for ${providerName}: ${response.status}`);
+        }
+
         const data = await response.json();
         providerModels = modelListFromResponse(data);
       } catch (error) {
@@ -4996,6 +5024,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             setUploadedFiles?.([...uploadedFiles, file]);
             setImageDataList?.([...imageDataList, base64Image]);
           };
+
+          reader.onerror = () => {
+            console.error('Failed to read uploaded file:', file.name, reader.error);
+            toast.error('Failed to read the selected image. Please try again.');
+          };
           reader.readAsDataURL(file);
         }
       };
@@ -5023,6 +5056,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               const base64Image = e.target?.result as string;
               setUploadedFiles?.([...uploadedFiles, file]);
               setImageDataList?.([...imageDataList, base64Image]);
+            };
+
+            reader.onerror = () => {
+              console.error('Failed to read pasted file:', file.name, reader.error);
+              toast.error('Failed to read the pasted image. Please try again.');
             };
             reader.readAsDataURL(file);
           }

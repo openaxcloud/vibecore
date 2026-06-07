@@ -40,5 +40,14 @@ export const loader: LoaderFunction = async ({ context, request }) => {
     }
   }
 
-  return Response.json(apiKeys);
+  /*
+   * These are credentials — forbid any intermediary or browser caching so the
+   * secrets never land in a shared cache, the browser disk cache, or history.
+   */
+  return Response.json(apiKeys, {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      Pragma: 'no-cache',
+    },
+  });
 };

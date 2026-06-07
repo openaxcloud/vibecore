@@ -249,12 +249,21 @@ const FileModifiedDropdown = memo(
 
                                         return changes.reduce(
                                           (acc: { additions: number; deletions: number }, change: Change) => {
+                                            /*
+                                             * jsdiff line chunks end with a trailing newline, so a naive
+                                             * split('\n') yields a spurious empty final segment that inflates
+                                             * the count by one. Prefer the library-provided line count, and
+                                             * fall back to a trailing-newline-stripped split.
+                                             */
+                                            const lineCount =
+                                              change.count ?? change.value.replace(/\n$/, '').split('\n').length;
+
                                             if (change.added) {
-                                              acc.additions += change.value.split('\n').length;
+                                              acc.additions += lineCount;
                                             }
 
                                             if (change.removed) {
-                                              acc.deletions += change.value.split('\n').length;
+                                              acc.deletions += lineCount;
                                             }
 
                                             return acc;
@@ -300,12 +309,20 @@ const FileModifiedDropdown = memo(
                     <div className="border-t border-bolt-elements-borderColor p-2">
                       <button
                         onClick={() => {
+                          /*
+                           * Only confirm success once the clipboard write actually resolves,
+                           * otherwise the toast lies when the API is blocked or permission is denied.
+                           */
                           navigator.clipboard
                             ?.writeText(filteredFiles.map(([filePath]) => filePath).join('\n'))
-                            ?.catch(() => {});
-                          toast('File list copied to clipboard', {
-                            icon: <div className="i-ph:check-circle text-accent-500" />,
-                          });
+                            ?.then(() => {
+                              toast('File list copied to clipboard', {
+                                icon: <div className="i-ph:check-circle text-accent-500" />,
+                              });
+                            })
+                            ?.catch(() => {
+                              toast.error('Failed to copy file list to clipboard');
+                            });
                         }}
                         className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-bolt-elements-background-depth-1 hover:bg-bolt-elements-background-depth-3 transition-colors text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary"
                       >

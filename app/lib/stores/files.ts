@@ -165,7 +165,9 @@ export class FilesStore {
     this.#size = 0;
     this.#modifiedFiles.clear();
 
-    void this.#init();
+    void this.#init().catch((error) => {
+      logger.error('Failed to initialize FilesStore', error);
+    });
   }
 
   async reloadFromRuntime(rootPath = '.') {

@@ -602,7 +602,20 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       }
 
       try {
-        socket = await this.#openSocket(path, hello);
+        const opened = await this.#openSocket(path, hello);
+
+        /*
+         * The watch may have been stopped while #openSocket was in flight. If we
+         * attach listeners now they will never be torn down (the stop handler
+         * already ran against the previous socket reference), leaking the socket
+         * and continuing to deliver messages after the caller stopped watching.
+         */
+        if (stopped) {
+          opened.close();
+          return;
+        }
+
+        socket = opened;
         attempts = 0;
         socket.addEventListener('message', safeOnMessage);
         socket.addEventListener('close', scheduleReconnect);
