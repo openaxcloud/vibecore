@@ -22,12 +22,18 @@ export default function ProjectActivityPage() {
     >
       <ActivityList
         items={
-          data.activity.length
-            ? data.activity.map((event) => ({
-                title: event.action,
-                detail: event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Recorded by API',
-                icon: Activity,
-              }))
+          data.activity?.length
+            ? data.activity.map((event) => {
+                const parsed = event.createdAt ? new Date(event.createdAt) : null;
+
+                const detail = parsed && !Number.isNaN(parsed.getTime()) ? parsed.toLocaleString() : 'Recorded by API';
+
+                return {
+                  title: event.action,
+                  detail,
+                  icon: Activity,
+                };
+              })
             : [
                 {
                   title: 'No activity yet',

@@ -1,7 +1,8 @@
 import { promises as dnsPromises } from 'node:dns';
-import { hashToken } from '@vibecore/auth';
-import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
+import { hashToken } from '@vibecore/auth';
+import type { PlanKey, QuotaKey } from '@vibecore/billing';
+import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { API_KEY_SCOPES } from './store.js';
 import type {
@@ -61,7 +62,6 @@ import type {
   QuotaOverrideRecord,
   AdminAuditLogRecord,
 } from './store.js';
-import type { PlanKey, QuotaKey } from '@vibecore/billing';
 
 function now() {
   return new Date().toISOString();
@@ -94,6 +94,7 @@ function assertFound<T>(value: T | null | undefined, message: string, code: stri
 export class PrismaApiStore implements ApiStore {
   constructor(
     readonly prisma: DatabaseClient = createDatabaseClient(),
+
     /**
      * DNS TXT resolver used by {@link verifyDomain}. Injectable so tests can
      * exercise domain verification without hitting real DNS; defaults to the
@@ -145,6 +146,7 @@ export class PrismaApiStore implements ApiStore {
           email: input.email?.toLowerCase(),
           name: input.name,
           passwordHash: input.passwordHash,
+
           /*
            * `emailVerifiedAt: null` clears verification (e.g. when the user
            * changes their email and must re-verify the new address); a string
@@ -160,6 +162,7 @@ export class PrismaApiStore implements ApiStore {
           mfaEnabled: input.mfaEnabled,
           mfaSecretCiphertext: input.mfaSecretEncrypted,
           platformAdmin: input.platformAdmin,
+
           /*
            * `language: null` clears the column (Prisma differentiates null
            * from undefined: undefined skips the field, null writes NULL).
@@ -168,6 +171,7 @@ export class PrismaApiStore implements ApiStore {
            */
           language: input.language === undefined ? undefined : input.language,
           timezone: input.timezone === undefined ? undefined : input.timezone,
+
           /*
            * Json columns need Prisma's sentinel to write a NULL: a bare
            * `null` is ambiguous (JSON null vs SQL NULL), so we map `null` →
@@ -262,8 +266,24 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async markSessionReauthenticated(sessionId: string) {
-    const session = await this.prisma.session.update({ where: { id: sessionId }, data: { lastReauthAt: new Date() } });
-    return mapSession(session);
+    /*
+     * The interface returns SessionRecord | undefined, so a vanished session must
+     * resolve to undefined rather than crash. update({ where: { id } }) throws an
+     * unhandled P2025 when the row was revoked-and-purged between auth and here;
+     * updateMany gated on a live (non-revoked) session returns count 0 instead.
+     */
+    const updated = await this.prisma.session.updateMany({
+      where: { id: sessionId, revokedAt: null },
+      data: { lastReauthAt: new Date() },
+    });
+
+    if (updated.count === 0) {
+      return undefined;
+    }
+
+    const session = await this.prisma.session.findUnique({ where: { id: sessionId } });
+
+    return session ? mapSession(session) : undefined;
   }
 
   async createEmailVerification(input: { userId: string; token: string; expiresAt: Date }) {
@@ -319,10 +339,16 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async setRecoveryCodes(userId: string, codeHashes: string[]) {
-    await this.prisma.mfaRecoveryCode.deleteMany({ where: { userId } });
-    const records = await Promise.all(
-      codeHashes.map((codeHash) => this.prisma.mfaRecoveryCode.create({ data: { userId, codeHash } })),
-    );
+    /*
+     * Wipe-then-recreate must be atomic: if a create rejected mid-loop the user
+     * would be left with the old codes already deleted but only a partial new
+     * set persisted, silently invalidating recovery access. Run both writes in
+     * one transaction so the regenerate either fully lands or fully rolls back.
+     */
+    const records = await this.prisma.$transaction(async (tx) => {
+      await tx.mfaRecoveryCode.deleteMany({ where: { userId } });
+      return Promise.all(codeHashes.map((codeHash) => tx.mfaRecoveryCode.create({ data: { userId, codeHash } })));
+    });
     return records.map(
       (record): RecoveryCodeRecord => ({
         id: record.id,
@@ -344,6 +370,7 @@ export class PrismaApiStore implements ApiStore {
 
   async createOrganization(input: { name: string; slug: string; ownerUserId: string }) {
     const ownerRole = await this.ensureRole('owner');
+
     const organization = await this.prisma.organization.create({
       data: {
         name: input.name,
@@ -351,6 +378,7 @@ export class PrismaApiStore implements ApiStore {
         members: { create: { userId: input.ownerUserId, roleId: ownerRole.id } },
       },
     });
+
     return mapOrganization(organization);
   }
 
@@ -370,12 +398,14 @@ export class PrismaApiStore implements ApiStore {
 
   async addMember(input: { organizationId: string; userId: string; roleKey: string }) {
     const role = await this.ensureRole(input.roleKey);
+
     const membership = await this.prisma.organizationMember.upsert({
       where: { organizationId_userId: { organizationId: input.organizationId, userId: input.userId } },
       create: { organizationId: input.organizationId, userId: input.userId, roleId: role.id },
       update: { roleId: role.id },
       include: { role: true },
     });
+
     return mapMembership(membership);
   }
 
@@ -403,7 +433,18 @@ export class PrismaApiStore implements ApiStore {
       return undefined;
     }
 
-    await this.prisma.organizationMember.delete({ where: { id: membership.id } });
+    /*
+     * Delete via deleteMany gated on count rather than delete({ where: { id } }):
+     * between the lookup above and this write a concurrent removeMember() can
+     * delete the same row, and delete() would then throw an unhandled P2025.
+     * deleteMany returns count 0 in that case, which we surface as "already gone".
+     */
+    const deleted = await this.prisma.organizationMember.deleteMany({ where: { id: membership.id } });
+
+    if (deleted.count === 0) {
+      return undefined;
+    }
+
     return mapMembership(membership);
   }
 
@@ -417,23 +458,42 @@ export class PrismaApiStore implements ApiStore {
     gitRepositoryUrl?: string;
     gitDefaultBranch?: string;
   }) {
-    const slug = await this.nextProjectSlug(input.organizationId, projectSlugBase(input));
+    const base = projectSlugBase(input);
 
-    return mapProject(
-      await this.prisma.project.create({
-        data: {
-          organizationId: input.organizationId,
-          name: input.name,
-          slug,
-          description: input.description,
-          sourceType: input.sourceType ?? 'blank',
-          templateName: input.templateName,
-          gitRepositoryUrl: input.gitRepositoryUrl,
-          gitDefaultBranch: input.gitDefaultBranch,
-          persistentVolumeClaim: `pvc-${input.organizationId}-${slug}`,
-        },
-      }),
-    );
+    /*
+     * nextProjectSlug() only reads to find a free slug; between that read and the
+     * create below a concurrent createProject() in the same org can grab the same
+     * candidate, so the second insert violates @@unique([organizationId, slug])
+     * with P2002. Retry on that specific collision (re-allocating the slug each
+     * time) instead of crashing the request.
+     */
+    for (let attempt = 0; ; attempt += 1) {
+      const slug = await this.nextProjectSlug(input.organizationId, base);
+
+      try {
+        return mapProject(
+          await this.prisma.project.create({
+            data: {
+              organizationId: input.organizationId,
+              name: input.name,
+              slug,
+              description: input.description,
+              sourceType: input.sourceType ?? 'blank',
+              templateName: input.templateName,
+              gitRepositoryUrl: input.gitRepositoryUrl,
+              gitDefaultBranch: input.gitDefaultBranch,
+              persistentVolumeClaim: `pvc-${input.organizationId}-${slug}`,
+            },
+          }),
+        );
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002' && attempt < 5) {
+          continue;
+        }
+
+        throw error;
+      }
+    }
   }
 
   private async nextProjectSlug(organizationId: string, baseSlug: string) {
@@ -588,6 +648,7 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.projectSecret.findMany({ where: { projectId } })).map((secret) => {
       const safe = mapSecret(secret);
       const { valueEncrypted: _valueEncrypted, ...rest } = safe;
+
       return rest;
     });
   }
@@ -652,11 +713,13 @@ export class PrismaApiStore implements ApiStore {
       };
     }
 
-    // Bound the query so a long-lived project's activity table (one row per AI
-    // action / file save / deploy) can't be loaded wholesale into memory. With
-    // no search filter, `take: limit` is identical to the old fetch-all + slice.
-    // With a search filter we still need to scan more rows than we return, so we
-    // cap at a generous safety ceiling rather than fetching the entire table.
+    /*
+     * Bound the query so a long-lived project's activity table (one row per AI
+     * action / file save / deploy) can't be loaded wholesale into memory. With
+     * no search filter, `take: limit` is identical to the old fetch-all + slice.
+     * With a search filter we still need to scan more rows than we return, so we
+     * cap at a generous safety ceiling rather than fetching the entire table.
+     */
     const SAFETY_CAP = 1000;
     const search = options.search?.trim().toLowerCase();
     const take = search ? SAFETY_CAP : (limit ?? SAFETY_CAP);
@@ -925,16 +988,20 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async createWorkspace(input: { id?: string; projectId: string; name: string; runtimeMode: string }) {
-    // Persist the created workspace first so Prisma can mint the id when the
-    // caller doesn't supply one. Once we have the id, allocate a relative
-    // gitPath under the project storage root so each workspace has its own
-    // isolated git working tree. Both writes share an interactive transaction
-    // so a crash between them can never leave a row with a null gitPath.
+    /*
+     * Persist the created workspace first so Prisma can mint the id when the
+     * caller doesn't supply one. Once we have the id, allocate a relative
+     * gitPath under the project storage root so each workspace has its own
+     * isolated git working tree. Both writes share an interactive transaction
+     * so a crash between them can never leave a row with a null gitPath.
+     */
     const updated = await this.prisma.$transaction(async (tx) => {
       const created = await tx.workspace.create({
         data: { ...input, status: 'PENDING' },
       });
+
       const gitPath = workspaceRelativeGitPath(created.id);
+
       return tx.workspace.update({
         where: { id: created.id },
         data: { gitPath },
@@ -969,11 +1036,13 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async countDeployments(organizationId: string) {
-    // Failed/canceled builds must not count against the deployment quota — they
-    // produced no live deployment. Counting every row (the create handler
-    // persists a QUEUED row before building, left FAILED on error) permanently
-    // consumed quota: free plan (limit 0) blocked all deploys after one failed
-    // build, and paid plans locked out once enough builds had failed.
+    /*
+     * Failed/canceled builds must not count against the deployment quota — they
+     * produced no live deployment. Counting every row (the create handler
+     * persists a QUEUED row before building, left FAILED on error) permanently
+     * consumed quota: free plan (limit 0) blocked all deploys after one failed
+     * build, and paid plans locked out once enough builds had failed.
+     */
     return this.prisma.deployment.count({
       where: { project: { organizationId, deletedAt: null }, status: { notIn: ['FAILED', 'CANCELED'] } },
     });
@@ -1168,11 +1237,40 @@ export class PrismaApiStore implements ApiStore {
       );
     }
 
-    return mapFeatureFlag(
-      await this.prisma.featureFlag.create({
-        data: { organizationId: input.organizationId, key: input.key, enabled: input.enabled, rules },
-      }),
-    );
+    /*
+     * `[organizationId, key]` is unique, but organizationId is nullable so we
+     * can't drive a Prisma upsert through the compound key for the global
+     * (null-org) case. Two concurrent calls can both miss the findFirst above
+     * and the second create() then violates the unique constraint, surfacing as
+     * an uncoded 500 / duplicate row. Treat P2002 as "another writer won the
+     * race" and fall back to updating the row they inserted.
+     */
+    try {
+      return mapFeatureFlag(
+        await this.prisma.featureFlag.create({
+          data: { organizationId: input.organizationId, key: input.key, enabled: input.enabled, rules },
+        }),
+      );
+    } catch (error) {
+      if ((error as { code?: string })?.code !== 'P2002') {
+        throw error;
+      }
+
+      const winner = await this.prisma.featureFlag.findFirst({
+        where: { organizationId: input.organizationId ?? null, key: input.key },
+      });
+
+      if (!winner) {
+        throw error;
+      }
+
+      return mapFeatureFlag(
+        await this.prisma.featureFlag.update({
+          where: { id: winner.id },
+          data: { enabled: input.enabled, ...(rules ? { rules } : {}) },
+        }),
+      );
+    }
   }
 
   async listFeatureFlags(organizationId?: string) {
@@ -1313,6 +1411,7 @@ export class PrismaApiStore implements ApiStore {
 
   async verifyDomain(input: { organizationId: string; domain: string }) {
     const domain = input.domain.toLowerCase();
+
     const record = await this.prisma.verifiedDomain.findUnique({
       where: { organizationId_domain: { organizationId: input.organizationId, domain } },
     });
@@ -1337,12 +1436,21 @@ export class PrismaApiStore implements ApiStore {
       txtRecords = await this.resolveTxt(host);
     } catch (error: any) {
       const code = error?.code as string | undefined;
+
       const message =
         code === 'ENOTFOUND' || code === 'ENODATA'
           ? `No TXT record found at ${host}. Add a TXT record with value "${expected}" and try again once DNS propagates.`
           : `DNS lookup for ${host} failed (${code ?? error?.message ?? 'unknown error'}). Try again shortly.`;
 
-      await this.prisma.verifiedDomain.update({ where: { id: record.id }, data: { sslStatus: 'failed' } });
+      /*
+       * A missing TXT record (ENOTFOUND/ENODATA) or a transient resolver error
+       * is not a terminal failure — the operator is told to retry once DNS
+       * propagates. Marking the domain `failed` here stuck the UI on a dead-end
+       * state for a record that was simply not published yet. Keep it
+       * `pending_dns` so the verification flow remains resumable; only a real
+       * value mismatch (below) is a genuine failure.
+       */
+      await this.prisma.verifiedDomain.update({ where: { id: record.id }, data: { sslStatus: 'pending_dns' } });
 
       throw Object.assign(new Error(message), { statusCode: 422, code: 'DOMAIN_VERIFICATION_FAILED' });
     }
@@ -1436,9 +1544,20 @@ export class PrismaApiStore implements ApiStore {
       return undefined;
     }
 
-    return mapScimToken(
-      await this.prisma.scimToken.update({ where: { id: record.id }, data: { lastUsedAt: new Date() } }),
-    );
+    /*
+     * A SCIM token can be revoked (deleted) concurrently with a request that is
+     * authenticating against it; the lastUsedAt bump would then throw P2025 and
+     * surface as a 500 on the auth path instead of the caller's intended 401.
+     * Mirror the row-may-be-gone convention used elsewhere in this store and
+     * return undefined (treated as "invalid token") rather than crashing.
+     */
+    try {
+      return mapScimToken(
+        await this.prisma.scimToken.update({ where: { id: record.id }, data: { lastUsedAt: new Date() } }),
+      );
+    } catch {
+      return undefined;
+    }
   }
 
   async listScimTokens(organizationId: string) {
@@ -1555,6 +1674,7 @@ export class PrismaApiStore implements ApiStore {
     expiresAt: Date;
   }) {
     const role = await this.ensureRole(input.roleKey);
+
     const invite = await this.prisma.organizationInvite.create({
       data: {
         organizationId: input.organizationId,
@@ -1565,6 +1685,7 @@ export class PrismaApiStore implements ApiStore {
       },
       include: { role: true },
     });
+
     return mapOrganizationInvite(invite);
   }
 
@@ -1588,6 +1709,7 @@ export class PrismaApiStore implements ApiStore {
     }
 
     const consumedAt = new Date();
+
     const consumed = await this.prisma.organizationInvite.updateMany({
       where: { id: invite.id, acceptedAt: null, expiresAt: { gt: consumedAt } },
       data: { acceptedAt: consumedAt },
@@ -1843,6 +1965,7 @@ export class PrismaApiStore implements ApiStore {
      * most recent N rows, then restore chronological (ascending) order for callers.
      */
     const MAX_AI_MESSAGES = 500;
+
     const rows = await this.prisma.aiMessage.findMany({
       where: { conversationId },
       orderBy: { createdAt: 'desc' },
@@ -1892,10 +2015,12 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listAiCosts(organizationId: string, range?: { from?: string; to?: string }) {
-    // Push the date filter into the query for range-scoped callers (the billing
-    // summary dashboard) instead of loading the org's entire — fastest-growing —
-    // cost ledger into memory and filtering in JS. Callers that need everything
-    // (data export) simply omit the range.
+    /*
+     * Push the date filter into the query for range-scoped callers (the billing
+     * summary dashboard) instead of loading the org's entire — fastest-growing —
+     * cost ledger into memory and filtering in JS. Callers that need everything
+     * (data export) simply omit the range.
+     */
     const where: any = { organizationId };
 
     if (range?.from || range?.to) {
@@ -1973,6 +2098,7 @@ export class PrismaApiStore implements ApiStore {
     currentPeriodEnd?: Date;
   }) {
     const plan = await this.ensurePlan(input.planKey);
+
     const data = {
       organizationId: input.organizationId,
       planId: plan.id,
@@ -1984,9 +2110,11 @@ export class PrismaApiStore implements ApiStore {
       currentPeriodEnd: input.currentPeriodEnd,
     };
 
-    // Common path: Stripe carries the subscription id (externalId). Use a real
-    // upsert keyed on the externalId unique constraint so two concurrent webhook
-    // deliveries can't both miss a find-then-create and insert duplicate rows.
+    /*
+     * Common path: Stripe carries the subscription id (externalId). Use a real
+     * upsert keyed on the externalId unique constraint so two concurrent webhook
+     * deliveries can't both miss a find-then-create and insert duplicate rows.
+     */
     if (input.externalId) {
       return mapSubscription(
         await this.prisma.subscription.upsert({
@@ -1998,10 +2126,12 @@ export class PrismaApiStore implements ApiStore {
       );
     }
 
-    // Fallback (rare): no external id to key on, so the best we can do is
-    // update the most recent row for the org or create one. There's no unique
-    // constraint to make this atomic, but this branch only runs for events that
-    // arrive without a subscription id.
+    /*
+     * Fallback (rare): no external id to key on, so the best we can do is
+     * update the most recent row for the org or create one. There's no unique
+     * constraint to make this atomic, but this branch only runs for events that
+     * arrive without a subscription id.
+     */
     const existing = await this.prisma.subscription.findFirst({
       where: { organizationId: input.organizationId },
       include: { plan: true },
@@ -2102,11 +2232,13 @@ export class PrismaApiStore implements ApiStore {
       return { event: mapStripeEvent(existing), created: false };
     }
 
-    // Stripe delivers retries concurrently; two requests can both pass the findUnique
-    // check, after which the second create() violates the id PK and previously threw an
-    // uncoded 500 (spurious webhook failure + retry). Treat a unique-violation as "already
-    // recorded" so the side-effecting branch (which only runs when created === true) stays
-    // idempotent under concurrency.
+    /*
+     * Stripe delivers retries concurrently; two requests can both pass the findUnique
+     * check, after which the second create() violates the id PK and previously threw an
+     * uncoded 500 (spurious webhook failure + retry). Treat a unique-violation as "already
+     * recorded" so the side-effecting branch (which only runs when created === true) stays
+     * idempotent under concurrency.
+     */
     try {
       const created = await this.prisma.stripeEvent.create({
         data: { id: input.id, organizationId: input.organizationId, type: input.type, payload: input.payload as any },
@@ -2146,11 +2278,13 @@ export class PrismaApiStore implements ApiStore {
       return { event: mapEmailDeliveryEvent(existing), created: false };
     }
 
-    // Mirror recordStripeEvent: email providers (Resend/SES) deliver retries
-    // concurrently, so two requests can both pass the findUnique above and the
-    // second create() then violates the provider_providerEventId unique
-    // constraint — previously an uncoded 500 + provider retry storm. Treat
-    // P2002 as "already recorded" to keep the side-effecting branch idempotent.
+    /*
+     * Mirror recordStripeEvent: email providers (Resend/SES) deliver retries
+     * concurrently, so two requests can both pass the findUnique above and the
+     * second create() then violates the provider_providerEventId unique
+     * constraint — previously an uncoded 500 + provider retry storm. Treat
+     * P2002 as "already recorded" to keep the side-effecting branch idempotent.
+     */
     try {
       const created = await this.prisma.emailDeliveryEvent.create({
         data: {
@@ -2185,9 +2319,18 @@ export class PrismaApiStore implements ApiStore {
 
   async listEmailDeliveryEvents(filter?: { email?: string; type?: string; emailMessageId?: string; limit?: number }) {
     const where: Record<string, unknown> = {};
-    if (filter?.email) where.email = filter.email;
-    if (filter?.type) where.type = filter.type;
-    if (filter?.emailMessageId) where.emailMessageId = filter.emailMessageId;
+
+    if (filter?.email) {
+      where.email = filter.email;
+    }
+
+    if (filter?.type) {
+      where.type = filter.type;
+    }
+
+    if (filter?.emailMessageId) {
+      where.emailMessageId = filter.emailMessageId;
+    }
 
     const rows = await this.prisma.emailDeliveryEvent.findMany({
       where,
@@ -2275,10 +2418,12 @@ export class PrismaApiStore implements ApiStore {
 
   async updateSupportTicket(input: { ticketId: string; status: SupportTicketRecord['status']; response?: string }) {
     const existing = await this.prisma.supportTicket.findUnique({ where: { id: input.ticketId } });
+
     const metadata = {
       ...((existing?.metadata as Record<string, unknown> | null) ?? {}),
       ...(input.response ? { latestAdminResponse: input.response } : {}),
     };
+
     return mapSupportTicket(
       await this.prisma.supportTicket.update({
         where: { id: input.ticketId },
@@ -2289,11 +2434,13 @@ export class PrismaApiStore implements ApiStore {
 
   async updateAbuseEvent(input: { abuseEventId: string; resolved?: boolean }) {
     const existing = await this.prisma.abuseEvent.findUnique({ where: { id: input.abuseEventId } });
+
     const metadata = {
       ...((existing?.metadata as Record<string, unknown> | null) ?? {}),
       resolved: input.resolved ?? true,
       resolvedAt: new Date().toISOString(),
     };
+
     return mapAbuseEvent(
       await this.prisma.abuseEvent.update({ where: { id: input.abuseEventId }, data: { metadata: metadata as any } }),
     );
@@ -2413,10 +2560,12 @@ function mapProject(project: any): ProjectRecord {
   };
 }
 
-// Convention shared with services/api/src/project-storage.ts: each workspace
-// gets its own isolated git working tree under `.vibecore-workspaces/<id>` of
-// the project storage root. Returning a relative path keeps the row portable
-// across PROJECT_STORAGE_DIR overrides (dev vs prod, on-disk vs PVC).
+/*
+ * Convention shared with services/api/src/project-storage.ts: each workspace
+ * gets its own isolated git working tree under `.vibecore-workspaces/<id>` of
+ * the project storage root. Returning a relative path keeps the row portable
+ * across PROJECT_STORAGE_DIR overrides (dev vs prod, on-disk vs PVC).
+ */
 export function workspaceRelativeGitPath(workspaceId: string) {
   return `.vibecore-workspaces/${workspaceId}`;
 }
@@ -2646,6 +2795,7 @@ function mapSupportTicket(ticket: any): SupportTicketRecord {
 
 function mapFeatureFlag(flag: any): FeatureFlagRecord {
   const rawRollout = flag.rules?.rolloutPercent;
+
   const rolloutPercent =
     typeof rawRollout === 'number' && Number.isFinite(rawRollout)
       ? Math.max(0, Math.min(100, Math.round(rawRollout)))

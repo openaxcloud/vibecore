@@ -97,7 +97,7 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
       // Pattern 5: Structured files (package.json, components)
       {
         regex:
-          /```(?:json|jsx?|tsx?|html?|vue|svelte)\n(\{[\s\S]*?"(?:name|version|scripts|dependencies|devDependencies)"[\s\S]*?\}|<\w+[^>]*>[\s\S]*?<\/\w+>[\s\S]*?)```/gi,
+          /```(json|jsx?|tsx?|html?|vue|svelte)\n(\{[\s\S]*?"(?:name|version|scripts|dependencies|devDependencies)"[\s\S]*?\}|<\w+[^>]*>[\s\S]*?<\/\w+>[\s\S]*?)```/gi,
         type: 'structured_file',
       },
     ];
@@ -120,8 +120,9 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
         if (pattern.type === 'comment_filename') {
           [language, filePath, content] = args;
         } else if (pattern.type === 'structured_file') {
-          content = args[0];
-          language = pattern.regex.source.includes('json') ? 'json' : 'jsx';
+          // args[0] is the fence language, args[1] the captured body.
+          language = (args[0] || '').toLowerCase();
+          content = args[1];
           filePath = this._inferFileNameFromContent(content, language);
         } else {
           // file_path, explicit_create, in_filename patterns
@@ -306,7 +307,22 @@ ${content.trim()}
 
     if (componentMatch) {
       const name = componentMatch[1];
-      const ext = language === 'jsx' ? '.jsx' : language === 'tsx' ? '.tsx' : '.js';
+
+      const extByLang: Record<string, string> = {
+        jsx: '.jsx',
+        tsx: '.tsx',
+        ts: '.ts',
+        typescript: '.ts',
+        js: '.js',
+        javascript: '.js',
+        json: '.json',
+        html: '.html',
+        htm: '.html',
+        vue: '.vue',
+        svelte: '.svelte',
+      };
+
+      const ext = extByLang[language] ?? '.js';
 
       return `/components/${name}${ext}`;
     }

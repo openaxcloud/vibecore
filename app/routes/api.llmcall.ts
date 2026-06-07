@@ -71,15 +71,24 @@ function validateTokenLimits(modelDetails: ModelInfo, requestedTokens: number): 
 }
 
 async function llmCallAction({ context, request }: ActionFunctionArgs) {
-  const { system, message, model, provider, streamOutput } = await request.json<{
+  let body: {
     system: string;
     message: string;
     model: string;
     provider: ProviderInfo;
     streamOutput?: boolean;
-  }>();
+  };
 
-  const { name: providerName } = provider;
+  try {
+    body = await request.json();
+  } catch {
+    throw new Response('Invalid JSON body', {
+      status: 400,
+      statusText: 'Bad Request',
+    });
+  }
+
+  const { system, message, model, provider, streamOutput } = body;
 
   // validate 'model' and 'provider' fields
   if (!model || typeof model !== 'string') {
@@ -89,6 +98,19 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
     });
   }
 
+  /*
+   * `provider` may be absent or not an object; reading provider.name on a
+   * non-object would throw a TypeError before validation, escaping as a 500.
+   */
+  if (!provider || typeof provider !== 'object') {
+    throw new Response('Invalid or missing provider', {
+      status: 400,
+      statusText: 'Bad Request',
+    });
+  }
+
+  const { name: providerName } = provider;
+
   if (!providerName || typeof providerName !== 'string') {
     throw new Response('Invalid or missing provider', {
       status: 400,
@@ -97,8 +119,21 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
   }
 
   const cookieHeader = request.headers.get('Cookie');
-  const apiKeys = getApiKeysFromCookie(cookieHeader);
-  const providerSettings = getProviderSettingsFromCookie(cookieHeader);
+
+  let apiKeys: Record<string, string>;
+  let providerSettings: Record<string, IProviderSetting>;
+
+  try {
+    apiKeys = getApiKeysFromCookie(cookieHeader);
+    providerSettings = getProviderSettingsFromCookie(cookieHeader);
+  } catch {
+    /*
+     * Malformed apiKeys/providers cookie — JSON.parse inside the helpers would
+     * otherwise throw here, before the try blocks below, as an unhandled 500.
+     */
+    apiKeys = {};
+    providerSettings = {};
+  }
 
   if (streamOutput) {
     try {

@@ -84,32 +84,67 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     request.signal.addEventListener('abort', abortHandler, { once: true });
   }
 
-  const { messages, files, promptId, projectId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
-    await request.json<{
-      messages: Messages;
-      files: any;
-      promptId?: string;
-      projectId?: string;
-      contextOptimization: boolean;
-      chatMode: 'discuss' | 'build';
-      designScheme?: DesignScheme;
-      supabase?: {
-        isConnected: boolean;
-        hasSelectedProject: boolean;
-        credentials?: {
-          anonKey?: string;
-          supabaseUrl?: string;
-        };
+  let parsedBody: {
+    messages: Messages;
+    files: any;
+    promptId?: string;
+    projectId?: string;
+    contextOptimization: boolean;
+    chatMode: 'discuss' | 'build';
+    designScheme?: DesignScheme;
+    supabase?: {
+      isConnected: boolean;
+      hasSelectedProject: boolean;
+      credentials?: {
+        anonKey?: string;
+        supabaseUrl?: string;
       };
-      maxLLMSteps: number;
-    }>();
+    };
+    maxLLMSteps: number;
+  };
+
+  try {
+    parsedBody = await request.json();
+  } catch {
+    /*
+     * A malformed JSON body would otherwise throw before the try block below,
+     * surfacing as an unhandled 500 instead of a clear 400.
+     */
+    return new Response(JSON.stringify({ error: true, message: 'Invalid JSON body' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+      statusText: 'Bad Request',
+    });
+  }
+
+  const { messages, files, promptId, projectId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
+    parsedBody;
 
   const cookieHeader = request.headers.get('Cookie');
-  const apiKeys: Record<string, string> = JSON.parse(parseCookies(cookieHeader || '').apiKeys || '{}');
 
-  const providerSettings: Record<string, IProviderSetting> = JSON.parse(
-    parseCookies(cookieHeader || '').providers || '{}',
-  );
+  /*
+   * A malformed `apiKeys` / `providers` cookie (corrupted, truncated, or
+   * tampered) would make JSON.parse throw synchronously here — before the
+   * try/catch below — surfacing as an unhandled 500 that leaks the raw
+   * SyntaxError. Parse defensively and fall back to empty objects instead.
+   */
+  const parsedCookies = parseCookies(cookieHeader || '');
+
+  const safeParseCookieJson = <T>(raw: string | undefined, label: string): T => {
+    if (!raw) {
+      return {} as T;
+    }
+
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      logger.warn(`Ignoring malformed "${label}" cookie`);
+      return {} as T;
+    }
+  };
+
+  const apiKeys = safeParseCookieJson<Record<string, string>>(parsedCookies.apiKeys, 'apiKeys');
+  const providerSettings = safeParseCookieJson<Record<string, IProviderSetting>>(parsedCookies.providers, 'providers');
 
   const cumulativeUsage = {
     completionTokens: 0,

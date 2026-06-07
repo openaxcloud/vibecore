@@ -1,5 +1,5 @@
 import { redirect, type LoaderFunctionArgs } from '@remix-run/cloudflare';
-import { apiBaseUrl, sessionCookie } from '~/lib/enterprise-api.server';
+import { apiBaseUrl, cookieSecure, sessionCookie } from '~/lib/enterprise-api.server';
 
 const oauthStateCookie = 'vc_oauth_state';
 
@@ -36,17 +36,32 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     });
   }
 
-  const response = await fetch(`${apiBaseUrl()}/auth/oauth/${provider}/callback`, {
-    method: 'POST',
-    headers: { accept: 'application/json', 'content-type': 'application/json' },
+  let response: Response;
 
+  try {
+    response = await fetch(`${apiBaseUrl()}/auth/oauth/${provider}/callback`, {
+      method: 'POST',
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+
+      /*
+       * Forward the signed state so the API can verify its HMAC signature. The
+       * cookie check above already proved it round-tripped untampered; the API
+       * re-validates the signature + expiry statelessly (login-CSRF protection).
+       */
+      body: JSON.stringify({ code, state }),
+    });
+  } catch (error) {
     /*
-     * Forward the signed state so the API can verify its HMAC signature. The
-     * cookie check above already proved it round-tripped untampered; the API
-     * re-validates the signature + expiry statelessly (login-CSRF protection).
+     * A rejected fetch (api pod unreachable, DNS failure, connection reset)
+     * would otherwise bubble up as an unhandled 500 error boundary mid-OAuth.
+     * Surface it as a normal login error like every other failure path here.
      */
-    body: JSON.stringify({ code, state }),
-  });
+    const detail = error instanceof Error ? error.message : 'api_unreachable';
+    console.error('[oauth-callback]', provider, 'fetch_failed', detail);
+    throw redirect(`/login?oauth=${provider}&error=callback_failed&detail=${encodeURIComponent('api_unreachable')}`, {
+      headers: { 'Set-Cookie': clearStateCookie() },
+    });
+  }
 
   if (!response.ok) {
     let detail = 'unknown';
@@ -81,7 +96,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 }
 
 function clearStateCookie() {
-  return `${oauthStateCookie}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+  return `${oauthStateCookie}=; Path=/; HttpOnly; SameSite=Lax${cookieSecure()}; Max-Age=0`;
 }
 
 function providerName(value: string | undefined) {

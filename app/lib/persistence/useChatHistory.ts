@@ -281,7 +281,10 @@ ${value.content}
           console.error(error);
 
           logStore.logError('Failed to load chat messages or snapshot', error); // Updated error message
-          toast.error('Failed to load chat: ' + error.message); // More specific error
+          toast.error('Failed to load chat: ' + (error instanceof Error ? error.message : String(error))); // More specific error
+
+          // Without this the UI stays stuck on the loading state forever after a load failure.
+          setReady(true);
         });
     } else {
       // Handle case where there is no mixedId (e.g., new chat)
@@ -457,7 +460,7 @@ ${value.content}
           db,
           finalChatId, // Use the potentially updated chatId
           [...archivedMessages, ...messages],
-          urlId,
+          _urlId, // freshly-computed urlId; outer `urlId` state is still stale this render
           description.get(),
           undefined,
           chatMetadata.get(),
@@ -517,6 +520,12 @@ ${value.content}
       }
 
       const chat = await getMessages(db, id);
+
+      // getMessages resolves undefined for an unknown id; guard before dereferencing.
+      if (!chat) {
+        toast.error('Failed to export chat: chat not found');
+        return;
+      }
 
       const chatData = {
         messages: chat.messages,

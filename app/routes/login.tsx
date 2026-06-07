@@ -7,6 +7,7 @@ import {
   apiBaseUrl,
   formObject,
   json,
+  readEnv,
   redirect,
   safeReturnTo,
   sessionCookie,
@@ -63,7 +64,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       safeReturnTo(typeof body.returnTo === 'string' ? body.returnTo : null);
 
     const mustEnrollMfa =
-      process.env.ADMIN_MFA_REQUIRED !== 'false' && result.user?.platformAdmin && !result.user.mfaEnabled;
+      readEnv('ADMIN_MFA_REQUIRED') !== 'false' && result.user?.platformAdmin && !result.user.mfaEnabled;
 
     const redirectTo = mustEnrollMfa ? '/mfa-setup' : (returnToParam ?? '/dashboard');
 

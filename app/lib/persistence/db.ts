@@ -48,6 +48,16 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
       resolve(undefined);
       logger.error((event.target as IDBOpenDBRequest).error);
     };
+
+    /*
+     * If another tab holds an older-version connection open, the upgrade is
+     * blocked and neither onsuccess nor onerror fires — without this handler
+     * the promise (awaited at module top level) would hang forever.
+     */
+    request.onblocked = () => {
+      resolve(undefined);
+      logger.error('Database upgrade blocked by another open connection');
+    };
   });
 }
 
@@ -80,7 +90,7 @@ export async function setMessages(
       return;
     }
 
-    const request = store.put({
+    store.put({
       id,
       messages,
       urlId,
@@ -89,8 +99,15 @@ export async function setMessages(
       metadata,
     });
 
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+    /*
+     * Resolve on transaction.oncomplete, not request.onsuccess: the request
+     * succeeds before the transaction commits, so resolving early would report
+     * success for a write that may still abort during commit (e.g. quota
+     * exceeded), silently losing data.
+     */
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error ?? new Error('Transaction aborted'));
   });
 }
 
@@ -127,42 +144,18 @@ export async function deleteById(db: IDBDatabase, id: string): Promise<void> {
     const chatStore = transaction.objectStore('chats');
     const snapshotStore = transaction.objectStore('snapshots');
 
-    const deleteChatRequest = chatStore.delete(id);
-    const deleteSnapshotRequest = snapshotStore.delete(id); // Also delete snapshot
+    // delete() on a missing key is a no-op success in IndexedDB, so no NotFoundError handling is needed.
+    chatStore.delete(id);
+    snapshotStore.delete(id); // Also delete snapshot
 
-    let chatDeleted = false;
-    let snapshotDeleted = false;
-
-    const checkCompletion = () => {
-      if (chatDeleted && snapshotDeleted) {
-        resolve(undefined);
-      }
-    };
-
-    deleteChatRequest.onsuccess = () => {
-      chatDeleted = true;
-      checkCompletion();
-    };
-    deleteChatRequest.onerror = () => reject(deleteChatRequest.error);
-
-    deleteSnapshotRequest.onsuccess = () => {
-      snapshotDeleted = true;
-      checkCompletion();
-    };
-
-    deleteSnapshotRequest.onerror = (event) => {
-      if ((event.target as IDBRequest).error?.name === 'NotFoundError') {
-        snapshotDeleted = true;
-        checkCompletion();
-      } else {
-        reject(deleteSnapshotRequest.error);
-      }
-    };
-
-    transaction.oncomplete = () => {
-      // This might resolve before checkCompletion if one operation finishes much faster
-    };
+    /*
+     * Resolve on transaction.oncomplete so the deletes are durably committed
+     * before we report success. onabort must also be handled — otherwise an
+     * aborted transaction (e.g. during commit) leaves the promise hanging.
+     */
+    transaction.oncomplete = () => resolve(undefined);
     transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error ?? new Error('Transaction aborted'));
   });
 }
 
@@ -320,10 +313,12 @@ export async function setSnapshot(db: IDBDatabase, chatId: string, snapshot: Sna
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('snapshots', 'readwrite');
     const store = transaction.objectStore('snapshots');
-    const request = store.put({ chatId, snapshot });
+    store.put({ chatId, snapshot });
 
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+    // Resolve on commit, not request success, so an aborted commit (e.g. quota) isn't reported as a saved snapshot.
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error ?? new Error('Transaction aborted'));
   });
 }
 

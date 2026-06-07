@@ -34,6 +34,16 @@ function envValue(key: string) {
   return runtimeEnv()[key];
 }
 
+/*
+ * Public accessor for routes that need a runtime env var. Reading
+ * `process.env.FOO` directly in a route is a trap: vite-plugin-node-polyfills
+ * shims `process.env` to `{}` in the SSR bundle, so K8s-injected env vars are
+ * invisible there. Always go through this (it reads `globalThis.process.env`).
+ */
+export function readEnv(key: string) {
+  return envValue(key);
+}
+
 function apiBaseUrlFromHostPort() {
   const host = envValue('API_HOST')?.trim();
   const port = envValue('API_PORT')?.trim();
@@ -84,6 +94,16 @@ export function readSessionToken(request: Request) {
  * leaking it over an attacker-MITMed plaintext channel.
  */
 const cookieSecureFlag = envValue('NODE_ENV') === 'production' ? '; Secure' : '';
+
+/*
+ * Shared with the OAuth routes so the short-lived anti-CSRF `state` cookie gets
+ * the same Secure gating as the session cookie. Without it, the state cookie
+ * (which the callback relies on to detect a tampered/forged provider response)
+ * would be sent in cleartext on a downgraded/MITMed channel in production.
+ */
+export function cookieSecure() {
+  return cookieSecureFlag;
+}
 
 export function sessionCookie(token: string, maxAgeSeconds?: number) {
   const maxAge = typeof maxAgeSeconds === 'number' ? `; Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}` : '';

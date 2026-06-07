@@ -419,7 +419,11 @@ export class StreamingMessageParser {
   }
 
   #extractAttribute(tag: string, attributeName: string): string | undefined {
-    const match = tag.match(new RegExp(`${attributeName}="([^"]*)"`, 'i'));
+    /*
+     * Require a non-name char (or start) before the attribute so e.g. `path`
+     * doesn't match inside `filePath="…"`.
+     */
+    const match = tag.match(new RegExp(`(?:^|[^\\w-])${attributeName}="([^"]*)"`, 'i'));
     return match ? match[1] : undefined;
   }
 }
