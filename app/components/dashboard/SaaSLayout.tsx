@@ -1431,7 +1431,7 @@ export function ActivityList({ items }: { items: Array<{ title: string; detail: 
         const Icon = item.icon ?? Activity;
         return (
           <div
-            key={item.title}
+            key={`${item.title}-${index}`}
             className={classNames('flex gap-3 p-4', index > 0 && 'border-t border-bolt-elements-borderColor')}
           >
             <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-bolt-elements-background-depth-3">

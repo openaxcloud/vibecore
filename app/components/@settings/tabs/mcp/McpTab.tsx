@@ -62,13 +62,28 @@ export default function McpTab() {
 
   const parsedConfig = useMemo(() => {
     try {
-      setError(null);
       return JSON.parse(mcpConfigText) as MCPConfig;
-    } catch (e) {
-      setError(`Invalid JSON format: ${e instanceof Error ? e.message : String(e)}`);
+    } catch {
       return null;
     }
   }, [mcpConfigText]);
+
+  /*
+   * Surface JSON parse errors from an effect — calling setError during render
+   * (inside the useMemo above) triggers React's "cannot update while rendering".
+   */
+  useEffect(() => {
+    if (parsedConfig) {
+      setError(null);
+      return;
+    }
+
+    try {
+      JSON.parse(mcpConfigText);
+    } catch (e) {
+      setError(`Invalid JSON format: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }, [mcpConfigText, parsedConfig]);
 
   const handleMaxLLMCallChange = (value: string) => {
     const parsed = parseInt(value, 10);

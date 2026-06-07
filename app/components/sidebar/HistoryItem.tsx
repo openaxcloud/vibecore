@@ -97,7 +97,7 @@ export function HistoryItem({
             onKeyDown={handleKeyDown}
           />
           <button
-            type="submit"
+            type="button"
             className="i-ph:check h-4 w-4 text-gray-500 hover:text-purple-500 transition-colors"
             onMouseDown={handleSubmit}
           />

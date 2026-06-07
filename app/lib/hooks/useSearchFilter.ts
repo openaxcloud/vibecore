@@ -15,6 +15,12 @@ export function useSearchFilter({
 }: UseSearchFilterOptions) {
   const [searchQuery, setSearchQuery] = useState('');
 
+  /*
+   * searchFields is almost always a fresh array literal at the call site; key memoization
+   * on its contents rather than its identity so the filter doesn't recompute every render.
+   */
+  const searchFieldsKey = searchFields.join(',');
+
   const debouncedSetSearch = useCallback(debounce(setSearchQuery, debounceMs), []);
 
   const handleSearchChange = useCallback(
@@ -42,7 +48,7 @@ export function useSearchFilter({
         return false;
       }),
     );
-  }, [items, searchQuery, searchFields]);
+  }, [items, searchQuery, searchFieldsKey]);
 
   return {
     searchQuery,

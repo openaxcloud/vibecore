@@ -56,12 +56,11 @@ export function TabsWithSlider({
   // Refs for tab elements
   const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
-  // Update slider position when active tab changes
+  // Update slider position when active tab changes or the layout resizes
   useEffect(() => {
-    const activeIndex = tabs.findIndex((tab) => tab.id === activeTab);
-
-    if (activeIndex !== -1 && tabsRef.current[activeIndex]) {
-      const activeTabElement = tabsRef.current[activeIndex];
+    const updateSlider = () => {
+      const activeIndex = tabs.findIndex((tab) => tab.id === activeTab);
+      const activeTabElement = activeIndex !== -1 ? tabsRef.current[activeIndex] : null;
 
       if (activeTabElement) {
         setSliderDimensions({
@@ -69,7 +68,17 @@ export function TabsWithSlider({
           left: activeTabElement.offsetLeft,
         });
       }
+    };
+
+    updateSlider();
+
+    if (typeof window === 'undefined') {
+      return undefined;
     }
+
+    window.addEventListener('resize', updateSlider);
+
+    return () => window.removeEventListener('resize', updateSlider);
   }, [activeTab, tabs]);
 
   return (

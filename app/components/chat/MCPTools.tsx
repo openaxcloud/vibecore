@@ -24,7 +24,9 @@ export function McpTools({ triggerClassName, triggerLabel = 'MCP tools', trigger
 
   useEffect(() => {
     if (!isInitialized) {
-      initialize();
+      initialize().catch((e) => {
+        setError(`Failed to initialize MCP: ${e instanceof Error ? e.message : String(e)}`);
+      });
     }
   }, [isInitialized]);
 

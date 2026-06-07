@@ -127,11 +127,12 @@ export const Dialog = memo(({ children, className, showCloseButton = true, onClo
           <div className="flex max-h-[calc(100dvh-24px)] min-h-0 flex-col overflow-auto">
             {children}
             {showCloseButton && (
-              <RadixDialog.Close asChild onClick={onClose}>
+              <RadixDialog.Close asChild>
                 <IconButton
                   icon="i-ph:x"
                   title="Close"
                   className="absolute top-3 right-3 h-9 w-9 text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary"
+                  onClick={onClose}
                 />
               </RadixDialog.Close>
             )}
@@ -334,10 +335,8 @@ export function SelectionDialog({
   };
 
   // Calculate the height for the virtualized list
-  const listHeight = Math.min(
-    items.length * 60,
-    parseInt(maxHeight.replace('vh', '')) * window.innerHeight * 0.01 - 40,
-  );
+  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 768;
+  const listHeight = Math.min(items.length * 60, parseInt(maxHeight.replace('vh', '')) * viewportHeight * 0.01 - 40);
 
   // Render each item in the virtualized list
   const ItemRenderer = ({ index, style }: { index: number; style: React.CSSProperties }) => {

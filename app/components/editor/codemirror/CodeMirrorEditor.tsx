@@ -201,7 +201,16 @@ export const CodeMirrorEditor = memo(
     }, [doc?.scroll?.line, doc?.scroll?.column, doc?.scroll?.top, doc?.scroll?.left]);
 
     useEffect(() => {
-      const onUpdate = debounce((update: EditorUpdate) => {
+      const onUpdate = debounce((update: EditorUpdate, originFilePath: string) => {
+        /*
+         * The change is debounced, so the user may have switched files before it
+         * fires. onChange writes to the *current* document, so emitting a stale
+         * file's content here would corrupt the now-active file. Drop it.
+         */
+        if (docRef.current?.filePath !== originFilePath) {
+          return;
+        }
+
         onChangeRef.current?.(update);
       }, debounceChange);
 
@@ -219,10 +228,13 @@ export const CodeMirrorEditor = memo(
             (newSelection === undefined || previousSelection === undefined || !newSelection.eq(previousSelection));
 
           if (docRef.current && (transactions.some((transaction) => transaction.docChanged) || selectionChanged)) {
-            onUpdate({
-              selection: view.state.selection,
-              content: view.state.doc.toString(),
-            });
+            onUpdate(
+              {
+                selection: view.state.selection,
+                content: view.state.doc.toString(),
+              },
+              docRef.current.filePath,
+            );
 
             editorStatesRef.current!.set(docRef.current.filePath, view.state);
           }
@@ -276,7 +288,7 @@ export const CodeMirrorEditor = memo(
       const theme = themeRef.current!;
 
       if (!doc) {
-        const state = newEditorState('', theme, settings, onScrollRef, debounceScroll, onSaveRef, [
+        const state = newEditorState('', theme, settings, onScrollRef, debounceScroll, onSaveRef, () => true, [
           languageCompartment.of([]),
           envMaskingCompartment.of([]),
         ]);
@@ -299,10 +311,25 @@ export const CodeMirrorEditor = memo(
       let state = editorStates.get(doc.filePath);
 
       if (!state) {
-        state = newEditorState(doc.value, theme, settings, onScrollRef, debounceScroll, onSaveRef, [
-          languageCompartment.of([]),
-          envMaskingCompartment.of([createEnvMaskingExtension(() => docRef.current?.filePath)]),
-        ]);
+        const stateFilePath = doc.filePath;
+        state = newEditorState(
+          doc.value,
+          theme,
+          settings,
+          onScrollRef,
+          debounceScroll,
+          onSaveRef,
+
+          /*
+           * A debounced scroll event can fire after the user switched files; don't
+           * let the previous file's scroll position clobber the now-current file.
+           */
+          () => docRef.current?.filePath === stateFilePath,
+          [
+            languageCompartment.of([]),
+            envMaskingCompartment.of([createEnvMaskingExtension(() => docRef.current?.filePath)]),
+          ],
+        );
 
         editorStates.set(doc.filePath, state);
       }
@@ -356,6 +383,7 @@ function newEditorState(
   onScrollRef: MutableRefObject<OnScrollCallback | undefined>,
   debounceScroll: number,
   onFileSaveRef: MutableRefObject<OnSaveCallback | undefined>,
+  isStillCurrent: () => boolean,
   extensions: Extension[],
 ) {
   return EditorState.create({
@@ -363,7 +391,7 @@ function newEditorState(
     extensions: [
       EditorView.domEventHandlers({
         scroll: debounce((event, view) => {
-          if (event.target !== view.scrollDOM) {
+          if (event.target !== view.scrollDOM || !isStillCurrent()) {
             return;
           }
 
@@ -541,7 +569,10 @@ function setEditorDocument(
           view.scrollDOM.addEventListener(
             'scroll',
             () => {
-              view.focus();
+              // The scroll fires asynchronously; bail if the user already left this file.
+              if (isStillCurrent()) {
+                view.focus();
+              }
             },
             { once: true },
           );

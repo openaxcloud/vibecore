@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FileIcon } from './FileIcon';
 import { Tooltip } from './Tooltip';
 import { classNames } from '~/utils/classNames';
@@ -26,11 +26,25 @@ export function CodeBlock({
   onCopy,
 }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(code)?.catch(() => {});
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+
+    if (copyTimerRef.current) {
+      clearTimeout(copyTimerRef.current);
+    }
+
+    copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
     onCopy?.();
   };
 

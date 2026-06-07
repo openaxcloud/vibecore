@@ -771,6 +771,16 @@ function FileContextMenu({
     const nextPath = path.join(path.dirname(fullPath), nextName);
     const files = workbenchStore.files.get();
 
+    /*
+     * No-op rename: the create-then-delete sequence below would otherwise
+     * create the target (overwriting the source, since the paths are equal)
+     * and then delete it — destroying the file/folder. Bail out early.
+     */
+    if (nextPath === fullPath) {
+      setIsRenaming(false);
+      return;
+    }
+
     try {
       if (isFolder) {
         const folderEntries = Object.entries(files).filter(
@@ -1364,7 +1374,14 @@ function buildFileList(
       const name = segments[i];
       const fullPath = (currentPath += `/${name}`);
 
-      if (!fullPath.startsWith(rootFolder) || (hideRoot && fullPath === rootFolder)) {
+      /*
+       * Require a path-segment boundary so sibling dirs that merely share a
+       * string prefix (e.g. rootFolder "/home/project" vs "/home/project-bak")
+       * are not pulled into the tree.
+       */
+      const underRoot = rootFolder === '/' || fullPath === rootFolder || fullPath.startsWith(`${rootFolder}/`);
+
+      if (!underRoot || (hideRoot && fullPath === rootFolder)) {
         i++;
         continue;
       }

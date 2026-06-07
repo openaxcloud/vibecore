@@ -30,6 +30,8 @@ type Actions = {
   checkServersAvailabilities: () => Promise<void>;
 };
 
+let initializePromise: Promise<void> | null = null;
+
 export const useMCPStore = create<Store & Actions>((set, get) => ({
   isInitialized: false,
   settings: defaultSettings,
@@ -41,30 +43,50 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
       return;
     }
 
-    if (isBrowser) {
-      /*
-       * Audit H5: the "Configuration" tab now persists server-side. Prefer the
-       * DB-backed config so it follows the user across devices; fall back to
-       * the localStorage cache when the API is unreachable or the user is not
-       * signed in (e.g. local dev without a session).
-       */
-      const settings = (await loadSettingsFromDb()) ?? loadSettingsFromLocalStorage();
-
-      try {
-        const serverTools = await updateServerConfig(settings.mcpConfig);
-        set(() => ({ settings, serverTools }));
-      } catch (error) {
-        console.error('Error applying saved mcp config:', error);
-        set(() => ({
-          settings,
-          error: `Error applying saved mcp config: ${error instanceof Error ? error.message : String(error)}`,
-        }));
-      }
-
-      localStorage.setItem(MCP_SETTINGS_KEY, JSON.stringify(settings));
+    /*
+     * `initialize` is fired from several components (McpTab, McpTools) that can
+     * mount concurrently. Since `isInitialized` only flips to true at the very
+     * end, the simple guard above lets concurrent callers slip through and run
+     * the expensive `updateServerConfig` (which closes + recreates every MCP
+     * client) more than once. De-dupe on a shared in-flight promise instead.
+     */
+    if (initializePromise) {
+      await initializePromise;
+      return;
     }
 
-    set(() => ({ isInitialized: true }));
+    initializePromise = (async () => {
+      if (isBrowser) {
+        /*
+         * Audit H5: the "Configuration" tab now persists server-side. Prefer the
+         * DB-backed config so it follows the user across devices; fall back to
+         * the localStorage cache when the API is unreachable or the user is not
+         * signed in (e.g. local dev without a session).
+         */
+        const settings = (await loadSettingsFromDb()) ?? loadSettingsFromLocalStorage();
+
+        try {
+          const serverTools = await updateServerConfig(settings.mcpConfig);
+          set(() => ({ settings, serverTools }));
+        } catch (error) {
+          console.error('Error applying saved mcp config:', error);
+          set(() => ({
+            settings,
+            error: `Error applying saved mcp config: ${error instanceof Error ? error.message : String(error)}`,
+          }));
+        }
+
+        localStorage.setItem(MCP_SETTINGS_KEY, JSON.stringify(settings));
+      }
+
+      set(() => ({ isInitialized: true }));
+    })();
+
+    try {
+      await initializePromise;
+    } finally {
+      initializePromise = null;
+    }
   },
   updateSettings: async (newSettings: MCPSettings) => {
     if (get().isUpdatingConfig) {

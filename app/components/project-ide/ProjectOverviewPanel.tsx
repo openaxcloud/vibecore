@@ -183,9 +183,9 @@ function CommitList({ commits }: { commits: ProjectOverviewCommit[] }) {
 
   return (
     <div className="grid gap-2">
-      {commits.map((commit) => (
+      {commits.map((commit, index) => (
         <div
-          key={`${commit.sha ?? commit.message}-${commit.date ?? ''}`}
+          key={`${commit.sha ?? commit.message}-${commit.date ?? ''}-${index}`}
           className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2"
         >
           <div className="truncate text-sm font-medium text-bolt-elements-textPrimary">{commit.message}</div>
@@ -207,9 +207,9 @@ function MemberList({ members }: { members: ProjectOverviewMember[] }) {
 
   return (
     <div className="grid gap-2">
-      {members.slice(0, 6).map((member) => (
+      {members.slice(0, 6).map((member, index) => (
         <div
-          key={`${member.userId}:${member.id}`}
+          key={`${member.userId}:${member.id}:${index}`}
           className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2"
         >
           <div className="flex min-w-0 items-center justify-between gap-3">
@@ -249,7 +249,23 @@ function ActivityList({ activity }: { activity: ProjectOverviewActivity[] }) {
 }
 
 export function ProjectOverviewPanel({ data, project }: ProjectOverviewPanelProps) {
-  const overview = data.overview?.summary ? data.overview : fallbackOverview(data, project);
+  const resolved = data.overview?.summary ? data.overview : fallbackOverview(data, project);
+
+  /*
+   * `data.overview` arrives as untyped runtime data (the IDE panel casts an
+   * `unknown` SSE/fetch payload), so a server response with a `summary` but a
+   * missing/partial `stack`/`scripts`/`commits`/`members`/`activity` array would
+   * crash the render at `.length`/`.map`. Coalesce every collection to an array.
+   */
+  const overview = {
+    ...resolved,
+    stack: resolved.stack ?? [],
+    scripts: resolved.scripts ?? [],
+    commits: resolved.commits ?? [],
+    members: resolved.members ?? [],
+    activity: resolved.activity ?? [],
+  };
+
   const projectName = project.name ?? project.id ?? 'Project';
 
   return (

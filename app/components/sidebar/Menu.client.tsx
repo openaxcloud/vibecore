@@ -285,7 +285,11 @@ export const Menu = () => {
     const exitThreshold = 20;
 
     function onMouseMove(event: MouseEvent) {
-      if (isSettingsOpen) {
+      /*
+       * Don't fight modal surfaces: while settings or a confirmation dialog is open,
+       * the cursor-edge open/close heuristic must not toggle the sidebar underneath them.
+       */
+      if (isSettingsOpen || dialogContent !== null) {
         return;
       }
 
@@ -303,7 +307,7 @@ export const Menu = () => {
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
     };
-  }, [isSettingsOpen]);
+  }, [isSettingsOpen, dialogContent]);
 
   const handleDuplicate = async (id: string) => {
     await duplicateCurrentChat(id);
@@ -403,7 +407,9 @@ export const Menu = () => {
             {selectionMode && (
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="sm" onClick={selectAll}>
-                  {selectedItems.length === filteredList.length ? 'Deselect all' : 'Select all'}
+                  {filteredList.length > 0 && filteredList.every((item) => selectedItems.includes(item.id))
+                    ? 'Deselect all'
+                    : 'Select all'}
                 </Button>
                 <Button
                   variant="destructive"

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { classNames } from '~/utils/classNames';
 
@@ -108,7 +108,11 @@ export default function McpMarketplace() {
   const [error, setError] = useState<string | null>(null);
   const [activeInstall, setActiveInstall] = useState<CatalogEntry | null>(null);
 
+  // Monotonic token so a slow earlier fetch can't clobber a newer one's results.
+  const requestTokenRef = useRef(0);
+
   const loadAll = useCallback(async () => {
+    const token = ++requestTokenRef.current;
     setLoading(true);
     setError(null);
 
@@ -146,13 +150,24 @@ export default function McpMarketplace() {
       const domainsJson = (await domainsResp.json()) as { domains: DomainCount[] };
       const installsJson = (await installsResp.json()) as { installs: InstallView[] };
 
+      // A newer request started while we were awaiting; drop this stale result.
+      if (token !== requestTokenRef.current) {
+        return;
+      }
+
       setEntries(catalogJson.items);
       setDomains(domainsJson.domains);
       setInstalls(installsJson.installs);
     } catch (e) {
+      if (token !== requestTokenRef.current) {
+        return;
+      }
+
       setError(e instanceof Error ? e.message : 'Failed to load marketplace');
     } finally {
-      setLoading(false);
+      if (token === requestTokenRef.current) {
+        setLoading(false);
+      }
     }
   }, [domainFilter, search]);
 
