@@ -96,6 +96,7 @@ export default class OpenAIProvider extends BaseProvider {
       headers: {
         Authorization: `Bearer ${apiKey}`,
       },
+      signal: this.createTimeoutSignal(),
     });
 
     if (!response.ok) {
@@ -105,7 +106,7 @@ export default class OpenAIProvider extends BaseProvider {
     const res = (await response.json()) as any;
     const staticModelIds = this.staticModels.map((m) => m.name);
 
-    const data = res.data.filter(
+    const data = (Array.isArray(res?.data) ? res.data : []).filter(
       (model: any) =>
         model.object === 'model' &&
         (model.id.startsWith('gpt-') || model.id.startsWith('o') || model.id.startsWith('chatgpt-')) &&

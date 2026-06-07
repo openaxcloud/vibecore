@@ -60,6 +60,7 @@ export default class TogetherProvider extends BaseProvider {
       headers: {
         Authorization: `Bearer ${apiKey}`,
       },
+      signal: this.createTimeoutSignal(),
     });
 
     if (!response.ok) {

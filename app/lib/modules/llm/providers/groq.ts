@@ -56,6 +56,7 @@ export default class GroqProvider extends BaseProvider {
       headers: {
         Authorization: `Bearer ${apiKey}`,
       },
+      signal: this.createTimeoutSignal(),
     });
 
     if (!response.ok) {
@@ -64,7 +65,7 @@ export default class GroqProvider extends BaseProvider {
 
     const res = (await response.json()) as any;
 
-    const data = res.data.filter(
+    const data = (Array.isArray(res?.data) ? res.data : []).filter(
       (model: any) => model.object === 'model' && model.active && model.context_window > 8000,
     );
 

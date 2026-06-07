@@ -69,6 +69,7 @@ export default class ZaiProvider extends BaseProvider {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        signal: this.createTimeoutSignal(),
       });
 
       if (!response.ok) {

@@ -57,6 +57,7 @@ export default class OpenRouterProvider extends BaseProvider {
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: this.createTimeoutSignal(),
       });
 
       if (!response.ok) {
@@ -65,8 +66,8 @@ export default class OpenRouterProvider extends BaseProvider {
 
       const data = (await response.json()) as OpenRouterModelsResponse;
 
-      return data.data
-        .sort((a, b) => a.name.localeCompare(b.name))
+      return (Array.isArray(data?.data) ? data.data : [])
+        .sort((a, b) => (a.name || a.id || '').localeCompare(b.name || b.id || ''))
         .map((m) => {
           // Get accurate context window from OpenRouter API
           const contextWindow = m.context_length || 32000; // Use API value or fallback
@@ -75,9 +76,12 @@ export default class OpenRouterProvider extends BaseProvider {
           const maxAllowed = 1000000; // 1M tokens max for safety
           const finalContext = Math.min(contextWindow, maxAllowed);
 
+          const promptPrice = Number(m.pricing?.prompt) || 0;
+          const completionPrice = Number(m.pricing?.completion) || 0;
+
           return {
             name: m.id,
-            label: `${m.name} - in:$${(m.pricing.prompt * 1_000_000).toFixed(2)} out:$${(m.pricing.completion * 1_000_000).toFixed(2)} - context ${finalContext >= 1000000 ? Math.floor(finalContext / 1000000) + 'M' : Math.floor(finalContext / 1000) + 'k'}`,
+            label: `${m.name} - in:$${(promptPrice * 1_000_000).toFixed(2)} out:$${(completionPrice * 1_000_000).toFixed(2)} - context ${finalContext >= 1000000 ? Math.floor(finalContext / 1000000) + 'M' : Math.floor(finalContext / 1000) + 'k'}`,
             provider: this.name,
             maxTokenAllowed: finalContext,
           };

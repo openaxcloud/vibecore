@@ -68,6 +68,7 @@ export default class HyperbolicProvider extends BaseProvider {
       headers: {
         Authorization: `Bearer ${apiKey}`,
       },
+      signal: this.createTimeoutSignal(),
     });
 
     if (!response.ok) {
@@ -76,7 +77,9 @@ export default class HyperbolicProvider extends BaseProvider {
 
     const res = (await response.json()) as any;
 
-    const data = res.data.filter((model: any) => model.object === 'model' && model.supports_chat);
+    const data = (Array.isArray(res?.data) ? res.data : []).filter(
+      (model: any) => model.object === 'model' && model.supports_chat,
+    );
 
     return data.map((m: any) => ({
       name: m.id,

@@ -56,6 +56,7 @@ export default class GoogleProvider extends BaseProvider {
       headers: {
         ['Content-Type']: 'application/json',
       },
+      signal: this.createTimeoutSignal(),
     });
 
     if (!response.ok) {

@@ -92,6 +92,7 @@ export default class GithubProvider extends BaseProvider {
         headers: {
           Authorization: `Bearer ${apiKey}`,
         },
+        signal: this.createTimeoutSignal(),
       });
 
       if (response.ok) {
