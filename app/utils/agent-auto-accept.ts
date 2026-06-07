@@ -64,7 +64,17 @@ export function isGreenAgentValidationRun(run: AgentAutoAcceptRun): boolean {
     return true;
   }
 
-  return status === '' && Number(run.exitCode) === 0;
+  /*
+   * Only fall back to the exit code when the status is genuinely absent. Treat
+   * an exit code of literal 0 (number or numeric string) as green — but NOT
+   * `null`/`undefined`/`''`, all of which `Number()` would coerce to 0 and
+   * silently green-light a run that never actually reported success.
+   */
+  if (status !== '' || run.exitCode === null || run.exitCode === undefined || run.exitCode === '') {
+    return false;
+  }
+
+  return Number(run.exitCode) === 0;
 }
 
 export function shouldAutoAcceptAgentProposals(input: {

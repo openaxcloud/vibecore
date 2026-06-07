@@ -33,14 +33,36 @@ export function usePromptEnhancer() {
       requestBody.apiKeys = apiKeys;
     }
 
-    const response = await fetch('/api/enhancer', {
-      method: 'POST',
-      body: JSON.stringify(requestBody),
-    });
+    const originalInput = input;
+
+    let response: Response;
+
+    try {
+      response = await fetch('/api/enhancer', {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+      });
+    } catch (error) {
+      logger.error(error);
+      setEnhancingPrompt(false);
+      setPromptEnhanced(false);
+
+      return;
+    }
+
+    /*
+     * A non-OK response body is an error message, not enhanced prompt text —
+     * streaming it into the input would clobber the user's prompt.
+     */
+    if (!response.ok) {
+      logger.error(`Prompt enhancer failed: ${response.status} ${response.statusText}`);
+      setEnhancingPrompt(false);
+      setPromptEnhanced(false);
+
+      return;
+    }
 
     const reader = response.body?.getReader();
-
-    const originalInput = input;
 
     if (reader) {
       const decoder = new TextDecoder();
@@ -58,27 +80,40 @@ export function usePromptEnhancer() {
             break;
           }
 
-          _input += decoder.decode(value);
+          /*
+           * `{ stream: true }` so multi-byte UTF-8 chars split across chunk
+           * boundaries don't decode to replacement characters.
+           */
+          _input += decoder.decode(value, { stream: true });
 
           logger.trace('Set input', _input);
 
           setInput(_input);
         }
+
+        // Flush any bytes buffered from an incomplete final multi-byte sequence.
+        _input += decoder.decode();
       } catch (error) {
         _error = error;
         setInput(originalInput);
       } finally {
         if (_error) {
           logger.error(_error);
+          setEnhancingPrompt(false);
+          setPromptEnhanced(false);
+        } else {
+          setEnhancingPrompt(false);
+          setPromptEnhanced(true);
+
+          setTimeout(() => {
+            setInput(_input);
+          });
         }
-
-        setEnhancingPrompt(false);
-        setPromptEnhanced(true);
-
-        setTimeout(() => {
-          setInput(_input);
-        });
       }
+    } else {
+      // No readable body (e.g. empty 200) — don't leave the spinner stuck on.
+      setEnhancingPrompt(false);
+      setPromptEnhanced(false);
     }
   };
 

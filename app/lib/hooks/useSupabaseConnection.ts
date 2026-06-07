@@ -39,21 +39,33 @@ export function useSupabaseConnection() {
       if (savedConnection) {
         console.log('useSupabaseConnection: Loading from localStorage');
 
-        const parsed = JSON.parse(savedConnection);
+        let parsed: any;
 
-        if (savedCredentials && !parsed.credentials) {
-          parsed.credentials = JSON.parse(savedCredentials);
+        try {
+          parsed = JSON.parse(savedConnection);
+
+          if (savedCredentials && !parsed.credentials) {
+            parsed.credentials = JSON.parse(savedCredentials);
+          }
+        } catch (error) {
+          // Corrupted cache (partial write / tampering) — drop it rather than crash init.
+          console.error('useSupabaseConnection: Failed to parse saved connection, clearing cache', error);
+          localStorage.removeItem('supabase_connection');
+          localStorage.removeItem('supabaseCredentials');
+          parsed = null;
         }
 
-        // Only update if we don't already have a connection from server-side
-        const currentState = supabaseConnection.get();
+        if (parsed) {
+          // Only update if we don't already have a connection from server-side
+          const currentState = supabaseConnection.get();
 
-        if (!currentState.user) {
-          updateSupabaseConnection(parsed);
-        }
+          if (!currentState.user) {
+            updateSupabaseConnection(parsed);
+          }
 
-        if (parsed.token && parsed.selectedProjectId && !parsed.credentials) {
-          fetchProjectApiKeys(parsed.selectedProjectId, parsed.token).catch(console.error);
+          if (parsed.token && parsed.selectedProjectId && !parsed.credentials) {
+            fetchProjectApiKeys(parsed.selectedProjectId, parsed.token).catch(console.error);
+          }
         }
       }
     };

@@ -46,8 +46,12 @@ export const useConnectionStatus = () => {
   }, [acknowledgedIssue]);
 
   const acknowledgeIssue = () => {
-    if (currentIssue) {
-      localStorage.setItem(ACKNOWLEDGED_CONNECTION_ISSUE_KEY, currentIssue);
+    try {
+      if (currentIssue) {
+        localStorage.setItem(ACKNOWLEDGED_CONNECTION_ISSUE_KEY, currentIssue);
+      }
+    } catch {
+      // localStorage may be unavailable (private mode / quota); acknowledgement is best-effort.
     }
 
     setAcknowledgedIssue(currentIssue);
@@ -55,7 +59,12 @@ export const useConnectionStatus = () => {
   };
 
   const resetAcknowledgment = () => {
-    localStorage.removeItem(ACKNOWLEDGED_CONNECTION_ISSUE_KEY);
+    try {
+      localStorage.removeItem(ACKNOWLEDGED_CONNECTION_ISSUE_KEY);
+    } catch {
+      // Ignore storage failures; in-memory state below is authoritative.
+    }
+
     setAcknowledgedIssue(null);
     checkStatus();
   };

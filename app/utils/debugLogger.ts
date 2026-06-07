@@ -392,10 +392,17 @@ class DebugLogger {
       this.stopCapture();
     }
 
+    /*
+     * Capture the previous capacity BEFORE merging — otherwise the comparison
+     * below always reads the freshly-merged value and the buffer-resize branch
+     * never runs, so changing `maxEntries` silently keeps the old capacity.
+     */
+    const previousMaxEntries = this._config.maxEntries;
+
     this._config = { ...this._config, ...newConfig };
 
     // Recreate buffers if maxEntries changed
-    if (newConfig.maxEntries && newConfig.maxEntries !== this._config.maxEntries) {
+    if (newConfig.maxEntries && newConfig.maxEntries !== previousMaxEntries) {
       const oldLogs = this._logs.toArray();
       const oldErrors = this._errors.toArray();
       const oldNetworkRequests = this._networkRequests.toArray();
