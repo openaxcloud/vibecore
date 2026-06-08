@@ -102,16 +102,28 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       aiCostCents,
     },
     billingAccessLimited,
-    projects: result.projects.slice(0, 6).map((project) => ({
-      id: project.id,
-      name: project.name,
-      status: 'Ready',
-      updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
-      stack: project.gitRepositoryUrl ?? project.sourceType ?? 'Bolt project',
-      sourceType: project.sourceType,
-      previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
-      ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
-    })),
+    projects: [...result.projects]
+      .sort((a, b) => {
+        /*
+         * "Recent" must mean most-recently-updated, matching the /recent-projects
+         * page this card links to (the API returns createdAt-desc order).
+         */
+        const at = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const bt = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+
+        return bt - at;
+      })
+      .slice(0, 6)
+      .map((project) => ({
+        id: project.id,
+        name: project.name,
+        status: 'Ready',
+        updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
+        stack: project.gitRepositoryUrl ?? project.sourceType ?? 'Bolt project',
+        sourceType: project.sourceType,
+        previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
+        ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
+      })),
   };
 }
 

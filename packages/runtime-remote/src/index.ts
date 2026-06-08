@@ -188,6 +188,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   async *streamCommand(request: CommandRequest): AsyncIterable<CommandEvent> {
     const socket = await this.#openSocket(`/workspaces/${this.#requireWorkspaceId()}/commands/stream`, request);
     const queue = new AsyncQueue<CommandEvent>();
+    let sawTerminalEvent = false;
     socket.addEventListener('message', (event: { data: string }) => {
       let parsed: CommandEvent;
 
@@ -204,14 +205,33 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       // The command is done once the agent reports exit/error. Close the queue so the
       // consumer's `for await` terminates even if the agent keeps the socket open.
       if (parsed.type === 'exit' || parsed.type === 'error') {
+        sawTerminalEvent = true;
         queue.close();
       }
     });
     socket.addEventListener('error', () => {
+      sawTerminalEvent = true;
       queue.push({ type: 'error', error: new RuntimeError('Command stream failed'), timestamp: now() });
       queue.close();
     });
-    socket.addEventListener('close', () => queue.close());
+    socket.addEventListener('close', () => {
+      /*
+       * A close *before* any exit/error event means the command was interrupted
+       * (pod restart, LB idle-kill, network drop). Surface it as an error instead
+       * of letting the queue end cleanly — otherwise the consumer treats the
+       * interrupted command as a success (exit code 0) and, e.g., launches a dev
+       * server against a half-finished `npm install`.
+       */
+      if (!sawTerminalEvent) {
+        queue.push({
+          type: 'error',
+          error: new RuntimeError('Command stream closed before completion'),
+          timestamp: now(),
+        });
+      }
+
+      queue.close();
+    });
 
     // Always tear down the socket — including when the consumer breaks/throws out of the
     // loop early — so we never leak a live WebSocket + listeners per cancelled command.

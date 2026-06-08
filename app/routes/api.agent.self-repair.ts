@@ -88,6 +88,17 @@ export async function action({ context, request }: ActionFunctionArgs) {
     });
 
     const content = await result.text;
+    const finishReason = await result.finishReason;
+
+    /*
+     * The self-repair prompt asks the model to re-emit the FULL file. If it hit
+     * the token cap, `content` is truncated — accepting it would silently drop
+     * the tail of the file. Signal failure so the ActionRunner counts it as a
+     * failed attempt instead of writing a truncated file.
+     */
+    if (finishReason === 'length') {
+      return json({ error: 'self-repair response was truncated (max tokens reached)' }, 422);
+    }
 
     return json({ content });
   } catch (error) {

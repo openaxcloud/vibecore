@@ -75,12 +75,20 @@ export function isLongRunningInstallCommand(command: string): boolean {
 }
 
 async function callSelfRepairEndpoint(prompt: string, signal?: AbortSignal): Promise<string> {
+  /*
+   * Bound the request so a silent network stall (half-open connection, no RST)
+   * can't hang the file action indefinitely. Combine the caller's signal with a
+   * hard timeout.
+   */
+  const timeoutSignal = AbortSignal.timeout(45_000);
+  const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+
   const response = await fetch(SELF_REPAIR_ENDPOINT, {
     method: 'POST',
     credentials: 'include',
     headers: { 'content-type': 'application/json', accept: 'application/json' },
     body: JSON.stringify({ prompt }),
-    signal,
+    signal: combinedSignal,
   });
 
   if (!response.ok) {

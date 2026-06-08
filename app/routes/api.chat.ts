@@ -120,6 +120,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   const { messages, files, promptId, projectId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
     parsedBody;
 
+  /*
+   * Tool-loop step cap actually applied to streamText. Overridden below by the
+   * user's server-persisted setting when available (the client value is unvalidated).
+   */
+  let resolvedMaxSteps = maxLLMSteps;
+
   const cookieHeader = request.headers.get('Cookie');
 
   /*
@@ -179,7 +185,16 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
      * tearing down and rebuilding clients on every message needlessly.
      */
     try {
-      const { mcpConfig } = await loadUserMcpConfig(request);
+      const { mcpConfig, maxLLMSteps: serverMaxLLMSteps } = await loadUserMcpConfig(request);
+
+      /*
+       * Prefer the user's server-persisted step cap (clamped 1–50 at save time)
+       * over the unvalidated client value, so the saved Configuration-tab setting
+       * actually governs tool-loop depth and bounds runaway tool loops.
+       */
+      if (typeof serverMaxLLMSteps === 'number' && Number.isFinite(serverMaxLLMSteps)) {
+        resolvedMaxSteps = Math.max(1, Math.min(50, Math.floor(serverMaxLLMSteps)));
+      }
 
       if (Object.keys(mcpConfig.mcpServers).length > 0 || mcpService.configuredServerCount > 0) {
         await mcpService.updateConfig(mcpConfig);
@@ -578,7 +593,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           supabaseConnection: supabase,
           toolChoice: 'auto',
           tools: mcpService.toolsWithoutExecute,
-          maxSteps: maxLLMSteps,
+          maxSteps: resolvedMaxSteps,
           onStepFinish: ({ toolCalls }) => {
             // add tool call annotations for frontend processing
             toolCalls.forEach((toolCall) => {
@@ -678,6 +693,26 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 status: 'complete',
                 order: progressCounter++,
                 message: 'Response truncated: maximum continuation segments reached',
+              } satisfies ProgressAnnotation);
+
+              return;
+            }
+
+            /*
+             * A 'length' finish with no usable text (all budget consumed by
+             * reasoning/tool tokens) would push an empty assistant turn followed
+             * by CONTINUE_PROMPT — many providers error on empty assistant
+             * content, and at best it loops producing empty segments until the
+             * cap, burning quota for zero output. Treat it as a terminal response.
+             */
+            if (content.trim().length === 0) {
+              streamRecovery.stop();
+              dataStream.writeData({
+                type: 'progress',
+                label: 'response',
+                status: 'complete',
+                order: progressCounter++,
+                message: 'Response truncated: model returned no further content',
               } satisfies ProgressAnnotation);
 
               return;
