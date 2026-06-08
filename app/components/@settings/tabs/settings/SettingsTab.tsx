@@ -159,9 +159,14 @@ export default function SettingsTab() {
 
       lastPersistedRef.current = snapshot;
 
-      persistPreferencesToBackend(settings).then((persisted) => {
-        toast.success(persisted ? 'Settings updated' : 'Settings saved locally');
-      });
+      persistPreferencesToBackend(settings)
+        .then((persisted) => {
+          toast.success(persisted ? 'Settings updated' : 'Settings saved locally');
+        })
+        .catch((error) => {
+          console.error('Error persisting settings to backend:', error);
+          toast.error('Failed to sync settings');
+        });
     } catch (error) {
       console.error('Error saving settings:', error);
       toast.error('Failed to update settings');

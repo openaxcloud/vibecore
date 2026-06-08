@@ -1067,7 +1067,15 @@ export class WorkbenchStore {
   }
 
   addToExecutionQueue(callback: () => Promise<void>) {
-    this.#globalExecutionQueue = this.#globalExecutionQueue.then(() => callback());
+    /*
+     * Swallow per-task rejections here: a rejected queue promise would skip the `.then`
+     * of every subsequently-enqueued task, permanently stalling the queue.
+     */
+    this.#globalExecutionQueue = this.#globalExecutionQueue
+      .then(() => callback())
+      .catch((error) => {
+        console.error('Execution queue task failed', error);
+      });
   }
 
   get previews() {

@@ -7,15 +7,25 @@ export function bufferWatchEvents<T extends unknown[]>(timeInMs: number, cb: (ev
 
   const scheduleBufferTick = () => {
     timeoutId = self.setTimeout(async () => {
-      // we wait until the previous batch is entirely processed so events are processed in order
-      await processing;
+      try {
+        // we wait until the previous batch is entirely processed so events are processed in order
+        await processing;
 
-      if (events.length > 0) {
-        processing = Promise.resolve(cb(events));
+        if (events.length > 0) {
+          /*
+           * isolate the callback's promise so a rejection here can't escape as an unhandled
+           * rejection on the next tick's `await processing`
+           */
+          processing = Promise.resolve(cb(events)).catch((error) => {
+            console.error('bufferWatchEvents callback failed', error);
+          });
+        }
+      } catch (error) {
+        console.error('bufferWatchEvents tick failed', error);
+      } finally {
+        timeoutId = undefined;
+        events = [];
       }
-
-      timeoutId = undefined;
-      events = [];
     }, timeInMs);
   };
 

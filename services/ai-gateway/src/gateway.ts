@@ -301,7 +301,18 @@ async function readJson(response: Response) {
     });
   }
 
-  return text ? JSON.parse(text) : {};
+  if (!text) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw Object.assign(new Error('Provider returned a non-JSON response'), {
+      statusCode: 502,
+      providerBody: text.slice(0, 500),
+    });
+  }
 }
 
 function extractContent(payload: any) {
@@ -475,7 +486,9 @@ async function* providerStream(config: ProviderConfig, request: AiChatRequest, m
           yield delta;
         }
       } catch {
-        yield jsonLine;
+        // A malformed SSE chunk is not assistant content — yielding the raw JSON would
+        // splice literal `{"choices":...}` text into the streamed message. Skip it.
+        continue;
       }
     }
   }

@@ -210,15 +210,19 @@ export class ActionRunner {
       abortSignal: abortController.signal,
     });
 
-    this.#currentExecutionPromise.then(() => {
-      const current = this.actions.get()[actionId];
+    this.#currentExecutionPromise
+      .then(() => {
+        const current = this.actions.get()[actionId];
 
-      if (!current || current.executed || current.status === 'complete' || current.status === 'failed') {
-        return;
-      }
+        if (!current || current.executed || current.status === 'complete' || current.status === 'failed') {
+          return;
+        }
 
-      this.#updateAction(actionId, { status: 'running' });
-    });
+        this.#updateAction(actionId, { status: 'running' });
+      })
+      .catch(() => {
+        // failures are surfaced via the action's own status; avoid an unhandled rejection here
+      });
   }
 
   abortAll() {

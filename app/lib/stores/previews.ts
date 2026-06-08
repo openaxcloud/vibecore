@@ -189,6 +189,12 @@ export class PreviewsStore {
 
     this.#storageSyncTimer = setTimeout(() => {
       this.#storageSyncTimer = undefined;
+
+      // re-check: dispose() may have run between arming and firing this timer
+      if (this.#disposed) {
+        return;
+      }
+
       this._broadcastStorageSync();
     }, 250);
   }
