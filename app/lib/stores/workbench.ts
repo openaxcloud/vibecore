@@ -22,6 +22,7 @@ import { ActionRunner } from '~/lib/runtime/action-runner';
 import { hasInstalledPreviewDependencies, type PreviewPackageManifest } from '~/lib/runtime/preview-dependencies';
 import { buildPreviewManifestRepair } from '~/lib/runtime/preview-manifest';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
+import { withRuntimeRetry } from '~/lib/runtime/retry';
 import { writeAcceptedAgentFile } from '~/lib/runtime/agent-file-write';
 import { topologicallySortFileActions } from '~/lib/runtime/topological-apply';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
@@ -472,7 +473,8 @@ export class WorkbenchStore {
     }
   }
 
-  async startPreviewServer() {
+  async startPreviewServer(options: { forceInstall?: boolean } = {}) {
+    const forceInstall = options.forceInstall ?? false;
     const previousPreviewState = this.previewServerState.get();
 
     if (
@@ -519,11 +521,13 @@ export class WorkbenchStore {
       return false;
     });
 
-    if (dependenciesChanged || this.#findPackageJsonEntry()) {
+    const shouldInstall = dependenciesChanged || forceInstall;
+
+    if (shouldInstall || this.#findPackageJsonEntry()) {
       await this.loadRuntimeFiles('.').catch(() => undefined);
     }
 
-    if (dependenciesChanged) {
+    if (shouldInstall) {
       await this.stopPreviewServer();
     } else if (this.previews.get().some((preview) => preview.ready !== false)) {
       this.previewServerState.set({ status: 'running' });
@@ -533,7 +537,7 @@ export class WorkbenchStore {
     let command: PreviewCommand;
 
     try {
-      command = await this.#detectPreviewCommand(dependenciesChanged);
+      command = await this.#detectPreviewCommand(shouldInstall);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.previewServerState.set({
@@ -635,6 +639,20 @@ export class WorkbenchStore {
     this.#previewStartPromise = undefined;
 
     return this.startPreviewServer();
+  }
+
+  /**
+   * User-triggerable recovery action: force a fresh dependency install and
+   * restart the preview. Used when the initial install was skipped (e.g. the
+   * workspace pod returned a transient 502 during provisioning) and the editor
+   * is left with an empty node_modules / broken preview.
+   */
+  async reinstallDependencies() {
+    this.appendWorkspaceLog('Reinstalling dependencies…');
+    await this.stopPreviewServer();
+    this.#previewStartPromise = undefined;
+
+    return this.startPreviewServer({ forceInstall: true });
   }
 
   async #streamWorkspaceCommand(
@@ -2250,6 +2268,26 @@ export class WorkbenchStore {
   }
 
   async #syncPreviewManifestFromRuntime() {
+    /*
+     * A freshly provisioned workspace pod often returns 502/503 from the runtime
+     * proxy for the first few seconds while it is still coming up. Without
+     * retrying, the manifest sync (and therefore dependency installation) is
+     * skipped entirely, leaving node_modules empty and the preview dead. Retry
+     * the whole sync with exponential backoff on transient errors — the file
+     * writes here are idempotent so re-running is safe.
+     */
+    return withRuntimeRetry(() => this.#syncPreviewManifestFromRuntimeOnce(), {
+      attempts: 4,
+      onRetry: (attempt, delayMs, error) => {
+        const reason = error instanceof Error ? error.message : String(error);
+        this.appendWorkspaceLog(
+          `Dependency sync attempt ${attempt} failed (${reason}); retrying in ${Math.round(delayMs / 100) / 10}s…`,
+        );
+      },
+    });
+  }
+
+  async #syncPreviewManifestFromRuntimeOnce() {
     const files = await collectRuntimeTextFiles(this.#runtime, '.', {
       excludeDirectory: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES.has(name),
       excludeFile: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_FILES.has(name),

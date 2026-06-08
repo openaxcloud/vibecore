@@ -9647,6 +9647,41 @@ body :where(.lucide, svg[data-lucide]) {
   stroke-width: 1.8;
 }
 
+.bolt-preview-not-running-secondary {
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--vc-ide-text-secondary, #94a3b8);
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 10px;
+  padding: 0 14px;
+  transition:
+    color 150ms ease-out,
+    border-color 150ms ease-out,
+    opacity 150ms ease-out;
+}
+
+.bolt-preview-not-running-secondary:hover:not(:disabled) {
+  color: var(--vc-ide-text-primary, #e2e8f0);
+  border-color: var(--vc-ide-accent-action);
+}
+
+.bolt-preview-not-running-secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.bolt-preview-not-running-secondary span[class^='i-'] {
+  width: 14px;
+  height: 14px;
+}
+
 .bolt-preview-splash-shell {
   width: min(560px, 100%);
   overflow: hidden;

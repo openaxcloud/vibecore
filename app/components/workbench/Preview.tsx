@@ -2027,6 +2027,21 @@ export const Preview = memo(
                           window.setTimeout(() => setIsStartingPreview(false), 2500);
                         });
                     }}
+                    onReinstall={() => {
+                      setIsStartingPreview(true);
+                      setPreviewRunFailed(false);
+                      setPreviewStatus('Reinstalling dependencies and restarting preview server...');
+                      toast.info('Reinstalling dependencies', { toastId: 'preview-reinstall-deps' });
+                      void workbenchStore
+                        .reinstallDependencies()
+                        .catch((error) => {
+                          setPreviewStatus(error instanceof Error ? error.message : 'Failed to reinstall dependencies');
+                          setPreviewRunFailed(true);
+                        })
+                        .finally(() => {
+                          window.setTimeout(() => setIsStartingPreview(false), 2500);
+                        });
+                    }}
                   />
                 ) : (
                   <>
@@ -2404,11 +2419,13 @@ function PreviewNotRunningState({
   isRunning,
   logs,
   onRun,
+  onReinstall,
 }: {
   detail?: string;
   isRunning: boolean;
   logs: string[];
   onRun: () => void;
+  onReinstall?: () => void;
 }) {
   return (
     <div className="bolt-preview-not-running" data-testid="preview-not-running-state">
@@ -2432,6 +2449,18 @@ function PreviewNotRunningState({
           {isRunning ? <span className="i-ph:circle-notch animate-spin" aria-hidden /> : <Zap aria-hidden />}
           <span>{isRunning ? 'Starting preview...' : 'Run to preview your app'}</span>
         </button>
+        {onReinstall ? (
+          <button
+            type="button"
+            onClick={onReinstall}
+            disabled={isRunning}
+            className="bolt-preview-not-running-secondary"
+            title="Force a fresh dependency install (use this if the preview is stuck because dependencies failed to install)"
+          >
+            <span className="i-ph:arrows-clockwise" aria-hidden />
+            <span>Reinstall dependencies</span>
+          </button>
+        ) : null}
       </div>
     </div>
   );
