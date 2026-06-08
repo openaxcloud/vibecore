@@ -8040,8 +8040,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * named `workspace-ws-<hash>` — so every AI tool call (list_files,
      * read_file, write_file, run_command, …) 502'd with ENOTFOUND.
      */
-    const workspaceId =
-      input.workspaceId ?? (request.currentUser ? runtimeWorkspaceId(project.id, request.currentUser.id) : project.id);
+    const defaultWorkspaceId = request.currentUser
+      ? runtimeWorkspaceId(project.id, request.currentUser.id)
+      : project.id;
+
+    /*
+     * An explicit workspaceId is caller-supplied and must be bound to this
+     * project before it is used to fetch an agent token / proxy file, command
+     * and snapshot operations — otherwise a builder could pass another tenant's
+     * workspace id and read or mutate that workspace's filesystem. Accept the
+     * deterministic per-(project,user) id as-is; for any other value require a
+     * Workspace record that belongs to this project (mirrors
+     * authorizeRuntimeWorkspace / resolveGitWorkspaceId).
+     */
+    let workspaceId = defaultWorkspaceId;
+
+    if (input.workspaceId && input.workspaceId !== defaultWorkspaceId) {
+      const requestedWorkspace = await store.getWorkspace(input.workspaceId);
+
+      if (!requestedWorkspace || requestedWorkspace.projectId !== project.id) {
+        throw Object.assign(new Error('Workspace does not belong to this project'), {
+          statusCode: 404,
+          code: 'WORKSPACE_NOT_FOUND',
+        });
+      }
+
+      workspaceId = requestedWorkspace.id;
+    }
 
     const writeTools = new Set([
       'write_file',
