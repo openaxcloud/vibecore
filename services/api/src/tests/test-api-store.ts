@@ -865,6 +865,14 @@ export class TestApiStore implements ApiStore {
     error?: string;
   }) {
     const existing = this.agentPatchProposals.get(input.id);
+
+    if (existing && existing.projectId !== input.projectId) {
+      throw Object.assign(new Error('Agent patch proposal not found'), {
+        statusCode: 404,
+        code: 'AGENT_PATCH_PROPOSAL_NOT_FOUND',
+      });
+    }
+
     const proposal: AgentPatchProposalRecord = {
       id: input.id,
       projectId: input.projectId,

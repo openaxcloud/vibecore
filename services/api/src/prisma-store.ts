@@ -946,6 +946,18 @@ export class PrismaApiStore implements ApiStore {
     status: AgentPatchProposalStatus;
     error?: string;
   }) {
+    const existing = await this.prisma.agentPatchProposal.findUnique({
+      where: { id: input.id },
+      select: { projectId: true },
+    });
+
+    if (existing && existing.projectId !== input.projectId) {
+      throw Object.assign(new Error('Agent patch proposal not found'), {
+        statusCode: 404,
+        code: 'AGENT_PATCH_PROPOSAL_NOT_FOUND',
+      });
+    }
+
     return mapAgentPatchProposal(
       await this.prisma.agentPatchProposal.upsert({
         where: { id: input.id },

@@ -71,6 +71,10 @@ async function deliverSiemAuditEvents() {
           'x-vibecore-signature': `sha256=${signature}`,
         },
         body,
+        // Webhooks are delivered serially; without a timeout a single hung
+        // customer endpoint stalls the whole batch (and the worker tick)
+        // indefinitely. Treat a slow/hung call as a failed delivery and retry next run.
+        signal: AbortSignal.timeout(10_000),
       });
 
       if (!response.ok) {
@@ -98,14 +102,21 @@ async function enforceDataRetention() {
   const settings = await prisma.enterpriseOrganizationSettings.findMany({ where: { legalHoldEnabled: false } });
 
   for (const setting of settings) {
-    const cutoff = new Date(Date.now() - setting.dataRetentionDays * 24 * 60 * 60 * 1000);
-    await prisma.auditLog.deleteMany({ where: { organizationId: setting.organizationId, createdAt: { lt: cutoff } } });
-    await prisma.projectActivity.deleteMany({
-      where: {
-        project: { organizationId: setting.organizationId },
-        createdAt: { lt: cutoff },
-      },
-    });
+    // Isolate each organization: a single failing deleteMany (FK contention,
+    // timeout) must not abort the sweep and starve every later org of retention.
+    // deleteMany is idempotent so a failed org is simply retried next run.
+    try {
+      const cutoff = new Date(Date.now() - setting.dataRetentionDays * 24 * 60 * 60 * 1000);
+      await prisma.auditLog.deleteMany({ where: { organizationId: setting.organizationId, createdAt: { lt: cutoff } } });
+      await prisma.projectActivity.deleteMany({
+        where: {
+          project: { organizationId: setting.organizationId },
+          createdAt: { lt: cutoff },
+        },
+      });
+    } catch (error) {
+      console.error(`Data retention enforcement failed for org ${setting.organizationId}; continuing`, error);
+    }
   }
 }
 
@@ -142,6 +153,10 @@ export async function triggerWorkspaceGarbageCollect(jobData: Record<string, unk
       ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}),
     },
     body: JSON.stringify(body),
+    // workspace-jobs runs at concurrency 1; without a timeout a hung manager
+    // pins this GC job forever, so no further GC ever runs and leaked pods/PVCs
+    // accumulate. Bound the call and let BullMQ retry on the next attempt/tick.
+    signal: AbortSignal.timeout(60_000),
   });
 
   if (!response.ok) {

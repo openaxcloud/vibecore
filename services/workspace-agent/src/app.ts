@@ -124,7 +124,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      * can't be followed to read a file outside the workspace root.
      */
     const realPath = await realpath(safePath).catch(rethrowFsError);
-    const realRel = relative(root, realPath);
+    const realRel = relative(await canonicalRoot(root), realPath);
 
     if (realRel === '..' || realRel.startsWith(`..${sep}`)) {
       throw Object.assign(new Error('Path escapes workspace root'), { statusCode: 400, code: 'EACCES' });
@@ -149,6 +149,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
     const safePath = resolveWorkspacePath(root, body.path);
     await mkdir(dirname(safePath), { recursive: true });
+    await assertRealPathContained(root, safePath);
     await writeFile(safePath, body.content, 'utf8');
 
     return { path: body.path, bytes: Buffer.byteLength(body.content) };
@@ -159,6 +160,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const safePath = resolveWorkspacePath(root, body.path);
 
     if (body.directory) {
+      await assertRealPathContained(root, safePath);
       await mkdir(safePath, { recursive: true });
       return { path: body.path, type: 'directory' };
     }
@@ -166,6 +168,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const content = body.content ?? '';
     assertContentSize(content, maxFileBytes);
     await mkdir(dirname(safePath), { recursive: true });
+    await assertRealPathContained(root, safePath);
     await writeFile(safePath, content, { flag: 'wx' });
 
     return { path: body.path, type: 'file' };
@@ -173,7 +176,9 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
   app.post('/files/delete', async (request) => {
     const { path } = filePathSchema.parse(request.body);
-    await rm(resolveWorkspacePath(root, path), { recursive: true, force: true });
+    const safePath = resolveWorkspacePath(root, path);
+    await assertRealPathContained(root, dirname(safePath));
+    await rm(safePath, { recursive: true, force: true });
 
     return { path };
   });
@@ -183,6 +188,8 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const from = resolveWorkspacePath(root, body.from);
     const to = resolveWorkspacePath(root, body.to);
     await mkdir(dirname(to), { recursive: true });
+    await assertRealPathContained(root, dirname(from));
+    await assertRealPathContained(root, to);
     await rename(from, to);
 
     return { from: body.from, to: body.to };
@@ -196,6 +203,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
       const safePath = resolveWorkspacePath(root, file.path);
       await mkdir(dirname(safePath), { recursive: true });
+      await assertRealPathContained(root, safePath);
       await writeFile(safePath, file.content, 'utf8');
     }
 
@@ -280,6 +288,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
       const safePath = resolveWorkspacePath(root, file.path);
       await mkdir(dirname(safePath), { recursive: true });
+      await assertRealPathContained(root, safePath);
       await writeFile(safePath, file.content, 'utf8');
     }
 
@@ -572,6 +581,59 @@ function resolveWorkspacePath(root: string, unsafePath: string) {
   }
 
   return resolved;
+}
+
+/*
+ * Canonical (symlink-resolved) workspace root, used for all containment checks.
+ * The lexical root may itself sit under a symlink (e.g. macOS /var -> /private/var),
+ * so comparing a resolved real path against the lexical root would spuriously
+ * report an escape. Resolved once and cached; falls back to the lexical root
+ * until the directory exists on disk.
+ */
+async function canonicalRoot(root: string): Promise<string> {
+  return realpath(root).catch(() => root);
+}
+
+/*
+ * The lexical resolveWorkspacePath() check can be defeated by a symlink inside
+ * the workspace pointing outside it: a user can `ln -s /etc evil`, then a write
+ * to `evil/passwd` resolves lexically to `root/evil/passwd` (which passes) but
+ * follows the link on disk to escape the root. Re-check the resolved real path:
+ * realpath() the deepest existing ancestor (the target itself may not exist yet
+ * for a create/write) and confirm it is still contained. Mirrors the symlink
+ * guard already applied on the read path.
+ */
+async function assertRealPathContained(root: string, safePath: string): Promise<void> {
+  const realRoot = await canonicalRoot(root);
+  let probe = safePath;
+
+  for (;;) {
+    const real = await realpath(probe).catch((error) => {
+      if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
+        return undefined;
+      }
+
+      throw error;
+    });
+
+    if (real !== undefined) {
+      const rel = relative(realRoot, real);
+
+      if (rel === '..' || rel.startsWith(`..${sep}`)) {
+        throw Object.assign(new Error('Path escapes workspace root'), { statusCode: 400, code: 'EACCES' });
+      }
+
+      return;
+    }
+
+    const parent = dirname(probe);
+
+    if (parent === probe) {
+      return;
+    }
+
+    probe = parent;
+  }
 }
 
 function assertContentSize(content: string, maxFileBytes: number) {
