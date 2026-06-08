@@ -27,6 +27,7 @@ type ApiProject = {
 type BillingState = {
   plan: { name: string };
   usage: Array<{ type: string; quantity: number }>;
+  activeWorkspaces?: number;
 };
 
 const fallbackBilling: BillingState = {
@@ -94,9 +95,12 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   return {
     usageSummary: {
       projects: result.projects.length,
-      activeWorkspaces: billing.usage
-        .filter((event) => event.type === 'workspaces.active')
-        .reduce((sum, event) => sum + event.quantity, 0),
+
+      /*
+       * Live count from the API; fall back to 0 (never sum the append-only
+       * workspaces.active ledger, which only ever grows).
+       */
+      activeWorkspaces: billing.activeWorkspaces ?? 0,
       planName: billing.plan.name,
       usageEvents: billing.usage.length,
       aiCostCents,

@@ -1451,6 +1451,16 @@ function sortFileList(rootFolder: string, nodeList: Node[], hideRoot: boolean): 
   nodeList.sort((a, b) => compareNodes(a, b));
 
   for (const node of nodeList) {
+    /*
+     * Two nodes can normalize to the same fullPath (e.g. NFC vs NFD
+     * unicode-equivalent names synced from macOS). Keep the first and skip the
+     * duplicate rather than silently clobbering the earlier node in nodeMap and
+     * double-listing it under its parent in childrenMap.
+     */
+    if (nodeMap.has(node.fullPath)) {
+      continue;
+    }
+
     nodeMap.set(node.fullPath, node);
 
     const parentPath = node.fullPath.slice(0, node.fullPath.lastIndexOf('/'));

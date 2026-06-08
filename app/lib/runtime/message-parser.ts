@@ -248,6 +248,15 @@ export class StreamingMessageParser {
 
               if (!currentAction.filePath?.endsWith('.md')) {
                 content = cleanFileActionContent(content, currentAction.filePath);
+
+                /*
+                 * The closing ``` hasn't streamed in yet, so cleanoutMarkdownSyntax
+                 * (which requires both fences) can't strip the opening fence. Strip
+                 * a leading ```lang line here so the streamed editor preview — and
+                 * any save of it before the action closes — doesn't keep a literal
+                 * ```lang first line.
+                 */
+                content = content.replace(/^\s*```[a-zA-Z0-9]*\n/, '');
               }
 
               this._options.callbacks?.onActionStream?.({

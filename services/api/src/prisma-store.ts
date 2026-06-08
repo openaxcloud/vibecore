@@ -737,12 +737,20 @@ export class PrismaApiStore implements ApiStore {
      */
     const SAFETY_CAP = 1000;
     const search = options.search?.trim().toLowerCase();
+    const requestedOrder = options.order ?? 'asc';
     const take = search ? SAFETY_CAP : (limit ?? SAFETY_CAP);
 
     const records = (
       await this.prisma.projectActivity.findMany({
         where,
-        orderBy: { createdAt: options.order ?? 'asc' },
+        /*
+         * When searching we scan a capped window rather than the whole table.
+         * Always take the MOST RECENT rows (desc) in that case so a search can
+         * match recent activity on a project with more than SAFETY_CAP rows —
+         * `orderBy: asc` + `take` previously fetched the OLDEST 1000 and could
+         * never surface a recent match. Re-sort to the requested order below.
+         */
+        orderBy: { createdAt: search ? 'desc' : requestedOrder },
         take,
       })
     ).map(mapProjectActivity);
@@ -758,7 +766,10 @@ export class PrismaApiStore implements ApiStore {
         )
       : records;
 
-    return typeof limit === 'number' ? filtered.slice(0, limit) : filtered;
+    // We fetched desc when searching; restore the caller's requested order.
+    const ordered = search && requestedOrder === 'asc' ? [...filtered].reverse() : filtered;
+
+    return typeof limit === 'number' ? ordered.slice(0, limit) : ordered;
   }
 
   async getProjectIdeState(projectId: string) {

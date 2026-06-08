@@ -330,7 +330,7 @@ export class ActionRunner {
             break;
           }
           case 'file': {
-            await this.#runFileAction(action);
+            await this.#runFileAction(action, isStreaming);
             break;
           }
           case 'supabase': {
@@ -580,7 +580,7 @@ export class ActionRunner {
     return resp;
   }
 
-  async #runFileAction(action: ActionState) {
+  async #runFileAction(action: ActionState, isStreaming: boolean = false) {
     if (action.type !== 'file') {
       unreachable('Expected file action');
     }
@@ -605,7 +605,15 @@ export class ActionRunner {
     let payload: string;
 
     try {
-      const sanitized = sanitizeFileContent(action.content, relativePath);
+      /*
+       * While streaming, the file content is partial by definition, so a
+       * `.json` file is almost always mid-object and would throw
+       * JsonValidationError on every chunk (failing the streamed write and
+       * burning retry budget). Skip strict JSON validation for streaming
+       * writes; the authoritative non-streaming write on action close still
+       * validates the complete content.
+       */
+      const sanitized = sanitizeFileContent(action.content, relativePath, { throwOnInvalidJson: !isStreaming });
 
       if (sanitized.stripped > 0) {
         logger.warn(`Sanitized ${sanitized.stripped} stray control characters from ${relativePath} before writing`);

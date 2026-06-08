@@ -9486,6 +9486,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const keepAlive = setInterval(() => {
       client.ping();
 
+      /*
+       * Count an open terminal / command stream as workspace activity. The
+       * token is minted once at connect, so without this a long-lived terminal
+       * session (e.g. running a multi-minute build) with no file/port-watch
+       * poller running would let lastActiveAt go stale and the inactivity GC
+       * would stop the pod out from under the active session. Re-minting the
+       * agent token bumps lastActiveAt (throttled in the manager); fire-and-forget.
+       */
+      void agentToken(workspaceId).catch(() => undefined);
+
       if (upstream.readyState === WebSocket.OPEN) {
         try {
           upstream.ping();
@@ -13384,6 +13394,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       subscription: state.subscription,
       plan: state.plan,
       limits: state.limits,
+      // Live count (PENDING/STARTING/RUNNING). The workspaces.active usage
+      // events are an append-only ledger that is never decremented, so summing
+      // them (as the dashboard used to) grows without bound and never reflects
+      // the real active count.
+      activeWorkspaces: await store.countActiveWorkspaces(orgId),
       usage: await store.listUsageEvents(orgId, { take: 500 }),
       overrides: (await store.listQuotaOverrides(orgId)).filter((o) => isQuotaOverrideActive(o)),
       upgradePrompts: billingPlans
