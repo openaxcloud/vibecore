@@ -1016,6 +1016,15 @@ function buildEnvForRun(envVars: Record<string, string>, buildHome: string): Nod
 export async function runStaticBuild(options: RunStaticBuildOptions): Promise<RunStaticBuildResult> {
   const log = makeLogger();
   const timeoutMs = Math.max(1, options.timeoutSeconds) * 1000;
+
+  /*
+   * Shared deadline across install + build. Previously each phase got the full
+   * timeoutMs independently, so a build could run up to ~2× the configured
+   * timeout (install timeoutMs + build timeoutMs). Subtract elapsed time so the
+   * total honors the single timeoutSeconds budget.
+   */
+  const deadline = Date.now() + timeoutMs;
+  const remainingMs = () => Math.max(1, deadline - Date.now());
   const projectDir = options.workspaceId
     ? workspaceStorageDir(options.projectId, options.workspaceId)
     : projectStorageDir(options.projectId);
@@ -1053,7 +1062,7 @@ export async function runStaticBuild(options: RunStaticBuildOptions): Promise<Ru
       args: [...packageManager.install],
       cwd: buildCwd,
       env,
-      timeoutMs,
+      timeoutMs: remainingMs(),
       onStdout: (line) => log.push('info', `[install] ${redactDeploymentLog(line, options.envVars)}`),
       onStderr: (line) => log.push('error', `[install] ${redactDeploymentLog(line, options.envVars)}`),
     });
@@ -1083,7 +1092,7 @@ export async function runStaticBuild(options: RunStaticBuildOptions): Promise<Ru
     args: split.args,
     cwd: buildCwd,
     env,
-    timeoutMs,
+    timeoutMs: remainingMs(),
     onStdout: (line) => log.push('info', `[build] ${redactDeploymentLog(line, options.envVars)}`),
     onStderr: (line) => log.push('error', `[build] ${redactDeploymentLog(line, options.envVars)}`),
   });

@@ -734,7 +734,32 @@ export class GitCliProvider implements GitProvider {
 
   async pull(input: { projectId: string; workspaceId?: string; branch: string }) {
     return withProjectLock(input.projectId, async () => {
-      await this.git(input.projectId, ['pull', 'origin', input.branch], input.workspaceId);
+      try {
+        await this.git(input.projectId, ['pull', 'origin', input.branch], input.workspaceId);
+      } catch (error) {
+        /*
+         * A conflicting pull exits non-zero, which would otherwise surface as a
+         * raw 500 with the repo left mid-merge and no conflict info. Detect the
+         * unmerged paths and return a typed 409 so the UI can route the user into
+         * conflict resolution instead of showing a generic failure.
+         */
+        const conflictsOut = await this.git(
+          input.projectId,
+          ['diff', '--name-only', '--diff-filter=U'],
+          input.workspaceId,
+        ).catch(() => '');
+        const conflicts = conflictsOut.split('\n').map((line) => line.trim()).filter(Boolean);
+
+        if (conflicts.length > 0) {
+          throw Object.assign(new Error('Pull produced merge conflicts that must be resolved.'), {
+            statusCode: 409,
+            code: 'GIT_MERGE_CONFLICT',
+            conflicts,
+          });
+        }
+
+        throw error;
+      }
 
       const status = await this.status(input.projectId, input.workspaceId);
 

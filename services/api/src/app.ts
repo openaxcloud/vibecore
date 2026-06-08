@@ -13520,9 +13520,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     ) {
       const priceId =
         object.items?.data?.[0]?.price?.id ?? object.lines?.data?.[0]?.price?.id ?? object.metadata?.priceId;
-      const plan =
-        (await store.listBillingPlans()).find((candidate) => candidate.stripePriceId === priceId) ??
-        (await store.getBillingPlan((object.metadata?.planKey as PlanKey | undefined) ?? 'free'));
+
+      let plan = (await store.listBillingPlans()).find((candidate) => candidate.stripePriceId === priceId);
+
+      if (!plan) {
+        const metaPlanKey = object.metadata?.planKey as PlanKey | undefined;
+
+        if (metaPlanKey) {
+          plan = await store.getBillingPlan(metaPlanKey);
+        } else if (priceId && event.type !== 'customer.subscription.deleted') {
+          /*
+           * A real Stripe price that maps to no stored plan (price rotated, or
+           * stripePriceId not seeded) must NOT silently downgrade a paying
+           * customer to free. Preserve the org's current plan and alert instead.
+           */
+          const existing = await store.getSubscription(organizationId).catch(() => undefined);
+          request.log.error(
+            { organizationId, priceId, eventType: event.type },
+            'Stripe price did not match any billing plan; preserving current plan instead of downgrading',
+          );
+          plan = existing?.planKey
+            ? await store.getBillingPlan(existing.planKey)
+            : await store.getBillingPlan('free');
+        } else {
+          plan = await store.getBillingPlan('free');
+        }
+      }
       const status =
         event.type === 'customer.subscription.deleted' ? 'CANCELED' : String(object.status ?? 'active').toUpperCase();
       await store.upsertSubscription({
