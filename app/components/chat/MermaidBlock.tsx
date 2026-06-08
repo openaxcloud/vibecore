@@ -1,3 +1,4 @@
+import { useStore } from '@nanostores/react';
 import { memo, useEffect, useRef, useState } from 'react';
 import { themeStore } from '~/lib/stores/theme';
 import { classNames } from '~/utils/classNames';
@@ -24,6 +25,7 @@ export const MermaidBlock = memo(({ code, className }: MermaidBlockProps) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [svg, setSvg] = useState<string | null>(null);
+  const theme = useStore(themeStore);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,12 +48,12 @@ export const MermaidBlock = memo(({ code, className }: MermaidBlockProps) => {
       try {
         const { default: mermaid } = await import('mermaid');
 
-        const theme = themeStore.get() === 'dark' ? 'dark' : 'default';
+        const mermaidTheme = theme === 'dark' ? 'dark' : 'default';
 
         mermaid.initialize({
           startOnLoad: false,
           securityLevel: 'strict',
-          theme,
+          theme: mermaidTheme,
           fontFamily: 'var(--font-sans, system-ui, sans-serif)',
         });
 
@@ -79,7 +81,7 @@ export const MermaidBlock = memo(({ code, className }: MermaidBlockProps) => {
     return () => {
       cancelled = true;
     };
-  }, [code]);
+  }, [code, theme]);
 
   const copyToClipboard = async () => {
     try {

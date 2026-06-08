@@ -1054,7 +1054,15 @@ function dedupeCollaborationPresence(presence: any[] = []) {
     const userWeight = PRESENCE_STATUS_WEIGHT[String(user.status ?? 'online')] ?? 1;
     const existingWeight = PRESENCE_STATUS_WEIGHT[String(existing.status ?? 'online')] ?? 1;
 
-    if (presenceTimestamp(user) > presenceTimestamp(existing) || userWeight > existingWeight) {
+    /*
+     * Weight-first, then recency. The previous `||` let a newer idle heartbeat
+     * replace an older but higher-priority `typing` record, flipping a
+     * collaborator from "typing…" to "idle" purely on arrival order.
+     */
+    if (
+      userWeight > existingWeight ||
+      (userWeight === existingWeight && presenceTimestamp(user) > presenceTimestamp(existing))
+    ) {
       byIdentity.set(key, user);
     }
   }

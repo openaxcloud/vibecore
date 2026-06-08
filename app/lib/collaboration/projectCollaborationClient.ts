@@ -137,6 +137,7 @@ export class ProjectCollaborationClient {
   #maxReconnectDelayMs: number;
   #socket?: CollaborationWebSocketLike;
   #stopped = true;
+  #connecting = false;
   #reconnectTimer?: ReturnType<typeof setTimeout>;
   #reconnectAttempts = 0;
   #pendingPresence?: Partial<CollaborationPresence>;
@@ -224,7 +225,13 @@ export class ProjectCollaborationClient {
   }
 
   async #connectSocket(status: CollaborationConnectionStatus) {
-    if (this.#stopped) {
+    /*
+     * Guard against concurrent connects: without it, a #send during CONNECTING
+     * (or a stale reconnect timer) spawns a second socket, overwrites #socket,
+     * and orphans the first socket's listeners — a self-sustaining duplicate-
+     * connection / listener leak.
+     */
+    if (this.#stopped || this.#connecting) {
       return;
     }
 
@@ -235,6 +242,7 @@ export class ProjectCollaborationClient {
       return;
     }
 
+    this.#connecting = true;
     this.#setSnapshot({ status, error: undefined });
 
     try {
@@ -253,7 +261,18 @@ export class ProjectCollaborationClient {
       const socket = new this.#WebSocket(websocketUrl);
       this.#socket = socket;
       socket.addEventListener('open', () => {
+        this.#connecting = false;
         this.#reconnectAttempts = 0;
+
+        /*
+         * Cancel any reconnect timer that was scheduled before this socket came
+         * up, so it can't later tear down a now-healthy connection.
+         */
+        if (this.#reconnectTimer) {
+          clearTimeout(this.#reconnectTimer);
+          this.#reconnectTimer = undefined;
+        }
+
         this.#setSnapshot({ status: 'connected', error: undefined });
 
         if (this.#pendingPresence) {
@@ -271,15 +290,27 @@ export class ProjectCollaborationClient {
         }
       });
       socket.addEventListener('error', () => {
+        this.#connecting = false;
         this.#setSnapshot({ status: 'error', error: 'Collaboration socket error' });
+
+        /*
+         * Some WS/proxy/LB layers emit 'error' WITHOUT a following 'close',
+         * which would otherwise wedge the client in 'error' with no retry.
+         */
+        if (!this.#stopped) {
+          this.#scheduleReconnect();
+        }
       });
       socket.addEventListener('close', () => {
+        this.#connecting = false;
+
         if (!this.#stopped) {
           this.#setSnapshot({ status: 'reconnecting' });
           this.#scheduleReconnect();
         }
       });
     } catch (error) {
+      this.#connecting = false;
       this.#setSnapshot({
         status: 'error',
         error: error instanceof Error ? error.message : 'Unable to connect collaboration socket',
@@ -291,7 +322,16 @@ export class ProjectCollaborationClient {
   #send(message: { type: string; payload?: unknown }) {
     if (this.#socket?.readyState === OPEN) {
       this.#socket.send(JSON.stringify(message));
-    } else if (!this.#stopped) {
+
+      return;
+    }
+
+    /*
+     * Presence is buffered in #pendingPresence and flushes on the next 'open',
+     * so a send during CONNECTING must NOT schedule a reconnect (that would spawn
+     * a duplicate socket). Only reconnect when there's genuinely no live/in-flight one.
+     */
+    if (!this.#stopped && !this.#connecting) {
       this.#scheduleReconnect();
     }
   }

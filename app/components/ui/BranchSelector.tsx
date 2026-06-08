@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { GitBranch, Check, Shield, Star, RefreshCw, X } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from './Button';
 import { classNames } from '~/utils/classNames';
 
@@ -47,7 +47,14 @@ export function BranchSelector({
 
   const filteredBranches = branches.filter((branch) => branch.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
+  /*
+   * Sequence guard: only the latest in-flight fetch may apply its results, so a
+   * slow repo-A response can't overwrite a freshly-loaded repo-B list.
+   */
+  const fetchSeqRef = useRef(0);
+
   const fetchBranches = async () => {
+    const seq = ++fetchSeqRef.current;
     setIsLoading(true);
     setError(null);
 
@@ -87,17 +94,34 @@ export function BranchSelector({
       }
 
       const data: any = await response.json();
+
+      if (seq !== fetchSeqRef.current) {
+        return; // a newer fetch superseded this one
+      }
+
       setBranches(data.branches || []);
+
+      /*
+       * Clear any leftover search so a reused selector (different repo) doesn't
+       * filter the new list by the previous repo's query with the box hidden.
+       */
+      setSearchQuery('');
 
       // Set default selected branch
       const defaultBranchToSelect = data.defaultBranch || defaultBranch || 'main';
       setSelectedBranch(defaultBranchToSelect);
     } catch (err) {
+      if (seq !== fetchSeqRef.current) {
+        return;
+      }
+
       console.error('Failed to fetch branches:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch branches');
       setBranches([]);
     } finally {
-      setIsLoading(false);
+      if (seq === fetchSeqRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -111,10 +135,16 @@ export function BranchSelector({
   };
 
   useEffect(() => {
-    if (isOpen && !branches.length) {
+    if (isOpen) {
+      /*
+       * Refetch whenever the repo identity (or token) changes while open. The
+       * old `!branches.length` guard meant reopening for a different repo kept
+       * showing — and let the user clone — the previous repo's branches.
+       */
+      setBranches([]);
       fetchBranches();
     }
-  }, [isOpen, repoOwner, repoName, projectId]);
+  }, [isOpen, provider, repoOwner, repoName, projectId, token, gitlabUrl]);
 
   // Reset search when closing
   useEffect(() => {
