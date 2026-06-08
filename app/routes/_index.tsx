@@ -1,52 +1,61 @@
 import type { LoaderFunctionArgs, MetaFunction } from '@remix-run/cloudflare';
 import { redirect } from '@remix-run/cloudflare';
-import { Form, Link } from '@remix-run/react';
+import { Link, useNavigate } from '@remix-run/react';
 import {
-  Activity,
   ArrowRight,
+  BarChart3,
   Bot,
-  CheckCircle2,
-  Database,
+  Brain,
+  Briefcase,
+  CheckCircle,
+  Code,
+  FileCode2,
   Gauge,
+  Globe,
   Globe2,
-  MonitorPlay,
+  ListTodo,
+  Maximize,
+  MessageSquare,
+  Pause,
   Play,
-  ShieldCheck,
+  PlayCircle,
+  Rocket,
+  Shield,
+  ShoppingCart,
   Sparkles,
-  TerminalSquare,
+  Star,
+  Store,
+  Users,
+  Users2,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
+import { useRef, useState } from 'react';
 import {
   SiDocker,
   SiGo,
   SiJavascript,
+  SiKubernetes,
   SiNodedotjs,
-  SiPostgresql,
+  SiPhp,
   SiPython,
   SiReact,
-  SiRemix,
   SiRust,
   SiTypescript,
 } from 'react-icons/si';
-import { PublicShell, LinkButton, TemplateGallery } from '~/components/dashboard/SaaSLayout';
+import { PublicShell } from '~/components/dashboard/SaaSLayout';
+import { Button } from '~/components/ui/Button';
 import { readSessionToken } from '~/lib/enterprise-api.server';
 
 export const meta: MetaFunction = () => [
-  { title: 'E-Code - Native cloud IDE for AI software teams' },
+  { title: 'E-Code - Build & Deploy Production Apps in Minutes' },
   {
     name: 'description',
     content:
-      'E-Code combines a VS Code-class cloud IDE, AI agents, Cloud Run deployment, and native mobile workflows on Google Cloud.',
+      'E-Code combines AI agents, cloud infrastructure, and enterprise security to deliver Fortune 500 development velocity to every team.',
   },
 ];
 
-/*
- * Host-based routing: `e-code.ai` (and `www.e-code.ai`) serve the marketing
- * landing page. `app.e-code.ai` is the product surface — visitors landing
- * on `/` there are sent straight to `/dashboard` if they have a session
- * cookie, otherwise to `/login`. The dashboard loader itself surfaces a
- * 401 on missing/invalid sessions rather than redirecting, so we have to
- * pick the destination here.
- */
 export async function loader({ request }: LoaderFunctionArgs) {
   const host = request.headers.get('host')?.toLowerCase() ?? '';
 
@@ -57,403 +66,515 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return null;
 }
 
-const heroImage = '/assets/hero-image.svg';
-const cloudImage = '/assets/hero-image.svg';
+const cloudComputingImg =
+  'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop';
+
+const modernSoftwareImg = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=2070&auto=format&fit=crop';
+
+const codingWorkspaceImg =
+  'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=2072&auto=format&fit=crop';
+
+const examples = [
+  {
+    icon: ShoppingCart,
+    label: 'E-commerce Platform',
+    text: 'Build a full-stack e-commerce marketplace with Stripe payments, product catalog with search and filters, shopping cart with checkout flow, user authentication, order management dashboard',
+    tone: 'orange',
+    id: 'ecommerce',
+  },
+  {
+    icon: MessageSquare,
+    label: 'Real-time Chat',
+    text: 'Create a Slack-like real-time messaging platform with WebSocket connections, public and private channels, direct messages, file sharing, typing indicators',
+    tone: 'amber',
+    id: 'chat',
+  },
+  {
+    icon: Bot,
+    label: 'AI Assistant',
+    text: 'Build an intelligent AI chatbot with OpenAI GPT-5 integration, conversation memory, document upload for RAG knowledge base, streaming responses',
+    tone: 'deep',
+    id: 'chatbot',
+  },
+  {
+    icon: Globe,
+    label: 'Analytics Dashboard',
+    text: 'Design a Fortune 500-grade analytics dashboard with real-time interactive charts, KPI widgets, data tables with filtering, date range picker',
+    tone: 'gold',
+    id: 'dashboard',
+  },
+  {
+    icon: Briefcase,
+    label: 'SaaS Starter',
+    text: 'Create a complete SaaS starter kit with landing page, pricing tiers, Stripe subscription billing, user authentication, team management',
+    tone: 'deep',
+    id: 'saas',
+  },
+  {
+    icon: ListTodo,
+    label: 'Project Management',
+    text: 'Build a Jira-like project management tool with drag-and-drop Kanban boards, sprint planning, task assignments, time tracking',
+    tone: 'orange',
+    id: 'project',
+  },
+] as const;
 
 const stats = [
-  ['Active workspaces', 'Real-time', 'Runtime sessions, ports and preview health.'],
-  ['Mobile ready', 'Phone + tablet', 'Responsive IDE panels validated with Playwright.'],
-  ['Governance', 'Built in', 'Snapshots, quotas, audit events and security controls.'],
-  ['Deploy flow', 'Integrated', 'Preview, logs, domains and production releases.'],
-];
+  { label: 'Active Developers', value: '2M+', icon: Users },
+  { label: 'Apps Deployed', value: '10M+', icon: Rocket },
+  { label: 'Lines of Code', value: '5B+', icon: FileCode2 },
+  { label: 'Uptime SLA', value: '99.99%', icon: Gauge },
+] as const;
+
+const projects = [
+  {
+    title: 'TechStore Pro',
+    description: 'Full-featured e-commerce platform with 50K+ daily transactions',
+    image: cloudComputingImg,
+    tags: ['React', 'Node.js', 'PostgreSQL'],
+    stats: 'Built in 3 hours',
+  },
+  {
+    title: 'TeamSync Hub',
+    description: 'Real-time collaboration platform for remote teams',
+    image: modernSoftwareImg,
+    tags: ['WebSocket', 'Redis', 'TypeScript'],
+    stats: 'Built in 2 hours',
+  },
+  {
+    title: 'DataViz Pro',
+    description: 'Enterprise analytics dashboard with real-time charts',
+    image: codingWorkspaceImg,
+    tags: ['Recharts', 'D3.js', 'PostgreSQL'],
+    stats: 'Built in 4 hours',
+  },
+] as const;
+
+const templates = [
+  {
+    name: 'SaaS Starter',
+    description: 'Complete SaaS with auth, billing, dashboard',
+    icon: Briefcase,
+    category: 'Business',
+  },
+  { name: 'E-Commerce', description: 'Full store with cart, checkout, inventory', icon: Store, category: 'Commerce' },
+  {
+    name: 'Analytics Dashboard',
+    description: 'Real-time charts and data visualization',
+    icon: BarChart3,
+    category: 'Analytics',
+  },
+  {
+    name: 'Chat Application',
+    description: 'Real-time messaging with WebSocket',
+    icon: MessageSquare,
+    category: 'Communication',
+  },
+  {
+    name: 'Documentation',
+    description: 'Beautiful docs with search and versioning',
+    icon: FileCode2,
+    category: 'Content',
+  },
+  { name: 'Admin Panel', description: 'Full admin dashboard with CRUD', icon: Gauge, category: 'Business' },
+] as const;
 
 const features = [
   {
-    anchor: 'ai-platform',
-    icon: Bot,
-    title: 'Editor',
-    text: 'Workbench, terminal, preview, Git, LSP and collaborative presence in one workspace.',
+    icon: Rocket,
+    title: 'Enterprise-Grade Infrastructure',
+    description: 'Built on Fortune 500 standards with 99.99% uptime SLA, auto-scaling, and global CDN distribution',
   },
   {
-    anchor: 'runtime',
-    icon: TerminalSquare,
-    title: 'AI and agents',
-    text: 'Greenfield generation, codebase-aware agents, visible tool calls, diffs and rollback.',
+    icon: Brain,
+    title: 'AI-Powered Development',
+    description: 'Advanced AI agents that understand context, write production code, and deploy automatically',
   },
   {
-    anchor: 'collaboration',
-    icon: ShieldCheck,
-    title: 'Deploy',
-    text: 'Cloud Build, Artifact Registry, Cloud Run, traffic splitting, domains and monitoring.',
+    icon: Shield,
+    title: 'Bank-Level Security',
+    description: 'SOC 2 Type II certified with end-to-end encryption, RBAC, and continuous security monitoring',
   },
   {
-    anchor: 'preview',
-    icon: MonitorPlay,
-    title: 'Mobile',
-    text: 'Native project browser, editor, terminal, AI chat, push and deep links for work on the move.',
+    icon: Users2,
+    title: 'Real-Time Collaboration',
+    description: 'Multiple developers can code simultaneously with instant sync and conflict resolution',
   },
   {
-    anchor: 'database',
-    icon: Database,
-    title: 'Database and backup workflows',
-    text: 'Environment-backed database configuration plus snapshot-based backup and restore flows.',
+    icon: Gauge,
+    title: '10x Faster Development',
+    description: 'Ship features in minutes instead of months with our optimized development pipeline',
   },
   {
-    anchor: 'mobile',
     icon: Globe2,
-    title: 'Ship across devices',
-    text: 'Desktop, tablet, mobile browser and Capacitor mobile builds share the same production surface.',
+    title: 'Global Edge Deployment',
+    description: 'Deploy to 200+ edge locations worldwide with automatic SSL and DDoS protection',
   },
-];
-
-const showcases = [
-  ['SaaS control plane', 'Billing, organizations, projects, deployments and audit logs in one workspace.'],
-  ['AI product sprint', 'Turn a prompt into a typed app with frontend, backend, tests and preview.'],
-  ['Internal platform', 'Governed runtime workspaces for teams that need speed and traceability.'],
-];
-
-const languageIcons = [
-  ['TypeScript', SiTypescript, '#3178C6'],
-  ['React', SiReact, '#61DAFB'],
-  ['Remix', SiRemix, '#FFFFFF'],
-  ['Node.js', SiNodedotjs, '#5FA04E'],
-  ['Python', SiPython, '#FACC15'],
-  ['PostgreSQL', SiPostgresql, '#60A5FA'],
-  ['Docker', SiDocker, '#2496ED'],
-  ['JavaScript', SiJavascript, '#F7DF1E'],
-  ['Go', SiGo, '#00ADD8'],
-  ['Rust', SiRust, '#F97316'],
 ] as const;
 
-const partnerLogos = [
-  ['OpenAI', '/partners/openai.svg'],
-  ['GitHub', '/partners/github.svg'],
-  ['Docker', '/partners/docker.svg'],
-  ['Vercel', '/partners/vercel.svg'],
-  ['Cloudflare', '/partners/cloudflare.svg'],
-  ['Stripe', '/partners/stripe.svg'],
-  ['MongoDB', '/partners/mongodb.svg'],
-  ['Redis', '/partners/redis.svg'],
-  ['Google', '/partners/google.svg'],
-  ['Microsoft', '/partners/microsoft.svg'],
-  ['Amazon', '/partners/amazon.svg'],
-  ['Firebase', '/partners/firebase.svg'],
+const languages = [
+  { name: 'Python', icon: SiPython, color: '#3776AB' },
+  { name: 'JavaScript', icon: SiJavascript, color: '#F7DF1E' },
+  { name: 'TypeScript', icon: SiTypescript, color: '#3178C6' },
+  { name: 'Go', icon: SiGo, color: '#00ADD8' },
+  { name: 'React', icon: SiReact, color: '#61DAFB' },
+  { name: 'Node.js', icon: SiNodedotjs, color: '#339933' },
+  { name: 'Rust', icon: SiRust, color: '#F97316' },
+  { name: 'PHP', icon: SiPhp, color: '#777BB4' },
+  { name: 'Docker', icon: SiDocker, color: '#2496ED' },
+  { name: 'Kubernetes', icon: SiKubernetes, color: '#326CE5' },
 ] as const;
 
-const sourceComparisonRows = [
-  ['Runtime', 'Cloud Run with gVisor and GCS-backed files', 'Mixed proprietary runtimes'],
-  ['Agents', 'Plan, act, observe, commit, deploy', 'Editor-only or generation-only'],
-  ['Mobile', 'Native iOS and Android workflows', 'Usually web-first'],
+const workflow = [
+  {
+    icon: MessageSquare,
+    title: 'Describe Your App',
+    description: 'Tell our AI what you want to build in plain language',
+  },
+  { icon: Code, title: 'AI Generates Code', description: 'Watch as production-ready code is created in real-time' },
+  { icon: Rocket, title: 'Deploy Instantly', description: 'One-click deployment to global edge network' },
+  { icon: CheckCircle, title: 'Scale Automatically', description: 'Auto-scaling infrastructure handles any traffic' },
 ] as const;
 
-const comparisonPlatforms = [
-  [
-    'compare-github-codespaces',
-    'GitHub Codespaces',
-    '/assets/compare/github-codespaces.svg',
-    'Repository-native cloud workspaces without E-Code agent orchestration and governed release flow.',
-  ],
-  [
-    'compare-glitch',
-    'Glitch',
-    '/assets/compare/glitch.svg',
-    'Creative prototyping compared with production runtimes, previews, snapshots and enterprise controls.',
-  ],
-  [
-    'compare-heroku',
-    'Heroku',
-    '/assets/compare/heroku.svg',
-    'Application hosting compared with an AI IDE, real terminal workflow and deployment guardrails.',
-  ],
-  [
-    'compare-codesandbox',
-    'CodeSandbox',
-    '/assets/compare/codesandbox.svg',
-    'Browser sandboxes compared with persistent projects, collaboration and controlled runtime adapters.',
-  ],
-  [
-    'compare-aws-cloud9',
-    'AWS Cloud9',
-    '/assets/compare/aws-cloud9.svg',
-    'Cloud IDE infrastructure compared with E-Code mobile-ready AI delivery loops.',
-  ],
+const testimonials = [
+  {
+    quote: 'E-Code reduced our development time by 85% and saved us $2M annually in engineering costs.',
+    author: 'Sarah Chen',
+    role: 'CTO, Fortune 500 Tech Company',
+    company: 'TechCorp Global',
+    avatar: 'SC',
+  },
+  {
+    quote: 'The AI agent built our entire customer portal in 3 days. What used to take months now takes hours.',
+    author: 'Michael Rodriguez',
+    role: 'VP Engineering, Series C Startup',
+    company: 'InnovateTech',
+    avatar: 'MR',
+  },
+  {
+    quote: "Best development platform we've used. Our team productivity increased by 400% in the first month.",
+    author: 'Emily Watson',
+    role: 'Director of Engineering, Enterprise SaaS',
+    company: 'CloudScale Solutions',
+    avatar: 'EW',
+  },
 ] as const;
 
-export default function LandingPage() {
+export default function LandingPageRoute() {
+  const navigate = useNavigate();
+  const [appDescription, setAppDescription] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const startBuilding = () => {
+    const params = appDescription.trim() ? `?prompt=${encodeURIComponent(appDescription.trim())}` : '';
+    navigate(`/register${params}`);
+  };
+
   return (
     <PublicShell>
-      <section className="vc-home-hero" data-testid="section-hero">
-        <img src={cloudImage} alt="" className="vc-home-hero-bg" loading="eager" />
-        <div className="vc-public-container vc-home-hero-grid">
-          <div className="vc-home-hero-copy">
-            <span className="vc-badge">
-              <Sparkles className="h-3 w-3" aria-hidden />
-              AI-powered enterprise development platform
-            </span>
-            <h1>E-Code</h1>
-            <p>
-              The GCP-native workspace where teams create, run, review, and deploy real applications with AI agents and
-              production controls. Build, run, collaborate, and deploy production apps with AI agents.
-            </p>
-            <Form method="get" action="https://app.e-code.ai/register" className="vc-home-builder-form" id="builder">
-              <label htmlFor="homepage-prompt">Describe the app you want to build</label>
-              <div>
-                <input
-                  id="homepage-prompt"
-                  name="prompt"
-                  type="text"
-                  placeholder="Build a customer portal with auth, billing, admin dashboard and deployment..."
-                  data-testid="input-homepage-prompt"
-                />
-                <button type="submit" data-testid="button-homepage-build">
-                  Start building
-                  <ArrowRight className="h-4 w-4" aria-hidden />
+      <section className="vc-ecode-hero" data-testid="section-hero">
+        <div className="vc-ecode-hero-bg" aria-hidden>
+          <img src={cloudComputingImg} alt="" loading="eager" decoding="async" />
+        </div>
+        <div className="vc-ecode-grid-pattern" aria-hidden />
+
+        <div className="vc-ecode-container vc-ecode-hero-inner">
+          <span className="vc-ecode-badge" data-testid="badge-hero">
+            <Sparkles className="h-4 w-4" aria-hidden />
+            AI-Powered Enterprise Development Platform
+            <Sparkles className="h-4 w-4" aria-hidden />
+          </span>
+
+          <h1 className="vc-ecode-hero-title" data-testid="heading-hero">
+            <span>Build &amp; Deploy</span>
+            <span>Production Apps</span>
+            <span>in Minutes</span>
+          </h1>
+
+          <p className="vc-ecode-hero-copy" data-testid="text-hero-description">
+            The only platform that combines AI agents, cloud infrastructure, and enterprise security to deliver Fortune
+            500 development velocity to every team.
+          </p>
+
+          <div className="vc-ecode-prompt">
+            <div className="vc-ecode-prompt-glow" aria-hidden />
+            <div className="vc-ecode-prompt-box">
+              <input
+                type="text"
+                placeholder="Describe your app idea in any language..."
+                value={appDescription}
+                onChange={(event) => setAppDescription(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && appDescription.trim()) {
+                    startBuilding();
+                  }
+                }}
+                data-testid="input-app-description"
+              />
+              <button
+                type="button"
+                onClick={startBuilding}
+                disabled={!appDescription.trim()}
+                data-testid="button-hero-build-now"
+              >
+                <Sparkles className="h-5 w-5" aria-hidden />
+                Build Now
+              </button>
+            </div>
+          </div>
+
+          <div className="vc-ecode-examples">
+            <p>Try these popular examples:</p>
+            <div>
+              {examples.map((example) => {
+                const Icon = example.icon;
+                return (
+                  <button
+                    key={example.id}
+                    type="button"
+                    className="vc-ecode-example"
+                    data-tone={example.tone}
+                    onClick={() => setAppDescription(example.text)}
+                    data-testid={`button-example-${example.id}`}
+                  >
+                    <span>
+                      <Icon className="h-4 w-4" aria-hidden />
+                    </span>
+                    {example.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="vc-ecode-proof-row">
+            {['No credit card required', 'Deploy instantly', 'Scale to millions'].map((item) => (
+              <span key={item}>
+                <CheckCircle className="h-4 w-4" aria-hidden />
+                {item}
+              </span>
+            ))}
+          </div>
+
+          <div className="vc-ecode-hero-actions">
+            <Button
+              type="button"
+              variant="outline"
+              className="vc-ecode-outline-button"
+              onClick={() => document.getElementById('video-demo')?.scrollIntoView({ behavior: 'smooth' })}
+              data-testid="button-hero-watch-demo"
+            >
+              <PlayCircle className="h-5 w-5" aria-hidden />
+              Watch Demo (2 min)
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="vc-ecode-ghost-button"
+              onClick={() => navigate('/pricing')}
+              data-testid="button-hero-view-pricing"
+            >
+              View Pricing
+              <ArrowRight className="h-5 w-5" aria-hidden />
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <section className="vc-ecode-stats" data-testid="section-stats">
+        <div className="vc-ecode-container">
+          {stats.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <article key={stat.label} data-testid={`container-stat-${index}`}>
+                <span data-testid={`icon-stat-${index}`}>
+                  <Icon className="h-5 w-5" aria-hidden />
+                </span>
+                <strong data-testid={`text-stat-value-${index}`}>{stat.value}</strong>
+                <small data-testid={`text-stat-label-${index}`}>{stat.label}</small>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section id="video-demo" className="vc-ecode-section vc-ecode-section-muted" data-testid="section-video-demo">
+        <div className="vc-ecode-container">
+          <SectionHeader
+            title="See E-Code Platform in Action"
+            description="Watch a real demo: Build and deploy a full-stack application in under 2 minutes using AI agents"
+          />
+          <div className="vc-ecode-video-card">
+            <div className="vc-ecode-video-frame">
+              <video
+                ref={videoRef}
+                poster={modernSoftwareImg}
+                muted={isMuted}
+                loop
+                playsInline
+                aria-label="E-Code platform demo poster"
+              />
+              <button
+                type="button"
+                className="vc-ecode-video-play"
+                onClick={() => {
+                  if (!videoRef.current) {
+                    return;
+                  }
+
+                  if (isPlaying) {
+                    videoRef.current.pause();
+                  } else {
+                    void videoRef.current.play().catch(() => undefined);
+                  }
+
+                  setIsPlaying(!isPlaying);
+                }}
+                data-testid="button-video-play-toggle"
+              >
+                {isPlaying ? <Pause className="h-8 w-8" aria-hidden /> : <Play className="h-8 w-8" aria-hidden />}
+              </button>
+              <div className="vc-ecode-video-controls">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMuted((current) => !current);
+
+                    if (videoRef.current) {
+                      videoRef.current.muted = !videoRef.current.muted;
+                    }
+                  }}
+                  data-testid="button-video-mute-toggle"
+                  aria-label={isMuted ? 'Unmute video' : 'Mute video'}
+                >
+                  {isMuted ? <VolumeX className="h-5 w-5" aria-hidden /> : <Volume2 className="h-5 w-5" aria-hidden />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void videoRef.current?.requestFullscreen?.()}
+                  data-testid="button-video-fullscreen"
+                  aria-label="Open video fullscreen"
+                >
+                  <Maximize className="h-5 w-5" aria-hidden />
                 </button>
               </div>
-            </Form>
-            <div className="vc-home-hero-actions">
-              <LinkButton to="https://app.e-code.ai/register">Get started</LinkButton>
-              <LinkButton to="/contact-sales" variant="outline">
-                Contact sales
-              </LinkButton>
-              <Link to="#deploy" className="vc-home-video-link">
-                <Play className="h-4 w-4" aria-hidden />
-                Watch platform flow
-              </Link>
             </div>
-          </div>
-          <div className="vc-home-product-frame" aria-label="E-Code IDE preview">
-            <img src="/assets/ai-avatar.svg" alt="" className="vc-home-agent-avatar" loading="eager" decoding="async" />
-            <div className="vc-home-browser-bar">
-              <span />
-              <span />
-              <span />
-              <strong>projects/acme/ide</strong>
-            </div>
-            <div className="vc-home-ide-preview">
-              <aside>
-                {['app', 'components', 'routes', 'runtime', 'deploy'].map((item) => (
-                  <span key={item}>{item}</span>
+            <div className="vc-ecode-video-caption">
+              <h3>Live Platform Demo</h3>
+              <p>Watch how E-Code Platform's AI agent builds a complete full-stack application</p>
+              <div>
+                {['AI Code Generation', 'Real-time Preview', 'Instant Deployment'].map((tag) => (
+                  <span key={tag}>{tag}</span>
                 ))}
-              </aside>
-              <main>
-                <div className="vc-home-tabs">
-                  <span>Agent</span>
-                  <span>Editor</span>
-                  <span>Preview</span>
-                  <span>Terminal</span>
-                </div>
-                <pre>{`const app = await ecode.build({
-  prompt,
-  runtime: "managed",
-  checks: ["typecheck", "tests", "preview"]
-});`}</pre>
-                <div className="vc-home-terminal">
-                  <TerminalSquare className="h-4 w-4" />
-                  <span>Runtime: Running</span>
-                  <span>Port 5173</span>
-                  <span>Preview active</span>
-                </div>
-              </main>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="vc-home-stats" id="proof" aria-label="Platform proof">
-        <div className="vc-public-container">
-          {stats.map(([label, value, detail]) => (
-            <article key={label}>
-              <strong>{value}</strong>
-              <span>{label}</span>
-              <p>{detail}</p>
-            </article>
-          ))}
+      <LandingCards />
+
+      <section className="vc-ecode-cta" data-testid="section-cta">
+        <div className="vc-ecode-container">
+          <h2>Ready to Build Something Amazing?</h2>
+          <p>Join 2M+ developers shipping production apps faster than ever</p>
+          <div>
+            <Link to="/register">
+              <Sparkles className="h-5 w-5" aria-hidden />
+              Start Building Free
+            </Link>
+            <Link to="/pricing">
+              View Enterprise Plans
+              <ArrowRight className="h-5 w-5" aria-hidden />
+            </Link>
+          </div>
         </div>
       </section>
+    </PublicShell>
+  );
+}
 
-      <section className="vc-home-partners" id="partners" aria-label="E-Code partner ecosystem">
-        <div className="vc-public-container">
-          <div className="vc-home-partners-copy">
-            <span className="vc-badge">Ecosystem</span>
-            <p>Imported from the E-Code partner system and adapted to this marketing surface.</p>
-          </div>
-          <div className="vc-home-partner-grid">
-            {partnerLogos.map(([name, src]) => (
-              <article key={name}>
-                <img src={src} alt={`${name} logo`} loading="lazy" decoding="async" />
-                <span>{name}</span>
+function LandingCards() {
+  return (
+    <>
+      <section className="vc-ecode-section" data-testid="section-projects">
+        <div className="vc-ecode-container">
+          <SectionHeader
+            title="Built with E-Code Platform"
+            description="Real production applications built by our community in hours, not months"
+          />
+          <div className="vc-ecode-card-grid">
+            {projects.map((project) => (
+              <article key={project.title} className="vc-ecode-project-card">
+                <div>
+                  <img src={project.image} alt={project.title} loading="lazy" decoding="async" />
+                  <span>
+                    <strong>{project.title}</strong>
+                    <small>{project.stats}</small>
+                  </span>
+                </div>
+                <p>{project.description}</p>
+                <footer>
+                  {project.tags.map((tag) => (
+                    <span key={tag}>{tag}</span>
+                  ))}
+                </footer>
               </article>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="vc-home-section" id="product" data-testid="section-product">
-        <div className="vc-public-container">
-          <div className="vc-home-section-head">
-            <span className="vc-badge">Product</span>
-            <h2>Everything expected from a serious cloud IDE, wired for real delivery.</h2>
-            <p>
-              The homepage design is visual, but the product claims map to actual E-Code surfaces: projects, runtime
-              adapters, terminal, preview, security, database, deployment and mobile validation.
-            </p>
-          </div>
-          <div className="vc-home-feature-grid">
-            {features.map((feature) => {
-              const Icon = feature.icon;
-
+      <section className="vc-ecode-section vc-ecode-section-muted" data-testid="section-templates">
+        <div className="vc-ecode-container">
+          <SectionHeader
+            title="Start with Templates"
+            description="Production-ready templates to accelerate your development"
+          />
+          <div className="vc-ecode-card-grid">
+            {templates.map((template) => {
+              const Icon = template.icon;
               return (
-                <article key={feature.title} id={feature.anchor} className="vc-home-card">
-                  <Icon className="h-6 w-6" aria-hidden />
-                  <h3>{feature.title}</h3>
-                  <p>{feature.text}</p>
-                </article>
+                <Link key={template.name} to="/templates" className="vc-ecode-template-card">
+                  <span>
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </span>
+                  <div>
+                    <strong>{template.name}</strong>
+                    <small>{template.category}</small>
+                  </div>
+                  <p>{template.description}</p>
+                </Link>
               );
             })}
           </div>
-          <div className="vc-home-section-cta">
-            <Link to="/docs#agent-walkthrough" className="vc-home-section-cta-link">
-              See every agent panel feature with screenshots &amp; keystrokes{' '}
+          <div className="vc-ecode-center-action">
+            <Link to="/templates">
+              View All Templates
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
           </div>
         </div>
       </section>
 
-      <section className="vc-home-video" id="deploy" data-testid="section-video-demo">
-        <div className="vc-public-container">
-          <div className="vc-home-media-card">
-            <img src={heroImage} alt="Developer workspace with code editor" loading="lazy" />
-            <div>
-              <span className="vc-badge">Live platform flow</span>
-              <h2>Prompt, inspect, run, preview, deploy.</h2>
-              <p>
-                E-Code is optimized for the working loop: describe a change, inspect generated files, run the real
-                terminal, verify preview output and push a deployable project.
-              </p>
-              <ul>
-                {['AI code generation', 'Real terminal', 'Runtime preview', 'Deployment controls'].map((item) => (
-                  <li key={item}>
-                    <CheckCircle2 className="h-4 w-4" aria-hidden />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="vc-home-section" id="solutions" data-testid="section-solutions">
-        <div className="vc-public-container">
-          <div className="vc-home-section-head">
-            <span className="vc-badge">Solutions</span>
-            <h2>Built for teams that need speed and accountability.</h2>
-          </div>
-          <div className="vc-home-showcase-grid">
-            {showcases.map(([title, text]) => (
-              <article key={title}>
-                <Activity className="h-5 w-5" aria-hidden />
-                <h3>{title}</h3>
-                <p>{text}</p>
-                <Link to="/contact-sales">
-                  Learn more
-                  <ArrowRight className="h-4 w-4" aria-hidden />
-                </Link>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section
-        className="vc-home-section vc-home-source-compare"
-        id="compare-replit-cursor-lovable"
-        data-testid="section-source-compare"
-      >
-        <div className="vc-public-container">
-          <div className="vc-home-section-head">
-            <span className="vc-badge">Source comparison</span>
-            <h2>Compared with Replit, Cursor and Lovable</h2>
-            <p>
-              Imported from the E-Code source marketing page and adapted into the Vibecore public shell. E-code Inc.
-              Privacy-first analytics. Google Cloud native.
-            </p>
-          </div>
-          <div className="vc-home-source-compare-table" role="region" aria-label="E-Code source comparison table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Capability</th>
-                  <th>E-Code</th>
-                  <th>Alternatives</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sourceComparisonRows.map(([capability, ecode, alternatives]) => (
-                  <tr key={capability}>
-                    <td>{capability}</td>
-                    <td>{ecode}</td>
-                    <td>{alternatives}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section className="vc-home-section vc-home-compare" id="compare" data-testid="section-compare">
-        <div className="vc-public-container">
-          <div className="vc-home-section-head">
-            <span className="vc-badge">Compare</span>
-            <h2>E-Code comparison assets are now part of the marketing surface.</h2>
-            <p>
-              The cards below preserve the E-Code competitor logo set while routing to local anchors instead of missing
-              pages.
-            </p>
-          </div>
-          <div className="vc-home-compare-grid">
-            {comparisonPlatforms.map(([id, name, src, text]) => (
-              <article key={id} id={id}>
-                <img src={src} alt={`${name} logo`} loading="lazy" decoding="async" />
-                <div>
-                  <span>E-Code vs</span>
-                  <h3>{name}</h3>
-                  <p>{text}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="vc-home-section vc-home-templates" data-testid="section-templates">
-        <div className="vc-public-container">
-          <div className="vc-home-section-head">
-            <span className="vc-badge">Templates</span>
-            <h2>Start from production-shaped stacks.</h2>
-            <p>Templates open into the existing project flow and preserve the Bolt IDE experience.</p>
-          </div>
-          <TemplateGallery compact />
-        </div>
-      </section>
-
-      <section className="vc-home-section" data-testid="section-languages">
-        <div className="vc-public-container">
-          <div className="vc-home-section-head">
-            <span className="vc-badge">Stacks</span>
-            <h2>Any language, any framework, one governed workspace.</h2>
-          </div>
-          <div className="vc-home-language-grid">
-            {languageIcons.map(([name, languageIcon, color]) => {
-              const LanguageIcon = languageIcon;
-
+      <section className="vc-ecode-section" data-testid="section-features">
+        <div className="vc-ecode-container">
+          <SectionHeader
+            title="Enterprise Features, Startup Speed"
+            description="Everything you need to build, deploy, and scale production applications"
+          />
+          <div className="vc-ecode-card-grid">
+            {features.map((feature, index) => {
+              const Icon = feature.icon;
               return (
-                <article key={name}>
-                  <LanguageIcon className="h-8 w-8" style={{ color }} aria-hidden />
-                  <span>{name}</span>
+                <article key={feature.title} className="vc-ecode-feature-card" data-testid={`card-feature-${index}`}>
+                  <span data-testid={`icon-feature-${index}`}>
+                    <Icon className="h-6 w-6" aria-hidden />
+                  </span>
+                  <h3 data-testid={`text-feature-title-${index}`}>{feature.title}</h3>
+                  <p data-testid={`text-feature-description-${index}`}>{feature.description}</p>
                 </article>
               );
             })}
@@ -461,21 +582,86 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="vc-home-cta" data-testid="section-cta">
-        <div className="vc-public-container">
+      <section className="vc-ecode-section vc-ecode-languages" data-testid="section-languages">
+        <div className="vc-ecode-container">
+          <SectionHeader
+            title="Every Language, Every Framework"
+            description="Build with your favorite tools - we support 29+ languages and all major frameworks"
+          />
           <div>
-            <Gauge className="h-8 w-8" aria-hidden />
-            <h2>Ready to build with production constraints from day one?</h2>
-            <p>Start with AI, keep the IDE, validate the preview and move toward deployment without swapping tools.</p>
-          </div>
-          <div className="vc-home-cta-actions">
-            <LinkButton to="https://app.e-code.ai/register">Start building free</LinkButton>
-            <LinkButton to="/contact-sales" variant="outline">
-              Contact sales
-            </LinkButton>
+            {languages.map((language) => {
+              const Icon = language.icon;
+              return (
+                <article key={language.name}>
+                  <span>
+                    <Icon className="h-8 w-8" style={{ color: language.color }} aria-hidden />
+                  </span>
+                  <small>{language.name}</small>
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>
-    </PublicShell>
+
+      <section className="vc-ecode-section vc-ecode-section-muted" data-testid="section-workflow">
+        <div className="vc-ecode-container">
+          <SectionHeader title="How It Works" description="From idea to production in 4 simple steps" />
+          <div className="vc-ecode-workflow">
+            {workflow.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <article key={step.title}>
+                  <span>
+                    <Icon className="h-8 w-8" aria-hidden />
+                    <small>{index + 1}</small>
+                  </span>
+                  <h3>{step.title}</h3>
+                  <p>{step.description}</p>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="vc-ecode-section" data-testid="section-testimonials">
+        <div className="vc-ecode-container">
+          <SectionHeader
+            title="Trusted by Industry Leaders"
+            description="See what engineering leaders are saying about E-Code Platform"
+          />
+          <div className="vc-ecode-card-grid vc-ecode-testimonials">
+            {testimonials.map((testimonial) => (
+              <article key={testimonial.author}>
+                <div aria-label="5 star rating">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star key={star} className="h-5 w-5" aria-hidden />
+                  ))}
+                </div>
+                <blockquote>"{testimonial.quote}"</blockquote>
+                <footer>
+                  <span>{testimonial.avatar}</span>
+                  <div>
+                    <strong>{testimonial.author}</strong>
+                    <small>{testimonial.role}</small>
+                    <small>{testimonial.company}</small>
+                  </div>
+                </footer>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function SectionHeader({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="vc-ecode-section-head">
+      <h2>{title}</h2>
+      <p>{description}</p>
+    </div>
   );
 }

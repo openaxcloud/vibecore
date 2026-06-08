@@ -3209,13 +3209,23 @@ describe('SaaS API', () => {
     const app = await buildTestApiApp({ store });
     const author = await register(app, { email: 'share-author@example.com', organizationName: 'Share Org' });
 
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${author.organization.id}/projects`,
+      headers: { authorization: `Bearer ${author.token}` },
+      payload: { name: 'Shared Chat Project' },
+    });
+    expect(project.statusCode).toBe(201);
+
+    const projectId = project.json().project.id as string;
+
     const create = await app.inject({
       method: 'POST',
       url: '/chat-shares',
       headers: { authorization: `Bearer ${author.token}` },
       payload: {
         conversationId: 'conv-1',
-        projectId: 'project-1',
+        projectId,
         title: 'My run',
         visibleMessageIds: ['m1', 'm2'],
         inlineMessages: [

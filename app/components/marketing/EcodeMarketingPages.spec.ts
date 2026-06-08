@@ -8,6 +8,7 @@ import {
   solutionPages,
 } from './EcodeMarketingPages';
 import { ecodeSurfacePages } from './EcodeSurfacePages';
+import { publicFooterColumns, publicMarketingMenus } from '~/components/dashboard/SaaSLayout';
 
 describe('E-Code marketing page registry', () => {
   it('covers the public E-Code pages missing from the initial import', () => {
@@ -101,5 +102,21 @@ describe('E-Code marketing page registry', () => {
         'solartech-ai-chat',
       ]),
     );
+  });
+
+  it('uses the E-Code public navigation and footer groups', () => {
+    expect(Object.keys(publicMarketingMenus)).toEqual(['product', 'solutions', 'resources', 'company']);
+    expect(publicMarketingMenus.product.map(([label]) => label)).toEqual([
+      'AI Agent',
+      'Browser IDE',
+      'Multiplayer',
+      'Mobile App',
+      'Desktop App',
+      'AI Platform',
+      'Deployments',
+      'Bounties',
+      'Teams',
+    ]);
+    expect(publicFooterColumns.map((column) => column.title)).toEqual(['Product', 'Resources', 'Company', 'Legal']);
   });
 });

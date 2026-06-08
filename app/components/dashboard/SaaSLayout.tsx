@@ -36,10 +36,14 @@ import {
   Sparkles,
   Sun,
   Terminal,
+  Twitter,
   Upload,
   User as UserIcon,
   Users,
   X,
+  Youtube,
+  Linkedin,
+  Instagram,
   type LucideIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -103,8 +107,7 @@ export const ECODE_MARKETING_BRAND = {
 } as const;
 
 export const publicNav = [
-  { label: 'Product', to: '/product' },
-  { label: 'Platform', to: '/apps' },
+  { label: 'Product', to: '/features' },
   { label: 'Solutions', to: '/solutions/app-builder' },
   { label: 'Resources', to: '/docs' },
   { label: 'Company', to: '/about' },
@@ -114,38 +117,15 @@ export const publicNav = [
 
 export const publicMarketingMenus = {
   product: [
-    ['Product Tour', '/product', 'Editor, AI, agents, deploy, mobile and collaboration in one product surface.'],
     ['AI Agent', '/ai', 'Build production-ready apps with natural language prompts.'],
-    ['Features', '/features', 'Enterprise-grade development workspace built for teams.'],
-    ['Multiplayer', '/collaboration', 'Live collaboration, pair programming and shared presence.'],
-    ['Mobile App', '/mobile', 'Ship from phone and tablet with the same IDE workflow.'],
-    ['Desktop App', '/desktop', 'Optimized local workflows with secure project sync.'],
-    ['AI Platform', '/ai', 'Governance, observability and orchestration for AI workloads.'],
-    ['Deployments', '/marketing/deployments', 'Preview, validate and release with production controls.'],
+    ['Browser IDE', '/features', 'Enterprise-grade development workspace built for teams.'],
+    ['Multiplayer', '/features#multiplayer', 'Live collaboration, pair programming, and shared presence.'],
+    ['Mobile App', '/mobile', 'Ship from anywhere with a fully-featured mobile IDE.'],
+    ['Desktop App', '/desktop', 'Optimized offline workflow with secure device sync.'],
+    ['AI Platform', '/ai', 'Governance, observability, and orchestration for AI workloads.'],
+    ['Deployments', '/marketing/deployments', 'Global edge infrastructure with Fortune 500 reliability.'],
     ['Bounties', '/marketing/bounties', 'Activate an on-demand developer network to accelerate delivery.'],
-    ['Teams', '/marketing/teams', 'Enterprise controls, compliance and insights for large orgs.'],
-  ],
-  platform: [
-    ['Apps', '/apps', 'Imported app catalog for internal tools, SaaS projects and AI workflows.'],
-    ['New project', '/new', 'Start a project from prompt, template, GitHub or imported design.'],
-    ['AI Agent Studio', '/ai-agent/studio', 'Plan, supervise and validate AI agent work.'],
-    ['GitHub Import', '/github-import', 'Bring repositories into E-Code with dependency and preview setup.'],
-    ['Runtimes', '/runtimes', 'Choose browser, remote and deployment runtime paths.'],
-    ['Runtime Diagnostics', '/runtime-diagnostics', 'Inspect install, server, port and preview health.'],
-    ['Database', '/database', 'Design schemas, migrations and data-backed generated apps.'],
-    ['Object Storage', '/object-storage', 'Handle uploads, generated assets and public media.'],
-    ['KV Store', '/kv-store', 'Use lightweight state for sessions, flags and edge workflows.'],
-    ['Console', '/console', 'Review commands, logs and operational status.'],
-    ['Shell', '/shell', 'Run controlled project commands with clear recovery paths.'],
-    ['Packages', '/packages', 'Track workspace packages, dependency versions and installs.'],
-    ['Security Scanner', '/security-scanner', 'Scan code, dependencies and configuration before release.'],
-    ['Authentication', '/authentication', 'Plan passwords, OAuth, sessions and enterprise SSO.'],
-    ['Workflows', '/workflows', 'Automate generation, validation, review and release preparation.'],
-    ['Extensions', '/extensions', 'Extend workspaces with approved tools and capabilities.'],
-    ['Integrations', '/integrations', 'Connect source control, providers, data and operational systems.'],
-    ['Networking', '/networking', 'Manage ports, preview URLs, domains and secure connectivity.'],
-    ['Advanced Mobile', '/advanced/mobile', 'Deep mobile delivery guidance for app and IDE surfaces.'],
-    ['Advanced SSO', '/advanced/sso', 'Enterprise identity architecture and role mapping.'],
+    ['Teams', '/marketing/teams', 'Enterprise controls, compliance, and insights for large orgs.'],
   ],
   solutions: [
     ['App Builder', '/solutions/app-builder', 'Rapidly prototype and deploy full-stack applications.'],
@@ -162,39 +142,29 @@ export const publicMarketingMenus = {
       '/solutions/internal-ai-builder',
       'Bring private AI agents to every team safely and securely.',
     ],
-    ['Enterprise', '/solutions/enterprise', 'SSO, audit logs, private runtimes and guided rollout.'],
-    ['Startups', '/solutions/startups', 'Ship faster with startup-friendly plans and deployment paths.'],
-    ['Freelancers', '/solutions/freelancers', 'Deliver client projects faster with portfolio-ready hosting.'],
+    ['Enterprise', '/solutions/enterprise', 'Fortune 500-grade platform with SSO, audit logs, and 99.99% SLA.'],
+    ['Startups', '/solutions/startups', 'Ship your MVP 10x faster. Startup-friendly pricing.'],
+    ['Freelancers', '/solutions/freelancers', 'Deliver client projects faster. Portfolio hosting included.'],
   ],
   resources: [
-    ['Documentation', '/docs', 'Guides for projects, runtimes, security and deployment.'],
-    ['AI Documentation', '/ai-documentation', 'Complete AI capabilities and agent workflow guide.'],
+    ['Documentation', '/docs', 'Get started quickly with step-by-step guides.'],
+    ['AI Documentation', '/ai-documentation', 'Complete AI capabilities guide.'],
     ['Tutorials', '/tutorials', 'Step-by-step learning from beginner to advanced.'],
     ['Blog', '/blog', 'Stories on shipping software at global scale.'],
-    ['Changelog', '/changelog', 'Latest platform updates and validation notes.'],
+    ['Changelog', '/changelog', 'Latest features and product updates.'],
     ['Community', '/community', 'Connect with builders and share best practices.'],
-    ['Forum', '/forum', 'Discuss implementation questions and platform workflows.'],
-    ['Marketplace', '/marketplace', 'Discover reusable project starters and implementation patterns.'],
-    ['Templates', '/templates', 'Production starters for SaaS, dashboards, APIs and AI tools.'],
-    ['Explore', '/explore', 'Browse solutions, examples and platform paths.'],
-    ['Search', '/search', 'Find docs, templates, community notes and product pages.'],
-    ['Case Studies', '/case-studies', 'Enterprise success patterns and delivery evidence.'],
-    ['Help Center', '/help-center', 'FAQs, troubleshooting and support.'],
-    ['Status', '/status', 'Operational status and incident visibility.'],
-    ['Learn', '/learn', 'Structured paths for prompt-to-app delivery and runtime operations.'],
-    ['API SDK', '/api-sdk', 'Typed platform interfaces for integrations and automation.'],
-    ['Performance', '/performance', 'Guidance for fast previews, bundles and responsive apps.'],
-    ['Themes', '/themes', 'Dark default, light mode and generated UI styling guidance.'],
-    ['Advanced Search', '/search-advanced', 'Search projects, docs, files, templates and agent context.'],
+    ['Templates', '/templates', 'Launch with curated, industry-specific templates.'],
+    ['Case Studies', '/case-studies', 'Real-world success stories from our customers.'],
+    ['Help Center', '/help-center', 'FAQs, troubleshooting, and support.'],
+    ['Status', '/status', 'Transparency around platform availability.'],
   ],
   company: [
-    ['About', '/about', 'Learn about the platform mission and product direction.'],
-    ['Customers', '/customers', 'Internal tools, AI products and education showcases imported from E-Code.'],
+    ['About', '/about', 'Learn about our mission and leadership team.'],
     ['Careers', '/careers', 'Join a distributed team building the future of software.'],
-    ['Press', '/press', 'Brand, partner and platform overview.'],
+    ['Press', '/press', 'Press releases, media kit, and recent coverage.'],
     ['Partners', '/partners', 'Strategic alliances and solution partners.'],
     ['Contact', '/contact', 'Get in touch with our team.'],
-    ['Accessibility', '/accessibility', 'Our commitment to inclusive, responsible platform use.'],
+    ['Accessibility', '/accessibility', 'Our commitment to inclusive design.'],
   ],
 } as const satisfies Record<string, readonly MarketingMenuItem[]>;
 
@@ -202,51 +172,26 @@ export const publicFooterColumns: readonly FooterColumn[] = [
   {
     title: 'Product',
     links: [
-      ['Product Tour', '/product'],
       ['AI Agent', '/ai'],
       ['IDE', '/features'],
-      ['Multiplayer', '/collaboration'],
+      ['Multiplayer', '/features#multiplayer'],
       ['Mobile App', '/mobile'],
+      ['Teams', '/marketing/teams'],
       ['Deployments', '/marketing/deployments'],
-      ['AI Platform', '/ai'],
-      ['Templates', '/templates'],
       ['Pricing', '/pricing'],
       ['Bounties', '/marketing/bounties'],
-    ],
-  },
-  {
-    title: 'Platform',
-    links: [
-      ['Apps', '/apps'],
-      ['New project', '/new'],
-      ['AI Agent Studio', '/ai-agent/studio'],
-      ['GitHub Import', '/github-import'],
-      ['Runtimes', '/runtimes'],
-      ['Diagnostics', '/runtime-diagnostics'],
-      ['Database', '/database'],
-      ['Object storage', '/object-storage'],
-      ['KV Store', '/kv-store'],
-      ['Console', '/console'],
-      ['Security scanner', '/security-scanner'],
-      ['Integrations', '/integrations'],
+      ['AI Platform', '/ai'],
     ],
   },
   {
     title: 'Resources',
     links: [
       ['Docs', '/docs'],
-      ['AI Documentation', '/ai-documentation'],
-      ['Tutorials', '/tutorials'],
-      ['Learn', '/learn'],
-      ['API SDK', '/api-sdk'],
       ['Blog', '/blog'],
-      ['Templates', '/templates'],
-      ['Marketplace', '/marketplace'],
-      ['Explore', '/explore'],
-      ['Performance', '/performance'],
-      ['Changelog', '/changelog'],
-      ['Status', '/status'],
       ['Community', '/community'],
+      ['Templates', '/templates'],
+      ['Languages', '/templates/languages'],
+      ['Status', '/status'],
       ['Forum', '/forum'],
     ],
   },
@@ -257,11 +202,7 @@ export const publicFooterColumns: readonly FooterColumn[] = [
       ['Careers', '/careers'],
       ['Press', '/press'],
       ['Partners', '/partners'],
-      ['Customers', '/customers'],
       ['Contact sales', '/contact-sales'],
-      ['Contact', '/contact'],
-      ['Security', '/security'],
-      ['Support', '/support'],
     ],
   },
   {
@@ -269,19 +210,18 @@ export const publicFooterColumns: readonly FooterColumn[] = [
     links: [
       ['Terms', '/terms'],
       ['Privacy', '/privacy'],
-      ['DPA', '/dpa'],
       ['Subprocessors', '/subprocessors'],
-      ['Student DPA', '/student-dpa'],
-      ['Acceptable use', '/acceptable-use'],
+      ['DPA', '/dpa'],
+      ['US Student DPA', '/student-dpa'],
       ['Security', '/security'],
-      ['Report abuse', '/report-abuse'],
+      ['Report Abuse', '/report-abuse'],
     ],
   },
 ] as const;
 
 export const publicFooterActionLinks = [
   ['Talk to sales', '/contact-sales'],
-  ['Start building', 'https://app.e-code.ai/register'],
+  ['Start building', '/register'],
 ] as const satisfies readonly FooterLink[];
 
 export const publicCompareLinks = [
@@ -293,11 +233,11 @@ export const publicCompareLinks = [
 ] as const satisfies readonly FooterLink[];
 
 export const publicFooterUtilityLinks = [
-  { label: 'GitHub', to: ECODE_MARKETING_BRAND.repositoryUrl, icon: Github, external: true },
-  { label: 'Documentation', to: '/docs', icon: BookOpen, external: false },
-  { label: 'Status', to: '/status', icon: Globe2, external: false },
-  { label: 'Templates', to: '/templates', icon: Layers, external: false },
-  { label: 'Contact', to: '/contact-sales', icon: MailPlus, external: false },
+  { label: 'Twitter', to: 'https://twitter.com/ecode', icon: Twitter, external: true },
+  { label: 'GitHub', to: 'https://github.com/ecode', icon: Github, external: true },
+  { label: 'YouTube', to: 'https://youtube.com/ecode', icon: Youtube, external: true },
+  { label: 'LinkedIn', to: 'https://linkedin.com/company/ecode', icon: Linkedin, external: true },
+  { label: 'Instagram', to: 'https://instagram.com/ecode', icon: Instagram, external: true },
 ] as const satisfies readonly FooterUtilityLink[];
 
 type NavItem = { label: string; to: string; icon: Icon; shortcut?: string };
@@ -445,7 +385,6 @@ function EcodeMarketingLogo({ compact = false }: { compact?: boolean }) {
 function PublicMarketingHeader() {
   const mobileItems = [
     ...publicMarketingMenus.product,
-    ...publicMarketingMenus.platform,
     ...publicMarketingMenus.solutions,
     ...publicMarketingMenus.resources,
     ...publicMarketingMenus.company,
@@ -469,7 +408,6 @@ function PublicMarketingHeader() {
           </Link>
           <div className="vc-public-desktop-nav" aria-label="Public navigation">
             <MarketingMenu label="Product" items={publicMarketingMenus.product} icon={Sparkles} />
-            <MarketingMenu label="Platform" items={publicMarketingMenus.platform} icon={Command} />
             <MarketingMenu label="Solutions" items={publicMarketingMenus.solutions} icon={Rocket} />
             <MarketingMenu label="Resources" items={publicMarketingMenus.resources} icon={BookOpen} />
             <MarketingMenu label="Company" items={publicMarketingMenus.company} icon={ShieldCheck} />
@@ -478,10 +416,10 @@ function PublicMarketingHeader() {
           </div>
           <div className="vc-public-actions">
             <PublicThemeToggle />
-            <LinkButton to="https://app.e-code.ai/login" variant="ghost">
-              Sign in
+            <LinkButton to="/login" variant="ghost">
+              Log in
             </LinkButton>
-            <LinkButton to="https://app.e-code.ai/register">Get started</LinkButton>
+            <LinkButton to="/register">Get started</LinkButton>
             <details className="vc-public-mobile-menu">
               <summary aria-label="Open mobile menu">
                 <Menu className="h-5 w-5" aria-hidden />

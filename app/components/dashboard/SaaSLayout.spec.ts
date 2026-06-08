@@ -23,7 +23,6 @@ describe('public marketing brand', () => {
     expect(ECODE_MARKETING_BRAND.faviconSrc).toBe('/favicon.svg');
     expect(publicNav.map((item) => item.label)).toEqual([
       'Product',
-      'Platform',
       'Solutions',
       'Resources',
       'Company',
@@ -68,50 +67,78 @@ describe('public marketing brand', () => {
 
     const footerTargets = publicFooterColumns.flatMap((column) => column.links.map(([, to]) => to));
 
-    expect(menuTargets).toContain('/product');
-    expect(menuTargets).toContain('/features');
-    expect(menuTargets).toContain('/apps');
-    expect(menuTargets).toContain('/ai-agent/studio');
-    expect(menuTargets).toContain('/github-import');
-    expect(menuTargets).toContain('/runtime-diagnostics');
-    expect(menuTargets).toContain('/database');
-    expect(menuTargets).toContain('/advanced/mobile');
-    expect(menuTargets).toContain('/solutions/app-builder');
-    expect(menuTargets).toContain('/marketing/teams');
+    expect(Object.keys(publicMarketingMenus)).toEqual(['product', 'solutions', 'resources', 'company']);
+    expect(publicMarketingMenus.product.map(([label]) => label)).toEqual([
+      'AI Agent',
+      'Browser IDE',
+      'Multiplayer',
+      'Mobile App',
+      'Desktop App',
+      'AI Platform',
+      'Deployments',
+      'Bounties',
+      'Teams',
+    ]);
     expect(menuTargets).toContain('/ai');
+    expect(menuTargets).toContain('/features');
+    expect(menuTargets).toContain('/features#multiplayer');
+    expect(menuTargets).toContain('/mobile');
+    expect(menuTargets).toContain('/desktop');
+    expect(menuTargets).toContain('/solutions/app-builder');
+    expect(menuTargets).toContain('/solutions/website-builder');
+    expect(menuTargets).toContain('/solutions/enterprise');
+    expect(menuTargets).toContain('/docs');
+    expect(menuTargets).toContain('/ai-documentation');
+    expect(menuTargets).toContain('/templates');
+    expect(menuTargets).toContain('/case-studies');
+    expect(menuTargets).toContain('/help-center');
+    expect(menuTargets).toContain('/status');
+    expect(menuTargets).toContain('/about');
+    expect(menuTargets).toContain('/careers');
+    expect(menuTargets).toContain('/press');
+    expect(menuTargets).toContain('/contact');
+    expect(menuTargets).toContain('/accessibility');
+    expect(menuTargets).toContain('/marketing/deployments');
+    expect(menuTargets).toContain('/marketing/bounties');
+    expect(menuTargets).toContain('/marketing/teams');
     expect(menuTargets).toContain('/partners');
-    expect(menuTargets).toContain('/customers');
-    expect(menuTargets).toContain('/marketplace');
     expect(menuTargets).toContain('/community');
-    expect(menuTargets).toContain('/explore');
-    expect(menuTargets).toContain('/search');
-    expect(menuTargets).not.toContain('/ai-agent');
+    expect(menuTargets).not.toContain('/product');
+    expect(menuTargets).not.toContain('/apps');
 
-    expect(footerTargets).toContain('/acceptable-use');
-    expect(footerTargets).toContain('/apps');
-    expect(footerTargets).toContain('/github-import');
-    expect(footerTargets).toContain('/runtime-diagnostics');
-    expect(footerTargets).toContain('/database');
-    expect(footerTargets).toContain('/api-sdk');
-    expect(footerTargets).toContain('/performance');
-    expect(footerTargets).toContain('/ai-documentation');
-    expect(footerTargets).toContain('/subprocessors');
-    expect(footerTargets).toContain('/product');
+    expect(publicFooterColumns.map((column) => column.title)).toEqual(['Product', 'Resources', 'Company', 'Legal']);
+    expect(footerTargets).toContain('/ai');
     expect(footerTargets).toContain('/features');
-    expect(footerTargets).toContain('/customers');
-    expect(footerTargets).toContain('/marketplace');
-    expect(footerTargets).toContain('/community');
-    expect(footerTargets).toContain('/explore');
+    expect(footerTargets).toContain('/features#multiplayer');
+    expect(footerTargets).toContain('/mobile');
+    expect(footerTargets).toContain('/marketing/teams');
+    expect(footerTargets).toContain('/marketing/deployments');
+    expect(footerTargets).toContain('/marketing/bounties');
+    expect(footerTargets).toContain('/docs');
+    expect(footerTargets).toContain('/blog');
+    expect(footerTargets).toContain('/templates/languages');
+    expect(footerTargets).toContain('/forum');
+    expect(footerTargets).toContain('/about');
+    expect(footerTargets).toContain('/careers');
+    expect(footerTargets).toContain('/contact-sales');
+    expect(footerTargets).toContain('/terms');
+    expect(footerTargets).toContain('/privacy');
+    expect(footerTargets).toContain('/subprocessors');
+    expect(footerTargets).toContain('/dpa');
+    expect(footerTargets).toContain('/student-dpa');
+    expect(footerTargets).toContain('/security');
+    expect(footerTargets).toContain('/report-abuse');
     expect(publicCompareLinks.map(([, to]) => to)).toContain('/compare/github-codespaces');
     expect(publicCompareLinks.map(([, to]) => to)).not.toContain('/#compare-github-codespaces');
   });
 
-  it('keeps every Platform menu target backed by the imported E-Code surface registry', () => {
+  it('keeps E-Code surface routes available after the public menu import', () => {
     const concreteSurfaceTargets = new Set(ecodeCompatibilityRoutePatterns.filter((target) => !target.includes(':')));
 
-    for (const [, to] of publicMarketingMenus.platform) {
-      expect(concreteSurfaceTargets.has(to)).toBe(true);
-    }
+    expect(concreteSurfaceTargets).toContain('/apps');
+    expect(concreteSurfaceTargets).toContain('/runtime-diagnostics');
+    expect(concreteSurfaceTargets).toContain('/database');
+    expect(concreteSurfaceTargets).toContain('/advanced/mobile');
   });
 
   it('keeps every public header, menu, footer, and comparison link routable to a concrete page', () => {
