@@ -386,6 +386,7 @@ async function providerCompletion(config: ProviderConfig, request: AiChatRequest
           method: 'POST',
           headers: headers(config),
           body: JSON.stringify(openAiPayload(request, model, false)),
+          signal: AbortSignal.timeout(60_000),
         }),
       ),
     );
@@ -398,6 +399,7 @@ async function providerCompletion(config: ProviderConfig, request: AiChatRequest
           method: 'POST',
           headers: headers(config),
           body: JSON.stringify(anthropicPayload(request, model, false)),
+          signal: AbortSignal.timeout(60_000),
         }),
       ),
     );
@@ -409,7 +411,12 @@ async function providerCompletion(config: ProviderConfig, request: AiChatRequest
       await readJson(
         await fetch(
           `${config.baseUrl.replace(/\/+$/, '')}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key ?? '')}`,
-          { method: 'POST', headers: headers(config), body: JSON.stringify(geminiPayload(request, model)) },
+          {
+            method: 'POST',
+            headers: headers(config),
+            body: JSON.stringify(geminiPayload(request, model)),
+            signal: AbortSignal.timeout(60_000),
+          },
         ),
       ),
     );
@@ -421,6 +428,7 @@ async function providerCompletion(config: ProviderConfig, request: AiChatRequest
         method: 'POST',
         headers: headers(config),
         body: JSON.stringify({ model, messages: request.messages, stream: false }),
+        signal: AbortSignal.timeout(60_000),
       }),
     ),
   );

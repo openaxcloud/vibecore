@@ -176,6 +176,7 @@ export class OpenAIEmbeddingProvider implements AgentMemoryEmbeddingProvider {
         input,
         dimensions: this.dimensions,
       }),
+      signal: AbortSignal.timeout(30_000),
     });
 
     const payload = (await response.json().catch(() => ({}))) as {

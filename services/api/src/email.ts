@@ -79,6 +79,7 @@ export class HttpEmailProvider implements EmailProvider {
         from: getHttpEmailFrom(),
         ...message,
       }),
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {

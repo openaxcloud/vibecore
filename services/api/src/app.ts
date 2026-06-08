@@ -3006,6 +3006,7 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
     method: 'POST',
     headers: { accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(tokenPayload),
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!tokenResponse.ok) {
@@ -3056,7 +3057,10 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
     userInfoHeaders.accept = 'application/vnd.github+json';
   }
 
-  const profileResponse = await fetch(userInfoUrl, { headers: userInfoHeaders });
+  const profileResponse = await fetch(userInfoUrl, {
+    headers: userInfoHeaders,
+    signal: AbortSignal.timeout(10_000),
+  });
 
   if (!profileResponse.ok) {
     let providerBody = '';
@@ -3099,7 +3103,10 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
      * address so accounts without an explicit primary still log in.
      */
     const emailsUrl = process.env.GITHUB_USERINFO_EMAILS_URL ?? `${userInfoUrl.replace(/\/$/, '')}/emails`;
-    const emailResponse = await fetch(emailsUrl, { headers: userInfoHeaders });
+    const emailResponse = await fetch(emailsUrl, {
+      headers: userInfoHeaders,
+      signal: AbortSignal.timeout(10_000),
+    });
 
     if (emailResponse.ok) {
       const emails = (await emailResponse.json()) as Array<{
@@ -7725,6 +7732,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       response = await fetch(`${aiGatewayUrl}/chat/completions`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', accept: 'application/json' },
+        signal: AbortSignal.timeout(60_000),
         body: JSON.stringify({
           organizationId: input.project.organizationId,
           plan: process.env.AI_DEFAULT_PLAN ?? 'business',
@@ -8887,15 +8895,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       agentUrl.search = request.url.slice(queryIndex);
     }
 
-    const response = await fetch(agentUrl, {
-      method: request.method,
-      headers: {
-        ...previewProxyHeaders(request.headers),
-        authorization: `Bearer ${token}`,
-      },
-      body: request.method === 'GET' || request.method === 'HEAD' ? undefined : (request.body as any),
-      redirect: 'manual',
-    });
+    let response: Response;
+
+    try {
+      response = await fetch(agentUrl, {
+        method: request.method,
+        headers: {
+          ...previewProxyHeaders(request.headers),
+          authorization: `Bearer ${token}`,
+        },
+        body: request.method === 'GET' || request.method === 'HEAD' ? undefined : (request.body as any),
+        redirect: 'manual',
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch (error) {
+      // A hung user app (infinite loop / slow SSR in their dev server) must not
+      // hold the API handler open indefinitely — surface it as a gateway timeout.
+      if (error instanceof Error && error.name === 'TimeoutError') {
+        return reply.code(504).send({ error: 'preview_timeout', code: 'RUNTIME_PREVIEW_TIMEOUT' });
+      }
+
+      return reply.code(502).send({ error: 'preview_unreachable', code: 'RUNTIME_PREVIEW_UNREACHABLE' });
+    }
 
     for (const [key, value] of response.headers.entries()) {
       if (!['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) {

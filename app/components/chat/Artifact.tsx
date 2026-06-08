@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { computed, map } from 'nanostores';
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
 import type { ActionState } from '~/lib/runtime/action-runner';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -42,15 +42,21 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
   const artifacts = useStore(workbenchStore.artifacts);
   const artifact = artifacts[artifactId];
 
-  const actions = useStore(
-    computed(artifact?.runner.actions ?? EMPTY_ACTIONS, (actions) => {
-      // Filter out Supabase actions except for migrations
-      return Object.values(actions).filter((action) => {
-        // Exclude actions with type 'supabase' or actions that contain 'supabase' in their content
-        return action.type !== 'supabase' && !(action.type === 'shell' && action.content?.includes('supabase'));
-      });
-    }),
+  const actionsStore = artifact?.runner.actions ?? EMPTY_ACTIONS;
+
+  const filteredActions = useMemo(
+    () =>
+      computed(actionsStore, (actions) => {
+        // Filter out Supabase actions except for migrations
+        return Object.values(actions).filter((action) => {
+          // Exclude actions with type 'supabase' or actions that contain 'supabase' in their content
+          return action.type !== 'supabase' && !(action.type === 'shell' && action.content?.includes('supabase'));
+        });
+      }),
+    [actionsStore],
   );
+
+  const actions = useStore(filteredActions);
 
   const toggleActions = () => {
     userToggledActions.current = true;
@@ -58,7 +64,7 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
   };
 
   useEffect(() => {
-    if (actions.length && !showActions && !userToggledActions.current) {
+    if (actions.length && !userToggledActions.current) {
       setShowActions(true);
     }
 
@@ -116,7 +122,7 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
           </button>
           {artifact.type !== 'bundled' && <div className="bg-bolt-elements-artifacts-borderColor w-[1px]" />}
           <AnimatePresence>
-            {actions.length && artifact.type !== 'bundled' && (
+            {actions.length > 0 && artifact.type !== 'bundled' && (
               <motion.button
                 initial={{ width: 0 }}
                 animate={{ width: 'auto' }}
@@ -202,6 +208,10 @@ const actionVariants = {
 };
 
 export function openArtifactInWorkbench(filePath: any) {
+  if (!filePath) {
+    return;
+  }
+
   if (workbenchStore.currentView.get() !== 'code') {
     workbenchStore.currentView.set('code');
   }
@@ -295,7 +305,7 @@ const ActionList = memo(({ actions }: ActionListProps) => {
 
           return (
             <motion.li
-              key={index}
+              key={(type === 'file' ? action.filePath : undefined) ?? `${type}-${index}`}
               variants={actionVariants}
               initial="hidden"
               animate="visible"

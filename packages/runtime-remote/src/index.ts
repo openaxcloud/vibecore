@@ -513,7 +513,11 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       headers.set('authorization', `Bearer ${token}`);
     }
 
-    const response = await this.#fetch(`${this.#baseUrl}${path}`, { ...init, headers });
+    const response = await this.#fetch(`${this.#baseUrl}${path}`, {
+      ...init,
+      headers,
+      signal: init.signal ?? AbortSignal.timeout(30_000),
+    });
 
     if (!response.ok) {
       throw new RuntimeError(`Remote runtime request failed: ${response.status}`, {

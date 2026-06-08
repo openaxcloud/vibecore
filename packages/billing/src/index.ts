@@ -328,6 +328,7 @@ export class StripeBillingClient {
         'content-type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams(fields),
+      signal: AbortSignal.timeout(20_000),
     });
     const body = await response.json().catch(() => ({}));
 
@@ -347,6 +348,7 @@ export class StripeBillingClient {
       headers: {
         authorization: `Bearer ${this.input.apiKey}`,
       },
+      signal: AbortSignal.timeout(20_000),
     });
     const body = await response.json().catch(() => ({}));
 
