@@ -274,7 +274,7 @@ function headers(config: ProviderConfig) {
   return headers;
 }
 
-async function retry<T>(operation: () => Promise<T>, attempts = 3): Promise<T> {
+async function retry<T>(operation: () => Promise<T>, attempts = 3, signal?: AbortSignal): Promise<T> {
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
@@ -282,6 +282,13 @@ async function retry<T>(operation: () => Promise<T>, attempts = 3): Promise<T> {
       return await operation();
     } catch (error) {
       lastError = error;
+
+      // Don't burn the remaining attempts (and their backoff sleeps) once the
+      // client has aborted — fail fast instead.
+      if (signal?.aborted) {
+        throw error;
+      }
+
       if (attempt < attempts) {
         await new Promise((resolve) => setTimeout(resolve, 80 * attempt * attempt));
       }
@@ -596,7 +603,11 @@ export class AiGateway {
           throw new Error('aborted');
         }
 
-        const content = await retry(() => providerCompletion(provider, request, request.model ?? routed.model.id, signal));
+        const content = await retry(
+          () => providerCompletion(provider, request, request.model ?? routed.model.id, signal),
+          3,
+          signal,
+        );
         const outputTokens = countTokens(content);
         return {
           provider: provider.id,
@@ -622,12 +633,21 @@ export class AiGateway {
     const inputTokens = countTokens(request.messages);
 
     for (const provider of routed.providers) {
+      // Stop before trying another provider if the client already went away —
+      // otherwise an aborted stream keeps falling through and re-billing.
+      if (signal?.aborted) {
+        return;
+      }
+
       // Reset per provider so a failed provider's partial deltas aren't concatenated
       // onto the fallback provider's output (garbled message + double-counted cost).
       let content = '';
+      let yieldedDelta = false;
+
       try {
         for await (const delta of providerStream(provider, request, request.model ?? routed.model.id, signal)) {
           content += delta;
+          yieldedDelta = true;
           yield { type: 'delta', content: delta, provider: provider.id, model: request.model ?? routed.model.id };
         }
 
@@ -644,12 +664,28 @@ export class AiGateway {
         };
         return;
       } catch (error) {
+        // A client abort surfaces as a throw here — don't fall through to a
+        // fallback provider (which would re-bill); just stop.
+        if (signal?.aborted) {
+          return;
+        }
+
         yield {
           type: 'error',
           provider: provider.id,
           model: request.model ?? routed.model.id,
           error: error instanceof Error ? error.message : 'Provider stream failed',
         };
+
+        /*
+         * If partial deltas already reached the client, the fallback provider's
+         * fresh full generation would be appended onto that partial text,
+         * producing a garbled, concatenated message. Stop rather than fall
+         * through once any output has been streamed.
+         */
+        if (yieldedDelta) {
+          return;
+        }
       }
     }
   }

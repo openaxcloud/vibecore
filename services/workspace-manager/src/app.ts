@@ -185,6 +185,16 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       return reply.code(404).send({ error: 'Workspace agent not found', code: 'WORKSPACE_AGENT_NOT_FOUND' });
     }
 
+    /*
+     * The standalone preview-proxy resolves the agent through this route on
+     * every host-based preview request. A user actively testing their running
+     * app via the preview URL (no IDE tab open to run the watch pollers) would
+     * otherwise generate zero activity, so the inactivity GC stops the pod
+     * mid-use. Treat a successful agent resolve as activity — throttled and
+     * fire-and-forget so it never adds latency to the preview hot path.
+     */
+    void manager.touch(workspaceId).catch(() => undefined);
+
     return {
       baseUrl: agentBaseUrl(workspaceId),
       token: manager.issueAgentToken(workspaceId, 5 * 60_000),

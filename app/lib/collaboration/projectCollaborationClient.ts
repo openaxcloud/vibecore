@@ -82,10 +82,29 @@ function applyEvent(snapshot: CollaborationSnapshot, event: CollaborationEvent):
   if (event.type === 'collaboration.ready') {
     const readyEvent = event as Extract<CollaborationEvent, { type: 'collaboration.ready' }>;
 
+    const readyComments = Array.isArray(readyEvent.comments) ? readyEvent.comments : [];
+
+    /*
+     * A peer's comment.create can be delivered to this freshly-joined socket
+     * BEFORE the ready snapshot (the server joins the room before its two
+     * awaited snapshot reads complete). Merge comments by id rather than
+     * replacing so a comment created during the sync window isn't dropped.
+     * Presence stays the authoritative fresh list — it's ephemeral and a
+     * wholesale replace avoids resurrecting departed users as ghosts on
+     * reconnect.
+     */
+    const commentsById = new Map(readyComments.map((comment) => [comment.id, comment]));
+
+    for (const comment of snapshot.comments) {
+      if (!commentsById.has(comment.id)) {
+        commentsById.set(comment.id, comment);
+      }
+    }
+
     return {
       ...snapshot,
       presence: Array.isArray(readyEvent.presence) ? readyEvent.presence : [],
-      comments: Array.isArray(readyEvent.comments) ? readyEvent.comments : [],
+      comments: [...commentsById.values()],
       lastEvent: event,
       error: undefined,
     };

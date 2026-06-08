@@ -7724,12 +7724,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return existing;
     }
 
-    return store.createWorkspace({
-      id: workspaceId,
-      projectId: project.id,
-      name: `${project.name} runtime`,
-      runtimeMode: 'remote-kubernetes',
-    });
+    try {
+      return await store.createWorkspace({
+        id: workspaceId,
+        projectId: project.id,
+        name: `${project.name} runtime`,
+        runtimeMode: 'remote-kubernetes',
+      });
+    } catch (error) {
+      /*
+       * The workspace id is deterministic per (project, user), so two
+       * concurrent requests (e.g. two browser tabs) can both pass the
+       * getWorkspace check above and race into createWorkspace — the second
+       * insert collides on the unique id and previously surfaced as a 500.
+       * Re-read and reuse the row the winner just created instead.
+       */
+      const raced = await store.getWorkspace(workspaceId);
+
+      if (raced) {
+        if (raced.projectId !== project.id) {
+          throw Object.assign(new Error('Workspace does not belong to this project'), {
+            statusCode: 403,
+            code: 'WORKSPACE_PROJECT_MISMATCH',
+          });
+        }
+
+        return raced;
+      }
+
+      throw error;
+    }
   };
 
   const localRuntimeFallbackEnabled = () => {
