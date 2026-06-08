@@ -261,6 +261,13 @@ export class PreviewsStore {
 
     if (type === 'close' && previewInfo) {
       this.#availablePreviews.delete(port);
+
+      const closedPreviewId = this.getPreviewId(previewInfo.baseUrl);
+
+      if (closedPreviewId) {
+        this.#lastUpdate.delete(closedPreviewId);
+      }
+
       this.previews.set(this.previews.get().filter((preview) => preview.port !== port));
 
       return;

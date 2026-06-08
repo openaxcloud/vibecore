@@ -730,7 +730,9 @@ async function listTree(
   root: string,
   current: string,
 ): Promise<{ path: string; type: 'file' | 'directory'; children?: unknown[] }[]> {
-  await mkdir(root, { recursive: true });
+  if (current === root) {
+    await mkdir(root, { recursive: true });
+  }
 
   const entries = await readdir(current, { withFileTypes: true });
   const nodes = [];
@@ -753,7 +755,9 @@ async function listSnapshotFiles(
   root: string,
   current: string,
 ): Promise<Array<{ path: string; sha256: string; size: number }>> {
-  await mkdir(root, { recursive: true });
+  if (current === root) {
+    await mkdir(root, { recursive: true });
+  }
 
   const entries = await readdir(current, { withFileTypes: true });
   const files = [];
