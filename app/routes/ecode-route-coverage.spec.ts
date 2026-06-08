@@ -55,6 +55,7 @@ const importedEcodeRoutes = [
   '/accessibility',
   '/mobile',
   '/mobile-workspace/:projectId',
+  '/ai-agent',
   '/ai',
   '/ai-documentation',
   '/mcp',

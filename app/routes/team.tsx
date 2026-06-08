@@ -1,11 +1,7 @@
-import {
-  makeMarketingMeta,
-  MarketingStaticPage,
-  marketingCampaignPages,
-} from '~/components/marketing/EcodeMarketingPages';
+import { EcodeTeamsPage, makeEcodeCampaignMeta } from '~/components/marketing/EcodeProductMarketingPages';
 
-export const meta = makeMarketingMeta(marketingCampaignPages.teams);
+export const meta = makeEcodeCampaignMeta('teams');
 
 export default function TeamRoute() {
-  return <MarketingStaticPage page={marketingCampaignPages.teams} />;
+  return <EcodeTeamsPage />;
 }

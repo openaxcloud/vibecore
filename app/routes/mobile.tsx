@@ -1,7 +1,7 @@
-import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';
+import { EcodeMobilePage, makeEcodeProductMeta } from '~/components/marketing/EcodeProductMarketingPages';
 
-export const meta = makeMarketingMeta(marketingPages.mobile);
+export const meta = makeEcodeProductMeta('mobile-app');
 
 export default function MobileRoute() {
-  return <MarketingStaticPage page={marketingPages.mobile} />;
+  return <EcodeMobilePage />;
 }

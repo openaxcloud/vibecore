@@ -79,6 +79,7 @@ describe('public marketing brand', () => {
       'Bounties',
       'Teams',
     ]);
+    expect(menuTargets).toContain('/ai-agent');
     expect(menuTargets).toContain('/ai');
     expect(menuTargets).toContain('/features');
     expect(menuTargets).toContain('/features#multiplayer');
@@ -107,6 +108,7 @@ describe('public marketing brand', () => {
     expect(menuTargets).not.toContain('/apps');
 
     expect(publicFooterColumns.map((column) => column.title)).toEqual(['Product', 'Resources', 'Company', 'Legal']);
+    expect(footerTargets).toContain('/ai-agent');
     expect(footerTargets).toContain('/ai');
     expect(footerTargets).toContain('/features');
     expect(footerTargets).toContain('/features#multiplayer');

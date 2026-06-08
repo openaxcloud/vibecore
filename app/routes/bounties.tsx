@@ -1,11 +1,7 @@
-import {
-  makeMarketingMeta,
-  MarketingStaticPage,
-  marketingCampaignPages,
-} from '~/components/marketing/EcodeMarketingPages';
+import { EcodeBountiesPage, makeEcodeCampaignMeta } from '~/components/marketing/EcodeProductMarketingPages';
 
-export const meta = makeMarketingMeta(marketingCampaignPages.bounties);
+export const meta = makeEcodeCampaignMeta('bounties');
 
 export default function BountiesRoute() {
-  return <MarketingStaticPage page={marketingCampaignPages.bounties} />;
+  return <EcodeBountiesPage />;
 }

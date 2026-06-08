@@ -1,7 +1,7 @@
-import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';
+import { EcodeAiPlatformPage, makeEcodeProductMeta } from '~/components/marketing/EcodeProductMarketingPages';
 
-export const meta = makeMarketingMeta(marketingPages.ai);
+export const meta = makeEcodeProductMeta('ai-platform');
 
 export default function AiRoute() {
-  return <MarketingStaticPage page={marketingPages.ai} />;
+  return <EcodeAiPlatformPage />;
 }

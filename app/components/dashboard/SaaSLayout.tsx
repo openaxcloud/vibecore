@@ -117,7 +117,7 @@ export const publicNav = [
 
 export const publicMarketingMenus = {
   product: [
-    ['AI Agent', '/ai', 'Build production-ready apps with natural language prompts.'],
+    ['AI Agent', '/ai-agent', 'Build production-ready apps with natural language prompts.'],
     ['Browser IDE', '/features', 'Enterprise-grade development workspace built for teams.'],
     ['Multiplayer', '/features#multiplayer', 'Live collaboration, pair programming, and shared presence.'],
     ['Mobile App', '/mobile', 'Ship from anywhere with a fully-featured mobile IDE.'],
@@ -172,7 +172,7 @@ export const publicFooterColumns: readonly FooterColumn[] = [
   {
     title: 'Product',
     links: [
-      ['AI Agent', '/ai'],
+      ['AI Agent', '/ai-agent'],
       ['IDE', '/features'],
       ['Multiplayer', '/features#multiplayer'],
       ['Mobile App', '/mobile'],
