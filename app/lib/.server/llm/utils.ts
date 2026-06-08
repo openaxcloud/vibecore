@@ -4,11 +4,15 @@ import { IGNORE_PATTERNS, type FileMap } from './constants';
 import type { ContextAnnotation } from '~/types/context';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
 
-export function extractPropertiesFromMessage(message: Omit<Message, 'id'>): {
+export function extractPropertiesFromMessage(message: Omit<Message, 'id'> | undefined | null): {
   model: string;
   provider: string;
   content: string;
 } {
+  if (!message) {
+    return { model: DEFAULT_MODEL, provider: DEFAULT_PROVIDER.name, content: '' };
+  }
+
   const textContent = Array.isArray(message.content)
     ? message.content.find((item) => item.type === 'text')?.text || ''
     : message.content;

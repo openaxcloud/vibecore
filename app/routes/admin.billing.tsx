@@ -107,13 +107,19 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json({ status: 'Plan override created.' });
     }
 
+    const limit = Number(body.limit);
+
+    if (!Number.isFinite(limit) || limit < 0) {
+      return json({ error: 'Invalid quota limit.' }, { status: 400 });
+    }
+
     await apiRequest(request, '/admin/quota-overrides', {
       method: 'POST',
       redirectOn401: false,
       body: JSON.stringify({
         organizationId: body.orgId,
         key: body.key,
-        limit: Number(body.limit),
+        limit,
         reason: body.reason || 'Admin billing override',
       }),
     });

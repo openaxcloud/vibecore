@@ -299,8 +299,8 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
       {selectedRepo && (
         <BranchSelector
           provider="github"
-          repoOwner={selectedRepo.full_name.split('/')[0]}
-          repoName={selectedRepo.full_name.split('/')[1]}
+          repoOwner={selectedRepo.full_name.split('/')[0] ?? ''}
+          repoName={selectedRepo.full_name.split('/')[1] ?? ''}
           token={connection?.token || ''}
           defaultBranch={selectedRepo.default_branch}
           onBranchSelect={handleBranchSelect}

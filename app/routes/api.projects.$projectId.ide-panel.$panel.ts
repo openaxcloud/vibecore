@@ -1603,9 +1603,11 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const prefix = body.environment === 'production' ? 'ek_live_' : body.environment === 'ci' ? 'ek_ci_' : 'ek_test_';
       const token = `${prefix}${randomUUID().replace(/-/g, '')}${randomUUID().replace(/-/g, '').slice(0, 8)}`;
 
+      const expirationDays = Number(body.expiration);
+
       const expiresAt =
-        body.expiration && body.expiration !== 'never'
-          ? new Date(Date.now() + Number(body.expiration) * 24 * 60 * 60 * 1000).toISOString()
+        body.expiration && body.expiration !== 'never' && Number.isFinite(expirationDays) && expirationDays > 0
+          ? new Date(Date.now() + expirationDays * 24 * 60 * 60 * 1000).toISOString()
           : undefined;
 
       state.apiKeys.unshift({

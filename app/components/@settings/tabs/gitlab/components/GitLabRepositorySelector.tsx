@@ -342,8 +342,8 @@ export function GitLabRepositorySelector({ onClone, className }: GitLabRepositor
       {selectedRepo && (
         <BranchSelector
           provider="gitlab"
-          repoOwner={selectedRepo.path_with_namespace.split('/')[0]}
-          repoName={selectedRepo.path_with_namespace.split('/')[1]}
+          repoOwner={selectedRepo.path_with_namespace.split('/')[0] ?? ''}
+          repoName={selectedRepo.path_with_namespace.split('/')[1] ?? ''}
           projectId={selectedRepo.id}
           token={connection?.token || ''}
           gitlabUrl={connection?.gitlabUrl}

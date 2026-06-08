@@ -336,7 +336,9 @@ export function SelectionDialog({
 
   // Calculate the height for the virtualized list
   const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 768;
-  const listHeight = Math.min(items.length * 60, parseInt(maxHeight.replace('vh', '')) * viewportHeight * 0.01 - 40);
+  const parsedMaxHeightVh = parseInt(maxHeight.replace('vh', ''), 10);
+  const maxHeightVh = Number.isFinite(parsedMaxHeightVh) ? parsedMaxHeightVh : 60;
+  const listHeight = Math.min(items.length * 60, maxHeightVh * viewportHeight * 0.01 - 40);
 
   // Render each item in the virtualized list
   const ItemRenderer = ({ index, style }: { index: number; style: React.CSSProperties }) => {

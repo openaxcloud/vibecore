@@ -156,9 +156,9 @@ export class GitLabApiService {
 
     // Get rate limit information from headers if available
     const rateLimit = {
-      limit: parseInt(response.headers.get('ratelimit-limit') || '0'),
-      remaining: parseInt(response.headers.get('ratelimit-remaining') || '0'),
-      reset: parseInt(response.headers.get('ratelimit-reset') || '0'),
+      limit: parseInt(response.headers.get('ratelimit-limit') || '0', 10),
+      remaining: parseInt(response.headers.get('ratelimit-remaining') || '0', 10),
+      reset: parseInt(response.headers.get('ratelimit-reset') || '0', 10),
     };
 
     // Handle different avatar URL fields that GitLab might return
