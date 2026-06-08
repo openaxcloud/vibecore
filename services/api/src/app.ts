@@ -2197,6 +2197,34 @@ function isWriteProjectPermission(permission: PermissionKey) {
  * unpollable deployment is returned unchanged.
  */
 async function reconcileDeploymentStatus(store: ApiStore, deployment: DeploymentRecord): Promise<DeploymentRecord> {
+  /*
+   * Static builds run synchronously inside the deploy request and only flip to
+   * READY/FAILED at the end. If the client disconnects or the api pod restarts
+   * mid-build, the row is orphaned at QUEUED/BUILDING forever (the old early
+   * return for any non-BUILDING status never reconciled QUEUED). Time it out so
+   * the UI doesn't show "building" indefinitely.
+   */
+  const STALE_DEPLOYMENT_MS = 20 * 60 * 1000;
+
+  if (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') {
+    const startedMs = new Date(deployment.startedAt ?? deployment.createdAt).getTime();
+
+    if (!Number.isNaN(startedMs) && Date.now() - startedMs > STALE_DEPLOYMENT_MS) {
+      return store.updateDeployment(deployment.projectId, deployment.id, {
+        status: 'FAILED',
+        logs: [
+          ...deployment.logs,
+          {
+            timestamp: new Date().toISOString(),
+            level: 'error' as const,
+            message: 'Build interrupted: deployment exceeded the maximum build time and was marked failed.',
+          },
+        ],
+        finishedAt: new Date().toISOString(),
+      });
+    }
+  }
+
   if (deployment.status !== 'BUILDING') {
     return deployment;
   }
@@ -8020,6 +8048,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   };
 
+  /*
+   * Start of the current usage period for metered (per-month) allowances. Uses
+   * the Stripe subscription's currentPeriodStart when present, otherwise resets
+   * at the start of the calendar month (UTC) for free/no-subscription orgs.
+   */
+  const resolveUsagePeriodStart = async (organizationId: string): Promise<Date> => {
+    const subscription = await store.getSubscription(organizationId).catch(() => undefined);
+
+    if (subscription?.currentPeriodStart) {
+      const start = new Date(subscription.currentPeriodStart);
+
+      if (!Number.isNaN(start.getTime())) {
+        return start;
+      }
+    }
+
+    const now = new Date();
+
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  };
+
   const computeUsageForQuota = async (organizationId: string, key: QuotaKey) => {
     if (key === 'projects.count') {
       // count() aggregate instead of loading every project row just to take .length
@@ -8044,6 +8093,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (key === 'deployments.count') {
       return store.countDeployments(organizationId);
+    }
+
+    /*
+     * The ai.* allowances are PER-MONTH, but usageEvent rows accumulate forever
+     * and sumUsage summed them for all time — so a free user was permanently
+     * locked out of AI chat after 50 lifetime messages / 100k lifetime tokens,
+     * never refilling next period. Scope the sum to the active billing period
+     * (subscription period start, or the calendar month for free orgs).
+     */
+    if (key === 'ai.messages' || key === 'ai.inputTokens' || key === 'ai.outputTokens' || key === 'ai.toolCalls') {
+      const periodStart = await resolveUsagePeriodStart(organizationId);
+      return store.sumUsage(organizationId, key, periodStart);
     }
 
     return store.sumUsage(organizationId, key);

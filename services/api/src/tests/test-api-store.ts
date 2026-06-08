@@ -1827,9 +1827,14 @@ export class TestApiStore implements ApiStore {
     return [...this.usageEvents.values()].filter((event) => event.organizationId === organizationId);
   }
 
-  async sumUsage(organizationId: string, type: string) {
+  async sumUsage(organizationId: string, type: string, since?: Date) {
     return [...this.usageEvents.values()]
-      .filter((event) => event.organizationId === organizationId && event.type === type)
+      .filter(
+        (event) =>
+          event.organizationId === organizationId &&
+          event.type === type &&
+          (!since || new Date(event.createdAt).getTime() >= since.getTime()),
+      )
       .reduce((sum, event) => sum + event.quantity, 0);
   }
 

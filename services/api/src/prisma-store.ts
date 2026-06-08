@@ -335,6 +335,17 @@ export class PrismaApiStore implements ApiStore {
       return undefined;
     }
 
+    /*
+     * Single-use must be per-user, not just per-token: invalidate every other
+     * outstanding reset token for this user so a previously-issued link (or one
+     * an attacker triggered) can no longer re-reset the password after a
+     * successful reset.
+     */
+    await this.prisma.passwordResetToken.updateMany({
+      where: { userId: record.userId, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
     return this.updateUser({ userId: record.userId, passwordHash });
   }
 
@@ -2216,9 +2227,9 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
-  async sumUsage(organizationId: string, type: string) {
+  async sumUsage(organizationId: string, type: string, since?: Date) {
     const result = await this.prisma.usageEvent.aggregate({
-      where: { organizationId, type },
+      where: { organizationId, type, ...(since ? { createdAt: { gte: since } } : {}) },
       _sum: { quantity: true },
     });
     return result._sum.quantity ?? 0;

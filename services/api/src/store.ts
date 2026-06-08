@@ -1076,7 +1076,7 @@ export interface ApiStore {
     metadata?: unknown;
   }): Promise<UsageEventRecord>;
   listUsageEvents(organizationId: string): Promise<UsageEventRecord[]>;
-  sumUsage(organizationId: string, type: string): Promise<number>;
+  sumUsage(organizationId: string, type: string, since?: Date): Promise<number>;
   createQuotaOverride(input: {
     organizationId: string;
     key: QuotaKey;
