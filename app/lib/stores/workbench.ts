@@ -1974,6 +1974,29 @@ export class WorkbenchStore {
           await artifact.runner.runAction(data, true);
         }
 
+        /*
+         * Don't stomp the editor buffer of a file the user is actively editing:
+         * if the target has unsaved edits or is locked, preserve the user's
+         * work and surface a one-time conflict alert instead of silently
+         * overwriting it with the streamed AI content.
+         */
+        const hasUnsavedEdits = this.unsavedFiles.get().has(fullPath);
+        const lockState = this.isFileLocked(fullPath);
+
+        if (hasUnsavedEdits || lockState.locked) {
+          if (this.actionAlert.value?.title !== 'AI write conflict') {
+            this.actionAlert.set({
+              type: 'warning',
+              title: 'AI write conflict',
+              description: `The assistant is editing ${data.action.filePath} while you have unsaved changes to it. Your edits are kept; save or discard them to apply the assistant's version.`,
+              content: '',
+              source: 'preview',
+            });
+          }
+
+          return;
+        }
+
         this.#editorStore.updateFile(fullPath, data.action.content);
 
         return;

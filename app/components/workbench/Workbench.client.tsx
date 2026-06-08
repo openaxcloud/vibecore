@@ -6,7 +6,7 @@ import { useResponsiveLayout } from '@vibecore/editor';
 import { diffLines, type Change } from 'diff';
 import { motion, type HTMLMotionProps, type Variants } from 'framer-motion';
 import { computed } from 'nanostores';
-import { memo, useCallback, useEffect, useState, useMemo } from 'react';
+import { memo, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { DiffView } from './DiffView';
 import { workbenchStore, type WorkbenchViewType } from '~/lib/stores/workbench';
@@ -382,7 +382,15 @@ export const Workbench = memo(
     const { exportChat } = useChatHistory();
     const [isSyncing, setIsSyncing] = useState(false);
 
+    /*
+     * Tracks whether the user (or a ?view= URL param) explicitly chose a view,
+     * so the auto-switch-to-preview effect doesn't stomp that selection.
+     */
+    const explicitViewRef = useRef(false);
+    const didAutoSwitchPreviewRef = useRef(false);
+
     const setSelectedView = (view: WorkbenchViewType) => {
+      explicitViewRef.current = true;
       workbenchStore.currentView.set(view);
     };
 
@@ -391,8 +399,14 @@ export const Workbench = memo(
         return;
       }
 
-      if (hasPreview) {
-        setSelectedView('preview');
+      /*
+       * Auto-switch to preview at most once, and never over an explicit
+       * user/URL selection — otherwise a newly-ready preview yanks the user
+       * off the tab they were looking at (code/git/diff).
+       */
+      if (hasPreview && !explicitViewRef.current && !didAutoSwitchPreviewRef.current) {
+        didAutoSwitchPreviewRef.current = true;
+        workbenchStore.currentView.set('preview');
       }
     }, [hasPreview, useMobileWorkbench]);
 
@@ -405,6 +419,7 @@ export const Workbench = memo(
       const requested = params.get('view');
 
       if (requested === 'git' || requested === 'code' || requested === 'diff' || requested === 'preview') {
+        explicitViewRef.current = true;
         workbenchStore.currentView.set(requested);
         workbenchStore.showWorkbench.set(true);
       }

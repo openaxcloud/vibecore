@@ -67,7 +67,13 @@ function sanitizeText(text: string): string {
     return text;
   }
 
-  let sanitized = text.replace(/<div class=\\"__boltThought__\\">.*?<\/div>/gs, '');
+  /*
+   * Plain quotes: the persisted/decoded assistant content is
+   * `<div class="__boltThought__">`, not the SSE-escaped `\"` wire form. The
+   * previous `\\"` pattern never matched, so hidden reasoning blocks were
+   * re-fed to the model every turn, inflating prompt tokens.
+   */
+  let sanitized = text.replace(/<div class="__boltThought__">.*?<\/div>/gs, '');
   sanitized = sanitized.replace(/<think>.*?<\/think>/gs, '');
   sanitized = sanitized.replace(/<boltAction type="file" filePath="package-lock\.json">[\s\S]*?<\/boltAction>/g, '');
 
@@ -143,6 +149,24 @@ export async function streamText(props: {
     }
 
     return newMessage;
+  });
+
+  /*
+   * An assistant message whose entire content was a reasoning block sanitizes
+   * to ''. Several providers (notably Anthropic) reject empty assistant turns
+   * with a stream error, so drop such messages unless they carry non-text parts
+   * (tool calls / attachments) that still need to be sent.
+   */
+  processedMessages = processedMessages.filter((message) => {
+    if (message.role !== 'assistant') {
+      return true;
+    }
+
+    const hasContent = typeof message.content === 'string' && message.content.trim().length > 0;
+
+    const hasNonTextParts = Array.isArray(message.parts) && message.parts.some((part) => part.type !== 'text');
+
+    return hasContent || hasNonTextParts;
   });
 
   /*
@@ -310,8 +334,14 @@ ${agentMemoryContext}`;
     );
   }
 
-  // Use maxCompletionTokens for reasoning models (o1, GPT-5), maxTokens for traditional models
-  const tokenParams = isReasoning ? { maxCompletionTokens: safeMaxTokens } : { maxTokens: safeMaxTokens };
+  /*
+   * Always pass `maxTokens`. The AI SDK has no top-level `maxCompletionTokens`
+   * option — passing it was silently dropped, leaving reasoning models (o1/o3/
+   * gpt-5) with NO output cap (unbounded cost/latency). The @ai-sdk/openai
+   * provider itself maps `max_tokens` → `max_completion_tokens` for reasoning
+   * models, so the single `maxTokens` key is correct for both families.
+   */
+  const tokenParams = { maxTokens: safeMaxTokens };
 
   // Filter out unsupported parameters for reasoning models
   const disallowsTemperature = modelDisallowsTemperature(modelDetails.name, modelDetails.provider);
@@ -326,22 +356,21 @@ ${agentMemoryContext}`;
       ? Object.fromEntries(Object.entries(options).filter(([key]) => !unsupportedOptionKeys.includes(key)))
       : options || {};
 
-  // DEBUG: Log filtered options
+  /*
+   * DEBUG: log only the option KEYS, never the values. The options object can
+   * carry non-serializable / circular values (MCP `tools`, onFinish/onError
+   * closures); a circular ref in `JSON.stringify` would throw here and kill the
+   * generation before the LLM call.
+   */
   logger.info(
     `DEBUG STREAM: Options filtering for model "${modelDetails.name}":`,
-    JSON.stringify(
-      {
-        isReasoning,
-        disallowsTemperature,
-        originalOptions: options || {},
-        filteredOptions,
-        originalOptionsKeys: options ? Object.keys(options) : [],
-        filteredOptionsKeys: Object.keys(filteredOptions),
-        removedParams: options ? Object.keys(options).filter((key) => !(key in filteredOptions)) : [],
-      },
-      null,
-      2,
-    ),
+    JSON.stringify({
+      isReasoning,
+      disallowsTemperature,
+      originalOptionsKeys: options ? Object.keys(options) : [],
+      filteredOptionsKeys: Object.keys(filteredOptions),
+      removedParams: options ? Object.keys(options).filter((key) => !(key in filteredOptions)) : [],
+    }),
   );
 
   const modelInstance = provider.getModelInstance({
