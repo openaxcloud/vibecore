@@ -215,14 +215,41 @@ function createPipeBackend(
       return;
     }
 
+    const pid = child.pid;
+
     try {
       // Negative pid → the process group.
-      process.kill(-child.pid, signal);
+      process.kill(-pid, signal);
     } catch {
       try {
         child.kill(signal);
       } catch {
         // already gone
+      }
+    }
+
+    // Escalate to SIGKILL if a trapped/wedged foreground command ignores a
+    // terminating signal, so a disposed session can't leak an orphan process
+    // group that permanently holds a per-workspace process slot.
+    if (signal === 'SIGTERM' || signal === 'SIGQUIT' || signal === 'SIGHUP') {
+      const escalate = setTimeout(() => {
+        if (child.exitCode !== null || child.signalCode !== null) {
+          return;
+        }
+
+        try {
+          process.kill(-pid, 'SIGKILL');
+        } catch {
+          try {
+            child.kill('SIGKILL');
+          } catch {
+            // already gone
+          }
+        }
+      }, 5_000);
+
+      if (typeof escalate.unref === 'function') {
+        escalate.unref();
       }
     }
   };

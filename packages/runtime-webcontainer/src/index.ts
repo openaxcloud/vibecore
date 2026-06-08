@@ -702,6 +702,13 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
         const lines = (node.content ?? '').split('\n');
         lines.forEach((line, index) => {
           const haystack = options.caseSensitive ? line : line.toLowerCase();
+
+          // matcher is built with the global flag and reused across lines; reset
+          // lastIndex so its stateful cursor doesn't skip matches on later lines.
+          if (matcher) {
+            matcher.lastIndex = 0;
+          }
+
           const match = matcher?.exec(line);
           const column = matcher ? (match?.index ?? -1) : haystack.indexOf(needle);
 

@@ -626,30 +626,43 @@ const gitCommitSchema = z.object({
   workspaceId: workspaceIdField,
 });
 
-const gitBranchSchema = z.object({ branch: z.string().min(1).default('main'), workspaceId: workspaceIdField });
+// Git refs (branches, refs, shas) are passed as positional args to the git CLI.
+// A value starting with "-" would be parsed by git as an option (e.g.
+// `--upload-pack=<cmd>`), enabling argument-injection RCE. git itself forbids
+// ref names beginning with "-" (see `git check-ref-format`), so rejecting them
+// loses no legitimate input.
+const gitRefField = z
+  .string()
+  .min(1)
+  .refine((value) => !value.startsWith('-'), 'Git ref must not start with "-".');
+
+const gitBranchSchema = z.object({ branch: gitRefField.default('main'), workspaceId: workspaceIdField });
 
 const gitRemoteSchema = z.object({
   remoteUrl: gitRemoteUrlSchema,
-  branch: z.string().min(1).default('main'),
+  branch: gitRefField.default('main'),
   workspaceId: workspaceIdField,
 });
 
 const gitCheckoutBranchSchema = z.object({
-  branch: z.string().min(1),
+  branch: gitRefField,
   create: z.boolean().default(false),
-  startPoint: z.string().min(1).optional(),
+  startPoint: gitRefField.optional(),
   workspaceId: workspaceIdField,
 });
 
 const gitStashSchema = z.object({ message: z.string().optional(), workspaceId: workspaceIdField });
 
 const gitStashApplySchema = z.object({
-  stashRef: z.string().min(1),
+  stashRef: gitRefField,
   drop: z.boolean().default(false),
   workspaceId: workspaceIdField,
 });
 
-const gitCherryPickSchema = z.object({ sha: z.string().min(4), workspaceId: workspaceIdField });
+const gitCherryPickSchema = z.object({
+  sha: gitRefField.refine((value) => value.length >= 4, 'Git sha must be at least 4 characters.'),
+  workspaceId: workspaceIdField,
+});
 
 const gitConflictResolutionSchema = z.object({
   filePath: z.string().min(1),
@@ -4991,7 +5004,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.send(createReadStream(realFile));
   });
-  app.get('/ready', async (_request, reply) => {
+  app.get('/ready', async (request, reply) => {
     const checks: Record<string, { status: 'ok' | 'unconfigured' | 'down'; latencyMs?: number; detail?: string }> = {};
 
     let degraded = false;
@@ -5004,10 +5017,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         checks.database = { status: 'ok', latencyMs: Date.now() - started };
       } catch (error) {
         degraded = true;
+        request.log.error({ err: error }, 'readiness database probe failed');
         checks.database = {
           status: 'down',
           latencyMs: Date.now() - started,
-          detail: error instanceof Error ? error.message : 'unknown error',
+          detail: 'unavailable',
         };
       }
     } else {
@@ -5038,10 +5052,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
       } catch (error) {
         degraded = true;
+        request.log.error({ err: error }, 'readiness redis probe failed');
         checks.redis = {
           status: 'down',
           latencyMs: Date.now() - started,
-          detail: error instanceof Error ? error.message : 'unknown error',
+          detail: 'unavailable',
         };
       } finally {
         probe.disconnect();
@@ -5449,7 +5464,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         );
         return reply
           .code(err?.statusCode ?? 500)
-          .send({ error: err?.message ?? 'OAuth resolve failed', code: err?.code ?? 'OAUTH_RESOLVE_FAILED' });
+          .send({ error: 'OAuth resolve failed', code: err?.code ?? 'OAUTH_RESOLVE_FAILED' });
       }
 
       try {
@@ -5536,7 +5551,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         );
         return reply
           .code(err?.statusCode ?? 500)
-          .send({ error: err?.message ?? 'OIDC resolve failed', code: err?.code ?? 'OAUTH_RESOLVE_FAILED' });
+          .send({ error: 'OIDC resolve failed', code: err?.code ?? 'OAUTH_RESOLVE_FAILED' });
       }
 
       let user = await store.findUserByEmail(profile.email);
@@ -9517,7 +9532,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         : request.currentUser,
     };
   });
-  app.patch('/auth/me', async (request, reply) => {
+  app.patch(
+    '/auth/me',
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (request, reply) => {
     const body = parse(userProfileSchema, request.body);
 
     /*
@@ -10167,7 +10185,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { invitations: await store.listOrganizationInvites(orgId) };
   });
-  app.post('/orgs/:orgId/invitations', async (request, reply) => {
+  app.post(
+    '/orgs/:orgId/invitations',
+    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+    async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(inviteSchema, request.body);
     await requireOrg(request, store, orgId, 'members:manage');
@@ -10200,7 +10221,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .code(201)
       .send({ invitation: { ...invitation, tokenHash: undefined }, token: isProduction ? undefined : token });
   });
-  app.post('/orgs/:orgId/invitations/:inviteId/resend', async (request, reply) => {
+  app.post(
+    '/orgs/:orgId/invitations/:inviteId/resend',
+    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+    async (request, reply) => {
     const { orgId, inviteId } = parse(inviteParams, request.params);
     await requireOrg(request, store, orgId, 'members:manage');
 

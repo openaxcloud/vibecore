@@ -26,7 +26,13 @@ export default class SwitchableStream extends TransformStream {
 
     this._currentReader = newStream.getReader();
 
-    this._pumpStream();
+    /*
+     * Fire-and-forget pump: catch rejections so they don't become unhandled
+     * promise rejections that crash the worker.
+     */
+    this._pumpStream().catch((error) => {
+      console.error('SwitchableStream pump failed:', error);
+    });
 
     this._switches++;
   }
@@ -47,14 +53,21 @@ export default class SwitchableStream extends TransformStream {
         this._controller.enqueue(value);
       }
     } catch (error) {
-      console.log(error);
-      this._controller.error(error);
+      console.error(error);
+
+      try {
+        this._controller.error(error);
+      } catch {
+        // controller already terminated/closed — nothing to signal
+      }
     }
   }
 
   close() {
     if (this._currentReader) {
-      this._currentReader.cancel();
+      this._currentReader.cancel().catch(() => {
+        // reader already released/cancelled — ignore
+      });
     }
 
     this._controller?.terminate();

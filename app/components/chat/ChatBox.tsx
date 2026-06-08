@@ -312,15 +312,19 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                   return;
                 }
 
+                /*
+                 * ignore if using input method engine (must be checked before
+                 * preventDefault so an IME-confirm Enter isn't swallowed and
+                 * doesn't wrongly trigger handleStop while streaming)
+                 */
+                if (event.nativeEvent.isComposing) {
+                  return;
+                }
+
                 event.preventDefault();
 
                 if (props.isStreaming) {
                   props.handleStop?.();
-                  return;
-                }
-
-                // ignore if using input method engine
-                if (event.nativeEvent.isComposing) {
                   return;
                 }
 

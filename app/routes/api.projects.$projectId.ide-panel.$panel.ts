@@ -1662,7 +1662,11 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     const taskId = body.taskId ? Number(body.taskId) : undefined;
 
     if (intent === 'create-workflow') {
-      const id = Date.now();
+      /*
+       * Sub-millisecond entropy so two workflows created in the same ms don't
+       * collide on this numeric id (it is the lookup key for update/delete/run).
+       */
+      const id = Date.now() * 1000 + Math.floor(Math.random() * 1000);
 
       state.workflows.unshift({
         id,
@@ -1723,7 +1727,11 @@ export async function action({ request, params }: EnterpriseActionArgs) {
           tasks: normalizeWorkflowTasks([
             ...tasks,
             {
-              id: Date.now(),
+              /*
+               * Sub-millisecond entropy: this numeric id is the per-task lookup
+               * key, so a same-ms collision would corrupt the wrong task.
+               */
+              id: Date.now() * 1000 + Math.floor(Math.random() * 1000),
               orderIndex: tasks.length,
               taskType,
               command: taskType === 'packages' ? body.command || 'pnpm install' : body.command || '',
