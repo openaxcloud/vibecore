@@ -121,7 +121,10 @@ spec:
             {{- end }}
       volumes:
         - name: tmp
-          emptyDir: {}
+          # Cap node ephemeral-storage usage so a runaway write to /tmp can't
+          # fill the node disk and trigger a silent pod eviction with no signal.
+          emptyDir:
+            sizeLimit: {{ $svc.tmpSizeLimit | default "1Gi" }}
         {{- if $needsSharedStorage }}
         - name: shared-data
           persistentVolumeClaim:

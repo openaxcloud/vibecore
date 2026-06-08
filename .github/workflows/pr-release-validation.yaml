@@ -24,7 +24,10 @@ jobs:
         uses: lewagon/wait-on-check-action@v1.3.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          check-name: 'Test'
+          # Must match the CI job's display name (ci.yml -> jobs.ci.name);
+          # a non-existent name like 'Test' makes the gate wait forever.
+          check-name: 'Install, test, build, scan'
+          running-workflow-name: 'PR Validation'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 10
 
@@ -39,7 +42,7 @@ jobs:
               ref: context.payload.pull_request.head.sha
             });
 
-            const requiredChecks = ['Test', 'CodeQL Analysis'];
+            const requiredChecks = ['Install, test, build, scan', 'CodeQL Analysis'];
             const optionalChecks = ['Quality Analysis', 'Deploy Preview'];
             const failedChecks = [];
             const passedChecks = [];

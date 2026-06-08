@@ -30,6 +30,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Resolve image tag
+        id: tag
+        run: |
+          set -euo pipefail
+          # docker.yml publishes images tagged `sha-<7char>` (docker
+          # metadata-action `type=sha,format=short`). On a push to `stable`
+          # we must reference that exact tag, NOT the full 40-char github.sha,
+          # which was never published and causes ImagePullBackOff.
+          if [ -n "${IMAGE_TAG_INPUT}" ]; then
+            RESOLVED="${IMAGE_TAG_INPUT}"
+          else
+            RESOLVED="sha-$(git rev-parse --short=7 HEAD)"
+          fi
+          echo "image_tag=${RESOLVED}" >> "$GITHUB_OUTPUT"
+          echo "Deploying image tag: ${RESOLVED}"
+        env:
+          IMAGE_TAG_INPUT: ${{ inputs.image_tag }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -59,7 +77,7 @@ jobs:
             --namespace vibecore \
             --create-namespace \
             --set global.environment=staging \
-            --set global.imageTag="${{ inputs.image_tag || github.sha }}" \
+            --set global.imageTag="${{ steps.tag.outputs.image_tag }}" \
             --set global.appDomain="${{ vars.STAGING_APP_DOMAIN }}" \
             --set global.previewDomain="${{ vars.STAGING_PREVIEW_DOMAIN }}"
 

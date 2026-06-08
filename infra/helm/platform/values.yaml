@@ -133,6 +133,10 @@ services:
     port: 3001
     replicas: 3
     path: /api
+    # /ready does the DB+Redis check; /health is a pure sync 200 for liveness.
+    # Without this, readiness falls back to /health and a DB-down pod still
+    # reports Ready and keeps serving 5xx instead of being pulled from the LB.
+    readyPath: /ready
     resources:
       requests: { cpu: 250m, memory: 512Mi }
       limits: { cpu: '1', memory: 1Gi }
@@ -142,13 +146,18 @@ services:
     port: 3002
     replicas: 2
     path: ''
+    # Background BullMQ consumer — no HTTP listener, so HTTP probes against
+    # /health would fail forever and crash-loop the pod. Disable them.
+    httpHealth: false
     resources:
       requests: { cpu: 250m, memory: 512Mi }
       limits: { cpu: '1', memory: 1Gi }
   aiGateway:
     enabled: true
     image: ai-gateway
-    port: 3010
+    # The ai-gateway binary binds AI_GATEWAY_PORT ?? 3030 (it does not read
+    # PORT), so the container port / Service targetPort / probes must be 3030.
+    port: 3030
     replicas: 3
     path: /ai
     resources:
@@ -157,7 +166,8 @@ services:
   workspaceManager:
     enabled: true
     image: workspace-manager
-    port: 3020
+    # The workspace-manager binary binds WORKSPACE_MANAGER_PORT ?? 3010.
+    port: 3010
     replicas: 2
     path: /runtime
     resources:
@@ -166,7 +176,8 @@ services:
   previewProxy:
     enabled: true
     image: preview-proxy
-    port: 3030
+    # The preview-proxy binary binds PREVIEW_PROXY_PORT ?? 3020.
+    port: 3020
     replicas: 3
     path: /
     host: '*.preview.staging.example.com'

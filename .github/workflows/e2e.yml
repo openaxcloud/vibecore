@@ -15,6 +15,12 @@ jobs:
     name: Playwright local stack
     runs-on: ubuntu-latest
     timeout-minutes: 75
+    # Forked PRs can't read the AI provider secrets (so the run would hard-fail
+    # on the secret-validation step anyway), and same-repo PR branches run
+    # arbitrary code with the real prod keys injected. Restrict to non-fork
+    # events so external contributors aren't blocked by an unsatisfiable gate
+    # and prod keys aren't exposed to untrusted fork code.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
     env:
       CI: true

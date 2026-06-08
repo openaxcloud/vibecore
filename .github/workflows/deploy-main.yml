@@ -65,12 +65,21 @@ jobs:
 
       - name: Resolve image tag
         id: tag
+        env:
+          # Pass the workflow_dispatch input via env (never interpolate it
+          # directly into the shell) so a value like `$(curl evil)` cannot be
+          # executed in this job, which holds prod GCP/WIF credentials.
+          SHORT_SHA_INPUT: ${{ inputs.short_sha }}
         run: |
           set -euo pipefail
           # Matches the 10-char short sha used by the Cloud Build configs and
           # the docker tags they push (web:<sha>, api:<sha>, ...).
-          if [ -n "${{ inputs.short_sha }}" ]; then
-            SHORT_SHA="${{ inputs.short_sha }}"
+          if [ -n "${SHORT_SHA_INPUT}" ]; then
+            if ! printf '%s' "${SHORT_SHA_INPUT}" | grep -Eq '^[0-9a-f]{7,40}$'; then
+              echo "Invalid short_sha input: ${SHORT_SHA_INPUT}" >&2
+              exit 1
+            fi
+            SHORT_SHA="${SHORT_SHA_INPUT}"
           else
             SHORT_SHA="$(git rev-parse --short=10 HEAD)"
           fi
