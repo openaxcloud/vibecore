@@ -262,7 +262,7 @@ ${value.content}
                  */
                 ...filteredMessages,
               ];
-              restoreSnapshot(mixedId);
+              restoreSnapshot(mixedId, validSnapshot);
             }
 
             setInitialMessages(filteredMessages);
@@ -471,7 +471,7 @@ ${value.content}
         await saveProjectIdeMemory(projectId, {
           chat: {
             id: finalChatId,
-            urlId,
+            urlId: _urlId,
             description: description.get(),
             metadata: chatMetadata.get(),
             messages: [...archivedMessages, ...messages],

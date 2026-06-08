@@ -47,8 +47,12 @@ export const useFeatures = () => {
       const newViewedIds = [...viewedFeatureIds, featureId];
       setViewedFeatureIds(newViewedIds);
       setViewedFeatures(newViewedIds);
-      setUnviewedFeatures((prev) => prev.filter((feature) => feature.id !== featureId));
-      setHasNewFeatures(unviewedFeatures.length > 1);
+      setUnviewedFeatures((prev) => {
+        const next = prev.filter((feature) => feature.id !== featureId);
+        setHasNewFeatures(next.length > 0);
+
+        return next;
+      });
     } catch (error) {
       console.error('Failed to acknowledge feature:', error);
     }

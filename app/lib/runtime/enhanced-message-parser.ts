@@ -33,21 +33,26 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
   }
 
   parse(messageId: string, input: string): string {
-    // First try the normal parsing
-    let output = super.parse(messageId, input);
-
-    // If no artifacts were detected, check for code blocks that should be files
+    /*
+     * If the model didn't use artifact tags, rewrite detectable code blocks into
+     * synthetic artifacts BEFORE parsing, so the base parser still emits a correct
+     * incremental delta from a single saved position. A blanket reset() + second
+     * parse would (a) clear every OTHER in-flight message's streaming state and
+     * re-fire their open callbacks (duplicate artifacts / double file writes), and
+     * (b) return the full re-parsed output while the caller appends it as a delta
+     * (duplicated message body). Scope the reset to THIS message only and return a
+     * single parse result.
+     */
     if (!this._hasDetectedArtifacts(input)) {
       const enhancedInput = this._detectAndWrapCodeBlocks(messageId, input);
 
       if (enhancedInput !== input) {
-        // Reset and reparse with enhanced input
-        this.reset();
-        output = super.parse(messageId, enhancedInput);
+        this.resetMessage(messageId);
+        return super.parse(messageId, enhancedInput);
       }
     }
 
-    return output;
+    return super.parse(messageId, input);
   }
 
   private _hasDetectedArtifacts(input: string): boolean {
@@ -332,8 +337,11 @@ ${content.trim()}
       return '/App.jsx';
     }
 
-    // Default to a generic name
-    return `/component-${Date.now()}.jsx`;
+    /*
+     * Default to a generic, content-stable name (Date.now() would change the
+     * path on every streaming re-parse and break snapshot memoization).
+     */
+    return `/component-${this._hashBlock(content)}.jsx`;
   }
 
   private _hashBlock(content: string): string {

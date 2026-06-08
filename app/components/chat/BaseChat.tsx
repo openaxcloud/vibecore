@@ -8806,9 +8806,9 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
       { headers: { accept: 'application/json' } },
     );
 
-    const result = (await response.json()) as any;
+    const result = (await response.json().catch(() => null)) as any;
 
-    if (!response.ok || result.status === 'error') {
+    if (!response.ok || !result || result.status === 'error') {
       setError(result?.error?.message ?? result?.error ?? 'Unable to reveal secret');
       return;
     }
@@ -15739,8 +15739,8 @@ function ProjectSecretsPanel({
       { headers: { accept: 'application/json' } },
     );
 
-    const result = (await response.json()) as any;
-    const value = result?.data?.secret?.value;
+    const result = (await response.json().catch(() => null)) as any;
+    const value = response.ok ? result?.data?.secret?.value : undefined;
 
     if (typeof value === 'string') {
       setRevealed((current) => ({ ...current, [key]: value }));

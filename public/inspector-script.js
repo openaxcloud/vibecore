@@ -282,7 +282,7 @@
 
   // Listen for messages from parent
   window.addEventListener('message', function(event) {
-    if (event.data.type === 'INSPECTOR_ACTIVATE') {
+    if (event.data && typeof event.data === 'object' && event.data.type === 'INSPECTOR_ACTIVATE') {
       setInspectorActive(event.data.active);
     }
   });

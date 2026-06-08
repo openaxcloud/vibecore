@@ -21,7 +21,7 @@ export function useSearchFilter({
    */
   const searchFieldsKey = searchFields.join(',');
 
-  const debouncedSetSearch = useCallback(debounce(setSearchQuery, debounceMs), []);
+  const debouncedSetSearch = useMemo(() => debounce(setSearchQuery, debounceMs), [debounceMs]);
 
   const handleSearchChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {

@@ -48,8 +48,8 @@ function initializeCache(): LockedItem[] {
       if (lockedItemsJson) {
         const items = JSON.parse(lockedItemsJson);
 
-        // Handle legacy format (without isFolder property)
-        const normalizedItems = items.map((item: any) => ({
+        // Handle legacy format (without isFolder property); ignore non-array (corrupt) payloads.
+        const normalizedItems = (Array.isArray(items) ? items : []).map((item: any) => ({
           ...item,
           isFolder: item.isFolder !== undefined ? item.isFolder : false,
         }));

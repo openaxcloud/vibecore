@@ -128,7 +128,7 @@ const FileModifiedDropdown = memo(
 
     const filteredFiles = useMemo(() => {
       return modifiedFiles.filter(([filePath]) => filePath.toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [modifiedFiles, searchQuery]);
+    }, [fileHistory, searchQuery]);
 
     return (
       <div className="flex items-center gap-2">
@@ -535,6 +535,10 @@ export const Workbench = memo(
         await workbenchStore.syncFiles(directoryHandle);
         toast.success('Files synced successfully');
       } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
+        }
+
         console.error('Error syncing files:', error);
         toast.error('Failed to sync files');
       } finally {
@@ -647,7 +651,7 @@ export const Workbench = memo(
                               >
                                 <div className="flex items-center gap-2">
                                   {isSyncing ? (
-                                    <div className="i-ph:spinner" />
+                                    <div className="i-ph:spinner animate-spin" />
                                   ) : (
                                     <div className="i-ph:cloud-arrow-down" />
                                   )}

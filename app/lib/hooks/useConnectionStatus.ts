@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { checkConnection } from '~/lib/api/connection';
 
 const ACKNOWLEDGED_CONNECTION_ISSUE_KEY = 'bolt_acknowledged_connection_issue';
@@ -17,10 +17,16 @@ export const useConnectionStatus = () => {
   const [hasConnectionIssues, setHasConnectionIssues] = useState(false);
   const [currentIssue, setCurrentIssue] = useState<ConnectionIssueType>(null);
   const [acknowledgedIssue, setAcknowledgedIssue] = useState<string | null>(() => getAcknowledgedIssue());
+  const mountedRef = useRef(true);
 
   const checkStatus = async () => {
     try {
       const status = await checkConnection();
+
+      if (!mountedRef.current) {
+        return;
+      }
+
       const issue = !status.connected ? 'disconnected' : status.latency > 1000 ? 'high-latency' : null;
 
       setCurrentIssue(issue);
@@ -30,6 +36,10 @@ export const useConnectionStatus = () => {
     } catch (error) {
       console.error('Failed to check connection:', error);
 
+      if (!mountedRef.current) {
+        return;
+      }
+
       // Show connection issues if we can't even check the status
       setCurrentIssue('disconnected');
       setHasConnectionIssues(true);
@@ -37,12 +47,17 @@ export const useConnectionStatus = () => {
   };
 
   useEffect(() => {
+    mountedRef.current = true;
+
     // Check immediately and then every 10 seconds
     checkStatus();
 
     const interval = setInterval(checkStatus, 10 * 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      mountedRef.current = false;
+      clearInterval(interval);
+    };
   }, [acknowledgedIssue]);
 
   const acknowledgeIssue = () => {

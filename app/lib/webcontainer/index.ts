@@ -42,7 +42,13 @@ function bootBrowserWebContainer() {
     return browserWebcontainer;
   }
 
-  const inspectorScript = fetch('/inspector-script.js').then((response) => response.text());
+  const inspectorScript = fetch('/inspector-script.js').then((response) => {
+    if (!response.ok) {
+      throw new Error(`Failed to load inspector script (${response.status})`);
+    }
+
+    return response.text();
+  });
 
   browserRuntime = createBrowserWebContainerRuntime({
     workdir: WORK_DIR,

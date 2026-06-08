@@ -504,6 +504,16 @@ export const Preview = memo(
       toast.success('Preview URL copied');
     }, [visiblePreviewUrl]);
 
+    const handleInspectorElementSelect = useCallback(
+      (element: ElementInfo) => {
+        setSelectedElement?.(element);
+        setSelectedPreviewElement(element);
+        setDevToolsOpen(true);
+        setActiveDevToolsTab('elements');
+      },
+      [setSelectedElement],
+    );
+
     const resolveSourceFileForElement = useCallback(
       (element: ElementInfo | null) => {
         if (!element) {
@@ -1987,12 +1997,7 @@ export const Preview = memo(
                 <Inspector
                   isActive={isInspectorMode}
                   iframeRef={iframeRef}
-                  onElementSelect={(element) => {
-                    setSelectedElement?.(element);
-                    setSelectedPreviewElement(element);
-                    setDevToolsOpen(true);
-                    setActiveDevToolsTab('elements');
-                  }}
+                  onElementSelect={handleInspectorElementSelect}
                 />
                 <ScreenshotSelector
                   isSelectionMode={isSelectionMode}
