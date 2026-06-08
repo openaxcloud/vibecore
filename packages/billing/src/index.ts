@@ -154,8 +154,14 @@ export const billingPlans: BillingPlan[] = [
   },
 ];
 
+/** Strict lookup: returns undefined on an unknown key so callers can detect a
+ * miss instead of silently downgrading a paying customer to the Free plan. */
+export function findPlanByKey(key: string | undefined): BillingPlan | undefined {
+  return billingPlans.find((plan) => plan.key === key);
+}
+
 export function planByKey(key: string | undefined): BillingPlan {
-  return billingPlans.find((plan) => plan.key === key) ?? billingPlans[0];
+  return findPlanByKey(key) ?? billingPlans[0];
 }
 
 export function assertQuota(input: { key: QuotaKey; used: number; limit: number; increment?: number }) {

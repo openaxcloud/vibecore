@@ -342,7 +342,11 @@ export const ModelSelector = ({
         setDebouncedModelSearchQuery('');
         break;
       case 'Tab':
-        if (!e.shiftKey && focusedModelIndex === filteredModels.length - 1) {
+        /*
+         * Guard length > 0: on an empty list `length - 1 === -1` matched the
+         * initial focusedModelIndex of -1 and closed the dropdown on Tab.
+         */
+        if (!e.shiftKey && filteredModels.length > 0 && focusedModelIndex === filteredModels.length - 1) {
           setIsModelDropdownOpen(false);
         }
 
@@ -400,7 +404,7 @@ export const ModelSelector = ({
         setDebouncedProviderSearchQuery('');
         break;
       case 'Tab':
-        if (!e.shiftKey && focusedProviderIndex === filteredProviders.length - 1) {
+        if (!e.shiftKey && filteredProviders.length > 0 && focusedProviderIndex === filteredProviders.length - 1) {
           setIsProviderDropdownOpen(false);
         }
 

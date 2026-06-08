@@ -166,37 +166,47 @@ export async function fetchVercelStats(token: string) {
     }
 
     const projectsData = (await projectsResponse.json()) as any;
-    const projects = projectsData.projects || [];
+    const projects = Array.isArray(projectsData.projects) ? projectsData.projects : [];
 
-    // Fetch latest deployment for each project
-    const projectsWithDeployments = await Promise.all(
-      projects.map(async (project: any) => {
-        try {
-          const deploymentsResponse = await fetch(
-            `https://api.vercel.com/v6/deployments?projectId=${project.id}&limit=1`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
+    const fetchProjectDeployments = async (project: any) => {
+      try {
+        const deploymentsResponse = await fetch(
+          `https://api.vercel.com/v6/deployments?projectId=${project.id}&limit=1`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
             },
-          );
+          },
+        );
 
-          if (deploymentsResponse.ok) {
-            const deploymentsData = (await deploymentsResponse.json()) as any;
-            return {
-              ...project,
-              latestDeployments: deploymentsData.deployments || [],
-            };
-          }
-
-          return project;
-        } catch (error) {
-          console.error(`Error fetching deployments for project ${project.id}:`, error);
-          return project;
+        if (deploymentsResponse.ok) {
+          const deploymentsData = (await deploymentsResponse.json()) as any;
+          return {
+            ...project,
+            latestDeployments: deploymentsData.deployments || [],
+          };
         }
-      }),
-    );
+
+        return project;
+      } catch (error) {
+        console.error(`Error fetching deployments for project ${project.id}:`, error);
+        return project;
+      }
+    };
+
+    /*
+     * Fetch latest deployment per project in bounded batches. An unbounded
+     * Promise.all over hundreds of projects fired hundreds of simultaneous
+     * requests, hitting Vercel rate limits (429) and failing the whole batch.
+     */
+    const CONCURRENCY = 5;
+    const projectsWithDeployments: any[] = [];
+
+    for (let i = 0; i < projects.length; i += CONCURRENCY) {
+      const batch = projects.slice(i, i + CONCURRENCY);
+      projectsWithDeployments.push(...(await Promise.all(batch.map(fetchProjectDeployments))));
+    }
 
     const currentState = vercelConnection.get();
     updateVercelConnection({
