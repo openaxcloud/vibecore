@@ -140,7 +140,7 @@ export function useNetlifyDeploy() {
         throw new Error(data.error || 'Invalid deployment response');
       }
 
-      const maxAttempts = 20; // 2 minutes timeout
+      const maxAttempts = 120; // ~2 minutes timeout (1s between polls)
 
       let attempts = 0;
       let deploymentStatus;
@@ -180,7 +180,6 @@ export function useNetlifyDeploy() {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         } catch (error) {
           console.error('Status check error:', error);
-          attempts++;
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
       }

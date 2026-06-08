@@ -96,7 +96,16 @@ export const selectStarterTemplate = async (options: { message: string; model: s
     body: JSON.stringify(requestBody),
   });
 
-  const respJson: { text: string } = await response.json();
+  if (!response.ok) {
+    console.log('Template selection request failed, using blank template');
+
+    return {
+      template: 'blank',
+      title: '',
+    };
+  }
+
+  const respJson = (await response.json().catch(() => ({ text: '' }))) as { text: string };
   console.log(respJson);
 
   const { text } = respJson;

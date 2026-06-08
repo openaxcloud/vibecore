@@ -120,6 +120,17 @@ export const InspectorPanel = ({ selectedElement, isVisible, onClose }: Inspecto
           </div>
         )}
 
+        {activeTab === 'computed' && (
+          <div className="space-y-2">
+            {Object.entries(selectedElement.styles).map(([prop, value]) => (
+              <div key={prop} className="flex justify-between text-sm">
+                <span className="text-bolt-elements-textSecondary">{prop}:</span>
+                <span className="text-bolt-elements-textPrimary font-mono">{value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {activeTab === 'box' && (
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">

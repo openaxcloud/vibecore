@@ -90,7 +90,7 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
   },
   updateSettings: async (newSettings: MCPSettings) => {
     if (get().isUpdatingConfig) {
-      return;
+      throw new Error('An MCP configuration update is already in progress; please retry.');
     }
 
     try {

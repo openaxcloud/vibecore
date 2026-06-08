@@ -71,6 +71,10 @@ export default class GoogleProvider extends BaseProvider {
 
     // Filter out models with very low token limits and experimental/unstable models
     const data = res.models.filter((model: any) => {
+      if (typeof model?.name !== 'string') {
+        return false;
+      }
+
       const hasGoodTokenLimit = (model.outputTokenLimit || 0) > 8000;
       const isStable = !model.name.includes('exp') || model.name.includes('flash-exp');
 
@@ -111,7 +115,7 @@ export default class GoogleProvider extends BaseProvider {
 
       return {
         name: modelName,
-        label: `${m.displayName} (${finalContext >= 1000000 ? Math.floor(finalContext / 1000000) + 'M' : Math.floor(finalContext / 1000) + 'k'} context)`,
+        label: `${m.displayName || modelName} (${finalContext >= 1000000 ? Math.floor(finalContext / 1000000) + 'M' : Math.floor(finalContext / 1000) + 'k'} context)`,
         provider: this.name,
         maxTokenAllowed: finalContext,
         maxCompletionTokens: completionTokens,

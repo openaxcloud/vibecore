@@ -84,7 +84,15 @@ export const FileBreadcrumb = memo<FileBreadcrumbProps>(({ files, pathSegments =
 
         return (
           <div key={index} className="relative flex items-center">
-            <DropdownMenu.Root open={isActive} modal={false}>
+            <DropdownMenu.Root
+              open={isActive}
+              modal={false}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setActiveIndex(null);
+                }
+              }}
+            >
               <DropdownMenu.Trigger asChild>
                 <span
                   ref={(ref) => {

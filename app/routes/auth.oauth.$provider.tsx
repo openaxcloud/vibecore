@@ -15,7 +15,13 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     throw redirect(`/login?oauth=${provider}&error=not_configured`);
   }
 
-  const url = new URL(result.authorizationUrl);
+  let url: URL;
+
+  try {
+    url = new URL(result.authorizationUrl);
+  } catch {
+    throw redirect(`/login?oauth=${provider}&error=not_configured`);
+  }
 
   /*
    * The API embeds an HMAC-signed state in the authorization URL — login-CSRF

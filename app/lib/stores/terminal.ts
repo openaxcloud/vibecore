@@ -29,6 +29,13 @@ export class TerminalStore {
       }
     });
     this.#terminals = [];
+
+    try {
+      this.#boltTerminal.process?.kill();
+    } catch {
+      // terminal cleanup is best-effort when switching project workspaces
+    }
+
     this.#boltTerminal = newBoltShellProcess();
   }
   get boltTerminal() {

@@ -104,7 +104,7 @@ const getInitialProviderSettings = (): ProviderSetting => {
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings);
-        Object.entries(parsed).forEach(([key, value]) => {
+        Object.entries(parsed ?? {}).forEach(([key, value]) => {
           if (initialSettings[key]) {
             initialSettings[key].settings = (value as IProviderConfig).settings;
           }
