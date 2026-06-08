@@ -47,7 +47,13 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     throw json({ error: 'Project export did not return an archive' }, { status: 502 });
   }
 
-  const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+  let bytes: Uint8Array;
+
+  try {
+    bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+  } catch {
+    throw json({ error: 'Project export returned a corrupt archive' }, { status: 502 });
+  }
 
   return new Response(bytes, {
     headers: {

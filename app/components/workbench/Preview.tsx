@@ -255,7 +255,15 @@ function buildStaticPreviewHtml(files: FileMap) {
   const html = indexHtml.replace(
     /<script\b([^>]*\btype=["']module["'][^>]*)\bsrc=["']([^"']+)["']([^>]*)><\/script>/gi,
     (match, beforeSrc: string, sourcePath: string, afterSrc: string) => {
-      const normalizedSourcePath = decodeURIComponent(sourcePath).replace(/^\/+/, '');
+      let decodedSourcePath = sourcePath;
+
+      try {
+        decodedSourcePath = decodeURIComponent(sourcePath);
+      } catch {
+        // malformed percent-encoding in the script src — fall back to the raw path
+      }
+
+      const normalizedSourcePath = decodedSourcePath.replace(/^\/+/, '');
       const source = staticPreviewFileContent(files, normalizedSourcePath);
 
       if (!source || /\b(?:import|export)\b/.test(source)) {

@@ -106,7 +106,15 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
         }
 
         const contentData = (await contentResponse.json()) as any;
-        const content = atob(contentData.content.replace(/\s/g, ''));
+
+        let content: string;
+
+        try {
+          content = atob(contentData.content.replace(/\s/g, ''));
+        } catch {
+          console.warn(`Failed to decode GitHub content for ${file.path}: invalid base64`);
+          return null;
+        }
 
         return {
           name: file.path.split('/').pop() || '',

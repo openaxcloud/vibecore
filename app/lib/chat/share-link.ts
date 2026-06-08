@@ -79,8 +79,14 @@ function fromBase64Url(input: string): string {
   const pad = padded.length % 4;
   const padding = pad === 0 ? '' : '='.repeat(4 - pad);
 
-  const binary =
-    typeof atob === 'function' ? atob(padded + padding) : Buffer.from(padded + padding, 'base64').toString('binary');
+  let binary: string;
+
+  try {
+    binary =
+      typeof atob === 'function' ? atob(padded + padding) : Buffer.from(padded + padding, 'base64').toString('binary');
+  } catch {
+    throw new Error('Invalid share-link payload');
+  }
 
   const bytes = new Uint8Array(binary.length);
 

@@ -30,7 +30,16 @@ function sessionTokenFromCookie(cookieHeader?: string) {
     .map((part) => part.trim())
     .find((part) => part.startsWith(`${WEB_SESSION_COOKIE_NAME}=`));
 
-  return match ? decodeURIComponent(match.slice(WEB_SESSION_COOKIE_NAME.length + 1)) : undefined;
+  if (!match) {
+    return undefined;
+  }
+
+  try {
+    return decodeURIComponent(match.slice(WEB_SESSION_COOKIE_NAME.length + 1));
+  } catch {
+    // malformed percent-encoding in the cookie value — treat as no session
+    return undefined;
+  }
 }
 
 function applyApiAuthHeaders(headers: Record<string, string>, input: { bearerToken?: string; cookieHeader?: string }) {

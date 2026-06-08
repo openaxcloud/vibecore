@@ -4868,7 +4868,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
     }
 
-    const rawPath = decodeURIComponent(params['*'] ?? '').replace(/\\/g, '/');
+    let decodedPath: string;
+
+    try {
+      decodedPath = decodeURIComponent(params['*'] ?? '');
+    } catch {
+      return reply.code(400).send({ error: 'Invalid path encoding', code: 'INVALID_STATIC_DEPLOY_PATH' });
+    }
+
+    const rawPath = decodedPath.replace(/\\/g, '/');
     const normalizedRequest = rawPath.replace(/^\/+/, '');
     const requested = normalizedRequest === '' ? 'index.html' : normalizedRequest;
     const resolved = resolve(snapshotRoot, requested);
@@ -12988,7 +12996,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       secret: webhookSecret,
     });
 
-    const event = JSON.parse(payload) as any;
+    let event: any;
+
+    try {
+      event = JSON.parse(payload);
+    } catch {
+      return reply.code(400).send({ error: 'Invalid Stripe webhook payload', code: 'STRIPE_WEBHOOK_INVALID_JSON' });
+    }
+
     const organizationId = event.data?.object?.metadata?.organizationId;
     const persisted = await store.recordStripeEvent({ id: event.id, organizationId, type: event.type, payload: event });
 
