@@ -59,9 +59,9 @@ export function McpTools({ triggerClassName, triggerLabel = 'MCP tools', trigger
       <div className="flex">
         <IconButton
           onClick={() => setIsDialogOpen(true)}
-          title="MCP Tools Available"
+          title={error ? 'MCP failed to initialize — click for details' : 'MCP Tools Available'}
           tooltip="MCP tools"
-          disabled={!isInitialized}
+          disabled={!isInitialized && !error}
           className={classNames(
             isMenuTrigger ? 'bolt-chatbox-tools-menu-item' : 'transition-all',
             'disabled:opacity-50 disabled:cursor-not-allowed',

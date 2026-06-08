@@ -172,9 +172,17 @@ export default function McpMarketplace() {
   }, [domainFilter, search]);
 
   useEffect(() => {
-    loadAll().catch(() => {
-      // already surfaced in setError
-    });
+    /*
+     * Debounce: loadAll depends on `search`, so binding it directly fired a
+     * fresh triple-fetch (catalog + domains + installs) on every keystroke.
+     */
+    const id = setTimeout(() => {
+      loadAll().catch(() => {
+        // already surfaced in setError
+      });
+    }, 250);
+
+    return () => clearTimeout(id);
   }, [loadAll]);
 
   const installedSlugs = useMemo(() => new Set(installs.map((i) => i.catalogEntry.slug)), [installs]);
@@ -263,10 +271,11 @@ export default function McpMarketplace() {
       </div>
 
       <div className="flex flex-wrap gap-2">
+        {/* Sum true per-domain totals; `entries` is the filtered/paginated slice. */}
         <DomainChip
           active={domainFilter === 'ALL'}
           label="All"
-          count={entries.length}
+          count={domains.reduce((sum, d) => sum + d.count, 0)}
           onClick={() => setDomainFilter('ALL')}
         />
         {MCP_DOMAINS.map((domain) => {
@@ -336,6 +345,7 @@ export default function McpMarketplace() {
 
       {activeInstall && (
         <InstallDialog
+          key={activeInstall.id}
           entry={activeInstall}
           onClose={() => setActiveInstall(null)}
           onInstalled={async () => {
@@ -537,6 +547,17 @@ function InstallDialog({ entry, onClose, onInstalled }: InstallDialogProps) {
   const [error, setError] = useState<string | null>(null);
 
   const handleInstall = async () => {
+    /*
+     * Block submit when a required field is blank instead of POSTing an empty
+     * string and round-tripping to a server-side error.
+     */
+    const missing = [...required].filter((k) => !(values[k] ?? '').trim());
+
+    if (missing.length > 0) {
+      setError(`Missing required field(s): ${missing.join(', ')}`);
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 

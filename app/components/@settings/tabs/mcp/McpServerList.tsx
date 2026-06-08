@@ -37,8 +37,16 @@ export default function McpServerList({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => toggleServerExpanded(serverName)}
-                  className="flex items-center gap-1.5 text-bolt-elements-textPrimary"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      toggleServerExpanded(serverName);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 text-bolt-elements-textPrimary cursor-pointer"
                   aria-expanded={isExpanded}
                 >
                   <div
