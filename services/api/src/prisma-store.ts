@@ -456,6 +456,24 @@ export class PrismaApiStore implements ApiStore {
       return undefined;
     }
 
+    /*
+     * Unlink the removed user's connector links for every project in this org,
+     * so the connector-proxy stops serving their OAuth/API credentials to the
+     * org's agents. Without this the ex-member's tokens stay usable indefinitely.
+     */
+    await this.prisma.projectConnectionLink
+      .updateMany({
+        where: {
+          unlinkedAt: null,
+          userConnection: { userId },
+          project: { organizationId },
+        },
+        data: { unlinkedAt: new Date() },
+      })
+      .catch(() => {
+        // Best-effort offboarding cleanup; never block membership removal on it.
+      });
+
     return mapMembership(membership);
   }
 

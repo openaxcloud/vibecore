@@ -1939,6 +1939,23 @@ async function authenticateApiKey(request: FastifyRequest, reply: FastifyReply, 
     return reply.code(403).send({ error: 'User is suspended', code: 'USER_SUSPENDED' });
   }
 
+  /*
+   * An org-scoped API key must keep authenticating only while its owner remains
+   * a member of that org. Without this, a key minted by a since-removed user
+   * stays valid (and would leak access on any route that trusts
+   * apiKey.organizationId without a separate requireOrg membership check).
+   */
+  if (apiKey.organizationId) {
+    const membership = await store.getMembership(apiKey.userId, apiKey.organizationId);
+
+    if (!membership) {
+      return reply.code(403).send({
+        error: 'API key owner is no longer a member of the organization',
+        code: 'API_KEY_ORG_MEMBERSHIP_REVOKED',
+      });
+    }
+  }
+
   const required = requiredScopeForMethod(request.method);
 
   if (!scopesSatisfy(apiKey.scopes, required)) {
@@ -10121,6 +10138,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const userId = request.currentUser!.id;
     const organizations = await store.listOrganizations(userId);
 
+    /*
+     * Don't let the sole owner self-delete and orphan an org that still has
+     * other members/resources — deleting the user cascade-removes the owner
+     * membership, leaving an org no one can administer. Mirror the LAST_OWNER
+     * guard on the explicit member-removal route.
+     */
+    for (const organization of organizations) {
+      const members = await store.listMembers(organization.id);
+      const owners = members.filter((member) => member.roleKey === 'owner');
+      const isSoleOwner = owners.length === 1 && owners[0].userId === userId;
+
+      if (isSoleOwner && members.length > 1) {
+        return reply.code(409).send({
+          error:
+            'You are the sole owner of an organization with other members. Transfer ownership or delete the organization first.',
+          code: 'LAST_OWNER',
+          organizationId: organization.id,
+        });
+      }
+    }
+
     for (const organization of organizations) {
       await audit(request, store, {
         organizationId: organization.id,
@@ -11938,6 +11976,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
 
+    /*
+     * Managing the collaborator ACL is an org-membership operation: require
+     * real org membership with members:manage rather than the requireProject
+     * collaborator fallback, which would let an editor collaborator grant
+     * others (including higher) project roles than they hold.
+     */
+    await requireOrg(request, store, project.organizationId, 'members:manage');
+
     const body = parse(collaboratorSchema, request.body);
 
     const targetUser = body.userId
@@ -12327,10 +12373,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/chat-shares', async (request, reply) => {
     const body = parse(chatShareCreateSchema, request.body);
 
-    // Authorize the sharer against the project they're attributing the share to,
-    // otherwise any authenticated user can mint a share record pointing at an
-    // arbitrary projectId (which downstream fork flows resolve server-side).
-    await requireProject(request, store, body.projectId, 'projects:read');
+    /*
+     * Publishing a conversation publicly is a write-level disclosure action.
+     * Require projects:write so a read-only (viewer) collaborator can't mint a
+     * public share of a project they can only read.
+     */
+    await requireProject(request, store, body.projectId, 'projects:write');
 
     const userId = request.currentUser!.id;
     const createdAt = new Date();
@@ -12388,13 +12436,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    /*
+     * This endpoint is public (auth-allowlisted). Project the stored payload to
+     * only what a viewer needs and strip authorUserId so the sharer's internal
+     * user id isn't leaked to anyone holding the link.
+     */
+    const fullPayload = (share.payload ?? {}) as Record<string, unknown>;
+    const { authorUserId: _authorUserId, ...safePayload } = fullPayload;
+
     return {
       share: {
         title: share.title ?? null,
         projectId: share.projectId,
         allowFork: share.allowFork,
         createdAt: share.createdAt,
-        payload: share.payload,
+        payload: safePayload,
       },
     };
   });
@@ -12705,6 +12761,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
 
+    /*
+     * Ownership-changing op: require real membership in the SOURCE org, not the
+     * requireProject collaborator fallback (which a non-org-member with a share
+     * link satisfies). Otherwise an editor collaborator could move a project —
+     * and its files/secrets — out of an org they have no rights in.
+     */
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
     const body = parse(transferProjectSchema, request.body);
     await requireOrg(request, store, body.targetOrganizationId, 'projects:write');
     await requireOrganizationNotSuspended(store, body.targetOrganizationId);
@@ -12736,6 +12800,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
+    // Creating a new project in the org consumes its quota — require real org
+    // membership, not the collaborator fallback.
+    await requireOrg(request, store, project.organizationId, 'projects:write');
 
     const body = parse(duplicateProjectSchema, request.body);
     await ensureQuota(request, project.organizationId, 'projects.count');
@@ -12773,6 +12841,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
+    // Creating an org-scoped template is a write to the org — require real
+    // membership, not a read-only/collaborator pass.
+    await requireOrg(request, store, project.organizationId, 'projects:write');
 
     const body = parse(templateFromProjectSchema, request.body);
 

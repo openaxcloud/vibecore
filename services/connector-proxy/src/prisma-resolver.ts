@@ -90,6 +90,29 @@ export function createPrismaConnectionResolver(deps: PrismaResolverDeps = {}) {
       };
     }
 
+    /*
+     * Defense in depth: the connection owner must still be a member of the
+     * organization. Member removal unlinks their project links, but verify
+     * membership here too so a stale link can never leak the ex-member's tokens.
+     */
+    const membership = await prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: input.organizationId,
+          userId: connection.userId,
+        },
+      },
+    });
+
+    if (!membership) {
+      return {
+        ok: false,
+        status: 403,
+        code: 'CONNECTOR_LINK_MISSING',
+        error: 'The connection owner is no longer a member of the organization.',
+      };
+    }
+
     const policy = await prisma.organizationConnectorPolicy.findUnique({
       where: {
         organizationId_provider: {
