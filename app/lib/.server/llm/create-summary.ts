@@ -122,7 +122,10 @@ ${summary.summary}`;
 
   const extractTextContent = (message: Message) =>
     Array.isArray(message.content)
-      ? (message.content.find((item) => item.type === 'text')?.text as string) || ''
+      ? message.content
+          .filter((item) => item.type === 'text')
+          .map((item) => (item as { text?: string }).text ?? '')
+          .join('\n')
       : message.content;
 
   // select files from the list of code file from the project that might be useful for the current request from the user
@@ -189,7 +192,7 @@ Note:
 
 Here is the previous summary of the chat:
 <old_summary>
-${summaryText} 
+${summaryText ?? 'No previous summary.'}
 </old_summary>
 
 Below is the chat after that:

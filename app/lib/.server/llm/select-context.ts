@@ -125,7 +125,10 @@ export async function selectContext(props: {
 
   const extractTextContent = (message: Message) =>
     Array.isArray(message.content)
-      ? (message.content.find((item) => item.type === 'text')?.text as string) || ''
+      ? message.content
+          .filter((item) => item.type === 'text')
+          .map((item) => (item as { text?: string }).text ?? '')
+          .join('\n')
       : message.content;
 
   const lastUserMessage = processedMessages.filter((x) => x.role == 'user').pop();
@@ -239,7 +242,19 @@ export async function selectContext(props: {
      * back a `/home/project/`-prefixed path, so the merged FileMap has consistent keys.
      */
     const relativePath = path.startsWith('/home/project/') ? path.replace('/home/project/', '') : path;
-    filteredFiles[relativePath] = files[fullPath];
+    const dirent = files[fullPath] ?? files[path];
+
+    if (!dirent) {
+      /*
+       * Membership passed against filePaths but the file content didn't resolve
+       * (non-prefixed keys); skip rather than storing an undefined value that
+       * silently drops the selected file's content downstream.
+       */
+      logger.error(`File ${path} resolved to no content; skipping.`);
+      return;
+    }
+
+    filteredFiles[relativePath] = dirent;
   });
 
   if (onFinish) {
@@ -250,7 +265,12 @@ export async function selectContext(props: {
   logger.info(`Total files: ${totalFiles}`);
 
   if (totalFiles == 0) {
-    throw new Error(`Bolt failed to select files`);
+    /*
+     * Best-effort context narrowing must not abort the user's chat turn on a
+     * non-fatal LLM formatting miss — fall back to the existing context buffer.
+     */
+    logger.warn('Context selection returned no files; falling back to existing context buffer.');
+    return contextFiles;
   }
 
   return filteredFiles;

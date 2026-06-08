@@ -77,15 +77,23 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
       lastChecked: new Date(),
     });
 
-    // Start periodic health checks
-    const interval = setInterval(async () => {
-      await this.performHealthCheck(provider, baseUrl);
+    /*
+     * Start periodic health checks. performHealthCheck emits 'statusChanged';
+     * if a listener throws, the returned promise rejects — guard so a fire-and-
+     * forget tick can't surface as an unhandled rejection.
+     */
+    const interval = setInterval(() => {
+      this.performHealthCheck(provider, baseUrl).catch((error) => {
+        console.warn(`Health check failed for ${provider}:`, error);
+      });
     }, checkInterval || this._defaultCheckInterval);
 
     this._checkIntervals.set(key, interval);
 
     // Perform initial health check
-    this.performHealthCheck(provider, baseUrl);
+    this.performHealthCheck(provider, baseUrl).catch((error) => {
+      console.warn(`Health check failed for ${provider}:`, error);
+    });
   }
 
   /**

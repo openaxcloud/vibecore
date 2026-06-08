@@ -15,6 +15,14 @@ if (storedConnection) {
   try {
     const parsed = JSON.parse(storedConnection);
 
+    /*
+     * JSON.parse('null')/'42' succeed but yield a non-object; later `.get().token`
+     * would throw. Treat a valid-but-wrong shape the same as invalid JSON.
+     */
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error('Invalid stored Vercel connection shape');
+    }
+
     // If we have a stored connection but no user and no token, clear it and use env token
     if (!parsed.user && !parsed.token && envToken) {
       console.log('Vercel store: Clearing incomplete saved connection, using env token');

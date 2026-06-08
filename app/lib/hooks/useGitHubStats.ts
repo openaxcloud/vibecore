@@ -103,7 +103,14 @@ export function useGitHubStats(
 
     const interval = setInterval(() => {
       if (isStale) {
-        refreshStats();
+        /*
+         * refreshStats() awaits fetchStats(), which re-throws on a GitHub API
+         * error. Without a .catch() every failed auto-refresh tick is an
+         * unhandled browser rejection.
+         */
+        refreshStats().catch((error) => {
+          console.warn('GitHub stats auto-refresh failed:', error);
+        });
       }
     }, refreshInterval);
 

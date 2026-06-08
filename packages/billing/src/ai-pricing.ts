@@ -190,8 +190,17 @@ export function computeAiCostCents(input: ComputeCostInput): ComputedCost {
     return { matched: false, model: undefined, costCents: 0 };
   }
 
+  /*
+   * Harden token counts: only the `record-usage` HTTP route zod-validates these,
+   * but the gateway path (and any other caller) can pass non-finite or negative
+   * values. `Math.ceil(NaN)` is NaN and a negative outputTokens would under-bill,
+   * both of which flow straight into the cost ledger. Clamp to finite, non-negative.
+   */
+  const inputTokens = Number.isFinite(input.inputTokens) ? Math.max(0, input.inputTokens) : 0;
+  const outputTokens = Number.isFinite(input.outputTokens) ? Math.max(0, input.outputTokens) : 0;
+
   const costCents = Math.ceil(
-    (input.inputTokens * model.inputCentsPerMillion + input.outputTokens * model.outputCentsPerMillion) / 1_000_000,
+    (inputTokens * model.inputCentsPerMillion + outputTokens * model.outputCentsPerMillion) / 1_000_000,
   );
 
   return { matched: true, model, costCents };

@@ -881,6 +881,13 @@ export function DesktopCodeEditor({
         providerDisposables.forEach((providerDisposable) => providerDisposable.dispose());
         currentModel.dispose();
       });
+    }).catch((error) => {
+      // A failed code-split chunk load (recurring after deploys due to asset
+      // skew) would otherwise reject unhandled and silently leave the editor
+      // uninitialised with no surfaced error.
+      if (!disposed) {
+        console.error('Failed to load the Monaco editor module', error);
+      }
     });
 
     return () => {

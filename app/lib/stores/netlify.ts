@@ -109,7 +109,13 @@ export async function fetchNetlifyStats(token: string) {
       throw new Error(`Failed to fetch sites: ${sitesResponse.status}`);
     }
 
-    const sites = (await sitesResponse.json()) as any;
+    const sitesJson = (await sitesResponse.json()) as any;
+
+    /*
+     * Guard against a non-array body (error envelope / paginated wrapper with a
+     * 200): `sites.length` would be undefined and `sites` non-iterable downstream.
+     */
+    const sites = Array.isArray(sitesJson) ? sitesJson : [];
 
     const currentState = netlifyConnection.get();
     updateNetlifyConnection({

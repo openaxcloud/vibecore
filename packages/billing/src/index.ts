@@ -159,15 +159,24 @@ export function planByKey(key: string | undefined): BillingPlan {
 }
 
 export function assertQuota(input: { key: QuotaKey; used: number; limit: number; increment?: number }) {
-  const increment = input.increment ?? 1;
+  /*
+   * This is the single chokepoint that gates every quota in the app, so it must
+   * be defensive against non-finite inputs. `NaN > limit` / Infinity arithmetic
+   * evaluate falsy, which would silently bypass the cap and let a caller exceed
+   * (or infinitely exceed) the limit. Coerce defensively: an unusable `used`
+   * counts as already-over, and an unusable `limit` is treated as a hard block.
+   */
+  const increment = Number.isFinite(input.increment) ? (input.increment as number) : 1;
+  const used = Number.isFinite(input.used) ? input.used : Number.POSITIVE_INFINITY;
+  const limit = Number.isFinite(input.limit) ? input.limit : 0;
 
-  if (input.limit >= 0 && input.used + increment > input.limit) {
+  if (limit >= 0 && used + increment > limit) {
     throw Object.assign(new Error(`Quota exceeded for ${input.key}`), {
       statusCode: 429,
       code: 'QUOTA_EXCEEDED',
       quotaKey: input.key,
-      used: input.used,
-      limit: input.limit,
+      used,
+      limit,
       increment,
     });
   }

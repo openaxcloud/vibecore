@@ -12019,22 +12019,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }, 15_000);
     (keepAlive as unknown as { unref?: () => void }).unref?.();
 
-    client.onClose(async () => {
-      clearInterval(keepAlive);
-      collaborationBroker.leave(project.id, client);
-
+    client.onClose(() => {
       /*
-       * Only retire the presence row if THIS socket still owns it. A reconnect
-       * under the same (stable) sessionId installs a new owner; letting this
-       * stale close delete the row would evict a user who is in fact connected.
+       * onClose is registered on the raw socket's 'close' event, which does NOT
+       * await the returned promise. An unawaited rejection from
+       * removeCollaborationPresence (DB/transport error) would be an unhandled
+       * rejection and crash the process — wrap the whole body so it can't escape.
        */
-      if (collaborationPresenceOwners.get(presenceOwnerKey) !== client) {
-        return;
-      }
+      void (async () => {
+        try {
+          clearInterval(keepAlive);
+          collaborationBroker.leave(project.id, client);
 
-      collaborationPresenceOwners.delete(presenceOwnerKey);
-      await store.removeCollaborationPresence(project.id, sessionId);
-      collaborationBroker.publish(project.id, { type: 'presence.leave', sessionId }, client);
+          /*
+           * Only retire the presence row if THIS socket still owns it. A reconnect
+           * under the same (stable) sessionId installs a new owner; letting this
+           * stale close delete the row would evict a user who is in fact connected.
+           */
+          if (collaborationPresenceOwners.get(presenceOwnerKey) !== client) {
+            return;
+          }
+
+          collaborationPresenceOwners.delete(presenceOwnerKey);
+          await store.removeCollaborationPresence(project.id, sessionId);
+          collaborationBroker.publish(project.id, { type: 'presence.leave', sessionId }, client);
+        } catch (error) {
+          request.log?.warn?.({ err: error, projectId: project.id, sessionId }, 'collaboration presence cleanup failed');
+        }
+      })();
     });
   });
   app.get('/projects/:projectId/activity', async (request) => {

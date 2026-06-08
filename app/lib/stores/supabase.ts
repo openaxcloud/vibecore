@@ -219,7 +219,12 @@ export async function fetchProjectApiKeys(projectId: string, token: string) {
     }
 
     const data = (await response.json()) as any;
-    const apiKeys = data.apiKeys;
+
+    /*
+     * A 200 that omits `apiKeys` (error payload / schema drift) would make
+     * `.find` throw and surface as an unhandled rejection — default to [].
+     */
+    const apiKeys = Array.isArray(data?.apiKeys) ? data.apiKeys : [];
 
     const anonKey = apiKeys.find((key: SupabaseApiKey) => key.name === 'anon' || key.name === 'public');
 
