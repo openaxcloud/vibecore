@@ -82,7 +82,21 @@ export function readSessionToken(request: Request) {
     .map((part) => part.trim())
     .find((part) => part.startsWith(`${sessionCookieName}=`));
 
-  return match ? decodeURIComponent(match.slice(sessionCookieName.length + 1)) : undefined;
+  if (!match) {
+    return undefined;
+  }
+
+  const raw = match.slice(sessionCookieName.length + 1);
+
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    /*
+     * Malformed percent-encoding in a client-supplied cookie must not 500 every
+     * request; treat it as an absent/invalid token so the user can re-auth.
+     */
+    return undefined;
+  }
 }
 
 /*
@@ -198,7 +212,19 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
 
   const response = await fetch(`${apiBaseUrl()}${path}`, { ...fetchInit, headers });
   const contentType = response.headers.get('content-type') ?? '';
-  const payload = contentType.includes('application/json') ? await response.json() : await response.text();
+  const rawBody = await response.text();
+
+  let payload: unknown;
+
+  if (contentType.includes('application/json') && rawBody.length > 0) {
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      payload = rawBody;
+    }
+  } else {
+    payload = rawBody;
+  }
 
   if (!response.ok) {
     const payloadCode = typeof payload === 'object' && payload ? (payload as { code?: string }).code : undefined;

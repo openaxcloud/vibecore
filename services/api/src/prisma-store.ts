@@ -2369,7 +2369,16 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listAuditLogs(organizationId?: string) {
-    return (await this.prisma.auditLog.findMany({ where: { organizationId }, orderBy: { createdAt: 'desc' } })).map(
+    /*
+     * The audit_log table is the densest in the system (one row per mutating
+     * action across every org). Bound the fetch so callers — including the
+     * global /admin/* consumers that pass no organizationId and then filter in
+     * JS — can't pull the entire table into memory. Newest rows are kept via
+     * the existing desc ordering, matching the other admin list caps.
+     */
+    return (
+      await this.prisma.auditLog.findMany({ where: { organizationId }, orderBy: { createdAt: 'desc' }, take: 2000 })
+    ).map(
       (event) =>
         ({
           organizationId: event.organizationId ?? undefined,

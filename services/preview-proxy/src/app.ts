@@ -85,6 +85,19 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       return reply.code(400).send({ error: 'Invalid preview path', code: 'PREVIEW_PATH_INVALID' });
     }
 
+    /*
+     * Reject dot-segment traversal: after URL normalization the resolved path
+     * must still live under the agent's /preview/{port}/ prefix. Without this,
+     * `..%2f..%2ffiles/read` etc. escape to the agent's privileged endpoints
+     * (/files/read, /commands/run), which the proxy would then hit WITH the
+     * valid agent bearer token — unauthenticated traversal escalating to RCE.
+     */
+    const expectedPrefix = `${new URL(`${agent.baseUrl.replace(/\/$/, '')}/`).pathname.replace(/\/$/, '')}/preview/${portNumber}/`;
+
+    if (!upstream.pathname.startsWith(expectedPrefix)) {
+      return reply.code(400).send({ error: 'Invalid preview path', code: 'PREVIEW_PATH_INVALID' });
+    }
+
     const headers: Record<string, string> = {
       authorization: `Bearer ${agent.token}`,
       'x-vibecore-workspace': params.workspaceId,

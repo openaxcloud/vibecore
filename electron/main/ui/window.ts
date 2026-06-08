@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, shell } from 'electron';
 import path from 'node:path';
 import { isDev } from '../utils/constants';
 import { store } from '../utils/store';
@@ -36,6 +36,40 @@ export function createWindow(rendererURL: string) {
 
   win.webContents.on('did-finish-load', () => {
     console.log('Window finished loading');
+  });
+
+  /*
+   * Lock down navigation: the preload bridge exposes privileged APIs (auth-token
+   * getter, native file dialogs) to whatever page occupies the window, so only
+   * the app's own localhost origin may load in-window; everything else opens in
+   * the user's default browser and new windows are blocked. Without this a
+   * hijacked navigation/redirect/window.open could carry the bridge to an
+   * attacker origin and exfiltrate the auth token.
+   */
+  const isAllowedOrigin = (target: string): boolean => {
+    try {
+      const url = new URL(target);
+      return url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    } catch {
+      return false;
+    }
+  };
+
+  win.webContents.on('will-navigate', (event, navigationUrl) => {
+    if (!isAllowedOrigin(navigationUrl)) {
+      event.preventDefault();
+      shell.openExternal(navigationUrl).catch(() => undefined);
+    }
+  });
+
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (isAllowedOrigin(url)) {
+      return { action: 'allow' };
+    }
+
+    shell.openExternal(url).catch(() => undefined);
+
+    return { action: 'deny' };
   });
 
   // Open devtools in development

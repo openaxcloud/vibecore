@@ -91,6 +91,7 @@ export interface AgentMemoryRepository {
   get(input: { id: string; userId: string }): Promise<AgentMemoryRecord | undefined>;
   update(input: {
     id: string;
+    userId: string;
     content: string;
     summary: string;
     embedding: number[];
@@ -349,6 +350,7 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
 
   async update(input: {
     id: string;
+    userId: string;
     content: string;
     summary: string;
     embedding: number[];
@@ -361,7 +363,7 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
     const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
       `UPDATE "AgentMemory"
        SET "content" = $2, "summary" = $3, "embedding" = $4::vector, "metadata" = $5::jsonb, "memoryType" = $6, "tags" = $7::text[], "references" = $8::text[], "importance" = $9, "lastUsedAt" = CURRENT_TIMESTAMP
-       WHERE "id" = $1
+       WHERE "id" = $1 AND "userId" = $10 AND "archivedAt" IS NULL
        RETURNING "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "memoryType", "tags", "references", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt", "accessCount"`,
       input.id,
       input.content,
@@ -372,6 +374,7 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
       input.tags,
       input.references,
       input.importance,
+      input.userId,
     );
 
     return rowToMemory(rows[0]);
@@ -659,6 +662,7 @@ export class AgentMemoryService {
       return {
         memory: await this.repository.update({
           id: duplicate.id,
+          userId: input.userId,
           content,
           summary,
           embedding,
@@ -718,6 +722,7 @@ export class AgentMemoryService {
 
     return await this.repository.update({
       id: existing.id,
+      userId: input.userId,
       content,
       summary,
       embedding,

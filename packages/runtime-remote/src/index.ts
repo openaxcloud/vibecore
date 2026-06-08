@@ -639,6 +639,18 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
           return;
         }
 
+        /*
+         * Detach the previous socket's listeners before swapping it out. Otherwise the
+         * stale socket leaks its listeners and a later error/close it emits (a WS often
+         * fires error THEN close) would re-trigger scheduleReconnect, tearing down the
+         * freshly-established healthy socket and churning the reconnect loop.
+         */
+        if (socket) {
+          socket.removeEventListener?.('message', safeOnMessage);
+          socket.removeEventListener?.('close', scheduleReconnect);
+          socket.removeEventListener?.('error', scheduleReconnect);
+        }
+
         socket = opened;
         attempts = 0;
         socket.addEventListener('message', safeOnMessage);

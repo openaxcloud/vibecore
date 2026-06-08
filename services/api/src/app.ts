@@ -13547,7 +13547,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/admin/audit-logs', async (request, reply) => {
     await requirePlatformAdmin(request);
 
-    const format = ((request.query as { format?: string }).format ?? 'json').toLowerCase();
+    const { format } = parse(z.object({ format: z.enum(['json', 'csv']).default('json') }), request.query ?? {});
     const auditLogs = await store.listAuditLogs();
 
     if (format === 'csv') {
@@ -13561,7 +13561,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/admin/admin-audit-logs', async (request, reply) => {
     await requirePlatformAdmin(request);
 
-    const format = ((request.query as { format?: string }).format ?? 'json').toLowerCase();
+    const { format } = parse(z.object({ format: z.enum(['json', 'csv']).default('json') }), request.query ?? {});
     const adminAuditLogs = await store.listAdminAuditLogs();
 
     if (format === 'csv') {
@@ -14889,7 +14889,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.get('/orgs/:orgId/audit-logs/export', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
-    const format = ((request.query as { format?: string }).format ?? 'json').toLowerCase();
+    const { format } = parse(z.object({ format: z.enum(['json', 'csv']).default('json') }), request.query ?? {});
     await requireOrg(request, store, orgId, 'audit:export');
 
     const auditLogs = await store.listAuditLogs(orgId);
