@@ -2748,9 +2748,9 @@ export class WorkbenchStore {
         }
 
         // Check if branch exists, create if not
-        const branchRes = await gitLabApiService.getFile(repo.id, 'README.md', branchName).catch(() => null);
+        const branchAlreadyExists = await gitLabApiService.branchExists(repo.id, branchName).catch(() => false);
 
-        if (!branchRes || !branchRes.ok) {
+        if (!branchAlreadyExists) {
           // Create branch from default
           await gitLabApiService.createBranch(repo.id, branchName, repo.default_branch);
           await new Promise((r) => setTimeout(r, 1000));

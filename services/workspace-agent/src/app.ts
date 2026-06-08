@@ -772,6 +772,14 @@ async function listTree(
   return nodes;
 }
 
+/*
+ * Directories that are regenerable / VCS-internal and must never be walked into
+ * a snapshot or export: they routinely blow past the zip-entry cap (a single
+ * node_modules easily exceeds the 5000-entry limit, failing the whole export)
+ * and waste hundreds of MB reading files that the build reproduces anyway.
+ */
+const SNAPSHOT_IGNORED_DIRS = new Set(['node_modules', '.git', '.vite', '.next', '.cache', 'dist', '.turbo']);
+
 async function listSnapshotFiles(
   root: string,
   current: string,
@@ -787,6 +795,10 @@ async function listSnapshotFiles(
     const fullPath = resolve(current, entry.name);
 
     if (entry.isDirectory()) {
+      if (SNAPSHOT_IGNORED_DIRS.has(entry.name)) {
+        continue;
+      }
+
       files.push(...(await listSnapshotFiles(root, fullPath)));
       continue;
     }

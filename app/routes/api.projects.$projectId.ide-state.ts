@@ -21,9 +21,16 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
   const body = await request.text();
 
+  /*
+   * Forward the conditional header so the API enforces optimistic concurrency
+   * (412 on version mismatch) instead of silently last-write-wins across tabs.
+   */
+  const ifMatch = request.headers.get('if-match') ?? undefined;
+
   const payload = await apiRequest(request, `/projects/${params.projectId}/ide-state`, {
     method: 'PUT',
     body,
+    headers: ifMatch ? { 'if-match': ifMatch } : undefined,
   });
 
   return json(payload);

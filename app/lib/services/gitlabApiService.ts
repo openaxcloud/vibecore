@@ -331,6 +331,19 @@ export class GitLabApiService {
     return null;
   }
 
+  /*
+   * Returns true when the branch exists. Probing the branches API directly is
+   * correct, unlike inferring existence from the presence of a specific file
+   * (a real branch without a root README.md would look non-existent).
+   */
+  async branchExists(projectId: number, branchName: string): Promise<boolean> {
+    const response = await this._request(
+      `/projects/${projectId}/repository/branches/${encodeURIComponent(branchName)}`,
+    );
+
+    return response.ok;
+  }
+
   async createBranch(projectId: number, branchName: string, ref: string): Promise<any> {
     const response = await this._request(`/projects/${projectId}/repository/branches`, {
       method: 'POST',
