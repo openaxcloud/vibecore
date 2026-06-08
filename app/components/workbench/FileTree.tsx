@@ -610,7 +610,7 @@ function InlineInput({ depth, placeholder, initialValue = '', onSubmit, onCancel
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      const value = inputRef.current?.value.trim();
+      const value = inputRef.current?.value?.trim();
 
       if (value) {
         onSubmit(value);
@@ -1153,7 +1153,7 @@ function File({
     const normalizedOriginal = fileModifications.originalContent.replace(/\r\n/g, '\n');
 
     const normalizedCurrent =
-      fileModifications.versions[fileModifications.versions.length - 1]?.content.replace(/\r\n/g, '\n') || '';
+      fileModifications.versions[fileModifications.versions.length - 1]?.content?.replace(/\r\n/g, '\n') || '';
 
     if (normalizedOriginal === normalizedCurrent) {
       return { additions: 0, deletions: 0 };

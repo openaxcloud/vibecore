@@ -103,7 +103,14 @@ export function encodeShareLinkPayload(payload: ShareLinkPayload): string {
 
 export function decodeShareLinkPayload(encoded: string): ShareLinkPayload {
   const raw = fromBase64Url(encoded);
-  const parsed = JSON.parse(raw) as ShareLinkPayload;
+
+  let parsed: ShareLinkPayload;
+
+  try {
+    parsed = JSON.parse(raw) as ShareLinkPayload;
+  } catch {
+    throw new Error('Invalid share-link payload');
+  }
 
   if (
     typeof parsed.conversationId !== 'string' ||

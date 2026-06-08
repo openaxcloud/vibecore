@@ -730,7 +730,7 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
 
       // Se já existe histórico, verificar se há mudanças reais desde a última versão
       const lastVersion = existingHistory.versions[existingHistory.versions.length - 1];
-      const normalizedLastContent = lastVersion?.content.replace(/\r\n/g, '\n').trim();
+      const normalizedLastContent = lastVersion?.content?.replace(/\r\n/g, '\n').trim();
 
       if (normalizedCurrentContent === normalizedLastContent) {
         return; // Não criar novo histórico se o conteúdo é o mesmo

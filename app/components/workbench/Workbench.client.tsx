@@ -232,7 +232,7 @@ const FileModifiedDropdown = memo(
                                         const normalizedOriginal = history.originalContent.replace(/\r\n/g, '\n');
 
                                         const normalizedCurrent =
-                                          history.versions[history.versions.length - 1]?.content.replace(
+                                          history.versions[history.versions.length - 1]?.content?.replace(
                                             /\r\n/g,
                                             '\n',
                                           ) || '';

@@ -6,7 +6,7 @@ export interface ProjectUrlRef {
 }
 
 function cleanSegment(value?: string | null) {
-  const trimmed = value?.trim().replace(/^@+/, '');
+  const trimmed = value?.trim()?.replace(/^@+/, '');
 
   if (!trimmed || trimmed.includes('/')) {
     return undefined;

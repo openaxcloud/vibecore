@@ -236,7 +236,7 @@ function sortedRecord(record: Record<string, string>) {
 
 function toPreviewPackageName(packageJsonPath: string) {
   const cwd = packageDirectory(packageJsonPath);
-  const rawName = cwd?.split('/').pop() ?? 'e-code-preview';
+  const rawName = cwd?.split('/')?.pop() ?? 'e-code-preview';
 
   return (
     rawName

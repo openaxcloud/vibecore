@@ -63,9 +63,23 @@ const highlightText = (text: string, query: string): string => {
     return text;
   }
 
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  /*
+   * Escape HTML in both the search query and the matched text before injecting as raw HTML
+   * (this result is rendered via dangerouslySetInnerHTML), otherwise a crafted query/model
+   * name could inject arbitrary markup.
+   */
+  const escapeHtml = (value: string) =>
+    value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
 
-  return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800 text-current">$1</mark>');
+  const safeQuery = escapeHtml(query);
+  const regex = new RegExp(`(${safeQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+
+  return escapeHtml(text).replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800 text-current">$1</mark>');
 };
 
 const formatContextSize = (tokens: number): string => {
