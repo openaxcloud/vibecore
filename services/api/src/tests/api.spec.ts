@@ -1076,6 +1076,45 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('blocks an org admin from minting a custom role with permissions they do not hold', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const owner = await register(app, { email: 'esc-owner@example.com', organizationName: 'Escalation Org' });
+    const adminUser = await register(app, { email: 'esc-admin@example.com', organizationName: 'Escalation Admin Org' });
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+    await store.addMember({ organizationId: owner.organization.id, userId: adminUser.user.id, roleKey: 'admin' });
+
+    // admin holds roles:manage but NOT billing:manage — attempting to grant it
+    // into a custom role is a privilege-escalation attempt and must be rejected.
+    const escalated = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/roles`,
+      headers: { authorization: `Bearer ${adminUser.token}` },
+      payload: { key: 'super-admin', name: 'Super Admin', permissions: ['roles:manage', 'billing:manage'] },
+    });
+    expect(escalated.statusCode).toBe(403);
+    expect(escalated.json().code).toBe('RBAC_PRIVILEGE_ESCALATION');
+
+    // A role containing only permissions the admin actually holds is allowed.
+    const allowed = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/roles`,
+      headers: { authorization: `Bearer ${adminUser.token}` },
+      payload: { key: 'project-lead', name: 'Project Lead', permissions: ['projects:read', 'projects:write'] },
+    });
+    expect(allowed.statusCode).toBe(201);
+
+    // The owner (who holds everything) can still create the elevated role.
+    const ownerCreates = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/roles`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { key: 'billing-admin', name: 'Billing Admin', permissions: ['billing:manage'] },
+    });
+    expect(ownerCreates.statusCode).toBe(201);
+    await app.close();
+  });
+
   it('uses well-known authorization URL defaults for Google when only the client id is set', async () => {
     /*
      * Reproduces the prod gap: operators provisioned GOOGLE_CLIENT_ID

@@ -599,7 +599,12 @@ export function useDataOperations({
 
           // Ensure each message has required fields
           const validatedMessages = chat.messages.map((msg: any) => {
-            if (!msg.role || !msg.content) {
+            /*
+             * content can legitimately be an empty string (e.g. an assistant
+             * message carrying only tool/function calls), so only reject
+             * genuinely-missing content — not falsy-but-valid values.
+             */
+            if (!msg.role || msg.content === undefined || msg.content === null) {
               throw new Error('Invalid message format: missing required fields');
             }
 
@@ -719,17 +724,38 @@ export function useDataOperations({
         // Step 3: Validate data
         showProgress('Validating API keys data', 60);
 
-        // Get current API keys from cookies for potential undo
+        // Get current API keys from cookies for potential undo.
         const apiKeysStr = document.cookie.split(';').find((row) => row.trim().startsWith('apiKeys='));
-        const currentApiKeys = apiKeysStr ? JSON.parse(decodeURIComponent(apiKeysStr.split('=')[1])) : {};
+
+        let currentApiKeys: Record<string, string> = {};
+
+        if (apiKeysStr) {
+          try {
+            /*
+             * slice off the literal "apiKeys=" prefix — splitting on '=' would
+             * truncate values that themselves contain '=' (e.g. base64 padding).
+             */
+            const rawValue = apiKeysStr.trim().slice('apiKeys='.length);
+            currentApiKeys = JSON.parse(decodeURIComponent(rawValue));
+          } catch (err) {
+            console.error('Failed to parse existing apiKeys cookie for undo snapshot:', err);
+            currentApiKeys = {};
+          }
+        }
+
         setLastOperation({ type: 'import-api-keys', data: { previous: currentApiKeys } });
 
         // Step 4: Import API keys
         showProgress('Applying API keys', 80);
 
         const newKeys = ImportExportService.importAPIKeys(importedData);
-        const apiKeysJson = JSON.stringify(newKeys);
-        document.cookie = `apiKeys=${apiKeysJson}; path=/; max-age=31536000`;
+
+        /*
+         * encode so values containing ';' or '=' can't corrupt/truncate the
+         * cookie, and harden the credential-bearing cookie's scope.
+         */
+        const apiKeysJson = encodeURIComponent(JSON.stringify(newKeys));
+        document.cookie = `apiKeys=${apiKeysJson}; path=/; max-age=31536000; SameSite=Strict; Secure`;
 
         // Step 5: Complete
         showProgress('Completing import', 100);

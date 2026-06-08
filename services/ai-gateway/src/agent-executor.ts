@@ -93,6 +93,23 @@ export function createAgentRunRateLimiter(input?: {
   const now = input?.now ?? Date.now;
   const buckets = new Map<string, { count: number; resetAt: number }>();
 
+  /*
+   * Evict expired buckets periodically. Without this the map grows without
+   * bound: a caller varying source IP creates a key that is only overwritten
+   * when that exact key recurs, so one-off keys live forever (memory leak in
+   * the non-Redis fallback path of this long-running process).
+   */
+  const sweep = setInterval(() => {
+    const timestamp = now();
+
+    for (const [key, bucket] of buckets) {
+      if (bucket.resetAt <= timestamp) {
+        buckets.delete(key);
+      }
+    }
+  }, windowMs);
+  (sweep as unknown as { unref?: () => void }).unref?.();
+
   return {
     backend: 'memory',
     check(key: string): AgentRunRateLimitDecision {

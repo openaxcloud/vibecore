@@ -7701,7 +7701,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       process: child,
       output: '',
     };
-    localRuntimeProcessMap(authorized.workspaceId).set(id, record);
+    const processMap = localRuntimeProcessMap(authorized.workspaceId);
+    processMap.set(id, record);
+
+    /*
+     * Each command run inserts a record keyed by a unique per-run hash, and the
+     * natural-exit handlers below only flip status to 'exited' — they never
+     * delete. Without a cap the per-workspace map grows without bound (one dead
+     * ChildProcess handle + up to 1MB of captured output per command ever run).
+     * Evict the oldest EXITED records when over the cap, keeping running ones so
+     * port/dev-server detection from live output is preserved.
+     */
+    const MAX_LOCAL_RUNTIME_RECORDS = 200;
+    if (processMap.size > MAX_LOCAL_RUNTIME_RECORDS) {
+      for (const [existingId, existing] of processMap) {
+        if (processMap.size <= MAX_LOCAL_RUNTIME_RECORDS) {
+          break;
+        }
+
+        if (existing.status === 'exited' && existingId !== id) {
+          processMap.delete(existingId);
+        }
+      }
+    }
 
     let stdout = '';
     let stderr = '';
@@ -9267,9 +9289,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (authorized.organizationId) {
-      await ensureQuota(request, authorized.organizationId, 'terminals.concurrent');
-      await recordUsage(request, authorized.organizationId, 'terminals.concurrent', 1, {
+      const organizationId = authorized.organizationId;
+      await ensureQuota(request, organizationId, 'terminals.concurrent');
+      await recordUsage(request, organizationId, 'terminals.concurrent', 1, {
         workspaceId: authorized.workspaceId,
+      });
+
+      /*
+       * `terminals.concurrent` is a live-concurrency gauge, but usage is stored
+       * as a lifetime SUM of usageEvent.quantity (computeUsageForQuota falls
+       * through to sumUsage for this key). Without a compensating -1 when the
+       * socket closes, the gauge only ever climbs and every terminal open
+       * eventually 429s for the org — permanently. Record the release exactly
+       * once on close so the running sum tracks actual concurrency.
+       */
+      let released = false;
+      normalizeRuntimeApiWebSocket(socket).onClose(() => {
+        if (released) {
+          return;
+        }
+
+        released = true;
+        void recordUsage(request, organizationId, 'terminals.concurrent', -1, {
+          workspaceId: authorized.workspaceId,
+        }).catch(() => {
+          // Releasing the quota gauge must never crash socket teardown.
+        });
       });
     }
 
@@ -10440,10 +10485,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/orgs/:orgId/roles', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(customRoleSchema, request.body);
-    await requireOrg(request, store, orgId, 'roles:manage');
+    const member = await requireOrg(request, store, orgId, 'roles:manage');
 
     if (Object.hasOwn(rolePermissions, body.key)) {
       return reply.code(409).send({ error: 'System roles cannot be overwritten', code: 'SYSTEM_ROLE_RESERVED' });
+    }
+
+    /*
+     * Prevent vertical privilege escalation: a role manager may only grant a
+     * custom role permissions they themselves hold. Otherwise an `admin` (who
+     * has roles:manage but not e.g. billing:manage / admin:write) could mint a
+     * role carrying those keys and assign it to themselves, breaking the
+     * owner↔admin permission boundary.
+     */
+    const callerPermissions = await permissionsForOrganizationRole(store, orgId, member.roleKey);
+    const escalated = (body.permissions as PermissionKey[]).filter(
+      (permission) => !callerPermissions.includes(permission),
+    );
+
+    if (escalated.length > 0) {
+      return reply.code(403).send({
+        error: `Cannot grant permissions you do not hold: ${escalated.join(', ')}`,
+        code: 'RBAC_PRIVILEGE_ESCALATION',
+      });
     }
 
     const role = await store.createCustomRole({

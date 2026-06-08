@@ -40,6 +40,10 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
+        # Skip the recursive chown of the shared RWX Filestore share on every
+        # pod attach (default policy is Always → O(files) walk, slowing every
+        # rollout and scale-up). OnRootMismatch only checks/fixes the root dir.
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
       containers:

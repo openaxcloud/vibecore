@@ -52,7 +52,11 @@ export abstract class BaseProvider implements ProviderInfo {
    * running inside Docker. Only applies on the server side.
    */
   protected resolveDockerUrl(baseUrl: string, serverEnv?: Record<string, string>): string {
-    const isDocker = process?.env?.RUNNING_IN_DOCKER === 'true' || serverEnv?.RUNNING_IN_DOCKER === 'true';
+    /*
+     * Vite shims bare `process.env` to {} during SSR, so reading it here would
+     * silently never detect Docker. Use readRuntimeEnv (globalThis.process.env).
+     */
+    const isDocker = readRuntimeEnv('RUNNING_IN_DOCKER') === 'true' || serverEnv?.RUNNING_IN_DOCKER === 'true';
 
     if (!isDocker) {
       return baseUrl;

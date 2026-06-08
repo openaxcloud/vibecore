@@ -6,6 +6,38 @@ import { webcontainerRuntimeAdapter } from '~/lib/webcontainer';
 const RuntimeAdapterContext = createContext<RuntimeAdapter | undefined>(undefined);
 
 let cachedRuntimeToken: string | undefined;
+let cachedRuntimeTokenExpiry: number | undefined;
+
+/*
+ * Re-fetch this long before the real expiry so a request never goes out with a
+ * token that expires mid-flight. Also the fallback TTL when no exp can be read.
+ */
+const RUNTIME_TOKEN_REFRESH_SKEW_MS = 30_000;
+const RUNTIME_TOKEN_FALLBACK_TTL_MS = 4 * 60_000;
+
+/** Best-effort decode of a JWT `exp` (seconds) into an absolute ms timestamp. */
+function readJwtExpiryMs(token: string): number | undefined {
+  const segments = token.split('.');
+
+  if (segments.length !== 3) {
+    return undefined;
+  }
+
+  try {
+    const base64 = segments[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(base64)) as { exp?: number };
+
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Drop the cached runtime token so the next resolve re-fetches a fresh one. */
+export function invalidateRuntimeToken() {
+  cachedRuntimeToken = undefined;
+  cachedRuntimeTokenExpiry = undefined;
+}
 
 export interface RuntimeAdapterProviderProps extends PropsWithChildren {
   adapter?: RuntimeAdapter;
@@ -74,9 +106,12 @@ async function resolveRuntimeAuthToken() {
     return localToken;
   }
 
-  if (cachedRuntimeToken) {
+  if (cachedRuntimeToken && cachedRuntimeTokenExpiry && Date.now() < cachedRuntimeTokenExpiry) {
     return cachedRuntimeToken;
   }
+
+  // Expired (or never set): drop it so a stale token is never reused on reconnect.
+  invalidateRuntimeToken();
 
   const response = await fetch('/api/runtime-token', {
     credentials: 'include',
@@ -88,7 +123,15 @@ async function resolveRuntimeAuthToken() {
   }
 
   const payload = (await response.json()) as { token?: string };
+
+  if (!payload.token) {
+    return undefined;
+  }
+
   cachedRuntimeToken = payload.token;
+
+  const expiry = readJwtExpiryMs(payload.token);
+  cachedRuntimeTokenExpiry = (expiry ?? Date.now() + RUNTIME_TOKEN_FALLBACK_TTL_MS) - RUNTIME_TOKEN_REFRESH_SKEW_MS;
 
   return cachedRuntimeToken;
 }

@@ -158,10 +158,15 @@ export class ImportExportService {
         // Chat snapshots (for chat history)
         chatSnapshots: this._getChatSnapshots(),
 
-        // Raw data (for debugging and complete backup)
+        /*
+         * Raw data (for debugging and complete backup). Deliberately redacted:
+         * an unredacted dump of all localStorage + cookies embeds plaintext
+         * provider API keys and OAuth/GitHub tokens into the downloaded
+         * settings file, so a user sharing a "backup" leaks every credential.
+         */
         _raw: {
-          localStorage: this._getAllLocalStorage(),
-          cookies: allCookies,
+          localStorage: this._redactSecrets(this._getAllLocalStorage()),
+          cookies: this._redactSecrets(allCookies),
         },
 
         // Export metadata
@@ -202,7 +207,17 @@ export class ImportExportService {
     // Get existing keys from cookies
     const existingKeys = (() => {
       const storedApiKeys = Cookies.get('apiKeys');
-      return storedApiKeys ? JSON.parse(storedApiKeys) : {};
+
+      if (!storedApiKeys) {
+        return {};
+      }
+
+      try {
+        return JSON.parse(storedApiKeys);
+      } catch {
+        // A corrupt existing cookie must not make every future import throw.
+        return {};
+      }
     })();
 
     // Validate and save each key
@@ -593,6 +608,22 @@ export class ImportExportService {
       console.error(`Error getting localStorage item ${key}:`, err);
       return null;
     }
+  }
+
+  /**
+   * Redact credential-bearing entries from a key/value map before it is written
+   * into an exported settings file. Matches common secret key shapes so new
+   * credential keys are covered without an explicit allowlist.
+   */
+  private static _redactSecrets(source: Record<string, any>): Record<string, any> {
+    const secretPattern = /(apikey|api_key|token|secret|password|credential|private[-_]?key|client[-_]?secret)/i;
+    const result: Record<string, any> = {};
+
+    for (const [key, value] of Object.entries(source ?? {})) {
+      result[key] = secretPattern.test(key) ? '[REDACTED]' : value;
+    }
+
+    return result;
   }
 
   /**

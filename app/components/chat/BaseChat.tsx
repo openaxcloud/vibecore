@@ -8371,6 +8371,26 @@ function ProjectIdeServicePanel({
   );
 }
 
+/*
+ * Wrap a panel form submit with a confirmation prompt for irreversible deletes.
+ * These forms otherwise delete on a single click with no undo, which is an easy
+ * data-loss footgun — the codebase already gates less-destructive actions (e.g.
+ * revealing a secret, clearing chat history) behind window.confirm.
+ */
+function confirmThenSubmit(
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void,
+  message: string,
+): (event: React.FormEvent<HTMLFormElement>) => void {
+  return (event: React.FormEvent<HTMLFormElement>) => {
+    if (typeof window !== 'undefined' && !window.confirm(message)) {
+      event.preventDefault();
+      return;
+    }
+
+    onSubmit(event);
+  };
+}
+
 function shouldResetIdePanelFormAfterSubmit(panel: string, intent: string) {
   if (panel !== 'settings') {
     return true;
@@ -13145,7 +13165,13 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
   const [query, setQuery] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<number | null>(workflows[0]?.id ?? null);
-  const filtered = workflows.filter((workflow: any) => workflow.name.toLowerCase().includes(query.toLowerCase()));
+
+  const filtered = workflows.filter((workflow: any) =>
+    String(workflow.name ?? '')
+      .toLowerCase()
+      .includes(query.toLowerCase()),
+  );
+
   const agentWorkflows = filtered.filter((workflow: any) => workflow.isGenerated);
   const userWorkflows = filtered.filter((workflow: any) => !workflow.isGenerated);
   const latestRun = runs[0];
@@ -13335,7 +13361,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                         Down
                       </PanelButton>
                     </form>
-                    <form onSubmit={onSubmit}>
+                    <form onSubmit={confirmThenSubmit(onSubmit, 'Remove this task from the workflow?')}>
                       <input type="hidden" name="intent" value="delete-task" />
                       <input type="hidden" name="workflowId" value={workflow.id} />
                       <input type="hidden" name="taskId" value={task.id} />
@@ -13376,7 +13402,12 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                 </PanelButton>
               </form>
               {!workflow.isSystem && (
-                <form onSubmit={onSubmit}>
+                <form
+                  onSubmit={confirmThenSubmit(
+                    onSubmit,
+                    `Delete workflow "${workflow.name ?? workflow.id}"? This cannot be undone.`,
+                  )}
+                >
                   <input type="hidden" name="intent" value="delete-workflow" />
                   <input type="hidden" name="workflowId" value={workflow.id} />
                   <PanelButton disabled={busy} variant="outline">
@@ -13829,6 +13860,28 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
   const envVars = data.envVars ?? [];
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<{ key: string; value?: string } | null>(null);
+
+  /*
+   * The key/value inputs are React-controlled via `editing`, so the shared
+   * submit handler's DOM-level form.reset() cannot clear them. Without resetting
+   * `editing` after a successful upsert the form stays populated, the button
+   * stays stuck on "Save variable", and the next "Create variable" silently
+   * re-submits the previous key. Clear it on the panel's success event.
+   */
+  useEffect(() => {
+    const handlePanelSuccess = (event: Event) => {
+      const detail = (event as CustomEvent).detail as { panel?: string; intent?: string; ok?: boolean } | undefined;
+
+      if (detail?.panel === 'env' && detail.intent === 'upsert' && detail.ok) {
+        setEditing(null);
+      }
+    };
+
+    window.addEventListener('vibecore:ide-panel-action', handlePanelSuccess);
+
+    return () => window.removeEventListener('vibecore:ide-panel-action', handlePanelSuccess);
+  }, []);
+
   const [message, setMessage] = useState('');
 
   const filtered = envVars.filter((item: any) =>
@@ -13836,8 +13889,13 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
   );
 
   async function copyEnv(key: string, value?: string) {
-    await navigator.clipboard?.writeText(value ? `${key}=${value}` : key);
-    setMessage(value ? `${key} copied with value.` : `${key} copied.`);
+    try {
+      await navigator.clipboard?.writeText(value ? `${key}=${value}` : key);
+      setMessage(value ? `${key} copied with value.` : `${key} copied.`);
+    } catch {
+      // writeText rejects when the document isn't focused / permission denied.
+      setMessage(`Unable to copy ${key} to clipboard.`);
+    }
   }
 
   return (
@@ -13870,7 +13928,7 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
                 <button type="button" onClick={() => void copyEnv(item.key, item.value)}>
                   Copy
                 </button>
-                <form onSubmit={onSubmit}>
+                <form onSubmit={confirmThenSubmit(onSubmit, `Delete environment variable ${item.key}?`)}>
                   <input name="intent" value="delete" type="hidden" />
                   <input name="key" value={item.key} type="hidden" />
                   <PanelButton disabled={busy} variant="outline">
@@ -14143,7 +14201,12 @@ function ProjectDatabasePanel({
                           className="flex items-center justify-between gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2"
                         >
                           <span className="truncate text-sm text-bolt-elements-textPrimary">{secret.key}</span>
-                          <form onSubmit={onSubmit}>
+                          <form
+                            onSubmit={confirmThenSubmit(
+                              onSubmit,
+                              `Delete secret ${secret.key}? This cannot be undone.`,
+                            )}
+                          >
                             <input name="intent" value="delete-secret" type="hidden" />
                             <input name="key" value={secret.key} type="hidden" />
                             <PanelButton disabled={busy} variant="outline">
@@ -15760,8 +15823,13 @@ function ProjectSecretsPanel({
 
   async function copySecret(key: string) {
     const value = revealed[key] ?? key;
-    await navigator.clipboard?.writeText(value);
-    setMessage(`${revealed[key] ? 'Secret value' : 'Secret key'} copied.`);
+
+    try {
+      await navigator.clipboard?.writeText(value);
+      setMessage(`${revealed[key] ? 'Secret value' : 'Secret key'} copied.`);
+    } catch {
+      setMessage(`Unable to copy ${key} to clipboard.`);
+    }
   }
 
   return (

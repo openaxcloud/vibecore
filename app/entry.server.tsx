@@ -16,12 +16,34 @@ export function applyDocumentIsolationHeaders(responseHeaders: Headers) {
    * isolation headers above. nosniff stops content-type sniffing on the HTML
    * document; the referrer policy keeps full URLs (which can carry project
    * slugs or tokens in the path) from leaking to cross-origin destinations
-   * while still sending the origin. We deliberately do NOT set X-Frame-Options
-   * or a framing CSP here — the IDE embeds preview/WebContainer iframes and a
-   * blanket frame ban would break them.
+   * while still sending the origin.
    */
   responseHeaders.set('X-Content-Type-Options', 'nosniff');
   responseHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  /*
+   * Anti-clickjacking. frame-ancestors / X-Frame-Options govern who may embed
+   * THIS document as a parent — they do NOT affect the preview/WebContainer
+   * iframes the IDE itself renders as children (those are governed by frame-src).
+   * The app never needs to be embedded by a third party, so forbid it.
+   */
+  responseHeaders.set('X-Frame-Options', 'SAMEORIGIN');
+  responseHeaders.set('Content-Security-Policy', "frame-ancestors 'self'");
+
+  /*
+   * Low-risk defense-in-depth. Permissions-Policy mirrors the API's allowlist
+   * (already proven safe there). HSTS is set on the primary document host (where
+   * the session cookie lives) only in production, and must read
+   * globalThis.process.env — Vite shims bare `process.env` to {} during SSR.
+   * NOTE: a document `script-src` CSP is intentionally NOT set here; the IDE
+   * needs wasm-unsafe-eval + blob workers and that requires a separately tested
+   * policy to avoid breaking the editor/preview/terminal.
+   */
+  responseHeaders.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+
+  if (globalThis.process?.env?.NODE_ENV === 'production') {
+    responseHeaders.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
 }
 
 export async function waitForServerRenderReady(allReady: Promise<unknown>, timeoutMs = SERVER_RENDER_READY_TIMEOUT_MS) {

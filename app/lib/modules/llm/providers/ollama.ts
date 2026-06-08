@@ -35,6 +35,13 @@ export default class OllamaProvider extends BaseProvider {
 
   config = {
     baseUrlKey: 'OLLAMA_API_BASE_URL',
+
+    /*
+     * Ollama's canonical local endpoint; matches LMStudio's defaulting so a
+     * stock local install returns models without requiring an explicit env var
+     * (without this _resolveBaseUrl throws "No baseUrl found" on every call).
+     */
+    baseUrl: 'http://localhost:11434',
   };
 
   staticModels: ModelInfo[] = [];
@@ -42,7 +49,14 @@ export default class OllamaProvider extends BaseProvider {
   getDefaultNumCtx(serverEnv?: Env): number {
     const envRecord = this.convertEnvToRecord(serverEnv);
 
-    return envRecord.DEFAULT_NUM_CTX ? parseInt(envRecord.DEFAULT_NUM_CTX, 10) : 32768;
+    /*
+     * A non-empty but non-numeric DEFAULT_NUM_CTX (e.g. "32k") is truthy but
+     * parseInt yields NaN/wrong value, which would be passed straight to Ollama.
+     * Validate before use and fall back to the default.
+     */
+    const parsed = parseInt(envRecord.DEFAULT_NUM_CTX ?? '', 10);
+
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 32768;
   }
 
   private _resolveBaseUrl(

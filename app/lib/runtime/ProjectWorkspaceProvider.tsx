@@ -116,6 +116,12 @@ export function ProjectWorkspaceProvider({
           workbenchStore.workspaceError.set(message);
           workbenchStore.appendWorkspaceLog(message);
 
+          // Seeding failed — stop the pod we just started so it isn't orphaned.
+          if (activeWorkspaceId) {
+            await stopRemoteWorkspace(runtime, activeWorkspaceId).catch(() => undefined);
+            activeWorkspaceId = undefined;
+          }
+
           return;
         }
 
@@ -151,6 +157,17 @@ export function ProjectWorkspaceProvider({
               ? error.message
               : 'Workspace start failed';
         workbenchStore.workspaceError.set(message);
+
+        /*
+         * startWorkspace() may have already provisioned a (billable) remote pod
+         * before a later step failed. Without stopping it here the pod stays up
+         * until the component unmounts, and a user-triggered retry provisions a
+         * second pod against quota. Tear the orphan down so retry starts clean.
+         */
+        if (activeWorkspaceId) {
+          await stopRemoteWorkspace(runtime, activeWorkspaceId).catch(() => undefined);
+          activeWorkspaceId = undefined;
+        }
 
         if (error instanceof RuntimeError && error.status === 402) {
           workbenchStore.quotaWarning.set('Workspace quota exceeded');

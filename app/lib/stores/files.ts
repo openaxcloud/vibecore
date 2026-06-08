@@ -77,6 +77,7 @@ export class FilesStore {
   #lockRefreshTimeout?: ReturnType<typeof setTimeout>;
   #stopWatchingFiles?: () => void;
   #fileWatchRetryTimer?: ReturnType<typeof setTimeout>;
+  #fileWatchRetryAttempts = 0;
   #disposed = false;
 
   get filesCount() {
@@ -762,6 +763,18 @@ export class FilesStore {
       return;
     }
 
+    /*
+     * The remote file watch only exists for an interactive browser session. On the
+     * SSR/web server there is no per-user remote workspace to attach to, so
+     * watchFiles() always throws "Remote workspace has not been started" and the
+     * retry below would loop forever — a permanent 2s timer on the long-lived
+     * server process (the single dominant prod log line, thousands of entries).
+     * Skip the watch entirely off the client.
+     */
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     try {
       this.#stopWatchingFiles?.();
       this.#stopWatchingFiles = await this.#runtime.watchFiles([WORK_DIR], (change) => this.#processFileChange(change));
@@ -771,6 +784,8 @@ export class FilesStore {
         clearTimeout(this.#fileWatchRetryTimer);
         this.#fileWatchRetryTimer = undefined;
       }
+
+      this.#fileWatchRetryAttempts = 0;
     } catch (error) {
       /*
        * A remote workspace that is still completing its start/attach handshake throws
@@ -781,7 +796,10 @@ export class FilesStore {
        * empty and the editor rendered blank forever — file content exists in storage but
        * never reaches the editor. Retry until the watch attaches.
        */
-      logger.warn('Runtime file watch is not ready yet, will retry', error);
+      if (this.#fileWatchRetryAttempts === 0) {
+        logger.warn('Runtime file watch is not ready yet, will retry', error);
+      }
+
       this.#scheduleFileWatchRetry();
     }
   }
@@ -791,10 +809,25 @@ export class FilesStore {
       return;
     }
 
+    /*
+     * Cap retries with exponential backoff so a workspace that never attaches
+     * (GC'd pod, crashed runtime, never-provisioned) stops looping forever
+     * instead of re-issuing a failing watch RPC every 2s for the whole session.
+     */
+    const MAX_FILE_WATCH_RETRIES = 30;
+
+    if (this.#fileWatchRetryAttempts >= MAX_FILE_WATCH_RETRIES) {
+      logger.warn(`Runtime file watch did not attach after ${MAX_FILE_WATCH_RETRIES} retries; giving up`);
+      return;
+    }
+
+    const delay = Math.min(2000 * 2 ** Math.min(this.#fileWatchRetryAttempts, 4), 30000);
+    this.#fileWatchRetryAttempts++;
+
     this.#fileWatchRetryTimer = setTimeout(() => {
       this.#fileWatchRetryTimer = undefined;
       void this.#startFileWatch();
-    }, 2000);
+    }, delay);
   }
 
   dispose() {
