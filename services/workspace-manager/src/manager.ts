@@ -325,10 +325,29 @@ export class WorkspaceManager {
     const timeoutMs = Number(process.env.WORKSPACE_READINESS_TIMEOUT_MS ?? 180_000);
 
     while (Date.now() - startedAt < timeoutMs) {
-      const pod = await this.k8s.getPod(namespace, podName);
+      /*
+       * A transient control-plane error (API-server throttling, network blip —
+       * common during node preemption / control-plane upgrades) must NOT abort
+       * the provision: swallow it and retry on the next poll. Only a terminal
+       * pod state or the overall timeout ends the wait.
+       */
+      const pod = await this.k8s.getPod(namespace, podName).catch(() => null);
 
-      if (pod && isPodReady(pod as unknown as { status?: { conditions?: Array<{ type?: string; status?: string }> } })) {
-        return;
+      if (pod) {
+        const typedPod = pod as unknown as PodStatusView;
+
+        // Fail fast on a terminal pod state (OOMKilled / CrashLoopBackOff /
+        // Failed) instead of spinning the full readiness timeout and throwing
+        // an opaque "not ready" — the API can then surface an actionable error.
+        const failure = detectPodTerminalFailure(typedPod);
+
+        if (failure) {
+          throw Object.assign(new Error(failure.message), { code: failure.code });
+        }
+
+        if (isPodReady(typedPod)) {
+          return;
+        }
       }
 
       await new Promise((resolve) => setTimeout(resolve, 1_000));
@@ -357,6 +376,47 @@ export class WorkspaceManager {
   }
 }
 
-function isPodReady(pod: { status?: { conditions?: Array<{ type?: string; status?: string }> } }) {
+type PodStatusView = {
+  status?: {
+    phase?: string;
+    conditions?: Array<{ type?: string; status?: string }>;
+    containerStatuses?: Array<{
+      state?: { waiting?: { reason?: string }; terminated?: { reason?: string } };
+      lastState?: { terminated?: { reason?: string } };
+    }>;
+  };
+};
+
+function isPodReady(pod: PodStatusView) {
   return pod.status?.conditions?.some((condition) => condition.type === 'Ready' && condition.status === 'True') === true;
+}
+
+/**
+ * Detect a terminal pod failure that readiness polling would otherwise never
+ * recognize (it only checks Ready=True). Returns a coded error or null.
+ */
+function detectPodTerminalFailure(pod: PodStatusView): { message: string; code: string } | null {
+  if (pod.status?.phase === 'Failed') {
+    return { message: 'Workspace pod failed to start', code: 'WORKSPACE_POD_FAILED' };
+  }
+
+  for (const container of pod.status?.containerStatuses ?? []) {
+    const oomReason = container.state?.terminated?.reason ?? container.lastState?.terminated?.reason;
+
+    if (oomReason === 'OOMKilled') {
+      return {
+        message: 'Workspace pod was OOMKilled — increase the plan memory limit or restart',
+        code: 'WORKSPACE_POD_OOMKILLED',
+      };
+    }
+
+    if (container.state?.waiting?.reason === 'CrashLoopBackOff') {
+      return {
+        message: 'Workspace pod is crash-looping (CrashLoopBackOff)',
+        code: 'WORKSPACE_POD_CRASHLOOP',
+      };
+    }
+  }
+
+  return null;
 }

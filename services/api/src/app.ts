@@ -14861,6 +14861,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const secondaryWorkspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
     const persistedWorkspaceId = body.workspaceId ?? undefined;
 
+    /*
+     * Reject a new deploy while one is already in flight for the same project +
+     * workspace. Concurrent builds share the same build CWD/node_modules and
+     * would clobber each other's install/output; a second build could also flip
+     * the record READY while the first is still building.
+     */
+    const existingDeployments = await store.listDeployments(project.id);
+    const inFlight = existingDeployments.find(
+      (deployment) =>
+        (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') &&
+        (deployment.workspaceId ?? undefined) === persistedWorkspaceId,
+    );
+
+    if (inFlight) {
+      return reply.code(409).send({
+        error: 'A deployment is already in progress for this project',
+        code: 'DEPLOYMENT_IN_PROGRESS',
+        deploymentId: inFlight.id,
+      });
+    }
+
     const queued = await store.createDeployment({
       projectId: project.id,
       workspaceId: persistedWorkspaceId,

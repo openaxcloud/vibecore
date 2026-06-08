@@ -1275,8 +1275,18 @@ export class PrismaApiStore implements ApiStore {
     deploymentId: string,
     input: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>,
   ) {
+    /*
+     * Status transitions must be monotonic: once a deployment is terminal
+     * (READY / FAILED / CANCELED) a late or out-of-order callback must not flip
+     * it back (e.g. a slow provider poll marking a CANCELED build READY). When
+     * this update sets a status, restrict the WHERE to non-terminal rows; if it
+     * matches nothing the row is left as-is and returned unchanged.
+     */
+    const statusGuard =
+      input.status !== undefined ? { status: { notIn: ['READY', 'FAILED', 'CANCELED'] as any } } : {};
+
     await this.prisma.deployment.updateMany({
-      where: { id: deploymentId, projectId },
+      where: { id: deploymentId, projectId, ...statusGuard },
       data: {
         ...('environment' in input ? { environmentName: input.environment } : {}),
         status: input.status,
@@ -1570,7 +1580,16 @@ export class PrismaApiStore implements ApiStore {
     const matched = txtRecords.some((chunks) => chunks.join('').trim() === expected);
 
     if (!matched) {
-      await this.prisma.verifiedDomain.update({ where: { id: record.id }, data: { sslStatus: 'failed' } });
+      /*
+       * Re-verifying a previously-verified domain whose TXT record has since
+       * changed/disappeared must also clear verifiedAt — otherwise the row is
+       * left in a contradictory `verifiedAt: <date>, sslStatus: 'failed'` state
+       * and any consumer keying off verifiedAt still treats it as verified.
+       */
+      await this.prisma.verifiedDomain.update({
+        where: { id: record.id },
+        data: { sslStatus: 'failed', verifiedAt: null },
+      });
 
       throw Object.assign(
         new Error(
