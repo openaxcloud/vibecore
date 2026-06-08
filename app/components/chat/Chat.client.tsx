@@ -352,6 +352,14 @@ export const ChatImpl = memo(
       onFinish: (message, response) => {
         const usage = response.usage;
         setData(undefined);
+
+        /*
+         * If the model finished cleanly mid-artifact (truncated output, hit a
+         * stop sequence early), the closing </boltAction> never arrives and the
+         * streamed file action is left spinning forever. Finalize only those
+         * dangling file actions — running shell commands are left alone.
+         */
+        workbenchStore.abortStreamingFileActions();
         window.setTimeout(() => {
           const snapshot = latestMessagesRef.current;
 

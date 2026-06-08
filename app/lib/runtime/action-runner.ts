@@ -40,7 +40,12 @@ const SELF_REPAIR_MAX_ATTEMPTS = 2;
 const SELF_REPAIR_BASE_DELAY_MS = 1_000;
 const SELF_REPAIR_ENDPOINT = '/api/agent/self-repair';
 
-const BOLT_ACTION_CONTENT_PATTERN = /<boltAction\b[^>]*>([\s\S]*?)<\/boltAction>/;
+/*
+ * Greedy capture so a file whose own content contains the literal string
+ * `</boltAction>` is not truncated at the first inner occurrence — match
+ * through to the LAST closing tag instead.
+ */
+const BOLT_ACTION_CONTENT_PATTERN = /<boltAction\b[^>]*>([\s\S]*)<\/boltAction>/;
 
 /**
  * Extract the file content from a self-repair LLM response. The prompt
@@ -246,6 +251,27 @@ export class ActionRunner {
     });
   }
 
+  /**
+   * Finalize file actions left mid-stream because their closing </boltAction>
+   * never arrived (e.g. the model stopped cleanly mid-artifact, or a provider
+   * truncated the stream). Such actions stay `running`/un-`executed` and spin
+   * their UI spinner forever. Unlike abortAll(), this leaves legitimately
+   * running shell commands (which only execute after their close tag) untouched,
+   * so it is safe to call from the success path (onFinish).
+   */
+  abortStreamingFileActions() {
+    const actions = this.actions.get();
+
+    Object.entries(actions).forEach(([actionId, action]) => {
+      if (action.type !== 'file' || action.executed || action.status !== 'running') {
+        return;
+      }
+
+      action.abort();
+      this.#updateAction(actionId, { status: 'aborted' });
+    });
+  }
+
   skipAction(actionId: string) {
     const action = this.actions.get()[actionId];
 
@@ -407,7 +433,16 @@ export class ActionRunner {
       } catch (error) {
         lastError = error;
 
-        if (action.abortSignal.aborted || error instanceof ActionCommandError || error instanceof ToolTimeoutError) {
+        if (
+          action.abortSignal.aborted ||
+          error instanceof ActionCommandError ||
+          error instanceof ToolTimeoutError ||
+          error instanceof JsonValidationError
+        ) {
+          /*
+           * JsonValidationError is deterministic for a fixed payload — retrying
+           * the same truncated/invalid content 3× only wastes the backoff budget.
+           */
           throw error;
         }
 

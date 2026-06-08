@@ -269,7 +269,7 @@ export class StreamingMessageParser {
           const artifactCloseIndex = input.indexOf(ARTIFACT_TAG_CLOSE, i);
 
           if (actionOpenIndex !== -1 && (artifactCloseIndex === -1 || actionOpenIndex < artifactCloseIndex)) {
-            const actionEndIndex = input.indexOf('>', actionOpenIndex);
+            const actionEndIndex = this.#findTagClose(input, actionOpenIndex);
 
             if (actionEndIndex !== -1) {
               state.insideAction = true;
@@ -303,6 +303,17 @@ export class StreamingMessageParser {
           }
         }
       } else if (input[i] === '<' && input[i + 1] !== '/') {
+        /*
+         * Wait for more input if the buffer ends partway through a
+         * quick-actions open marker that was split across stream chunks.
+         * Without this, the scanner below emits the partial `<bolt-` as raw
+         * text and advances past the `<`, so the block is never recognized
+         * once the full marker arrives.
+         */
+        if (input.length - i < BOLT_QUICK_ACTIONS_OPEN.length && BOLT_QUICK_ACTIONS_OPEN.startsWith(input.slice(i))) {
+          break;
+        }
+
         let j = i;
         let potentialTag = '';
 
@@ -400,6 +411,32 @@ export class StreamingMessageParser {
 
   resetMessage(messageId: string) {
     this.#messages.delete(messageId);
+  }
+
+  /**
+   * Find the index of the `>` that closes the opening tag starting at `from`,
+   * skipping any `>` that appears inside a quoted attribute value. A naive
+   * indexOf('>') mis-terminates the tag when an attribute value (e.g. a
+   * filePath or message) legitimately contains a `>` character.
+   */
+  #findTagClose(input: string, from: number): number {
+    let quote: string | null = null;
+
+    for (let k = from; k < input.length; k++) {
+      const ch = input[k];
+
+      if (quote) {
+        if (ch === quote) {
+          quote = null;
+        }
+      } else if (ch === '"' || ch === "'") {
+        quote = ch;
+      } else if (ch === '>') {
+        return k;
+      }
+    }
+
+    return -1;
   }
 
   #parseActionTag(input: string, actionOpenIndex: number, actionEndIndex: number) {

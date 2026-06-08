@@ -20,6 +20,43 @@ interface BranchInfo {
   canPush: boolean;
 }
 
+/*
+ * Reject URLs that resolve to private/internal hosts so a caller can't make the
+ * server send its bearer token to an arbitrary internal endpoint (SSRF).
+ */
+function isSafeGitLabUrl(rawUrl: string): boolean {
+  let url: URL;
+
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+
+  if (url.protocol !== 'https:') {
+    return false;
+  }
+
+  const host = url.hostname.toLowerCase();
+
+  if (
+    host === 'localhost' ||
+    host === '0.0.0.0' ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.internal') ||
+    host.endsWith('.local') ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 async function gitlabBranchesLoader({ request }: { request: Request }) {
   try {
     const body: any = await request.json();
@@ -31,6 +68,10 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
 
     if (!projectId) {
       return json({ error: 'Project ID is required' }, { status: 400 });
+    }
+
+    if (!isSafeGitLabUrl(gitlabUrl)) {
+      return json({ error: 'Invalid GitLab URL' }, { status: 400 });
     }
 
     // Fetch branches from GitLab API

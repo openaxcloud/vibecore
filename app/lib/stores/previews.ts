@@ -30,6 +30,7 @@ export class PreviewsStore {
   #storageSyncInstalled = false;
   #originalSetItem?: typeof localStorage.setItem;
   #reconnectTimer?: number;
+  #reconnectAttempts = 0;
   #disposed = false;
   #storageSyncTimer?: ReturnType<typeof setTimeout>;
 
@@ -225,6 +226,7 @@ export class PreviewsStore {
     try {
       this.#stopWatchingPorts?.();
       this.#stopWatchingPorts = await this.#runtime.watchPorts((port) => this.#applyPortEvent(port));
+      this.#reconnectAttempts = 0;
     } catch (error) {
       console.warn('[Preview] Runtime port watch is not ready yet:', error);
       this.#scheduleReconnect();
@@ -245,10 +247,16 @@ export class PreviewsStore {
       return;
     }
 
+    /*
+     * Exponential backoff (cap 30s) so a persistently-down workspace pod isn't
+     * hammered with a fresh connection attempt every 2s indefinitely.
+     */
+    const delay = Math.min(2000 * 2 ** this.#reconnectAttempts, 30_000);
+    this.#reconnectAttempts += 1;
     this.#reconnectTimer = window.setTimeout(() => {
       this.#reconnectTimer = undefined;
       void this.#init();
-    }, 2000);
+    }, delay);
   }
 
   async refreshPorts() {

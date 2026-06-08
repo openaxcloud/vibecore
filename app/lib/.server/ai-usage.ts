@@ -166,6 +166,12 @@ export async function checkChatQuota(input: CheckChatQuotaInput): Promise<CheckC
         model: input.model,
         provider: input.provider,
       }),
+
+      /*
+       * Bounded so a hung api pod can't stall the chat stream at its very first
+       * step. The surrounding try/catch already fails open on error.
+       */
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (response.status === 200) {
@@ -277,6 +283,7 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
         messageId: input.messageId,
         source: input.source ?? 'remix-chat',
       }),
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {

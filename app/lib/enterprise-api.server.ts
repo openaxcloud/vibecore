@@ -210,7 +210,17 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
     headers.set('authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${apiBaseUrl()}${path}`, { ...fetchInit, headers });
+  const response = await fetch(`${apiBaseUrl()}${path}`, {
+    ...fetchInit,
+    headers,
+
+    /*
+     * Default timeout so a hung/draining api pod can't stall a Remix
+     * loader/action indefinitely. Callers may still pass their own signal.
+     */
+    signal: fetchInit.signal ?? AbortSignal.timeout(30_000),
+  });
+
   const contentType = response.headers.get('content-type') ?? '';
   const rawBody = await response.text();
 

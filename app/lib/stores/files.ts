@@ -714,7 +714,13 @@ export class FilesStore {
       this.files.setKey(filePath, {
         type: 'file',
         content,
-        isBinary: false,
+
+        /*
+         * Preserve the file's existing binary classification rather than
+         * unconditionally clearing it — a save must not silently relabel a
+         * binary file as text (which would later export it as mangled text).
+         */
+        isBinary: currentFile?.type === 'file' ? currentFile.isBinary : false,
         isLocked: currentFile?.type === 'file' ? currentFile.isLocked : false,
       });
 
@@ -1166,12 +1172,14 @@ export class FilesStore {
   }
 
   #toWorkbenchPath(filePath: string) {
-    if (filePath.startsWith(WORK_DIR)) {
+    if (filePath === WORK_DIR || filePath.startsWith(`${WORK_DIR}/`)) {
       return filePath;
     }
 
-    if (filePath.startsWith(this.#runtime.workdir)) {
-      return filePath.replace(this.#runtime.workdir, WORK_DIR);
+    const workdir = this.#runtime.workdir;
+
+    if (filePath === workdir || filePath.startsWith(`${workdir}/`)) {
+      return WORK_DIR + filePath.slice(workdir.length);
     }
 
     return path.join(WORK_DIR, filePath.replace(/^\/+/, ''));

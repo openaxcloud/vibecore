@@ -44,6 +44,24 @@ const EXPOSE_HEADERS = [
 
 type StreamingRequestInit = RequestInit & { duplex?: 'half' };
 
+// Header names whose values are credentials and must never be written to logs.
+const SENSITIVE_HEADER_NAMES = new Set(['authorization', 'x-authorization', 'cookie', 'set-cookie']);
+
+/*
+ * Build a plain object of header entries with credential values masked, so the
+ * user's PAT / Basic-auth (sent on every authenticated git operation) and any
+ * cookies are not leaked verbatim into server logs.
+ */
+function redactSensitiveHeaders(headers: Headers): Record<string, string> {
+  const result: Record<string, string> = {};
+
+  for (const [name, value] of headers.entries()) {
+    result[name] = SENSITIVE_HEADER_NAMES.has(name.toLowerCase()) ? '***redacted***' : value;
+  }
+
+  return result;
+}
+
 // Handle all HTTP methods
 export async function action({ request, params }: ActionFunctionArgs) {
   return handleProxyRequest(request, params['*']);
@@ -107,7 +125,7 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
       headers.set('User-Agent', 'git/@isomorphic-git/cors-proxy');
     }
 
-    console.log('Request headers:', Object.fromEntries(headers.entries()));
+    console.log('Request headers:', redactSensitiveHeaders(headers));
 
     // Prepare fetch options
     const fetchOptions: StreamingRequestInit = {
@@ -155,7 +173,7 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
       responseHeaders.set('x-redirected-url', response.url);
     }
 
-    console.log('Response headers:', Object.fromEntries(responseHeaders.entries()));
+    console.log('Response headers:', redactSensitiveHeaders(responseHeaders));
 
     // Return the response with the target's body stream piped directly
     return new Response(response.body, {

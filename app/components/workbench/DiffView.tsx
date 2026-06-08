@@ -783,7 +783,11 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
 
   const history = fileHistory[selectedFile];
   const effectiveOriginalContent = history?.originalContent || originalContent;
-  const language = safeDiffLanguage(getLanguageFromExtension(selectedFile.split('.').pop() || ''));
+  const diffBasename = selectedFile.split('/').pop() ?? '';
+
+  const language = safeDiffLanguage(
+    getLanguageFromExtension(diffBasename.includes('.') ? (diffBasename.split('.').pop() ?? '') : ''),
+  );
 
   try {
     return (

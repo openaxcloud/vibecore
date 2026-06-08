@@ -842,6 +842,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           const str = typeof transformedChunk === 'string' ? transformedChunk : JSON.stringify(transformedChunk);
           controller.enqueue(encoder.encode(str));
         },
+        flush: (controller) => {
+          /*
+           * If the stream ended while still emitting reasoning tokens (the model
+           * was truncated mid-thought), the opening __boltThought__ div was never
+           * closed by the next non-`g` chunk. Close it here so the rest of the
+           * persisted message isn't swallowed into the (hidden) thought block.
+           */
+          if (typeof lastChunk === 'string' && lastChunk.startsWith('g')) {
+            controller.enqueue(encoder.encode(`0: "</div>\\n"\n`));
+          }
+        },
       }),
     );
 

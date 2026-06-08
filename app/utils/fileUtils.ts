@@ -43,7 +43,7 @@ export const shouldIncludeFile = (path: string): boolean => {
 };
 
 const readPackageJson = async (files: File[]): Promise<{ scripts?: Record<string, string> } | null> => {
-  const packageJsonFile = files.find((f) => f.webkitRelativePath.endsWith('package.json'));
+  const packageJsonFile = files.find((f) => (f.webkitRelativePath.split('/').pop() ?? '') === 'package.json');
 
   if (!packageJsonFile) {
     return null;
@@ -67,7 +67,7 @@ const readPackageJson = async (files: File[]): Promise<{ scripts?: Record<string
 export const detectProjectType = async (
   files: File[],
 ): Promise<{ type: string; setupCommand: string; followupMessage: string }> => {
-  const hasFile = (name: string) => files.some((f) => f.webkitRelativePath.endsWith(name));
+  const hasFile = (name: string) => files.some((f) => (f.webkitRelativePath.split('/').pop() ?? '') === name);
 
   if (hasFile('package.json')) {
     const packageJson = await readPackageJson(files);

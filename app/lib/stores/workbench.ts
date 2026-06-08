@@ -1820,6 +1820,10 @@ export class WorkbenchStore {
     Object.values(this.artifacts.get()).forEach((artifact) => artifact.runner.abortAll());
   }
 
+  abortStreamingFileActions() {
+    Object.values(this.artifacts.get()).forEach((artifact) => artifact.runner.abortStreamingFileActions());
+  }
+
   setReloadedMessages(messages: string[]) {
     this.#reloadedMessages = new Set(messages);
   }

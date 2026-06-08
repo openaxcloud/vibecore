@@ -80,7 +80,7 @@ export function materialFileIcon(filePathOrName: string): MaterialFileIcon {
    * splitting on the last dot (which would yield a bogus `local`/`production`
    * extension and fall through to the generic icon).
    */
-  if (name.startsWith('.env')) {
+  if (name === '.env' || name.startsWith('.env.')) {
     return SPECIAL_FILE_ICONS['.env'];
   }
 
@@ -112,7 +112,7 @@ export function gitStatusForPath(
   for (const [candidate, status] of Object.entries(gitStatusByPath)) {
     const normalizedCandidate = normalizeWorkspacePath(candidate);
 
-    if (normalizedCandidate === normalizedTarget || filePath.endsWith(`/${normalizedCandidate}`)) {
+    if (normalizedCandidate === normalizedTarget) {
       return normalizeGitStatus(status);
     }
   }

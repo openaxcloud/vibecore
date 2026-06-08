@@ -170,7 +170,8 @@ const FileModifiedDropdown = memo(
                     <div className="max-h-[min(60dvh,15rem)] overflow-y-auto">
                       {filteredFiles.length > 0 ? (
                         filteredFiles.map(([filePath, history]) => {
-                          const extension = filePath.split('.').pop() || '';
+                          const basename = filePath.split('/').pop() ?? '';
+                          const extension = basename.includes('.') ? (basename.split('.').pop() ?? '') : '';
                           const language = getLanguageFromExtension(extension);
 
                           return (

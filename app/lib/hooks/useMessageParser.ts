@@ -67,7 +67,21 @@ export function useMessageParser() {
 
     for (const [index, message] of messages.entries()) {
       if (message.role === 'assistant' || message.role === 'user') {
-        const newParsedContent = messageParser.parse(message.id, extractTextContent(message));
+        let newParsedContent = '';
+
+        try {
+          newParsedContent = messageParser.parse(message.id, extractTextContent(message));
+        } catch (error) {
+          /*
+           * A single malformed tag from the model (e.g. an invalid supabase
+           * action) must not abort parsing for this and every subsequent
+           * message in the batch. Reset just this message's parser state and
+           * continue rather than freezing the whole file/preview pipeline.
+           */
+          logger.error('Failed to parse assistant message; skipping', error);
+          messageParser.reset();
+        }
+
         setParsedMessages((prevParsed) => ({
           ...prevParsed,
           [index]: !reset ? (prevParsed[index] || '') + newParsedContent : newParsedContent,
