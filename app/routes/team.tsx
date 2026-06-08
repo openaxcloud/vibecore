@@ -1,4 +1,4 @@
-import { EcodeTeamsPage, makeEcodeCampaignMeta } from '~/components/marketing/EcodeProductMarketingPages';
+import { EcodeTeamsPage, makeEcodeCampaignMeta } from '~/components/marketing/EcodeExactProductMarketingPages';
 
 export const meta = makeEcodeCampaignMeta('teams');
 

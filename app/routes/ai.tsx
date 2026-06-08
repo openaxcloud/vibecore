@@ -1,4 +1,4 @@
-import { EcodeAiPlatformPage, makeEcodeProductMeta } from '~/components/marketing/EcodeProductMarketingPages';
+import { EcodeAiPlatformPage, makeEcodeProductMeta } from '~/components/marketing/EcodeExactProductMarketingPages';
 
 export const meta = makeEcodeProductMeta('ai-platform');
 

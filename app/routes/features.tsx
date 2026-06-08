@@ -1,4 +1,4 @@
-import { EcodeFeaturesPage, makeEcodeProductMeta } from '~/components/marketing/EcodeProductMarketingPages';
+import { EcodeFeaturesPage, makeEcodeProductMeta } from '~/components/marketing/EcodeExactProductMarketingPages';
 
 export const meta = makeEcodeProductMeta('ide');
 

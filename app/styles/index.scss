@@ -239,14 +239,50 @@ body {
   --vc-status-warn: var(--vc-ide-accent-warning);
   --vc-status-muted: var(--vc-ide-text-muted);
   --vc-status-neutral: var(--vc-ide-text-secondary);
+  --background: 221.7 45.1% 10%;
+  --foreground: 205.7 53.8% 97.5%;
+  --card: 221.7 29.1% 15.5%;
+  --card-foreground: 205.7 53.8% 97.5%;
+  --popover: 221.7 29.1% 15.5%;
+  --popover-foreground: 205.7 53.8% 97.5%;
+  --primary: 24 96% 49%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 222.9 21.6% 19%;
+  --secondary-foreground: 205.7 53.8% 97.5%;
+  --muted: 222.9 21.6% 19%;
+  --muted-foreground: 220 13.6% 65.5%;
+  --accent: 222.9 21.6% 19%;
+  --accent-foreground: 205.7 53.8% 97.5%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 221.1 16.2% 22.9%;
+  --input: 221.1 16.2% 22.9%;
+  --ring: 24 96% 49%;
   --ecode-accent: #f26207;
   --ecode-accent-hover: #ff7a2b;
   --ecode-accent-contrast: #111827;
+  --ecode-secondary-accent: #f77f00;
+  --ecode-orange: #f26207;
+  --ecode-orange-light: #ff6b35;
+  --ecode-orange-hover: #d84315;
+  --ecode-yellow: #f77f00;
+  --ecode-background: #0e1525;
+  --ecode-border: #313744;
+  --ecode-border-strong: #3a4358;
+  --ecode-text: #f5f9fc;
+  --ecode-text-secondary: #9ba3b3;
   --ecode-text-muted: var(--vc-ide-text-muted);
   --ecode-surface: #1c2333;
   --ecode-surface-secondary: #262c3b;
+  --ecode-surface-tertiary: #313744;
   --ecode-surface-elevated: #1c2333;
   --ecode-surface-hover: #313744;
+  --marketing-gradient:
+    radial-gradient(circle at 20% 20%, rgba(125, 211, 252, 0.12), transparent 45%),
+    radial-gradient(circle at 80% 0%, rgba(242, 98, 7, 0.16), transparent 42%),
+    linear-gradient(180deg, rgba(14, 21, 37, 0.96), rgba(28, 35, 51, 0.96));
+  --marketing-grid-line: rgba(148, 163, 184, 0.07);
+  --marketing-divider: linear-gradient(90deg, transparent, var(--ecode-border), transparent);
   --mobile-nav-height: 72px;
   --mobile-nav-bg: #1c2333;
   --mobile-nav-bg-elevated: color-mix(in srgb, #1c2333 94%, transparent);
@@ -437,14 +473,50 @@ body {
   --vc-status-warn: var(--vc-ide-accent-warning);
   --vc-status-muted: var(--vc-ide-text-muted);
   --vc-status-neutral: var(--vc-ide-text-secondary);
+  --background: 0 0% 99%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 24 96% 49%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 39 96% 56%;
+  --secondary-foreground: 0 0% 0%;
+  --muted: 210 17% 96%;
+  --muted-foreground: 215 16% 40%;
+  --accent: 39 96% 56%;
+  --accent-foreground: 0 0% 0%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214 32% 88%;
+  --input: 214 32% 90%;
+  --ring: 24 96% 49%;
   --ecode-accent: #f26207;
   --ecode-accent-hover: #d04e00;
   --ecode-accent-contrast: #111827;
+  --ecode-secondary-accent: #f77f00;
+  --ecode-orange: #f26207;
+  --ecode-orange-light: #ff6b35;
+  --ecode-orange-hover: #d84315;
+  --ecode-yellow: #f77f00;
+  --ecode-background: #ffffff;
+  --ecode-border: #e0e0e0;
+  --ecode-border-strong: #c1c8cd;
+  --ecode-text: #1a1a1a;
+  --ecode-text-secondary: #333333;
   --ecode-text-muted: var(--vc-ide-text-muted);
   --ecode-surface: #ffffff;
   --ecode-surface-secondary: #eef2f7;
+  --ecode-surface-tertiary: #f8f9fa;
   --ecode-surface-elevated: #ffffff;
   --ecode-surface-hover: #e2e8f0;
+  --marketing-gradient:
+    radial-gradient(circle at 20% 20%, rgba(14, 165, 233, 0.06), transparent 45%),
+    radial-gradient(circle at 80% 0%, rgba(242, 98, 7, 0.09), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 249, 250, 0.96));
+  --marketing-grid-line: rgba(49, 55, 68, 0.08);
+  --marketing-divider: linear-gradient(90deg, transparent, var(--ecode-border), transparent);
   --mobile-nav-bg: #ffffff;
   --mobile-nav-bg-elevated: color-mix(in srgb, #ffffff 96%, transparent);
   --mobile-nav-border: #e5e7eb;
@@ -3719,9 +3791,7 @@ body :where(.lucide, svg[data-lucide]) {
   border-top-color: var(--mobile-nav-border-top);
   border-radius: var(--mobile-nav-radius);
   background: var(--mobile-nav-gradient);
-  box-shadow:
-    var(--mobile-nav-shadow),
-    var(--mobile-nav-inner-shadow);
+  box-shadow: var(--mobile-nav-shadow), var(--mobile-nav-inner-shadow);
   margin-inline: auto;
   padding: 0 10px;
   pointer-events: auto;
@@ -19373,6 +19443,69 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     radial-gradient(circle at 18% 10%, rgba(249, 115, 22, 0.18), transparent 32rem),
     radial-gradient(circle at 82% 8%, rgba(56, 189, 248, 0.12), transparent 30rem), var(--vc-public-bg);
   color: var(--vc-public-text);
+}
+
+.container-responsive,
+.container-responsive-nav {
+  width: 100%;
+  max-width: 1280px;
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: 1rem;
+  padding-left: 1rem;
+}
+
+.container-responsive-nav {
+  overflow: visible;
+}
+
+@media (min-width: 640px) {
+  .container-responsive,
+  .container-responsive-nav {
+    padding-right: 1.5rem;
+    padding-left: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-responsive,
+  .container-responsive-nav {
+    padding-right: 2rem;
+    padding-left: 2rem;
+  }
+}
+
+.marketing-gradient {
+  position: absolute;
+  inset: 0;
+  background: var(--marketing-gradient);
+  pointer-events: none;
+}
+
+.marketing-grid,
+.bg-grid-pattern {
+  position: absolute;
+  inset: 0;
+  background-size: 56px 56px;
+  background-image:
+    linear-gradient(to right, var(--marketing-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--marketing-grid-line) 1px, transparent 1px);
+  mask-image: radial-gradient(circle at center, black, transparent 75%);
+  pointer-events: none;
+}
+
+.marketing-divider {
+  background: var(--marketing-divider);
+}
+
+.ecode-nav-menu:hover .ecode-nav-menu-panel,
+.ecode-nav-menu:focus-within .ecode-nav-menu-panel {
+  display: block;
+}
+
+.ecode-nav-menu:hover .ecode-nav-menu-chevron,
+.ecode-nav-menu:focus-within .ecode-nav-menu-chevron {
+  transform: rotate(90deg);
 }
 
 :root[data-theme='light'] .vc-public-shell {

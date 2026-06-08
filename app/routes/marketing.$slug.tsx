@@ -1,7 +1,7 @@
 import type { LoaderFunctionArgs, MetaFunction } from '@remix-run/cloudflare';
 import { useParams } from '@remix-run/react';
+import { EcodeCampaignPage, ecodeCampaignMarketingPages } from '~/components/marketing/EcodeExactProductMarketingPages';
 import { MarketingDynamicPage, marketingCampaignPages } from '~/components/marketing/EcodeMarketingPages';
-import { EcodeCampaignPage, ecodeCampaignMarketingPages } from '~/components/marketing/EcodeProductMarketingPages';
 
 /*
  * Throw the 404 from the loader so an unknown slug yields a true HTTP 404 instead

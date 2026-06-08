@@ -1,4 +1,4 @@
-import { EcodeAiAgentPage, makeEcodeProductMeta } from '~/components/marketing/EcodeProductMarketingPages';
+import { EcodeAiAgentPage, makeEcodeProductMeta } from '~/components/marketing/EcodeExactProductMarketingPages';
 
 export const meta = makeEcodeProductMeta('ai-agent');
 

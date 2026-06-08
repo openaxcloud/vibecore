@@ -66,6 +66,7 @@ import {
   SiTypescript,
   SiVite,
 } from 'react-icons/si';
+import { EcodeExactPublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import { Button } from '~/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/Card';
 import { profileStore } from '~/lib/stores/profile';
@@ -362,13 +363,7 @@ export interface ProjectCard {
 }
 
 export function PublicShell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="vc-public-shell min-h-screen bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
-      <PublicMarketingHeader />
-      {children}
-      <PublicMarketingFooter />
-    </main>
-  );
+  return <EcodeExactPublicShell>{children}</EcodeExactPublicShell>;
 }
 
 function EcodeMarketingLogo({ compact = false }: { compact?: boolean }) {
@@ -382,7 +377,7 @@ function EcodeMarketingLogo({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function PublicMarketingHeader() {
+export function PublicMarketingHeader() {
   const mobileItems = [
     ...publicMarketingMenus.product,
     ...publicMarketingMenus.solutions,
@@ -497,7 +492,7 @@ function MarketingMenu({
   );
 }
 
-function PublicMarketingFooter() {
+export function PublicMarketingFooter() {
   return (
     <footer id="company" className="vc-public-footer" role="contentinfo" aria-label="Site footer">
       <div className="vc-public-container">
