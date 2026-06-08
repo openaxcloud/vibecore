@@ -419,20 +419,24 @@ export async function executeAgentRun(input: {
   gateway: AiGateway;
   request: AgentRunRequest;
   persistence?: AgentRunPersistence;
+  signal?: AbortSignal;
 }): Promise<AgentRunResponse> {
   const runId = randomUUID();
   const startedAt = new Date();
   const results = await Promise.all(
     input.request.roles.map(async (role): Promise<AgentRunResult> => {
       try {
-        const completion = await input.gateway.complete({
-          organizationId: input.request.organizationId,
-          plan: input.request.plan ?? 'free',
-          provider: input.request.provider,
-          model: input.request.model,
-          messages: buildRoleMessages(input.request, role),
-          maxTokens: input.request.maxTokens ?? defaultAgentMaxTokens,
-        });
+        const completion = await input.gateway.complete(
+          {
+            organizationId: input.request.organizationId,
+            plan: input.request.plan ?? 'free',
+            provider: input.request.provider,
+            model: input.request.model,
+            messages: buildRoleMessages(input.request, role),
+            maxTokens: input.request.maxTokens ?? defaultAgentMaxTokens,
+          },
+          input.signal,
+        );
 
         return normalizeAgentOutput(role.id, completion.content);
       } catch (error) {

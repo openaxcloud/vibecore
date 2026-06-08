@@ -1054,8 +1054,8 @@ export async function runStaticBuild(options: RunStaticBuildOptions): Promise<Ru
       cwd: buildCwd,
       env,
       timeoutMs,
-      onStdout: (line) => log.push('info', `[install] ${line}`),
-      onStderr: (line) => log.push('error', `[install] ${line}`),
+      onStdout: (line) => log.push('info', `[install] ${redactDeploymentLog(line, options.envVars)}`),
+      onStderr: (line) => log.push('error', `[install] ${redactDeploymentLog(line, options.envVars)}`),
     });
 
     if (!install.ok) {
@@ -1084,8 +1084,8 @@ export async function runStaticBuild(options: RunStaticBuildOptions): Promise<Ru
     cwd: buildCwd,
     env,
     timeoutMs,
-    onStdout: (line) => log.push('info', `[build] ${line}`),
-    onStderr: (line) => log.push('error', `[build] ${line}`),
+    onStdout: (line) => log.push('info', `[build] ${redactDeploymentLog(line, options.envVars)}`),
+    onStderr: (line) => log.push('error', `[build] ${redactDeploymentLog(line, options.envVars)}`),
   });
 
   if (!build.ok) {
@@ -1151,6 +1151,19 @@ async function directoryByteSize(dir: string): Promise<number> {
     } else if (entry.isFile()) {
       const info = await stat(child);
       total += info.size;
+    } else if (entry.isSymbolicLink()) {
+      try {
+        const info = await stat(child);
+
+        if (info.isFile()) {
+          total += info.size;
+        }
+      } catch {
+        /*
+         * Dangling symlink: contributes nothing, but a symlink to a large file
+         * must not silently bypass the artifact-size cap.
+         */
+      }
     }
   }
 

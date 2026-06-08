@@ -138,7 +138,20 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
         });
       }
 
-      return executeAgentRun({ gateway, request: body, persistence: agentRunPersistence });
+      const abortController = new AbortController();
+      const onClientClose = () => abortController.abort();
+      request.raw.on('close', onClientClose);
+
+      try {
+        return await executeAgentRun({
+          gateway,
+          request: body,
+          persistence: agentRunPersistence,
+          signal: abortController.signal,
+        });
+      } finally {
+        request.raw.off('close', onClientClose);
+      }
     } catch (error) {
       const statusCode = typeof (error as { statusCode?: unknown }).statusCode === 'number' ? 400 : 500;
       return reply.code(statusCode).send({

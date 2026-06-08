@@ -378,7 +378,12 @@ function geminiPayload(request: AiChatRequest, model: string) {
   };
 }
 
-async function providerCompletion(config: ProviderConfig, request: AiChatRequest, model: string) {
+async function providerCompletion(config: ProviderConfig, request: AiChatRequest, model: string, signal?: AbortSignal) {
+  // Combine the caller's abort signal (client disconnect) with the per-request timeout.
+  const reqSignal = signal
+    ? ((AbortSignal as any).any?.([signal, AbortSignal.timeout(60_000)]) ?? signal)
+    : AbortSignal.timeout(60_000);
+
   if (config.kind === 'openai-compatible') {
     return extractContent(
       await readJson(
@@ -386,7 +391,7 @@ async function providerCompletion(config: ProviderConfig, request: AiChatRequest
           method: 'POST',
           headers: headers(config),
           body: JSON.stringify(openAiPayload(request, model, false)),
-          signal: AbortSignal.timeout(60_000),
+          signal: reqSignal,
         }),
       ),
     );
@@ -399,7 +404,7 @@ async function providerCompletion(config: ProviderConfig, request: AiChatRequest
           method: 'POST',
           headers: headers(config),
           body: JSON.stringify(anthropicPayload(request, model, false)),
-          signal: AbortSignal.timeout(60_000),
+          signal: reqSignal,
         }),
       ),
     );
@@ -415,7 +420,7 @@ async function providerCompletion(config: ProviderConfig, request: AiChatRequest
             method: 'POST',
             headers: headers(config),
             body: JSON.stringify(geminiPayload(request, model)),
-            signal: AbortSignal.timeout(60_000),
+            signal: reqSignal,
           },
         ),
       ),
@@ -428,7 +433,7 @@ async function providerCompletion(config: ProviderConfig, request: AiChatRequest
         method: 'POST',
         headers: headers(config),
         body: JSON.stringify({ model, messages: request.messages, stream: false }),
-        signal: AbortSignal.timeout(60_000),
+        signal: reqSignal,
       }),
     ),
   );
@@ -579,7 +584,7 @@ export class AiGateway {
     return { model: selectedModel, providers };
   }
 
-  async complete(request: AiChatRequest) {
+  async complete(request: AiChatRequest, signal?: AbortSignal) {
     await ensureGptTokenizer();
     const routed = this.route(request);
     const inputTokens = countTokens(request.messages);
@@ -587,7 +592,11 @@ export class AiGateway {
 
     for (const provider of routed.providers) {
       try {
-        const content = await retry(() => providerCompletion(provider, request, request.model ?? routed.model.id));
+        if (signal?.aborted) {
+          throw new Error('aborted');
+        }
+
+        const content = await retry(() => providerCompletion(provider, request, request.model ?? routed.model.id, signal));
         const outputTokens = countTokens(content);
         return {
           provider: provider.id,

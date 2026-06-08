@@ -264,12 +264,29 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
           );
         }
 
-        const response = await fetch(`https://api.github.com/users/${username}/events?per_page=30`, {
-          headers: {
-            Accept: 'application/vnd.github.v3+json',
-            Authorization: `Bearer ${token}`,
+        if (!/^[A-Za-z0-9-]{1,39}$/.test(username)) {
+          return json(
+            { error: 'Invalid GitHub username' },
+            {
+              status: 400,
+              headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+              },
+            },
+          );
+        }
+
+        const response = await fetch(
+          `https://api.github.com/users/${encodeURIComponent(username)}/events?per_page=30`,
+          {
+            headers: {
+              Accept: 'application/vnd.github.v3+json',
+              Authorization: `Bearer ${token}`,
+            },
+            signal: AbortSignal.timeout(30000),
           },
-        });
+        );
 
         if (!response.ok) {
           console.error('GitHub activity API error:', response.status);

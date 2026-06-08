@@ -182,6 +182,7 @@ export async function action({ request }: ActionFunctionArgs) {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        signal: AbortSignal.timeout(30000),
       });
 
       if (!statusResponse.ok) {

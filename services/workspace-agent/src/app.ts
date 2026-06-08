@@ -443,50 +443,71 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
         });
 
       socket.onMessage((message) => {
-        const payload = parseTerminalMessage(message);
+        try {
+          const payload = parseTerminalMessage(message);
 
-        if (payload.type === 'resize') {
-          session?.resize(payload.cols ?? cols, payload.rows ?? rows);
-          return;
-        }
-
-        if (payload.type === 'kill') {
-          terminalManager.dispose(sessionId);
-          return;
-        }
-
-        if (payload.type === 'signal' || payload.signal) {
-          const signal = payload.signal ?? 'SIGINT';
-
-          if (signal === 'SIGINT') {
-            session?.interrupt();
-          } else {
-            session?.backend.kill(signal as NodeJS.Signals);
+          if (payload.type === 'resize') {
+            session?.resize(payload.cols ?? cols, payload.rows ?? rows);
+            return;
           }
 
-          return;
+          if (payload.type === 'kill') {
+            terminalManager.dispose(sessionId);
+            return;
+          }
+
+          if (payload.type === 'signal' || payload.signal) {
+            const signal = payload.signal ?? 'SIGINT';
+
+            if (signal === 'SIGINT') {
+              session?.interrupt();
+            } else {
+              session?.backend.kill(signal as NodeJS.Signals);
+            }
+
+            return;
+          }
+
+          const data = payload.data ?? '';
+
+          if (!data) {
+            return;
+          }
+
+          if (!session) {
+            earlyInput.push(data);
+            return;
+          }
+
+          /*
+           * For the no-PTY fallback, a bare Ctrl+C (ETX) can't raise SIGINT on its
+           * own, so deliver it to the foreground process group explicitly.
+           */
+          if (session.backend.mode === 'pipe' && data.includes('\x03')) {
+            session.interrupt();
+          }
+
+          session.write(data);
+        } catch (error) {
+          /*
+           * Writing to / signalling a PTY whose shell has already exited can throw
+           * synchronously (e.g. node-pty "Cannot write to a closed pty"). This runs
+           * inside a raw WebSocket event listener with no request-level error
+           * boundary, so an uncaught throw would crash the whole agent and every
+           * other session in this workspace. Surface it to this client and continue.
+           */
+          try {
+            socket.send(
+              JSON.stringify({
+                type: 'stdout',
+                data: `\r\n[terminal error] ${error instanceof Error ? error.message : String(error)}\r\n`,
+                timestamp: new Date().toISOString(),
+              }),
+            );
+          } catch {
+            // Socket already gone; nothing to report.
+          }
         }
-
-        const data = payload.data ?? '';
-
-        if (!data) {
-          return;
-        }
-
-        if (!session) {
-          earlyInput.push(data);
-          return;
-        }
-
-        /*
-         * For the no-PTY fallback, a bare Ctrl+C (ETX) can't raise SIGINT on its
-         * own, so deliver it to the foreground process group explicitly.
-         */
-        if (session.backend.mode === 'pipe' && data.includes('\x03')) {
-          session.interrupt();
-        }
-
-        session.write(data);
       });
 
       socket.onClose(() => {

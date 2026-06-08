@@ -24,6 +24,13 @@ export async function action({ request }: ActionFunctionArgs) {
       });
     }
 
+    if (!/^[a-zA-Z0-9-]+$/.test(projectId)) {
+      return new Response(JSON.stringify({ error: { message: 'Invalid projectId' } }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     logger.debug('Executing query:', { projectId, query });
 
     const response = await fetch(`https://api.supabase.com/v1/projects/${projectId}/database/query`, {
@@ -33,6 +40,7 @@ export async function action({ request }: ActionFunctionArgs) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ query }),
+      signal: AbortSignal.timeout(30000),
     });
 
     if (!response.ok) {

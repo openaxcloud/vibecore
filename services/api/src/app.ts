@@ -13314,7 +13314,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 ? 'CANCELED'
                 : status === 'UNPAID'
                   ? 'UNPAID'
-                  : 'ACTIVE',
+                  : status === 'ACTIVE'
+                    ? 'ACTIVE'
+                    : /*
+                       * incomplete / incomplete_expired / paused / unknown are NOT paying,
+                       * entitled states and must not map to ACTIVE. A checkout.session.completed
+                       * carries a session status ('complete'), not a subscription status, and is
+                       * always a successful, entitled checkout — treat only that as ACTIVE.
+                       */
+                      event.type === 'checkout.session.completed'
+                      ? 'ACTIVE'
+                      : 'CANCELED',
         cancelAtPeriodEnd: Boolean(object.cancel_at_period_end),
         trialEndsAt: object.trial_end ? new Date(Number(object.trial_end) * 1000) : undefined,
         currentPeriodStart: object.current_period_start
