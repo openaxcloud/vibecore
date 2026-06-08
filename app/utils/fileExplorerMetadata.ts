@@ -75,6 +75,15 @@ export function materialFileIcon(filePathOrName: string): MaterialFileIcon {
     return special;
   }
 
+  /*
+   * Treat `.env.local`, `.env.production`, … the same as `.env` instead of
+   * splitting on the last dot (which would yield a bogus `local`/`production`
+   * extension and fall through to the generic icon).
+   */
+  if (name.startsWith('.env')) {
+    return SPECIAL_FILE_ICONS['.env'];
+  }
+
   const extension = name.split('.').pop() ?? '';
 
   return (

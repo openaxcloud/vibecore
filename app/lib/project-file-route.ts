@@ -43,7 +43,18 @@ export function normalizeProjectFilePath(rawPath: string | undefined): ProjectFi
 }
 
 export function contentTypeForProjectFile(path: string) {
-  const extension = path.split('.').pop()?.toLowerCase();
+  const basename = path.split('/').pop() ?? path;
+
+  /*
+   * Extensionless text files (Dockerfile, Makefile, LICENSE, README) and
+   * pure dotfiles (.gitignore, .env) have no usable extension via split('.'),
+   * so serve them as text/plain (inline) instead of octet-stream (download).
+   */
+  if (!basename.includes('.') || basename.startsWith('.env')) {
+    return 'text/plain; charset=utf-8';
+  }
+
+  const extension = basename.split('.').pop()?.toLowerCase();
 
   switch (extension) {
     case 'css':

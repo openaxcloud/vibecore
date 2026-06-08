@@ -2640,14 +2640,36 @@ export class WorkbenchStore {
             const repoRefresh = await octokit.repos.get({ owner, repo: repoName });
             repo = repoRefresh.data;
 
-            // Get the latest commit SHA (assuming main branch, update dynamically if needed)
-            const { data: ref } = await octokit.git.getRef({
-              owner: repo.owner.login,
-              repo: repo.name,
-              ref: `heads/${repo.default_branch || 'main'}`, // Handle dynamic branch
-            });
+            /*
+             * Push to the requested branch (falling back to the repo default),
+             * not unconditionally to the default branch.
+             */
+            const targetBranch = branchName || repo.default_branch || 'main';
 
-            const latestCommitSha = ref.object.sha;
+            /*
+             * Resolve the base commit: prefer the target branch's tip, but if
+             * that branch doesn't exist yet, branch off the repo's default branch.
+             */
+            let latestCommitSha: string;
+            let targetRefExists = true;
+
+            try {
+              const { data: ref } = await octokit.git.getRef({
+                owner: repo.owner.login,
+                repo: repo.name,
+                ref: `heads/${targetBranch}`,
+              });
+              latestCommitSha = ref.object.sha;
+            } catch {
+              targetRefExists = false;
+
+              const { data: defaultRef } = await octokit.git.getRef({
+                owner: repo.owner.login,
+                repo: repo.name,
+                ref: `heads/${repo.default_branch || 'main'}`,
+              });
+              latestCommitSha = defaultRef.object.sha;
+            }
 
             // Create a new tree
             const { data: newTree } = await octokit.git.createTree({
@@ -2671,13 +2693,22 @@ export class WorkbenchStore {
               parents: [latestCommitSha],
             });
 
-            // Update the reference
-            await octokit.git.updateRef({
-              owner: repo.owner.login,
-              repo: repo.name,
-              ref: `heads/${repo.default_branch || 'main'}`, // Handle dynamic branch
-              sha: newCommit.sha,
-            });
+            // Update the target branch ref, or create it when pushing to a new branch.
+            if (targetRefExists) {
+              await octokit.git.updateRef({
+                owner: repo.owner.login,
+                repo: repo.name,
+                ref: `heads/${targetBranch}`,
+                sha: newCommit.sha,
+              });
+            } else {
+              await octokit.git.createRef({
+                owner: repo.owner.login,
+                repo: repo.name,
+                ref: `refs/heads/${targetBranch}`,
+                sha: newCommit.sha,
+              });
+            }
 
             console.log('Files successfully pushed to repository');
 

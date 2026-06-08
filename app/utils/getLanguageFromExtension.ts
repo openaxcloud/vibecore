@@ -17,8 +17,19 @@ export const getLanguageFromExtension = (ext: string): string => {
     rs: 'rust',
     php: 'php',
     swift: 'swift',
-    md: 'plaintext',
+    md: 'markdown',
+    mdx: 'markdown',
     sh: 'bash',
+    yml: 'yaml',
+    yaml: 'yaml',
+    sql: 'sql',
+    toml: 'toml',
   };
-  return map[ext] || 'typescript';
+
+  /*
+   * Default to plaintext, not typescript — an unknown or extensionless file
+   * (Dockerfile, Makefile, .env, plain text) was previously highlighted with
+   * TypeScript grammar, producing wrong colouring and spurious bracket matching.
+   */
+  return map[ext] || 'plaintext';
 };

@@ -333,6 +333,13 @@ export const ChatImpl = memo(
       sendExtraMessageFields: true,
       onError: (e) => {
         setFakeLoading(false);
+
+        /*
+         * A dropped connection / stream error mid-generation never delivers the
+         * closing </boltAction>, so any in-flight file actions would otherwise
+         * spin forever. Abort them like a manual stop does.
+         */
+        workbenchStore.abortAllActions();
         handleError(e, 'chat');
         window.setTimeout(() => {
           const snapshot = latestMessagesRef.current;

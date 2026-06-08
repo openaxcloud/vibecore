@@ -108,8 +108,25 @@ function cleanHighlightedCodeMarkup(content: string) {
   );
 }
 
-function cleanFileActionContent(content: string) {
-  return cleanHighlightedCodeMarkup(cleanEscapedTags(cleanoutMarkdownSyntax(content)));
+/*
+ * Extensions whose source legitimately contains HTML entities (&amp;, &lt;, &gt;,
+ * &copy;, …). Blindly decoding entities in these files corrupts valid markup
+ * (e.g. `<p>Tom &amp; Jerry</p>` would be rewritten to a broken `&`), so we strip
+ * markdown fences / highlighter markup but skip the entity decode for them.
+ */
+const ENTITY_PRESERVING_EXTENSIONS = ['.html', '.htm', '.xhtml', '.svg', '.xml', '.vue', '.rss', '.atom'];
+
+function cleanFileActionContent(content: string, filePath?: string) {
+  const lower = (filePath ?? '').toLowerCase();
+  const preserveEntities = ENTITY_PRESERVING_EXTENSIONS.some((ext) => lower.endsWith(ext));
+
+  const stripped = cleanoutMarkdownSyntax(content);
+
+  if (preserveEntities) {
+    return cleanHighlightedCodeMarkup(stripped);
+  }
+
+  return cleanHighlightedCodeMarkup(cleanEscapedTags(stripped));
 }
 export class StreamingMessageParser {
   #messages = new Map<string, MessageState>();
@@ -199,7 +216,7 @@ export class StreamingMessageParser {
             if ('type' in currentAction && currentAction.type === 'file') {
               // Remove markdown code block syntax if present and file is not markdown
               if (!currentAction.filePath?.endsWith('.md')) {
-                content = cleanFileActionContent(content);
+                content = cleanFileActionContent(content, currentAction.filePath);
               }
 
               content += '\n';
@@ -230,7 +247,7 @@ export class StreamingMessageParser {
               let content = input.slice(i);
 
               if (!currentAction.filePath?.endsWith('.md')) {
-                content = cleanFileActionContent(content);
+                content = cleanFileActionContent(content, currentAction.filePath);
               }
 
               this._options.callbacks?.onActionStream?.({
