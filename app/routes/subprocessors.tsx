@@ -1,7 +1,7 @@
-import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';
+import { EcodeSubprocessorsPage, makeEcodeLegalMeta } from '~/components/marketing/EcodeExactLegalPages';
 
-export const meta = makeMarketingMeta(marketingPages.subprocessors);
+export const meta = makeEcodeLegalMeta('subprocessors');
 
 export default function SubprocessorsRoute() {
-  return <MarketingStaticPage page={marketingPages.subprocessors} />;
+  return <EcodeSubprocessorsPage />;
 }

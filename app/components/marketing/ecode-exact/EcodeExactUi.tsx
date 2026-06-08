@@ -1,3 +1,5 @@
+import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
+import * as LabelPrimitive from '@radix-ui/react-label';
 import * as SwitchPrimitive from '@radix-ui/react-switch';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
@@ -5,6 +7,7 @@ import { Link as RemixLink, useLocation, useNavigate } from '@remix-run/react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { clsx, type ClassValue } from 'clsx';
 import { motion } from 'framer-motion';
+import { Check } from 'lucide-react';
 import * as React from 'react';
 import { twMerge } from 'tailwind-merge';
 
@@ -201,6 +204,213 @@ export const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes
   ({ className, ...props }, ref) => <div ref={ref} className={cn('p-6 pt-0', className)} {...props} />,
 );
 CardContent.displayName = 'CardContent';
+
+export const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn('flex items-center p-6 pt-0', className)} {...props} />
+  ),
+);
+CardFooter.displayName = 'CardFooter';
+
+export const Alert = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      role="alert"
+      className={cn(
+        'relative w-full rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-3 text-[var(--ecode-text)]',
+        className,
+      )}
+      {...props}
+    />
+  ),
+);
+Alert.displayName = 'Alert';
+
+export const AlertDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
+  ({ className, ...props }, ref) => (
+    <p ref={ref} className={cn('text-sm leading-relaxed text-muted-foreground', className)} {...props} />
+  ),
+);
+AlertDescription.displayName = 'AlertDescription';
+
+export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
+  ({ className, type, ...props }, ref) => (
+    <input
+      type={type}
+      className={cn(
+        'flex h-10 w-full rounded-md border border-[var(--ecode-border)] bg-background px-3 py-2 text-sm text-foreground ring-offset-background transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+        className,
+      )}
+      ref={ref}
+      {...props}
+    />
+  ),
+);
+Input.displayName = 'Input';
+
+export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
+  ({ className, ...props }, ref) => (
+    <textarea
+      className={cn(
+        'flex min-h-[120px] w-full rounded-md border border-[var(--ecode-border)] bg-background px-3 py-2 text-sm text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+        className,
+      )}
+      ref={ref}
+      {...props}
+    />
+  ),
+);
+Textarea.displayName = 'Textarea';
+
+export const Label = React.forwardRef<
+  React.ElementRef<typeof LabelPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <LabelPrimitive.Root
+    ref={ref}
+    className={cn(
+      'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
+      className,
+    )}
+    {...props}
+  />
+));
+Label.displayName = LabelPrimitive.Root.displayName;
+
+export const Checkbox = React.forwardRef<
+  React.ElementRef<typeof CheckboxPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <CheckboxPrimitive.Root
+    ref={ref}
+    className={cn(
+      'peer h-4 w-4 shrink-0 rounded-sm border border-[var(--ecode-border)] bg-background ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground',
+      className,
+    )}
+    {...props}
+  >
+    <CheckboxPrimitive.Indicator className={cn('flex items-center justify-center text-current')}>
+      <Check className="h-3.5 w-3.5" />
+    </CheckboxPrimitive.Indicator>
+  </CheckboxPrimitive.Root>
+));
+Checkbox.displayName = CheckboxPrimitive.Root.displayName;
+
+type RadioGroupContextValue = {
+  name: string;
+  value: string;
+  setValue: (value: string) => void;
+};
+
+const RadioGroupContext = React.createContext<RadioGroupContextValue | null>(null);
+
+export const RadioGroup = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & {
+    value?: string;
+    defaultValue?: string;
+    onValueChange?: (value: string) => void;
+    name?: string;
+  }
+>(({ className, value, defaultValue = '', onValueChange, name, ...props }, ref) => {
+  const generatedName = React.useId();
+  const [internalValue, setInternalValue] = React.useState(defaultValue);
+  const selectedValue = value ?? internalValue;
+
+  const setValue = React.useCallback(
+    (nextValue: string) => {
+      if (value === undefined) {
+        setInternalValue(nextValue);
+      }
+
+      onValueChange?.(nextValue);
+    },
+    [onValueChange, value],
+  );
+
+  return (
+    <RadioGroupContext.Provider value={{ name: name ?? generatedName, value: selectedValue, setValue }}>
+      <div ref={ref} role="radiogroup" className={cn('grid gap-2', className)} {...props} />
+    </RadioGroupContext.Provider>
+  );
+});
+RadioGroup.displayName = 'RadioGroup';
+
+export const RadioGroupItem = React.forwardRef<
+  HTMLInputElement,
+  Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'onChange'>
+>(({ className, value, ...props }, ref) => {
+  const context = React.useContext(RadioGroupContext);
+  const stringValue = String(value ?? '');
+
+  return (
+    <input
+      ref={ref}
+      type="radio"
+      name={context?.name}
+      value={stringValue}
+      checked={context?.value === stringValue}
+      onChange={() => context?.setValue(stringValue)}
+      className={cn(
+        'h-4 w-4 shrink-0 appearance-none rounded-full border border-[var(--ecode-border)] bg-background shadow-sm ring-offset-background transition-colors checked:border-primary checked:bg-primary checked:shadow-[inset_0_0_0_4px_var(--background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+        className,
+      )}
+      {...props}
+    />
+  );
+});
+RadioGroupItem.displayName = 'RadioGroupItem';
+
+export const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
+  ({ className, ...props }, ref) => (
+    <div className="relative w-full overflow-auto">
+      <table ref={ref} className={cn('w-full caption-bottom text-sm', className)} {...props} />
+    </div>
+  ),
+);
+Table.displayName = 'Table';
+
+export const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
+  ({ className, ...props }, ref) => (
+    <thead ref={ref} className={cn('[&_tr]:border-b [&_tr]:border-[var(--ecode-border)]', className)} {...props} />
+  ),
+);
+TableHeader.displayName = 'TableHeader';
+
+export const TableBody = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
+  ({ className, ...props }, ref) => (
+    <tbody ref={ref} className={cn('[&_tr:last-child]:border-0', className)} {...props} />
+  ),
+);
+TableBody.displayName = 'TableBody';
+
+export const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTMLTableRowElement>>(
+  ({ className, ...props }, ref) => (
+    <tr
+      ref={ref}
+      className={cn('border-b border-[var(--ecode-border)] transition-colors hover:bg-muted/50', className)}
+      {...props}
+    />
+  ),
+);
+TableRow.displayName = 'TableRow';
+
+export const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<HTMLTableCellElement>>(
+  ({ className, ...props }, ref) => (
+    <th
+      ref={ref}
+      className={cn('h-12 px-4 text-left align-middle font-medium text-muted-foreground', className)}
+      {...props}
+    />
+  ),
+);
+TableHead.displayName = 'TableHead';
+
+export const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<HTMLTableCellElement>>(
+  ({ className, ...props }, ref) => <td ref={ref} className={cn('p-4 align-middle', className)} {...props} />,
+);
+TableCell.displayName = 'TableCell';
 
 export const Skeleton = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (

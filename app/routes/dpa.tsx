@@ -1,7 +1,7 @@
-import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';
+import { EcodeDpaPage, makeEcodeLegalMeta } from '~/components/marketing/EcodeExactLegalPages';
 
-export const meta = makeMarketingMeta(marketingPages.dpa);
+export const meta = makeEcodeLegalMeta('dpa');
 
 export default function DpaRoute() {
-  return <MarketingStaticPage page={marketingPages.dpa} />;
+  return <EcodeDpaPage />;
 }

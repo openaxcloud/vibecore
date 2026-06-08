@@ -1,7 +1,7 @@
-import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';
+import { EcodeReportAbusePage, makeEcodeLegalMeta } from '~/components/marketing/EcodeExactLegalPages';
 
-export const meta = makeMarketingMeta(marketingPages['report-abuse']);
+export const meta = makeEcodeLegalMeta('report-abuse');
 
 export default function ReportAbuseRoute() {
-  return <MarketingStaticPage page={marketingPages['report-abuse']} />;
+  return <EcodeReportAbusePage />;
 }
