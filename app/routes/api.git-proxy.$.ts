@@ -122,7 +122,9 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
       fetchOptions.duplex = 'half';
     }
 
-    // Forward the request to the target URL
+    // Forward the request to the target URL (bounded so a hung upstream can't pin the pod)
+    fetchOptions.signal = AbortSignal.timeout(30000);
+
     const response = await fetch(targetURL, fetchOptions);
 
     console.log('Response status:', response.status);

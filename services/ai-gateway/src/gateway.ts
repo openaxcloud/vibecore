@@ -434,7 +434,12 @@ async function providerCompletion(config: ProviderConfig, request: AiChatRequest
   );
 }
 
-async function* providerStream(config: ProviderConfig, request: AiChatRequest, model: string): AsyncGenerator<string> {
+async function* providerStream(
+  config: ProviderConfig,
+  request: AiChatRequest,
+  model: string,
+  signal?: AbortSignal,
+): AsyncGenerator<string> {
   const url =
     config.kind === 'anthropic'
       ? `${config.baseUrl.replace(/\/+$/, '')}/v1/messages`
@@ -451,7 +456,14 @@ async function* providerStream(config: ProviderConfig, request: AiChatRequest, m
         : config.kind === 'ollama'
           ? { model, messages: request.messages, stream: true }
           : openAiPayload(request, model, true);
-  const response = await fetch(url, { method: 'POST', headers: headers(config), body: JSON.stringify(body) });
+  const timeout = AbortSignal.timeout(60_000);
+  const upstreamSignal = signal ? ((AbortSignal as any).any?.([signal, timeout]) ?? signal) : timeout;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: headers(config),
+    body: JSON.stringify(body),
+    signal: upstreamSignal,
+  });
 
   if (!response.ok || !response.body) {
     throw Object.assign(new Error(`Provider stream failed: ${response.status}`), { statusCode: 502 });
@@ -461,44 +473,50 @@ async function* providerStream(config: ProviderConfig, request: AiChatRequest, m
   const decoder = new TextDecoder();
   let buffer = '';
 
-  while (true) {
-    const { value, done } = await reader.read();
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
 
-    if (done) {
-      break;
-    }
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() ?? '';
-
-    for (const rawLine of lines) {
-      const line = rawLine.trim();
-
-      if (!line || line === 'data: [DONE]') {
-        continue;
+      if (done) {
+        break;
       }
 
-      const jsonLine = line.startsWith('data:') ? line.slice(5).trim() : line;
-      try {
-        const payload = JSON.parse(jsonLine);
-        const delta =
-          payload.choices?.[0]?.delta?.content ??
-          payload.delta?.text ??
-          payload.contentBlockDelta?.delta?.text ??
-          payload.candidates?.[0]?.content?.parts?.map((part: any) => part.text ?? '').join('') ??
-          payload.message?.content ??
-          '';
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
 
-        if (delta) {
-          yield delta;
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+
+        if (!line || line === 'data: [DONE]') {
+          continue;
         }
-      } catch {
-        // A malformed SSE chunk is not assistant content — yielding the raw JSON would
-        // splice literal `{"choices":...}` text into the streamed message. Skip it.
-        continue;
+
+        const jsonLine = line.startsWith('data:') ? line.slice(5).trim() : line;
+        try {
+          const payload = JSON.parse(jsonLine);
+          const delta =
+            payload.choices?.[0]?.delta?.content ??
+            payload.delta?.text ??
+            payload.contentBlockDelta?.delta?.text ??
+            payload.candidates?.[0]?.content?.parts?.map((part: any) => part.text ?? '').join('') ??
+            payload.message?.content ??
+            '';
+
+          if (delta) {
+            yield delta;
+          }
+        } catch {
+          // A malformed SSE chunk is not assistant content — yielding the raw JSON would
+          // splice literal `{"choices":...}` text into the streamed message. Skip it.
+          continue;
+        }
       }
     }
+  } finally {
+    // Cancel the upstream body so a client disconnect (generator .return()) or error
+    // tears down the provider request instead of leaving it streaming (cost/socket leak).
+    await reader.cancel().catch(() => {});
   }
 }
 
@@ -589,15 +607,17 @@ export class AiGateway {
     throw lastError;
   }
 
-  async *stream(request: AiChatRequest): AsyncGenerator<AiChatChunk> {
+  async *stream(request: AiChatRequest, signal?: AbortSignal): AsyncGenerator<AiChatChunk> {
     await ensureGptTokenizer();
     const routed = this.route(request);
     const inputTokens = countTokens(request.messages);
-    let content = '';
 
     for (const provider of routed.providers) {
+      // Reset per provider so a failed provider's partial deltas aren't concatenated
+      // onto the fallback provider's output (garbled message + double-counted cost).
+      let content = '';
       try {
-        for await (const delta of providerStream(provider, request, request.model ?? routed.model.id)) {
+        for await (const delta of providerStream(provider, request, request.model ?? routed.model.id, signal)) {
           content += delta;
           yield { type: 'delta', content: delta, provider: provider.id, model: request.model ?? routed.model.id };
         }

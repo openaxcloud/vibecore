@@ -143,11 +143,16 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
         method: request.method,
         headers,
         body,
+        signal: AbortSignal.timeout(30_000),
         ...({ duplex: 'half' } as Record<string, unknown>),
       });
     } catch (error: any) {
-      return sendError(reply, 502, {
-        error: 'Connector proxy could not reach the upstream provider.',
+      const timedOut = error?.name === 'TimeoutError' || error?.name === 'AbortError';
+
+      return sendError(reply, timedOut ? 504 : 502, {
+        error: timedOut
+          ? 'Connector proxy timed out waiting for the upstream provider.'
+          : 'Connector proxy could not reach the upstream provider.',
         code: 'CONNECTOR_PROVIDER_UNREACHABLE',
         detail: error?.message,
       });

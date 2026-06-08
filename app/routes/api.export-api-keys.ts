@@ -29,15 +29,14 @@ export const loader: LoaderFunction = async ({ context, request }) => {
       continue;
     }
 
-    // Check environment variables in order of precedence
-    const envValue =
-      (context?.cloudflare?.env as Record<string, any>)?.[envVarName] ||
-      process.env[envVarName] ||
-      llmManager.env[envVarName];
-
-    if (envValue) {
-      apiKeys[provider.name] = envValue;
-    }
+    /*
+     * SECURITY: never fold the platform's server-side provider secrets into the
+     * export. This endpoint is unauthenticated and shared across tenants, so
+     * returning `process.env`/Cloudflare-env keys would leak the deployment's
+     * own LLM credentials to any anonymous caller. Only the caller's own
+     * cookie-scoped keys (already copied above) may be exported.
+     */
+    void envVarName;
   }
 
   /*

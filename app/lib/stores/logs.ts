@@ -151,6 +151,24 @@ class LogStore {
 
       const newLogs = Object.fromEntries(sortedLogs.slice(0, MAX_LOGS));
       this._logs.set(newLogs);
+
+      // Prune read-marker ids for logs that no longer exist so _readLogs can't grow unbounded.
+      if (this._readLogs.size > 0) {
+        const retainedIds = new Set(Object.keys(newLogs));
+
+        let prunedAny = false;
+
+        for (const readId of this._readLogs) {
+          if (!retainedIds.has(readId)) {
+            this._readLogs.delete(readId);
+            prunedAny = true;
+          }
+        }
+
+        if (prunedAny) {
+          this._saveReadLogs();
+        }
+      }
     }
   }
 
@@ -319,7 +337,9 @@ class LogStore {
       const matchesSearch =
         !searchQuery ||
         log.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        JSON.stringify(log.details).toLowerCase().includes(searchQuery.toLowerCase());
+        JSON.stringify(log.details ?? {})
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
 
       return matchesLevel && matchesCategory && matchesSearch;
     });

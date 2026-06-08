@@ -216,11 +216,31 @@ export const enterpriseWorker = new Worker(
 );
 
 worker.on('failed', (job, error) => {
-  console.error(JSON.stringify({ level: 'error', service: 'worker', jobId: job?.id, error: error.message }));
+  console.error(JSON.stringify({ level: 'error', service: 'worker', jobId: job?.id, error: error?.message }));
 });
 
 enterpriseWorker.on('failed', (job, error) => {
-  console.error(JSON.stringify({ level: 'error', service: 'enterprise-worker', jobId: job?.id, error: error.message }));
+  console.error(JSON.stringify({ level: 'error', service: 'enterprise-worker', jobId: job?.id, error: error?.message }));
+});
+
+/*
+ * BullMQ Workers/Queues re-emit the underlying ioredis connection's `'error'`
+ * event (failover, DNS blip, AUTH failure, Memorystore maintenance). On an
+ * EventEmitter, an `'error'` event with no listener is *thrown* — which here
+ * would be an uncaught exception that crashes the long-running worker process
+ * and stops every cron job until the pod restarts. Log and swallow so a
+ * transient Redis fault is survivable.
+ */
+connection.on('error', (error) => {
+  console.error(JSON.stringify({ level: 'error', service: 'worker', component: 'redis', error: error?.message }));
+});
+
+worker.on('error', (error) => {
+  console.error(JSON.stringify({ level: 'error', service: 'worker', component: 'bullmq', error: error?.message }));
+});
+
+enterpriseWorker.on('error', (error) => {
+  console.error(JSON.stringify({ level: 'error', service: 'enterprise-worker', component: 'bullmq', error: error?.message }));
 });
 
 if (import.meta.url === `file://${process.argv[1]}`) {

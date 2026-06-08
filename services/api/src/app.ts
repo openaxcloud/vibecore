@@ -1554,7 +1554,17 @@ async function listDatabaseConnections(store: ApiStore, projectId: string): Prom
   const secretValues = await Promise.all(
     secrets.map(async (secret) => {
       const full = await store.getProjectSecret(projectId, secret.key);
-      const value = full?.valueEncrypted ? decryptJson<{ value: string }>(full.valueEncrypted).value : '';
+
+      let value = '';
+
+      if (full?.valueEncrypted) {
+        try {
+          value = decryptJson<{ value: string }>(full.valueEncrypted).value;
+        } catch {
+          // Corrupt or unreadable ciphertext: skip so a single bad secret can't break database detection.
+          value = '';
+        }
+      }
 
       return { key: secret.key, value, updatedAt: secret.updatedAt };
     }),
@@ -10228,6 +10238,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId, inviteId } = parse(inviteParams, request.params);
     await requireOrg(request, store, orgId, 'members:manage');
 
+    /*
+     * Confirm the invite belongs to this org BEFORE the (unscoped) mutation, so
+     * an admin of one org cannot rotate another tenant's invite token by id.
+     */
+    const ownsResendInvite = (await store.listOrganizationInvites(orgId)).some((entry) => entry.id === inviteId);
+
+    if (!ownsResendInvite) {
+      return reply.code(404).send({ error: 'Invitation not found', code: 'INVITE_NOT_FOUND' });
+    }
+
     const token = createOpaqueToken('invite');
 
     const invitation = await store.resendOrganizationInvite(
@@ -10257,6 +10277,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/orgs/:orgId/invitations/:inviteId/expire', async (request, reply) => {
     const { orgId, inviteId } = parse(inviteParams, request.params);
     await requireOrg(request, store, orgId, 'members:manage');
+
+    /*
+     * Confirm the invite belongs to this org BEFORE the (unscoped) mutation, so
+     * an admin of one org cannot expire another tenant's invite by id.
+     */
+    const ownsExpireInvite = (await store.listOrganizationInvites(orgId)).some((entry) => entry.id === inviteId);
+
+    if (!ownsExpireInvite) {
+      return reply.code(404).send({ error: 'Invitation not found', code: 'INVITE_NOT_FOUND' });
+    }
 
     const invitation = await store.expireOrganizationInvite(inviteId);
 
@@ -10519,6 +10549,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrg(request, store, params.orgId, 'scim:manage');
     await requireRecentAdminReauth(request);
 
+    /*
+     * Confirm the token belongs to this org BEFORE the (unscoped) delete, so an
+     * admin of one org cannot delete another tenant's SCIM token by id.
+     */
+    const ownsScimToken = (await store.listScimTokens(params.orgId)).some((token) => token.id === params.tokenId);
+
+    if (!ownsScimToken) {
+      return reply.code(404).send({ error: 'SCIM token not found', code: 'SCIM_TOKEN_NOT_FOUND' });
+    }
+
     const revoked = await store.revokeScimToken(params.tokenId);
 
     if (!revoked || revoked.organizationId !== params.orgId) {
@@ -10538,6 +10578,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const params = parse(z.object({ orgId: z.string().min(1), tokenId: z.string().min(1) }), request.params);
     await requireOrg(request, store, params.orgId, 'scim:manage');
     await requireRecentAdminReauth(request);
+
+    /*
+     * Confirm the token belongs to this org BEFORE the (unscoped) delete, so an
+     * admin of one org cannot delete another tenant's SCIM token by id.
+     */
+    const ownsRotateToken = (await store.listScimTokens(params.orgId)).some((token) => token.id === params.tokenId);
+
+    if (!ownsRotateToken) {
+      return reply.code(404).send({ error: 'SCIM token not found', code: 'SCIM_TOKEN_NOT_FOUND' });
+    }
 
     const existing = await store.revokeScimToken(params.tokenId);
 
@@ -11596,7 +11646,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       cursor: body.cursor,
       selection: body.selection,
       mode: isReadOnlyProjectRole(role) ? 'read-only' : body.mode,
-      terminalAccess: body.terminalAccess,
+      terminalAccess: isReadOnlyProjectRole(role) ? false : body.terminalAccess,
     });
     collaborationBroker.publish(project.id, { type: 'presence.update', presence });
 
@@ -12054,6 +12104,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         timestamp: new Date().toISOString(),
       }),
     );
+    /*
+     * Per-connection token bucket: bound the inbound message rate so one
+     * authenticated peer cannot flood presence/comment frames (each of which
+     * triggers a DB read + write and a room-wide, cross-replica fan-out).
+     * Refill ~20 msg/s with a burst of 40; drop excess silently.
+     */
+    let messageTokens = 40;
+    let lastTokenRefill = Date.now();
+
     client.onMessage(async (message) => {
       try {
         /*
@@ -12073,6 +12132,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           return;
         }
 
+        const refillNow = Date.now();
+        messageTokens = Math.min(40, messageTokens + ((refillNow - lastTokenRefill) / 1000) * 20);
+        lastTokenRefill = refillNow;
+
+        if (messageTokens < 1) {
+          return;
+        }
+
+        messageTokens -= 1;
+
         const event = JSON.parse(message.toString()) as { type?: string; payload?: unknown };
 
         if (event.type === 'presence.update') {
@@ -12090,7 +12159,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             cursor: body.cursor,
             selection: body.selection,
             mode: isReadOnlyProjectRole(role) ? 'read-only' : body.mode,
-            terminalAccess: body.terminalAccess,
+            terminalAccess: isReadOnlyProjectRole(role) ? false : body.terminalAccess,
           });
           collaborationBroker.publish(project.id, { type: 'presence.update', presence: updated }, client);
 

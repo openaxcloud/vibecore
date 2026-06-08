@@ -91,6 +91,19 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       return;
     }
 
+    /*
+     * The internal preview-proxy agent endpoint enforces its own auth via
+     * requirePreviewProxyAuth (PREVIEW_PROXY_SHARED_SECRET). The global hook
+     * authenticates against WORKSPACE_MANAGER_SHARED_SECRET (with a fallback to
+     * the preview secret), so once an operator sets a distinct manager secret
+     * the global check would 401 preview-proxy before its own auth runs and
+     * break every preview. Skip the global hook here and let the route's
+     * dedicated check gate it.
+     */
+    if (request.url.startsWith('/internal/')) {
+      return;
+    }
+
     const expected = controlPlaneSecret();
 
     if (!expected) {

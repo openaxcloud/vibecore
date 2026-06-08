@@ -84,11 +84,26 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
         connection: 'keep-alive',
       });
 
-      for await (const chunk of gateway.stream(body)) {
-        reply.raw.write(`data: ${JSON.stringify(chunk)}\n\n`);
+      const abortController = new AbortController();
+      const onClientClose = () => abortController.abort();
+      request.raw.on('close', onClientClose);
+
+      try {
+        for await (const chunk of gateway.stream(body, abortController.signal)) {
+          if (abortController.signal.aborted || reply.raw.writableEnded) {
+            break;
+          }
+
+          reply.raw.write(`data: ${JSON.stringify(chunk)}\n\n`);
+        }
+      } finally {
+        request.raw.off('close', onClientClose);
       }
 
-      reply.raw.end();
+      if (!reply.raw.writableEnded) {
+        reply.raw.end();
+      }
+
       return reply;
     }
 
