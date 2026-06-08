@@ -339,10 +339,22 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
       try {
         unbindSocket(socket);
-        socket = await this.#openSocket(terminalPath, {
+        const opened = await this.#openSocket(terminalPath, {
           terminalId,
           ...request,
         });
+
+        /*
+         * The terminal may have been stopped while #openSocket was in flight. The stop
+         * handler already ran against the previous socket reference, so binding this one
+         * would leak it (and its heartbeat) forever.
+         */
+        if (stopped) {
+          opened.close();
+          return;
+        }
+
+        socket = opened;
         this.#terminals.set(terminalId, socket);
         bindSocket(socket);
         startHeartbeat();
@@ -402,9 +414,17 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     const terminal = this.#terminals.get(processId);
 
     if (terminal) {
+      // Send the kill frame before the stop handler closes the socket, otherwise the
+      // agent never disposes the persistent shell (leaking the PTY) and the send throws
+      // on an already-closed socket.
+      try {
+        terminal.send(JSON.stringify({ type: 'kill' }));
+      } catch {
+        // Socket may already be closing/closed.
+      }
+
       this.#terminalStops.get(processId)?.();
       this.#terminalStops.delete(processId);
-      terminal.send(JSON.stringify({ type: 'kill' }));
       terminal.close();
       this.#terminals.delete(processId);
       this.#eventStreams.get(processId)?.close();

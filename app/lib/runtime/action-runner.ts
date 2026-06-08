@@ -300,6 +300,9 @@ export class ActionRunner {
             break;
           }
           case 'build': {
+            // Clear any stale output from a previous build so a failed rebuild can't reuse it
+            this.buildOutput = undefined;
+
             const buildOutput = await this.#runBuildAction(action);
 
             // Store build output for deployment

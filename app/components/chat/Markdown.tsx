@@ -199,7 +199,7 @@ export const Markdown = memo(
           return <button {...props}>{children}</button>;
         },
       } satisfies Components;
-    }, []);
+    }, [append, setChatMode, model, provider]);
 
     return (
       <ReactMarkdown

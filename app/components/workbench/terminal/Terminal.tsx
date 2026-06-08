@@ -86,6 +86,17 @@ export const Terminal = memo(
 
         const resizeObserver = new ResizeObserver((entries) => {
           if (entries.length > 0) {
+            const entry = entries[0];
+
+            /*
+             * A hidden terminal (display:none) reports a 0x0 box; fitting it would
+             * shrink the PTY to its 2x1 minimum and clobber the other shells via the
+             * shared resize handler, so skip until it is visible again.
+             */
+            if (entry.contentRect.width === 0 || entry.contentRect.height === 0) {
+              return;
+            }
+
             if (resizeFrameRef.current) {
               cancelAnimationFrame(resizeFrameRef.current);
             }

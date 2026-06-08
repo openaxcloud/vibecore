@@ -240,7 +240,20 @@ export function parseTextPayloadToBlocks(messageId: string, text: string): Messa
     },
   });
 
-  const output = parser.parse(messageId, text);
+  /*
+   * A malformed action tag (e.g. a Supabase action with a missing/invalid
+   * `operation` or a migration without a `filePath`) makes the parser throw.
+   * In a rendering context that would crash the whole chat panel — and during
+   * streaming it re-throws on every keystroke. Fall back to showing the raw
+   * text rather than blowing up the message list.
+   */
+  let output: string;
+
+  try {
+    output = parser.parse(messageId, text);
+  } catch {
+    return [{ id: blockIdFor(messageId, 'text-0'), kind: 'text', text }];
+  }
 
   /*
    * Interleave text + artifact blocks by splitting the parser output on artifact

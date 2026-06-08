@@ -897,11 +897,28 @@ export class FilesStore {
       return;
     }
 
+    if (change.type === 'rename' && change.oldPath) {
+      const oldSanitizedPath = this.#toWorkbenchPath(change.oldPath).replace(/\/+$/g, '');
+      const oldExisting = this.files.get()[oldSanitizedPath];
+
+      if (oldExisting) {
+        this.files.setKey(oldSanitizedPath, undefined);
+
+        if (oldExisting.type === 'file') {
+          this.#size--;
+
+          if (this.#modifiedFiles.has(oldSanitizedPath)) {
+            this.#modifiedFiles.delete(oldSanitizedPath);
+          }
+        }
+      }
+    }
+
     const content = change.content ?? '';
     const isBinary = change.binary ?? false;
     const existing = this.files.get()[sanitizedPath];
 
-    if (!existing && change.type === 'create') {
+    if (!existing && (change.type === 'create' || change.type === 'rename')) {
       this.#size++;
     }
 

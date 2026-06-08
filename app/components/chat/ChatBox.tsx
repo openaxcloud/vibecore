@@ -297,6 +297,11 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                     props.setUploadedFiles?.([...props.uploadedFiles, file]);
                     props.setImageDataList?.([...props.imageDataList, base64Image]);
                   };
+
+                  reader.onerror = () => {
+                    console.error('Failed to read dropped file:', file.name, reader.error);
+                    toast.error('Failed to read the dropped image. Please try again.');
+                  };
                   reader.readAsDataURL(file);
                 }
               });

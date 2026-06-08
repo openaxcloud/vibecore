@@ -84,15 +84,17 @@ export async function saveChat(db: IDBDatabase, chat: Chat): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(['chats'], 'readwrite');
     const store = transaction.objectStore('chats');
-    const request = store.put(chat);
+    store.put(chat);
 
-    request.onsuccess = () => {
-      resolve();
-    };
-
-    request.onerror = () => {
-      reject(request.error);
-    };
+    /*
+     * Resolve on transaction.oncomplete, not request.onsuccess: the request
+     * succeeds before the transaction commits, so resolving early would report
+     * success for a write that may still abort during commit (e.g. quota
+     * exceeded), silently losing data.
+     */
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error ?? new Error('Transaction aborted'));
   });
 }
 
@@ -106,15 +108,12 @@ export async function deleteChat(db: IDBDatabase, id: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(['chats'], 'readwrite');
     const store = transaction.objectStore('chats');
-    const request = store.delete(id);
+    store.delete(id);
 
-    request.onsuccess = () => {
-      resolve();
-    };
-
-    request.onerror = () => {
-      reject(request.error);
-    };
+    // Resolve on commit so the delete is durably committed before we report success.
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error ?? new Error('Transaction aborted'));
   });
 }
 
@@ -127,14 +126,11 @@ export async function deleteAllChats(db: IDBDatabase): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(['chats'], 'readwrite');
     const store = transaction.objectStore('chats');
-    const request = store.clear();
+    store.clear();
 
-    request.onsuccess = () => {
-      resolve();
-    };
-
-    request.onerror = () => {
-      reject(request.error);
-    };
+    // Resolve on commit so the clear is durably committed before we report success.
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error ?? new Error('Transaction aborted'));
   });
 }

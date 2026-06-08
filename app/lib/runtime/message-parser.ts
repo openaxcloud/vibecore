@@ -169,6 +169,14 @@ export class StreamingMessageParser {
           i = actionsBlockEnd + BOLT_QUICK_ACTIONS_CLOSE.length;
           continue;
         }
+
+        /*
+         * Open marker is present but the closing tag hasn't streamed in yet.
+         * Stop here and wait for more input — otherwise the fall-through
+         * artifact-tag scanner emits the partial marker as raw text and
+         * advances past it, so the block is never recognized once it completes.
+         */
+        break;
       }
 
       if (state.insideArtifact) {

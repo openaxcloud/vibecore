@@ -158,12 +158,18 @@ export function useGitHubStats(
       return;
     }
 
-    setState((prev) => ({
-      ...prev,
-      isLoading: !prev.stats, // Show loading only if no stats yet
-      isRefreshing: !!prev.stats, // Show refreshing if stats exist
-      error: null,
-    }));
+    let isRefreshing = false;
+
+    setState((prev) => {
+      isRefreshing = !!prev.stats; // Show refreshing (and toasts) only when stats already exist
+
+      return {
+        ...prev,
+        isLoading: !prev.stats, // Show loading only if no stats yet
+        isRefreshing,
+        error: null,
+      };
+    });
 
     try {
       let stats: GitHubStats;
@@ -215,7 +221,7 @@ export function useGitHubStats(
       }
 
       // Only show success toast for manual refreshes, not auto-fetches
-      if (state.isRefreshing) {
+      if (isRefreshing) {
         toast.success('GitHub stats updated successfully');
       }
     } catch (error) {
@@ -231,7 +237,7 @@ export function useGitHubStats(
       }));
 
       // Only show error toast for manual actions, not auto-fetches
-      if (state.isRefreshing) {
+      if (isRefreshing) {
         toast.error(`Failed to update GitHub stats: ${errorMessage}`);
       }
 
