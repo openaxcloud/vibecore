@@ -2630,7 +2630,14 @@ export class WorkbenchStore {
                   const { data: blob } = await octokit.git.createBlob({
                     owner: repo.owner.login,
                     repo: repo.name,
-                    content: Buffer.from(dirent.content).toString('base64'),
+
+                    /*
+                     * Binary files are stored as a base64 string already
+                     * (FilesStore sets isBinary + base64 content), so re-encoding
+                     * them produced base64-of-base64 and corrupted the asset on
+                     * push. Send binary content as-is; encode text as base64.
+                     */
+                    content: dirent.isBinary ? dirent.content : Buffer.from(dirent.content).toString('base64'),
                     encoding: 'base64',
                   });
                   return { path: extractRelativePath(filePath), sha: blob.sha };
@@ -2760,8 +2767,14 @@ export class WorkbenchStore {
         // Check if branch exists, create if not
         const branchAlreadyExists = await gitLabApiService.branchExists(repo.id, branchName).catch(() => false);
 
-        if (!branchAlreadyExists) {
-          // Create branch from default
+        if (!branchAlreadyExists && repo.default_branch) {
+          /*
+           * Only fork from an existing default branch. A freshly-created GitLab
+           * project (initialize_with_readme: false) is empty and has no
+           * default_branch — calling createBranch with an undefined ref throws
+           * and aborts the whole push. commitFiles below creates the branch
+           * implicitly on the first commit, so skip createBranch in that case.
+           */
           await gitLabApiService.createBranch(repo.id, branchName, repo.default_branch);
           await new Promise((r) => setTimeout(r, 1000));
         }
@@ -2773,12 +2786,18 @@ export class WorkbenchStore {
                 action: 'create',
                 file_path: extractRelativePath(filePath),
                 content: dirent.content,
+
+                /*
+                 * Binary content is stored as base64; tell GitLab so it decodes
+                 * it instead of committing the literal base64 text (corruption).
+                 */
+                ...(dirent.isBinary ? { encoding: 'base64' as const } : {}),
               });
             }
 
             return acc;
           },
-          [] as { action: 'create' | 'update'; file_path: string; content: string }[],
+          [] as { action: 'create' | 'update'; file_path: string; content: string; encoding?: 'base64' | 'text' }[],
         );
 
         // Check which files exist and update action accordingly

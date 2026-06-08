@@ -623,12 +623,14 @@ export function detectFramework(input: CreateDeploymentRequest) {
   const command = input.buildCommand.toLowerCase();
   const output = input.outputDirectory.toLowerCase();
 
-  if (command.includes('next') || output === '.next') {
+  /*
+   * An explicit framework name in the build command wins over the output-dir
+   * heuristic. outputDirectory defaults to 'dist', so checking `output === 'dist'`
+   * before the astro/remix/nuxt branches mislabeled every astro/remix/nuxt build
+   * (with the default output dir) as 'vite'.
+   */
+  if (command.includes('next')) {
     return 'nextjs';
-  }
-
-  if (command.includes('vite') || output === 'dist') {
-    return 'vite';
   }
 
   if (command.includes('astro')) {
@@ -641,6 +643,19 @@ export function detectFramework(input: CreateDeploymentRequest) {
 
   if (command.includes('nuxt')) {
     return 'nuxt';
+  }
+
+  if (command.includes('vite')) {
+    return 'vite';
+  }
+
+  // Fall back to output-directory heuristics when the command names no framework.
+  if (output === '.next') {
+    return 'nextjs';
+  }
+
+  if (output === 'dist') {
+    return 'vite';
   }
 
   return 'static';

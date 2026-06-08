@@ -2854,14 +2854,33 @@ function orgIdFromRequest(request: FastifyRequest) {
   return params?.orgId ?? (request.headers['x-org-id'] as string | undefined);
 }
 
-async function sessionExpiresAt(store: ApiStore, organizationId?: string) {
-  if (!organizationId) {
+/**
+ * Resolve session expiry from the user's actual org memberships, applying the
+ * strictest configured sessionDurationMinutes. Deriving this from the
+ * authenticated user (not a caller-supplied / header-supplied organizationId)
+ * is what makes an enterprise session-duration policy actually enforceable —
+ * the interactive login/refresh flows do NOT send x-org-id, so keying off the
+ * header let any member receive the default 30-day session regardless of their
+ * org's policy.
+ */
+async function sessionExpiresAtForUser(store: ApiStore, userId: string) {
+  const organizations = await store.listOrganizations(userId);
+
+  let strictestMinutes = Number.POSITIVE_INFINITY;
+
+  for (const organization of organizations) {
+    const settings = await store.getEnterpriseSettings(organization.id);
+
+    if (settings.sessionDurationMinutes > 0 && settings.sessionDurationMinutes < strictestMinutes) {
+      strictestMinutes = settings.sessionDurationMinutes;
+    }
+  }
+
+  if (!Number.isFinite(strictestMinutes)) {
     return new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
   }
 
-  const settings = await store.getEnterpriseSettings(organizationId);
-
-  return new Date(Date.now() + settings.sessionDurationMinutes * 60_000);
+  return new Date(Date.now() + strictestMinutes * 60_000);
 }
 
 async function createLoginSession(input: {
@@ -2874,7 +2893,7 @@ async function createLoginSession(input: {
   return input.store.createSession({
     userId: input.userId,
     token: input.token,
-    expiresAt: await sessionExpiresAt(input.store, input.organizationId),
+    expiresAt: await sessionExpiresAtForUser(input.store, input.userId),
     ipAddress: input.request.ip,
     userAgent: input.request.headers['user-agent'],
   });
