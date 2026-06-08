@@ -484,6 +484,10 @@ export class TestApiStore implements ApiStore {
     );
   }
 
+  async countProjects(organizationId: string) {
+    return (await this.listProjects(organizationId)).length;
+  }
+
   async softDeleteProject(projectId: string) {
     const project = await this.updateProject({ projectId });
     project.deletedAt = now();

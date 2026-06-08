@@ -2253,7 +2253,13 @@ function normalizeProjectPath(path?: string) {
 
   const normalized = path.replaceAll('\\', '/').replace(/^\/+/, '');
 
-  if (!normalized || normalized.includes('..') || normalized.startsWith('~')) {
+  /*
+   * Reject traversal by path *segment*, not substring — a substring test on
+   * '..' wrongly rejects legitimate names like `app..config.js` or `notes..bak`.
+   */
+  const hasTraversalSegment = normalized.split('/').some((segment) => segment === '..' || segment === '.');
+
+  if (!normalized || hasTraversalSegment || normalized.startsWith('~')) {
     throw Object.assign(new Error('Invalid project path'), { statusCode: 400, code: 'INVALID_PROJECT_PATH' });
   }
 
@@ -2942,6 +2948,19 @@ export async function assertOidcIdToken(
   const jwks = options?.jwks ?? oidcJwksResolver();
 
   if (!jwks) {
+    /*
+     * No JWKS configured means we cannot verify the id_token signature. In
+     * production that must be a hard failure (fail-closed) rather than silently
+     * accepting an unverified token; only outside production do we no-op so
+     * local/dev OIDC stubs keep working.
+     */
+    if (process.env.NODE_ENV === 'production') {
+      throw Object.assign(new Error('OIDC id_token cannot be verified: JWKS not configured'), {
+        statusCode: 401,
+        code: 'OIDC_JWKS_UNAVAILABLE',
+      });
+    }
+
     return {};
   }
 
@@ -3153,11 +3172,26 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
 
   const profile = (await profileResponse.json()) as {
     email?: string | null;
+    email_verified?: boolean;
+    verified?: boolean;
     id?: string | number;
     sub?: string;
     name?: string;
     login?: string;
   };
+
+  /*
+   * Never trust an unverified provider email: an attacker can set a victim's
+   * address as an *unverified* email on their own OAuth account and, on match,
+   * get linked to / logged in as the victim's existing password account. If the
+   * provider explicitly tells us the email is unverified, reject it.
+   */
+  if (profile.email && (profile.email_verified === false || profile.verified === false)) {
+    throw Object.assign(new Error('OAuth email is not verified'), {
+      statusCode: 401,
+      code: 'OAUTH_EMAIL_UNVERIFIED',
+    });
+  }
 
   let email = profile.email ?? undefined;
 
@@ -3184,8 +3218,12 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
         primary?: boolean;
         verified?: boolean;
       }>;
-      const candidate =
-        emails.find((entry) => entry.primary && entry.verified) ?? emails.find((entry) => entry.verified) ?? emails[0];
+      /*
+       * Only accept a *verified* address — the previous `?? emails[0]` fallback
+       * accepted the first (possibly unverified) email, enabling account-linking
+       * takeover when no verified address exists.
+       */
+      const candidate = emails.find((entry) => entry.primary && entry.verified) ?? emails.find((entry) => entry.verified);
 
       if (candidate?.email) {
         email = candidate.email;
@@ -4812,14 +4850,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const org = (request.headers['x-org-id'] as string | undefined) ?? 'no-org';
       const authorization = request.headers.authorization;
 
-      const sessionKey =
-        typeof authorization === 'string' && authorization.startsWith('Bearer ')
+      /*
+       * Only an explicit Bearer credential (or an already-resolved currentUser)
+       * may widen the bucket beyond the IP. The previous fallback hashed the raw
+       * `session` cookie, which on unauthenticated routes (login/register/reset,
+       * keyed before auth runs) is fully attacker-controlled — sending a fresh
+       * random cookie per request minted a brand-new bucket and defeated the
+       * brute-force / credential-stuffing limit. For anonymous requests, key on
+       * IP+org only so the rate limit can't be sidestepped.
+       */
+      const credentialKey =
+        request.currentUser?.id ??
+        (typeof authorization === 'string' && authorization.startsWith('Bearer ')
           ? hashToken(authorization.slice('Bearer '.length)).slice(0, 16)
-          : request.cookies.session
-            ? hashToken(request.cookies.session).slice(0, 16)
-            : 'anonymous';
+          : 'anonymous');
 
-      return `${request.ip}:${request.currentUser?.id ?? sessionKey}:${org}`;
+      return `${request.ip}:${credentialKey}:${org}`;
     },
   });
 
@@ -4972,8 +5018,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ error: 'Path is outside the deployment artifact', code: 'STATIC_DEPLOY_FORBIDDEN' });
     }
 
-    const fallbackIndex = resolve(snapshotRoot, 'index.html');
-    const filePath = (await readableFileOrUndefined(resolved)) ?? (await readableFileOrUndefined(fallbackIndex));
+    const directHit = await readableFileOrUndefined(resolved);
+
+    /*
+     * SPA fallback: only rewrite to index.html for navigation-style requests
+     * (no file extension, or an explicit text/html Accept). A missing request
+     * for an asset with an extension (*.js, *.css, *.woff2, *.map) must 404 —
+     * serving index.html (HTML) with a 200 for a missing JS chunk makes the
+     * browser try to execute HTML as a module ("Unexpected token '<'").
+     */
+    const requestedBasename = requested.split('/').pop() ?? requested;
+    const looksLikeAsset = requestedBasename.includes('.');
+    const acceptsHtml = (request.headers.accept ?? '').includes('text/html');
+    const allowIndexFallback = !looksLikeAsset || acceptsHtml;
+
+    const fallbackIndex = allowIndexFallback ? resolve(snapshotRoot, 'index.html') : undefined;
+    const filePath = directHit ?? (fallbackIndex ? await readableFileOrUndefined(fallbackIndex) : undefined);
 
     if (!filePath) {
       return reply.code(404).send({ error: 'File not found in deployment', code: 'STATIC_DEPLOY_FILE_NOT_FOUND' });
@@ -7962,7 +8022,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const computeUsageForQuota = async (organizationId: string, key: QuotaKey) => {
     if (key === 'projects.count') {
-      return (await store.listProjects(organizationId)).length;
+      // count() aggregate instead of loading every project row just to take .length
+      return store.countProjects(organizationId);
     }
 
     if (key === 'workspaces.active') {
@@ -8570,6 +8631,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
 
+    // Restart must honor the same suspended-org gate as start; otherwise a
+    // suspended org could keep cycling workspaces via restart.
+    await requireOrganizationNotSuspended(store, authorized.organizationId);
+
+    /*
+     * Resolve the org's plan + resource entitlements exactly like the start
+     * handler. Previously restart hardcoded plan='free' and omitted
+     * resourceLimits, so every restart reprovisioned a pro/enterprise pod with
+     * starved free-tier CPU/RAM.
+     */
+    const state = authorized.organizationId ? await billingState(authorized.organizationId) : undefined;
+
     const [projectEnvVars, projectSecrets] = await Promise.all([
       store.listProjectEnvVars(authorized.projectId),
       store.listProjectSecrets(authorized.projectId),
@@ -8587,7 +8660,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         projectId: authorized.projectId,
         workspaceId: authorized.workspaceId,
         image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
-        plan: process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
+        plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
+        resourceLimits: state
+          ? {
+              cpuMillicores: state.limits['workspace.cpuMillicores'],
+              ramMb: state.limits['workspace.ramMb'],
+              storageGb: state.limits['storage.gb'],
+            }
+          : undefined,
         env,
         allowedSecretKeys,
         allowedSecrets,
@@ -8654,6 +8734,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         : managerWorkspace.status === 'STOPPED'
           ? 'stopped'
           : 'running';
+
+    /*
+     * Self-heal the active-workspace quota. The inactivity GC reaps idle pods in
+     * the manager but the manager's stop/delete events are not consumed here, so
+     * our Workspace row stays RUNNING forever and keeps counting against
+     * countActiveWorkspaces — permanently locking a free user (limit 1) out of
+     * opening any other project. When the manager reports the workspace is no
+     * longer running, reconcile our own record so polling heals the divergence.
+     */
+    if (managerStatus === 'stopped' || managerStatus === 'failed') {
+      await store
+        .updateWorkspaceStatus({
+          workspaceId: authorized.workspaceId,
+          status: managerStatus === 'failed' ? 'FAILED' : 'STOPPED',
+        })
+        .catch(() => undefined);
+    }
 
     return runtimeSession(authorized.workspaceId, managerStatus, { managerWorkspace });
   });
@@ -11891,7 +11988,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { userId: body.userId, allowed: body.allowed },
     });
     collaborationBroker.publish(project.id, {
-      type: 'terminal.permission',
+      // Client's event union expects `terminal_permission.update`; the old
+      // `terminal.permission` fell through applyEvent's catch-all and was dropped.
+      type: 'terminal_permission.update',
       userId: body.userId,
       allowed: body.allowed,
     });

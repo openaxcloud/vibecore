@@ -678,6 +678,7 @@ export interface ApiStore {
     gitDefaultBranch?: string;
   }): Promise<ProjectRecord>;
   listProjects(organizationId: string): Promise<ProjectRecord[]>;
+  countProjects(organizationId: string): Promise<number>;
   softDeleteProject(projectId: string): Promise<ProjectRecord>;
   restoreProject(projectId: string): Promise<ProjectRecord>;
   transferProject(input: { projectId: string; targetOrganizationId: string }): Promise<ProjectRecord>;

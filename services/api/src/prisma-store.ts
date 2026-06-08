@@ -555,6 +555,10 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapProject);
   }
 
+  async countProjects(organizationId: string) {
+    return this.prisma.project.count({ where: { organizationId, deletedAt: null } });
+  }
+
   async softDeleteProject(projectId: string) {
     return mapProject(await this.prisma.project.update({ where: { id: projectId }, data: { deletedAt: new Date() } }));
   }
@@ -826,13 +830,21 @@ export class PrismaApiStore implements ApiStore {
           mode: input.mode ?? 'editing',
           terminalAccess: input.terminalAccess ?? false,
         },
+        /*
+         * Field-selective update: only overwrite fields the caller actually
+         * provided. A routine presence heartbeat omits terminalAccess/cursor/
+         * selection/filePath, and blindly writing `?? false`/undefined would
+         * revoke just-granted terminal access and null out another client's
+         * cursor/file. status/mode always carry schema defaults so they're safe
+         * to set unconditionally.
+         */
         update: {
           status: input.status ?? 'online',
-          filePath: input.filePath,
-          cursor: input.cursor as any,
-          selection: input.selection as any,
           mode: input.mode ?? 'editing',
-          terminalAccess: input.terminalAccess ?? false,
+          ...(input.filePath !== undefined ? { filePath: input.filePath } : {}),
+          ...(input.cursor !== undefined ? { cursor: input.cursor as any } : {}),
+          ...(input.selection !== undefined ? { selection: input.selection as any } : {}),
+          ...(input.terminalAccess !== undefined ? { terminalAccess: input.terminalAccess } : {}),
         },
       }),
     );

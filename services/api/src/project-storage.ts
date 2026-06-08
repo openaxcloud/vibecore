@@ -705,7 +705,18 @@ export class GitCliProvider implements GitProvider {
         });
       }
 
-      await this.git(input.projectId, ['commit', '-m', input.message], input.workspaceId);
+      /*
+       * When the user staged a subset, commit with an explicit pathspec so only
+       * those files land. A plain `git commit` commits the *entire* index, which
+       * (the index being shared/persistent across calls) would sweep in any file
+       * left staged by a prior operation — violating the "commit only these"
+       * contract.
+       */
+      const commitArgs = selectedFiles.length
+        ? ['commit', '-m', input.message, '--', ...selectedFiles]
+        : ['commit', '-m', input.message];
+
+      await this.git(input.projectId, commitArgs, input.workspaceId);
 
       const sha = await this.git(input.projectId, ['rev-parse', 'HEAD'], input.workspaceId);
 
@@ -752,7 +763,9 @@ export class GitCliProvider implements GitProvider {
         output
           .split('\n')
           .map((branch) => branch.replace(/^remotes\/origin\//, ''))
-          .filter(Boolean),
+          // Drop the symbolic `origin/HEAD` pointer (→ `HEAD` after stripping):
+          // it isn't a real branch and checking it out detaches HEAD.
+          .filter((branch) => Boolean(branch) && branch !== 'HEAD' && !branch.endsWith('/HEAD')),
       ),
     ];
   }
