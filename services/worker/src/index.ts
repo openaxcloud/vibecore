@@ -45,21 +45,47 @@ async function deliverSiemAuditEvents() {
         throw new Error(`SIEM webhook ${webhook.id} is missing an encrypted signing secret`);
       }
 
+      const SIEM_BATCH_SIZE = 250;
       const events = await prisma.auditLog.findMany({
         where: {
           organizationId: webhook.organizationId,
           ...(webhook.lastDeliveredAt ? { createdAt: { gt: webhook.lastDeliveredAt } } : {}),
         },
-        orderBy: { createdAt: 'asc' },
-        take: 250,
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        take: SIEM_BATCH_SIZE,
       });
 
       if (events.length === 0) {
         continue;
       }
 
+      /*
+       * The cursor (lastDeliveredAt) is a millisecond-resolution DateTime and
+       * the next run filters with a strict `>`. If a full batch ends partway
+       * through a group of rows sharing the same millisecond, advancing the
+       * cursor to that millisecond would silently drop the remaining same-ms
+       * rows beyond the take limit. Trim the trailing same-ms events so the
+       * cursor lands on a fully-delivered timestamp; the trimmed rows are
+       * delivered next run. (If the entire batch is one millisecond we can't
+       * split it without a secondary cursor, so deliver it as-is.)
+       */
+      let deliverable = events;
+
+      if (events.length === SIEM_BATCH_SIZE) {
+        const lastTs = events[events.length - 1].createdAt.getTime();
+        const firstTs = events[0].createdAt.getTime();
+
+        if (firstTs !== lastTs) {
+          deliverable = events.filter((event) => event.createdAt.getTime() !== lastTs);
+        }
+      }
+
       const { secret } = decryptJson<{ secret: string }>(webhook.secretCiphertext);
-      const body = JSON.stringify({ type: 'audit.batch', organizationId: webhook.organizationId, events });
+      const body = JSON.stringify({
+        type: 'audit.batch',
+        organizationId: webhook.organizationId,
+        events: deliverable,
+      });
       const timestamp = Math.floor(Date.now() / 1000).toString();
       const signature = createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
 
@@ -89,7 +115,7 @@ async function deliverSiemAuditEvents() {
 
       await prisma.siemWebhook.update({
         where: { id: webhook.id },
-        data: { lastDeliveredAt: events.at(-1)!.createdAt },
+        data: { lastDeliveredAt: deliverable.at(-1)!.createdAt },
       });
     } catch (error) {
       console.error(`SIEM webhook ${webhook.id} delivery failed; continuing with remaining webhooks`, error);

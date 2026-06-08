@@ -2221,10 +2221,18 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
-  async listUsageEvents(organizationId: string) {
-    return (await this.prisma.usageEvent.findMany({ where: { organizationId }, orderBy: { createdAt: 'desc' } })).map(
-      mapUsageEvent,
-    );
+  async listUsageEvents(organizationId: string, options: { take?: number } = {}) {
+    return (
+      await this.prisma.usageEvent.findMany({
+        where: { organizationId },
+        orderBy: { createdAt: 'desc' },
+        // Bounded for display/billing callers; the GDPR export passes no cap so
+        // it still enumerates the full ledger. The usageEvent table is one of
+        // the fastest-growing — an unbounded fetch on the dashboard hot path
+        // loads the whole ledger just to show a count.
+        ...(options.take !== undefined ? { take: options.take } : {}),
+      })
+    ).map(mapUsageEvent);
   }
 
   async sumUsage(organizationId: string, type: string, since?: Date) {

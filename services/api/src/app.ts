@@ -308,8 +308,21 @@ const createProjectFromAiSchema = z.object({
   model: z.string().min(1).max(120).optional(),
 });
 const githubImportSchema = z.object({
-  repositoryUrl: z.string().url(),
-  branch: z.string().min(1).optional(),
+  // z.string().url() accepts file:// and arbitrary internal hosts, which are
+  // then handed to `git clone` on the API host (local-file disclosure / SSRF).
+  // Constrain to the same HTTPS/SSH safe-URL check used by configure-remote.
+  repositoryUrl: z
+    .string()
+    .trim()
+    .min(1)
+    .max(2048)
+    .refine(isSafeGitRemoteUrl, 'Repository URL must be an HTTPS or SSH URL.'),
+  branch: z
+    .string()
+    .min(1)
+    .max(255)
+    .regex(/^[^\s"'`\\]+$/, 'Invalid branch name.')
+    .optional(),
   name: z.string().min(1).optional(),
   slug: z.string().min(2).optional(),
 });
@@ -486,11 +499,40 @@ function mergeProjectIdeState(existingState: unknown, incomingState: unknown) {
     delete (mergedChat as Record<string, unknown>).clearMessages;
   }
 
+  /*
+   * Deep-merge collaboration like chat/ui. A shallow `...incoming` spread would
+   * let one user's save (carrying only their own document) replace the entire
+   * collaboration node, dropping every other user's documents and resetting
+   * terminalPermissions (which gates terminal authz). Merge the nested maps
+   * key-by-key so concurrent collaborators don't clobber each other.
+   */
+  const mergedCollaboration =
+    incoming.collaboration === undefined
+      ? existing.collaboration
+      : (() => {
+          const existingCollab = ideStateRecord(existing.collaboration);
+          const incomingCollab = ideStateRecord(incoming.collaboration);
+
+          return {
+            ...existingCollab,
+            ...incomingCollab,
+            documents: {
+              ...ideStateRecord(existingCollab.documents),
+              ...ideStateRecord(incomingCollab.documents),
+            },
+            terminalPermissions: {
+              ...ideStateRecord(existingCollab.terminalPermissions),
+              ...ideStateRecord(incomingCollab.terminalPermissions),
+            },
+          };
+        })();
+
   return {
     ...existing,
     ...incoming,
     chat: mergedChat,
     ui: { ...ideStateRecord(existing.ui), ...ideStateRecord(incoming.ui) },
+    collaboration: mergedCollaboration,
   };
 }
 
@@ -2624,7 +2666,14 @@ async function listProjectFilesIncludingIdeState(
   const mergedFiles = new Map<string, ProjectFile>(existingFiles.map((file) => [file.path, file]));
   const recoveredAt = new Date().toISOString();
 
-  for (const file of recoveredFiles) {
+  /*
+   * Only fill in files that are MISSING from storage. Iterating all
+   * recoveredFiles here overwrote on-disk files with their (older)
+   * chat-derived content in the returned manifest while storage kept the
+   * newer content — so export/duplicate/commit silently reverted recent
+   * edits. Existing paths keep their on-disk version (already seeded above).
+   */
+  for (const file of missingFiles) {
     mergedFiles.set(file.path, { ...file, updatedAt: recoveredAt });
   }
 
@@ -5760,11 +5809,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!existingMembership) {
         await ensureQuota(request, orgId, 'team.members');
-      }
-
-      await store.addMember({ organizationId: orgId, userId: user.id, roleKey });
-
-      if (!existingMembership) {
+        /*
+         * Only provision the role for NEW members. Calling addMember for an
+         * existing member upserts (and overwrites) their role from the
+         * assertion on every login — an IdP that omits a role attribute would
+         * silently downgrade an org owner to 'member' (locking them out), and
+         * an asserted elevated role would escalate privileges without any
+         * org-admin involvement. Org roles must stay org-controlled.
+         */
+        await store.addMember({ organizationId: orgId, userId: user.id, roleKey });
         await recordUsage(request, orgId, 'team.members');
       }
 
@@ -13288,7 +13341,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       subscription: state.subscription,
       plan: state.plan,
       limits: state.limits,
-      usage: await store.listUsageEvents(orgId),
+      usage: await store.listUsageEvents(orgId, { take: 500 }),
       overrides: (await store.listQuotaOverrides(orgId)).filter((o) => isQuotaOverrideActive(o)),
       upgradePrompts: billingPlans
         .filter((plan) => plan.monthlyCents > (state.plan.monthlyCents ?? 0))
@@ -13592,7 +13645,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         organizationId,
         type: `billing.${event.type}`,
         quantity: 1,
-        metadata: { invoiceId: object.id, amountDue: object.amount_due },
+        /*
+         * Record both amounts (in cents). For invoice.paid the relevant figure
+         * is amount_paid — amount_due on a paid invoice is typically 0 (or
+         * differs once credit/proration applies), so keying off amount_due
+         * understated revenue in any downstream reconciliation.
+         */
+        metadata: {
+          invoiceId: object.id,
+          amountPaidCents: object.amount_paid,
+          amountDueCents: object.amount_due,
+        },
       });
       await audit(request, store, {
         organizationId,
@@ -14170,7 +14233,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const quotaUsage = await quotaUsageSnapshot(orgId, state.limits, request);
 
     return {
-      usage: await store.listUsageEvents(orgId),
+      usage: await store.listUsageEvents(orgId, { take: 500 }),
       quotas: state.limits,
       quotaUsage,
       subscription: state.subscription,
@@ -14186,7 +14249,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const quotaUsage = await quotaUsageSnapshot(orgId, state.limits, request);
 
     return {
-      usage: await store.listUsageEvents(orgId),
+      usage: await store.listUsageEvents(orgId, { take: 500 }),
       quotas: state.limits,
       quotaUsage,
       subscription: state.subscription,

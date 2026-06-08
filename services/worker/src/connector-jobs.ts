@@ -259,18 +259,22 @@ export async function runConnectorReconnectionNotifier(
   let notified = 0;
 
   for (const alert of alerts) {
-    await input.prisma.reconnectionAlert.update({
-      where: { id: alert.id },
-      data: { notifiedAt: now },
-    });
-
     if (!alert.userConnection) {
+      // Nothing to notify against — mark it handled so it isn't re-scanned.
+      await input.prisma.reconnectionAlert.update({
+        where: { id: alert.id },
+        data: { notifiedAt: now },
+      });
       continue;
     }
 
     /*
-     * Best-effort audit log entry; the existing SIEM webhook delivery
-     * worker picks the row up on its next sweep.
+     * Write the notification artifact FIRST, then stamp notifiedAt only on
+     * success. Previously notifiedAt was set before the audit insert and the
+     * failure was swallowed — so a single transient audit-table error
+     * permanently dropped that user's reconnect notification (the alert was
+     * marked notified but nothing was ever delivered). Leaving notifiedAt null
+     * on failure lets the next sweep retry it (idempotent — alert still open).
      */
     try {
       await input.prisma.auditLog.create({
@@ -285,14 +289,16 @@ export async function runConnectorReconnectionNotifier(
           },
         },
       });
-    } catch {
-      /*
-       * Even when the audit insert fails (table contention, FK race) we
-       * do not roll back notifiedAt; the notification still ran.
-       */
-    }
 
-    notified += 1;
+      await input.prisma.reconnectionAlert.update({
+        where: { id: alert.id },
+        data: { notifiedAt: now },
+      });
+
+      notified += 1;
+    } catch {
+      // Retry on the next sweep rather than silently losing the notification.
+    }
   }
 
   return {

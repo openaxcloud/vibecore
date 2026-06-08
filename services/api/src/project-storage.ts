@@ -455,7 +455,14 @@ export class LocalProjectStorage implements ProjectStorage {
       const files = await filesFromZipBase64(base64);
 
       if (options.replaceExisting) {
-        await rm(safeProjectPath(projectId), { recursive: true, force: true });
+        /*
+         * Clear the primary tree but preserve `.vibecore-workspaces/`, exactly
+         * like restoreSnapshot. A blanket rm of the project dir destroys every
+         * secondary workspace's `.git` and working tree — and this path runs on
+         * every autosave (pushFilesToProjectStorage uses replaceExisting), so
+         * the unguarded rm silently wiped secondary workspaces on normal editing.
+         */
+        await clearTreePreservingSecondaryWorkspaces(safeProjectPath(projectId));
       }
 
       for (const file of files) {
