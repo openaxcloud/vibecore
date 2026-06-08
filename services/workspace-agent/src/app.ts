@@ -66,6 +66,10 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   const maxFileBytes = options.maxFileBytes ?? numericEnv(process.env.WORKSPACE_MAX_FILE_BYTES, 2 * 1024 * 1024);
   const maxOutputBytes = options.maxOutputBytes ?? numericEnv(process.env.WORKSPACE_MAX_OUTPUT_BYTES, 1024 * 1024);
   const commandTimeoutMs = options.commandTimeoutMs ?? numericEnv(process.env.WORKSPACE_COMMAND_TIMEOUT_MS, 30_000);
+  // Streamed commands (dev servers etc.) legitimately run long, but must still
+  // be bounded so a never-exiting child can't pin a maxProcesses slot forever
+  // after the socket closes. Default 30 min; override via env.
+  const streamTimeoutMs = numericEnv(process.env.WORKSPACE_STREAM_TIMEOUT_MS, 30 * 60_000);
   const maxProcesses = options.maxProcesses ?? numericEnv(process.env.WORKSPACE_MAX_PROCESSES, 8);
   const processes = new Map<string, ProcessRecord>();
   const metrics = createPrometheusRegistry();
@@ -86,7 +90,14 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
   let terminalSessions = 0;
 
-  const app = Fastify({ logger: false });
+  /*
+   * Fastify 5 defaults bodyLimit to 1 MiB. maxFileBytes defaults to 2 MiB, so
+   * without raising this any /files/write, /patch/apply, or /snapshots/restore
+   * body between 1 and 2 MiB is rejected with a 413 at the body-parse layer
+   * before the handler's own size check runs — silently breaking medium file
+   * writes. Size comfortably above maxFileBytes to account for JSON overhead.
+   */
+  const app = Fastify({ logger: false, bodyLimit: maxFileBytes * 2 + 64 * 1024 });
 
   /*
    * Catch-all parser so the preview proxy can forward binary/multipart/other
@@ -150,7 +161,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const safePath = resolveWorkspacePath(root, body.path);
     await mkdir(dirname(safePath), { recursive: true });
     await assertRealPathContained(root, safePath);
-    await writeFile(safePath, body.content, 'utf8');
+    await writeFile(safePath, body.content, 'utf8').catch(rethrowFsError);
 
     return { path: body.path, bytes: Buffer.byteLength(body.content) };
   });
@@ -169,7 +180,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     assertContentSize(content, maxFileBytes);
     await mkdir(dirname(safePath), { recursive: true });
     await assertRealPathContained(root, safePath);
-    await writeFile(safePath, content, { flag: 'wx' });
+    await writeFile(safePath, content, { flag: 'wx' }).catch(rethrowFsError);
 
     return { path: body.path, type: 'file' };
   });
@@ -204,7 +215,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       const safePath = resolveWorkspacePath(root, file.path);
       await mkdir(dirname(safePath), { recursive: true });
       await assertRealPathContained(root, safePath);
-      await writeFile(safePath, file.content, 'utf8');
+      await writeFile(safePath, file.content, 'utf8').catch(rethrowFsError);
     }
 
     return { changedFiles: body.files.map((file) => file.path) };
@@ -245,6 +256,17 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const targetPath = (request.params as { '*': string })['*'] ?? '';
 
     if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+      return reply.code(400).send({ error: 'invalid_port' });
+    }
+
+    /*
+     * Never proxy to the agent's own control port — that would let an authed
+     * caller loop the proxy back onto the agent's API surface. User dev servers
+     * never bind the control port.
+     */
+    const selfPort = numericEnv(process.env.PORT, 8080);
+
+    if (port === selfPort) {
       return reply.code(400).send({ error: 'invalid_port' });
     }
 
@@ -290,7 +312,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       const safePath = resolveWorkspacePath(root, file.path);
       await mkdir(dirname(safePath), { recursive: true });
       await assertRealPathContained(root, safePath);
-      await writeFile(safePath, file.content, 'utf8');
+      await writeFile(safePath, file.content, 'utf8').catch(rethrowFsError);
     }
 
     return { restoredFiles: body.files.length };
@@ -330,6 +352,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
         runCommandStream(root, payload.command, payload.args ?? [], {
           maxOutputBytes,
           maxProcesses,
+          streamTimeoutMs,
           processes,
           socket,
           isOpen: () => !socketClosed,
@@ -363,6 +386,20 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
         for (const child of activeChildren) {
           child.kill('SIGTERM');
+
+          /*
+           * A child that traps/ignores SIGTERM (dev servers, shells) would
+           * otherwise orphan and keep holding a maxProcesses slot. Escalate to
+           * SIGKILL after a grace period.
+           */
+          const sigkillTimer = setTimeout(() => {
+            try {
+              child.kill('SIGKILL');
+            } catch {
+              // Already exited — nothing to kill.
+            }
+          }, 5000);
+          sigkillTimer.unref();
         }
 
         activeChildren.clear();
@@ -462,7 +499,16 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
             if (signal === 'SIGINT') {
               session?.interrupt();
             } else {
-              session?.backend.kill(signal as NodeJS.Signals);
+              /*
+               * Only forward a known set of job-control signals. A
+               * client-supplied arbitrary/invalid signal name would otherwise
+               * reach process.kill and throw ERR_UNKNOWN_SIGNAL.
+               */
+              const allowedSignals = new Set<NodeJS.Signals>(['SIGTERM', 'SIGHUP', 'SIGQUIT', 'SIGKILL']);
+
+              if (allowedSignals.has(signal as NodeJS.Signals)) {
+                session?.backend.kill(signal as NodeJS.Signals);
+              }
             }
 
             return;
@@ -589,6 +635,16 @@ function rethrowFsError(error: unknown): never {
 
   if (code === 'EISDIR') {
     throw Object.assign(new Error('Path is a directory'), { statusCode: 400, code: 'EISDIR' });
+  }
+
+  /*
+   * Disk full / quota exceeded must surface as a distinct, actionable status —
+   * otherwise an uncoded 500 bubbles up as a generic WORKSPACE_AGENT_REQUEST_FAILED
+   * 502 on the API side (indistinguishable from a dead pod, and it wrongly
+   * triggers the local-runtime fallback in dev).
+   */
+  if (code === 'ENOSPC' || code === 'EDQUOT') {
+    throw Object.assign(new Error('Workspace disk is full'), { statusCode: 507, code: 'WORKSPACE_DISK_FULL' });
   }
 
   throw error;
@@ -950,6 +1006,7 @@ async function runCommandStream(
   options: {
     maxOutputBytes: number;
     maxProcesses: number;
+    streamTimeoutMs: number;
     processes: Map<string, ProcessRecord>;
     socket: ReturnType<typeof normalizeWebSocket>;
     isOpen: () => boolean;
@@ -1011,8 +1068,42 @@ async function runCommandStream(
   child.stdout.on('data', (chunk) => send('stdout', chunk));
   child.stderr.on('data', (chunk) => send('stderr', chunk));
 
+  /*
+   * Bound the lifetime of a streamed command so it can't pin a process slot
+   * indefinitely. Mirror the HTTP runCommand path: SIGTERM, then SIGKILL after
+   * a grace period. The 'close' handler clears both timers.
+   */
+  const timeoutTimer = setTimeout(() => {
+    if (options.isOpen()) {
+      try {
+        options.socket.send(
+          JSON.stringify({
+            type: 'error',
+            error: { message: `Command timed out after ${options.streamTimeoutMs}ms` },
+            timestamp: new Date().toISOString(),
+          }),
+        );
+      } catch {
+        // Socket gone; the kill below still cleans up the child.
+      }
+    }
+
+    child.kill('SIGTERM');
+  }, options.streamTimeoutMs);
+  const sigkillTimer = setTimeout(() => {
+    try {
+      child.kill('SIGKILL');
+    } catch {
+      // Already exited.
+    }
+  }, options.streamTimeoutMs + 5000);
+  sigkillTimer.unref();
+
   await new Promise<void>((resolvePromise) => {
     child.on('close', (code) => {
+      clearTimeout(timeoutTimer);
+      clearTimeout(sigkillTimer);
+
       if (options.isOpen()) {
         try {
           options.socket.send(
@@ -1034,6 +1125,9 @@ async function runCommandStream(
      * pending. Report it to the client and resolve cleanly instead.
      */
     child.on('error', (error) => {
+      clearTimeout(timeoutTimer);
+      clearTimeout(sigkillTimer);
+
       if (options.isOpen()) {
         try {
           options.socket.send(
