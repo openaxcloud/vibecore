@@ -11347,11 +11347,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       state = mergeProjectIdeState(state, { files: projectFileManifestState([...mergedFiles.values()]) });
     }
 
-    const ideState = await store.upsertProjectIdeState({
-      projectId: project.id,
-      state,
-      updatedByUserId: request.currentUser!.id,
-    });
+    /*
+     * Pass the validated version through so the write is conditional on it
+     * atomically — the pre-check above is not atomic, so two concurrent writers
+     * could both pass it and clobber each other without this.
+     */
+    const expectedVersion = ifMatch && existingState ? existingState.version : undefined;
+
+    let ideState;
+
+    try {
+      ideState = await store.upsertProjectIdeState({
+        projectId: project.id,
+        state,
+        updatedByUserId: request.currentUser!.id,
+        expectedVersion,
+      });
+    } catch (error) {
+      if ((error as { code?: string } | undefined)?.code === 'IDE_STATE_VERSION_CONFLICT') {
+        const current = await store.getProjectIdeState(project.id);
+
+        if (current) {
+          reply.header('etag', `"${current.version}"`);
+        }
+
+        return reply.code(412).send({
+          error: 'IDE state was modified by another session',
+          code: 'IDE_STATE_PRECONDITION_FAILED',
+          ideState: current,
+        });
+      }
+
+      throw error;
+    }
 
     reply.header('etag', `"${ideState.version}"`);
 
@@ -11427,11 +11455,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const state = mergeProjectIdeState(existingState?.state, body.state);
 
-    const ideState = await store.upsertWorkspaceIdeState({
-      workspaceId: workspace.id,
-      state,
-      updatedByUserId: request.currentUser!.id,
-    });
+    // Conditional on the validated version so concurrent writers can't both
+    // pass the non-atomic check above and clobber each other.
+    const expectedVersion = ifMatch && existingState ? existingState.version : undefined;
+
+    let ideState;
+
+    try {
+      ideState = await store.upsertWorkspaceIdeState({
+        workspaceId: workspace.id,
+        state,
+        updatedByUserId: request.currentUser!.id,
+        expectedVersion,
+      });
+    } catch (error) {
+      if ((error as { code?: string } | undefined)?.code === 'IDE_STATE_VERSION_CONFLICT') {
+        const current = await store.getWorkspaceIdeState(workspace.id);
+
+        if (current) {
+          reply.header('etag', `"${current.version}"`);
+        }
+
+        return reply.code(412).send({
+          error: 'IDE state was modified by another session',
+          code: 'IDE_STATE_PRECONDITION_FAILED',
+          ideState: current,
+        });
+      }
+
+      throw error;
+    }
 
     reply.header('etag', `"${ideState.version}"`);
 

@@ -777,7 +777,39 @@ export class PrismaApiStore implements ApiStore {
     return state ? mapProjectIdeState(state) : undefined;
   }
 
-  async upsertProjectIdeState(input: { projectId: string; state: unknown; updatedByUserId?: string }) {
+  async upsertProjectIdeState(input: {
+    projectId: string;
+    state: unknown;
+    updatedByUserId?: string;
+    expectedVersion?: number;
+  }) {
+    if (input.expectedVersion !== undefined) {
+      /*
+       * Atomic optimistic-concurrency write: only succeed if the row's version
+       * still equals what the caller read. The handler's separate
+       * read-then-version-check was not atomic, so two concurrent writers who
+       * both passed the check would both increment and last-write-wins clobbered
+       * one. A conditional updateMany closes that race — count===0 means another
+       * writer won, which the caller surfaces as 412.
+       */
+      const result = await this.prisma.projectIdeState.updateMany({
+        where: { projectId: input.projectId, version: input.expectedVersion },
+        data: {
+          state: input.state as any,
+          updatedByUserId: input.updatedByUserId,
+          version: { increment: 1 },
+        },
+      });
+
+      if (result.count === 0) {
+        throw Object.assign(new Error('IDE state version conflict'), { code: 'IDE_STATE_VERSION_CONFLICT' });
+      }
+
+      const updated = await this.prisma.projectIdeState.findUnique({ where: { projectId: input.projectId } });
+
+      return mapProjectIdeState(updated!);
+    }
+
     return mapProjectIdeState(
       await this.prisma.projectIdeState.upsert({
         where: { projectId: input.projectId },
@@ -800,7 +832,32 @@ export class PrismaApiStore implements ApiStore {
     return state ? mapWorkspaceIdeState(state) : undefined;
   }
 
-  async upsertWorkspaceIdeState(input: { workspaceId: string; state: unknown; updatedByUserId?: string }) {
+  async upsertWorkspaceIdeState(input: {
+    workspaceId: string;
+    state: unknown;
+    updatedByUserId?: string;
+    expectedVersion?: number;
+  }) {
+    if (input.expectedVersion !== undefined) {
+      // Atomic optimistic-concurrency write — see upsertProjectIdeState.
+      const result = await this.prisma.workspaceIdeState.updateMany({
+        where: { workspaceId: input.workspaceId, version: input.expectedVersion },
+        data: {
+          state: input.state as any,
+          updatedByUserId: input.updatedByUserId,
+          version: { increment: 1 },
+        },
+      });
+
+      if (result.count === 0) {
+        throw Object.assign(new Error('IDE state version conflict'), { code: 'IDE_STATE_VERSION_CONFLICT' });
+      }
+
+      const updated = await this.prisma.workspaceIdeState.findUnique({ where: { workspaceId: input.workspaceId } });
+
+      return mapWorkspaceIdeState(updated!);
+    }
+
     return mapWorkspaceIdeState(
       await this.prisma.workspaceIdeState.upsert({
         where: { workspaceId: input.workspaceId },
@@ -1246,10 +1303,18 @@ export class PrismaApiStore implements ApiStore {
     return mapDeployment(deployment);
   }
 
-  async listDeployments(projectId: string) {
-    return (await this.prisma.deployment.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(
-      mapDeployment,
-    );
+  async listDeployments(projectId: string, options: { take?: number } = {}) {
+    return (
+      await this.prisma.deployment.findMany({
+        where: { projectId },
+        orderBy: { createdAt: 'desc' },
+        // Cap the most-recent deployments. The /deployments endpoint fans out a
+        // provider-status reconcile per row, so an unbounded list turned a
+        // pollable endpoint into an unbounded burst of outbound calls on a
+        // project with a long deploy history.
+        take: options.take ?? 100,
+      })
+    ).map(mapDeployment);
   }
 
   async createSupportTicket(input: { organizationId: string; userId: string; subject: string }) {

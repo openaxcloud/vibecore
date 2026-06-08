@@ -388,7 +388,13 @@ export class GitLabApiService {
   }
 
   async getFile(projectId: number, filePath: string, ref: string): Promise<Response> {
-    return this._request(`/projects/${projectId}/repository/files/${encodeURIComponent(filePath)}?ref=${ref}`);
+    /*
+     * Encode the ref too — a branch name containing ?/&/# would otherwise break
+     * the query string (and could read the wrong ref).
+     */
+    return this._request(
+      `/projects/${projectId}/repository/files/${encodeURIComponent(filePath)}?ref=${encodeURIComponent(ref)}`,
+    );
   }
 
   async getProjectByPath(projectPath: string): Promise<GitLabProjectResponse | null> {

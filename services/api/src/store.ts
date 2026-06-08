@@ -715,6 +715,7 @@ export interface ApiStore {
     projectId: string;
     state: unknown;
     updatedByUserId?: string;
+    expectedVersion?: number;
   }): Promise<ProjectIdeStateRecord>;
   // Workspace-scoped IDE state. Callers that pass a workspaceId can read the
   // working tree's own editor state; when nothing is persisted yet they should
@@ -725,6 +726,7 @@ export interface ApiStore {
     workspaceId: string;
     state: unknown;
     updatedByUserId?: string;
+    expectedVersion?: number;
   }): Promise<WorkspaceIdeStateRecord>;
   updateWorkspaceGitRepositoryUrl(input: {
     workspaceId: string;
@@ -862,7 +864,7 @@ export interface ApiStore {
     deploymentId: string,
     input: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>,
   ): Promise<DeploymentRecord>;
-  listDeployments(projectId: string): Promise<DeploymentRecord[]>;
+  listDeployments(projectId: string, options?: { take?: number }): Promise<DeploymentRecord[]>;
   createSupportTicket(input: { organizationId: string; userId: string; subject: string }): Promise<SupportTicketRecord>;
   listSupportTickets(organizationId: string): Promise<SupportTicketRecord[]>;
   setFeatureFlag(input: {
