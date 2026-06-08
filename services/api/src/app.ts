@@ -14875,14 +14875,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       hookResult?.status === 'queued' &&
       canPollDeploymentStatus(body.provider, hookResult?.buildId);
 
-    const status = failed ? 'FAILED' : pollable ? 'BUILDING' : 'READY';
+    const hasRealHookUrl = Boolean(hookResult?.url);
+
+    /*
+     * A non-static deploy hook only QUEUES a build at the provider. If we can
+     * neither poll its status nor got a real URL back from the hook, we must
+     * NOT mark it READY with the synthesized *.vibecore.local host (which
+     * serves nothing) — keep it BUILDING (queued externally) instead. This was
+     * regressing the earlier fake-READY-URL fix whenever the deploy hook is
+     * configured without the matching status-API token.
+     */
+    const queuedExternalNoUrl =
+      !failed && body.provider !== 'static' && hookResult?.status === 'queued' && !pollable && !hasRealHookUrl;
+
+    const status = failed ? 'FAILED' : pollable || queuedExternalNoUrl ? 'BUILDING' : 'READY';
     const isReady = status === 'READY';
+
+    /*
+     * Only persist a usable URL: a real hook URL, or the static path-based URL.
+     * Never the synthesized fallback for a non-static build that has no real URL.
+     */
+    const resolvedUrl = failed
+      ? undefined
+      : hasRealHookUrl
+        ? hookResult?.url
+        : body.provider === 'static'
+          ? url
+          : undefined;
 
     const ready = await store.updateDeployment(project.id, queued.id, {
       status,
-      url: failed ? undefined : url,
-      previewUrl: isReady && body.environment !== 'production' ? url : undefined,
-      productionUrl: isReady && body.environment === 'production' ? url : undefined,
+      url: resolvedUrl,
+      previewUrl: isReady && body.environment !== 'production' ? resolvedUrl : undefined,
+      productionUrl: isReady && body.environment === 'production' ? resolvedUrl : undefined,
       metadata: {
         ...(queued.metadata as Record<string, unknown>),
         providerBuildId: hookResult?.buildId,

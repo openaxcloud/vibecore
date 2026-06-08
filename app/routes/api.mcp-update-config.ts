@@ -1,10 +1,40 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
+import { apiRequest } from '~/lib/enterprise-api.server';
 import { MCPService, type MCPConfig } from '~/lib/services/mcpService';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('api.mcp-update-config');
 
+/**
+ * Strip credentials (config.env / config.headers) and the live client handle
+ * from a server-tools map before it is serialized to the browser.
+ */
+function sanitizeServerTools(serverTools: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(serverTools).map(([name, server]) => {
+      const record = server as {
+        status?: unknown;
+        tools?: unknown;
+        error?: unknown;
+        config?: Record<string, unknown>;
+      };
+
+      const safeConfig = record.config ? { ...record.config, env: undefined, headers: undefined } : undefined;
+
+      return [name, { status: record.status, tools: record.tools, error: record.error, config: safeConfig }];
+    }),
+  );
+}
+
 export async function action({ request }: ActionFunctionArgs) {
+  /*
+   * Require an authenticated session. updateConfig spawns MCP transports
+   * (stdio child processes / outbound SSE/HTTP connections) inside the web pod,
+   * so an unauthenticated caller could otherwise trigger arbitrary process
+   * execution and SSRF. apiRequest throws a 401 Response when unauthenticated.
+   */
+  await apiRequest(request, '/orgs', { redirectOn401: false });
+
   try {
     const mcpConfig = (await request.json()) as MCPConfig;
 
@@ -15,7 +45,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const mcpService = MCPService.getInstance();
     const serverTools = await mcpService.updateConfig(mcpConfig);
 
-    return Response.json(serverTools);
+    return Response.json(sanitizeServerTools(serverTools as Record<string, unknown>));
   } catch (error) {
     logger.error('Error updating MCP config:', error);
     return Response.json({ error: 'Failed to update MCP config' }, { status: 500 });
