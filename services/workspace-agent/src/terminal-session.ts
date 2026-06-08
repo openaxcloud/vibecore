@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -92,8 +92,16 @@ let oscRcfilePath: string | undefined;
 
 function ensureOscRcfile(): string {
   if (!oscRcfilePath) {
-    const path = join(tmpdir(), 'vibecore-jsh-osc.bashrc');
-    writeFileSync(path, OSC_RCFILE_CONTENT, { mode: 0o600 });
+    /*
+     * Write into a private per-agent temp dir (0700) with a fresh random name
+     * rather than a fixed, world-predictable path in the shared temp dir. A
+     * fixed name is a classic symlink/pre-creation target — sourcing an
+     * attacker-controlled rc into every interactive shell. `wx` also fails hard
+     * if the path somehow already exists instead of following a symlink.
+     */
+    const dir = mkdtempSync(join(tmpdir(), 'vibecore-osc-'));
+    const path = join(dir, 'jsh-osc.bashrc');
+    writeFileSync(path, OSC_RCFILE_CONTENT, { mode: 0o600, flag: 'wx' });
     oscRcfilePath = path;
   }
 

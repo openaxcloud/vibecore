@@ -161,8 +161,10 @@ services:
     command: []
     path: /
     resources:
-      requests: { cpu: 100m, memory: 256Mi }
-      limits: { cpu: 500m, memory: 512Mi }
+      # Remix SSR routinely exceeds 512Mi (RSS + heap) and would be OOMKilled.
+      # The namespace quota has ample room; give it 1Gi headroom like staging.
+      requests: { cpu: 100m, memory: 384Mi }
+      limits: { cpu: 500m, memory: 1Gi }
   admin:
     enabled: true
     image: admin
@@ -188,8 +190,10 @@ services:
     # killed, so users hit a healthy replica instead of a 5xx mid-request.
     readyPath: /ready
     resources:
-      requests: { cpu: 100m, memory: 256Mi }
-      limits: { cpu: 500m, memory: 512Mi }
+      # The API does zip imports / static builds in-process; 512Mi OOMKills it
+      # under load. Match staging headroom (1Gi).
+      requests: { cpu: 100m, memory: 384Mi }
+      limits: { cpu: 500m, memory: 1Gi }
   worker:
     enabled: true
     image: worker

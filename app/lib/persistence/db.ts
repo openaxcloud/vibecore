@@ -271,14 +271,25 @@ export async function createChatFromMessages(
 }
 
 export async function updateChatDescription(db: IDBDatabase, id: string, description: string): Promise<void> {
+  if (!description.trim()) {
+    throw new Error('Description cannot be empty');
+  }
+
   const chat = await getMessages(db, id);
 
   if (!chat) {
-    throw new Error('Chat not found');
-  }
+    /*
+     * Project chats (`project:<id>`) are server-synced and may have no local
+     * IDB row (the empty seed row is only written when there were no stored
+     * messages), so requiring an existing row threw a confusing "Chat not
+     * found" for a valid, visible chat. Upsert an empty row instead.
+     */
+    if (id.startsWith('project:')) {
+      await setMessages(db, id, [], undefined, description, undefined, undefined);
+      return;
+    }
 
-  if (!description.trim()) {
-    throw new Error('Description cannot be empty');
+    throw new Error('Chat not found');
   }
 
   await setMessages(db, id, chat.messages, chat.urlId, description, chat.timestamp, chat.metadata);

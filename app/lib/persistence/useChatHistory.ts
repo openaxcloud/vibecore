@@ -172,7 +172,15 @@ export function useChatHistory() {
               ? storedMessages.messages.findIndex((m) => m.id === rewindId) + 1
               : storedMessages.messages.length;
 
-            const snapshotIndex = storedMessages.messages.findIndex((m) => m.id === validSnapshot.chatIndex);
+            /*
+             * Coerce both sides to string: chatIndex is a message id (string)
+             * today, but snapshots persisted under the old numeric schema would
+             * never match `m.id === <number>` and silently discard a valid
+             * snapshot (losing the archived-message split).
+             */
+            const snapshotIndex = storedMessages.messages.findIndex(
+              (m) => String(m.id) === String(validSnapshot.chatIndex),
+            );
 
             if (snapshotIndex >= 0 && snapshotIndex < endingIdx) {
               startingIdx = snapshotIndex;
