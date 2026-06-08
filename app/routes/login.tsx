@@ -1,3 +1,4 @@
+import type { MetaFunction } from '@remix-run/cloudflare';
 import { Form, Link, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
 import { CheckCircle, Chrome, Code2, Eye, EyeOff, Github, KeyRound, Lock, Mail, Shield, Sparkles } from 'lucide-react';
 import { useState } from 'react';
@@ -14,6 +15,11 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+
+export const meta: MetaFunction = () => [
+  { title: 'Login - Vibecore' },
+  { name: 'description', content: 'Sign in to your Vibecore workspace.' },
+];
 
 /*
  * Marketing host (`e-code.ai`) shouldn't expose the sign-in form. The
@@ -135,12 +141,12 @@ export default function LoginPage() {
     <AuthScreen
       eyebrow="Secure workspace access"
       title="Welcome back"
-      description="Sign in to continue building, previewing and deploying production applications with the E-code IDE."
+      description="Sign in to continue building, previewing and deploying production applications with the Vibecore IDE."
       error={error}
       backTo="/"
       backLabel="Back to home"
       heroEyebrow="AI-powered development"
-      heroTitle="Build faster with enterprise-grade tools"
+      heroTitle="Build faster inside your Vibecore workspace"
       heroBody="Ship production-ready applications with an AI agent, live preview, secure workspaces and deployment workflows."
       heroAside={
         <>

@@ -56,8 +56,8 @@ export function AuthScreen({
   children,
   footer,
   heroEyebrow = 'Enterprise-grade security',
-  heroTitle = 'Build production apps with an AI co-pilot',
-  heroBody = 'Provision workspaces, share live previews and ship to your own infrastructure — all from a single browser tab.',
+  heroTitle = 'Build production apps with Vibecore',
+  heroBody = 'Provision workspaces, share live previews and ship to your own infrastructure from a single browser tab.',
   heroAside,
   belowCard,
   backTo = '/login',
@@ -79,11 +79,11 @@ export function AuthScreen({
 
           <div className="mb-6 flex items-center gap-3 sm:mb-8">
             <div className="vc-auth-logo-box grid h-10 w-10 place-items-center rounded-lg sm:h-11 sm:w-11">
-              <img src="/assets/logo.svg" alt="E-code" className="h-6 w-6 rounded object-contain sm:h-7 sm:w-7" />
+              <img src="/logo.svg" alt="Vibecore" className="h-6 w-6 rounded object-contain sm:h-7 sm:w-7" />
             </div>
             <div>
-              <p className="vc-auth-brand-title text-[15px] font-semibold leading-none">E-code</p>
-              <p className="vc-auth-brand-subtitle mt-1 text-[12px]">Enterprise Development Platform</p>
+              <p className="vc-auth-brand-title text-[15px] font-semibold leading-none">Vibecore</p>
+              <p className="vc-auth-brand-subtitle mt-1 text-[12px]">AI development workspace</p>
             </div>
           </div>
 

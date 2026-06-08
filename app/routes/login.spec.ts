@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { action, loader } from './login';
@@ -107,6 +108,22 @@ describe('login route loader', () => {
       error: 'callback_failed',
       detail: 'OAUTH_TOKEN_EXCHANGE_FAILED',
     });
+  });
+});
+
+describe('login visible branding', () => {
+  it('keeps the Vibecore auth shell instead of the imported E-Code marketing login', () => {
+    const loginSource = readFileSync('app/routes/login.tsx', 'utf8');
+    const authScreenSource = readFileSync('app/components/auth/AuthScreen.tsx', 'utf8');
+
+    expect(authScreenSource).toContain('src="/logo.svg"');
+    expect(authScreenSource).toContain('alt="Vibecore"');
+    expect(authScreenSource).toContain('>Vibecore<');
+    expect(authScreenSource).not.toContain('src="/assets/logo.svg"');
+    expect(authScreenSource).not.toContain('>E-code<');
+    expect(loginSource).toContain('Login - Vibecore');
+    expect(loginSource).toContain('Vibecore IDE');
+    expect(loginSource).not.toContain('E-code IDE');
   });
 });
 
