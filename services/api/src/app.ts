@@ -4999,22 +4999,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     checkedAt: new Date().toISOString(),
   }));
 
-  app.post('/contact-sales', async (request, reply) => {
-    const body = parse(contactSalesSchema, request.body);
-    await emailProvider.send({
-      to: process.env.SALES_EMAIL_TO ?? process.env.EMAIL_FROM ?? 'sales@vibecore.local',
-      subject: `VibeCore sales request - ${body.company}`,
-      text: [
-        `Email: ${body.email}`,
-        `Company: ${body.company}`,
-        `Team size: ${body.teamSize ?? 'not provided'}`,
-        '',
-        body.requirements,
-      ].join('\n'),
-    });
+  app.post(
+    '/contact-sales',
+    { config: { rateLimit: { max: Number(process.env.CONTACT_SALES_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = parse(contactSalesSchema, request.body);
+      await emailProvider.send({
+        to: process.env.SALES_EMAIL_TO ?? process.env.EMAIL_FROM ?? 'sales@vibecore.local',
+        subject: `VibeCore sales request - ${body.company}`,
+        text: [
+          `Email: ${body.email}`,
+          `Company: ${body.company}`,
+          `Team size: ${body.teamSize ?? 'not provided'}`,
+          '',
+          body.requirements,
+        ].join('\n'),
+      });
 
-    return reply.code(202).send({ ok: true });
-  });
+      return reply.code(202).send({ ok: true });
+    },
+  );
 
   app.post(
     '/auth/register',
@@ -11881,6 +11885,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             ...(event.payload as Record<string, unknown>),
             sessionId,
           });
+          const role = await projectCollaborationRole(store, project.id, request.currentUser!.id);
           const updated = await store.upsertCollaborationPresence({
             projectId: project.id,
             userId: request.currentUser!.id,
@@ -11889,7 +11894,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             filePath: normalizeProjectPath(body.filePath),
             cursor: body.cursor,
             selection: body.selection,
-            mode: body.mode,
+            mode: isReadOnlyProjectRole(role) ? 'read-only' : body.mode,
             terminalAccess: body.terminalAccess,
           });
           collaborationBroker.publish(project.id, { type: 'presence.update', presence: updated }, client);

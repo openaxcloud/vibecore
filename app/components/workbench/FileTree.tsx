@@ -314,14 +314,17 @@ export const FileTree = memo(
       [onFilePreview, onFileSelect],
     );
 
-    const renderFileRow = (filePath: string, meta?: { detail?: string; status?: GitFileStatus; line?: number }) => {
+    const renderFileRow = (
+      filePath: string,
+      meta?: { detail?: string; status?: GitFileStatus; line?: number; key?: string },
+    ) => {
       const icon = materialFileIcon(filePath);
       const label = filePath.split('/').pop() ?? filePath;
       const relativePath = normalizeWorkspacePath(filePath);
 
       return (
         <button
-          key={`${filePath}:${meta?.detail ?? ''}:${meta?.line ?? ''}`}
+          key={meta?.key ?? `${filePath}:${meta?.detail ?? ''}:${meta?.line ?? ''}`}
           type="button"
           className={classNames(
             'group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-bolt-elements-textSecondary hover:bg-bolt-elements-item-backgroundActive hover:text-bolt-elements-item-contentActive',
@@ -422,6 +425,7 @@ export const FileTree = memo(
             <div className="space-y-1 p-2">
               {openEditors.map((editor) =>
                 renderFileRow(editor.filePath, {
+                  key: editor.id,
                   detail: editor.dirty
                     ? 'Unsaved changes'
                     : editor.pinned

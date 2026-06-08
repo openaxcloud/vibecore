@@ -409,6 +409,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
   async *streamCommand(request: CommandRequest): AsyncIterable<CommandEvent> {
     const process = await this.#spawnTracked(request);
     const reader = process.output.getReader();
+    let completed = false;
 
     try {
       while (true) {
@@ -422,6 +423,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
       }
 
       const exitCode = await process.exit;
+      completed = true;
       yield { type: 'exit', exitCode, timestamp: new Date().toISOString() };
     } catch (error) {
       yield {
@@ -429,6 +431,14 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
         error: toRuntimeError(error),
         timestamp: new Date().toISOString(),
       };
+    } finally {
+      reader.releaseLock();
+
+      // The consumer broke or threw out of the loop before the command finished —
+      // kill the process so we never leak a live shell per cancelled command.
+      if (!completed) {
+        process.kill();
+      }
     }
   }
 
@@ -621,17 +631,21 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
   async *#processEvents(process: WebContainerProcessLike): AsyncIterable<CommandEvent> {
     const reader = process.output.getReader();
 
-    while (true) {
-      const chunk = await reader.read();
+    try {
+      while (true) {
+        const chunk = await reader.read();
 
-      if (chunk.done) {
-        break;
+        if (chunk.done) {
+          break;
+        }
+
+        yield { type: 'stdout', data: chunk.value, timestamp: new Date().toISOString() };
       }
 
-      yield { type: 'stdout', data: chunk.value, timestamp: new Date().toISOString() };
+      yield { type: 'exit', exitCode: await process.exit, timestamp: new Date().toISOString() };
+    } finally {
+      reader.releaseLock();
     }
-
-    yield { type: 'exit', exitCode: await process.exit, timestamp: new Date().toISOString() };
   }
 
   async #listFiles(webcontainer: WebContainerLike, dirPath: string): Promise<FileNode[]> {

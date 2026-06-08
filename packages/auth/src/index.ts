@@ -83,9 +83,12 @@ export function verifyTotpCode(secret: string, code: string, window = 1) {
   }
 
   const currentStep = Math.floor(Date.now() / 30_000);
+  const provided = Buffer.from(normalized);
 
   for (let offset = -window; offset <= window; offset += 1) {
-    if (createTotpCode(secret, currentStep + offset) === normalized) {
+    const candidate = Buffer.from(createTotpCode(secret, currentStep + offset));
+
+    if (candidate.length === provided.length && timingSafeEqual(candidate, provided)) {
       return true;
     }
   }
