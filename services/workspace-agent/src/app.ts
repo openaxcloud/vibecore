@@ -263,6 +263,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           ? undefined
           : serializePreviewBody(request.body, request.headers['content-type']),
       redirect: 'manual',
+      signal: AbortSignal.timeout(30_000),
     });
 
     for (const [key, value] of response.headers.entries()) {
@@ -962,7 +963,12 @@ async function runCommandStream(
       return;
     }
 
-    options.socket.send(JSON.stringify({ type, data, timestamp: new Date().toISOString() }));
+    try {
+      options.socket.send(JSON.stringify({ type, data, timestamp: new Date().toISOString() }));
+    } catch {
+      // Socket transitioned to CLOSING after the isOpen() check; drop the chunk
+      // instead of throwing out of the child's 'data' listener.
+    }
   };
 
   child.stdout.on('data', (chunk) => send('stdout', chunk));

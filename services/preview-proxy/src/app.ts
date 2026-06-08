@@ -77,7 +77,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     const proxyPath = params['*'] ?? '';
     const upstreamPath = `/preview/${portNumber}/${proxyPath}`;
     const queryString = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
-    const upstream = new URL(`${agent.baseUrl.replace(/\/$/, '')}${upstreamPath}${queryString}`);
+    let upstream: URL;
+
+    try {
+      upstream = new URL(`${agent.baseUrl.replace(/\/$/, '')}${upstreamPath}${queryString}`);
+    } catch {
+      return reply.code(400).send({ error: 'Invalid preview path', code: 'PREVIEW_PATH_INVALID' });
+    }
+
     const headers: Record<string, string> = {
       authorization: `Bearer ${agent.token}`,
       'x-vibecore-workspace': params.workspaceId,

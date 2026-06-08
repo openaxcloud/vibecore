@@ -33,15 +33,10 @@ export function verifyConnectorAccessToken(input: {
     return { ok: false, reason: 'malformed' };
   }
 
-  const expected = createHmac('sha256', input.secret).update(payload).digest('base64url');
+  const expectedBuf = createHmac('sha256', input.secret).update(payload).digest();
+  const signatureBuf = Buffer.from(signature, 'base64url');
 
-  if (expected.length !== signature.length) {
-    return { ok: false, reason: 'invalid_signature' };
-  }
-
-  const valid = timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
-
-  if (!valid) {
+  if (expectedBuf.length !== signatureBuf.length || !timingSafeEqual(expectedBuf, signatureBuf)) {
     return { ok: false, reason: 'invalid_signature' };
   }
 

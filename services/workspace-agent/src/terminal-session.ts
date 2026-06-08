@@ -165,7 +165,19 @@ function createPipeBackend(
   // to the whole process group kills the foreground command (default action)
   // while the shell itself survives — the same end-result as a PTY's job
   // control, without a controlling terminal.
-  child.stdin?.write("trap ':' INT\n");
+  const safeStdinWrite = (data: string) => {
+    try {
+      child.stdin?.write(data);
+    } catch {
+      // stdin closed (shell exited); drop the write instead of crashing.
+    }
+  };
+
+  child.stdin?.on('error', () => {
+    // Broken pipe after the shell exits — swallow so it isn't an unhandled stream error.
+  });
+
+  safeStdinWrite("trap ':' INT\n");
 
   const dataListeners: Array<(chunk: string) => void> = [];
   const exitListeners: Array<(exitCode: number) => void> = [];
@@ -183,6 +195,18 @@ function createPipeBackend(
   child.on('exit', (code) => {
     for (const listener of exitListeners) {
       listener(code ?? 0);
+    }
+  });
+
+  /*
+   * A failed spawn (ENOENT for a missing shell, EACCES, …) emits 'error' with no
+   * matching 'exit'. With no listener Node turns this into an uncaught exception
+   * that crashes the whole agent. Surface it as a non-zero exit so the session is
+   * cleaned up instead.
+   */
+  child.on('error', () => {
+    for (const listener of exitListeners) {
+      listener(1);
     }
   });
 
@@ -206,12 +230,12 @@ function createPipeBackend(
   return {
     mode: 'pipe',
     write: (data) => {
-      child.stdin?.write(data);
+      safeStdinWrite(data);
     },
     resize: (cols, rows) => {
       // No pty to resize; keep COLUMNS/LINES roughly informative for new
       // children by exporting through the shell.
-      child.stdin?.write(`export COLUMNS=${Math.max(1, cols)} LINES=${Math.max(1, rows)}\n`);
+      safeStdinWrite(`export COLUMNS=${Math.max(1, cols)} LINES=${Math.max(1, rows)}\n`);
     },
     interrupt: () => signalGroup('SIGINT'),
     onData: (listener) => {

@@ -2850,7 +2850,15 @@ function oidcJwksResolver(): JWTVerifyGetKey | undefined {
   }
 
   if (uri !== cachedOidcJwksUri || !cachedOidcJwks) {
-    cachedOidcJwks = createRemoteJWKSet(new URL(uri));
+    let jwksUrl: URL;
+
+    try {
+      jwksUrl = new URL(uri);
+    } catch {
+      return undefined;
+    }
+
+    cachedOidcJwks = createRemoteJWKSet(jwksUrl);
     cachedOidcJwksUri = uri;
   }
 
@@ -5330,7 +5338,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return null;
     }
 
-    const url = new URL(authorizationUrl);
+    let url: URL;
+
+    try {
+      url = new URL(authorizationUrl);
+    } catch {
+      return null;
+    }
+
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('client_id', clientId);
     url.searchParams.set('scope', scope);
@@ -5593,8 +5608,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   );
 
   const adminRateBuckets = new Map<string, { count: number; resetAt: number }>();
-  const adminRateLimit = Math.max(1, Number(process.env.ADMIN_RATE_LIMIT_MAX ?? 30));
-  const adminRateWindowMs = Math.max(1000, Number(process.env.ADMIN_RATE_LIMIT_WINDOW_MS ?? 60_000));
+  const parsedAdminRateLimit = Number(process.env.ADMIN_RATE_LIMIT_MAX ?? 30);
+  const adminRateLimit = Number.isFinite(parsedAdminRateLimit) ? Math.max(1, parsedAdminRateLimit) : 30;
+  const parsedAdminRateWindowMs = Number(process.env.ADMIN_RATE_LIMIT_WINDOW_MS ?? 60_000);
+  const adminRateWindowMs = Number.isFinite(parsedAdminRateWindowMs) ? Math.max(1000, parsedAdminRateWindowMs) : 60_000;
 
   app.addHook('preHandler', async (request, reply) => {
     if (request.url.startsWith('/admin/') && request.method !== 'GET' && request.method !== 'OPTIONS') {
@@ -6653,7 +6670,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply;
     }
 
-    const url = new URL(`https://api.github.com${body.path}`);
+    let url: URL;
+
+    try {
+      url = new URL(`https://api.github.com${body.path}`);
+    } catch {
+      return reply.code(400).send({ error: 'invalid path', code: 'PROXY_BAD_REQUEST' });
+    }
 
     if (body.query) {
       for (const [key, value] of Object.entries(body.query)) {
@@ -7548,8 +7571,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let stdout = '';
     let stderr = '';
 
-    const maxOutputBytes = Number(process.env.WORKSPACE_MAX_OUTPUT_BYTES ?? 1024 * 1024);
-    const timeoutMs = Math.min(body.timeoutMs ?? 30_000, Number(process.env.WORKSPACE_COMMAND_TIMEOUT_MS ?? 30_000));
+    const parsedMaxOutputBytes = Number(process.env.WORKSPACE_MAX_OUTPUT_BYTES ?? 1024 * 1024);
+    const maxOutputBytes = Number.isFinite(parsedMaxOutputBytes) && parsedMaxOutputBytes > 0 ? parsedMaxOutputBytes : 1024 * 1024;
+    const parsedTimeoutMs = Number(process.env.WORKSPACE_COMMAND_TIMEOUT_MS ?? 30_000);
+    const configuredTimeoutMs = Number.isFinite(parsedTimeoutMs) && parsedTimeoutMs > 0 ? parsedTimeoutMs : 30_000;
+    const timeoutMs = Math.min(body.timeoutMs ?? 30_000, configuredTimeoutMs);
     const timer = setTimeout(() => child.kill('SIGTERM'), timeoutMs);
 
     const append = (target: 'stdout' | 'stderr', chunk: Buffer) => {
@@ -7736,12 +7762,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    return (await response.json()) as {
-      provider: string;
-      model: string;
-      content: string;
-      usage: { inputTokens: number; outputTokens: number; estimatedCostCents: number };
-    };
+    try {
+      return (await response.json()) as {
+        provider: string;
+        model: string;
+        content: string;
+        usage: { inputTokens: number; outputTokens: number; estimatedCostCents: number };
+      };
+    } catch (error) {
+      throw Object.assign(new Error('AI Gateway returned a malformed response'), {
+        statusCode: 502,
+        code: 'AI_GATEWAY_BAD_RESPONSE',
+        cause: error,
+      });
+    }
   };
 
   const billingState = async (organizationId: string) => {
@@ -8171,7 +8205,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     } else if (toolName === 'get_terminal_output') {
       const logs = await managerRequest<{ logs: string[] }>(`/workspaces/${workspaceId}/logs`);
-      output = { logs: logs.logs.slice(-200) };
+      output = { logs: (logs?.logs ?? []).slice(-200) };
     } else if (toolName === 'get_workspace_status') {
       output = await managerRequest(`/workspaces/${workspaceId}`);
     } else if (toolName === 'get_preview_url') {
@@ -8780,9 +8814,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
     }));
   });
-  app.get('/api/runtime/workspaces/:workspaceId/preview/:port', async (request) => {
+  app.get('/api/runtime/workspaces/:workspaceId/preview/:port', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const port = Number((request.params as { port: string }).port);
+
+    if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+      return reply.code(400).send({ error: 'invalid_port' });
+    }
+
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
 
     if (authorized.organizationId) {
@@ -9112,7 +9151,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const poll = async () => {
       const logs = await managerRequest<{ logs: string[] }>(`/workspaces/${authorized.workspaceId}/logs`);
-      const lines = logs.logs ?? [];
+      const lines = logs?.logs ?? [];
 
       // Buffer shrank — treat as a rotation and replay from the top.
       if (lines.length < sentCount) {
@@ -9161,7 +9200,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return {
       workspaceId: authorized.workspaceId,
-      logs: logs.logs.slice(-1000).map((line) => ({
+      logs: (logs?.logs ?? []).slice(-1000).map((line) => ({
         level: classifyRuntimeLogLevel(line),
         message: line,
         source: classifyRuntimeLogSource(line),

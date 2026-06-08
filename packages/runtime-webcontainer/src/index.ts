@@ -618,12 +618,20 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
       startedAt: new Date().toISOString(),
       process,
     });
-    process.exit.then((exitCode) => {
-      const metadata = this.#processes.get(id);
-      if (metadata) {
-        this.#processes.set(id, { ...metadata, status: 'exited', exitCode });
-      }
-    });
+    process.exit
+      .then((exitCode) => {
+        const metadata = this.#processes.get(id);
+        if (metadata) {
+          this.#processes.set(id, { ...metadata, status: 'exited', exitCode });
+        }
+      })
+      .catch(() => {
+        // A rejected exit promise (spawn/teardown failure) must not become an unhandled rejection.
+        const metadata = this.#processes.get(id);
+        if (metadata) {
+          this.#processes.set(id, { ...metadata, status: 'killed' });
+        }
+      });
 
     return process;
   }
