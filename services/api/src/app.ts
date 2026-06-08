@@ -1037,14 +1037,26 @@ function bearerToken(request: FastifyRequest) {
     return authorization.slice('Bearer '.length);
   }
 
-  if (typeof (request.query as { token?: unknown } | undefined)?.token === 'string') {
-    return (request.query as { token: string }).token;
-  }
+  /*
+   * Query-string tokens are only honoured for WS/SSE upgrades that genuinely
+   * cannot send an Authorization header. Accepting them on every route turns any
+   * logged/referred URL (access logs, Referer to third-party origins, browser
+   * history, intermediary proxies) into a credential-theft vector.
+   */
+  const isUpgrade =
+    request.headers.upgrade?.toLowerCase() === 'websocket' ||
+    (typeof request.headers.accept === 'string' && request.headers.accept.includes('text/event-stream'));
 
-  const queryToken = new URL(request.url, 'http://vibecore.local').searchParams.get('token');
+  if (isUpgrade) {
+    if (typeof (request.query as { token?: unknown } | undefined)?.token === 'string') {
+      return (request.query as { token: string }).token;
+    }
 
-  if (queryToken) {
-    return queryToken;
+    const queryToken = new URL(request.url, 'http://vibecore.local').searchParams.get('token');
+
+    if (queryToken) {
+      return queryToken;
+    }
   }
 
   return request.cookies.session;
@@ -1058,7 +1070,18 @@ function bearerToken(request: FastifyRequest) {
 const MAX_COLLABORATION_MESSAGE_BYTES = 64 * 1024;
 
 function collaborationTicketSecret() {
-  return process.env.COLLABORATION_WS_TICKET_SECRET ?? process.env.JWT_SECRET ?? process.env.COOKIE_SECRET ?? 'dev';
+  const secret = process.env.COLLABORATION_WS_TICKET_SECRET ?? process.env.JWT_SECRET ?? process.env.COOKIE_SECRET;
+
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      // A literal 'dev' fallback in prod makes WS tickets forgeable by anyone.
+      throw new Error('No HMAC secret configured (COLLABORATION_WS_TICKET_SECRET/JWT_SECRET/COOKIE_SECRET)');
+    }
+
+    return 'dev';
+  }
+
+  return secret;
 }
 
 function signCollaborationTicket(payload: string) {
@@ -1130,7 +1153,18 @@ function verifyCollaborationWebSocketTicket(ticket: string, input: { projectId: 
  * trailing signature.
  */
 function chatShareTokenSecret() {
-  return process.env.SHARE_LINK_SECRET ?? process.env.JWT_SECRET ?? process.env.COOKIE_SECRET ?? 'dev';
+  const secret = process.env.SHARE_LINK_SECRET ?? process.env.JWT_SECRET ?? process.env.COOKIE_SECRET;
+
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      // A literal 'dev' fallback in prod makes chat-share tokens forgeable.
+      throw new Error('No HMAC secret configured (SHARE_LINK_SECRET/JWT_SECRET/COOKIE_SECRET)');
+    }
+
+    return 'dev';
+  }
+
+  return secret;
 }
 
 function signChatShareToken(raw: string) {
@@ -1140,7 +1174,12 @@ function signChatShareToken(raw: string) {
 }
 
 function verifyChatShareToken(token: string): string | undefined {
-  const separator = token.lastIndexOf('.');
+  /*
+   * createOpaqueToken never emits a '.', so the signature is the only dotted
+   * segment. Split on the FIRST '.' so a raw token that (now or in future)
+   * contains one isn't silently truncated, breaking every lookup.
+   */
+  const separator = token.indexOf('.');
 
   if (separator <= 0 || separator === token.length - 1) {
     return undefined;
@@ -1272,7 +1311,7 @@ function maskConnectionUrl(value: string) {
     }
 
     if (url.username) {
-      url.username = url.username ? '***' : '';
+      url.username = '***';
     }
 
     return url.toString();
@@ -1895,14 +1934,22 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
   };
   request.currentSession = session;
 
-  if (
-    adminMfaRequired() &&
-    user.platformAdmin &&
-    !user.mfaEnabled &&
-    !request.url.startsWith('/auth/mfa') &&
-    !request.url.startsWith('/auth/recovery-codes') &&
-    !request.url.startsWith('/auth/sessions')
-  ) {
+  /*
+   * Match on the parsed pathname with exact/segment checks. `request.url`
+   * includes the query string and was matched only by prefix, so an appended
+   * query escaped the gate and sibling paths like `/auth/sessions-export` were
+   * unintentionally exempted.
+   */
+  const mfaPathname = new URL(request.url, 'http://vibecore.local').pathname;
+  const mfaExempt =
+    mfaPathname === '/auth/mfa' ||
+    mfaPathname.startsWith('/auth/mfa/') ||
+    mfaPathname === '/auth/recovery-codes' ||
+    mfaPathname.startsWith('/auth/recovery-codes/') ||
+    mfaPathname === '/auth/sessions' ||
+    mfaPathname.startsWith('/auth/sessions/');
+
+  if (adminMfaRequired() && user.platformAdmin && !user.mfaEnabled && !mfaExempt) {
     return reply.code(403).send({ error: 'MFA required for platform administrators', code: 'MFA_REQUIRED' });
   }
 }
@@ -5564,8 +5611,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.code(404).send({ error: 'SAML provider is not configured', code: 'SAML_PROVIDER_NOT_CONFIGURED' });
       }
 
-      const samlConfig = decryptJson<{ x509Certificate: string }>(config.encryptedConfig);
-      const assertion = parseSamlAssertion(body.SAMLResponse, samlConfig.x509Certificate);
+      let assertion;
+
+      try {
+        const samlConfig = decryptJson<{ x509Certificate: string }>(config.encryptedConfig);
+        assertion = parseSamlAssertion(body.SAMLResponse, samlConfig.x509Certificate);
+      } catch {
+        // Attacker-controlled SAMLResponse that makes parsing throw must return a
+        // clean 401, not an unauthenticated 500 (+ Sentry amplification).
+        return reply.code(401).send({ error: 'Invalid SAML assertion', code: 'SAML_INVALID_ASSERTION' });
+      }
 
       if (!assertion.signatureValid) {
         return reply.code(401).send({ error: 'Invalid SAML assertion signature', code: 'SAML_INVALID_SIGNATURE' });
@@ -5615,6 +5670,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   );
 
   const adminRateBuckets = new Map<string, { count: number; resetAt: number }>();
+
+  /*
+   * Periodically evict expired buckets. Without this, the map grows without
+   * bound: a caller varying source IP or path component creates a key that is
+   * only ever overwritten when that exact key recurs, so one-off keys live
+   * forever (memory leak / DoS amplifier).
+   */
+  setInterval(() => {
+    const t = Date.now();
+
+    for (const [k, v] of adminRateBuckets) {
+      if (v.resetAt <= t) {
+        adminRateBuckets.delete(k);
+      }
+    }
+  }, 60_000).unref();
+
   const parsedAdminRateLimit = Number(process.env.ADMIN_RATE_LIMIT_MAX ?? 30);
   const adminRateLimit = Number.isFinite(parsedAdminRateLimit) ? Math.max(1, parsedAdminRateLimit) : 30;
   const parsedAdminRateWindowMs = Number(process.env.ADMIN_RATE_LIMIT_WINDOW_MS ?? 60_000);
@@ -5680,6 +5752,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     await requireAuth(request, reply, store);
+
+    /*
+     * requireAuth sends a 401 and returns; without bailing here an
+     * unauthenticated request would fall through to extra DB work and a second
+     * reply.send (FST_ERR_REP_ALREADY_SENT) on the IP-allowlist path.
+     */
+    if (reply.sent || !request.currentUser) {
+      return;
+    }
 
     const orgId = orgIdFromRequest(request);
 
@@ -6573,7 +6654,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       size?: number;
     };
 
-    const repos = (await reposResponse.json()) as GithubRepoSummary[];
+    const reposJson = await reposResponse.json();
+
+    // A non-array upstream payload (error envelope / rate-limit body with HTTP
+    // 200) would make `.reduce` throw a generic 500 for a 502-class condition.
+    if (!Array.isArray(reposJson)) {
+      return reply.code(502).send({ error: 'GitHub returned an unexpected repos payload', code: 'PROVIDER_RESPONSE_MALFORMED' });
+    }
+
+    const repos = reposJson as GithubRepoSummary[];
 
     const totalStars = repos.reduce((acc, repo) => acc + (repo.stargazers_count ?? 0), 0);
     const totalForks = repos.reduce((acc, repo) => acc + (repo.forks_count ?? 0), 0);
@@ -6687,6 +6776,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (body.query) {
       for (const [key, value] of Object.entries(body.query)) {
+        // body.query is cast, not schema-validated; an object/array value would
+        // be coerced to "[object Object]"/comma-joined garbage. Require primitives.
+        if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
+          return reply.code(400).send({ error: 'query values must be primitive', code: 'PROXY_BAD_REQUEST' });
+        }
+
         url.searchParams.set(key, String(value));
       }
     }
@@ -6710,7 +6805,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const contentType = response.headers.get('content-type') ?? '';
 
     if (contentType.includes('application/json')) {
-      return await response.json();
+      try {
+        return await response.json();
+      } catch {
+        // A 2xx with a truncated/invalid JSON body is a 502-class upstream
+        // condition, not an opaque internal 500.
+        return reply
+          .code(502)
+          .send({ error: 'GitHub returned a malformed JSON response', code: 'PROVIDER_RESPONSE_MALFORMED' });
+      }
     }
 
     return await response.text();
