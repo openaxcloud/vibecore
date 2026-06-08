@@ -13660,14 +13660,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(400).send({ error: 'Invalid Stripe webhook payload', code: 'STRIPE_WEBHOOK_INVALID_JSON' });
     }
 
-    const organizationId = event.data?.object?.metadata?.organizationId;
+    const object = event.data?.object ?? {};
+
+    /*
+     * Resolve the org id. Subscription/checkout events carry it in metadata,
+     * but invoice.* events do NOT — fall back to the Stripe customer id ->
+     * BillingCustomer mapping, otherwise the entire invoice branch (payment
+     * failures, revenue) is silently skipped.
+     */
+    let organizationId = event.data?.object?.metadata?.organizationId as string | undefined;
+
+    if (!organizationId && object.customer) {
+      organizationId = await store
+        .findOrganizationIdByBillingCustomer('stripe', String(object.customer))
+        .catch(() => undefined);
+    }
+
     const persisted = await store.recordStripeEvent({ id: event.id, organizationId, type: event.type, payload: event });
 
     if (!persisted.created) {
       return { received: true, duplicate: true };
     }
 
-    const object = event.data?.object ?? {};
+    /*
+     * If the org has been deleted, every side effect below hits a non-nullable
+     * FK and throws Prisma P2003, which the error handler turns into a 500 and
+     * Stripe retries forever (and the dedup row above blocks the retry from
+     * ever succeeding). Ack the event instead so Stripe stops retrying.
+     */
+    if (organizationId) {
+      const org = await store.getOrganization(organizationId).catch(() => undefined);
+
+      if (!org) {
+        request.log.warn(
+          { organizationId, eventType: event.type },
+          'Stripe webhook for a deleted/unknown organization; acknowledging without side effects',
+        );
+        return reply.code(200).send({ received: true, orphaned: true });
+      }
+    }
 
     if (organizationId && object.customer) {
       await store.upsertBillingCustomer({ organizationId, provider: 'stripe', externalId: String(object.customer) });
@@ -13749,6 +13780,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         resourceType: 'subscription',
         resourceId: object.subscription ?? object.id,
       });
+    }
+
+    /*
+     * A failed invoice payment must downgrade the subscription to PAST_DUE
+     * directly rather than relying on a separate customer.subscription.updated
+     * event arriving and being processed — if that event is dropped the sub
+     * stays ACTIVE and the org keeps the paid plan for free.
+     */
+    if (organizationId && event.type === 'invoice.payment_failed') {
+      const existing = await store.getSubscription(organizationId).catch(() => undefined);
+
+      if (existing && existing.status === 'ACTIVE') {
+        await store.upsertSubscription({
+          organizationId,
+          planKey: existing.planKey,
+          externalId: existing.externalId,
+          status: 'PAST_DUE',
+          cancelAtPeriodEnd: existing.cancelAtPeriodEnd,
+          currentPeriodStart: existing.currentPeriodStart ? new Date(existing.currentPeriodStart) : undefined,
+          currentPeriodEnd: existing.currentPeriodEnd ? new Date(existing.currentPeriodEnd) : undefined,
+        });
+      }
     }
 
     if (organizationId && ['invoice.paid', 'invoice.payment_failed', 'invoice.finalized'].includes(event.type)) {

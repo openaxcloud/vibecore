@@ -1759,6 +1759,16 @@ export class TestApiStore implements ApiStore {
     return this.billingCustomers.get(organizationId);
   }
 
+  async findOrganizationIdByBillingCustomer(provider: string, externalId: string) {
+    for (const customer of this.billingCustomers.values()) {
+      if (customer.provider === provider && customer.externalId === externalId) {
+        return customer.organizationId;
+      }
+    }
+
+    return undefined;
+  }
+
   async upsertSubscription(input: {
     organizationId: string;
     planKey: PlanKey;

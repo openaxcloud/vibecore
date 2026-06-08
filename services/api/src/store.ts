@@ -1058,6 +1058,7 @@ export interface ApiStore {
     externalId: string;
   }): Promise<BillingCustomerRecord>;
   getBillingCustomer(organizationId: string): Promise<BillingCustomerRecord | undefined>;
+  findOrganizationIdByBillingCustomer(provider: string, externalId: string): Promise<string | undefined>;
   upsertSubscription(input: {
     organizationId: string;
     planKey: PlanKey;

@@ -2217,6 +2217,13 @@ export class PrismaApiStore implements ApiStore {
     return customer ? mapBillingCustomer(customer) : undefined;
   }
 
+  async findOrganizationIdByBillingCustomer(provider: string, externalId: string) {
+    const customer = await this.prisma.billingCustomer.findUnique({
+      where: { provider_externalId: { provider, externalId } },
+    });
+    return customer?.organizationId ?? undefined;
+  }
+
   async upsertSubscription(input: {
     organizationId: string;
     planKey: PlanKey;
