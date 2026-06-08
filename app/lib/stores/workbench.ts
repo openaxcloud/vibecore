@@ -2447,8 +2447,14 @@ export class WorkbenchStore {
     const uniqueProjectName = `${projectName}_${timestampHash}`;
 
     for (const [filePath, dirent] of Object.entries(files)) {
-      if (dirent?.type === 'file' && !dirent.isBinary) {
+      if (dirent?.type === 'file') {
         const relativePath = extractRelativePath(filePath);
+
+        /*
+         * Binary files are stored base64-encoded — decode them into the zip so
+         * images/fonts/assets are included instead of being silently dropped.
+         */
+        const fileOptions = dirent.isBinary ? { base64: true } : undefined;
 
         // split the path into segments
         const pathSegments = relativePath.split('/');
@@ -2460,10 +2466,10 @@ export class WorkbenchStore {
           for (let i = 0; i < pathSegments.length - 1; i++) {
             currentFolder = currentFolder.folder(pathSegments[i])!;
           }
-          currentFolder.file(pathSegments[pathSegments.length - 1], dirent.content);
+          currentFolder.file(pathSegments[pathSegments.length - 1], dirent.content, fileOptions);
         } else {
           // if there's only one segment, it's a file in the root
-          zip.file(relativePath, dirent.content);
+          zip.file(relativePath, dirent.content, fileOptions);
         }
       }
     }

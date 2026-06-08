@@ -69,6 +69,14 @@ export class FilesStore {
   #deletedPaths: Set<string> = import.meta.hot?.data.deletedPaths ?? new Set();
 
   /**
+   * Per-path write queue. Serializes concurrent saveFile() calls on the same
+   * file so a second writer reads its `oldContent` baseline only after the first
+   * has committed — otherwise two concurrent saves both pass the optimistic
+   * remote-content check and last-write-wins silently drops one writer's content.
+   */
+  #saveQueues: Map<string, Promise<unknown>> = new Map();
+
+  /**
    * Map of files that matches the state of the active runtime.
    */
   files: MapStore<FileMap> = import.meta.hot?.data.files ?? map({});
@@ -667,6 +675,26 @@ export class FilesStore {
   }
 
   async saveFile(filePath: string, content: string) {
+    /*
+     * Chain on any in-flight write for this path so same-file saves run strictly
+     * one-at-a-time (the optimistic concurrency check is otherwise racy).
+     */
+    const previous = this.#saveQueues.get(filePath) ?? Promise.resolve();
+
+    const run = previous.catch(() => undefined).then(() => this.#saveFileImpl(filePath, content));
+
+    this.#saveQueues.set(filePath, run);
+
+    try {
+      await run;
+    } finally {
+      if (this.#saveQueues.get(filePath) === run) {
+        this.#saveQueues.delete(filePath);
+      }
+    }
+  }
+
+  async #saveFileImpl(filePath: string, content: string) {
     const currentFile = this.files.get()[filePath];
     const optimisticPreviousFile = currentFile;
 
