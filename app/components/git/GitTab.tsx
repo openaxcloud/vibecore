@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { GitBranchSyncControls } from '~/components/git/GitBranchSyncControls';
 import { GitProviderConnectPanel } from '~/components/git/GitProviderConnectPanel';
@@ -150,6 +150,8 @@ export function GitTab({ projectId }: GitTabProps) {
   const [error, setError] = useState<string | undefined>();
   const [staged, setStaged] = useState<Set<string>>(new Set());
   const [inspectFile, setInspectFile] = useState('');
+  const loadRequestRef = useRef(0);
+  const inspectionRequestRef = useRef(0);
 
   const [inspection, setInspection] = useState<{
     loading: boolean;
@@ -186,6 +188,8 @@ export function GitTab({ projectId }: GitTabProps) {
         return;
       }
 
+      const requestId = ++loadRequestRef.current;
+
       if (!options?.silent) {
         setLoading(true);
       }
@@ -212,6 +216,10 @@ export function GitTab({ projectId }: GitTabProps) {
         const response = await fetch(url, { headers: { accept: 'application/json' } });
         const payload = (await response.json()) as Envelope;
 
+        if (requestId !== loadRequestRef.current) {
+          return;
+        }
+
         if (!response.ok) {
           throw new Error(payload.error?.message ?? 'Failed to load git panel');
         }
@@ -224,9 +232,13 @@ export function GitTab({ projectId }: GitTabProps) {
           setError(undefined);
         }
       } catch (requestError) {
+        if (requestId !== loadRequestRef.current) {
+          return;
+        }
+
         setError(requestError instanceof Error ? requestError.message : 'Failed to load git panel');
       } finally {
-        if (!options?.silent) {
+        if (!options?.silent && requestId === loadRequestRef.current) {
           setLoading(false);
         }
       }
@@ -239,6 +251,7 @@ export function GitTab({ projectId }: GitTabProps) {
      * Reset per-file inspection state when the IDE-wide workspace changes; the
      * staged paths/blame/diff belong to the previous workspace's working tree.
      */
+    inspectionRequestRef.current += 1;
     setStaged(new Set());
     setInspectFile('');
     setInspection({ loading: false, blame: [], diff: '' });
@@ -304,6 +317,8 @@ export function GitTab({ projectId }: GitTabProps) {
         return;
       }
 
+      const requestId = ++inspectionRequestRef.current;
+
       setInspection((current) => ({ ...current, loading: true, error: undefined }));
 
       try {
@@ -325,12 +340,20 @@ export function GitTab({ projectId }: GitTabProps) {
         const payload = (await response.json()) as Envelope;
         const fileData = payload.data ?? {};
 
+        if (requestId !== inspectionRequestRef.current) {
+          return;
+        }
+
         setInspection({
           loading: false,
           blame: (fileData as any).blame ?? [],
           diff: (fileData as any).diff ?? '',
         });
       } catch (requestError) {
+        if (requestId !== inspectionRequestRef.current) {
+          return;
+        }
+
         setInspection({
           loading: false,
           blame: [],

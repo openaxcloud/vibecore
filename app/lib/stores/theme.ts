@@ -19,10 +19,14 @@ function isTheme(value: string | null | undefined): value is Theme {
 
 function initStore() {
   if (!import.meta.env.SSR) {
-    const persistedTheme = localStorage.getItem(kTheme);
-    const themeAttribute = document.querySelector('html')?.getAttribute('data-theme');
+    try {
+      const persistedTheme = localStorage.getItem(kTheme);
+      const themeAttribute = document.querySelector('html')?.getAttribute('data-theme');
 
-    return isTheme(persistedTheme) ? persistedTheme : isTheme(themeAttribute) ? themeAttribute : DEFAULT_THEME;
+      return isTheme(persistedTheme) ? persistedTheme : isTheme(themeAttribute) ? themeAttribute : DEFAULT_THEME;
+    } catch {
+      return DEFAULT_THEME;
+    }
   }
 
   return DEFAULT_THEME;

@@ -74,17 +74,17 @@ export default async function handleRequest(
    */
   await waitForServerRenderReady(readable.allReady);
 
+  const reader = readable.getReader();
+
   const body = new ReadableStream({
     start(controller) {
       controller.enqueue(
         new Uint8Array(
           new TextEncoder().encode(
-            `<!DOCTYPE html><html lang="en" data-theme="${themeStore.value}"><head>${head}</head><body><div id="root" class="w-full h-full">`,
+            `<!DOCTYPE html><html lang="en" data-theme="${themeStore.get()}"><head>${head}</head><body><div id="root" class="w-full h-full">`,
           ),
         ),
       );
-
-      const reader = readable.getReader();
 
       function read() {
         reader
@@ -102,14 +102,14 @@ export default async function handleRequest(
           })
           .catch((error) => {
             controller.error(error);
-            readable.cancel();
+            reader.cancel();
           });
       }
       read();
     },
 
     cancel() {
-      readable.cancel();
+      reader.cancel();
     },
   });
 

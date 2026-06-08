@@ -274,7 +274,8 @@ const getInitialSettings = () => {
     }
 
     try {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      return typeof parsed === 'boolean' ? parsed : defaultValue;
     } catch {
       return defaultValue;
     }

@@ -194,7 +194,11 @@ export class LLMManager {
 
     if (cachedModels) {
       logger.info(`Found ${cachedModels.length} cached models for ${provider.name}`);
-      return [...cachedModels, ...staticModels];
+
+      const cachedModelsName = cachedModels.map((d) => d.name);
+      const filteredStaticList = staticModels.filter((m) => !cachedModelsName.includes(m.name));
+
+      return [...cachedModels, ...filteredStaticList];
     }
 
     logger.info(`Getting dynamic models for ${provider.name}`);

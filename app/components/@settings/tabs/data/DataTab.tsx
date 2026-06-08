@@ -176,6 +176,8 @@ export function DataTab() {
       if (file) {
         handleImportSettings(file);
       }
+
+      event.target.value = '';
     },
     [handleImportSettings],
   );
@@ -188,6 +190,8 @@ export function DataTab() {
         setIsImportingKeys(true);
         handleImportAPIKeys(file).finally(() => setIsImportingKeys(false));
       }
+
+      event.target.value = '';
     },
     [handleImportAPIKeys],
   );
@@ -199,6 +203,8 @@ export function DataTab() {
       if (file) {
         handleImportChats(file);
       }
+
+      event.target.value = '';
     },
     [handleImportChats],
   );

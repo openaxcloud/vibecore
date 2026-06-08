@@ -50,14 +50,18 @@ export default function SettingsTab() {
   const [currentTimezone, setCurrentTimezone] = useState('');
 
   const [settings, setSettings] = useState<UserProfile>(() => {
-    const saved = localStorage.getItem('bolt_user_profile');
-    return saved
-      ? JSON.parse(saved)
-      : {
-          notifications: true,
-          language: 'en',
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        };
+    const defaults = {
+      notifications: true,
+      language: 'en',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
+
+    try {
+      const saved = localStorage.getItem('bolt_user_profile');
+      return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
+    } catch {
+      return defaults;
+    }
   });
 
   /*
