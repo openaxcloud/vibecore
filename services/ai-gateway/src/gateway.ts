@@ -478,6 +478,10 @@ async function* providerStream(
   });
 
   if (!response.ok || !response.body) {
+    // Drain/cancel the error body before throwing. An error status (429/5xx,
+    // common during provider incidents) often carries a body; throwing without
+    // consuming it leaks the upstream connection until GC, exhausting sockets.
+    await response.body?.cancel().catch(() => {});
     throw Object.assign(new Error(`Provider stream failed: ${response.status}`), { statusCode: 502 });
   }
 

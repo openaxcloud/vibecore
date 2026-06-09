@@ -107,7 +107,21 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
       return reply;
     }
 
-    return gateway.complete(body);
+    /*
+     * Wire client-disconnect to an abort, like the streaming branch. Without it,
+     * a non-streaming completion kept the (paid) upstream LLM call running to
+     * completion after the client gave up — wasted tokens/cost and a leaked
+     * upstream connection per abandoned request.
+     */
+    const abortController = new AbortController();
+    const onClientClose = () => abortController.abort();
+    request.raw.on('close', onClientClose);
+
+    try {
+      return await gateway.complete(body, abortController.signal);
+    } finally {
+      request.raw.off('close', onClientClose);
+    }
   });
 
   app.post('/v1/agent-runs', async (request, reply) => {
