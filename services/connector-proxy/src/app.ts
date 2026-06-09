@@ -92,6 +92,15 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
   const fetchImpl = options.fetchImpl ?? fetch;
   const app = Fastify({ logger: options.logger ?? false });
 
+  /*
+   * Catch-all no-op body parser (mirrors preview-proxy). Without it Fastify's
+   * default application/json + text/plain parsers consume request.raw before the
+   * /proxy handler runs, so the handler forwarded an already-drained stream and
+   * EVERY JSON/text POST/PUT/PATCH to a provider lost its body. Leaving the raw
+   * stream intact lets it be forwarded upstream with duplex: 'half'.
+   */
+  app.addContentTypeParser('*', (_req, _payload, done) => done(null, undefined));
+
   app.get('/health', async () => ({ status: 'ok', service: 'connector-proxy' }));
 
   app.all('/proxy/:userConnectionId/*', async (request, reply) => {

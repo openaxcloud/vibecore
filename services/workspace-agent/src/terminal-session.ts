@@ -400,7 +400,15 @@ export class TerminalSessionManager {
     });
 
     backend.onExit(() => {
-      this.sessions.delete(id);
+      /*
+       * Only clear the map if it still points to THIS session. dispose(id)
+       * removes the entry then kills the backend asynchronously, so this exit can
+       * fire AFTER a new getOrCreate(id) recreated a fresh session under the same
+       * id — deleting it here would silently drop the live session.
+       */
+      if (this.sessions.get(id) === internal) {
+        this.sessions.delete(id);
+      }
     });
 
     const handle: TerminalSession = {
