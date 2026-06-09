@@ -731,6 +731,15 @@ export class TestApiStore implements ApiStore {
     const existing = [...this.collaborationPresence.values()].find(
       (presence) => presence.projectId === input.projectId && presence.sessionId === input.sessionId,
     );
+
+    // Mirror prisma-store: a session belongs to one user; reject cross-user hijack.
+    if (existing && existing.userId !== input.userId) {
+      throw Object.assign(new Error('Presence session belongs to another user'), {
+        statusCode: 403,
+        code: 'PRESENCE_FORBIDDEN',
+      });
+    }
+
     const record: CollaborationPresenceRecord = {
       id: existing?.id ?? id('presence'),
       projectId: input.projectId,

@@ -18,6 +18,9 @@ export const action: ActionFunction = async ({ request }) => {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+
+      // Bound the outbound call so a hung Supabase API can't pin this request.
+      signal: AbortSignal.timeout(30000),
     });
 
     if (!projectsResponse.ok) {
@@ -55,6 +58,7 @@ export const action: ActionFunction = async ({ request }) => {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        signal: AbortSignal.timeout(30000),
       });
 
       if (orgsResponse.ok) {

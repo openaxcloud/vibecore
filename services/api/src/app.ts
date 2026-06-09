@@ -1997,6 +1997,16 @@ async function authenticateApiKey(request: FastifyRequest, reply: FastifyReply, 
     });
   }
 
+  /*
+   * Apply the same platform-admin MFA-required gate as the session/bearer path
+   * (requireAuth). Without this, a platform admin could mint an API key and use
+   * it to reach admin surfaces while bypassing the org's "admins must have MFA"
+   * policy entirely.
+   */
+  if (adminMfaRequired() && user.platformAdmin && !user.mfaEnabled) {
+    return reply.code(403).send({ error: 'MFA required for platform administrators', code: 'MFA_REQUIRED' });
+  }
+
   // Best-effort usage stamp; never block the request on it.
   void store.touchApiKey(apiKey.id).catch(() => {});
 

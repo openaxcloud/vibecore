@@ -953,6 +953,25 @@ export class PrismaApiStore implements ApiStore {
     mode?: CollaborationPresenceRecord['mode'];
     terminalAccess?: boolean;
   }) {
+    /*
+     * Ownership guard: the unique key is (projectId, sessionId) and does NOT
+     * include userId, so a caller who supplies another user's sessionId would
+     * otherwise upsert (hijack/spoof) that user's presence row — changing their
+     * cursor/file/terminalAccess as broadcast to the room. Reject when an
+     * existing row for this (projectId, sessionId) belongs to a different user.
+     */
+    const existingPresence = await this.prisma.collaborationPresence.findUnique({
+      where: { projectId_sessionId: { projectId: input.projectId, sessionId: input.sessionId } },
+      select: { userId: true },
+    });
+
+    if (existingPresence && existingPresence.userId !== input.userId) {
+      throw Object.assign(new Error('Presence session belongs to another user'), {
+        statusCode: 403,
+        code: 'PRESENCE_FORBIDDEN',
+      });
+    }
+
     return mapCollaborationPresence(
       await this.prisma.collaborationPresence.upsert({
         where: { projectId_sessionId: { projectId: input.projectId, sessionId: input.sessionId } },

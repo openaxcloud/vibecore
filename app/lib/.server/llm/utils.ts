@@ -120,12 +120,16 @@ export function extractCurrentContext(messages: Message[]) {
 
     const annotationObject = annotation as any;
 
+    /*
+     * Don't break on the first match: codeContext and chatSummary are two
+     * separate annotations on the same assistant message, so breaking after one
+     * dropped the other (whichever came second) — losing the code-context buffer
+     * carry-over or the summary. Collect both.
+     */
     if (annotationObject.type === 'codeContext') {
       codeContext = annotationObject;
-      break;
     } else if (annotationObject.type === 'chatSummary') {
       summary = annotationObject;
-      break;
     }
   }
 

@@ -100,7 +100,7 @@ export interface AgentMemoryRepository {
     tags: string[];
     references: string[];
     importance: number;
-  }): Promise<AgentMemoryRecord>;
+  }): Promise<AgentMemoryRecord | undefined>;
   search(input: AgentMemorySearchInput & { embedding: number[] }): Promise<AgentMemoryRecord[]>;
   list(input: {
     userId: string;
@@ -377,7 +377,11 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
       input.userId,
     );
 
-    return rowToMemory(rows[0]);
+    // The row can vanish between the caller's read and this update (archived /
+    // deleted concurrently): RETURNING then yields no row, so rows[0] is
+    // undefined and rowToMemory would crash. Return undefined like the sibling
+    // read methods; callers already treat that as "not found".
+    return rows[0] ? rowToMemory(rows[0]) : undefined;
   }
 
   async get(input: { id: string; userId: string }) {
