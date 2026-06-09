@@ -29,12 +29,12 @@
       "schedule" "*/15 * * * *"
       "queue" "workspace-jobs"
       "job" "workspace.gc")
-    "connectorHealthcheck" (dict
+    "connectorHealth" (dict
       "enabled" true
       "schedule" "*/30 * * * *"
       "queue" "enterprise-jobs"
       "job" "connector.healthcheck")
-    "connectorNotifyReconnect" (dict
+    "connectorReconnect" (dict
       "enabled" true
       "schedule" "*/15 * * * *"
       "queue" "enterprise-jobs"
