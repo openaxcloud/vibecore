@@ -807,6 +807,53 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('blocks an admin from escalating a role above their own (owner promotion)', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const owner = await register(app, { email: 'esc-owner@example.com', organizationName: 'Escalation Org' });
+    const admin = await register(app, { email: 'esc-admin@example.com', organizationName: 'Admin Org' });
+    await store.addMember({ organizationId: owner.organization.id, userId: admin.user.id, roleKey: 'admin' });
+
+    // Admin (members:manage but NOT billing:manage/admin:write) must not be able
+    // to promote anyone — including themselves — to owner.
+    const selfPromote = await app.inject({
+      method: 'PATCH',
+      url: `/orgs/${owner.organization.id}/memberships/${admin.user.id}`,
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: { roleKey: 'owner' },
+    });
+    expect(selfPromote.statusCode).toBe(403);
+    expect(selfPromote.json().code).toBe('RBAC_PRIVILEGE_ESCALATION');
+
+    const invitePromote = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/invitations`,
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: { email: 'esc-new-owner@example.com', roleKey: 'owner' },
+    });
+    expect(invitePromote.statusCode).toBe(403);
+    expect(invitePromote.json().code).toBe('RBAC_PRIVILEGE_ESCALATION');
+
+    // Same admin may still assign a role at or below their own level.
+    const allowedMember = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/memberships`,
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: { userId: admin.user.id, roleKey: 'member' },
+    });
+    expect(allowedMember.statusCode).toBe(201);
+
+    // The owner is unaffected and can still assign the owner role.
+    const ownerAssigns = await app.inject({
+      method: 'PATCH',
+      url: `/orgs/${owner.organization.id}/memberships/${admin.user.id}`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { roleKey: 'owner' },
+    });
+    expect(ownerAssigns.statusCode).toBe(200);
+    await app.close();
+  });
+
   it('records audit logs for critical actions', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
@@ -1447,6 +1494,47 @@ describe('SaaS API', () => {
     });
     expect(saml.statusCode).toBe(200);
     expect(await store.findUserByEmail('saml-user@example.com')).toBeTruthy();
+    await app.close();
+  });
+
+  it('rejects a SAML XML Signature Wrapping attack (injected assertion is not honored)', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const owner = await register(app, { email: 'xsw-owner@example.com', organizationName: 'XSW Org' });
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+
+    const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const certificate = publicKey.export({ type: 'spki', format: 'pem' }).toString();
+    await reauth(app, owner.token);
+    await app.inject({
+      method: 'PUT',
+      url: `/orgs/${owner.organization.id}/sso/saml`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { entityId: 'urn:test:idp', ssoUrl: 'https://idp.example.com/sso', x509Certificate: certificate },
+    });
+
+    // A legitimately-signed assertion for a low-privilege user…
+    const realAssertionXml =
+      '<Assertion><Subject><NameID>xsw-real@example.com</NameID></Subject><AttributeStatement><Attribute Name="externalId"><AttributeValue>xsw_real</AttributeValue></Attribute></AttributeStatement></Assertion>';
+    const signature = createSign('RSA-SHA256').update(realAssertionXml).end().sign(privateKey, 'base64');
+
+    // …wrapped around an attacker-injected (unsigned) assertion claiming the victim.
+    const injectedAssertionXml =
+      '<Assertion><Subject><NameID>xsw-victim@example.com</NameID></Subject><AttributeStatement><Attribute Name="externalId"><AttributeValue>xsw_victim</AttributeValue></Attribute></AttributeStatement></Assertion>';
+    const wrapped = Buffer.from(
+      `<Response>${injectedAssertionXml}${realAssertionXml}<Signature><SignatureValue>${signature}</SignatureValue></Signature></Response>`,
+      'utf8',
+    ).toString('base64url');
+
+    const attack = await app.inject({
+      method: 'POST',
+      url: `/auth/saml/${owner.organization.id}/acs`,
+      payload: { SAMLResponse: wrapped },
+    });
+
+    // The injected NameID must never authenticate, and no victim account is created.
+    expect(attack.statusCode).toBe(401);
+    expect(await store.findUserByEmail('xsw-victim@example.com')).toBeFalsy();
     await app.close();
   });
 

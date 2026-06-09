@@ -2173,6 +2173,33 @@ async function requireAssignableOrganizationRole(store: ApiStore, organizationId
   }
 }
 
+/*
+ * Prevent vertical privilege escalation when granting/assigning a role. A caller
+ * with `members:manage` (e.g. `admin`) must not be able to assign a role that
+ * carries permissions the caller does not itself hold — otherwise an admin could
+ * promote themselves or others to `owner` (gaining billing:manage, admin:write,
+ * org:update, …). Mirrors the guard already enforced on custom-role creation.
+ */
+async function requireRoleAssignableByCaller(
+  store: ApiStore,
+  organizationId: string,
+  callerRoleKey: string,
+  targetRoleKey: string,
+) {
+  const [callerPermissions, targetPermissions] = await Promise.all([
+    permissionsForOrganizationRole(store, organizationId, callerRoleKey),
+    permissionsForOrganizationRole(store, organizationId, targetRoleKey),
+  ]);
+  const escalated = targetPermissions.filter((permission) => !callerPermissions.includes(permission));
+
+  if (escalated.length > 0) {
+    throw Object.assign(new Error(`Cannot grant a role with permissions you do not hold: ${escalated.join(', ')}`), {
+      statusCode: 403,
+      code: 'RBAC_PRIVILEGE_ESCALATION',
+    });
+  }
+}
+
 async function requireProject(
   request: any,
   store: ApiStore,
@@ -3381,13 +3408,21 @@ function xmlText(xml: string, pattern: RegExp) {
     .trim();
 }
 
-function verifySamlXmlSignature(xml: string, certificate: string): boolean {
+/*
+ * XML Signature Wrapping (XSW) defense. The asserted identity MUST be read from
+ * the exact bytes the IdP signature covers — never from an independently-matched
+ * region of the response. Returning a verified-or-null assertion fragment (rather
+ * than a bare boolean) keeps verification and identity extraction coupled, so an
+ * attacker cannot wrap a validly-signed assertion around an injected one and have
+ * the injected NameID picked up.
+ */
+function extractXmlCryptoSignedAssertion(xml: string, certificate: string): string | null {
   try {
     const dom = new DOMParser().parseFromString(xml, 'text/xml');
     const signatureNode = dom.getElementsByTagNameNS('http://www.w3.org/2000/09/xmldsig#', 'Signature')[0];
 
     if (!signatureNode) {
-      return false;
+      return null;
     }
 
     const verifier = new SignedXml({
@@ -3396,15 +3431,73 @@ function verifySamlXmlSignature(xml: string, certificate: string): boolean {
     });
     verifier.loadSignature(signatureNode as any);
 
-    return verifier.checkSignature(xml);
+    if (!verifier.checkSignature(xml)) {
+      return null;
+    }
+
+    // getSignedReferences() is the canonicalized content the signature actually
+    // covers. Extract the Assertion from within it (it may be the Assertion
+    // itself, or a signed Response wrapping it — both are integrity-protected).
+    for (const fragment of verifier.getSignedReferences()) {
+      const match = /<(?:\w+:)?Assertion[\s\S]*?<\/(?:\w+:)?Assertion>/.exec(fragment);
+
+      if (match) {
+        return match[0];
+      }
+    }
+
+    return null;
   } catch {
-    return false;
+    return null;
+  }
+}
+
+/*
+ * Lightweight fallback for IdPs that sign the raw assertion bytes with
+ * RSA-SHA256 instead of full XML-DSIG. Verify and parse the SAME single
+ * (non-greedy) assertion so the verified region and the consumed region are
+ * byte-identical — a wrapped/injected assertion placed first will not match the
+ * captured SignatureValue and is rejected.
+ */
+function extractFallbackVerifiedAssertion(xml: string, certificate: string): string | null {
+  const candidate =
+    /<Assertion[\s\S]*?<\/Assertion>/.exec(xml)?.[0] ?? /<saml:Assertion[\s\S]*?<\/saml:Assertion>/.exec(xml)?.[0];
+
+  if (!candidate) {
+    return null;
+  }
+
+  const signatureValue = xmlText(xml, /<SignatureValue[^>]*>([\s\S]*?)<\/(?:\w+:)?SignatureValue>/);
+
+  if (!signatureValue) {
+    return null;
+  }
+
+  try {
+    const verifier = createVerify('RSA-SHA256');
+    verifier.update(candidate);
+    verifier.end();
+
+    return verifier.verify(pemFromCertificate(certificate), signatureValue, 'base64') ? candidate : null;
+  } catch {
+    return null;
   }
 }
 
 function parseSamlXmlAssertion(xml: string, certificate: string) {
+  const verifiedAssertion =
+    extractXmlCryptoSignedAssertion(xml, certificate) ?? extractFallbackVerifiedAssertion(xml, certificate);
+
+  /*
+   * Only a signature-verified fragment may drive a successful login. When
+   * nothing verifies, fall back to a best-effort (non-greedy) parse so the
+   * caller still gets a profile to log/reject — but signatureValid stays false
+   * and the ACS handler rejects it (it never reads identity from this path).
+   */
   const assertionXml =
-    /<Assertion[\s\S]*<\/Assertion>/.exec(xml)?.[0] ?? /<saml:Assertion[\s\S]*<\/saml:Assertion>/.exec(xml)?.[0];
+    verifiedAssertion ??
+    /<Assertion[\s\S]*?<\/Assertion>/.exec(xml)?.[0] ??
+    /<saml:Assertion[\s\S]*?<\/saml:Assertion>/.exec(xml)?.[0];
 
   if (!assertionXml) {
     throw Object.assign(new Error('SAML response is missing assertion'), {
@@ -3413,18 +3506,7 @@ function parseSamlXmlAssertion(xml: string, certificate: string) {
     });
   }
 
-  let signatureValid = verifySamlXmlSignature(xml, certificate);
-
-  if (!signatureValid) {
-    const signatureValue = xmlText(xml, /<SignatureValue[^>]*>([\s\S]*?)<\/(?:\w+:)?SignatureValue>/);
-
-    if (signatureValue) {
-      const verifier = createVerify('RSA-SHA256');
-      verifier.update(assertionXml);
-      verifier.end();
-      signatureValid = verifier.verify(pemFromCertificate(certificate), signatureValue, 'base64');
-    }
-  }
+  const signatureValid = verifiedAssertion !== null;
 
   const email =
     xmlText(assertionXml, /<NameID[^>]*>([\s\S]*?)<\/(?:\w+:)?NameID>/) ??
@@ -10445,8 +10527,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/orgs/:orgId/memberships', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(addMemberSchema, request.body);
-    await requireOrg(request, store, orgId, 'members:manage');
+    const member = await requireOrg(request, store, orgId, 'members:manage');
     await requireAssignableOrganizationRole(store, orgId, body.roleKey);
+    await requireRoleAssignableByCaller(store, orgId, member.roleKey, body.roleKey);
 
     const user = await store.findUserById(body.userId);
 
@@ -10479,8 +10562,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.patch('/orgs/:orgId/memberships/:userId', async (request, reply) => {
     const { orgId, userId } = parse(membershipParams, request.params);
     const body = parse(z.object({ roleKey: roleKeySchema }), request.body);
-    await requireOrg(request, store, orgId, 'members:manage');
+    const member = await requireOrg(request, store, orgId, 'members:manage');
     await requireAssignableOrganizationRole(store, orgId, body.roleKey);
+    await requireRoleAssignableByCaller(store, orgId, member.roleKey, body.roleKey);
 
     const existing = await store.getMembership(userId, orgId);
 
@@ -10548,10 +10632,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(inviteSchema, request.body);
-    await requireOrg(request, store, orgId, 'members:manage');
+    const member = await requireOrg(request, store, orgId, 'members:manage');
 
     const roleKey = body.roleKey ?? 'member';
     await requireAssignableOrganizationRole(store, orgId, roleKey);
+    await requireRoleAssignableByCaller(store, orgId, member.roleKey, roleKey);
 
     const token = createOpaqueToken('invite');
 
