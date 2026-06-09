@@ -2,6 +2,46 @@ import { json } from '@remix-run/cloudflare';
 import { withSecurity } from '~/lib/security';
 import type { GitLabProjectInfo } from '~/types/GitLab';
 
+/*
+ * SSRF guard: gitlabUrl is attacker-controlled and the user's GitLab token is
+ * attached to the outbound request, so an attacker could point it at an internal
+ * address (cloud metadata, in-cluster services) to reach internal hosts AND
+ * exfiltrate the bearer token. Allow only https public hosts. Mirrors
+ * isSafeGitLabUrl in api.gitlab-branches.ts.
+ */
+function isSafeGitLabUrl(rawUrl: string): boolean {
+  let url: URL;
+
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+
+  if (url.protocol !== 'https:') {
+    return false;
+  }
+
+  const host = url.hostname.toLowerCase();
+
+  if (
+    host === 'localhost' ||
+    host === '0.0.0.0' ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.internal') ||
+    host.endsWith('.local') ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 interface GitLabProject {
   id: number;
   name: string;
@@ -23,6 +63,10 @@ async function gitlabProjectsLoader({ request }: { request: Request }) {
 
     if (!token) {
       return json({ error: 'GitLab token is required' }, { status: 400 });
+    }
+
+    if (!isSafeGitLabUrl(gitlabUrl)) {
+      return json({ error: 'Invalid GitLab URL' }, { status: 400 });
     }
 
     // Fetch user's projects from GitLab API

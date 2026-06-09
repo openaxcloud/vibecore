@@ -44,6 +44,52 @@ const EXPOSE_HEADERS = [
 
 type StreamingRequestInit = RequestInit & { duplex?: 'half' };
 
+/*
+ * SSRF guard. This proxy forwards to https://<domain>/... and relays the caller's
+ * Authorization header (a git PAT/Basic credential). Without a target check it is
+ * an open proxy + credential relay: an attacker could target cloud metadata
+ * (169.254.169.254), in-cluster services, or RFC1918 hosts and exfiltrate creds.
+ * Allow only https public hosts (self-hosted public git still works); reject
+ * loopback/private/link-local/internal names. Hostname-based — DNS-rebinding is
+ * out of scope for this layer.
+ */
+function isSafeProxyTarget(rawUrl: string): boolean {
+  let url: URL;
+
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+
+  if (url.protocol !== 'https:') {
+    return false;
+  }
+
+  const host = url.hostname.toLowerCase();
+
+  if (
+    host === 'localhost' ||
+    host === '0.0.0.0' ||
+    host === '[::1]' ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.internal') ||
+    host.endsWith('.local') ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    host.startsWith('[fc') ||
+    host.startsWith('[fd') ||
+    host.startsWith('[fe80')
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 // Header names whose values are credentials and must never be written to logs.
 const SENSITIVE_HEADER_NAMES = new Set(['authorization', 'x-authorization', 'cookie', 'set-cookie']);
 
@@ -104,6 +150,11 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     // Reconstruct the target URL with query parameters
     const url = new URL(request.url);
     const targetURL = `https://${domain}/${remainingPath}${url.search}`;
+
+    // SSRF / credential-relay guard: reject internal/private/loopback targets.
+    if (!isSafeProxyTarget(targetURL)) {
+      return json({ error: 'Proxy target not allowed' }, { status: 403 });
+    }
 
     console.log('Target URL:', targetURL);
 

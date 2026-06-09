@@ -217,6 +217,13 @@ export async function selectContext(props: {
 
   const filteredFiles: FileMap = {};
   excludeFiles.forEach((path) => {
+    /*
+     * Normalize like the include loop: the model may echo a `/home/project/`-
+     * prefixed path, but contextFiles is keyed by relative path, so deleting the
+     * raw prefixed key was a silent no-op. Delete both forms to be safe.
+     */
+    const relativePath = path.startsWith('/home/project/') ? path.replace('/home/project/', '') : path;
+    delete contextFiles[relativePath];
     delete contextFiles[path];
   });
   includeFiles.forEach((path) => {
@@ -256,6 +263,18 @@ export async function selectContext(props: {
 
     filteredFiles[relativePath] = dirent;
   });
+
+  /*
+   * Merge the surviving prior context buffer (contextFiles, already minus the
+   * explicit excludes) with the newly included files. Without this, emitting ANY
+   * <includeFile> replaced the whole buffer with just the new files — silently
+   * dropping all previously-selected context the model still relies on.
+   */
+  for (const [relativePath, dirent] of Object.entries(contextFiles)) {
+    if (!(relativePath in filteredFiles)) {
+      filteredFiles[relativePath] = dirent;
+    }
+  }
 
   if (onFinish) {
     onFinish(resp);

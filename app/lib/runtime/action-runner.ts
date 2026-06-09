@@ -25,6 +25,14 @@ const FILE_TOOL_TIMEOUT_MS = 120_000;
  * realistic budget so they finish before the next action can interrupt them.
  */
 const INSTALL_TOOL_TIMEOUT_MS = 300_000;
+
+/*
+ * Real project builds (bundlers, type-checking, asset pipelines) routinely run
+ * far past the 60s generic budget. At 60s the build action was declared timed-out
+ * while still running, and the next action's Ctrl+C aborted it — so builds
+ * effectively never completed. Give builds the same realistic budget as installs.
+ */
+const BUILD_TOOL_TIMEOUT_MS = 300_000;
 const TOOL_MAX_ATTEMPTS = 3;
 const TOOL_RETRY_BASE_DELAY_MS = 250;
 
@@ -498,6 +506,10 @@ export class ActionRunner {
   #timeoutMsForAction(action: Pick<ActionState, 'type'> & Partial<Pick<ActionState, 'content'>>) {
     if (action.type === 'file') {
       return FILE_TOOL_TIMEOUT_MS;
+    }
+
+    if (action.type === 'build') {
+      return BUILD_TOOL_TIMEOUT_MS;
     }
 
     if (action.type === 'shell' && typeof action.content === 'string' && isLongRunningInstallCommand(action.content)) {

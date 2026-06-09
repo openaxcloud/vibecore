@@ -1872,13 +1872,20 @@ export const Preview = memo(
           >
             {activePreview || staticPreviewHtml ? (
               <>
+                {/*
+                 * Static-preview iframe sandbox deliberately omits allow-same-origin:
+                 * srcDoc loads project-controlled HTML first-party, so granting it the
+                 * IDE's own origin would expose our cookies/localStorage/IndexedDB and
+                 * same-origin APIs (stored XSS / session theft). Without it the iframe
+                 * runs at an opaque (null) origin — scripts still work, fully isolated.
+                 */}
                 {staticPreviewHtml && !activePreview ? (
                   <iframe
                     ref={iframeRef}
                     title="preview"
                     className="border-none w-full h-full bg-white"
                     srcDoc={staticPreviewHtml}
-                    sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
+                    sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation"
                     allow="cross-origin-isolated"
                     onLoad={() => recordPreviewLoad('static-preview')}
                     data-testid="preview-iframe"
