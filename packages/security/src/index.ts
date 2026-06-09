@@ -4,10 +4,25 @@ export const secretKeyPattern = /authorization|cookie|password|secret|token|api[
 export const secretValuePatterns = [
   /\bcanary_[A-Za-z0-9_-]{16,}\b/g,
   /\bsk_(?:live|test)_[A-Za-z0-9_-]{16,}\b/g,
+  // Generic `sk-` prefix covers OpenAI (sk-, sk-proj-, sk-svcacct-) and Anthropic (sk-ant-).
   /\bsk-[A-Za-z0-9_-]{16,}\b/g,
-  /\bghp_[A-Za-z0-9_]{16,}\b/g,
   /\bya29\.[A-Za-z0-9._-]{16,}\b/g,
   /\bxox[baprs]-[A-Za-z0-9-]{16,}\b/g,
+  // GitHub tokens: classic PAT, fine-grained PAT, and the gho/ghu/ghs/ghr family.
+  /\bghp_[A-Za-z0-9]{16,}\b/g,
+  /\bgithub_pat_[A-Za-z0-9_]{22,}\b/g,
+  /\bgh[ousr]_[A-Za-z0-9]{16,}\b/g,
+  // JWT / generic Bearer tokens (header.payload.signature).
+  /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g,
+  // AWS access key ids and Google API keys.
+  /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g,
+  /\bAIza[0-9A-Za-z_-]{35}\b/g,
+  // Stripe restricted keys (rk_live/test).
+  /\brk_(?:live|test)_[A-Za-z0-9]{16,}\b/g,
+  // PEM private keys (any type) — redact the whole block.
+  /-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/g,
+  // Credentials embedded in connection-string / URL userinfo (scheme://user:pass@host).
+  /\b([a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^\s:/@]+):[^\s/@]+@/g,
 ];
 
 export function redactSecretString(value: string) {
@@ -127,13 +142,79 @@ function ipv4ToInt(ip: string) {
   return parts.reduce((accumulator, part) => (accumulator << 8) + part, 0) >>> 0;
 }
 
+function ipv6ToBigInt(ip: string): bigint | undefined {
+  let text = ip;
+
+  // Fold a trailing embedded IPv4 (e.g. ::ffff:1.2.3.4) into two hextets.
+  if (text.includes('.')) {
+    const lastColon = text.lastIndexOf(':');
+    const v4 = ipv4ToInt(text.slice(lastColon + 1));
+
+    if (v4 === undefined) {
+      return undefined;
+    }
+
+    text = `${text.slice(0, lastColon + 1)}${((v4 >>> 16) & 0xffff).toString(16)}:${(v4 & 0xffff).toString(16)}`;
+  }
+
+  const halves = text.split('::');
+
+  if (halves.length > 2) {
+    return undefined;
+  }
+
+  const head = halves[0] ? halves[0].split(':') : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(':') : [];
+  let groups: string[];
+
+  if (halves.length === 2) {
+    const missing = 8 - (head.length + tail.length);
+
+    if (missing < 0) {
+      return undefined;
+    }
+
+    groups = [...head, ...Array<string>(missing).fill('0'), ...tail];
+  } else {
+    groups = head;
+  }
+
+  if (groups.length !== 8) {
+    return undefined;
+  }
+
+  let value = 0n;
+
+  for (const group of groups) {
+    if (!/^[0-9a-fA-F]{1,4}$/.test(group)) {
+      return undefined;
+    }
+
+    value = (value << 16n) | BigInt(Number.parseInt(group, 16));
+  }
+
+  return value;
+}
+
+function ipToBigInt(ip: string): { value: bigint; bits: 32 | 128 } | undefined {
+  if (ip.includes(':')) {
+    const value = ipv6ToBigInt(ip);
+
+    return value === undefined ? undefined : { value, bits: 128 };
+  }
+
+  const value = ipv4ToInt(ip);
+
+  return value === undefined ? undefined : { value: BigInt(value), bits: 32 };
+}
+
 export function isIpAllowed(ip: string, allowlist: string[] | undefined) {
   if (!allowlist || allowlist.length === 0) {
     return true;
   }
 
-  const normalizedIp = ip.replace(/^::ffff:/, '');
-  const ipValue = ipv4ToInt(normalizedIp);
+  const normalizedIp = ip.trim().replace(/^::ffff:/, '');
+  const ipParsed = ipToBigInt(normalizedIp);
 
   return allowlist.some((entry) => {
     const normalizedEntry = entry.trim().replace(/^::ffff:/, '');
@@ -143,16 +224,34 @@ export function isIpAllowed(ip: string, allowlist: string[] | undefined) {
     }
 
     const [rangeIp, prefixText] = normalizedEntry.split('/');
-    const prefix = Number.parseInt(prefixText ?? '', 10);
-    const rangeValue = ipv4ToInt(rangeIp);
 
-    if (rangeValue === undefined || ipValue === undefined || Number.isNaN(prefix) || prefix < 0 || prefix > 32) {
+    if (prefixText === undefined) {
       return false;
     }
 
-    const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+    const prefix = Number.parseInt(prefixText, 10);
+    const rangeParsed = ipToBigInt(rangeIp);
 
-    return (ipValue & mask) === (rangeValue & mask);
+    /*
+     * CIDR match in BigInt so IPv6 ranges work (the old IPv4-only arithmetic
+     * silently failed for any IPv6 allowlist entry, opening the allowlist).
+     * IPv4 and IPv6 are distinct families — an entry never matches across them.
+     */
+    if (
+      !rangeParsed ||
+      !ipParsed ||
+      rangeParsed.bits !== ipParsed.bits ||
+      Number.isNaN(prefix) ||
+      prefix < 0 ||
+      prefix > rangeParsed.bits
+    ) {
+      return false;
+    }
+
+    const full = (1n << BigInt(rangeParsed.bits)) - 1n;
+    const mask = full ^ ((1n << BigInt(rangeParsed.bits - prefix)) - 1n);
+
+    return (ipParsed.value & mask) === (rangeParsed.value & mask);
   });
 }
 

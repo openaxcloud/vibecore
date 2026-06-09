@@ -1379,6 +1379,36 @@ function maskConnectionUrl(value: string) {
   }
 }
 
+/*
+ * Reject git remote hosts that point at the loopback / link-local (incl. cloud
+ * metadata 169.254.169.254) / private / CGNAT / unique-local ranges. The old
+ * check only blocked the literal localhost/127.0.0.1/0.0.0.0/[::1] strings, so
+ * `https://169.254.169.254/...` or `https://10.0.0.5/repo.git` sailed through
+ * (SSRF / metadata exfil at clone time). Hostname-based; DNS-rebinding is out of
+ * scope for this validator.
+ */
+function isBlockedGitHost(rawHost: string): boolean {
+  const host = rawHost.toLowerCase().replace(/^\[/, '').replace(/\]$/, '');
+
+  return (
+    host === 'localhost' ||
+    host === '0.0.0.0' ||
+    host === '::1' ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.internal') ||
+    host.endsWith('.local') ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
+    host.startsWith('fc') ||
+    host.startsWith('fd') ||
+    host.startsWith('fe80')
+  );
+}
+
 function isSafeGitRemoteUrl(value: string) {
   const remoteUrl = value.trim();
 
@@ -1393,7 +1423,7 @@ function isSafeGitRemoteUrl(value: string) {
       return false;
     }
 
-    return Boolean(parsed.hostname && !/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/i.test(parsed.hostname));
+    return Boolean(parsed.hostname && !isBlockedGitHost(parsed.hostname));
   } catch {
     const scpLike = remoteUrl.match(/^([A-Za-z0-9._-]+)@([A-Za-z0-9.-]+):([A-Za-z0-9._~/-]+(?:\.git)?)$/);
 
@@ -1401,9 +1431,7 @@ function isSafeGitRemoteUrl(value: string) {
       return false;
     }
 
-    const hostname = scpLike[2];
-
-    return !/^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/i.test(hostname);
+    return !isBlockedGitHost(scpLike[2]);
   }
 }
 
