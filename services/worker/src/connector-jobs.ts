@@ -33,6 +33,8 @@ interface ConnectorJobsUserConnection {
   provider: string;
   accessTokenEncrypted: string | null;
   externalAccountLabel: string | null;
+  userId?: string;
+  user?: { memberships: { organizationId: string }[] } | null;
 }
 
 interface ConnectorJobsReconnectionAlert {
@@ -63,13 +65,15 @@ interface ConnectorJobsDatabase {
       where: { resolvedAt: null; notifiedAt: null };
       take: number;
       orderBy: { detectedAt: 'asc' };
-      include: { userConnection: true };
+      include: { userConnection: { include: { user: { include: { memberships: true } } } } };
     }): Promise<ConnectorJobsReconnectionAlert[]>;
     update(args: { where: { id: string }; data: { notifiedAt: Date } }): Promise<unknown>;
   };
   auditLog: {
     create(args: {
       data: {
+        organizationId?: string;
+        actorUserId?: string;
         action: string;
         resourceType: 'UserConnection';
         resourceId: string;
@@ -253,7 +257,7 @@ export async function runConnectorReconnectionNotifier(
     where: { resolvedAt: null, notifiedAt: null },
     take: maxAlerts,
     orderBy: { detectedAt: 'asc' },
-    include: { userConnection: true },
+    include: { userConnection: { include: { user: { include: { memberships: true } } } } },
   });
 
   let notified = 0;
@@ -276,9 +280,19 @@ export async function runConnectorReconnectionNotifier(
      * marked notified but nothing was ever delivered). Leaving notifiedAt null
      * on failure lets the next sweep retry it (idempotent — alert still open).
      */
+    /*
+     * Stamp the user's organization (and the user as actor) on the audit row.
+     * Without organizationId the SIEM webhook delivery query (which is org-scoped)
+     * never matches, so reconnect notifications silently never reach SIEM. The
+     * connector is user-scoped; use the user's first membership as the owning org.
+     */
+    const organizationId = alert.userConnection.user?.memberships?.[0]?.organizationId;
+
     try {
       await input.prisma.auditLog.create({
         data: {
+          organizationId,
+          actorUserId: alert.userConnection.userId,
           action: `connector.oauth.${alert.userConnection.provider}.needs_reconnect.notify`,
           resourceType: 'UserConnection',
           resourceId: alert.userConnection.id,

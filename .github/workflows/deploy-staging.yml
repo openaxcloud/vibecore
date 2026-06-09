@@ -7,7 +7,13 @@ on:
         description: Image tag to deploy
         required: true
         default: latest
-  push:
+  # Gate on the image build instead of racing it. Previously this ran on push to
+  # `stable` at the same time as docker.yml ("Production Docker"), so it deployed
+  # the sha-<short> tag before the image existed → guaranteed ImagePullBackOff
+  # until the build caught up. workflow_run fires only AFTER the build completes.
+  workflow_run:
+    workflows: ["Production Docker"]
+    types: [completed]
     branches: [stable]
 
 permissions:
@@ -21,6 +27,8 @@ concurrency:
 jobs:
   deploy-staging:
     name: Deploy staging and smoke test
+    # Only deploy when the image build actually succeeded (or on manual dispatch).
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment:
@@ -29,6 +37,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # On workflow_run, check out the exact commit that was built so the
+          # resolved sha-<short> tag matches the published image.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Resolve image tag
         id: tag
@@ -40,6 +52,9 @@ jobs:
           # which was never published and causes ImagePullBackOff.
           if [ -n "${IMAGE_TAG_INPUT}" ]; then
             RESOLVED="${IMAGE_TAG_INPUT}"
+          elif [ -n "${BUILT_SHA}" ]; then
+            # workflow_run: use the exact commit docker.yml built and published.
+            RESOLVED="sha-$(echo "${BUILT_SHA}" | cut -c1-7)"
           else
             RESOLVED="sha-$(git rev-parse --short=7 HEAD)"
           fi
@@ -47,6 +62,7 @@ jobs:
           echo "Deploying image tag: ${RESOLVED}"
         env:
           IMAGE_TAG_INPUT: ${{ inputs.image_tag }}
+          BUILT_SHA: ${{ github.event.workflow_run.head_sha }}
 
       - uses: actions/setup-node@v4
         with:

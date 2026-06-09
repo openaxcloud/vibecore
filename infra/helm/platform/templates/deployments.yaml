@@ -104,6 +104,26 @@ spec:
             periodSeconds: 20
             timeoutSeconds: 3
             failureThreshold: 5
+          {{- else }}
+          # Services with no HTTP server (worker) can't be HTTP-probed. Use an
+          # exec liveness that checks the freshness of the heartbeat file the
+          # process rewrites every 15s: a hung/deadlocked event loop stops the
+          # writes, the file goes stale, and Kubernetes restarts the wedged pod.
+          # (/tmp is a writable emptyDir even with readOnlyRootFilesystem.)
+          # Fail-SAFE: a MISSING file passes (exit 0) so an older image that
+          # predates the heartbeat is never crash-looped during a rollout; only a
+          # STALE file (live but hung) fails. Once the heartbeat-writing image is
+          # deployed the probe becomes meaningful.
+          livenessProbe:
+            exec:
+              command:
+                - node
+                - -e
+                - "const fs=require('fs');let t;try{t=Number(fs.readFileSync(process.env.WORKER_HEARTBEAT_PATH||'/tmp/worker-heartbeat','utf8'))}catch(e){process.exit(0)}process.exit(Number.isFinite(t)&&Date.now()-t<120000?0:1)"
+            initialDelaySeconds: 45
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
           {{- end }}
           resources:
 {{ toYaml $svc.resources | indent 12 }}

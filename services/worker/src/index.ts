@@ -1,6 +1,7 @@
 import { Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { createHmac } from 'node:crypto';
+import { writeFileSync } from 'node:fs';
 import { createDatabaseClient } from '@vibecore/database';
 import { decryptJson } from '@vibecore/security';
 import { runConnectorReconnectionNotifier, runConnectorTokenHealthCheck } from './connector-jobs.js';
@@ -271,4 +272,22 @@ enterpriseWorker.on('error', (error) => {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   console.log(JSON.stringify({ level: 'info', service: 'worker', message: 'worker started' }));
+
+  /*
+   * Liveness heartbeat. The worker has no HTTP server, so the Deployment's exec
+   * liveness probe (infra/helm/platform/templates/deployments.yaml) checks the
+   * freshness of this file. If the event loop hangs, the interval stops firing,
+   * the file goes stale, and Kubernetes restarts the otherwise-wedged pod.
+   * unref() so the timer never by itself keeps the process alive.
+   */
+  const heartbeatPath = process.env.WORKER_HEARTBEAT_PATH ?? '/tmp/worker-heartbeat';
+  const writeHeartbeat = () => {
+    try {
+      writeFileSync(heartbeatPath, String(Date.now()));
+    } catch {
+      // best-effort: a transient FS error must not crash the worker
+    }
+  };
+  writeHeartbeat();
+  setInterval(writeHeartbeat, 15_000).unref();
 }

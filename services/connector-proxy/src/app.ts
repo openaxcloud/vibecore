@@ -158,7 +158,14 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
       });
     }
 
-    if ((upstreamResponse.status === 401 || upstreamResponse.status === 403) && options.reportConnectionFailure) {
+    /*
+     * Only 401 is an unambiguous bad-credentials signal. A 403 frequently means
+     * "this token may not access THIS resource/scope" (org policy, per-object
+     * permission, rate/plan limit), not that the credential is revoked — flipping
+     * the connection to needs_reconnect on any 403 disabled working tokens and
+     * forced needless re-auth. Trigger auto-disable on 401 only.
+     */
+    if (upstreamResponse.status === 401 && options.reportConnectionFailure) {
       await options.reportConnectionFailure({
         userConnectionId: params.userConnectionId,
         status: 'needs_reconnect',

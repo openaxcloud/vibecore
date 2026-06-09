@@ -1,8 +1,9 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, readdir, readFile, readlink, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, relative, resolve, sep } from 'node:path';
+import { Readable } from 'node:stream';
 import websocket from '@fastify/websocket';
 import { createPrometheusRegistry } from '@vibecore/observability';
 import { normalizeShellCommandArgs } from '@vibecore/runtime-contract';
@@ -294,7 +295,17 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       }
     }
 
-    return reply.code(response.status).send(Buffer.from(await response.arrayBuffer()));
+    /*
+     * Stream the upstream body straight to the client instead of buffering the
+     * whole response into memory with arrayBuffer(). A large preview asset
+     * (build output, media) would otherwise be fully materialized in the agent's
+     * heap and could OOM the workspace pod.
+     */
+    if (!response.body) {
+      return reply.code(response.status).send();
+    }
+
+    return reply.code(response.status).send(Readable.fromWeb(response.body as ReadableStream<Uint8Array>));
   });
 
   app.post('/snapshots/create', async () => ({
@@ -901,7 +912,9 @@ async function runCommand(
   }
 
   const id = createHash('sha256')
-    .update(`${command}:${normalizedArgs.join('\0')}:${Date.now()}`)
+    // randomUUID() (not just Date.now()) so two identical commands started within
+    // the same millisecond can't collide and corrupt the process-map accounting.
+    .update(`${command}:${normalizedArgs.join('\0')}:${Date.now()}:${randomUUID()}`)
     .digest('hex')
     .slice(0, 12);
 
@@ -1029,7 +1042,8 @@ async function runCommandStream(
   }
 
   const id = createHash('sha256')
-    .update(`stream:${command}:${normalizedArgs.join('\0')}:${Date.now()}`)
+    // randomUUID() guards against same-millisecond id collisions (see runCommand).
+    .update(`stream:${command}:${normalizedArgs.join('\0')}:${Date.now()}:${randomUUID()}`)
     .digest('hex')
     .slice(0, 12);
 
