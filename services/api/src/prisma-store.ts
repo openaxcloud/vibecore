@@ -474,6 +474,19 @@ export class PrismaApiStore implements ApiStore {
         // Best-effort offboarding cleanup; never block membership removal on it.
       });
 
+    /*
+     * Revoke the removed user's per-project collaborator grants in this org.
+     * Org membership and project-collaborator access are separate tables, so
+     * without this an ex-member (including SCIM/SAML deprovisioned users) keeps
+     * direct access to every project they were invited to. Scoped to this org's
+     * projects via the relational filter.
+     */
+    await this.prisma.projectCollaborator
+      .deleteMany({ where: { userId, project: { organizationId } } })
+      .catch(() => {
+        // Best-effort offboarding cleanup; never block membership removal on it.
+      });
+
     return mapMembership(membership);
   }
 
@@ -597,12 +610,39 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async transferProject(input: { projectId: string; targetOrganizationId: string }) {
-    return mapProject(
-      await this.prisma.project.update({
-        where: { id: input.projectId },
-        data: { organizationId: input.targetOrganizationId },
-      }),
+    const current = assertFound(
+      await this.prisma.project.findUnique({ where: { id: input.projectId }, select: { slug: true } }),
+      'Project not found',
+      'PROJECT_NOT_FOUND',
     );
+
+    /*
+     * The slug is only unique within an org, so the target org may already have a
+     * project with this slug — a bare update would then violate
+     * @@unique([organizationId, slug]) with an unhandled P2002 (500). Re-allocate
+     * a free slug in the target org and retry on the race, like createProject.
+     * The persistentVolumeClaim is intentionally left unchanged: it references an
+     * existing physical volume holding the project's data, so renaming it would
+     * orphan that volume.
+     */
+    for (let attempt = 0; ; attempt += 1) {
+      const slug = await this.nextProjectSlug(input.targetOrganizationId, current.slug);
+
+      try {
+        return mapProject(
+          await this.prisma.project.update({
+            where: { id: input.projectId },
+            data: { organizationId: input.targetOrganizationId, slug },
+          }),
+        );
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002' && attempt < 5) {
+          continue;
+        }
+
+        throw error;
+      }
+    }
   }
 
   async duplicateProject(input: { projectId: string; name: string; slug: string }) {
@@ -2419,6 +2459,12 @@ export class PrismaApiStore implements ApiStore {
 
       throw error;
     }
+  }
+
+  async deleteStripeEvent(id: string): Promise<void> {
+    // Used to roll back the dedup row when a webhook side effect fails, so
+    // Stripe's retry re-runs the side effects instead of being deduped away.
+    await this.prisma.stripeEvent.deleteMany({ where: { id } });
   }
 
   async recordEmailDeliveryEvent(input: {

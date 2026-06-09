@@ -2200,6 +2200,25 @@ async function requireRoleAssignableByCaller(
   }
 }
 
+/*
+ * True when removing/deactivating this member would leave the org with no owner.
+ * Used to block last-owner lockout on every removal path (interactive DELETE and
+ * SAML/SCIM deprovisioning).
+ */
+async function isLastOwnerRemoval(
+  store: ApiStore,
+  organizationId: string,
+  membership: { roleKey: string },
+): Promise<boolean> {
+  if (membership.roleKey !== 'owner') {
+    return false;
+  }
+
+  const owners = (await store.listMembers(organizationId)).filter((member) => member.roleKey === 'owner');
+
+  return owners.length <= 1;
+}
+
 async function requireProject(
   request: any,
   store: ApiStore,
@@ -8251,7 +8270,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const resolveUsagePeriodStart = async (organizationId: string): Promise<Date> => {
     const subscription = await store.getSubscription(organizationId).catch(() => undefined);
 
-    if (subscription?.currentPeriodStart) {
+    /*
+     * Only trust currentPeriodStart while the subscription is in an entitled,
+     * period-advancing state. A CANCELED/UNPAID sub keeps its last
+     * currentPeriodStart frozen forever, which would pin the usage window open
+     * and never refill the free monthly allowance. Mirror billingState's
+     * entitled-status set; otherwise fall through to the calendar month.
+     */
+    if (subscription?.currentPeriodStart && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status)) {
       const start = new Date(subscription.currentPeriodStart);
 
       if (!Number.isNaN(start.getTime())) {
@@ -8291,13 +8317,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     /*
-     * The ai.* allowances are PER-MONTH, but usageEvent rows accumulate forever
-     * and sumUsage summed them for all time — so a free user was permanently
-     * locked out of AI chat after 50 lifetime messages / 100k lifetime tokens,
+     * The ai.* allowances and previews.public are PER-PERIOD, but usageEvent
+     * rows accumulate forever and sumUsage summed them for all time — so a free
+     * user was permanently locked out of AI chat after 50 lifetime messages /
+     * 100k lifetime tokens (and of public previews after the lifetime cap),
      * never refilling next period. Scope the sum to the active billing period
      * (subscription period start, or the calendar month for free orgs).
      */
-    if (key === 'ai.messages' || key === 'ai.inputTokens' || key === 'ai.outputTokens' || key === 'ai.toolCalls') {
+    if (
+      key === 'ai.messages' ||
+      key === 'ai.inputTokens' ||
+      key === 'ai.outputTokens' ||
+      key === 'ai.toolCalls' ||
+      key === 'previews.public'
+    ) {
       const periodStart = await resolveUsagePeriodStart(organizationId);
       return store.sumUsage(organizationId, key, periodStart);
     }
@@ -10743,6 +10776,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(400).send({ error: 'Invalid invitation token', code: 'INVITE_INVALID_TOKEN' });
     }
 
+    /*
+     * Bind the invite to its intended recipient. The token alone must not let an
+     * arbitrary authenticated user (or one who intercepted the emailed token)
+     * join the org — and join with the invite's role. invite.email is stored
+     * lowercased (createOrganizationInvite).
+     */
+    const accepterEmail = request.currentUser!.email?.toLowerCase();
+
+    if (!accepterEmail || accepterEmail !== pendingInvitation.email.toLowerCase()) {
+      return reply
+        .code(403)
+        .send({ error: 'Invitation was issued to a different email', code: 'INVITE_EMAIL_MISMATCH' });
+    }
+
     const existingMembership = await store.getMembership(request.currentUser!.id, pendingInvitation.organizationId);
 
     if (!existingMembership) {
@@ -12164,7 +12211,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { presence };
   });
-  app.delete('/projects/:projectId/collaboration/presence/:sessionId', async (request) => {
+  app.delete('/projects/:projectId/collaboration/presence/:sessionId', async (request, reply) => {
     const project = await requireProject(
       request,
       store,
@@ -12173,6 +12220,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const sessionId = z.object({ sessionId: z.string().min(1) }).parse(request.params).sessionId;
+
+    /*
+     * Presence eviction must be scoped to the caller: 'projects:read' is held by
+     * viewers too, so without an ownership check any viewer could kick every
+     * other collaborator's live session. Allow removing your own session always;
+     * removing someone else's requires a non-read-only (editor/admin) role.
+     */
+    const target = (await store.listCollaborationPresence(project.id)).find((p) => p.sessionId === sessionId);
+
+    if (target && target.userId !== request.currentUser!.id) {
+      const role = await projectCollaborationRole(store, project.id, request.currentUser!.id);
+
+      if (!role || isReadOnlyProjectRole(role)) {
+        return reply
+          .code(403)
+          .send({ error: "Cannot evict another collaborator's presence", code: 'PRESENCE_FORBIDDEN' });
+      }
+    }
+
     const removed = await store.removeCollaborationPresence(project.id, sessionId);
     collaborationBroker.publish(project.id, { type: 'presence.leave', sessionId });
 
@@ -13857,6 +13923,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
+    /*
+     * The dedup row is already committed (above) to block concurrent/duplicate
+     * deliveries from double-applying non-idempotent side effects (e.g.
+     * recordUsageEvent). But if any side effect below throws, that committed row
+     * would dedupe Stripe's retry into a silent drop. Roll the row back on
+     * failure so the retry re-runs the full side-effect set.
+     */
+    try {
     if (organizationId && object.customer) {
       await store.upsertBillingCustomer({ organizationId, provider: 'stripe', externalId: String(object.customer) });
     }
@@ -13987,6 +14061,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return reply.code(200).send({ received: true });
+    } catch (error) {
+      await store.deleteStripeEvent(event.id).catch(() => {});
+      throw error;
+    }
   });
 
   app.get('/admin/overview', async (request) => {
@@ -15711,6 +15789,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (active === false) {
+      if (await isLastOwnerRemoval(store, orgId, membership)) {
+        return reply
+          .code(409)
+          .send({ error: 'Cannot deactivate the last organization owner', code: 'LAST_OWNER' });
+      }
+
       await store.removeMember(orgId, userId).catch(() => undefined);
       await store.recordAudit({
         organizationId: orgId,
@@ -15751,6 +15835,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!membership) {
       return reply.code(404).send({ error: 'User is not a member of this organization', code: 'SCIM_USER_NOT_FOUND' });
+    }
+
+    if (await isLastOwnerRemoval(store, orgId, membership)) {
+      return reply.code(409).send({ error: 'Cannot remove the last organization owner', code: 'LAST_OWNER' });
     }
 
     await store.removeMember(orgId, userId);

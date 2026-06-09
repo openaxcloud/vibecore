@@ -1893,6 +1893,10 @@ export class TestApiStore implements ApiStore {
     return { event, created: true };
   }
 
+  async deleteStripeEvent(id: string): Promise<void> {
+    this.stripeEvents.delete(id);
+  }
+
   async recordEmailDeliveryEvent(input: {
     provider: string;
     providerEventId: string;

@@ -1096,6 +1096,7 @@ export interface ApiStore {
     type: string;
     payload: unknown;
   }): Promise<{ event: StripeEventRecord; created: boolean }>;
+  deleteStripeEvent(id: string): Promise<void>;
   recordEmailDeliveryEvent(input: {
     provider: string;
     providerEventId: string;

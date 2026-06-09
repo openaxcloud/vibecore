@@ -995,6 +995,35 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('binds invitation acceptance to the invited email (rejects a different user)', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const owner = await register(app, { email: 'bind-owner@example.com', organizationName: 'Bind Org' });
+    const attacker = await register(app, { email: 'bind-attacker@example.com', organizationName: 'Attacker Org' });
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/invitations`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { email: 'bind-invitee@example.com', roleKey: 'admin' },
+    });
+    expect(created.statusCode).toBe(201);
+
+    // A user whose email differs from the invite recipient must not be able to
+    // redeem a leaked token (which would also grant the invite's role).
+    const stolen = await app.inject({
+      method: 'POST',
+      url: '/invitations/accept',
+      headers: { authorization: `Bearer ${attacker.token}` },
+      payload: { token: created.json().token },
+    });
+    expect(stolen.statusCode).toBe(403);
+    expect(stolen.json().code).toBe('INVITE_EMAIL_MISMATCH');
+    expect(await store.getMembership(attacker.user.id, owner.organization.id)).toBeUndefined();
+    await app.close();
+  });
+
   it('enforces team member quota across invitation acceptance', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
