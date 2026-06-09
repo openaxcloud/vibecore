@@ -9806,7 +9806,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
     const role = await projectCollaborationRole(store, authorized.projectId, request.currentUser?.id);
 
-    if (isReadOnlyProjectRole(role)) {
+    {
       const state = await store.getProjectIdeState(authorized.projectId);
       const { collaboration } = collaborationDocuments(state);
 
@@ -9817,7 +9817,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ? (collaboration.terminalPermissions as Record<string, { allowed?: boolean }>)
           : {};
 
-      if (!permissions[request.currentUser!.id]?.allowed) {
+      const entry = permissions[request.currentUser!.id];
+
+      /*
+       * Two regimes, both now actually enforced (the per-user revocation used to
+       * be dead code — it sat inside `if (isReadOnlyProjectRole)`, so an explicit
+       * revocation never applied to editors/members):
+       *  - read-only collaborators: terminal DENIED unless explicitly granted;
+       *  - everyone else: terminal ALLOWED unless explicitly revoked.
+       */
+      const denied = isReadOnlyProjectRole(role) ? entry?.allowed !== true : entry?.allowed === false;
+
+      if (denied) {
         const client = normalizeRuntimeApiWebSocket(socket);
         client.send(
           JSON.stringify({
