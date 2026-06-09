@@ -1,3 +1,4 @@
+import { Readable } from 'node:stream';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { verifyConnectorAccessToken, type ConnectorErrorBody } from '@vibecore/connector-sdk';
 
@@ -202,7 +203,12 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
       return reply.send();
     }
 
-    return reply.send(Buffer.from(await upstreamResponse.arrayBuffer()));
+    /*
+     * Stream the provider response through instead of buffering it whole with
+     * arrayBuffer(). connector-proxy never rewrites the body, and provider
+     * responses can be large (list endpoints, downloads) — buffering risked OOM.
+     */
+    return reply.send(Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>));
   });
 
   return app;

@@ -234,7 +234,15 @@ export class WorkspaceManager {
 
   async deleteWorkspace(namespace: string, workspaceId: string) {
     const workspace = await this.requireWorkspace(workspaceId);
-    await Promise.all([
+
+    /*
+     * allSettled, not all: with Promise.all a single transient kubectl failure
+     * rejected the whole call, so the remaining objects were never deleted AND
+     * the row was never flipped to DELETED — leaving orphaned Pod/PVC/Secret/
+     * Service and an inconsistent record. Attempt every delete; any straggler is
+     * swept by garbageCollect.
+     */
+    await Promise.allSettled([
       this.k8s.delete('Service', namespace, workspace.serviceName),
       this.k8s.delete('Pod', namespace, workspace.podName),
       this.k8s.delete('Secret', namespace, workspace.agentTokenSecretName ?? `agent-token-${workspaceId}`),

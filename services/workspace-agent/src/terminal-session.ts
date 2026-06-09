@@ -330,6 +330,10 @@ export interface TerminalSessionManagerOptions {
  */
 export class TerminalSessionManager {
   private readonly sessions = new Map<string, InternalSession>();
+  // In-flight creations keyed by id, so concurrent getOrCreate(id) calls dedupe
+  // on one backend instead of racing the `await createTerminalBackend` and
+  // orphaning a shell process (TOCTOU between the existing-check and registration).
+  private readonly pending = new Map<string, Promise<TerminalSession>>();
   private readonly shell: string;
   private readonly cwd: string;
   private readonly env: NodeJS.ProcessEnv;
@@ -371,6 +375,22 @@ export class TerminalSessionManager {
       return existing.handle;
     }
 
+    // Dedupe concurrent creations of the same id on a single in-flight promise.
+    const inflight = this.pending.get(id);
+
+    if (inflight) {
+      return inflight;
+    }
+
+    const creation = this.#create(id, spawn).finally(() => {
+      this.pending.delete(id);
+    });
+    this.pending.set(id, creation);
+
+    return creation;
+  }
+
+  async #create(id: string, spawn: { cols?: number; rows?: number }): Promise<TerminalSession> {
     if (this.sessions.size >= this.maxSessions) {
       throw new Error('Too many terminal sessions');
     }

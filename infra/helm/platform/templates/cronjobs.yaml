@@ -29,6 +29,16 @@
       "schedule" "*/15 * * * *"
       "queue" "workspace-jobs"
       "job" "workspace.gc")
+    "connectorHealthcheck" (dict
+      "enabled" true
+      "schedule" "*/30 * * * *"
+      "queue" "enterprise-jobs"
+      "job" "connector.healthcheck")
+    "connectorNotifyReconnect" (dict
+      "enabled" true
+      "schedule" "*/15 * * * *"
+      "queue" "enterprise-jobs"
+      "job" "connector.notify.reconnect")
 -}}
 {{- $merged := mustMergeOverwrite (deepCopy $defaults) $cronjobs -}}
 {{- $workerImageTag := default .Values.global.imageTag .Values.services.worker.imageTag -}}

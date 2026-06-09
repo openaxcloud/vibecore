@@ -870,17 +870,34 @@ async function listSnapshotFiles(
       continue;
     }
 
-    const fileStat = await stat(fullPath);
-    const hash = createHash('sha256');
+    /*
+     * Only snapshot regular files. readdir(withFileTypes) does not follow
+     * symlinks, so a symlink (e.g. a dangling `ln -s /nonexistent broken` from
+     * the terminal) has isFile()===false here — including it would make stat()/
+     * createReadStream() throw ENOENT and reject the whole /snapshots/create
+     * request (500). Skip non-regular entries, and guard stat/read so one bad
+     * entry can't abort the snapshot.
+     */
+    if (!entry.isFile()) {
+      continue;
+    }
 
-    await new Promise<void>((resolvePromise, reject) => {
-      createReadStream(fullPath)
-        .on('data', (chunk) => hash.update(chunk))
-        .on('error', reject)
-        .on('end', () => resolvePromise());
-    });
+    try {
+      const fileStat = await stat(fullPath);
+      const hash = createHash('sha256');
 
-    files.push({ path: relative(root, fullPath), sha256: hash.digest('hex'), size: fileStat.size });
+      await new Promise<void>((resolvePromise, reject) => {
+        createReadStream(fullPath)
+          .on('data', (chunk) => hash.update(chunk))
+          .on('error', reject)
+          .on('end', () => resolvePromise());
+      });
+
+      files.push({ path: relative(root, fullPath), sha256: hash.digest('hex'), size: fileStat.size });
+    } catch {
+      // Unreadable/vanished entry (dangling symlink, race) — skip it.
+      continue;
+    }
   }
 
   return files;
