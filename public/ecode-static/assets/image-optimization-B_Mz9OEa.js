@@ -1,0 +1,1 @@
+import"./vendor-react-DuXCqTDm.js";import"./vendor-regexparam-CPXopyEH.js";function d(i){i.forEach(a=>{const e=document.createElement("link");e.rel="preload",e.as="image",e.href=a,a.endsWith(".webp")&&(e.type="image/webp"),document.head.appendChild(e)})}export{d as addImagePreloadLinks};

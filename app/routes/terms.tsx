@@ -1,7 +1,1 @@
-import { EcodeTermsPage, makeEcodeLegalMeta } from '~/components/marketing/EcodeExactLegalPages';
-
-export const meta = makeEcodeLegalMeta('terms');
-
-export default function TermsRoute() {
-  return <EcodeTermsPage />;
-}
+export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';

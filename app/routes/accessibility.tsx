@@ -1,7 +1,1 @@
-import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';
-
-export const meta = makeMarketingMeta(marketingPages.accessibility);
-
-export default function AccessibilityRoute() {
-  return <MarketingStaticPage page={marketingPages.accessibility} />;
-}
+export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';

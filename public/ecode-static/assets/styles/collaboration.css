@@ -1,0 +1,319 @@
+/**
+ * E-Code Real-Time Collaboration Styles
+ * Fortune 500 Quality Cursor & Selection Styling
+ */
+
+/* ============================================
+   CURSOR STYLES
+   ============================================ */
+
+/* Base cursor line animation */
+.collaborator-cursor-line {
+  position: absolute;
+  width: 2px;
+  height: 18px;
+  pointer-events: none;
+  z-index: 10;
+  animation: cursor-pulse 1.2s ease-in-out infinite;
+}
+
+/* Cursor blink animation */
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  50.1%, 100% { opacity: 0.4; }
+}
+
+/* Cursor pulse for active users */
+@keyframes cursor-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Username label above cursor */
+.collaborator-cursor-label {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: 0.01em;
+  border-radius: 4px 4px 4px 0;
+  white-space: nowrap;
+  color: white;
+  z-index: 20;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  animation: label-fade-in 0.2s ease-out;
+}
+
+@keyframes label-fade-in {
+  from { opacity: 0; transform: translateY(0); }
+  to { opacity: 1; transform: translateY(-2px); }
+}
+
+/* Selection highlight for remote users */
+.collaborator-selection {
+  opacity: 0.25;
+  border-radius: 2px;
+  transition: opacity 0.15s ease;
+}
+
+.collaborator-selection:hover {
+  opacity: 0.35;
+}
+
+/* ============================================
+   YJS CURSOR STYLES (Legacy Support)
+   ============================================ */
+
+.yjs-cursor-head::after {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: currentColor;
+  animation: cursor-blink 1s infinite;
+}
+
+.yjs-selection {
+  background-color: rgba(100, 100, 250, 0.15);
+  border-radius: 2px;
+}
+
+.yjs-selection-inline {
+  background-color: rgba(100, 100, 250, 0.2);
+}
+
+/* ============================================
+   USER-SPECIFIC CURSOR COLORS (12 distinct)
+   ============================================ */
+
+.yjs-cursor-1, .collaborative-cursor-red { color: #FF6B6B; }
+.yjs-cursor-2, .collaborative-cursor-teal { color: #4ECDC4; }
+.yjs-cursor-3, .collaborative-cursor-blue { color: #45B7D1; }
+.yjs-cursor-4, .collaborative-cursor-green { color: #96CEB4; }
+.yjs-cursor-5, .collaborative-cursor-yellow { color: #FFEAA7; }
+.yjs-cursor-6, .collaborative-cursor-plum { color: #DDA0DD; }
+.yjs-cursor-7, .collaborative-cursor-orange { color: #FF8C42; }
+.yjs-cursor-8, .collaborative-cursor-purple { color: #6C5CE7; }
+.yjs-cursor-9, .collaborative-cursor-mint { color: #A8E6CF; }
+.yjs-cursor-10, .collaborative-cursor-pink { color: #FFB6C1; }
+.yjs-cursor-11, .collaborative-cursor-sky { color: #87CEEB; }
+.yjs-cursor-12, .collaborative-cursor-khaki { color: #F0E68C; }
+
+/* ============================================
+   COLLABORATIVE CURSOR COMPONENT STYLES
+   ============================================ */
+
+.collaborative-cursor {
+  position: absolute;
+  pointer-events: none;
+  z-index: 50;
+  transition: all 0.1s ease;
+}
+
+.collaborative-cursor-caret {
+  width: 2px;
+  height: 1.2em;
+  animation: cursor-blink 1s infinite;
+}
+
+.collaborative-cursor-label {
+  position: absolute;
+  top: -1.5em;
+  left: 0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0.9;
+}
+
+/* ============================================
+   USER-SPECIFIC SELECTION COLORS (12 distinct)
+   ============================================ */
+
+.yjs-selection-1, .collaborative-selection-red { background-color: rgba(255, 107, 107, 0.2); }
+.yjs-selection-2, .collaborative-selection-teal { background-color: rgba(78, 205, 196, 0.2); }
+.yjs-selection-3, .collaborative-selection-blue { background-color: rgba(69, 183, 209, 0.2); }
+.yjs-selection-4, .collaborative-selection-green { background-color: rgba(150, 206, 180, 0.2); }
+.yjs-selection-5, .collaborative-selection-yellow { background-color: rgba(255, 234, 167, 0.2); }
+.yjs-selection-6, .collaborative-selection-plum { background-color: rgba(221, 160, 221, 0.2); }
+.yjs-selection-7, .collaborative-selection-orange { background-color: rgba(255, 140, 66, 0.2); }
+.yjs-selection-8, .collaborative-selection-purple { background-color: rgba(108, 92, 231, 0.2); }
+.yjs-selection-9, .collaborative-selection-mint { background-color: rgba(168, 230, 207, 0.2); }
+.yjs-selection-10, .collaborative-selection-pink { background-color: rgba(255, 182, 193, 0.2); }
+.yjs-selection-11, .collaborative-selection-sky { background-color: rgba(135, 206, 235, 0.2); }
+.yjs-selection-12, .collaborative-selection-khaki { background-color: rgba(240, 230, 140, 0.2); }
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+
+@media (max-width: 768px) {
+  .collaborator-cursor-label {
+    font-size: 9px;
+    padding: 2px 5px;
+    top: -18px;
+  }
+  
+  .collaborator-cursor-line {
+    width: 2px;
+    height: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .collaborator-cursor-label {
+    font-size: 8px;
+    padding: 1px 4px;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* ============================================
+   COLLABORATION PANEL STYLES
+   ============================================ */
+
+/* Collaborator avatar stack */
+.collaborator-stack {
+  display: flex;
+  align-items: center;
+}
+
+.collaborator-stack > * + * {
+  margin-left: -8px;
+}
+
+/* Status indicator pulse for active users */
+.status-active {
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
+}
+
+/* Typing indicator animation */
+.typing-indicator {
+  display: flex;
+  gap: 3px;
+  padding: 8px 12px;
+  background: hsl(var(--muted));
+  border-radius: 12px;
+  width: fit-content;
+}
+
+.typing-indicator span {
+  width: 6px;
+  height: 6px;
+  background: hsl(var(--muted-foreground));
+  border-radius: 50%;
+  animation: typing-bounce 1.4s ease-in-out infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
+
+/* Chat message animations */
+.chat-message-enter {
+  animation: message-slide-in 0.2s ease-out;
+}
+
+@keyframes message-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Follow mode indicator */
+.follow-mode-active {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  padding: 6px 12px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 100;
+  animation: follow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes follow-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+/* ============================================
+   DARK MODE ADJUSTMENTS
+   ============================================ */
+
+.dark .collaborator-cursor-label {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.dark .collaborator-selection {
+  opacity: 0.2;
+}
+
+/* ============================================
+   HIGH CONTRAST MODE
+   ============================================ */
+
+@media (prefers-contrast: high) {
+  .collaborator-cursor-line {
+    width: 3px;
+  }
+  
+  .collaborator-selection {
+    opacity: 0.4;
+  }
+  
+  .collaborator-cursor-label {
+    font-weight: 700;
+    border: 1px solid white;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION PREFERENCE
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .collaborator-cursor-line,
+  .collaborator-cursor-label,
+  .status-active,
+  .typing-indicator span,
+  .follow-mode-active {
+    animation: none;
+  }
+  
+  .yjs-cursor-head::after {
+    animation: none;
+  }
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 90">
+  <path fill="#DC382D" d="M20 60l50-18 50 18v12c0 3-2 6-5 7l-45 15-45-15c-3-1-5-4-5-7V60z"/>
+  <path fill="#A61D17" d="M120 60l-50-18v42l45-15c3-1 5-4 5-7z" opacity=".4"/>
+  <polygon fill="#FFFFFF" opacity=".8" points="46,58 53,45 60,58"/>
+  <circle fill="#FFFFFF" opacity=".8" cx="74" cy="50" r="6"/>
+  <polygon fill="#FFFFFF" opacity=".8" points="92,58 100,46 108,58"/>
+</svg>

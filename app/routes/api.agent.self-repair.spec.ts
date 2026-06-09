@@ -10,6 +10,10 @@ vi.mock('~/lib/.server/llm/stream-text', () => ({
   streamText: streamTextMock,
 }));
 
+vi.mock('~/lib/.server/require-session', () => ({
+  requireWebSession: vi.fn(),
+}));
+
 async function loadAction() {
   const mod = await import('./api.agent.self-repair');
   return mod.action;

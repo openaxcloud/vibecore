@@ -1,0 +1,1 @@
+import{u as e,r}from"./vendor-react-DuXCqTDm.js";import"./vendor-regexparam-CPXopyEH.js";function n(){const[,t]=e();return r.useEffect(()=>{t("/settings",{replace:!0})},[t]),null}export{n as default};

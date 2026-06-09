@@ -1,7 +1,1 @@
-import { EcodeSubprocessorsPage, makeEcodeLegalMeta } from '~/components/marketing/EcodeExactLegalPages';
-
-export const meta = makeEcodeLegalMeta('subprocessors');
-
-export default function SubprocessorsRoute() {
-  return <EcodeSubprocessorsPage />;
-}
+export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';

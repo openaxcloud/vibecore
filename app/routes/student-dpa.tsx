@@ -1,7 +1,1 @@
-import { EcodeStudentDpaPage, makeEcodeLegalMeta } from '~/components/marketing/EcodeExactLegalPages';
-
-export const meta = makeEcodeLegalMeta('student-dpa');
-
-export default function StudentDpaRoute() {
-  return <EcodeStudentDpaPage />;
-}
+export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';

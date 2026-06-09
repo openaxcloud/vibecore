@@ -1,7 +1,1 @@
-import { EcodeMobilePage, makeEcodeProductMeta } from '~/components/marketing/EcodeExactProductMarketingPages';
-
-export const meta = makeEcodeProductMeta('mobile-app');
-
-export default function MobileRoute() {
-  return <EcodeMobilePage />;
-}
+export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';

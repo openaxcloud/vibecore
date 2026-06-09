@@ -1,7 +1,1 @@
-import { EcodeFeaturesPage, makeEcodeProductMeta } from '~/components/marketing/EcodeExactProductMarketingPages';
-
-export const meta = makeEcodeProductMeta('ide');
-
-export default function FeaturesRoute() {
-  return <EcodeFeaturesPage />;
-}
+export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';

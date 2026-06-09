@@ -1,8 +1,5 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/cloudflare';
-import { default as IndexRoute } from './_index';
+import { redirect } from '@remix-run/cloudflare';
 
-export async function loader(args: LoaderFunctionArgs) {
-  return json({ id: args.params.id });
+export function loader() {
+  return redirect('/');
 }
-
-export default IndexRoute;

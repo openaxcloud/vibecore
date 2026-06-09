@@ -1,0 +1,1 @@
+const o=n=>n;let r=o,i=o;function a(n){let s;return()=>(s===void 0&&(s=n()),s)}const c=(n,s,t)=>{const e=s-n;return e===0?1:(t-n)/e},l=n=>n*1e3,d=n=>n/1e3;export{a,i,d as m,o as n,c as p,l as s,r as w};

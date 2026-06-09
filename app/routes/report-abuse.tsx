@@ -1,7 +1,1 @@
-import { EcodeReportAbusePage, makeEcodeLegalMeta } from '~/components/marketing/EcodeExactLegalPages';
-
-export const meta = makeEcodeLegalMeta('report-abuse');
-
-export default function ReportAbuseRoute() {
-  return <EcodeReportAbusePage />;
-}
+export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';

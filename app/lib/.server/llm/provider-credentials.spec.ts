@@ -48,11 +48,11 @@ describe('isProviderUsable', () => {
     expect(isProviderUsable(bedrock, {}, {})).toBe(false);
   });
 
-  it('treats a key-less provider (Ollama) as usable only when a base URL is configured', () => {
+  it('treats a key-less provider (Ollama) as usable when a default or configured base URL exists', () => {
     const ollama = providerByName('Ollama');
 
-    // Ollama needs no API key, but does need a base URL to talk to.
-    expect(isProviderUsable(ollama, {}, {})).toBe(false);
+    // Ollama needs no API key; the provider registry ships a localhost default for local/desktop installs.
+    expect(isProviderUsable(ollama, {}, {})).toBe(true);
     expect(isProviderUsable(ollama, {}, { OLLAMA_API_BASE_URL: 'http://localhost:11434' })).toBe(true);
   });
 });

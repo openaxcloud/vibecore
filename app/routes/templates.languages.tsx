@@ -1,7 +1,1 @@
-import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';
-
-export const meta = makeMarketingMeta(marketingPages.languages);
-
-export default function TemplateLanguagesRoute() {
-  return <MarketingStaticPage page={marketingPages.languages} />;
-}
+export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';

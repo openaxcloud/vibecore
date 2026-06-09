@@ -1,7 +1,1 @@
-import { EcodeSecurityPage, makeEcodeLegalMeta } from '~/components/marketing/EcodeExactLegalPages';
-
-export const meta = makeEcodeLegalMeta('security');
-
-export default function SecurityRoute() {
-  return <EcodeSecurityPage />;
-}
+export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';

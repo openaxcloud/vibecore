@@ -1,7 +1,1 @@
-import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';
-
-export const meta = makeMarketingMeta(marketingPages.careers);
-
-export default function CareersRoute() {
-  return <MarketingStaticPage page={marketingPages.careers} />;
-}
+export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';

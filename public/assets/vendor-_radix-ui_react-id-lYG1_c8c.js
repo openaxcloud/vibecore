@@ -1,0 +1,1 @@
+import{r as o,R as s}from"./vendor-react-DuXCqTDm.js";import{u}from"./vendor-_radix-ui_react-use-layout-effect-2T9C8Mmb.js";var i=s[" useId ".trim().toString()]||(()=>{}),c=0;function f(r){const[t,e]=o.useState(i());return u(()=>{e(a=>a??String(c++))},[r]),t?`radix-${t}`:""}export{f as u};

@@ -1,7 +1,1 @@
-import { EcodeDeploymentsPage, makeEcodeCampaignMeta } from '~/components/marketing/EcodeExactProductMarketingPages';
-
-export const meta = makeEcodeCampaignMeta('deployments');
-
-export default function DeploymentsRoute() {
-  return <EcodeDeploymentsPage />;
-}
+export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';

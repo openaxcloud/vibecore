@@ -1,0 +1,437 @@
+/* Micro-interactions for E-Code Platform */
+
+/* Button Interactions */
+.btn-interactive {
+  position: relative;
+  overflow: hidden;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.btn-interactive:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(242, 98, 7, 0.15);
+}
+
+.btn-interactive:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 4px rgba(242, 98, 7, 0.1);
+}
+
+/* Ripple Effect */
+.ripple-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-effect::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: width 0.6s ease-out, height 0.6s ease-out;
+}
+
+.ripple-effect:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Card Lift Effect */
+.card-lift {
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform, box-shadow;
+}
+
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.card-lift-premium {
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.card-lift-premium::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #F26207 0%, #F99D25 100%);
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 300ms ease;
+}
+
+.card-lift-premium:hover::before {
+  opacity: 0.1;
+}
+
+.card-lift-premium:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(242, 98, 7, 0.2);
+}
+
+/* Smooth Accordion */
+.accordion-smooth {
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.accordion-content {
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top;
+}
+
+.accordion-content[data-state="closed"] {
+  animation: accordion-up 300ms ease-out;
+}
+
+.accordion-content[data-state="open"] {
+  animation: accordion-down 300ms ease-out;
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+/* Hover Glow Effect */
+.hover-glow {
+  position: relative;
+  transition: all 250ms ease;
+}
+
+.hover-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 rgba(242, 98, 7, 0.4);
+  transition: box-shadow 300ms ease;
+}
+
+.hover-glow:hover::before {
+  box-shadow: 0 0 20px 5px rgba(242, 98, 7, 0.3);
+}
+
+/* Scale on Focus */
+.focus-scale {
+  transition: all 200ms ease;
+}
+
+.focus-scale:focus-visible {
+  transform: scale(1.02);
+  outline: 2px solid var(--ecode-primary-hex);
+  outline-offset: 2px;
+}
+
+/* Magnetic Button */
+.magnetic-btn {
+  position: relative;
+  transition: transform 200ms ease;
+  cursor: pointer;
+}
+
+.magnetic-btn:hover {
+  animation: magnetic-float 2s ease-in-out infinite;
+}
+
+@keyframes magnetic-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* Pulse Animation */
+.pulse-animation {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Bounce Animation */
+.bounce-animation {
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Slide Animations */
+.slide-in-right {
+  animation: slideInRight 300ms ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-left {
+  animation: slideInLeft 300ms ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Tab Switch Animation */
+.tab-switch {
+  position: relative;
+  overflow: hidden;
+}
+
+.tab-content-animated {
+  animation: tab-slide-in 300ms ease-out;
+}
+
+@keyframes tab-slide-in {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Loading Spinner */
+.spinner-ecode {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(242, 98, 7, 0.2);
+  border-top-color: var(--ecode-primary-hex);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Success Checkmark Animation */
+.checkmark-animation {
+  animation: checkmark-scale 0.3s ease-in-out;
+}
+
+@keyframes checkmark-scale {
+  0% {
+    transform: scale(0) rotate(-45deg);
+  }
+  50% {
+    transform: scale(1.2) rotate(-45deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Error Shake Animation */
+.error-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-2px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(2px);
+  }
+}
+
+/* Tooltip Fade */
+.tooltip-fade {
+  animation: tooltip-fade-in 200ms ease-out;
+}
+
+@keyframes tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Icon Rotation */
+.icon-rotate {
+  transition: transform 300ms ease;
+}
+
+.icon-rotate:hover {
+  transform: rotate(90deg);
+}
+
+/* Smooth Badge Animation */
+.badge-animated {
+  animation: badge-pop 300ms ease-out;
+}
+
+@keyframes badge-pop {
+  0% {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* File Tree Hover */
+.file-tree-item {
+  transition: all 150ms ease;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.file-tree-item:hover {
+  background: rgba(242, 98, 7, 0.1);
+  padding-left: 12px;
+}
+
+/* Code Completion Popup */
+.code-completion-popup {
+  animation: popup-slide 200ms ease-out;
+}
+
+@keyframes popup-slide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile Touch Feedback */
+@media (max-width: 640px) {
+  .touch-feedback {
+    -webkit-tap-highlight-color: rgba(242, 98, 7, 0.2);
+    transition: all 100ms ease;
+  }
+  
+  .touch-feedback:active {
+    transform: scale(0.97);
+    background: rgba(242, 98, 7, 0.05);
+  }
+  
+  /* Swipeable Card */
+  .swipeable-card {
+    transition: transform 300ms ease;
+    cursor: grab;
+  }
+  
+  .swipeable-card:active {
+    cursor: grabbing;
+    transform: scale(0.98);
+  }
+  
+  /* Bottom Sheet Modal */
+  .bottom-sheet {
+    animation: slide-up 300ms ease-out;
+  }
+  
+  @keyframes slide-up {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  
+  /* Haptic Feedback Simulation */
+  .haptic-feedback {
+    position: relative;
+  }
+  
+  .haptic-feedback:active::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 2px solid rgba(242, 98, 7, 0.3);
+    border-radius: inherit;
+    animation: haptic-pulse 200ms ease-out;
+  }
+  
+  @keyframes haptic-pulse {
+    from {
+      transform: scale(1);
+      opacity: 1;
+    }
+    to {
+      transform: scale(1.05);
+      opacity: 0;
+    }
+  }
+}

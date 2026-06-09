@@ -1,0 +1,614 @@
+/* Performance Optimized Animations */
+
+/* GPU Acceleration Base Classes */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+.gpu-transform {
+  transform: translate3d(0, 0, 0);
+}
+
+/* Optimized Transitions - Only animate GPU-accelerated properties */
+.transition-gpu {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-transform {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-opacity {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-scale {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .transition-gpu,
+  .transition-transform,
+  .transition-opacity,
+  .transition-scale {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Performance Optimized Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -20px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translate3d(-20px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translate3d(20px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale3d(0.95, 0.95, 1);
+  }
+  to {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale3d(1, 1, 1);
+  }
+  50% {
+    transform: scale3d(1.05, 1.05, 1);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate3d(0, 0, 1, 0deg);
+  }
+  to {
+    transform: rotate3d(0, 0, 1, 360deg);
+  }
+}
+
+/* Animation Classes */
+.animate-fadeIn {
+  animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.animate-slideInUp {
+  animation: slideInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.animate-slideInDown {
+  animation: slideInDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.animate-slideInLeft {
+  animation: slideInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Performance Containment */
+.contain-layout {
+  contain: layout;
+}
+
+.contain-paint {
+  contain: paint;
+}
+
+.contain-style {
+  contain: style;
+}
+
+.contain-strict {
+  contain: strict;
+}
+
+.contain-content {
+  contain: content;
+}
+
+/* Optimized Hover Effects - Only transform and opacity */
+.hover-lift {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translate3d(0, -2px, 0);
+}
+
+.hover-scale {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-scale:hover {
+  transform: scale3d(1.02, 1.02, 1);
+}
+
+.hover-fade {
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-fade:hover {
+  opacity: 0.8;
+}
+
+/* Optimized Card Shadows - Use transform for shadow effects */
+.card-hover {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translate3d(0, 0, 0);
+}
+
+.card-hover:hover {
+  transform: translate3d(0, -4px, 0);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+              0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Loading Skeletons with GPU acceleration */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--background-higher);
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Optimized Scrolling */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-snap {
+  scroll-snap-type: y mandatory;
+}
+
+.scroll-snap-item {
+  scroll-snap-align: start;
+}
+
+/* Optimized Panel Background (Solid Colors) */
+.backdrop-blur-optimized {
+  background-color: var(--background-default);
+  transform: translateZ(0);
+}
+
+/* Prevent Layout Shift */
+.aspect-video {
+  aspect-ratio: 16 / 9;
+}
+
+.aspect-square {
+  aspect-ratio: 1 / 1;
+}
+
+.aspect-4-3 {
+  aspect-ratio: 4 / 3;
+}
+
+/* Image Optimization Classes */
+.img-lazy {
+  loading: lazy;
+  decoding: async;
+}
+
+.img-contain-paint {
+  contain: paint;
+  overflow: hidden;
+}
+
+/* Framer Motion Optimization */
+.framer-optimized {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+/* Force GPU Layers for frequently animated elements */
+.force-gpu-layer {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* ============================================
+ * High-Performance Mobile Navigation Animations
+ * Using CSS instead of framer-motion for speed
+ * ============================================ */
+
+/* Fast fade in animation */
+@keyframes fadeInFast {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeInFast 0.2s ease-out forwards;
+}
+
+.animate-fade-in-fast {
+  animation: fadeInFast 0.1s ease-out forwards;
+}
+
+@keyframes splashSlideInRight {
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes splashSlideInLeft {
+  from {
+    transform: translateX(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.splash-slide-in-right {
+  animation: splashSlideInRight 0.4s ease-out;
+}
+
+.splash-slide-in-left {
+  animation: splashSlideInLeft 0.4s ease-out;
+}
+
+/* Scale in animation */
+@keyframes scaleInPop {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scaleInPop 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Width expand animation for active indicators - GPU accelerated with scaleX */
+@keyframes scaleXExpand {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+.animate-width-expand {
+  width: 60%;
+  transform-origin: center;
+  animation: scaleXExpand 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Slow spin for loading states */
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 2s linear infinite;
+}
+
+/* Slow pulse for connection indicators */
+@keyframes pulseSlow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.15);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 3s ease-in-out infinite;
+}
+
+/* ============================================
+ * Mobile Panel Slide Animations
+ * ============================================ */
+
+/* Slide from bottom (for search panels, modals) */
+@keyframes slideFromBottom {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-slide-from-bottom {
+  animation: slideFromBottom 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* Slide from left (for file explorer drawer) */
+@keyframes slideFromLeft {
+  from {
+    transform: translate3d(-100%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-slide-from-left {
+  animation: slideFromLeft 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* Slide from right (for slide panels) */
+@keyframes slideFromRight {
+  from {
+    transform: translate3d(100%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-slide-from-right {
+  animation: slideFromRight 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* Context menu slide up */
+@keyframes slideUpMenu {
+  from {
+    transform: translate3d(0, 100%, 0);
+    opacity: 0;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up-menu {
+  animation: slideUpMenu 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* Ripple effect animation */
+@keyframes rippleExpand {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-ripple {
+  animation: rippleExpand 1s ease-out infinite;
+  animation-delay: 2s;
+}
+
+/* Badge pulse animation */
+@keyframes badgePulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+.animate-badge-pulse {
+  animation: badgePulse 1.5s ease-in-out infinite;
+}
+
+/* Staggered fade-in for list items */
+.animate-stagger-1 { animation-delay: 0.05s; }
+.animate-stagger-2 { animation-delay: 0.1s; }
+.animate-stagger-3 { animation-delay: 0.15s; }
+.animate-stagger-4 { animation-delay: 0.2s; }
+.animate-stagger-5 { animation-delay: 0.25s; }
+
+/* Expand/collapse for folder contents */
+.folder-content-enter {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.2s ease-out, opacity 0.2s ease-out;
+}
+
+.folder-content-enter.expanded {
+  max-height: 2000px;
+  opacity: 1;
+}
+
+/* Button tap states using CSS */
+.tap-scale {
+  transition: transform 0.1s ease-out;
+}
+
+.tap-scale:active {
+  transform: scale(0.95);
+}
+
+/* Collapsible panel animations */
+.collapsible-panel {
+  overflow: hidden;
+  transition: max-height 0.2s ease-out, opacity 0.2s ease-out;
+}
+
+.collapsible-panel.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.collapsible-panel.expanded {
+  max-height: 2000px;
+  opacity: 1;
+}
+
+/* Opacity pulse for skeleton loading */
+@keyframes opacityPulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-opacity-pulse {
+  animation: opacityPulse 1.5s ease-in-out infinite;
+}
+
+/* Spin animation for loaders */
+.animate-spin-loader {
+  animation: spin 1s linear infinite;
+}
+
+/* ============================================
+ * GPU-Accelerated Collapsible Content
+ * Uses grid-template-rows which IS animatable
+ * ============================================ */
+
+.collapsible-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease-out, opacity 0.2s ease-out;
+  opacity: 0;
+}
+
+.collapsible-content.expanded {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.collapsible-content > div {
+  overflow: hidden;
+}

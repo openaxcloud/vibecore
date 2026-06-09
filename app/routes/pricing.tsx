@@ -1,7 +1,1 @@
-import { EcodePricingPage, makeEcodeProductMeta } from '~/components/marketing/EcodeExactProductMarketingPages';
-
-export const meta = makeEcodeProductMeta('pricing');
-
-export default function PricingPage() {
-  return <EcodePricingPage />;
-}
+export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';

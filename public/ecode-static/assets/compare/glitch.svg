@@ -1,0 +1,15 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="glitchGradient" x1="12" y1="12" x2="84" y2="84" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00FFC6" />
+      <stop offset="1" stop-color="#7C3AED" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="80" height="80" rx="20" fill="url(#glitchGradient)" />
+  <rect x="22" y="36" width="16" height="12" rx="4" fill="#0F172A" />
+  <rect x="58" y="36" width="16" height="12" rx="4" fill="#0F172A" />
+  <path d="M30 58h36c1.66 0 3 1.34 3 3v4c0 6.627-5.373 12-12 12H39c-6.627 0-12-5.373-12-12v-4c0-1.66 1.34-3 3-3Z" fill="#0F172A" />
+  <path d="M33 56h30v-6c0-1.657-1.343-3-3-3H36c-1.657 0-3 1.343-3 3v6Z" fill="#F8FAFC" />
+  <rect x="28" y="24" width="12" height="6" rx="3" fill="#F8FAFC" />
+  <rect x="56" y="66" width="12" height="6" rx="3" fill="#F8FAFC" />
+</svg>
