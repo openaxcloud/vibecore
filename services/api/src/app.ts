@@ -1289,6 +1289,23 @@ async function authenticateCollaborationWebSocketTicket(request: FastifyRequest,
     return 'rejected' as const;
   }
 
+  /*
+   * Enforce the org IP allowlist here too. The main preHandler returns early for
+   * any ticketed request (collaborationTicketAuth !== 'not-ticketed'), which
+   * skipped its IP-allowlist block — so the collaboration WebSocket was reachable
+   * from outside the allowlist. Resolve the project's org and check it.
+   */
+  const ticketedProject = await store.getProject(match[1]).catch(() => undefined);
+
+  if (ticketedProject?.organizationId) {
+    const settings = await store.getEnterpriseSettings(ticketedProject.organizationId);
+
+    if (!isIpAllowed(request.ip, settings.ipAllowlist)) {
+      reply.code(403).send({ error: 'IP address is not allowed for this organization', code: 'IP_ALLOWLIST_BLOCKED' });
+      return 'rejected' as const;
+    }
+  }
+
   request.currentUser = {
     id: user.id,
     email: user.email,
@@ -8229,17 +8246,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { killed: true, id: processId, localRuntime: true };
     }
 
-    const pid = Number(processId);
-
-    if (Number.isInteger(pid) && pid > 0) {
-      try {
-        process.kill(pid, 'SIGTERM');
-        return { killed: true, id: processId, localRuntime: true };
-      } catch {
-        return { killed: false, id: processId, localRuntime: true };
-      }
-    }
-
+    /*
+     * Only ever act on processes we tracked for this workspace. The previous
+     * fallback parsed processId as a raw OS PID and called process.kill(pid),
+     * letting a user-supplied id SIGTERM ARBITRARY processes on the host
+     * (including the API/runtime itself). A miss is just "not found".
+     */
     return { killed: false, id: processId, localRuntime: true };
   };
 
@@ -8898,7 +8910,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const existingWorkspace = await store.getWorkspace(workspaceId);
 
-    if (authorized.organizationId && !existingWorkspace) {
+    /*
+     * Quota-gate on whether the record currently COUNTS as active, not on mere
+     * existence. countActiveWorkspaces counts only PENDING/STARTING/RUNNING, so a
+     * STOPPED/FAILED record is not yet in the live count — reopening it adds one
+     * and must be checked. (Reopening an already-running workspace stays free, so
+     * we don't double-charge a user reopening their own live IDE.)
+     */
+    const countsAsActive =
+      !!existingWorkspace && ['PENDING', 'STARTING', 'RUNNING'].includes(existingWorkspace.status as string);
+
+    if (authorized.organizationId && !countsAsActive) {
       await ensureQuota(request, authorized.organizationId, 'workspaces.active');
     }
 
@@ -13685,7 +13707,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.get('/ai/usage', async (request) => {
     const organization = await requireAnyOrgPermission(request, store, 'usage:read');
-    return { usage: await store.listAiCosts(organization.id) };
+
+    /*
+     * Bound this to a window (default: last 30 days, overridable via from/to) so
+     * it can't load the org's entire — fastest-growing — AI cost ledger into
+     * memory. The full-ledger read stays reserved for the explicit data export.
+     */
+    const query = parse(z.object({ from: z.string().optional(), to: z.string().optional() }), request.query ?? {});
+    const from = query.from ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    return { usage: await store.listAiCosts(organization.id, { from, to: query.to }) };
   });
 
   /*
