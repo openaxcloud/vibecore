@@ -196,6 +196,21 @@ export class WorkspaceManager {
       return running;
     } catch (error) {
       const failed = await this.store.update(input.workspaceId, { status: 'FAILED', error: error instanceof Error ? error.message : 'Kubernetes error' });
+
+      /*
+       * Tear down the compute objects we just created so a failed start (e.g. a
+       * readiness timeout) doesn't leave a CrashLooping/Pending Pod and its
+       * Service churning resources until the 24h GC. Best-effort — never let
+       * cleanup errors mask the original failure. The PVC and agent-token Secret
+       * are deliberately KEPT: the PVC may hold the user's existing data (this
+       * path is re-entered on reopen with the same deterministic id), and both
+       * are reused as-is when the deterministic-id start is retried.
+       */
+      await Promise.allSettled([
+        this.k8s.delete('Pod', input.namespace, record.podName),
+        this.k8s.delete('Service', input.namespace, record.serviceName),
+      ]);
+
       await this.publish(failed, 'workspace.failed');
       return failed;
     }

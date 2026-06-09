@@ -1,5 +1,14 @@
+import { Readable } from 'node:stream';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { INSPECTOR_SCRIPT } from './inspector-script.js';
+
+/*
+ * Upper bound on how large an HTML document we will buffer in memory to inject
+ * the inspector script. Anything larger is streamed through unmodified — a
+ * multi-MB HTML page never needs inspector injection, and buffering arbitrary
+ * upstream bodies would let a large response OOM the proxy.
+ */
+const MAX_INJECT_BYTES = 4 * 1024 * 1024;
 
 export interface PreviewProxyOptions {
   logger?: boolean;
@@ -164,17 +173,40 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         return reply.send();
       }
 
-      const bodyBuffer = Buffer.from(await upstreamResponse.arrayBuffer());
-
-      if (isHtml && injectInspector) {
-        const injected = injectInspectorScript(bodyBuffer.toString('utf8'));
-        const outBuffer = Buffer.from(injected, 'utf8');
-        reply.header('content-length', String(outBuffer.length));
-
-        return reply.send(outBuffer);
+      /*
+       * Only buffer when we actually rewrite the body (HTML inspector injection).
+       * The bulk of preview traffic (JS/CSS/images/data) is streamed straight
+       * through, so a large asset can never be buffered into the proxy heap.
+       */
+      if (!(isHtml && injectInspector)) {
+        return reply.send(Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>));
       }
 
-      return reply.send(bodyBuffer);
+      // Inspector-injection path: bound the in-memory buffer. If the document is
+      // implausibly large for injection, stream it through unmodified instead.
+      const declaredLength = Number(upstreamResponse.headers.get('content-length') ?? '');
+
+      if (Number.isFinite(declaredLength) && declaredLength > MAX_INJECT_BYTES) {
+        reply.header('content-length', String(declaredLength));
+
+        return reply.send(Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>));
+      }
+
+      const bodyBuffer = Buffer.from(await upstreamResponse.arrayBuffer());
+
+      if (bodyBuffer.length > MAX_INJECT_BYTES) {
+        // Content-Length was absent/wrong but the body is over the cap — send it
+        // as-is rather than injecting into (and doubling) a huge buffer.
+        reply.header('content-length', String(bodyBuffer.length));
+
+        return reply.send(bodyBuffer);
+      }
+
+      const injected = injectInspectorScript(bodyBuffer.toString('utf8'));
+      const outBuffer = Buffer.from(injected, 'utf8');
+      reply.header('content-length', String(outBuffer.length));
+
+      return reply.send(outBuffer);
     } catch (error: any) {
       if (error?.name === 'AbortError') {
         return reply.code(504).send({ error: 'Preview upstream timeout', code: 'PREVIEW_UPSTREAM_TIMEOUT' });

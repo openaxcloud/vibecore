@@ -273,9 +273,19 @@ function resolveWorkspaceResources(input: WorkspaceRuntimeInput) {
   const ramMb = clampPositive(positiveInteger(input.resourceLimits?.ramMb), WORKSPACE_CONTAINER_MAX_RAM_MB);
   const storageGb = clampPositive(positiveInteger(input.resourceLimits?.storageGb), WORKSPACE_CONTAINER_MAX_DISK_GB);
 
+  /*
+   * request = ceil-floor of the limit, but capped AT the limit: the request
+   * floors (50m / 128Mi) must never exceed the limit for a sub-floor custom
+   * entitlement (e.g. cpu=40m → floor 50m), or the Pod spec is invalid
+   * (request > limit) and provisioning fails outright.
+   */
   return {
-    cpuRequest: cpuMillicores ? formatCpuMillicores(Math.max(50, Math.floor(cpuMillicores / 4))) : plan.cpuRequest,
-    memoryRequest: ramMb ? formatMemoryMb(Math.max(128, Math.floor(ramMb / 4))) : plan.memoryRequest,
+    cpuRequest: cpuMillicores
+      ? formatCpuMillicores(Math.min(cpuMillicores, Math.max(50, Math.floor(cpuMillicores / 4))))
+      : plan.cpuRequest,
+    memoryRequest: ramMb
+      ? formatMemoryMb(Math.min(ramMb, Math.max(128, Math.floor(ramMb / 4))))
+      : plan.memoryRequest,
     cpuLimit: cpuMillicores ? formatCpuMillicores(cpuMillicores) : plan.cpuLimit,
     memoryLimit: ramMb ? formatMemoryMb(ramMb) : plan.memoryLimit,
     storageRequest: storageGb ? `${storageGb}Gi` : plan.storageRequest,

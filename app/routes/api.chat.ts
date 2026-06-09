@@ -49,14 +49,28 @@ const RECENT_HISTORY_MESSAGES = 12;
 function parseCookies(cookieHeader: string): Record<string, string> {
   const cookies: Record<string, string> = {};
 
+  /*
+   * A malformed percent-encoding (e.g. a stray "%" in any cookie) makes
+   * decodeURIComponent throw a URIError. This parser runs before the route's
+   * try/catch, so an unguarded throw surfaced as an uncaught 500 on every chat
+   * request that carried such a cookie. Fall back to the raw value instead.
+   */
+  const safeDecode = (raw: string) => {
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
+  };
+
   const items = cookieHeader.split(';').map((cookie) => cookie.trim());
 
   items.forEach((item) => {
     const [name, ...rest] = item.split('=');
 
-    if (name && rest) {
-      const decodedName = decodeURIComponent(name.trim());
-      const decodedValue = decodeURIComponent(rest.join('=').trim());
+    if (name && rest.length > 0) {
+      const decodedName = safeDecode(name.trim());
+      const decodedValue = safeDecode(rest.join('=').trim());
       cookies[decodedName] = decodedValue;
     }
   });
