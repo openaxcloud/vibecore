@@ -1198,6 +1198,27 @@ export class TestApiStore implements ApiStore {
     return setting;
   }
 
+  async mutateSystemSettingIds(key: string, change: { add?: string; remove?: string }): Promise<string[]> {
+    const existing = this.systemSettings.get(key);
+    const current = Array.isArray(existing?.value)
+      ? (existing!.value as unknown[]).filter((item): item is string => typeof item === 'string')
+      : [];
+    const set = new Set(current);
+
+    if (change.add) {
+      set.add(change.add);
+    }
+
+    if (change.remove) {
+      set.delete(change.remove);
+    }
+
+    const next = [...set];
+    this.systemSettings.set(key, { key, value: next, updatedAt: now() });
+
+    return next;
+  }
+
   async listSystemSettings() {
     return [...this.systemSettings.values()];
   }

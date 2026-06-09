@@ -1557,6 +1557,42 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async mutateSystemSettingIds(key: string, change: { add?: string; remove?: string }): Promise<string[]> {
+    return this.prisma.$transaction(async (tx) => {
+      /*
+       * Serialize concurrent mutations of this setting's id-array with a
+       * transaction-scoped advisory lock (works even when the row doesn't exist
+       * yet, unlike SELECT ... FOR UPDATE). Without it, two concurrent
+       * suspend/unsuspend operations both read the old array and the later write
+       * dropped the other's change (lost update).
+       */
+      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `system-setting:${key}`);
+
+      const existing = await tx.systemSetting.findUnique({ where: { key } });
+      const current = Array.isArray(existing?.value)
+        ? (existing!.value as unknown[]).filter((item): item is string => typeof item === 'string')
+        : [];
+      const set = new Set(current);
+
+      if (change.add) {
+        set.add(change.add);
+      }
+
+      if (change.remove) {
+        set.delete(change.remove);
+      }
+
+      const next = [...set];
+      await tx.systemSetting.upsert({
+        where: { key },
+        create: { key, value: next as any },
+        update: { value: next as any },
+      });
+
+      return next;
+    });
+  }
+
   async listSystemSettings() {
     return (await this.prisma.systemSetting.findMany()).map(mapSystemSetting);
   }

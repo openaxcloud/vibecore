@@ -892,6 +892,12 @@ export interface ApiStore {
   listAbuseEvents(): Promise<AbuseEventRecord[]>;
   setSystemSetting(input: { key: string; value?: unknown }): Promise<SystemSettingRecord>;
   listSystemSettings(): Promise<SystemSettingRecord[]>;
+  /**
+   * Atomically add/remove a string id from a SystemSetting whose value is a
+   * string[] (e.g. admin.suspendedUserIds). Serializes concurrent mutations so a
+   * read-modify-write race can't lose a suspend/unsuspend. Returns the new list.
+   */
+  mutateSystemSettingIds(key: string, change: { add?: string; remove?: string }): Promise<string[]>;
   getEnterpriseSettings(organizationId: string): Promise<EnterpriseSettingsRecord>;
   updateEnterpriseSettings(
     input: Partial<Omit<EnterpriseSettingsRecord, 'updatedAt'>> & { organizationId: string },

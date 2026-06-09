@@ -2974,10 +2974,6 @@ async function listSettingIds(store: ApiStore, key: string) {
   return arraySetting(setting?.value);
 }
 
-async function writeSettingIds(store: ApiStore, key: string, ids: string[]) {
-  await store.setSystemSetting({ key, value: [...new Set(ids)] });
-}
-
 async function isUserSuspended(store: ApiStore, userId: string) {
   return (await listSettingIds(store, 'admin.suspendedUserIds')).includes(userId);
 }
@@ -4778,10 +4774,7 @@ async function recordAbuseSignal(
   }
 
   if (input.action === 'suspend_org' && input.organizationId) {
-    await writeSettingIds(store, 'admin.suspendedOrganizationIds', [
-      ...(await listSettingIds(store, 'admin.suspendedOrganizationIds')),
-      input.organizationId,
-    ]);
+    await store.mutateSystemSettingIds('admin.suspendedOrganizationIds', { add: input.organizationId });
   }
 
   if (
@@ -14552,10 +14545,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireRecentAdminReauth(request);
 
     const { userId } = parse(adminUserParams, request.params);
-    await writeSettingIds(store, 'admin.suspendedUserIds', [
-      ...(await listSettingIds(store, 'admin.suspendedUserIds')),
-      userId,
-    ]);
+    await store.mutateSystemSettingIds('admin.suspendedUserIds', { add: userId });
     await store.revokeAllSessions(userId);
     await recordAdminAction(request, store, { action: 'admin.user.suspend', metadata: { userId } });
 
@@ -14567,11 +14557,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireRecentAdminReauth(request);
 
     const { userId } = parse(adminUserParams, request.params);
-    await writeSettingIds(
-      store,
-      'admin.suspendedUserIds',
-      (await listSettingIds(store, 'admin.suspendedUserIds')).filter((id) => id !== userId),
-    );
+    await store.mutateSystemSettingIds('admin.suspendedUserIds', { remove: userId });
     await recordAdminAction(request, store, { action: 'admin.user.unsuspend', metadata: { userId } });
 
     return { suspended: false };
@@ -14606,10 +14592,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireRecentAdminReauth(request);
 
     const { orgId } = parse(adminOrgParams, request.params);
-    await writeSettingIds(store, 'admin.suspendedOrganizationIds', [
-      ...(await listSettingIds(store, 'admin.suspendedOrganizationIds')),
-      orgId,
-    ]);
+    await store.mutateSystemSettingIds('admin.suspendedOrganizationIds', { add: orgId });
     await recordAdminAction(request, store, { action: 'admin.org.suspend', metadata: { orgId } });
 
     return { suspended: true };
