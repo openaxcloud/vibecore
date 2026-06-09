@@ -139,7 +139,50 @@ export async function action({ request }: ActionFunctionArgs) {
       return json({ error: 'URL must point to an HTML or text page' }, { status: 400 });
     }
 
-    const html = await response.text();
+    /*
+     * Bound the body so a huge (or lying-Content-Length) page can't be fully
+     * buffered into memory. Early-reject on a declared oversize, then stream-read
+     * with a hard byte cap instead of response.text().
+     */
+    const MAX_FETCH_BYTES = 5 * 1024 * 1024;
+    const declaredLength = Number(response.headers.get('content-length') ?? '');
+
+    if (Number.isFinite(declaredLength) && declaredLength > MAX_FETCH_BYTES) {
+      return json({ error: 'Page too large' }, { status: 413 });
+    }
+
+    let html = '';
+
+    if (response.body) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      let total = 0;
+
+      for (;;) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        if (value) {
+          total += value.length;
+
+          if (total > MAX_FETCH_BYTES) {
+            await reader.cancel().catch(() => {});
+            break;
+          }
+
+          html += decoder.decode(value, { stream: true });
+        }
+      }
+
+      html += decoder.decode();
+    } else {
+      html = await response.text();
+    }
+
     const title = extractTitle(html);
     const description = extractMetaDescription(html);
     const content = extractTextContent(html);

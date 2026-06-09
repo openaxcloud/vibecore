@@ -345,11 +345,25 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
         for (const path of eventPaths) {
           const eventType = event.type ?? event.kind;
           const isFileEvent = eventType === 'add_file' || eventType === 'change';
+          const buffer = event.buffer as Uint8Array | undefined;
+          const binary = buffer ? !isUtf8(buffer) : undefined;
           onChange({
             path,
             type: this.#mapWatchEvent(eventType),
-            content: event.buffer ? new TextDecoder().decode(event.buffer) : isFileEvent ? '' : undefined,
-            binary: event.buffer ? !isUtf8(event.buffer) : undefined,
+            /*
+             * Honor the binary ⟹ base64-content invariant the rest of the app
+             * relies on. Decoding a binary buffer as UTF-8 here corrupted it
+             * (replacement chars) and, since `binary:true` was also set, the
+             * consumer treated lossy text as base64 → garbage written to disk.
+             */
+            content: buffer
+              ? binary
+                ? toBase64(buffer)
+                : new TextDecoder().decode(buffer)
+              : isFileEvent
+                ? ''
+                : undefined,
+            binary,
             timestamp: new Date().toISOString(),
           });
         }
@@ -403,6 +417,18 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     }
 
     const exitEvent = events.findLast((event) => event.type === 'exit');
+
+    // An 'error' event with no 'exit' means the command failed to run/complete;
+    // defaulting exitCode to 0 there falsely reported success (callers then
+    // proceed as if e.g. the build passed). Treat that case as a failure.
+    if (!exitEvent) {
+      const errorEvent = events.findLast((event) => event.type === 'error');
+
+      if (errorEvent) {
+        return { exitCode: 1, output, events };
+      }
+    }
+
     return { exitCode: exitEvent?.exitCode ?? 0, output, events };
   }
 
@@ -830,4 +856,18 @@ function isUtf8(buffer: Uint8Array) {
   } catch {
     return false;
   }
+}
+
+function toBase64(buffer: Uint8Array): string {
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(buffer).toString('base64');
+  }
+
+  let binary = '';
+
+  for (let i = 0; i < buffer.length; i += 1) {
+    binary += String.fromCharCode(buffer[i]);
+  }
+
+  return btoa(binary);
 }

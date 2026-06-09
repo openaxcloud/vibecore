@@ -218,6 +218,12 @@ Please provide a summary of the chat till now including the hitorical summary of
       modelDetails.name,
       modelDetails.provider,
     ),
+
+    /*
+     * Cap output: a chat summary is small, but without a ceiling a model can run
+     * to its full (often huge) completion limit, burning tokens/cost on every turn.
+     */
+    maxTokens: Math.min(modelDetails.maxTokenAllowed ?? 8000, 8000),
   });
 
   const response = resp.text;

@@ -106,7 +106,17 @@ const getInitialProviderSettings = (): ProviderSetting => {
         const parsed = JSON.parse(savedSettings);
         Object.entries(parsed ?? {}).forEach(([key, value]) => {
           if (initialSettings[key]) {
-            initialSettings[key].settings = (value as IProviderConfig).settings;
+            /*
+             * Merge over the defaults rather than replacing: a corrupted/partial/
+             * stale persisted entry (or one missing `settings`) used to blow away
+             * the default provider.settings entirely (e.g. wiping baseUrl), leaving
+             * the provider misconfigured. Only overlay a valid object.
+             */
+            const persisted = (value as IProviderConfig | undefined)?.settings;
+
+            if (persisted && typeof persisted === 'object') {
+              initialSettings[key].settings = { ...initialSettings[key].settings, ...persisted };
+            }
           }
         });
       } catch (error) {
