@@ -774,7 +774,11 @@ const runtimeFileCreateSchema = runtimeFileWriteSchema
 const runtimeFileMoveSchema = z.object({ path: z.string().min(1), newPath: z.string().min(1) });
 
 const runtimeSearchSchema = z.object({
-  query: z.string(),
+  // Cap the pattern length: with regex mode this string is compiled to a RegExp
+  // and run against file contents, so an unbounded user pattern is a ReDoS vector
+  // (catastrophic backtracking). A tight cap bounds worst-case blow-up until the
+  // engine is swapped for a linear-time one (re2).
+  query: z.string().max(1000),
 
   /*
    * Audit v3 (H): the search options the IDE sends (regex / case-sensitivity
@@ -2281,6 +2285,16 @@ async function requireProject(
     });
   }
 
+  /*
+   * Enforce org suspension centrally for every project MUTATION (covers the AI
+   * completion and deployment routes, which previously skipped the check and let
+   * a suspended org keep spending on AI / shipping deploys). Reads are left
+   * available so a suspended org can still view/export to resolve billing.
+   */
+  if (isWriteProjectPermission(permission)) {
+    await requireOrganizationNotSuspended(store, project.organizationId);
+  }
+
   return project;
 }
 
@@ -3562,7 +3576,37 @@ function parseSamlXmlAssertion(xml: string, certificate: string) {
     });
   }
 
-  return { email: email.toLowerCase(), name, externalId, roleKey, signatureValid };
+  /*
+   * Replay window enforcement: even a validly-signed assertion must fall within
+   * its own validity window, otherwise a single captured SAMLResponse could be
+   * replayed indefinitely to mint fresh sessions. Read the bounds ONLY from the
+   * signature-verified assertion. Assertions that omit Conditions (e.g. minimal
+   * test fixtures) are unconstrained here. (Full one-time-use dedup of assertion
+   * IDs is a separate, persisted control — see follow-up task.)
+   */
+  const SAML_CLOCK_SKEW_MS = 60_000;
+  const notBefore = samlInstant(assertionXml, /<(?:\w+:)?Conditions\b[^>]*\bNotBefore=["']([^"']+)["']/);
+  const notOnOrAfter =
+    samlInstant(assertionXml, /<(?:\w+:)?Conditions\b[^>]*\bNotOnOrAfter=["']([^"']+)["']/) ??
+    samlInstant(assertionXml, /<(?:\w+:)?SubjectConfirmationData\b[^>]*\bNotOnOrAfter=["']([^"']+)["']/);
+  const nowMs = Date.now();
+  const timeValid =
+    (notBefore === undefined || nowMs >= notBefore - SAML_CLOCK_SKEW_MS) &&
+    (notOnOrAfter === undefined || nowMs < notOnOrAfter + SAML_CLOCK_SKEW_MS);
+
+  return { email: email.toLowerCase(), name, externalId, roleKey, signatureValid: signatureValid && timeValid };
+}
+
+function samlInstant(xml: string, pattern: RegExp): number | undefined {
+  const raw = pattern.exec(xml)?.[1];
+
+  if (!raw) {
+    return undefined;
+  }
+
+  const parsed = Date.parse(raw);
+
+  return Number.isNaN(parsed) ? undefined : parsed;
 }
 
 function parseSamlAssertion(encoded: string, certificate?: string) {
@@ -4973,16 +5017,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * one tenant per LB. We opt in by env var so it's never on by
    * default (which would let a public-facing operator be tricked by a
    * spoofed `X-Forwarded-For`). Accepts:
-   *   TRUST_PROXY=true        – trust the chain (use behind LB only)
+   *   TRUST_PROXY=true        – trust exactly ONE upstream hop (our LB/ingress)
    *   TRUST_PROXY=1           – trust the immediate upstream hop
    *   TRUST_PROXY=10.0.0.0/8  – trust a specific CIDR
    *   (unset / false)         – fall back to socket IP (dev default)
+   *
+   * `true` maps to a single hop (NOT boolean-true / "trust the whole chain"):
+   * trusting the entire X-Forwarded-For chain lets any client forge request.ip
+   * by sending their own XFF header, which would defeat rate limiting, the org
+   * IP allowlist and audit attribution. With a single L4 LB + ingress in front,
+   * one hop yields the real, unspoofable client address (the right-most XFF
+   * entry the ingress recorded). Set an explicit count if the proxy chain grows.
    */
   const trustProxyEnv = process.env.TRUST_PROXY;
 
   const trustProxy: boolean | number | string =
     trustProxyEnv === 'true'
-      ? true
+      ? 1
       : trustProxyEnv === 'false' || trustProxyEnv === undefined
         ? false
         : /^\d+$/.test(trustProxyEnv)
@@ -5061,8 +5112,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     max: Number(process.env.API_RATE_LIMIT_MAX ?? 2000),
     timeWindow: '1 minute',
     keyGenerator(request) {
-      const org = (request.headers['x-org-id'] as string | undefined) ?? 'no-org';
       const authorization = request.headers.authorization;
+
+      /*
+       * Only fold the org into the bucket key for AUTHENTICATED requests. For
+       * anonymous requests (login/register/reset — keyed before auth runs) the
+       * `x-org-id` header is fully attacker-controlled, so including it let a
+       * brute-forcer mint a fresh bucket per request by varying the header,
+       * defeating the limit. Anonymous requests key on IP only.
+       */
+      const org = request.currentUser ? ((request.headers['x-org-id'] as string | undefined) ?? 'no-org') : 'no-org';
 
       /*
        * Only an explicit Bearer credential (or an already-resolved currentUser)
@@ -6065,7 +6124,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return;
     }
 
-    const orgId = orgIdFromRequest(request);
+    /*
+     * Resolve the target org from the actual resource, not just the
+     * attacker-controlled x-org-id header. Previously the allowlist was only
+     * enforced when the header (or a path :orgId) was present, so a client could
+     * bypass it entirely by hitting a /projects/:projectId route and omitting the
+     * header. Fall back to the project's real organizationId in that case.
+     */
+    let orgId = orgIdFromRequest(request);
+
+    if (!orgId) {
+      const projectId = (request.params as { projectId?: string } | undefined)?.projectId;
+
+      if (projectId) {
+        const project = await store.getProject(projectId).catch(() => undefined);
+        orgId = project?.organizationId;
+      }
+    }
 
     if (orgId) {
       const settings = await store.getEnterpriseSettings(orgId);
@@ -14124,8 +14199,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/users', async (request) => {
     await requirePlatformAdmin(request);
+
+    /*
+     * Never ship credential material to the admin console. listAdminUsers maps
+     * the raw user rows (incl. passwordHash and the encrypted MFA secret); strip
+     * both so a platform-admin page (or anyone who compromises that session)
+     * can't harvest every user's password hash / MFA seed.
+     */
+    const users = (await store.listAdminUsers()).map(
+      ({ passwordHash: _passwordHash, mfaSecretEncrypted: _mfaSecretEncrypted, ...safe }) => safe,
+    );
+
     return {
-      users: await store.listAdminUsers(),
+      users,
       suspendedUserIds: await listSettingIds(store, 'admin.suspendedUserIds'),
     };
   });
@@ -14603,7 +14689,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/admin/orgs/:orgId/quota-overrides', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(quotaOverrideSchema, request.body);
-    await requireOrg(request, store, orgId, 'admin:write');
+
+    /*
+     * Quota overrides REPLACE the plan limit (ensureQuota: override.limit ??
+     * plan limit), so creating one is a billing/entitlement bypass. This must be
+     * a platform-admin action — `requireOrg(..., 'admin:write')` let any org
+     * OWNER self-grant unlimited AI tokens / deployments / seats / storage.
+     * Matches the platform-admin guard on the sibling /admin/quota-overrides.
+     */
+    await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
 
     const override = await store.createQuotaOverride({

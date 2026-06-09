@@ -2467,13 +2467,25 @@ describe('SaaS API', () => {
 
     await reauth(app, auth.token);
 
-    const override = await app.inject({
+    // An org owner must NOT be able to self-grant quota: creating an override is
+    // a billing-bypass and is now a platform-admin-only action.
+    const selfGrant = await app.inject({
       method: 'POST',
       url: `/admin/orgs/${auth.organization.id}/quota-overrides`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { key: 'projects.count', limit: 4, reason: 'contract expansion' },
     });
-    expect(override.statusCode).toBe(201);
+    expect(selfGrant.statusCode).toBe(403);
+
+    // A legitimately-granted override (seeded as a platform admin would) raises
+    // the effective limit so the previously-blocked action now succeeds.
+    await store.createQuotaOverride({
+      organizationId: auth.organization.id,
+      key: 'projects.count',
+      limit: 4,
+      reason: 'contract expansion',
+      createdByUserId: auth.user.id,
+    });
 
     const allowed = await app.inject({
       method: 'POST',
@@ -2489,7 +2501,6 @@ describe('SaaS API', () => {
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(usageAfterOverride.json().quotaUsage['projects.count']).toBe(4);
-    expect(store.auditLogs.some((event) => event.action === 'quota.override.create')).toBe(true);
     await app.close();
   });
 
