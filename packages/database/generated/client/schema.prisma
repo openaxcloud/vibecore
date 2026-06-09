@@ -966,6 +966,9 @@ model SiemWebhook {
   secretCiphertext String
   enabled          Boolean      @default(true)
   lastDeliveredAt  DateTime?
+  // Secondary keyset cursor paired with lastDeliveredAt so same-millisecond
+  // audit rows beyond a batch boundary are not silently skipped on delivery.
+  lastDeliveredId  String?
   createdAt        DateTime     @default(now())
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -1282,11 +1285,14 @@ model UserConnection {
   refreshTokenEncrypted String?
   apiKeyFieldsEncrypted Json?
 
-  scopes         String[]
-  tokenExpiresAt DateTime?
-  status         String    @default("active")
-  lastUsedAt     DateTime?
-  forAgentUse    Boolean   @default(true)
+  scopes            String[]
+  tokenExpiresAt    DateTime?
+  status            String    @default("active")
+  lastUsedAt        DateTime?
+  // Cursor for the background token health-check sweep, kept separate from the
+  // user-facing lastUsedAt so the sweep no longer clobbers "last used".
+  lastHealthCheckAt DateTime?
+  forAgentUse       Boolean   @default(true)
 
   oauthAppSource     String  @default("e_code_default")
   oauthAppOverrideId String?

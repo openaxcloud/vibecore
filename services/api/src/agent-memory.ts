@@ -503,10 +503,24 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
   }
 
   async setPreference(input: { userId: string; organizationId?: string; projectId?: string; enabled: boolean }) {
-    const existing = await this.getPreference(input);
+    const organizationId = input.organizationId ?? null;
+    const projectId = input.projectId ?? null;
 
-    if (existing) {
-      const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
+    /*
+     * AgentMemoryPreference has no unique constraint (and Postgres treats NULLs
+     * as distinct, so a plain composite unique would not even cover the common
+     * user-/org-global scopes). The previous read-then-write therefore raced:
+     * two concurrent setPreference calls for the same scope both saw "no row"
+     * and both INSERTed, leaving duplicate rows. Serialize writers for this exact
+     * (user, org, project) scope with a transaction-scoped advisory lock — no
+     * schema migration needed, and occasional cross-key hash collisions only
+     * cause brief serialization, never incorrectness. The lock releases at COMMIT.
+     */
+    return this.prisma.$transaction(async (tx) => {
+      const lockKey = `agent-mem-pref:${input.userId}:${organizationId ?? ''}:${projectId ?? ''}`;
+      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', lockKey);
+
+      const updated = await tx.$queryRawUnsafe<Array<Record<string, any>>>(
         `UPDATE "AgentMemoryPreference"
          SET "enabled" = $4, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "userId" = $1
@@ -514,27 +528,29 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
            AND (($3::text IS NULL AND "projectId" IS NULL) OR "projectId" = $3)
          RETURNING "userId", "organizationId", "projectId", "enabled", "createdAt", "updatedAt"`,
         input.userId,
-        input.organizationId ?? null,
-        input.projectId ?? null,
+        organizationId,
+        projectId,
         input.enabled,
       );
 
-      return rowToPreference(rows[0]);
-    }
+      if (updated[0]) {
+        return rowToPreference(updated[0]);
+      }
 
-    const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
-      `INSERT INTO "AgentMemoryPreference"
-       ("id", "userId", "organizationId", "projectId", "enabled")
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING "userId", "organizationId", "projectId", "enabled", "createdAt", "updatedAt"`,
-      randomUUID(),
-      input.userId,
-      input.organizationId ?? null,
-      input.projectId ?? null,
-      input.enabled,
-    );
+      const inserted = await tx.$queryRawUnsafe<Array<Record<string, any>>>(
+        `INSERT INTO "AgentMemoryPreference"
+         ("id", "userId", "organizationId", "projectId", "enabled")
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING "userId", "organizationId", "projectId", "enabled", "createdAt", "updatedAt"`,
+        randomUUID(),
+        input.userId,
+        organizationId,
+        projectId,
+        input.enabled,
+      );
 
-    return rowToPreference(rows[0]);
+      return rowToPreference(inserted[0]);
+    });
   }
 }
 

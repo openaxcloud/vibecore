@@ -50,11 +50,11 @@ interface ConnectorJobsDatabase {
       where: {
         status: 'active';
         forAgentUse: true;
-        OR: [{ lastUsedAt: null }, { lastUsedAt: { lt: Date } }];
+        OR: [{ lastHealthCheckAt: null }, { lastHealthCheckAt: { lt: Date } }];
         provider: { in: string[] };
       };
       take: number;
-      orderBy: { lastUsedAt: { sort: 'asc'; nulls: 'first' } };
+      orderBy: { lastHealthCheckAt: { sort: 'asc'; nulls: 'first' } };
     }): Promise<ConnectorJobsUserConnection[]>;
     update(args: { where: { id: string }; data: Record<string, unknown> }): Promise<unknown>;
   };
@@ -125,11 +125,14 @@ export async function runConnectorTokenHealthCheck(
     where: {
       status: 'active',
       forAgentUse: true,
-      OR: [{ lastUsedAt: null }, { lastUsedAt: { lt: cutoff } }],
+      // Drive the sweep off a dedicated lastHealthCheckAt cursor, NOT the
+      // user-facing lastUsedAt — reusing lastUsedAt overwrote it every 30 min,
+      // so "last used" became meaningless and real-usage ordering was lost.
+      OR: [{ lastHealthCheckAt: null }, { lastHealthCheckAt: { lt: cutoff } }],
       provider: { in: Object.keys(PROVIDER_PING_TARGETS) },
     },
     take: maxConnections,
-    orderBy: { lastUsedAt: { sort: 'asc', nulls: 'first' } },
+    orderBy: { lastHealthCheckAt: { sort: 'asc', nulls: 'first' } },
   });
 
   let flaggedReconnect = 0;
@@ -213,13 +216,14 @@ export async function runConnectorTokenHealthCheck(
 
     /*
      * Any other non-2xx is treated as a transient upstream blip; the
-     * sweep retries on the next tick. lastUsedAt is bumped only on
+     * sweep retries on the next tick. lastHealthCheckAt is bumped only on
      * success so a degraded provider stays at the front of the queue.
+     * lastUsedAt is left untouched — it reflects real user usage only.
      */
     if (response.ok) {
       await input.prisma.userConnection.update({
         where: { id: connection.id },
-        data: { lastUsedAt: now },
+        data: { lastHealthCheckAt: now },
       });
     } else {
       unreachable += 1;

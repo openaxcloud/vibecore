@@ -591,9 +591,42 @@ export class AiGateway {
     return { model: selectedModel, providers };
   }
 
+  /*
+   * Resolve which model id to send to a given provider. A model id is
+   * provider-specific (e.g. "gpt-4.1" is meaningless to Anthropic), so reusing
+   * the primary provider's model id on a fallback provider always 4xx-failed —
+   * the cross-provider fallback never actually worked. The primary provider keeps
+   * the selected model; a fallback provider gets a catalog model that belongs to
+   * IT and is allowed on the plan, falling back to the provider's defaultModel.
+   */
+  private resolveModelForProvider(
+    provider: ProviderConfig,
+    request: AiChatRequest,
+    selectedModel: AiModel,
+    plan: AiPlanKey,
+    primaryProviderId: AiProviderId,
+  ): { id: string; catalog?: AiModel } {
+    // The primary provider honors the explicitly requested model id (which may be
+    // a valid provider model outside our catalog). Only FALLBACK providers need a
+    // provider-appropriate substitute, since a model id is provider-specific.
+    if (provider.id === primaryProviderId) {
+      return { id: request.model ?? selectedModel.id, catalog: selectedModel };
+    }
+
+    const catalog = modelCatalog.find((model) => model.provider === provider.id && model.plans.includes(plan));
+
+    if (catalog) {
+      return { id: catalog.id, catalog };
+    }
+
+    return { id: provider.defaultModel };
+  }
+
   async complete(request: AiChatRequest, signal?: AbortSignal) {
     await ensureGptTokenizer();
     const routed = this.route(request);
+    const plan = request.plan ?? 'free';
+    const primaryProviderId = request.provider ?? routed.model.provider;
     const inputTokens = countTokens(request.messages);
     let lastError: unknown;
 
@@ -603,20 +636,17 @@ export class AiGateway {
           throw new Error('aborted');
         }
 
-        const content = await retry(
-          () => providerCompletion(provider, request, request.model ?? routed.model.id, signal),
-          3,
-          signal,
-        );
+        const resolved = this.resolveModelForProvider(provider, request, routed.model, plan, primaryProviderId);
+        const content = await retry(() => providerCompletion(provider, request, resolved.id, signal), 3, signal);
         const outputTokens = countTokens(content);
         return {
           provider: provider.id,
-          model: request.model ?? routed.model.id,
+          model: resolved.id,
           content,
           usage: {
             inputTokens,
             outputTokens,
-            estimatedCostCents: estimateCost(routed.model, inputTokens, outputTokens),
+            estimatedCostCents: estimateCost(resolved.catalog ?? routed.model, inputTokens, outputTokens),
           },
         };
       } catch (error) {

@@ -75771,6 +75771,7 @@ export namespace Prisma {
     secretCiphertext: string | null
     enabled: boolean | null
     lastDeliveredAt: Date | null
+    lastDeliveredId: string | null
     createdAt: Date | null
   }
 
@@ -75782,6 +75783,7 @@ export namespace Prisma {
     secretCiphertext: string | null
     enabled: boolean | null
     lastDeliveredAt: Date | null
+    lastDeliveredId: string | null
     createdAt: Date | null
   }
 
@@ -75793,6 +75795,7 @@ export namespace Prisma {
     secretCiphertext: number
     enabled: number
     lastDeliveredAt: number
+    lastDeliveredId: number
     createdAt: number
     _all: number
   }
@@ -75806,6 +75809,7 @@ export namespace Prisma {
     secretCiphertext?: true
     enabled?: true
     lastDeliveredAt?: true
+    lastDeliveredId?: true
     createdAt?: true
   }
 
@@ -75817,6 +75821,7 @@ export namespace Prisma {
     secretCiphertext?: true
     enabled?: true
     lastDeliveredAt?: true
+    lastDeliveredId?: true
     createdAt?: true
   }
 
@@ -75828,6 +75833,7 @@ export namespace Prisma {
     secretCiphertext?: true
     enabled?: true
     lastDeliveredAt?: true
+    lastDeliveredId?: true
     createdAt?: true
     _all?: true
   }
@@ -75912,6 +75918,7 @@ export namespace Prisma {
     secretCiphertext: string
     enabled: boolean
     lastDeliveredAt: Date | null
+    lastDeliveredId: string | null
     createdAt: Date
     _count: SiemWebhookCountAggregateOutputType | null
     _min: SiemWebhookMinAggregateOutputType | null
@@ -75940,6 +75947,7 @@ export namespace Prisma {
     secretCiphertext?: boolean
     enabled?: boolean
     lastDeliveredAt?: boolean
+    lastDeliveredId?: boolean
     createdAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["siemWebhook"]>
@@ -75952,6 +75960,7 @@ export namespace Prisma {
     secretCiphertext?: boolean
     enabled?: boolean
     lastDeliveredAt?: boolean
+    lastDeliveredId?: boolean
     createdAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["siemWebhook"]>
@@ -75964,6 +75973,7 @@ export namespace Prisma {
     secretCiphertext?: boolean
     enabled?: boolean
     lastDeliveredAt?: boolean
+    lastDeliveredId?: boolean
     createdAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["siemWebhook"]>
@@ -75976,10 +75986,11 @@ export namespace Prisma {
     secretCiphertext?: boolean
     enabled?: boolean
     lastDeliveredAt?: boolean
+    lastDeliveredId?: boolean
     createdAt?: boolean
   }
 
-  export type SiemWebhookOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "url" | "secretHash" | "secretCiphertext" | "enabled" | "lastDeliveredAt" | "createdAt", ExtArgs["result"]["siemWebhook"]>
+  export type SiemWebhookOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "url" | "secretHash" | "secretCiphertext" | "enabled" | "lastDeliveredAt" | "lastDeliveredId" | "createdAt", ExtArgs["result"]["siemWebhook"]>
   export type SiemWebhookInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }
@@ -76003,6 +76014,7 @@ export namespace Prisma {
       secretCiphertext: string
       enabled: boolean
       lastDeliveredAt: Date | null
+      lastDeliveredId: string | null
       createdAt: Date
     }, ExtArgs["result"]["siemWebhook"]>
     composites: {}
@@ -76435,6 +76447,7 @@ export namespace Prisma {
     readonly secretCiphertext: FieldRef<"SiemWebhook", 'String'>
     readonly enabled: FieldRef<"SiemWebhook", 'Boolean'>
     readonly lastDeliveredAt: FieldRef<"SiemWebhook", 'DateTime'>
+    readonly lastDeliveredId: FieldRef<"SiemWebhook", 'String'>
     readonly createdAt: FieldRef<"SiemWebhook", 'DateTime'>
   }
     
@@ -89754,6 +89767,7 @@ export namespace Prisma {
     tokenExpiresAt: Date | null
     status: string | null
     lastUsedAt: Date | null
+    lastHealthCheckAt: Date | null
     forAgentUse: boolean | null
     oauthAppSource: string | null
     oauthAppOverrideId: string | null
@@ -89774,6 +89788,7 @@ export namespace Prisma {
     tokenExpiresAt: Date | null
     status: string | null
     lastUsedAt: Date | null
+    lastHealthCheckAt: Date | null
     forAgentUse: boolean | null
     oauthAppSource: string | null
     oauthAppOverrideId: string | null
@@ -89796,6 +89811,7 @@ export namespace Prisma {
     tokenExpiresAt: number
     status: number
     lastUsedAt: number
+    lastHealthCheckAt: number
     forAgentUse: number
     oauthAppSource: number
     oauthAppOverrideId: number
@@ -89818,6 +89834,7 @@ export namespace Prisma {
     tokenExpiresAt?: true
     status?: true
     lastUsedAt?: true
+    lastHealthCheckAt?: true
     forAgentUse?: true
     oauthAppSource?: true
     oauthAppOverrideId?: true
@@ -89838,6 +89855,7 @@ export namespace Prisma {
     tokenExpiresAt?: true
     status?: true
     lastUsedAt?: true
+    lastHealthCheckAt?: true
     forAgentUse?: true
     oauthAppSource?: true
     oauthAppOverrideId?: true
@@ -89860,6 +89878,7 @@ export namespace Prisma {
     tokenExpiresAt?: true
     status?: true
     lastUsedAt?: true
+    lastHealthCheckAt?: true
     forAgentUse?: true
     oauthAppSource?: true
     oauthAppOverrideId?: true
@@ -89955,6 +89974,7 @@ export namespace Prisma {
     tokenExpiresAt: Date | null
     status: string
     lastUsedAt: Date | null
+    lastHealthCheckAt: Date | null
     forAgentUse: boolean
     oauthAppSource: string
     oauthAppOverrideId: string | null
@@ -89994,6 +90014,7 @@ export namespace Prisma {
     tokenExpiresAt?: boolean
     status?: boolean
     lastUsedAt?: boolean
+    lastHealthCheckAt?: boolean
     forAgentUse?: boolean
     oauthAppSource?: boolean
     oauthAppOverrideId?: boolean
@@ -90021,6 +90042,7 @@ export namespace Prisma {
     tokenExpiresAt?: boolean
     status?: boolean
     lastUsedAt?: boolean
+    lastHealthCheckAt?: boolean
     forAgentUse?: boolean
     oauthAppSource?: boolean
     oauthAppOverrideId?: boolean
@@ -90045,6 +90067,7 @@ export namespace Prisma {
     tokenExpiresAt?: boolean
     status?: boolean
     lastUsedAt?: boolean
+    lastHealthCheckAt?: boolean
     forAgentUse?: boolean
     oauthAppSource?: boolean
     oauthAppOverrideId?: boolean
@@ -90069,6 +90092,7 @@ export namespace Prisma {
     tokenExpiresAt?: boolean
     status?: boolean
     lastUsedAt?: boolean
+    lastHealthCheckAt?: boolean
     forAgentUse?: boolean
     oauthAppSource?: boolean
     oauthAppOverrideId?: boolean
@@ -90078,7 +90102,7 @@ export namespace Prisma {
     revokedAt?: boolean
   }
 
-  export type UserConnectionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "provider" | "externalAccountId" | "externalAccountLabel" | "accessTokenEncrypted" | "refreshTokenEncrypted" | "apiKeyFieldsEncrypted" | "scopes" | "tokenExpiresAt" | "status" | "lastUsedAt" | "forAgentUse" | "oauthAppSource" | "oauthAppOverrideId" | "createdByUserId" | "createdAt" | "updatedAt" | "revokedAt", ExtArgs["result"]["userConnection"]>
+  export type UserConnectionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "provider" | "externalAccountId" | "externalAccountLabel" | "accessTokenEncrypted" | "refreshTokenEncrypted" | "apiKeyFieldsEncrypted" | "scopes" | "tokenExpiresAt" | "status" | "lastUsedAt" | "lastHealthCheckAt" | "forAgentUse" | "oauthAppSource" | "oauthAppOverrideId" | "createdByUserId" | "createdAt" | "updatedAt" | "revokedAt", ExtArgs["result"]["userConnection"]>
   export type UserConnectionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
     oauthAppOverride?: boolean | UserConnection$oauthAppOverrideArgs<ExtArgs>
@@ -90116,6 +90140,7 @@ export namespace Prisma {
       tokenExpiresAt: Date | null
       status: string
       lastUsedAt: Date | null
+      lastHealthCheckAt: Date | null
       forAgentUse: boolean
       oauthAppSource: string
       oauthAppOverrideId: string | null
@@ -90562,6 +90587,7 @@ export namespace Prisma {
     readonly tokenExpiresAt: FieldRef<"UserConnection", 'DateTime'>
     readonly status: FieldRef<"UserConnection", 'String'>
     readonly lastUsedAt: FieldRef<"UserConnection", 'DateTime'>
+    readonly lastHealthCheckAt: FieldRef<"UserConnection", 'DateTime'>
     readonly forAgentUse: FieldRef<"UserConnection", 'Boolean'>
     readonly oauthAppSource: FieldRef<"UserConnection", 'String'>
     readonly oauthAppOverrideId: FieldRef<"UserConnection", 'String'>
@@ -98528,6 +98554,7 @@ export namespace Prisma {
     secretCiphertext: 'secretCiphertext',
     enabled: 'enabled',
     lastDeliveredAt: 'lastDeliveredAt',
+    lastDeliveredId: 'lastDeliveredId',
     createdAt: 'createdAt'
   };
 
@@ -98754,6 +98781,7 @@ export namespace Prisma {
     tokenExpiresAt: 'tokenExpiresAt',
     status: 'status',
     lastUsedAt: 'lastUsedAt',
+    lastHealthCheckAt: 'lastHealthCheckAt',
     forAgentUse: 'forAgentUse',
     oauthAppSource: 'oauthAppSource',
     oauthAppOverrideId: 'oauthAppOverrideId',
@@ -103426,6 +103454,7 @@ export namespace Prisma {
     secretCiphertext?: StringFilter<"SiemWebhook"> | string
     enabled?: BoolFilter<"SiemWebhook"> | boolean
     lastDeliveredAt?: DateTimeNullableFilter<"SiemWebhook"> | Date | string | null
+    lastDeliveredId?: StringNullableFilter<"SiemWebhook"> | string | null
     createdAt?: DateTimeFilter<"SiemWebhook"> | Date | string
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
   }
@@ -103438,6 +103467,7 @@ export namespace Prisma {
     secretCiphertext?: SortOrder
     enabled?: SortOrder
     lastDeliveredAt?: SortOrderInput | SortOrder
+    lastDeliveredId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     organization?: OrganizationOrderByWithRelationInput
   }
@@ -103453,6 +103483,7 @@ export namespace Prisma {
     secretCiphertext?: StringFilter<"SiemWebhook"> | string
     enabled?: BoolFilter<"SiemWebhook"> | boolean
     lastDeliveredAt?: DateTimeNullableFilter<"SiemWebhook"> | Date | string | null
+    lastDeliveredId?: StringNullableFilter<"SiemWebhook"> | string | null
     createdAt?: DateTimeFilter<"SiemWebhook"> | Date | string
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
   }, "id">
@@ -103465,6 +103496,7 @@ export namespace Prisma {
     secretCiphertext?: SortOrder
     enabled?: SortOrder
     lastDeliveredAt?: SortOrderInput | SortOrder
+    lastDeliveredId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: SiemWebhookCountOrderByAggregateInput
     _max?: SiemWebhookMaxOrderByAggregateInput
@@ -103482,6 +103514,7 @@ export namespace Prisma {
     secretCiphertext?: StringWithAggregatesFilter<"SiemWebhook"> | string
     enabled?: BoolWithAggregatesFilter<"SiemWebhook"> | boolean
     lastDeliveredAt?: DateTimeNullableWithAggregatesFilter<"SiemWebhook"> | Date | string | null
+    lastDeliveredId?: StringNullableWithAggregatesFilter<"SiemWebhook"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"SiemWebhook"> | Date | string
   }
 
@@ -104556,6 +104589,7 @@ export namespace Prisma {
     tokenExpiresAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
     status?: StringFilter<"UserConnection"> | string
     lastUsedAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
+    lastHealthCheckAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
     forAgentUse?: BoolFilter<"UserConnection"> | boolean
     oauthAppSource?: StringFilter<"UserConnection"> | string
     oauthAppOverrideId?: StringNullableFilter<"UserConnection"> | string | null
@@ -104582,6 +104616,7 @@ export namespace Prisma {
     tokenExpiresAt?: SortOrderInput | SortOrder
     status?: SortOrder
     lastUsedAt?: SortOrderInput | SortOrder
+    lastHealthCheckAt?: SortOrderInput | SortOrder
     forAgentUse?: SortOrder
     oauthAppSource?: SortOrder
     oauthAppOverrideId?: SortOrderInput | SortOrder
@@ -104612,6 +104647,7 @@ export namespace Prisma {
     tokenExpiresAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
     status?: StringFilter<"UserConnection"> | string
     lastUsedAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
+    lastHealthCheckAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
     forAgentUse?: BoolFilter<"UserConnection"> | boolean
     oauthAppSource?: StringFilter<"UserConnection"> | string
     oauthAppOverrideId?: StringNullableFilter<"UserConnection"> | string | null
@@ -104638,6 +104674,7 @@ export namespace Prisma {
     tokenExpiresAt?: SortOrderInput | SortOrder
     status?: SortOrder
     lastUsedAt?: SortOrderInput | SortOrder
+    lastHealthCheckAt?: SortOrderInput | SortOrder
     forAgentUse?: SortOrder
     oauthAppSource?: SortOrder
     oauthAppOverrideId?: SortOrderInput | SortOrder
@@ -104666,6 +104703,7 @@ export namespace Prisma {
     tokenExpiresAt?: DateTimeNullableWithAggregatesFilter<"UserConnection"> | Date | string | null
     status?: StringWithAggregatesFilter<"UserConnection"> | string
     lastUsedAt?: DateTimeNullableWithAggregatesFilter<"UserConnection"> | Date | string | null
+    lastHealthCheckAt?: DateTimeNullableWithAggregatesFilter<"UserConnection"> | Date | string | null
     forAgentUse?: BoolWithAggregatesFilter<"UserConnection"> | boolean
     oauthAppSource?: StringWithAggregatesFilter<"UserConnection"> | string
     oauthAppOverrideId?: StringNullableWithAggregatesFilter<"UserConnection"> | string | null
@@ -109622,6 +109660,7 @@ export namespace Prisma {
     secretCiphertext: string
     enabled?: boolean
     lastDeliveredAt?: Date | string | null
+    lastDeliveredId?: string | null
     createdAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutSiemWebhooksInput
   }
@@ -109634,6 +109673,7 @@ export namespace Prisma {
     secretCiphertext: string
     enabled?: boolean
     lastDeliveredAt?: Date | string | null
+    lastDeliveredId?: string | null
     createdAt?: Date | string
   }
 
@@ -109644,6 +109684,7 @@ export namespace Prisma {
     secretCiphertext?: StringFieldUpdateOperationsInput | string
     enabled?: BoolFieldUpdateOperationsInput | boolean
     lastDeliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastDeliveredId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutSiemWebhooksNestedInput
   }
@@ -109656,6 +109697,7 @@ export namespace Prisma {
     secretCiphertext?: StringFieldUpdateOperationsInput | string
     enabled?: BoolFieldUpdateOperationsInput | boolean
     lastDeliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastDeliveredId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -109667,6 +109709,7 @@ export namespace Prisma {
     secretCiphertext: string
     enabled?: boolean
     lastDeliveredAt?: Date | string | null
+    lastDeliveredId?: string | null
     createdAt?: Date | string
   }
 
@@ -109677,6 +109720,7 @@ export namespace Prisma {
     secretCiphertext?: StringFieldUpdateOperationsInput | string
     enabled?: BoolFieldUpdateOperationsInput | boolean
     lastDeliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastDeliveredId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -109688,6 +109732,7 @@ export namespace Prisma {
     secretCiphertext?: StringFieldUpdateOperationsInput | string
     enabled?: BoolFieldUpdateOperationsInput | boolean
     lastDeliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastDeliveredId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -110922,6 +110967,7 @@ export namespace Prisma {
     tokenExpiresAt?: Date | string | null
     status?: string
     lastUsedAt?: Date | string | null
+    lastHealthCheckAt?: Date | string | null
     forAgentUse?: boolean
     oauthAppSource?: string
     createdByUserId: string
@@ -110947,6 +110993,7 @@ export namespace Prisma {
     tokenExpiresAt?: Date | string | null
     status?: string
     lastUsedAt?: Date | string | null
+    lastHealthCheckAt?: Date | string | null
     forAgentUse?: boolean
     oauthAppSource?: string
     oauthAppOverrideId?: string | null
@@ -110970,6 +111017,7 @@ export namespace Prisma {
     tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     status?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastHealthCheckAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     forAgentUse?: BoolFieldUpdateOperationsInput | boolean
     oauthAppSource?: StringFieldUpdateOperationsInput | string
     createdByUserId?: StringFieldUpdateOperationsInput | string
@@ -110995,6 +111043,7 @@ export namespace Prisma {
     tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     status?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastHealthCheckAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     forAgentUse?: BoolFieldUpdateOperationsInput | boolean
     oauthAppSource?: StringFieldUpdateOperationsInput | string
     oauthAppOverrideId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -111019,6 +111068,7 @@ export namespace Prisma {
     tokenExpiresAt?: Date | string | null
     status?: string
     lastUsedAt?: Date | string | null
+    lastHealthCheckAt?: Date | string | null
     forAgentUse?: boolean
     oauthAppSource?: string
     oauthAppOverrideId?: string | null
@@ -111040,6 +111090,7 @@ export namespace Prisma {
     tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     status?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastHealthCheckAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     forAgentUse?: BoolFieldUpdateOperationsInput | boolean
     oauthAppSource?: StringFieldUpdateOperationsInput | string
     createdByUserId?: StringFieldUpdateOperationsInput | string
@@ -111061,6 +111112,7 @@ export namespace Prisma {
     tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     status?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastHealthCheckAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     forAgentUse?: BoolFieldUpdateOperationsInput | boolean
     oauthAppSource?: StringFieldUpdateOperationsInput | string
     oauthAppOverrideId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -114595,6 +114647,7 @@ export namespace Prisma {
     secretCiphertext?: SortOrder
     enabled?: SortOrder
     lastDeliveredAt?: SortOrder
+    lastDeliveredId?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -114606,6 +114659,7 @@ export namespace Prisma {
     secretCiphertext?: SortOrder
     enabled?: SortOrder
     lastDeliveredAt?: SortOrder
+    lastDeliveredId?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -114617,6 +114671,7 @@ export namespace Prisma {
     secretCiphertext?: SortOrder
     enabled?: SortOrder
     lastDeliveredAt?: SortOrder
+    lastDeliveredId?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -115314,6 +115369,7 @@ export namespace Prisma {
     tokenExpiresAt?: SortOrder
     status?: SortOrder
     lastUsedAt?: SortOrder
+    lastHealthCheckAt?: SortOrder
     forAgentUse?: SortOrder
     oauthAppSource?: SortOrder
     oauthAppOverrideId?: SortOrder
@@ -115334,6 +115390,7 @@ export namespace Prisma {
     tokenExpiresAt?: SortOrder
     status?: SortOrder
     lastUsedAt?: SortOrder
+    lastHealthCheckAt?: SortOrder
     forAgentUse?: SortOrder
     oauthAppSource?: SortOrder
     oauthAppOverrideId?: SortOrder
@@ -115354,6 +115411,7 @@ export namespace Prisma {
     tokenExpiresAt?: SortOrder
     status?: SortOrder
     lastUsedAt?: SortOrder
+    lastHealthCheckAt?: SortOrder
     forAgentUse?: SortOrder
     oauthAppSource?: SortOrder
     oauthAppOverrideId?: SortOrder
@@ -122187,6 +122245,7 @@ export namespace Prisma {
     tokenExpiresAt?: Date | string | null
     status?: string
     lastUsedAt?: Date | string | null
+    lastHealthCheckAt?: Date | string | null
     forAgentUse?: boolean
     oauthAppSource?: string
     createdByUserId: string
@@ -122210,6 +122269,7 @@ export namespace Prisma {
     tokenExpiresAt?: Date | string | null
     status?: string
     lastUsedAt?: Date | string | null
+    lastHealthCheckAt?: Date | string | null
     forAgentUse?: boolean
     oauthAppSource?: string
     oauthAppOverrideId?: string | null
@@ -123072,6 +123132,7 @@ export namespace Prisma {
     tokenExpiresAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
     status?: StringFilter<"UserConnection"> | string
     lastUsedAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
+    lastHealthCheckAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
     forAgentUse?: BoolFilter<"UserConnection"> | boolean
     oauthAppSource?: StringFilter<"UserConnection"> | string
     oauthAppOverrideId?: StringNullableFilter<"UserConnection"> | string | null
@@ -124179,6 +124240,7 @@ export namespace Prisma {
     secretCiphertext: string
     enabled?: boolean
     lastDeliveredAt?: Date | string | null
+    lastDeliveredId?: string | null
     createdAt?: Date | string
   }
 
@@ -124189,6 +124251,7 @@ export namespace Prisma {
     secretCiphertext: string
     enabled?: boolean
     lastDeliveredAt?: Date | string | null
+    lastDeliveredId?: string | null
     createdAt?: Date | string
   }
 
@@ -124994,6 +125057,7 @@ export namespace Prisma {
     secretCiphertext?: StringFilter<"SiemWebhook"> | string
     enabled?: BoolFilter<"SiemWebhook"> | boolean
     lastDeliveredAt?: DateTimeNullableFilter<"SiemWebhook"> | Date | string | null
+    lastDeliveredId?: StringNullableFilter<"SiemWebhook"> | string | null
     createdAt?: DateTimeFilter<"SiemWebhook"> | Date | string
   }
 
@@ -139753,6 +139817,7 @@ export namespace Prisma {
     tokenExpiresAt?: Date | string | null
     status?: string
     lastUsedAt?: Date | string | null
+    lastHealthCheckAt?: Date | string | null
     forAgentUse?: boolean
     oauthAppSource?: string
     createdByUserId: string
@@ -139777,6 +139842,7 @@ export namespace Prisma {
     tokenExpiresAt?: Date | string | null
     status?: string
     lastUsedAt?: Date | string | null
+    lastHealthCheckAt?: Date | string | null
     forAgentUse?: boolean
     oauthAppSource?: string
     oauthAppOverrideId?: string | null
@@ -139987,6 +140053,7 @@ export namespace Prisma {
     tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     status?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastHealthCheckAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     forAgentUse?: BoolFieldUpdateOperationsInput | boolean
     oauthAppSource?: StringFieldUpdateOperationsInput | string
     createdByUserId?: StringFieldUpdateOperationsInput | string
@@ -140011,6 +140078,7 @@ export namespace Prisma {
     tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     status?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastHealthCheckAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     forAgentUse?: BoolFieldUpdateOperationsInput | boolean
     oauthAppSource?: StringFieldUpdateOperationsInput | string
     oauthAppOverrideId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -140298,6 +140366,7 @@ export namespace Prisma {
     tokenExpiresAt?: Date | string | null
     status?: string
     lastUsedAt?: Date | string | null
+    lastHealthCheckAt?: Date | string | null
     forAgentUse?: boolean
     oauthAppSource?: string
     createdByUserId: string
@@ -140322,6 +140391,7 @@ export namespace Prisma {
     tokenExpiresAt?: Date | string | null
     status?: string
     lastUsedAt?: Date | string | null
+    lastHealthCheckAt?: Date | string | null
     forAgentUse?: boolean
     oauthAppSource?: string
     createdByUserId: string
@@ -140710,6 +140780,7 @@ export namespace Prisma {
     tokenExpiresAt?: Date | string | null
     status?: string
     lastUsedAt?: Date | string | null
+    lastHealthCheckAt?: Date | string | null
     forAgentUse?: boolean
     oauthAppSource?: string
     createdByUserId: string
@@ -140734,6 +140805,7 @@ export namespace Prisma {
     tokenExpiresAt?: Date | string | null
     status?: string
     lastUsedAt?: Date | string | null
+    lastHealthCheckAt?: Date | string | null
     forAgentUse?: boolean
     oauthAppSource?: string
     oauthAppOverrideId?: string | null
@@ -140772,6 +140844,7 @@ export namespace Prisma {
     tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     status?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastHealthCheckAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     forAgentUse?: BoolFieldUpdateOperationsInput | boolean
     oauthAppSource?: StringFieldUpdateOperationsInput | string
     createdByUserId?: StringFieldUpdateOperationsInput | string
@@ -140796,6 +140869,7 @@ export namespace Prisma {
     tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     status?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastHealthCheckAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     forAgentUse?: BoolFieldUpdateOperationsInput | boolean
     oauthAppSource?: StringFieldUpdateOperationsInput | string
     oauthAppOverrideId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -141376,6 +141450,7 @@ export namespace Prisma {
     tokenExpiresAt?: Date | string | null
     status?: string
     lastUsedAt?: Date | string | null
+    lastHealthCheckAt?: Date | string | null
     forAgentUse?: boolean
     oauthAppSource?: string
     oauthAppOverrideId?: string | null
@@ -142136,6 +142211,7 @@ export namespace Prisma {
     tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     status?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastHealthCheckAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     forAgentUse?: BoolFieldUpdateOperationsInput | boolean
     oauthAppSource?: StringFieldUpdateOperationsInput | string
     createdByUserId?: StringFieldUpdateOperationsInput | string
@@ -142159,6 +142235,7 @@ export namespace Prisma {
     tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     status?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastHealthCheckAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     forAgentUse?: BoolFieldUpdateOperationsInput | boolean
     oauthAppSource?: StringFieldUpdateOperationsInput | string
     oauthAppOverrideId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -142182,6 +142259,7 @@ export namespace Prisma {
     tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     status?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastHealthCheckAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     forAgentUse?: BoolFieldUpdateOperationsInput | boolean
     oauthAppSource?: StringFieldUpdateOperationsInput | string
     oauthAppOverrideId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -142474,6 +142552,7 @@ export namespace Prisma {
     secretCiphertext: string
     enabled?: boolean
     lastDeliveredAt?: Date | string | null
+    lastDeliveredId?: string | null
     createdAt?: Date | string
   }
 
@@ -143142,6 +143221,7 @@ export namespace Prisma {
     secretCiphertext?: StringFieldUpdateOperationsInput | string
     enabled?: BoolFieldUpdateOperationsInput | boolean
     lastDeliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastDeliveredId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -143152,6 +143232,7 @@ export namespace Prisma {
     secretCiphertext?: StringFieldUpdateOperationsInput | string
     enabled?: BoolFieldUpdateOperationsInput | boolean
     lastDeliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastDeliveredId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -143162,6 +143243,7 @@ export namespace Prisma {
     secretCiphertext?: StringFieldUpdateOperationsInput | string
     enabled?: BoolFieldUpdateOperationsInput | boolean
     lastDeliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastDeliveredId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -144907,6 +144989,7 @@ export namespace Prisma {
     tokenExpiresAt?: Date | string | null
     status?: string
     lastUsedAt?: Date | string | null
+    lastHealthCheckAt?: Date | string | null
     forAgentUse?: boolean
     oauthAppSource?: string
     createdByUserId: string
@@ -144927,6 +145010,7 @@ export namespace Prisma {
     tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     status?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastHealthCheckAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     forAgentUse?: BoolFieldUpdateOperationsInput | boolean
     oauthAppSource?: StringFieldUpdateOperationsInput | string
     createdByUserId?: StringFieldUpdateOperationsInput | string
@@ -144951,6 +145035,7 @@ export namespace Prisma {
     tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     status?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastHealthCheckAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     forAgentUse?: BoolFieldUpdateOperationsInput | boolean
     oauthAppSource?: StringFieldUpdateOperationsInput | string
     createdByUserId?: StringFieldUpdateOperationsInput | string
@@ -144974,6 +145059,7 @@ export namespace Prisma {
     tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     status?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastHealthCheckAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     forAgentUse?: BoolFieldUpdateOperationsInput | boolean
     oauthAppSource?: StringFieldUpdateOperationsInput | string
     createdByUserId?: StringFieldUpdateOperationsInput | string

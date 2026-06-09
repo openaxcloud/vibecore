@@ -13,6 +13,7 @@ interface RecordedConnection {
   forAgentUse: boolean;
   accessTokenEncrypted: string | null;
   lastUsedAt: Date | null;
+  lastHealthCheckAt?: Date | null;
   externalAccountLabel: string;
 }
 
@@ -47,7 +48,7 @@ function buildRecorder(initial: {
     userConnection: {
       findMany: async ({ take, where }: any) => {
         const allowedProviders: string[] = where?.provider?.in ?? [];
-        const stalenessCutoff: Date | undefined = where?.OR?.[1]?.lastUsedAt?.lt;
+        const stalenessCutoff: Date | undefined = where?.OR?.[1]?.lastHealthCheckAt?.lt;
 
         return state.connections
           .filter((row) => {
@@ -55,7 +56,7 @@ function buildRecorder(initial: {
             if (where?.forAgentUse !== undefined && row.forAgentUse !== where.forAgentUse) return false;
             if (allowedProviders.length > 0 && !allowedProviders.includes(row.provider)) return false;
 
-            if (stalenessCutoff && row.lastUsedAt && row.lastUsedAt >= stalenessCutoff) {
+            if (stalenessCutoff && row.lastHealthCheckAt && row.lastHealthCheckAt >= stalenessCutoff) {
               return false;
             }
 
@@ -165,7 +166,7 @@ describe('runConnectorTokenHealthCheck', () => {
     expect(state.alerts[0].reason).toBe('token_revoked');
   });
 
-  it('updates lastUsedAt and leaves status alone on a 200 response', async () => {
+  it('updates lastHealthCheckAt (not lastUsedAt) and leaves status alone on a 200 response', async () => {
     const encrypted = encryptJson({ value: 'live-token' });
     const { prisma, state } = buildRecorder({
       connections: [
@@ -194,7 +195,9 @@ describe('runConnectorTokenHealthCheck', () => {
 
     expect(result.flaggedReconnect).toBe(0);
     expect(state.connections[0].status).toBe('active');
-    expect(state.connections[0].lastUsedAt).toEqual(now);
+    // The health-check sweep now writes its own cursor, leaving user-facing lastUsedAt untouched.
+    expect(state.connections[0].lastHealthCheckAt).toEqual(now);
+    expect(state.connections[0].lastUsedAt).toBeNull();
   });
 
   it('counts unreachable when the upstream fetch throws', async () => {

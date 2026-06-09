@@ -740,6 +740,7 @@ exports.Prisma.SiemWebhookScalarFieldEnum = {
   secretCiphertext: 'secretCiphertext',
   enabled: 'enabled',
   lastDeliveredAt: 'lastDeliveredAt',
+  lastDeliveredId: 'lastDeliveredId',
   createdAt: 'createdAt'
 };
 
@@ -930,6 +931,7 @@ exports.Prisma.UserConnectionScalarFieldEnum = {
   tokenExpiresAt: 'tokenExpiresAt',
   status: 'status',
   lastUsedAt: 'lastUsedAt',
+  lastHealthCheckAt: 'lastHealthCheckAt',
   forAgentUse: 'forAgentUse',
   oauthAppSource: 'oauthAppSource',
   oauthAppOverrideId: 'oauthAppOverrideId',

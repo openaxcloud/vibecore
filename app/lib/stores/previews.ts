@@ -35,12 +35,21 @@ export class PreviewsStore {
   #storageSyncTimer?: ReturnType<typeof setTimeout>;
 
   /*
-   * Client-only keys that have nothing to do with preview state. Writes to these
-   * must NOT trigger a cross-tab storage broadcast — otherwise every diagnostic
-   * log entry (eventLogs) or read-marker write would rebroadcast the entire
-   * localStorage and force-reload the preview iframe in every other tab.
+   * Explicit ALLOWLIST of localStorage keys that are safe to mirror across tabs.
+   * Previously this was a denylist that broadcast (and applied) the ENTIRE
+   * localStorage minus two noise keys — which clobbered the receiving tab's
+   * project/chat-scoped state (e.g. `netlify-site-<chatId>`, `snapshot:<id>`,
+   * `bolt-deleted-paths`) with the sender's snapshot and force-reloaded unrelated
+   * previews. Only these app-global, non-sensitive UI preferences are synced now;
+   * everything else (scoped data, tokens, logs) is left untouched per tab.
    */
-  #nonSyncedStorageKeys = new Set(['eventLogs', 'bolt_read_logs']);
+  #syncedStorageKeys = new Set([
+    'vibecore:user-language',
+    'vibecore:app-sidebar-collapsed',
+    'vibecore:agent-plan-first-default',
+    'ecode-preferred-ai-model',
+    'bolt_tab_configuration',
+  ]);
 
   previews = atom<PreviewInfo[]>([]);
 
@@ -86,11 +95,10 @@ export class PreviewsStore {
         originalSetItem(...args);
 
         /*
-         * Skip noise keys, and coalesce bursts of writes into a single broadcast
-         * so a flurry of unrelated localStorage activity can't storm every tab's
-         * preview iframe with reloads.
+         * Only broadcast writes to allowlisted (global, non-scoped) keys, and
+         * coalesce bursts into a single broadcast.
          */
-        if (!this.#nonSyncedStorageKeys.has(String(args[0]))) {
+        if (this.#syncedStorageKeys.has(String(args[0]))) {
           this.#scheduleStorageSync();
         }
       };
@@ -144,6 +152,14 @@ export class PreviewsStore {
 
     if (typeof window !== 'undefined') {
       Object.entries(storage).forEach(([key, value]) => {
+        /*
+         * Defence in depth: never apply a key outside the allowlist even if a
+         * stale/foreign message carries one, so scoped state is never clobbered.
+         */
+        if (!this.#syncedStorageKeys.has(key)) {
+          return;
+        }
+
         try {
           const originalSetItem = Object.getPrototypeOf(localStorage).setItem;
           originalSetItem.call(localStorage, key, value);
@@ -152,24 +168,12 @@ export class PreviewsStore {
         }
       });
 
-      // Force a refresh after syncing storage
-      const previews = this.previews.get();
-      previews.forEach((preview) => {
-        const previewId = this.getPreviewId(preview.baseUrl);
-
-        if (previewId) {
-          this.refreshPreview(previewId);
-        }
-      });
-
-      // Reload the page content
-      if (typeof window !== 'undefined' && window.location) {
-        const iframe = document.querySelector('iframe');
-
-        if (iframe) {
-          iframe.src = iframe.src;
-        }
-      }
+      /*
+       * Intentionally do NOT refresh/reload preview iframes here: the synced keys
+       * are global UI preferences unrelated to preview content. Cross-tab preview
+       * refresh is handled separately by the file-change BroadcastChannel. The old
+       * blanket `iframe.src = iframe.src` reload churned every tab on any write.
+       */
     }
   }
 
@@ -205,11 +209,11 @@ export class PreviewsStore {
     if (typeof window !== 'undefined') {
       const storage: Record<string, string> = {};
 
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
+      for (const key of this.#syncedStorageKeys) {
+        const value = localStorage.getItem(key);
 
-        if (key && !this.#nonSyncedStorageKeys.has(key)) {
-          storage[key] = localStorage.getItem(key) || '';
+        if (value !== null) {
+          storage[key] = value;
         }
       }
 
