@@ -286,9 +286,14 @@ export class PrismaApiStore implements ApiStore {
     return session ? mapSession(session) : undefined;
   }
 
-  async createEmailVerification(input: { userId: string; token: string; expiresAt: Date }) {
+  async createEmailVerification(input: { userId: string; token: string; expiresAt: Date; email?: string }) {
     await this.prisma.emailVerificationToken.create({
-      data: { userId: input.userId, tokenHash: hashToken(input.token), expiresAt: input.expiresAt },
+      data: {
+        userId: input.userId,
+        tokenHash: hashToken(input.token),
+        expiresAt: input.expiresAt,
+        email: input.email,
+      },
     });
   }
 
@@ -298,6 +303,23 @@ export class PrismaApiStore implements ApiStore {
 
     if (!record) {
       return undefined;
+    }
+
+    /*
+     * Bind to the issued-for email: the user's CURRENT email must still match, so
+     * a token requested for address A can't mark the account verified after the
+     * user switched to address B (and vice versa). Legacy tokens (email null)
+     * keep the prior userId-only behaviour.
+     */
+    if (record.email) {
+      const tokenUser = await this.prisma.user.findUnique({
+        where: { id: record.userId },
+        select: { email: true },
+      });
+
+      if (!tokenUser || tokenUser.email.toLowerCase() !== record.email.toLowerCase()) {
+        return undefined;
+      }
     }
 
     const consumed = await this.prisma.emailVerificationToken.updateMany({

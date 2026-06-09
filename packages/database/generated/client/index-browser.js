@@ -659,6 +659,7 @@ exports.Prisma.SystemSettingScalarFieldEnum = {
 exports.Prisma.EmailVerificationTokenScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  email: 'email',
   tokenHash: 'tokenHash',
   expiresAt: 'expiresAt',
   usedAt: 'usedAt',

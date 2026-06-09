@@ -67076,6 +67076,7 @@ export namespace Prisma {
   export type EmailVerificationTokenMinAggregateOutputType = {
     id: string | null
     userId: string | null
+    email: string | null
     tokenHash: string | null
     expiresAt: Date | null
     usedAt: Date | null
@@ -67085,6 +67086,7 @@ export namespace Prisma {
   export type EmailVerificationTokenMaxAggregateOutputType = {
     id: string | null
     userId: string | null
+    email: string | null
     tokenHash: string | null
     expiresAt: Date | null
     usedAt: Date | null
@@ -67094,6 +67096,7 @@ export namespace Prisma {
   export type EmailVerificationTokenCountAggregateOutputType = {
     id: number
     userId: number
+    email: number
     tokenHash: number
     expiresAt: number
     usedAt: number
@@ -67105,6 +67108,7 @@ export namespace Prisma {
   export type EmailVerificationTokenMinAggregateInputType = {
     id?: true
     userId?: true
+    email?: true
     tokenHash?: true
     expiresAt?: true
     usedAt?: true
@@ -67114,6 +67118,7 @@ export namespace Prisma {
   export type EmailVerificationTokenMaxAggregateInputType = {
     id?: true
     userId?: true
+    email?: true
     tokenHash?: true
     expiresAt?: true
     usedAt?: true
@@ -67123,6 +67128,7 @@ export namespace Prisma {
   export type EmailVerificationTokenCountAggregateInputType = {
     id?: true
     userId?: true
+    email?: true
     tokenHash?: true
     expiresAt?: true
     usedAt?: true
@@ -67205,6 +67211,7 @@ export namespace Prisma {
   export type EmailVerificationTokenGroupByOutputType = {
     id: string
     userId: string
+    email: string | null
     tokenHash: string
     expiresAt: Date
     usedAt: Date | null
@@ -67231,6 +67238,7 @@ export namespace Prisma {
   export type EmailVerificationTokenSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
+    email?: boolean
     tokenHash?: boolean
     expiresAt?: boolean
     usedAt?: boolean
@@ -67241,6 +67249,7 @@ export namespace Prisma {
   export type EmailVerificationTokenSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
+    email?: boolean
     tokenHash?: boolean
     expiresAt?: boolean
     usedAt?: boolean
@@ -67251,6 +67260,7 @@ export namespace Prisma {
   export type EmailVerificationTokenSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
+    email?: boolean
     tokenHash?: boolean
     expiresAt?: boolean
     usedAt?: boolean
@@ -67261,13 +67271,14 @@ export namespace Prisma {
   export type EmailVerificationTokenSelectScalar = {
     id?: boolean
     userId?: boolean
+    email?: boolean
     tokenHash?: boolean
     expiresAt?: boolean
     usedAt?: boolean
     createdAt?: boolean
   }
 
-  export type EmailVerificationTokenOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "tokenHash" | "expiresAt" | "usedAt" | "createdAt", ExtArgs["result"]["emailVerificationToken"]>
+  export type EmailVerificationTokenOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "email" | "tokenHash" | "expiresAt" | "usedAt" | "createdAt", ExtArgs["result"]["emailVerificationToken"]>
   export type EmailVerificationTokenInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
@@ -67286,6 +67297,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       userId: string
+      email: string | null
       tokenHash: string
       expiresAt: Date
       usedAt: Date | null
@@ -67716,6 +67728,7 @@ export namespace Prisma {
   interface EmailVerificationTokenFieldRefs {
     readonly id: FieldRef<"EmailVerificationToken", 'String'>
     readonly userId: FieldRef<"EmailVerificationToken", 'String'>
+    readonly email: FieldRef<"EmailVerificationToken", 'String'>
     readonly tokenHash: FieldRef<"EmailVerificationToken", 'String'>
     readonly expiresAt: FieldRef<"EmailVerificationToken", 'DateTime'>
     readonly usedAt: FieldRef<"EmailVerificationToken", 'DateTime'>
@@ -98449,6 +98462,7 @@ export namespace Prisma {
   export const EmailVerificationTokenScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
+    email: 'email',
     tokenHash: 'tokenHash',
     expiresAt: 'expiresAt',
     usedAt: 'usedAt',
@@ -102943,6 +102957,7 @@ export namespace Prisma {
     NOT?: EmailVerificationTokenWhereInput | EmailVerificationTokenWhereInput[]
     id?: StringFilter<"EmailVerificationToken"> | string
     userId?: StringFilter<"EmailVerificationToken"> | string
+    email?: StringNullableFilter<"EmailVerificationToken"> | string | null
     tokenHash?: StringFilter<"EmailVerificationToken"> | string
     expiresAt?: DateTimeFilter<"EmailVerificationToken"> | Date | string
     usedAt?: DateTimeNullableFilter<"EmailVerificationToken"> | Date | string | null
@@ -102953,6 +102968,7 @@ export namespace Prisma {
   export type EmailVerificationTokenOrderByWithRelationInput = {
     id?: SortOrder
     userId?: SortOrder
+    email?: SortOrderInput | SortOrder
     tokenHash?: SortOrder
     expiresAt?: SortOrder
     usedAt?: SortOrderInput | SortOrder
@@ -102967,6 +102983,7 @@ export namespace Prisma {
     OR?: EmailVerificationTokenWhereInput[]
     NOT?: EmailVerificationTokenWhereInput | EmailVerificationTokenWhereInput[]
     userId?: StringFilter<"EmailVerificationToken"> | string
+    email?: StringNullableFilter<"EmailVerificationToken"> | string | null
     expiresAt?: DateTimeFilter<"EmailVerificationToken"> | Date | string
     usedAt?: DateTimeNullableFilter<"EmailVerificationToken"> | Date | string | null
     createdAt?: DateTimeFilter<"EmailVerificationToken"> | Date | string
@@ -102976,6 +102993,7 @@ export namespace Prisma {
   export type EmailVerificationTokenOrderByWithAggregationInput = {
     id?: SortOrder
     userId?: SortOrder
+    email?: SortOrderInput | SortOrder
     tokenHash?: SortOrder
     expiresAt?: SortOrder
     usedAt?: SortOrderInput | SortOrder
@@ -102991,6 +103009,7 @@ export namespace Prisma {
     NOT?: EmailVerificationTokenScalarWhereWithAggregatesInput | EmailVerificationTokenScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"EmailVerificationToken"> | string
     userId?: StringWithAggregatesFilter<"EmailVerificationToken"> | string
+    email?: StringNullableWithAggregatesFilter<"EmailVerificationToken"> | string | null
     tokenHash?: StringWithAggregatesFilter<"EmailVerificationToken"> | string
     expiresAt?: DateTimeWithAggregatesFilter<"EmailVerificationToken"> | Date | string
     usedAt?: DateTimeNullableWithAggregatesFilter<"EmailVerificationToken"> | Date | string | null
@@ -109131,6 +109150,7 @@ export namespace Prisma {
 
   export type EmailVerificationTokenCreateInput = {
     id?: string
+    email?: string | null
     tokenHash: string
     expiresAt: Date | string
     usedAt?: Date | string | null
@@ -109141,6 +109161,7 @@ export namespace Prisma {
   export type EmailVerificationTokenUncheckedCreateInput = {
     id?: string
     userId: string
+    email?: string | null
     tokenHash: string
     expiresAt: Date | string
     usedAt?: Date | string | null
@@ -109149,6 +109170,7 @@ export namespace Prisma {
 
   export type EmailVerificationTokenUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     tokenHash?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     usedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -109159,6 +109181,7 @@ export namespace Prisma {
   export type EmailVerificationTokenUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     tokenHash?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     usedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -109168,6 +109191,7 @@ export namespace Prisma {
   export type EmailVerificationTokenCreateManyInput = {
     id?: string
     userId: string
+    email?: string | null
     tokenHash: string
     expiresAt: Date | string
     usedAt?: Date | string | null
@@ -109176,6 +109200,7 @@ export namespace Prisma {
 
   export type EmailVerificationTokenUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     tokenHash?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     usedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -109185,6 +109210,7 @@ export namespace Prisma {
   export type EmailVerificationTokenUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     tokenHash?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     usedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -114388,6 +114414,7 @@ export namespace Prisma {
   export type EmailVerificationTokenCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
+    email?: SortOrder
     tokenHash?: SortOrder
     expiresAt?: SortOrder
     usedAt?: SortOrder
@@ -114397,6 +114424,7 @@ export namespace Prisma {
   export type EmailVerificationTokenMaxOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
+    email?: SortOrder
     tokenHash?: SortOrder
     expiresAt?: SortOrder
     usedAt?: SortOrder
@@ -114406,6 +114434,7 @@ export namespace Prisma {
   export type EmailVerificationTokenMinOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
+    email?: SortOrder
     tokenHash?: SortOrder
     expiresAt?: SortOrder
     usedAt?: SortOrder
@@ -121828,6 +121857,7 @@ export namespace Prisma {
 
   export type EmailVerificationTokenCreateWithoutUserInput = {
     id?: string
+    email?: string | null
     tokenHash: string
     expiresAt: Date | string
     usedAt?: Date | string | null
@@ -121836,6 +121866,7 @@ export namespace Prisma {
 
   export type EmailVerificationTokenUncheckedCreateWithoutUserInput = {
     id?: string
+    email?: string | null
     tokenHash: string
     expiresAt: Date | string
     usedAt?: Date | string | null
@@ -122671,6 +122702,7 @@ export namespace Prisma {
     NOT?: EmailVerificationTokenScalarWhereInput | EmailVerificationTokenScalarWhereInput[]
     id?: StringFilter<"EmailVerificationToken"> | string
     userId?: StringFilter<"EmailVerificationToken"> | string
+    email?: StringNullableFilter<"EmailVerificationToken"> | string | null
     tokenHash?: StringFilter<"EmailVerificationToken"> | string
     expiresAt?: DateTimeFilter<"EmailVerificationToken"> | Date | string
     usedAt?: DateTimeNullableFilter<"EmailVerificationToken"> | Date | string | null
@@ -141314,6 +141346,7 @@ export namespace Prisma {
 
   export type EmailVerificationTokenCreateManyUserInput = {
     id?: string
+    email?: string | null
     tokenHash: string
     expiresAt: Date | string
     usedAt?: Date | string | null
@@ -141747,6 +141780,7 @@ export namespace Prisma {
 
   export type EmailVerificationTokenUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     tokenHash?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     usedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -141755,6 +141789,7 @@ export namespace Prisma {
 
   export type EmailVerificationTokenUncheckedUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     tokenHash?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     usedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -141763,6 +141798,7 @@ export namespace Prisma {
 
   export type EmailVerificationTokenUncheckedUpdateManyWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     tokenHash?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     usedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

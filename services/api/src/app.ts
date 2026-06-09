@@ -5536,6 +5536,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         userId: user.id,
         token: verificationToken,
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+        email: user.email,
       });
 
       const organization = await store.createOrganization({
@@ -10159,6 +10160,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         userId: user.id,
         token: verificationToken,
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+        email: user.email,
       });
 
       /*
@@ -10320,6 +10322,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         userId: user.id,
         token: verificationToken,
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+        email: user.email,
       });
 
       try {

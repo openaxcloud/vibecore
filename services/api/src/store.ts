@@ -645,7 +645,7 @@ export interface ApiStore {
   revokeSession(userId: string, sessionId: string): Promise<boolean>;
   revokeAllSessions(userId: string, exceptSessionId?: string): Promise<number>;
   markSessionReauthenticated(sessionId: string): Promise<SessionRecord | undefined>;
-  createEmailVerification(input: { userId: string; token: string; expiresAt: Date }): Promise<void>;
+  createEmailVerification(input: { userId: string; token: string; expiresAt: Date; email?: string }): Promise<void>;
   consumeEmailVerification(token: string): Promise<UserRecord | undefined>;
   createPasswordReset(input: { userId: string; token: string; expiresAt: Date }): Promise<void>;
   consumePasswordReset(token: string, passwordHash: string): Promise<UserRecord | undefined>;

@@ -104,7 +104,7 @@ export class TestApiStore implements ApiStore {
   readonly systemSettings = new Map<string, SystemSettingRecord>();
   readonly emailVerifications = new Map<
     string,
-    { userId: string; tokenHash: string; expiresAt: string; usedAt?: string }
+    { userId: string; tokenHash: string; expiresAt: string; usedAt?: string; email?: string }
   >();
   readonly passwordResets = new Map<
     string,
@@ -285,11 +285,12 @@ export class TestApiStore implements ApiStore {
     return session;
   }
 
-  async createEmailVerification(input: { userId: string; token: string; expiresAt: Date }) {
+  async createEmailVerification(input: { userId: string; token: string; expiresAt: Date; email?: string }) {
     this.emailVerifications.set(hashToken(input.token), {
       userId: input.userId,
       tokenHash: hashToken(input.token),
       expiresAt: input.expiresAt.toISOString(),
+      email: input.email,
     });
   }
 
@@ -298,6 +299,15 @@ export class TestApiStore implements ApiStore {
 
     if (!record || record.usedAt || new Date(record.expiresAt).getTime() < Date.now()) {
       return undefined;
+    }
+
+    // Mirror prisma-store: a token only verifies the user's CURRENT email.
+    if (record.email) {
+      const tokenUser = this.users.get(record.userId);
+
+      if (!tokenUser || tokenUser.email.toLowerCase() !== record.email.toLowerCase()) {
+        return undefined;
+      }
     }
 
     record.usedAt = now();

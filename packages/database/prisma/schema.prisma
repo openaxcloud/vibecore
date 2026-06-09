@@ -861,6 +861,10 @@ model SystemSetting {
 model EmailVerificationToken {
   id        String    @id @default(cuid())
   userId    String
+  // The email this token was issued to verify. At consume time the user's
+  // CURRENT email must still match, so a token can't verify an address the user
+  // changed away from. Nullable for backward-compat with pre-migration tokens.
+  email     String?
   tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
