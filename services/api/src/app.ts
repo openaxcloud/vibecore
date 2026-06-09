@@ -2440,8 +2440,20 @@ async function projectCollaborationRole(store: ApiStore, projectId: string, user
     return undefined;
   }
 
-  return (await store.listProjectCollaborators(projectId)).find((collaborator) => collaborator.userId === userId)
-    ?.roleKey;
+  const collaborator = (await store.listProjectCollaborators(projectId)).find(
+    (entry) => entry.userId === userId,
+  );
+
+  if (!collaborator) {
+    return undefined;
+  }
+
+  // An expired grant (e.g. redeemed from a time-limited share link) confers no role.
+  if (collaborator.expiresAt && new Date(collaborator.expiresAt).getTime() <= Date.now()) {
+    return undefined;
+  }
+
+  return collaborator.roleKey;
 }
 
 function isReadOnlyProjectRole(role?: string) {
@@ -12623,7 +12635,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let redeemed = false;
 
     if (!alreadyCollaborator) {
-      await store.addProjectCollaborator({ projectId: project.id, userId, roleKey: link.roleKey });
+      /*
+       * Inherit the share link's expiry so a TIME-LIMITED link doesn't grant
+       * PERMANENT access. projectCollaborationRole ignores expired grants.
+       */
+      await store.addProjectCollaborator({
+        projectId: project.id,
+        userId,
+        roleKey: link.roleKey,
+        expiresAt: link.expiresAt ? new Date(link.expiresAt) : null,
+      });
       await store.recordProjectActivity({
         projectId: project.id,
         actorUserId: userId,

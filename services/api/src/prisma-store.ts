@@ -763,12 +763,17 @@ export class PrismaApiStore implements ApiStore {
     return mapSecret(await this.prisma.projectSecret.delete({ where: { projectId_key: { projectId, key } } }));
   }
 
-  async addProjectCollaborator(input: { projectId: string; userId: string; roleKey: string }) {
+  async addProjectCollaborator(input: { projectId: string; userId: string; roleKey: string; expiresAt?: Date | null }) {
     return mapProjectCollaborator(
       await this.prisma.projectCollaborator.upsert({
         where: { projectId_userId: { projectId: input.projectId, userId: input.userId } },
-        create: input,
-        update: { roleKey: input.roleKey },
+        create: {
+          projectId: input.projectId,
+          userId: input.userId,
+          roleKey: input.roleKey,
+          expiresAt: input.expiresAt ?? null,
+        },
+        update: { roleKey: input.roleKey, expiresAt: input.expiresAt ?? null },
       }),
     );
   }
@@ -2920,6 +2925,7 @@ function mapProjectCollaborator(collaborator: any): ProjectCollaboratorRecord {
     projectId: collaborator.projectId,
     userId: collaborator.userId,
     roleKey: collaborator.roleKey,
+    expiresAt: toIso(collaborator.expiresAt),
     createdAt: toIso(collaborator.createdAt)!,
   };
 }

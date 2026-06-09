@@ -311,6 +311,7 @@ exports.Prisma.ProjectCollaboratorScalarFieldEnum = {
   projectId: 'projectId',
   userId: 'userId',
   roleKey: 'roleKey',
+  expiresAt: 'expiresAt',
   createdAt: 'createdAt'
 };
 

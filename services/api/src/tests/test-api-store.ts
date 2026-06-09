@@ -615,17 +615,26 @@ export class TestApiStore implements ApiStore {
     return existing;
   }
 
-  async addProjectCollaborator(input: { projectId: string; userId: string; roleKey: string }) {
+  async addProjectCollaborator(input: { projectId: string; userId: string; roleKey: string; expiresAt?: Date | null }) {
+    const expiresAt = input.expiresAt ? input.expiresAt.toISOString() : undefined;
     const existing = [...this.projectCollaborators.values()].find(
       (collaborator) => collaborator.projectId === input.projectId && collaborator.userId === input.userId,
     );
 
     if (existing) {
       existing.roleKey = input.roleKey;
+      existing.expiresAt = expiresAt;
       return existing;
     }
 
-    const collaborator: ProjectCollaboratorRecord = { id: id('collab'), ...input, createdAt: now() };
+    const collaborator: ProjectCollaboratorRecord = {
+      id: id('collab'),
+      projectId: input.projectId,
+      userId: input.userId,
+      roleKey: input.roleKey,
+      expiresAt,
+      createdAt: now(),
+    };
     this.projectCollaborators.set(collaborator.id, collaborator);
 
     return collaborator;

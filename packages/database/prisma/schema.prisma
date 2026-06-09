@@ -382,13 +382,17 @@ model ProjectEnvVar {
 }
 
 model ProjectCollaborator {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   projectId String
   userId    String
   roleKey   String
-  createdAt DateTime @default(now())
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // When set, the grant is ignored after this instant. A time-limited share
+  // link writes its own expiry here so redeeming it no longer confers permanent
+  // access. Null = no expiry (direct invites).
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
   @@index([userId])

@@ -138,6 +138,7 @@ export interface ProjectCollaboratorRecord {
   projectId: string;
   userId: string;
   roleKey: string;
+  expiresAt?: string;
   createdAt: string;
 }
 
@@ -701,6 +702,7 @@ export interface ApiStore {
     projectId: string;
     userId: string;
     roleKey: string;
+    expiresAt?: Date | null;
   }): Promise<ProjectCollaboratorRecord>;
   listProjectCollaborators(projectId: string): Promise<ProjectCollaboratorRecord[]>;
   recordProjectActivity(input: {

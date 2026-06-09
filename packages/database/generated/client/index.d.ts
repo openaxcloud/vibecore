@@ -29995,6 +29995,7 @@ export namespace Prisma {
     projectId: string | null
     userId: string | null
     roleKey: string | null
+    expiresAt: Date | null
     createdAt: Date | null
   }
 
@@ -30003,6 +30004,7 @@ export namespace Prisma {
     projectId: string | null
     userId: string | null
     roleKey: string | null
+    expiresAt: Date | null
     createdAt: Date | null
   }
 
@@ -30011,6 +30013,7 @@ export namespace Prisma {
     projectId: number
     userId: number
     roleKey: number
+    expiresAt: number
     createdAt: number
     _all: number
   }
@@ -30021,6 +30024,7 @@ export namespace Prisma {
     projectId?: true
     userId?: true
     roleKey?: true
+    expiresAt?: true
     createdAt?: true
   }
 
@@ -30029,6 +30033,7 @@ export namespace Prisma {
     projectId?: true
     userId?: true
     roleKey?: true
+    expiresAt?: true
     createdAt?: true
   }
 
@@ -30037,6 +30042,7 @@ export namespace Prisma {
     projectId?: true
     userId?: true
     roleKey?: true
+    expiresAt?: true
     createdAt?: true
     _all?: true
   }
@@ -30118,6 +30124,7 @@ export namespace Prisma {
     projectId: string
     userId: string
     roleKey: string
+    expiresAt: Date | null
     createdAt: Date
     _count: ProjectCollaboratorCountAggregateOutputType | null
     _min: ProjectCollaboratorMinAggregateOutputType | null
@@ -30143,6 +30150,7 @@ export namespace Prisma {
     projectId?: boolean
     userId?: boolean
     roleKey?: boolean
+    expiresAt?: boolean
     createdAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -30153,6 +30161,7 @@ export namespace Prisma {
     projectId?: boolean
     userId?: boolean
     roleKey?: boolean
+    expiresAt?: boolean
     createdAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -30163,6 +30172,7 @@ export namespace Prisma {
     projectId?: boolean
     userId?: boolean
     roleKey?: boolean
+    expiresAt?: boolean
     createdAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -30173,10 +30183,11 @@ export namespace Prisma {
     projectId?: boolean
     userId?: boolean
     roleKey?: boolean
+    expiresAt?: boolean
     createdAt?: boolean
   }
 
-  export type ProjectCollaboratorOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "userId" | "roleKey" | "createdAt", ExtArgs["result"]["projectCollaborator"]>
+  export type ProjectCollaboratorOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "userId" | "roleKey" | "expiresAt" | "createdAt", ExtArgs["result"]["projectCollaborator"]>
   export type ProjectCollaboratorInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -30201,6 +30212,7 @@ export namespace Prisma {
       projectId: string
       userId: string
       roleKey: string
+      expiresAt: Date | null
       createdAt: Date
     }, ExtArgs["result"]["projectCollaborator"]>
     composites: {}
@@ -30631,6 +30643,7 @@ export namespace Prisma {
     readonly projectId: FieldRef<"ProjectCollaborator", 'String'>
     readonly userId: FieldRef<"ProjectCollaborator", 'String'>
     readonly roleKey: FieldRef<"ProjectCollaborator", 'String'>
+    readonly expiresAt: FieldRef<"ProjectCollaborator", 'DateTime'>
     readonly createdAt: FieldRef<"ProjectCollaborator", 'DateTime'>
   }
     
@@ -98015,6 +98028,7 @@ export namespace Prisma {
     projectId: 'projectId',
     userId: 'userId',
     roleKey: 'roleKey',
+    expiresAt: 'expiresAt',
     createdAt: 'createdAt'
   };
 
@@ -100628,6 +100642,7 @@ export namespace Prisma {
     projectId?: StringFilter<"ProjectCollaborator"> | string
     userId?: StringFilter<"ProjectCollaborator"> | string
     roleKey?: StringFilter<"ProjectCollaborator"> | string
+    expiresAt?: DateTimeNullableFilter<"ProjectCollaborator"> | Date | string | null
     createdAt?: DateTimeFilter<"ProjectCollaborator"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -100638,6 +100653,7 @@ export namespace Prisma {
     projectId?: SortOrder
     userId?: SortOrder
     roleKey?: SortOrder
+    expiresAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     project?: ProjectOrderByWithRelationInput
     user?: UserOrderByWithRelationInput
@@ -100652,6 +100668,7 @@ export namespace Prisma {
     projectId?: StringFilter<"ProjectCollaborator"> | string
     userId?: StringFilter<"ProjectCollaborator"> | string
     roleKey?: StringFilter<"ProjectCollaborator"> | string
+    expiresAt?: DateTimeNullableFilter<"ProjectCollaborator"> | Date | string | null
     createdAt?: DateTimeFilter<"ProjectCollaborator"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -100662,6 +100679,7 @@ export namespace Prisma {
     projectId?: SortOrder
     userId?: SortOrder
     roleKey?: SortOrder
+    expiresAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: ProjectCollaboratorCountOrderByAggregateInput
     _max?: ProjectCollaboratorMaxOrderByAggregateInput
@@ -100676,6 +100694,7 @@ export namespace Prisma {
     projectId?: StringWithAggregatesFilter<"ProjectCollaborator"> | string
     userId?: StringWithAggregatesFilter<"ProjectCollaborator"> | string
     roleKey?: StringWithAggregatesFilter<"ProjectCollaborator"> | string
+    expiresAt?: DateTimeNullableWithAggregatesFilter<"ProjectCollaborator"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ProjectCollaborator"> | Date | string
   }
 
@@ -106708,6 +106727,7 @@ export namespace Prisma {
   export type ProjectCollaboratorCreateInput = {
     id?: string
     roleKey: string
+    expiresAt?: Date | string | null
     createdAt?: Date | string
     project: ProjectCreateNestedOneWithoutCollaboratorsInput
     user: UserCreateNestedOneWithoutProjectCollaborationsInput
@@ -106718,12 +106738,14 @@ export namespace Prisma {
     projectId: string
     userId: string
     roleKey: string
+    expiresAt?: Date | string | null
     createdAt?: Date | string
   }
 
   export type ProjectCollaboratorUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutCollaboratorsNestedInput
     user?: UserUpdateOneRequiredWithoutProjectCollaborationsNestedInput
@@ -106734,6 +106756,7 @@ export namespace Prisma {
     projectId?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -106742,12 +106765,14 @@ export namespace Prisma {
     projectId: string
     userId: string
     roleKey: string
+    expiresAt?: Date | string | null
     createdAt?: Date | string
   }
 
   export type ProjectCollaboratorUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -106756,6 +106781,7 @@ export namespace Prisma {
     projectId?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -113107,6 +113133,7 @@ export namespace Prisma {
     projectId?: SortOrder
     userId?: SortOrder
     roleKey?: SortOrder
+    expiresAt?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -113115,6 +113142,7 @@ export namespace Prisma {
     projectId?: SortOrder
     userId?: SortOrder
     roleKey?: SortOrder
+    expiresAt?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -113123,6 +113151,7 @@ export namespace Prisma {
     projectId?: SortOrder
     userId?: SortOrder
     roleKey?: SortOrder
+    expiresAt?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -121936,6 +121965,7 @@ export namespace Prisma {
   export type ProjectCollaboratorCreateWithoutUserInput = {
     id?: string
     roleKey: string
+    expiresAt?: Date | string | null
     createdAt?: Date | string
     project: ProjectCreateNestedOneWithoutCollaboratorsInput
   }
@@ -121944,6 +121974,7 @@ export namespace Prisma {
     id?: string
     projectId: string
     roleKey: string
+    expiresAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -122788,6 +122819,7 @@ export namespace Prisma {
     projectId?: StringFilter<"ProjectCollaborator"> | string
     userId?: StringFilter<"ProjectCollaborator"> | string
     roleKey?: StringFilter<"ProjectCollaborator"> | string
+    expiresAt?: DateTimeNullableFilter<"ProjectCollaborator"> | Date | string | null
     createdAt?: DateTimeFilter<"ProjectCollaborator"> | Date | string
   }
 
@@ -126263,6 +126295,7 @@ export namespace Prisma {
   export type ProjectCollaboratorCreateWithoutProjectInput = {
     id?: string
     roleKey: string
+    expiresAt?: Date | string | null
     createdAt?: Date | string
     user: UserCreateNestedOneWithoutProjectCollaborationsInput
   }
@@ -126271,6 +126304,7 @@ export namespace Prisma {
     id?: string
     userId: string
     roleKey: string
+    expiresAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -141372,6 +141406,7 @@ export namespace Prisma {
     id?: string
     projectId: string
     roleKey: string
+    expiresAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -141853,6 +141888,7 @@ export namespace Prisma {
   export type ProjectCollaboratorUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutCollaboratorsNestedInput
   }
@@ -141861,6 +141897,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
     roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -141868,6 +141905,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
     roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -143713,6 +143751,7 @@ export namespace Prisma {
     id?: string
     userId: string
     roleKey: string
+    expiresAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -143947,6 +143986,7 @@ export namespace Prisma {
   export type ProjectCollaboratorUpdateWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
     roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutProjectCollaborationsNestedInput
   }
@@ -143955,6 +143995,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -143962,6 +144003,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
