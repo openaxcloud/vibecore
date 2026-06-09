@@ -111,12 +111,35 @@ export class MCPService {
     mcpServers: {},
   };
 
+  private _closed = false;
+
+  /**
+   * Process-wide shared instance. Do NOT use this for per-request work that
+   * loads a specific user's MCP servers — the config, tools and credential-
+   * bearing clients are instance state, so a shared instance leaks one tenant's
+   * tools/credentials into another's concurrent request. Use `new MCPService()`
+   * per request and `close()` it when the request ends.
+   */
   static getInstance(): MCPService {
     if (!MCPService._instance) {
       MCPService._instance = new MCPService();
     }
 
     return MCPService._instance;
+  }
+
+  /**
+   * Release all MCP clients (closing stdio child processes / HTTP transports)
+   * and clear tool state. Idempotent — safe to call from multiple stream exit
+   * paths (abort, onFinish, error).
+   */
+  async close(): Promise<void> {
+    if (this._closed) {
+      return;
+    }
+
+    this._closed = true;
+    await this._closeClients();
   }
 
   private _validateServerConfig(serverName: string, config: any): MCPServerConfig {

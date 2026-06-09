@@ -76,11 +76,22 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     );
   }
 
+  /*
+   * Project files are attacker-controlled content served from the app's own
+   * origin. Serving e.g. an .html/.svg file inline would execute its scripts in
+   * our origin (stored XSS, cross-user when a project is shared). Force a
+   * download and forbid MIME sniffing + script execution so the bytes can never
+   * be rendered as an active document. The IDE reads the body via fetch(), which
+   * is unaffected by Content-Disposition.
+   */
   return new Response(file.bytes, {
     headers: {
       'cache-control': 'no-store',
       'content-length': String(file.sizeBytes),
       'content-type': contentTypeForProjectFile(normalizedPath.path),
+      'content-disposition': 'attachment',
+      'x-content-type-options': 'nosniff',
+      'content-security-policy': "default-src 'none'; sandbox",
       'x-project-file-path': normalizedPath.path,
     },
   });

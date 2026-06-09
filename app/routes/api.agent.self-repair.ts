@@ -1,6 +1,7 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
 
 import { streamText, type Messages } from '~/lib/.server/llm/stream-text';
+import { requireWebSession } from '~/lib/.server/require-session';
 import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -46,6 +47,9 @@ export async function action({ context, request }: ActionFunctionArgs) {
   if (request.method.toUpperCase() !== 'POST') {
     return json({ error: 'Method not allowed' }, 405);
   }
+
+  // Gate the platform's managed provider keys behind a valid session.
+  await requireWebSession(request);
 
   let body: { prompt?: unknown };
 

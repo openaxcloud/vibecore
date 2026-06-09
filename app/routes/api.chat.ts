@@ -173,7 +173,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   let progressCounter: number = 1;
 
   try {
-    const mcpService = MCPService.getInstance();
+    /*
+     * Per-request instance — NOT the shared singleton. This request loads THIS
+     * user's MCP servers (config, tools and credential-bearing clients are
+     * instance state); a shared instance would leak one tenant's tools and
+     * credentials into another tenant's concurrent chat. Closed on disconnect
+     * and on completion below.
+     */
+    const mcpService = new MCPService();
+    request.signal?.addEventListener('abort', () => void mcpService.close(), { once: true });
 
     /*
      * Audit C2/H7 — load this user's MCP servers (marketplace installs merged
@@ -675,6 +683,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 projectId,
               });
 
+              // Release this request's MCP clients (idempotent with the abort handler).
+              await mcpService.close();
+
               // stream.close();
               return;
             }
@@ -695,6 +706,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 message: 'Response truncated: maximum continuation segments reached',
               } satisfies ProgressAnnotation);
 
+              await mcpService.close();
+
               return;
             }
 
@@ -714,6 +727,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 order: progressCounter++,
                 message: 'Response truncated: model returned no further content',
               } satisfies ProgressAnnotation);
+
+              await mcpService.close();
 
               return;
             }

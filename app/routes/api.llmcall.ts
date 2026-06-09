@@ -8,6 +8,7 @@ import {
 } from '~/lib/.server/llm/constants';
 import { removeUnsupportedModelSettings } from '~/lib/.server/llm/model-compat';
 import { streamText } from '~/lib/.server/llm/stream-text';
+import { requireWebSession } from '~/lib/.server/require-session';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
@@ -71,6 +72,9 @@ function validateTokenLimits(modelDetails: ModelInfo, requestedTokens: number): 
 }
 
 async function llmCallAction({ context, request }: ActionFunctionArgs) {
+  // Gate the platform's managed provider keys behind a valid session.
+  await requireWebSession(request);
+
   let body: {
     system: string;
     message: string;
