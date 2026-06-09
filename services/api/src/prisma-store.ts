@@ -1907,7 +1907,19 @@ export class PrismaApiStore implements ApiStore {
       return undefined;
     }
 
-    await this.addMember({ organizationId: invite.organizationId, userId, roleKey: invite.role.key });
+    /*
+     * Only provision the role for users who are NOT already members. addMember
+     * upserts the role, so for an existing member accepting an invite it would
+     * blindly overwrite their current role — an invite at a lower role (or a
+     * leaked invite) could silently downgrade an owner (lockout) or, with a
+     * higher-role invite, escalate without admin action. Existing members'
+     * roles stay org-controlled; the invite is just marked consumed.
+     */
+    const existingMembership = await this.getMembership(userId, invite.organizationId);
+
+    if (!existingMembership) {
+      await this.addMember({ organizationId: invite.organizationId, userId, roleKey: invite.role.key });
+    }
 
     return mapOrganizationInvite({ ...invite, acceptedAt: consumedAt });
   }

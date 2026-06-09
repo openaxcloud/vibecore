@@ -671,6 +671,13 @@ export class AgentMemoryService {
       ...(input.metadata ?? {}),
       deduplicatedAt: duplicate ? new Date().toISOString() : undefined,
     };
+
+    // Secrets can ride in via the summary or metadata (e.g. assistantExcerpt),
+    // not just content — scan those too before persisting, or they'd be stored
+    // (and later surfaced back into prompts) in the clear.
+    assertNoMemorySecrets(summary);
+    assertNoMemorySecrets(JSON.stringify(metadata));
+
     const mergedReferences = normalizeReferences([...(duplicate?.references ?? []), ...references]);
     const importance = scoreImportance(content, input.importance ?? duplicate?.importance);
 
@@ -735,6 +742,11 @@ export class AgentMemoryService {
     const memoryType = normalizeMemoryType(input.memoryType ?? existing.memoryType);
     const tags = input.tags ? normalizeStringList(input.tags) : existing.tags;
     const references = input.references ? normalizeReferences(input.references) : existing.references;
+    const metadata = { ...existing.metadata, ...(input.metadata ?? {}), correctedAt: new Date().toISOString() };
+
+    // Scan summary + metadata for secrets too, not just content (see remember()).
+    assertNoMemorySecrets(summary);
+    assertNoMemorySecrets(JSON.stringify(metadata));
 
     return await this.repository.update({
       id: existing.id,
@@ -742,7 +754,7 @@ export class AgentMemoryService {
       content,
       summary,
       embedding,
-      metadata: { ...existing.metadata, ...(input.metadata ?? {}), correctedAt: new Date().toISOString() },
+      metadata,
       memoryType,
       tags,
       references,

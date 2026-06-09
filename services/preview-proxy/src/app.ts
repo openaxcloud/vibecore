@@ -192,16 +192,61 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         return reply.send(Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>));
       }
 
-      const bodyBuffer = Buffer.from(await upstreamResponse.arrayBuffer());
+      /*
+       * Content-Length absent/chunked (Number('')===0, Number(undefined)===NaN):
+       * the old arrayBuffer() here still materialized the whole body before the
+       * size check, so a large no-Content-Length response could OOM the proxy.
+       * Read through a bounded reader instead and bail to pass-through streaming
+       * the moment we cross the cap, so nothing is ever fully buffered.
+       */
+      const reader = (upstreamResponse.body as ReadableStream<Uint8Array>).getReader();
+      const chunks: Uint8Array[] = [];
+      let total = 0;
+      let overflow = false;
 
-      if (bodyBuffer.length > MAX_INJECT_BYTES) {
-        // Content-Length was absent/wrong but the body is over the cap — send it
-        // as-is rather than injecting into (and doubling) a huge buffer.
-        reply.header('content-length', String(bodyBuffer.length));
+      for (;;) {
+        const { done, value } = await reader.read();
 
-        return reply.send(bodyBuffer);
+        if (done) {
+          break;
+        }
+
+        if (value) {
+          chunks.push(value);
+          total += value.length;
+
+          if (total > MAX_INJECT_BYTES) {
+            overflow = true;
+            break;
+          }
+        }
       }
 
+      if (overflow) {
+        // Too large to inject — stream the prefix already read, then the rest.
+        const prefix = chunks;
+        async function* passthrough() {
+          for (const chunk of prefix) {
+            yield chunk;
+          }
+
+          for (;;) {
+            const { done, value } = await reader.read();
+
+            if (done) {
+              break;
+            }
+
+            if (value) {
+              yield value;
+            }
+          }
+        }
+
+        return reply.send(Readable.from(passthrough()));
+      }
+
+      const bodyBuffer = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
       const injected = injectInspectorScript(bodyBuffer.toString('utf8'));
       const outBuffer = Buffer.from(injected, 'utf8');
       reply.header('content-length', String(outBuffer.length));
