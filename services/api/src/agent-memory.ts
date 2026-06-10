@@ -767,7 +767,11 @@ export class AgentMemoryService {
   }
 
   async search(input: AgentMemorySearchInput) {
-    assertNoMemorySecrets(input.query);
+    /*
+     * assertNoMemorySecrets is a WRITE-path control (don't persist credentials).
+     * Applying it to a read-only search query wrongly 400'd legitimate searches
+     * that merely mention a secret-shaped token, without any security benefit.
+     */
     const embedding = await this.embeddings.embed(input.query);
 
     return rerank(await this.repository.search({ ...input, embedding }));

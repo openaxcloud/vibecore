@@ -4343,9 +4343,20 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     expect(rollback.statusCode).toBe(201);
     expect(rollback.json().deployment.rolledBackFromId).toBe(deploymentId);
 
-    const cancel = await app.inject({
+    // A terminal (READY) deployment can no longer be canceled.
+    const cancelReady = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/deployments/${redeploy.json().deployment.id}/cancel`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(cancelReady.statusCode).toBe(409);
+    expect(cancelReady.json().code).toBe('DEPLOYMENT_NOT_CANCELABLE');
+
+    // An in-progress (QUEUED) deployment cancels successfully.
+    const queued = await store.createDeployment({ projectId, provider: 'static', status: 'QUEUED' });
+    const cancel = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${queued.id}/cancel`,
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(cancel.statusCode).toBe(200);

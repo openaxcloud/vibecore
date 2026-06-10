@@ -3039,17 +3039,23 @@ async function createLoginSession(input: {
   });
 }
 
+/*
+ * CSV cell with spreadsheet formula-injection neutralization: a value starting
+ * with = + - @ (or tab/CR) is prefixed with a single quote so Excel/Sheets treat
+ * it as text, not a formula (an attacker-controlled action/resourceId like
+ * `=HYPERLINK(...)` otherwise executes when an admin opens the export).
+ */
+function csvCell(raw: unknown): string {
+  const value = String(raw ?? '');
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+
+  return `"${safe.replace(/"/g, '""')}"`;
+}
+
 function auditEventsToCsv(events: Awaited<ReturnType<ApiStore['listAuditLogs']>>) {
   const header = ['createdAt', 'organizationId', 'actorUserId', 'action', 'resourceType', 'resourceId', 'ipAddress'];
 
-  const lines = events.map((event) =>
-    header
-      .map((key) => {
-        const value = String((event as any)[key] ?? '');
-        return `"${value.replace(/"/g, '""')}"`;
-      })
-      .join(','),
-  );
+  const lines = events.map((event) => header.map((key) => csvCell((event as any)[key])).join(','));
 
   return [header.join(','), ...lines].join('\n');
 }
@@ -3057,14 +3063,7 @@ function auditEventsToCsv(events: Awaited<ReturnType<ApiStore['listAuditLogs']>>
 function adminAuditLogsToCsv(events: Awaited<ReturnType<ApiStore['listAdminAuditLogs']>>) {
   const header = ['createdAt', 'actorUserId', 'action', 'ipAddress'];
 
-  const lines = events.map((event) =>
-    header
-      .map((key) => {
-        const value = String((event as any)[key] ?? '');
-        return `"${value.replace(/"/g, '""')}"`;
-      })
-      .join(','),
-  );
+  const lines = events.map((event) => header.map((key) => csvCell((event as any)[key])).join(','));
 
   return [header.join(','), ...lines].join('\n');
 }
@@ -6117,7 +6116,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.addHook('preHandler', async (request, reply) => {
     if (request.url.startsWith('/admin/') && request.method !== 'GET' && request.method !== 'OPTIONS') {
-      const key = `${request.ip}:${request.url.split('?')[0]}`;
+      /*
+       * Key on the route TEMPLATE, not the concrete URL: keying on the URL let an
+       * attacker bypass the limit by varying the path param (e.g. suspend a
+       * different :userId each request), since each target got its own bucket.
+       */
+      const key = `${request.ip}:${request.method}:${request.routeOptions.url ?? request.url.split('?')[0]}`;
       const now = Date.now();
       const bucket = adminRateBuckets.get(key);
 
@@ -14177,12 +14181,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           : undefined,
         currentPeriodEnd: object.current_period_end ? new Date(Number(object.current_period_end) * 1000) : undefined,
       });
+      // Non-critical: a failed audit write must NOT trigger the dedup rollback
+      // (which would re-run the non-idempotent revenue recordUsageEvent above and
+      // double-count). Swallow audit errors.
       await audit(request, store, {
         organizationId,
         action: `billing.stripe.${event.type}`,
         resourceType: 'subscription',
         resourceId: object.subscription ?? object.id,
-      });
+      }).catch(() => {});
     }
 
     /*
@@ -14224,12 +14231,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           amountDueCents: object.amount_due,
         },
       });
+      // Non-critical (see above): never let an audit failure roll back + re-run
+      // the non-idempotent revenue recordUsageEvent.
       await audit(request, store, {
         organizationId,
         action: `billing.stripe.${event.type}`,
         resourceType: 'invoice',
         resourceId: object.id,
-      });
+      }).catch(() => {});
     }
 
     return reply.code(200).send({ received: true });
@@ -15539,6 +15548,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
+    /*
+     * Only an in-progress deployment can be canceled. Without this gate, cancel
+     * flipped an already-READY/FAILED/CANCELED deployment to CANCELED (rewriting
+     * a terminal record and confusing status/quota). Reject terminal states.
+     */
+    if (deployment.status !== 'QUEUED' && deployment.status !== 'BUILDING') {
+      return reply.code(409).send({
+        error: `Deployment cannot be canceled in status ${deployment.status}`,
+        code: 'DEPLOYMENT_NOT_CANCELABLE',
+      });
+    }
+
     const canceled = await store.updateDeployment(project.id, deployment.id, {
       status: 'CANCELED',
       canceledAt: new Date().toISOString(),
@@ -15670,14 +15691,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       hookResult?.status === 'queued' &&
       canPollDeploymentStatus(source.provider, hookResult?.buildId);
 
-    const redeployStatus = failed ? 'FAILED' : pollable ? 'BUILDING' : 'READY';
+    const hasRealHookUrl = Boolean(hookResult?.url);
+
+    /*
+     * Port the create-handler guard (audit #1): a non-static deploy hook only
+     * QUEUES a build. If we can neither poll its status nor got a real URL back,
+     * don't mark it READY with the synthesized *.vibecore.local host (serves
+     * nothing) — keep it BUILDING.
+     */
+    const queuedExternalNoUrl =
+      !failed && source.provider !== 'static' && hookResult?.status === 'queued' && !pollable && !hasRealHookUrl;
+
+    const redeployStatus = failed ? 'FAILED' : pollable || queuedExternalNoUrl ? 'BUILDING' : 'READY';
     const redeployReady = redeployStatus === 'READY';
+
+    // Only persist a usable URL: a real hook URL, or the static path-based URL.
+    const resolvedUrl = failed
+      ? undefined
+      : hasRealHookUrl
+        ? hookResult?.url
+        : source.provider === 'static'
+          ? url
+          : undefined;
 
     const ready = await store.updateDeployment(project.id, redeploy.id, {
       status: redeployStatus,
-      url: failed ? undefined : url,
-      previewUrl: redeployReady && redeploy.environment !== 'production' ? url : undefined,
-      productionUrl: redeployReady && redeploy.environment === 'production' ? url : undefined,
+      url: resolvedUrl,
+      previewUrl: redeployReady && redeploy.environment !== 'production' ? resolvedUrl : undefined,
+      productionUrl: redeployReady && redeploy.environment === 'production' ? resolvedUrl : undefined,
       metadata: {
         ...(redeploy.metadata as Record<string, unknown>),
         providerBuildId: hookResult?.buildId,

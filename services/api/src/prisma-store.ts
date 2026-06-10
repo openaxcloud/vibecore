@@ -720,13 +720,17 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async deleteProjectEnvVar(projectId: string, key: string) {
+    // find-then-delete raced a concurrent delete into an unhandled P2025; read
+    // the row, then deleteMany (count-gated) so a lost race is "already gone".
     const existing = await this.prisma.projectEnvVar.findUnique({ where: { projectId_key: { projectId, key } } });
 
     if (!existing) {
       return undefined;
     }
 
-    return mapEnvVar(await this.prisma.projectEnvVar.delete({ where: { projectId_key: { projectId, key } } }));
+    const deleted = await this.prisma.projectEnvVar.deleteMany({ where: { projectId, key } });
+
+    return deleted.count > 0 ? mapEnvVar(existing) : undefined;
   }
 
   async upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }) {
@@ -754,13 +758,17 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async deleteProjectSecret(projectId: string, key: string) {
+    // find-then-delete raced a concurrent delete into an unhandled P2025; use a
+    // count-gated deleteMany so a lost race is reported as "already gone".
     const existing = await this.prisma.projectSecret.findUnique({ where: { projectId_key: { projectId, key } } });
 
     if (!existing) {
       return undefined;
     }
 
-    return mapSecret(await this.prisma.projectSecret.delete({ where: { projectId_key: { projectId, key } } }));
+    const deleted = await this.prisma.projectSecret.deleteMany({ where: { projectId, key } });
+
+    return deleted.count > 0 ? mapSecret(existing) : undefined;
   }
 
   async addProjectCollaborator(input: { projectId: string; userId: string; roleKey: string; expiresAt?: Date | null }) {
