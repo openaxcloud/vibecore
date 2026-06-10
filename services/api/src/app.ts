@@ -12055,14 +12055,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(createProjectSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
-    await ensureQuota(request, orgId, 'projects.count');
 
-    const project = await store.createProject({
-      organizationId: orgId,
-      name: body.name,
-      slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      description: body.description,
-      sourceType: 'blank',
+    // Serialize quota + create so concurrent creates can't both pass the
+    // projects.count check via TOCTOU.
+    const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureQuota(request, orgId, 'projects.count');
+
+      return store.createProject({
+        organizationId: orgId,
+        name: body.name,
+        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        description: body.description,
+        sourceType: 'blank',
+      });
     });
     const files = await projectStorage.writeFiles(
       project.id,
@@ -12091,15 +12096,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(createProjectFromTemplateSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
-    await ensureQuota(request, orgId, 'projects.count');
 
-    const project = await store.createProject({
-      organizationId: orgId,
-      name: body.name,
-      slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      description: body.description,
-      sourceType: 'template',
-      templateName: body.templateName,
+    // Serialize quota + create (projects.count TOCTOU).
+    const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureQuota(request, orgId, 'projects.count');
+
+      return store.createProject({
+        organizationId: orgId,
+        name: body.name,
+        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        description: body.description,
+        sourceType: 'template',
+        templateName: body.templateName,
+      });
     });
     const files = await projectStorage.writeFiles(
       project.id,
@@ -12129,15 +12138,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(createProjectFromAiSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
-    await ensureQuota(request, orgId, 'projects.count');
 
     const name = body.name ?? body.prompt.slice(0, 60);
 
-    const project = await store.createProject({
-      organizationId: orgId,
-      name,
-      slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      sourceType: 'ai',
+    // Serialize quota + create (projects.count TOCTOU).
+    const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureQuota(request, orgId, 'projects.count');
+
+      return store.createProject({
+        organizationId: orgId,
+        name,
+        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        sourceType: 'ai',
+      });
     });
     const files = await projectStorage.writeFiles(
       project.id,
@@ -12172,6 +12185,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(githubImportSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
+    // Cheap pre-check to reject an over-quota org before the (slow) clone; the
+    // authoritative atomic check is inside the serialized block below.
     await ensureQuota(request, orgId, 'projects.count');
 
     const imported = await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch });
@@ -12183,13 +12198,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .pop()
         ?.replace(/\.git$/, '') ??
       'Imported project';
-    const project = await store.createProject({
-      organizationId: orgId,
-      name,
-      slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      sourceType: 'github',
-      gitRepositoryUrl: imported.remoteUrl,
-      gitDefaultBranch: imported.defaultBranch,
+    // Re-check quota + create atomically (the slow clone is intentionally OUTSIDE
+    // the advisory-lock transaction).
+    const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureQuota(request, orgId, 'projects.count');
+
+      return store.createProject({
+        organizationId: orgId,
+        name,
+        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        sourceType: 'github',
+        gitRepositoryUrl: imported.remoteUrl,
+        gitDefaultBranch: imported.defaultBranch,
+      });
     });
 
     const files = await projectStorage.writeFiles(project.id, imported.files);
@@ -12216,15 +12237,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(zipImportSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
-    await ensureQuota(request, orgId, 'projects.count');
 
     const name = body.name ?? 'Imported zip project';
 
-    const project = await store.createProject({
-      organizationId: orgId,
-      name,
-      slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      sourceType: 'zip',
+    // Serialize quota + create (projects.count TOCTOU).
+    const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureQuota(request, orgId, 'projects.count');
+
+      return store.createProject({
+        organizationId: orgId,
+        name,
+        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        sourceType: 'zip',
+      });
     });
 
     const files = await projectStorage.importZip(project.id, body.zipBase64);
@@ -16685,6 +16710,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const redeployPersistedWorkspaceId = source.workspaceId ?? undefined;
 
     /*
+     * Resolve the source workspace BEFORE creating the QUEUED row. resolveGitWorkspaceId
+     * throws WORKSPACE_NOT_FOUND when the source workspace was deleted; doing it
+     * afterwards left an orphan QUEUED deployment (consuming quota) for a build that
+     * could never run.
+     */
+    const secondaryWorkspaceId = await resolveGitWorkspaceId(store, project.id, source.workspaceId ?? undefined);
+
+    /*
      * Serialize quota + in-flight guard + create at the ORG level, identical to
      * the create route — otherwise concurrent redeploys (or redeploy racing a
      * create) both pass the org quota / per-project in-flight check via TOCTOU and
@@ -16733,7 +16766,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const redeploy = redeployResult.queued;
 
-    const secondaryWorkspaceId = await resolveGitWorkspaceId(store, project.id, source.workspaceId ?? undefined);
     const sourceMetadata = (source.metadata ?? {}) as Record<string, unknown>;
     /*
      * Stored env values matching the secret pattern were persisted as the literal

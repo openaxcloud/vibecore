@@ -493,6 +493,8 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       const earlyInput: string[] = [];
       const EARLY_INPUT_MAX_BYTES = 256 * 1024;
       let earlyInputBytes = 0;
+      // Latest resize received before the shell session is ready (applied on attach).
+      let earlyResize: { cols: number; rows: number } | undefined;
 
       /*
        * The remote-runtime client (packages/runtime-remote) consumes this socket as a
@@ -546,6 +548,13 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           }
 
           earlyInputBytes = 0;
+
+          // Apply the latest resize that arrived before the shell was ready, so
+          // the PTY starts at the client's actual viewport instead of the default.
+          if (earlyResize) {
+            created.resize(earlyResize.cols, earlyResize.rows);
+            earlyResize = undefined;
+          }
         })
         .catch((error) => {
           sendOutput(`\r\n[terminal error] ${error instanceof Error ? error.message : String(error)}\r\n`);
@@ -556,7 +565,17 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           const payload = parseTerminalMessage(message);
 
           if (payload.type === 'resize') {
-            session?.resize(payload.cols ?? cols, payload.rows ?? rows);
+            const nextCols = payload.cols ?? cols;
+            const nextRows = payload.rows ?? rows;
+
+            if (session) {
+              session.resize(nextCols, nextRows);
+            } else {
+              // Shell not ready yet — remember the latest dims to apply on attach
+              // (a dropped early resize left the PTY at the default size).
+              earlyResize = { cols: nextCols, rows: nextRows };
+            }
+
             return;
           }
 
