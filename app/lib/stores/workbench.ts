@@ -1587,19 +1587,23 @@ export class WorkbenchStore {
         await this.saveFile(proposal.filePath);
       }
 
-      await artifact.runner.runAction(
-        {
-          artifactId: proposal.artifactId,
-          messageId: proposal.messageId,
-          actionId: `${proposal.actionId}-revert`,
-          action: {
-            type: 'file',
-            filePath: proposal.relativePath,
-            content: proposal.originalContent,
-          },
+      /*
+       * runAction throws (unreachable "Action not found") if the actionId was
+       * never registered, so the on-disk revert silently failed — only the editor
+       * buffer was rolled back. Register the synthetic revert action first.
+       */
+      const revertAction = {
+        artifactId: proposal.artifactId,
+        messageId: proposal.messageId,
+        actionId: `${proposal.actionId}-revert`,
+        action: {
+          type: 'file' as const,
+          filePath: proposal.relativePath,
+          content: proposal.originalContent,
         },
-        false,
-      );
+      };
+      artifact.runner.addAction(revertAction);
+      await artifact.runner.runAction(revertAction, false);
 
       this.agentPatchProposals.setKey(proposalId, {
         ...proposal,

@@ -277,9 +277,29 @@ export class ProjectCollaborationClient {
         throw new Error('Collaboration ticket did not include a WebSocket URL');
       }
 
+      /*
+       * Release any previous socket before opening a new one. On an error-without-
+       * close reconnect the old socket (and its listeners) were never closed, so
+       * they lingered — leaking the connection and letting a stale socket's late
+       * 'close' schedule a duplicate reconnect. Closing + null-ing it, plus the
+       * `this.#socket !== socket` guards below, makes every handler ignore events
+       * from a superseded socket.
+       */
+      if (this.#socket) {
+        try {
+          this.#socket.close();
+        } catch {
+          // already closed/closing — nothing to do
+        }
+      }
+
       const socket = new this.#WebSocket(websocketUrl);
       this.#socket = socket;
       socket.addEventListener('open', () => {
+        if (this.#socket !== socket) {
+          return;
+        }
+
         this.#connecting = false;
         this.#reconnectAttempts = 0;
 
@@ -299,6 +319,10 @@ export class ProjectCollaborationClient {
         }
       });
       socket.addEventListener('message', (event: { data: string }) => {
+        if (this.#socket !== socket) {
+          return;
+        }
+
         try {
           this.#emit(JSON.parse(event.data) as CollaborationEvent);
         } catch (error) {
@@ -309,6 +333,10 @@ export class ProjectCollaborationClient {
         }
       });
       socket.addEventListener('error', () => {
+        if (this.#socket !== socket) {
+          return;
+        }
+
         this.#connecting = false;
         this.#setSnapshot({ status: 'error', error: 'Collaboration socket error' });
 
@@ -321,6 +349,10 @@ export class ProjectCollaborationClient {
         }
       });
       socket.addEventListener('close', () => {
+        if (this.#socket !== socket) {
+          return;
+        }
+
         this.#connecting = false;
 
         if (!this.#stopped) {

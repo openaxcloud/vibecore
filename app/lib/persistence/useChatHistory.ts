@@ -483,6 +483,15 @@ ${value.content}
             description: description.get(),
             metadata: chatMetadata.get(),
             messages: [...archivedMessages, ...messages],
+
+            /*
+             * This is the authoritative full message list, so REPLACE rather than
+             * union-merge. Without clearMessages the merge unions existing ∪
+             * incoming, so a rewind / message-delete (a shorter list) never
+             * removed anything and the deleted messages silently reappeared on
+             * reload.
+             */
+            clearMessages: true,
             archivedMessages,
           },
         }).catch((error) => {
