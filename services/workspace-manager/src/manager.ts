@@ -332,13 +332,15 @@ export class WorkspaceManager {
       return undefined;
     }
 
-    this.lastTouchAt.set(workspaceId, now);
-
     const workspace = await this.store.get(workspaceId);
 
     if (!workspace || workspace.status !== 'RUNNING') {
+      // Don't record a throttle entry for an unknown/non-running id — otherwise a
+      // caller touching arbitrary ids grows lastTouchAt without bound (leak).
       return workspace;
     }
+
+    this.lastTouchAt.set(workspaceId, now);
 
     return this.store.update(workspaceId, { lastActiveAt: new Date(now).toISOString() });
   }

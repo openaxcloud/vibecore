@@ -289,6 +289,18 @@ async function retry<T>(operation: () => Promise<T>, attempts = 3, signal?: Abor
         throw error;
       }
 
+      /*
+       * Don't retry deterministic client errors (4xx except 429): a bad request /
+       * auth failure / not-found won't change on retry, and retrying wastes the
+       * backoff budget (and re-bills paid providers). 5xx, 429 and network errors
+       * stay retryable.
+       */
+      const upstreamStatus = (error as { upstreamStatus?: number })?.upstreamStatus;
+
+      if (typeof upstreamStatus === 'number' && upstreamStatus >= 400 && upstreamStatus < 500 && upstreamStatus !== 429) {
+        throw error;
+      }
+
       if (attempt < attempts) {
         await new Promise((resolve) => setTimeout(resolve, 80 * attempt * attempt));
       }
@@ -304,6 +316,7 @@ async function readJson(response: Response) {
   if (!response.ok) {
     throw Object.assign(new Error(`Provider request failed: ${response.status}`), {
       statusCode: 502,
+      upstreamStatus: response.status,
       providerBody: text.slice(0, 500),
     });
   }
@@ -342,12 +355,26 @@ function extractContent(payload: any) {
   return '';
 }
 
+/*
+ * Bound the output tokens. Without a cap, an unset maxTokens lets the provider
+ * run to its (often very large) model default on every call — unbounded cost and
+ * latency. Default to a sane size and hard-clamp any caller-supplied value.
+ */
+const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
+const HARD_MAX_OUTPUT_TOKENS = 32768;
+
+function resolveMaxOutputTokens(request: AiChatRequest): number {
+  const requested = typeof request.maxTokens === 'number' && request.maxTokens > 0 ? request.maxTokens : DEFAULT_MAX_OUTPUT_TOKENS;
+
+  return Math.min(requested, HARD_MAX_OUTPUT_TOKENS);
+}
+
 function openAiPayload(request: AiChatRequest, model: string, stream: boolean) {
   return {
     model,
     messages: request.messages,
     stream,
-    max_tokens: request.maxTokens,
+    max_tokens: resolveMaxOutputTokens(request),
     ...optionalTemperature(request, model),
   };
 }
@@ -365,7 +392,7 @@ function anthropicPayload(request: AiChatRequest, model: string, stream: boolean
     system: system || undefined,
     messages,
     stream,
-    max_tokens: request.maxTokens ?? 1024,
+    max_tokens: resolveMaxOutputTokens(request),
     ...optionalTemperature(request, model),
   };
 }
@@ -381,7 +408,7 @@ function geminiPayload(request: AiChatRequest, model: string) {
   return {
     systemInstruction: system ? { parts: [{ text: system }] } : undefined,
     contents,
-    generationConfig: { maxOutputTokens: request.maxTokens, ...optionalTemperature(request, model) },
+    generationConfig: { maxOutputTokens: resolveMaxOutputTokens(request), ...optionalTemperature(request, model) },
   };
 }
 

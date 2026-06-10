@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from 'node:crypto';
 import Fastify from 'fastify';
 import { z } from 'zod';
 import { WorkspaceManager } from './manager.js';
@@ -53,7 +54,7 @@ function requirePreviewProxyAuth(request: { headers: Record<string, string | str
   const value = Array.isArray(authorization) ? authorization[0] : authorization;
   const token = normalizeSharedSecret(value?.replace(/^Bearer\s+/i, ''));
 
-  if (token !== expected) {
+  if (!token || !secretsMatch(token, expected)) {
     throw Object.assign(new Error('Unauthorized preview proxy request'), {
       statusCode: 401,
       code: 'PREVIEW_PROXY_UNAUTHORIZED',
@@ -64,6 +65,18 @@ function requirePreviewProxyAuth(request: { headers: Record<string, string | str
 function normalizeSharedSecret(value: string | undefined): string | undefined {
   const normalized = value?.trim();
   return normalized ? normalized : undefined;
+}
+
+/*
+ * Constant-time comparison for the control-plane shared secret. A plain `!==`
+ * leaks length/prefix timing that can be used to recover the secret byte by byte;
+ * compare over fixed-length digests so timing is independent of the inputs.
+ */
+function secretsMatch(a: string, b: string): boolean {
+  const ha = createHash('sha256').update(a).digest();
+  const hb = createHash('sha256').update(b).digest();
+
+  return timingSafeEqual(ha, hb);
 }
 
 /**
@@ -120,7 +133,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     const value = Array.isArray(authorization) ? authorization[0] : authorization;
     const token = normalizeSharedSecret(value?.replace(/^Bearer\s+/i, ''));
 
-    if (token !== expected) {
+    if (!token || !secretsMatch(token, expected)) {
       return reply.code(401).send({ error: 'Unauthorized workspace manager request', code: 'WORKSPACE_MANAGER_UNAUTHORIZED' });
     }
   });
