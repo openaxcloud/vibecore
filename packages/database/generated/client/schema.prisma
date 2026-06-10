@@ -650,6 +650,9 @@ model AuditLog {
 
   @@index([organizationId])
   @@index([actorUserId])
+  // SIEM delivery keyset-paginates WHERE organizationId ORDER BY (createdAt, id)
+  // every 5 min; without this composite it full-scanned + sorted the org's logs.
+  @@index([organizationId, createdAt, id])
 }
 
 model AdminAuditLog {

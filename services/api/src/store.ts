@@ -832,7 +832,7 @@ export interface ApiStore {
   // avoid the per-project N+1 of listing every project then its children.
   countActiveWorkspaces(organizationId: string): Promise<number>;
   countSnapshots(organizationId: string): Promise<number>;
-  countDeployments(organizationId: string): Promise<number>;
+  countDeployments(organizationId: string, since?: Date): Promise<number>;
   createSnapshot(input: {
     projectId: string;
     label?: string;

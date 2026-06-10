@@ -135,7 +135,9 @@ spec:
 {{ toYaml $svc.resources | indent 12 }}
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: {{ $svc.readOnlyRootFilesystem | default true }}
+            # `| default true` would coerce an explicit `false` (Helm treats false
+            # as empty) back to true; hasKey distinguishes unset from an explicit value.
+            readOnlyRootFilesystem: {{ if hasKey $svc "readOnlyRootFilesystem" }}{{ $svc.readOnlyRootFilesystem }}{{ else }}true{{ end }}
             capabilities:
               drop: ["ALL"]
           volumeMounts:

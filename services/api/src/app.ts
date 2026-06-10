@@ -8934,7 +8934,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (key === 'deployments.count') {
-      return store.countDeployments(organizationId);
+      /*
+       * Deploying is a recurring action, so this is a PER-PERIOD allowance (like
+       * ai.messages), not a lifetime cap. Counting every non-failed deployment row
+       * for all time monotonically climbed and permanently locked out deploys once
+       * the lifetime total hit the plan limit. Scope to the current usage period.
+       */
+      const periodStart = await resolveUsagePeriodStart(organizationId);
+      return store.countDeployments(organizationId, periodStart);
     }
 
     /*
@@ -13600,17 +13607,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     /*
+     * Stop serving the snapshot once the source project is soft-deleted — a
+     * public link must not outlive the project it belongs to.
+     */
+    if (share.projectId) {
+      const sourceProject = await store.getProject(share.projectId).catch(() => undefined);
+
+      if (!sourceProject || (sourceProject as { deletedAt?: unknown }).deletedAt) {
+        return reply.code(404).send({
+          error: { code: 'CHAT_SHARE_NOT_FOUND', message: 'Share link is invalid, expired, or revoked.' },
+        });
+      }
+    }
+
+    /*
      * This endpoint is public (auth-allowlisted). Project the stored payload to
-     * only what a viewer needs and strip authorUserId so the sharer's internal
-     * user id isn't leaked to anyone holding the link.
+     * only what a viewer needs: strip authorUserId AND internal ids
+     * (conversationId/projectId/etc.) so they aren't leaked to anyone holding the
+     * link. projectId is only exposed when forking is allowed (the fork flow needs
+     * it); otherwise it stays internal.
      */
     const fullPayload = (share.payload ?? {}) as Record<string, unknown>;
-    const { authorUserId: _authorUserId, ...safePayload } = fullPayload;
+    const {
+      authorUserId: _authorUserId,
+      conversationId: _conversationId,
+      projectId: _payloadProjectId,
+      organizationId: _payloadOrgId,
+      ...safePayload
+    } = fullPayload;
 
     return {
       share: {
         title: share.title ?? null,
-        projectId: share.projectId,
+        projectId: share.allowFork ? share.projectId : undefined,
         allowFork: share.allowFork,
         createdAt: share.createdAt,
         payload: safePayload,
