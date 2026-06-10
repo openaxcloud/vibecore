@@ -5,8 +5,15 @@ metadata:
   namespace: {{ .Values.namespace }}
 rules:
   - apiGroups: [""]
-    resources: ["pods", "services", "persistentvolumeclaims", "secrets"]
+    resources: ["pods", "services", "persistentvolumeclaims"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Secrets: workspace-manager only ever touches its own per-workspace agent-token
+  # secret BY NAME (agent-token-<workspaceId>), so it does NOT get list/watch —
+  # those would let a compromised manager enumerate every tenant's agent-token
+  # secret in the namespace.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "update", "patch", "delete"]
   - apiGroups: [""]
     resources: ["pods/log"]
     verbs: ["get", "list", "watch"]

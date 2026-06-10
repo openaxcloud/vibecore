@@ -346,7 +346,30 @@ export class WorkspaceManager {
     return deleted;
   }
 
+  #gcInFlight = false;
+
   async garbageCollect(namespace: string, inactiveMs: number, deleteMs: number) {
+    /*
+     * Skip if a sweep is already running. The worker triggers GC on a BullMQ
+     * schedule with a client-side 60s AbortSignal that does NOT cancel this
+     * server-side pass, so a slow GC + a BullMQ retry could otherwise run two
+     * concurrent sweeps over the same rows, racing each other's delete/re-read.
+     */
+    if (this.#gcInFlight) {
+      console.warn('workspace garbage-collection already in progress; skipping overlapping sweep');
+      return;
+    }
+
+    this.#gcInFlight = true;
+
+    try {
+      await this.#garbageCollect(namespace, inactiveMs, deleteMs);
+    } finally {
+      this.#gcInFlight = false;
+    }
+  }
+
+  async #garbageCollect(namespace: string, inactiveMs: number, deleteMs: number) {
     const now = Date.now();
     for (const snapshot of await this.store.list()) {
       // Isolate each workspace: a transient kubectl/network error (or a row

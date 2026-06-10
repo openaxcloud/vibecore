@@ -38,9 +38,17 @@ resource "google_project_iam_member" "node_monitoring" {
   member  = "serviceAccount:${each.value}"
 }
 
+# workspace-manager talks to the kube-apiserver in-cluster using its mounted
+# ServiceAccount token, scoped by the namespaced RBAC Role
+# `workspace-manager-runtime` (infra/helm/workspaces-runtime/templates/rbac.yaml).
+# It does NOT call the GCP/GKE API, so the project-wide roles/container.developer
+# previously granted here was excessive — that GCP role confers read/write/delete
+# on Kubernetes objects across EVERY namespace of every cluster in the project.
+# `container.viewer` is enough for any cluster-discovery the Workload Identity
+# binding needs; all mutating access comes from the namespaced RBAC Role.
 resource "google_project_iam_member" "workspace_manager_container" {
   project = var.project_id
-  role    = "roles/container.developer"
+  role    = "roles/container.viewer"
   member  = "serviceAccount:${google_service_account.workspace_manager_workload.email}"
 }
 

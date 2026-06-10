@@ -46,12 +46,7 @@ export function aggregateClaims(results: AgentRunResult[]): ClaimAggregation[] {
   const participating = results.filter((r) => r.status !== 'failed');
   const participatingRoles = participating.map((r) => r.roleId);
 
-  const collect = (
-    type: ClaimType,
-    raw: string,
-    normalize: (value: string) => string,
-    roleId: AgentRoleId,
-  ) => {
+  const collect = (type: ClaimType, raw: string, normalize: (value: string) => string, roleId: AgentRoleId) => {
     const cleaned = raw.trim();
     if (!cleaned) return;
     const key = `${type}::${normalize(cleaned)}`;
@@ -90,10 +85,7 @@ export function buildClaimVote(
   const dissenters = aggregation.participatingRoles.filter((roleId) => !supporters.includes(roleId));
 
   const supporterWeight = supporters.reduce((sum, role) => sum + (weights?.[role] ?? 1), 0);
-  const totalWeight = aggregation.participatingRoles.reduce(
-    (sum, role) => sum + (weights?.[role] ?? 1),
-    0,
-  );
+  const totalWeight = aggregation.participatingRoles.reduce((sum, role) => sum + (weights?.[role] ?? 1), 0);
 
   const agreementRatio = totalWeight === 0 ? 0 : supporterWeight / totalWeight;
 
@@ -105,7 +97,14 @@ export function buildClaimVote(
     decision = 'accepted';
   } else if (agreementRatio >= threshold) {
     decision = 'accepted';
-  } else if (agreementRatio <= 1 - threshold && supporters.length === 0) {
+  } else if (agreementRatio <= 1 - threshold) {
+    /*
+     * A claim only a small minority raised (agreement at/below 1-threshold) is
+     * rejected. The previous `&& supporters.length === 0` made this unreachable —
+     * aggregateClaims always seeds a bucket with its declaring role, so supporters
+     * is never empty — leaving rejectedClaims permanently empty and disputed
+     * claims silently dropped from the consolidated report.
+     */
     decision = 'rejected';
   }
 

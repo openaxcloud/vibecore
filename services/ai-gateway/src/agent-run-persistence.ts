@@ -40,11 +40,27 @@ export class PrismaAgentRunPersistence implements AgentRunPersistence {
   }): Promise<void> {
     const { runId, request, response, consensus, startedAt, completedAt, metadata } = input;
 
+    /*
+     * organizationId is an unvalidated request-body string written into a real FK
+     * column. A stale/empty/unknown id raised a P2003 FK violation that aborted the
+     * whole persistence transaction → the run was silently dropped. Resolve it to a
+     * real org id or null (the column is nullable) before inserting.
+     */
+    const organizationId =
+      request.organizationId && request.organizationId.length > 0
+        ? ((
+            await this.prisma.organization.findUnique({
+              where: { id: request.organizationId },
+              select: { id: true },
+            })
+          )?.id ?? null)
+        : null;
+
     await this.prisma.$transaction(async (tx) => {
       await tx.agentRun.create({
         data: {
           id: runId,
-          organizationId: request.organizationId,
+          organizationId,
           mode: request.mode,
           status: mapRunStatus(response.status),
           rolesPlanned: request.roles.map((role) => ({

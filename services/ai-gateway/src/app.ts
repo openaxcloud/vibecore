@@ -123,7 +123,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
         }
       } finally {
         request.raw.off('close', onClientClose);
-        await iterator.return?.();
+        await iterator.return?.(undefined);
       }
 
       if (!reply.raw.writableEnded) {

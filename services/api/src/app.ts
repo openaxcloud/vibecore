@@ -3223,14 +3223,28 @@ async function createLoginSession(input: {
   organizationId?: string;
   token: string;
   request: FastifyRequest;
+  /*
+   * Mark the new session as freshly step-up-authenticated. Set for SSO logins
+   * (OAuth/OIDC/SAML): those users have no password, so POST /auth/reauth (which
+   * verifies a password) can never succeed for them — they would be permanently
+   * locked out of MFA enrollment / recovery-code rotation. A fresh IdP login IS a
+   * fresh authentication, so it satisfies the step-up window.
+   */
+  markReauthenticated?: boolean;
 }) {
-  return input.store.createSession({
+  const session = await input.store.createSession({
     userId: input.userId,
     token: input.token,
     expiresAt: await sessionExpiresAtForUser(input.store, input.userId),
     ipAddress: input.request.ip,
     userAgent: input.request.headers['user-agent'],
   });
+
+  if (input.markReauthenticated) {
+    await input.store.markSessionReauthenticated(session.id);
+  }
+
+  return session;
 }
 
 /*
@@ -3788,8 +3802,9 @@ function extractXmlCryptoSignedAssertion(xml: string, certificate: string): stri
  * captured SignatureValue and is rejected.
  */
 function extractFallbackVerifiedAssertion(xml: string, certificate: string): string | null {
-  const candidate =
-    /<Assertion[\s\S]*?<\/Assertion>/.exec(xml)?.[0] ?? /<saml:Assertion[\s\S]*?<\/saml:Assertion>/.exec(xml)?.[0];
+  // Namespace-agnostic: real IdPs use saml:/saml2:/no prefix. The signature
+  // verification below still enforces byte-identity, so XSW protection holds.
+  const candidate = /<(?:\w+:)?Assertion[\s\S]*?<\/(?:\w+:)?Assertion>/.exec(xml)?.[0];
 
   if (!candidate) {
     return null;
@@ -3822,10 +3837,7 @@ function parseSamlXmlAssertion(xml: string, certificate: string, expectedAudienc
    * caller still gets a profile to log/reject — but signatureValid stays false
    * and the ACS handler rejects it (it never reads identity from this path).
    */
-  const assertionXml =
-    verifiedAssertion ??
-    /<Assertion[\s\S]*?<\/Assertion>/.exec(xml)?.[0] ??
-    /<saml:Assertion[\s\S]*?<\/saml:Assertion>/.exec(xml)?.[0];
+  const assertionXml = verifiedAssertion ?? /<(?:\w+:)?Assertion[\s\S]*?<\/(?:\w+:)?Assertion>/.exec(xml)?.[0];
 
   if (!assertionXml) {
     throw Object.assign(new Error('SAML response is missing assertion'), {
@@ -3897,8 +3909,17 @@ function parseSamlXmlAssertion(xml: string, certificate: string, expectedAudienc
    * assertion; enforce only when the assertion actually declares one (lenient for
    * IdPs/fixtures that omit AudienceRestriction).
    */
-  const audience = xmlText(assertionXml, /<(?:\w+:)?Audience>([\s\S]*?)<\/(?:\w+:)?Audience>/);
-  const audienceValid = !expectedAudience || !audience || audience.trim() === expectedAudience;
+  /*
+   * A SAML AudienceRestriction may list MULTIPLE <Audience> elements; the
+   * assertion is valid if ANY of them matches our SP entityId. Reading only the
+   * first one wrongly rejected assertions that legitimately list our audience in
+   * a later position.
+   */
+  const audiences = [...assertionXml.matchAll(/<(?:\w+:)?Audience>([\s\S]*?)<\/(?:\w+:)?Audience>/g)].map((match) =>
+    match[1].trim(),
+  );
+  const audienceValid =
+    !expectedAudience || audiences.length === 0 || audiences.some((value) => value === expectedAudience);
 
   // Assertion ID + expiry for one-time-use replay protection (consumed in ACS).
   const assertionId = /<(?:\w+:)?Assertion\b[^>]*\bID=["']([^"']+)["']/.exec(assertionXml)?.[1];
@@ -3930,7 +3951,10 @@ function parseSamlAssertion(encoded: string, certificate?: string, expectedAudie
   try {
     const decoded = Buffer.from(encoded, 'base64url').toString('utf8');
 
-    if (decoded.includes('<Assertion') || decoded.includes('<saml:Assertion')) {
+    // Recognize any XML namespace prefix (saml:, saml2:, none). The old check
+    // missed saml2:Assertion (Azure AD / ADFS / Shibboleth) and silently routed
+    // real, signed responses to the test-only JSON path — login was impossible.
+    if (/<(?:\w+:)?Assertion[\s>]/.test(decoded)) {
       if (!certificate) {
         throw Object.assign(new Error('SAML provider certificate is not configured'), {
           statusCode: 503,
@@ -6218,7 +6242,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         const token = createOpaqueToken('session');
-        await createLoginSession({ store, userId: user.id, organizationId, token, request });
+        await createLoginSession({ store, userId: user.id, organizationId, token, request, markReauthenticated: true });
         reply.setCookie('session', token, authCookieOptions(isProduction));
         await audit(request, store, {
           action: `auth.oauth.${provider}.login`,
@@ -6308,6 +6332,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         organizationId: oidcOrgId,
         token,
         request,
+        markReauthenticated: true,
       });
       reply.setCookie('session', token, authCookieOptions(isProduction));
       await audit(request, store, {
@@ -6427,7 +6452,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const token = createOpaqueToken('session');
-      await createLoginSession({ store, userId: user.id, organizationId: orgId, token, request });
+      await createLoginSession({
+        store,
+        userId: user.id,
+        organizationId: orgId,
+        token,
+        request,
+        markReauthenticated: true,
+      });
       reply.setCookie('session', token, authCookieOptions(isProduction));
       await audit(request, store, {
         organizationId: orgId,

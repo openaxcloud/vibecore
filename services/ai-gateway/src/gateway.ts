@@ -739,6 +739,7 @@ export class AiGateway {
     const plan = request.plan ?? 'free';
     const primaryProviderId = request.provider ?? routed.model.provider;
     const inputTokens = countTokens(request.messages);
+    let lastError: unknown;
 
     for (const provider of routed.providers) {
       // Stop before trying another provider if the client already went away —
@@ -786,23 +787,42 @@ export class AiGateway {
           return;
         }
 
-        yield {
-          type: 'error',
-          provider: provider.id,
-          model: resolved.id,
-          error: error instanceof Error ? error.message : 'Provider stream failed',
-        };
+        lastError = error;
 
         /*
          * If partial deltas already reached the client, the fallback provider's
          * fresh full generation would be appended onto that partial text,
-         * producing a garbled, concatenated message. Stop rather than fall
-         * through once any output has been streamed.
+         * producing a garbled, concatenated message. Emit the error and stop
+         * rather than fall through once any output has been streamed.
          */
         if (yieldedDelta) {
+          yield {
+            type: 'error',
+            provider: provider.id,
+            model: resolved.id,
+            error: error instanceof Error ? error.message : 'Provider stream failed',
+          };
+
           return;
         }
+
+        /*
+         * No output yet — this failure is recoverable. Do NOT emit an error chunk
+         * now; a fallback provider may still succeed, and surfacing a premature
+         * `error` before a successful `delta`/`done` confuses the client. Keep the
+         * error and only report it below if every provider fails.
+         */
       }
+    }
+
+    // All providers exhausted without producing output — now surface the failure.
+    if (lastError) {
+      yield {
+        type: 'error',
+        provider: primaryProviderId,
+        model: routed.model.id,
+        error: lastError instanceof Error ? lastError.message : 'Provider stream failed',
+      };
     }
   }
 }

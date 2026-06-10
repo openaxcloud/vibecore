@@ -278,6 +278,18 @@ export class ProjectCollaborationClient {
       }
 
       /*
+       * close() may have run while the ticket fetch was in flight (navigation,
+       * collaboration toggled off, unmount). The #stopped check at the top is
+       * stale by now — re-check before opening a socket, or we resurrect a live
+       * connection that nothing will ever close (leaked socket + stale "connected"
+       * presence).
+       */
+      if (this.#stopped) {
+        this.#connecting = false;
+        return;
+      }
+
+      /*
        * Release any previous socket before opening a new one. On an error-without-
        * close reconnect the old socket (and its listeners) were never closed, so
        * they lingered — leaking the connection and letting a stale socket's late

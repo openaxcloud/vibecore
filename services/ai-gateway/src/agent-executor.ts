@@ -519,7 +519,12 @@ export async function executeAgentRun(input: {
 
   const response: AgentRunResponse = { runId, status, results, consensus };
 
-  if (input.persistence) {
+  /*
+   * Skip persistence when the client disconnected mid-run: every role threw
+   * 'aborted' (swallowed into status:'failed'), so this would write a junk
+   * all-failed AgentRun row for a run nobody is waiting on.
+   */
+  if (input.persistence && !input.signal?.aborted) {
     try {
       await input.persistence.recordRun({
         runId,

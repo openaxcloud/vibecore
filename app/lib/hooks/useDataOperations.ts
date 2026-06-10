@@ -641,9 +641,22 @@ export function useDataOperations({
         const store = transaction.objectStore('chats');
 
         let processed = 0;
+        let skipped = 0;
 
         for (const chat of validatedChats) {
-          store.put(chat);
+          const request = store.put(chat);
+
+          /*
+           * Handle per-put errors so one bad record (e.g. a duplicate urlId hitting
+           * the UNIQUE index → ConstraintError) doesn't abort the WHOLE transaction
+           * and lose every other imported chat. preventDefault() stops the failed
+           * request from propagating to transaction.onerror; we just skip it.
+           */
+          request.onerror = (event) => {
+            event.preventDefault();
+            skipped++;
+          };
+
           processed++;
 
           if (processed % 5 === 0 || processed === validatedChats.length) {
@@ -652,6 +665,10 @@ export function useDataOperations({
               80 + (processed / validatedChats.length) * 20,
             );
           }
+        }
+
+        if (skipped > 0) {
+          console.warn(`Skipped ${skipped} chat(s) during import (duplicate or invalid records)`);
         }
 
         await new Promise((resolve, reject) => {
@@ -1201,8 +1218,11 @@ export function useDataOperations({
           // Restore previous API keys
           const previousAPIKeys = lastOperation.data.previous;
           const newKeys = ImportExportService.importAPIKeys(previousAPIKeys);
-          const apiKeysJson = JSON.stringify(newKeys);
-          document.cookie = `apiKeys=${apiKeysJson}; path=/; max-age=31536000`;
+          // Match the forward import-path hardening: URL-encode (so ';'/'=' in
+          // values can't truncate the cookie) and scope the credential cookie with
+          // SameSite=Strict; Secure.
+          const apiKeysJson = encodeURIComponent(JSON.stringify(newKeys));
+          document.cookie = `apiKeys=${apiKeysJson}; path=/; max-age=31536000; SameSite=Strict; Secure`;
 
           // Dismiss progress toast before showing success toast
           toast.dismiss('progress-toast');
