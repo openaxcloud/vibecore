@@ -2518,9 +2518,7 @@ async function projectCollaborationRole(store: ApiStore, projectId: string, user
     return undefined;
   }
 
-  const collaborator = (await store.listProjectCollaborators(projectId)).find(
-    (entry) => entry.userId === userId,
-  );
+  const collaborator = (await store.listProjectCollaborators(projectId)).find((entry) => entry.userId === userId);
 
   if (!collaborator) {
     return undefined;
@@ -2694,7 +2692,9 @@ function projectFileManifestFromPersistedInput(input: unknown): {
   };
 }
 
-function projectFilesFromPersistedFileManifest(input: unknown): Array<{ path: string; content: string; encoding?: FileEncoding }> {
+function projectFilesFromPersistedFileManifest(
+  input: unknown,
+): Array<{ path: string; content: string; encoding?: FileEncoding }> {
   const manifest =
     input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
 
@@ -3068,11 +3068,7 @@ async function requireRecentAdminReauth(request: FastifyRequest, ttlSeconds = 30
  * admin and no OTHER active (non-suspended) admin would remain, reject. Also
  * blocks an admin from removing their own last-admin access.
  */
-async function assertNotLastPlatformAdmin(
-  store: ApiStore,
-  targetUserId: string,
-  suspendedUserIds?: Set<string>,
-) {
+async function assertNotLastPlatformAdmin(store: ApiStore, targetUserId: string, suspendedUserIds?: Set<string>) {
   const admins = (await store.listAdminUsers()).filter((user) => user.platformAdmin);
   const target = admins.find((user) => user.id === targetUserId);
 
@@ -3080,9 +3076,7 @@ async function assertNotLastPlatformAdmin(
     return;
   }
 
-  const remaining = admins.filter(
-    (user) => user.id !== targetUserId && !(suspendedUserIds?.has(user.id) ?? false),
-  );
+  const remaining = admins.filter((user) => user.id !== targetUserId && !(suspendedUserIds?.has(user.id) ?? false));
 
   if (remaining.length === 0) {
     throw Object.assign(new Error('Cannot remove the last platform administrator'), {
@@ -3623,7 +3617,8 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
        * accepted the first (possibly unverified) email, enabling account-linking
        * takeover when no verified address exists.
        */
-      const candidate = emails.find((entry) => entry.primary && entry.verified) ?? emails.find((entry) => entry.verified);
+      const candidate =
+        emails.find((entry) => entry.primary && entry.verified) ?? emails.find((entry) => entry.verified);
 
       if (candidate?.email) {
         email = candidate.email;
@@ -6414,7 +6409,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
-
       /*
        * Public read of a shared conversation snapshot — the signed token is the
        * capability. Only the token-scoped GET path is exempt; POST /chat-shares
@@ -6472,7 +6466,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     if (!orgId && request.body && typeof request.body === 'object') {
       const body = request.body as { organizationId?: unknown; orgId?: unknown; projectId?: unknown };
-      const bodyOrgId = typeof body.organizationId === 'string' ? body.organizationId : typeof body.orgId === 'string' ? body.orgId : undefined;
+      const bodyOrgId =
+        typeof body.organizationId === 'string'
+          ? body.organizationId
+          : typeof body.orgId === 'string'
+            ? body.orgId
+            : undefined;
 
       if (bodyOrgId) {
         orgId = bodyOrgId;
@@ -7392,7 +7391,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     // A non-array upstream payload (error envelope / rate-limit body with HTTP
     // 200) would make `.reduce` throw a generic 500 for a 502-class condition.
     if (!Array.isArray(reposJson)) {
-      return reply.code(502).send({ error: 'GitHub returned an unexpected repos payload', code: 'PROVIDER_RESPONSE_MALFORMED' });
+      return reply
+        .code(502)
+        .send({ error: 'GitHub returned an unexpected repos payload', code: 'PROVIDER_RESPONSE_MALFORMED' });
     }
 
     const repos = reposJson as GithubRepoSummary[];
@@ -8461,7 +8462,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let stderr = '';
 
     const parsedMaxOutputBytes = Number(process.env.WORKSPACE_MAX_OUTPUT_BYTES ?? 1024 * 1024);
-    const maxOutputBytes = Number.isFinite(parsedMaxOutputBytes) && parsedMaxOutputBytes > 0 ? parsedMaxOutputBytes : 1024 * 1024;
+    const maxOutputBytes =
+      Number.isFinite(parsedMaxOutputBytes) && parsedMaxOutputBytes > 0 ? parsedMaxOutputBytes : 1024 * 1024;
     const parsedTimeoutMs = Number(process.env.WORKSPACE_COMMAND_TIMEOUT_MS ?? 30_000);
     const configuredTimeoutMs = Number.isFinite(parsedTimeoutMs) && parsedTimeoutMs > 0 ? parsedTimeoutMs : 30_000;
     const timeoutMs = Math.min(body.timeoutMs ?? 30_000, configuredTimeoutMs);
@@ -10018,9 +10020,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       exportBytes += Buffer.byteLength(content);
 
       if (exportBytes > MAX_EXPORT_BYTES) {
-        return reply
-          .code(413)
-          .send({ error: 'Workspace is too large to export', code: 'RUNTIME_EXPORT_TOO_LARGE' });
+        return reply.code(413).send({ error: 'Workspace is too large to export', code: 'RUNTIME_EXPORT_TOO_LARGE' });
       }
 
       zip.file(file.path, content);
@@ -10570,10 +10570,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         : request.currentUser,
     };
   });
-  app.patch(
-    '/auth/me',
-    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
-    async (request, reply) => {
+  app.patch('/auth/me', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const body = parse(userProfileSchema, request.body);
 
     /*
@@ -11311,82 +11308,84 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     '/orgs/:orgId/invitations',
     { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
     async (request, reply) => {
-    const { orgId } = parse(orgParams, request.params);
-    const body = parse(inviteSchema, request.body);
-    const member = await requireOrg(request, store, orgId, 'members:manage');
+      const { orgId } = parse(orgParams, request.params);
+      const body = parse(inviteSchema, request.body);
+      const member = await requireOrg(request, store, orgId, 'members:manage');
 
-    const roleKey = body.roleKey ?? 'member';
-    await requireAssignableOrganizationRole(store, orgId, roleKey);
-    await requireRoleAssignableByCaller(store, orgId, member.roleKey, roleKey);
+      const roleKey = body.roleKey ?? 'member';
+      await requireAssignableOrganizationRole(store, orgId, roleKey);
+      await requireRoleAssignableByCaller(store, orgId, member.roleKey, roleKey);
 
-    const token = createOpaqueToken('invite');
+      const token = createOpaqueToken('invite');
 
-    const invitation = await store.createOrganizationInvite({
-      organizationId: orgId,
-      email: body.email,
-      roleKey,
-      token,
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
-    });
-    await emailProvider.send({
-      to: body.email,
-      subject: 'You have been invited',
-      text: `Use this invitation token to join: ${token}`,
-    });
-    await audit(request, store, {
-      organizationId: orgId,
-      action: 'invite.create',
-      resourceType: 'organizationInvite',
-      resourceId: invitation.id,
-    });
+      const invitation = await store.createOrganizationInvite({
+        organizationId: orgId,
+        email: body.email,
+        roleKey,
+        token,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
+      });
+      await emailProvider.send({
+        to: body.email,
+        subject: 'You have been invited',
+        text: `Use this invitation token to join: ${token}`,
+      });
+      await audit(request, store, {
+        organizationId: orgId,
+        action: 'invite.create',
+        resourceType: 'organizationInvite',
+        resourceId: invitation.id,
+      });
 
-    return reply
-      .code(201)
-      .send({ invitation: { ...invitation, tokenHash: undefined }, token: isProduction ? undefined : token });
-  });
+      return reply
+        .code(201)
+        .send({ invitation: { ...invitation, tokenHash: undefined }, token: isProduction ? undefined : token });
+    },
+  );
   app.post(
     '/orgs/:orgId/invitations/:inviteId/resend',
     { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
     async (request, reply) => {
-    const { orgId, inviteId } = parse(inviteParams, request.params);
-    await requireOrg(request, store, orgId, 'members:manage');
+      const { orgId, inviteId } = parse(inviteParams, request.params);
+      await requireOrg(request, store, orgId, 'members:manage');
 
-    /*
-     * Confirm the invite belongs to this org BEFORE the (unscoped) mutation, so
-     * an admin of one org cannot rotate another tenant's invite token by id.
-     */
-    const ownsResendInvite = (await store.listOrganizationInvites(orgId)).some((entry) => entry.id === inviteId);
+      /*
+       * Confirm the invite belongs to this org BEFORE the (unscoped) mutation, so
+       * an admin of one org cannot rotate another tenant's invite token by id.
+       */
+      const ownsResendInvite = (await store.listOrganizationInvites(orgId)).some((entry) => entry.id === inviteId);
 
-    if (!ownsResendInvite) {
-      return reply.code(404).send({ error: 'Invitation not found', code: 'INVITE_NOT_FOUND' });
-    }
+      if (!ownsResendInvite) {
+        return reply.code(404).send({ error: 'Invitation not found', code: 'INVITE_NOT_FOUND' });
+      }
 
-    const token = createOpaqueToken('invite');
+      const token = createOpaqueToken('invite');
 
-    const invitation = await store.resendOrganizationInvite(
-      inviteId,
-      token,
-      new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
-    );
+      const invitation = await store.resendOrganizationInvite(
+        inviteId,
+        token,
+        new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
+      );
 
-    if (!invitation || invitation.organizationId !== orgId) {
-      return reply.code(404).send({ error: 'Invitation not found', code: 'INVITE_NOT_FOUND' });
-    }
+      if (!invitation || invitation.organizationId !== orgId) {
+        return reply.code(404).send({ error: 'Invitation not found', code: 'INVITE_NOT_FOUND' });
+      }
 
-    await emailProvider.send({
-      to: invitation.email,
-      subject: 'Your invitation link',
-      text: `Use this invitation token to join: ${token}`,
-    });
-    await audit(request, store, {
-      organizationId: orgId,
-      action: 'invite.resend',
-      resourceType: 'organizationInvite',
-      resourceId: invitation.id,
-    });
+      await emailProvider.send({
+        to: invitation.email,
+        subject: 'Your invitation link',
+        text: `Use this invitation token to join: ${token}`,
+      });
+      await audit(request, store, {
+        organizationId: orgId,
+        action: 'invite.resend',
+        resourceType: 'organizationInvite',
+        resourceId: invitation.id,
+      });
 
-    return { invitation: { ...invitation, tokenHash: undefined }, token: isProduction ? undefined : token };
-  });
+      return { invitation: { ...invitation, tokenHash: undefined }, token: isProduction ? undefined : token };
+    },
+  );
   app.post('/orgs/:orgId/invitations/:inviteId/expire', async (request, reply) => {
     const { orgId, inviteId } = parse(inviteParams, request.params);
     await requireOrg(request, store, orgId, 'members:manage');
@@ -13057,21 +13056,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Atomic RMW: a non-atomic blob rewrite here could resurrect a terminal
      * grant that another admin just revoked (authz-affecting race).
      */
-    const ideState = await mutateProjectIdeState(store, project.id, request.currentUser!.id, ({ root, collaboration }) => {
-      const terminalPermissions =
-        collaboration.terminalPermissions &&
-        typeof collaboration.terminalPermissions === 'object' &&
-        !Array.isArray(collaboration.terminalPermissions)
-          ? ({ ...(collaboration.terminalPermissions as Record<string, unknown>) } as Record<string, unknown>)
-          : {};
-      terminalPermissions[body.userId] = {
-        allowed: body.allowed,
-        grantedByUserId: request.currentUser!.id,
-        grantedAt: new Date().toISOString(),
-      };
+    const ideState = await mutateProjectIdeState(
+      store,
+      project.id,
+      request.currentUser!.id,
+      ({ root, collaboration }) => {
+        const terminalPermissions =
+          collaboration.terminalPermissions &&
+          typeof collaboration.terminalPermissions === 'object' &&
+          !Array.isArray(collaboration.terminalPermissions)
+            ? ({ ...(collaboration.terminalPermissions as Record<string, unknown>) } as Record<string, unknown>)
+            : {};
+        terminalPermissions[body.userId] = {
+          allowed: body.allowed,
+          grantedByUserId: request.currentUser!.id,
+          grantedAt: new Date().toISOString(),
+        };
 
-      return { ...root, collaboration: { ...collaboration, terminalPermissions } };
-    });
+        return { ...root, collaboration: { ...collaboration, terminalPermissions } };
+      },
+    );
 
     if (body.sessionId) {
       const presence = (await store.listCollaborationPresence(project.id)).find(
@@ -13389,10 +13393,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       updatedAt: new Date().toISOString(),
     };
     // Atomic RMW so this flag flip doesn't replay a stale blob over peers' edits.
-    const ideState = await mutateProjectIdeState(store, project.id, request.currentUser!.id, ({ root, collaboration }) => ({
-      ...root,
-      collaboration: { ...collaboration, aiConversation },
-    }));
+    const ideState = await mutateProjectIdeState(
+      store,
+      project.id,
+      request.currentUser!.id,
+      ({ root, collaboration }) => ({
+        ...root,
+        collaboration: { ...collaboration, aiConversation },
+      }),
+    );
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
@@ -13610,7 +13619,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           await store.removeCollaborationPresence(project.id, sessionId);
           collaborationBroker.publish(project.id, { type: 'presence.leave', sessionId }, client);
         } catch (error) {
-          request.log?.warn?.({ err: error, projectId: project.id, sessionId }, 'collaboration presence cleanup failed');
+          request.log?.warn?.(
+            { err: error, projectId: project.id, sessionId },
+            'collaboration presence cleanup failed',
+          );
         }
       })();
     });
@@ -14279,6 +14291,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/projects/:projectId/ai/record-usage', async (request) => {
     const { projectId } = parse(projectParams, request.params);
     const project = await requireProject(request, store, projectId, 'workspaces:read');
+
+    // This endpoint writes billing rows + usage counters, so a suspended org must
+    // not be able to keep recording AI spend (the 'workspaces:read' permission
+    // does not trigger the suspension gate that write permissions do).
+    await requireOrganizationNotSuspended(store, project.organizationId);
+
     const body = parse(aiRecordUsageSchema, request.body ?? {});
 
     const { costCents, matched } = computeAiCostCents({
@@ -14763,141 +14781,141 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * failure so the retry re-runs the full side-effect set.
      */
     try {
-    if (organizationId && object.customer) {
-      await store.upsertBillingCustomer({ organizationId, provider: 'stripe', externalId: String(object.customer) });
-    }
-
-    if (
-      organizationId &&
-      [
-        'checkout.session.completed',
-        'customer.subscription.created',
-        'customer.subscription.updated',
-        'customer.subscription.deleted',
-      ].includes(event.type)
-    ) {
-      const priceId =
-        object.items?.data?.[0]?.price?.id ?? object.lines?.data?.[0]?.price?.id ?? object.metadata?.priceId;
-
-      let plan = (await store.listBillingPlans()).find((candidate) => candidate.stripePriceId === priceId);
-
-      if (!plan) {
-        const metaPlanKey = object.metadata?.planKey as PlanKey | undefined;
-
-        if (metaPlanKey) {
-          plan = await store.getBillingPlan(metaPlanKey);
-        } else if (priceId && event.type !== 'customer.subscription.deleted') {
-          /*
-           * A real Stripe price that maps to no stored plan (price rotated, or
-           * stripePriceId not seeded) must NOT silently downgrade a paying
-           * customer to free. Preserve the org's current plan and alert instead.
-           */
-          const existing = await store.getSubscription(organizationId).catch(() => undefined);
-          request.log.error(
-            { organizationId, priceId, eventType: event.type },
-            'Stripe price did not match any billing plan; preserving current plan instead of downgrading',
-          );
-          plan = existing?.planKey
-            ? await store.getBillingPlan(existing.planKey)
-            : await store.getBillingPlan('free');
-        } else {
-          plan = await store.getBillingPlan('free');
-        }
+      if (organizationId && object.customer) {
+        await store.upsertBillingCustomer({ organizationId, provider: 'stripe', externalId: String(object.customer) });
       }
-      const status =
-        event.type === 'customer.subscription.deleted' ? 'CANCELED' : String(object.status ?? 'active').toUpperCase();
-      await store.upsertSubscription({
-        organizationId,
-        planKey: plan?.key ?? 'free',
-        externalId: object.subscription ?? object.id,
-        status:
-          status === 'TRIALING'
-            ? 'TRIALING'
-            : status === 'PAST_DUE'
-              ? 'PAST_DUE'
-              : status === 'CANCELED'
-                ? 'CANCELED'
-                : status === 'UNPAID'
-                  ? 'UNPAID'
-                  : status === 'ACTIVE'
-                    ? 'ACTIVE'
-                    : /*
-                       * incomplete / incomplete_expired / paused / unknown are NOT paying,
-                       * entitled states and must not map to ACTIVE. A checkout.session.completed
-                       * carries a session status ('complete'), not a subscription status, and is
-                       * always a successful, entitled checkout — treat only that as ACTIVE.
-                       */
-                      event.type === 'checkout.session.completed'
-                      ? 'ACTIVE'
-                      : 'CANCELED',
-        cancelAtPeriodEnd: Boolean(object.cancel_at_period_end),
-        trialEndsAt: object.trial_end ? new Date(Number(object.trial_end) * 1000) : undefined,
-        currentPeriodStart: object.current_period_start
-          ? new Date(Number(object.current_period_start) * 1000)
-          : undefined,
-        currentPeriodEnd: object.current_period_end ? new Date(Number(object.current_period_end) * 1000) : undefined,
-      });
-      // Non-critical: a failed audit write must NOT trigger the dedup rollback
-      // (which would re-run the non-idempotent revenue recordUsageEvent above and
-      // double-count). Swallow audit errors.
-      await audit(request, store, {
-        organizationId,
-        action: `billing.stripe.${event.type}`,
-        resourceType: 'subscription',
-        resourceId: object.subscription ?? object.id,
-      }).catch(() => {});
-    }
 
-    /*
-     * A failed invoice payment must downgrade the subscription to PAST_DUE
-     * directly rather than relying on a separate customer.subscription.updated
-     * event arriving and being processed — if that event is dropped the sub
-     * stays ACTIVE and the org keeps the paid plan for free.
-     */
-    if (organizationId && event.type === 'invoice.payment_failed') {
-      const existing = await store.getSubscription(organizationId).catch(() => undefined);
+      if (
+        organizationId &&
+        [
+          'checkout.session.completed',
+          'customer.subscription.created',
+          'customer.subscription.updated',
+          'customer.subscription.deleted',
+        ].includes(event.type)
+      ) {
+        const priceId =
+          object.items?.data?.[0]?.price?.id ?? object.lines?.data?.[0]?.price?.id ?? object.metadata?.priceId;
 
-      if (existing && existing.status === 'ACTIVE') {
+        let plan = (await store.listBillingPlans()).find((candidate) => candidate.stripePriceId === priceId);
+
+        if (!plan) {
+          const metaPlanKey = object.metadata?.planKey as PlanKey | undefined;
+
+          if (metaPlanKey) {
+            plan = await store.getBillingPlan(metaPlanKey);
+          } else if (priceId && event.type !== 'customer.subscription.deleted') {
+            /*
+             * A real Stripe price that maps to no stored plan (price rotated, or
+             * stripePriceId not seeded) must NOT silently downgrade a paying
+             * customer to free. Preserve the org's current plan and alert instead.
+             */
+            const existing = await store.getSubscription(organizationId).catch(() => undefined);
+            request.log.error(
+              { organizationId, priceId, eventType: event.type },
+              'Stripe price did not match any billing plan; preserving current plan instead of downgrading',
+            );
+            plan = existing?.planKey
+              ? await store.getBillingPlan(existing.planKey)
+              : await store.getBillingPlan('free');
+          } else {
+            plan = await store.getBillingPlan('free');
+          }
+        }
+        const status =
+          event.type === 'customer.subscription.deleted' ? 'CANCELED' : String(object.status ?? 'active').toUpperCase();
         await store.upsertSubscription({
           organizationId,
-          planKey: existing.planKey,
-          externalId: existing.externalId,
-          status: 'PAST_DUE',
-          cancelAtPeriodEnd: existing.cancelAtPeriodEnd,
-          currentPeriodStart: existing.currentPeriodStart ? new Date(existing.currentPeriodStart) : undefined,
-          currentPeriodEnd: existing.currentPeriodEnd ? new Date(existing.currentPeriodEnd) : undefined,
+          planKey: plan?.key ?? 'free',
+          externalId: object.subscription ?? object.id,
+          status:
+            status === 'TRIALING'
+              ? 'TRIALING'
+              : status === 'PAST_DUE'
+                ? 'PAST_DUE'
+                : status === 'CANCELED'
+                  ? 'CANCELED'
+                  : status === 'UNPAID'
+                    ? 'UNPAID'
+                    : status === 'ACTIVE'
+                      ? 'ACTIVE'
+                      : /*
+                         * incomplete / incomplete_expired / paused / unknown are NOT paying,
+                         * entitled states and must not map to ACTIVE. A checkout.session.completed
+                         * carries a session status ('complete'), not a subscription status, and is
+                         * always a successful, entitled checkout — treat only that as ACTIVE.
+                         */
+                        event.type === 'checkout.session.completed'
+                        ? 'ACTIVE'
+                        : 'CANCELED',
+          cancelAtPeriodEnd: Boolean(object.cancel_at_period_end),
+          trialEndsAt: object.trial_end ? new Date(Number(object.trial_end) * 1000) : undefined,
+          currentPeriodStart: object.current_period_start
+            ? new Date(Number(object.current_period_start) * 1000)
+            : undefined,
+          currentPeriodEnd: object.current_period_end ? new Date(Number(object.current_period_end) * 1000) : undefined,
         });
+        // Non-critical: a failed audit write must NOT trigger the dedup rollback
+        // (which would re-run the non-idempotent revenue recordUsageEvent above and
+        // double-count). Swallow audit errors.
+        await audit(request, store, {
+          organizationId,
+          action: `billing.stripe.${event.type}`,
+          resourceType: 'subscription',
+          resourceId: object.subscription ?? object.id,
+        }).catch(() => {});
       }
-    }
 
-    if (organizationId && ['invoice.paid', 'invoice.payment_failed', 'invoice.finalized'].includes(event.type)) {
-      await store.recordUsageEvent({
-        organizationId,
-        type: `billing.${event.type}`,
-        quantity: 1,
-        /*
-         * Record both amounts (in cents). For invoice.paid the relevant figure
-         * is amount_paid — amount_due on a paid invoice is typically 0 (or
-         * differs once credit/proration applies), so keying off amount_due
-         * understated revenue in any downstream reconciliation.
-         */
-        metadata: {
-          invoiceId: object.id,
-          amountPaidCents: object.amount_paid,
-          amountDueCents: object.amount_due,
-        },
-      });
-      // Non-critical (see above): never let an audit failure roll back + re-run
-      // the non-idempotent revenue recordUsageEvent.
-      await audit(request, store, {
-        organizationId,
-        action: `billing.stripe.${event.type}`,
-        resourceType: 'invoice',
-        resourceId: object.id,
-      }).catch(() => {});
-    }
+      /*
+       * A failed invoice payment must downgrade the subscription to PAST_DUE
+       * directly rather than relying on a separate customer.subscription.updated
+       * event arriving and being processed — if that event is dropped the sub
+       * stays ACTIVE and the org keeps the paid plan for free.
+       */
+      if (organizationId && event.type === 'invoice.payment_failed') {
+        const existing = await store.getSubscription(organizationId).catch(() => undefined);
 
-    return reply.code(200).send({ received: true });
+        if (existing && existing.status === 'ACTIVE') {
+          await store.upsertSubscription({
+            organizationId,
+            planKey: existing.planKey,
+            externalId: existing.externalId,
+            status: 'PAST_DUE',
+            cancelAtPeriodEnd: existing.cancelAtPeriodEnd,
+            currentPeriodStart: existing.currentPeriodStart ? new Date(existing.currentPeriodStart) : undefined,
+            currentPeriodEnd: existing.currentPeriodEnd ? new Date(existing.currentPeriodEnd) : undefined,
+          });
+        }
+      }
+
+      if (organizationId && ['invoice.paid', 'invoice.payment_failed', 'invoice.finalized'].includes(event.type)) {
+        await store.recordUsageEvent({
+          organizationId,
+          type: `billing.${event.type}`,
+          quantity: 1,
+          /*
+           * Record both amounts (in cents). For invoice.paid the relevant figure
+           * is amount_paid — amount_due on a paid invoice is typically 0 (or
+           * differs once credit/proration applies), so keying off amount_due
+           * understated revenue in any downstream reconciliation.
+           */
+          metadata: {
+            invoiceId: object.id,
+            amountPaidCents: object.amount_paid,
+            amountDueCents: object.amount_due,
+          },
+        });
+        // Non-critical (see above): never let an audit failure roll back + re-run
+        // the non-idempotent revenue recordUsageEvent.
+        await audit(request, store, {
+          organizationId,
+          action: `billing.stripe.${event.type}`,
+          resourceType: 'invoice',
+          resourceId: object.id,
+        }).catch(() => {});
+      }
+
+      return reply.code(200).send({ received: true });
     } catch (error) {
       await store.deleteStripeEvent(event.id).catch(() => {});
       throw error;
@@ -16020,47 +16038,44 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * ensureQuota and exceed the limit. The in-flight check inside still filters
      * by project+workspace (concurrent same-project builds share the build CWD).
      */
-    const createResult = await store.withSerializedMutation(
-      `deploy-org:${project.organizationId}`,
-      async () => {
-        await ensureQuota(request, project.organizationId, 'deployments.count');
+    const createResult = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+      await ensureQuota(request, project.organizationId, 'deployments.count');
 
-        const inFlight = (await store.listDeployments(project.id)).find(
-          (deployment) =>
-            (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') &&
-            (deployment.workspaceId ?? undefined) === persistedWorkspaceId,
-        );
+      const inFlight = (await store.listDeployments(project.id)).find(
+        (deployment) =>
+          (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') &&
+          (deployment.workspaceId ?? undefined) === persistedWorkspaceId,
+      );
 
-        if (inFlight) {
-          return { conflict: true as const, deploymentId: inFlight.id };
-        }
+      if (inFlight) {
+        return { conflict: true as const, deploymentId: inFlight.id };
+      }
 
-        return {
-          queued: await store.createDeployment({
-            projectId: project.id,
-            workspaceId: persistedWorkspaceId,
-            provider: body.provider,
-            environment: body.environment,
-            status: 'QUEUED',
-            framework: detectFramework(body),
-            buildCommand: body.buildCommand,
-            outputDirectory: body.outputDirectory,
-            branch: body.githubIntegration?.branch ?? body.branch,
-            commitSha: body.commitSha,
-            customDomain: body.customDomain,
-            metadata: {
-              previewDeployment: body.previewDeployment,
-              timeoutSeconds: body.timeoutSeconds,
-              artifactSizeLimitMb: body.artifactSizeLimitMb,
-              githubIntegration: body.githubIntegration,
-              envVars: sanitizeDeploymentEnvVars(body.envVars),
-              injectedSecrets: body.injectSecrets,
-            },
-            startedAt: new Date().toISOString(),
-          }),
-        };
-      },
-    );
+      return {
+        queued: await store.createDeployment({
+          projectId: project.id,
+          workspaceId: persistedWorkspaceId,
+          provider: body.provider,
+          environment: body.environment,
+          status: 'QUEUED',
+          framework: detectFramework(body),
+          buildCommand: body.buildCommand,
+          outputDirectory: body.outputDirectory,
+          branch: body.githubIntegration?.branch ?? body.branch,
+          commitSha: body.commitSha,
+          customDomain: body.customDomain,
+          metadata: {
+            previewDeployment: body.previewDeployment,
+            timeoutSeconds: body.timeoutSeconds,
+            artifactSizeLimitMb: body.artifactSizeLimitMb,
+            githubIntegration: body.githubIntegration,
+            envVars: sanitizeDeploymentEnvVars(body.envVars),
+            injectedSecrets: body.injectSecrets,
+          },
+          startedAt: new Date().toISOString(),
+        }),
+      };
+    });
 
     if ('conflict' in createResult) {
       return reply.code(409).send({
@@ -16302,41 +16317,38 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * create) both pass the org quota / per-project in-flight check via TOCTOU and
      * clobber the shared build CWD / double-consume quota.
      */
-    const redeployResult = await store.withSerializedMutation(
-      `deploy-org:${project.organizationId}`,
-      async () => {
-        await ensureQuota(request, project.organizationId, 'deployments.count');
+    const redeployResult = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+      await ensureQuota(request, project.organizationId, 'deployments.count');
 
-        const inFlight = (await store.listDeployments(project.id)).find(
-          (deployment) =>
-            (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') &&
-            (deployment.workspaceId ?? undefined) === redeployPersistedWorkspaceId,
-        );
+      const inFlight = (await store.listDeployments(project.id)).find(
+        (deployment) =>
+          (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') &&
+          (deployment.workspaceId ?? undefined) === redeployPersistedWorkspaceId,
+      );
 
-        if (inFlight) {
-          return { conflict: true as const, deploymentId: inFlight.id };
-        }
+      if (inFlight) {
+        return { conflict: true as const, deploymentId: inFlight.id };
+      }
 
-        return {
-          queued: await store.createDeployment({
-            projectId: project.id,
-            workspaceId: source.workspaceId,
-            provider: source.provider,
-            environment: source.environment,
-            status: 'QUEUED',
-            framework: source.framework,
-            buildCommand: source.buildCommand,
-            outputDirectory: source.outputDirectory,
-            branch: source.branch,
-            commitSha: source.commitSha,
-            customDomain: source.customDomain,
-            metadata: { ...source.metadata, redeployedFromId: source.id },
-            startedAt: new Date().toISOString(),
-            logs: [{ timestamp: new Date().toISOString(), level: 'info', message: `Redeploying from ${source.id}` }],
-          }),
-        };
-      },
-    );
+      return {
+        queued: await store.createDeployment({
+          projectId: project.id,
+          workspaceId: source.workspaceId,
+          provider: source.provider,
+          environment: source.environment,
+          status: 'QUEUED',
+          framework: source.framework,
+          buildCommand: source.buildCommand,
+          outputDirectory: source.outputDirectory,
+          branch: source.branch,
+          commitSha: source.commitSha,
+          customDomain: source.customDomain,
+          metadata: { ...source.metadata, redeployedFromId: source.id },
+          startedAt: new Date().toISOString(),
+          logs: [{ timestamp: new Date().toISOString(), level: 'info', message: `Redeploying from ${source.id}` }],
+        }),
+      };
+    });
 
     if ('conflict' in redeployResult) {
       return reply.code(409).send({
@@ -16487,36 +16499,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const rollback = await store.createDeployment({
-      projectId: project.id,
-      workspaceId: target.workspaceId,
-      provider: target.provider,
-      environment: target.environment,
-      status: 'READY',
-      url: target.url,
-      previewUrl: target.previewUrl,
-      productionUrl: target.productionUrl,
-      framework: target.framework,
-      buildCommand: target.buildCommand,
-      outputDirectory: target.outputDirectory,
-      branch: target.branch,
-      commitSha: target.commitSha,
-      customDomain: target.customDomain,
-      metadata: {
-        ...(target.metadata as Record<string, unknown>),
-        rollbackTargetId: target.id,
-        restoredProviderBuildId: (target.metadata as Record<string, unknown>)?.providerBuildId,
-      },
-      rolledBackFromId: target.id,
-      startedAt: new Date().toISOString(),
-      finishedAt: new Date().toISOString(),
-      logs: [
-        {
-          timestamp: new Date().toISOString(),
-          level: 'info',
-          message: `Rolled back to deployment ${target.id} (${target.provider} buildId=${(target.metadata as Record<string, unknown>)?.providerBuildId ?? 'unknown'}, url=${target.url ?? 'n/a'})`,
+    // A suspended org must not drive new deployment rows / provider rollbacks.
+    await requireOrganizationNotSuspended(store, project.organizationId);
+
+    /*
+     * Serialize quota + row creation at the org level (like create/redeploy) so
+     * concurrent rollbacks can't bypass deployments.count. Only the fast
+     * quota-check + createDeployment run under the lock — the external
+     * triggerProviderRollback below stays outside it to avoid holding the
+     * advisory-lock transaction across a network call.
+     */
+    const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+      await ensureQuota(request, project.organizationId, 'deployments.count');
+
+      return store.createDeployment({
+        projectId: project.id,
+        workspaceId: target.workspaceId,
+        provider: target.provider,
+        environment: target.environment,
+        status: 'READY',
+        url: target.url,
+        previewUrl: target.previewUrl,
+        productionUrl: target.productionUrl,
+        framework: target.framework,
+        buildCommand: target.buildCommand,
+        outputDirectory: target.outputDirectory,
+        branch: target.branch,
+        commitSha: target.commitSha,
+        customDomain: target.customDomain,
+        metadata: {
+          ...(target.metadata as Record<string, unknown>),
+          rollbackTargetId: target.id,
+          restoredProviderBuildId: (target.metadata as Record<string, unknown>)?.providerBuildId,
         },
-      ],
+        rolledBackFromId: target.id,
+        startedAt: new Date().toISOString(),
+        finishedAt: new Date().toISOString(),
+        logs: [
+          {
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            message: `Rolled back to deployment ${target.id} (${target.provider} buildId=${(target.metadata as Record<string, unknown>)?.providerBuildId ?? 'unknown'}, url=${target.url ?? 'n/a'})`,
+          },
+        ],
+      });
     });
     const providerRollback = deploymentProviders.includes(target.provider as (typeof deploymentProviders)[number])
       ? await triggerProviderRollback(
@@ -16739,9 +16765,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (active === false) {
       if (await isLastOwnerRemoval(store, orgId, membership)) {
-        return reply
-          .code(409)
-          .send({ error: 'Cannot deactivate the last organization owner', code: 'LAST_OWNER' });
+        return reply.code(409).send({ error: 'Cannot deactivate the last organization owner', code: 'LAST_OWNER' });
       }
 
       await store.removeMember(orgId, userId).catch(() => undefined);

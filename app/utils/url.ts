@@ -72,13 +72,29 @@ export function isPrivateIp(ip: string): boolean {
   }
 
   /*
-   * IPv4-mapped / -compatible IPv6 (e.g. ::ffff:169.254.169.254) — re-check the
-   * embedded v4 address against the private patterns.
+   * IPv4-mapped IPv6 in DOTTED form (::ffff:169.254.169.254) — re-check the
+   * embedded v4 against the private patterns.
    */
   const mappedV4 = addr.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
 
   if (addr.includes(':') && mappedV4 && PRIVATE_IP_PATTERNS.some((pattern) => pattern.test(mappedV4[1]))) {
     return true;
+  }
+
+  /*
+   * IPv4-mapped IPv6 in HEX-COMPRESSED form (::ffff:7f00:1). The WHATWG URL parser
+   * normalizes [::ffff:127.0.0.1] to this, so the dotted regex above misses it —
+   * decode the two hextets back to dotted-quad and re-check.
+   */
+  const hexMapped = addr.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+
+  if (hexMapped) {
+    const value = (parseInt(hexMapped[1], 16) << 16) | parseInt(hexMapped[2], 16);
+    const dotted = [(value >>> 24) & 0xff, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff].join('.');
+
+    if (PRIVATE_IP_PATTERNS.some((pattern) => pattern.test(dotted))) {
+      return true;
+    }
   }
 
   if (addr.includes(':')) {

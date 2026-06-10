@@ -10,10 +10,7 @@ import {
   type AgentRunRateLimiter,
   type RedisRateLimitClient,
 } from './agent-executor.js';
-import {
-  createDefaultAgentRunPersistence,
-  type AgentRunPersistence,
-} from './agent-run-persistence.js';
+import { createDefaultAgentRunPersistence, type AgentRunPersistence } from './agent-run-persistence.js';
 import { AiGateway, type AiChatRequest } from './gateway.js';
 
 export interface AiGatewayAppOptions {
@@ -129,6 +126,8 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
       !authorizeAgentRun({
         authorizationHeader: request.headers.authorization,
         expectedToken: env.ECODE_SUBAGENT_EXECUTOR_TOKEN,
+        // Only fail-open with no token outside production (local dev/test convenience).
+        allowInsecure: (env.NODE_ENV ?? 'production') !== 'production',
       })
     ) {
       return reply.code(401).send({ error: 'Unauthorized agent executor request.', code: 'AGENT_RUN_UNAUTHORIZED' });

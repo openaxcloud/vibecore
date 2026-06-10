@@ -27,10 +27,14 @@ const frontend: AgentRunRole = {
 
 describe('agent executor', () => {
   it('authorizes agent runs only when the bearer token matches the configured token', () => {
-    expect(authorizeAgentRun({ expectedToken: undefined })).toBe(true);
+    // No configured token fails CLOSED by default; only an explicit allowInsecure opts dev/test back open.
+    expect(authorizeAgentRun({ expectedToken: undefined })).toBe(false);
+    expect(authorizeAgentRun({ expectedToken: undefined, allowInsecure: true })).toBe(true);
     expect(authorizeAgentRun({ expectedToken: 'secret', authorizationHeader: 'Bearer secret' })).toBe(true);
     expect(authorizeAgentRun({ expectedToken: 'secret', authorizationHeader: 'Bearer wrong' })).toBe(false);
     expect(authorizeAgentRun({ expectedToken: 'secret' })).toBe(false);
+    // allowInsecure must NOT override a configured token.
+    expect(authorizeAgentRun({ expectedToken: 'secret', allowInsecure: true })).toBe(false);
   });
 
   it('validates agent run requests', () => {
@@ -138,7 +142,13 @@ describe('agent executor', () => {
     await expect(limiter.check('org_1')).resolves.toMatchObject({ allowed: true, remaining: 1, resetAt: 60_000 });
     await expect(limiter.check('org_1')).resolves.toMatchObject({ allowed: true, remaining: 0, resetAt: 60_000 });
     await expect(limiter.check('org_1')).resolves.toMatchObject({ allowed: false, remaining: 0, resetAt: 60_000 });
-    expect(redis.eval).toHaveBeenCalledWith(expect.any(String), 1, expect.stringMatching(/^test:agent-runs:/), '2', '10000');
+    expect(redis.eval).toHaveBeenCalledWith(
+      expect.any(String),
+      1,
+      expect.stringMatching(/^test:agent-runs:/),
+      '2',
+      '10000',
+    );
 
     now = 60_000;
 

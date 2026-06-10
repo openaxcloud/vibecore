@@ -66,10 +66,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
   const resolveAgent = options.resolveAgent ?? defaultResolveAgent(options, fetchImpl);
 
-  const handlePreviewRequest = async (
-    request: FastifyRequest<{ Params: PreviewRouteParams }>,
-    reply: FastifyReply,
-  ) => {
+  const handlePreviewRequest = async (request: FastifyRequest<{ Params: PreviewRouteParams }>, reply: FastifyReply) => {
     const params = request.params;
     const portNumber = Number(params.port);
 
@@ -160,9 +157,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       const upstreamResponse = await fetchImpl(upstream, {
         method: request.method,
         headers,
-        body: shouldStreamBody(request.method)
-          ? (request.raw as unknown as ReadableStream<Uint8Array>)
-          : undefined,
+        body: shouldStreamBody(request.method) ? (request.raw as unknown as ReadableStream<Uint8Array>) : undefined,
         signal: controller.signal,
         ...({ duplex: 'half' } as Record<string, unknown>),
       });
@@ -253,20 +248,30 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         // Too large to inject — stream the prefix already read, then the rest.
         const prefix = chunks;
         async function* passthrough() {
-          for (const chunk of prefix) {
-            yield chunk;
-          }
-
-          for (;;) {
-            const { done, value } = await reader.read();
-
-            if (done) {
-              break;
+          try {
+            for (const chunk of prefix) {
+              yield chunk;
             }
 
-            if (value) {
-              yield value;
+            for (;;) {
+              const { done, value } = await reader.read();
+
+              if (done) {
+                break;
+              }
+
+              if (value) {
+                yield value;
+              }
             }
+          } finally {
+            /*
+             * Cancel the upstream reader when the generator terminates — including
+             * early termination when the client disconnects and Readable.from()
+             * calls generator.return(). Without this the reader keeps its lock on
+             * the upstream body and the upstream socket is never released.
+             */
+            await reader.cancel().catch(() => {});
           }
         }
 

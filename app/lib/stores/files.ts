@@ -96,21 +96,7 @@ export class FilesStore {
     this.#runtime = runtime;
 
     // Load deleted paths from localStorage if available
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const deletedPathsJson = localStorage.getItem(this.#deletedPathsStorageKey());
-
-        if (deletedPathsJson) {
-          const deletedPaths = JSON.parse(deletedPathsJson);
-
-          if (Array.isArray(deletedPaths)) {
-            deletedPaths.forEach((path) => this.#deletedPaths.add(path));
-          }
-        }
-      }
-    } catch (error) {
-      logger.error('Failed to load deleted paths from localStorage', error);
-    }
+    this.#loadDeletedPaths();
 
     // Load locked files from localStorage
     this.#loadLockedFiles();
@@ -140,6 +126,11 @@ export class FilesStore {
           logger.info(`Chat ID changed from ${lastChatId} to ${currentChatId}, reloading locks`);
           lastChatId = currentChatId;
           this.#loadLockedFiles(currentChatId);
+
+          // Deleted-paths are chat-scoped too; swap to the new chat's set so the
+          // previous chat's deletions don't bleed into this one.
+          this.#deletedPaths = new Set();
+          this.#loadDeletedPaths();
         }
       }, 1000);
     }
@@ -1156,20 +1147,33 @@ export class FilesStore {
    * hiding legitimate files. Derive the scope from the current chat/project URL
    * segment so each project tracks its own deletions.
    */
-  #deletedPathsStorageKey() {
-    let scope = 'default';
-
+  #loadDeletedPaths() {
     try {
-      if (typeof window !== 'undefined') {
-        const segment = window.location.pathname.split('/').filter(Boolean).pop();
+      if (typeof localStorage !== 'undefined') {
+        const deletedPathsJson = localStorage.getItem(this.#deletedPathsStorageKey());
 
-        if (segment) {
-          scope = segment;
+        if (deletedPathsJson) {
+          const deletedPaths = JSON.parse(deletedPathsJson);
+
+          if (Array.isArray(deletedPaths)) {
+            deletedPaths.forEach((path) => this.#deletedPaths.add(path));
+          }
         }
       }
-    } catch {
-      // location unavailable (SSR/tests) — fall back to the default scope.
+    } catch (error) {
+      logger.error('Failed to load deleted paths from localStorage', error);
     }
+  }
+
+  #deletedPathsStorageKey() {
+    /*
+     * Scope by the canonical chat ID (the /chat/<id> segment), exactly like the
+     * file-lock store. The previous "last path segment" heuristic collided across
+     * routes: any two non-/chat pages (or a /chat/<id>/sub route) sharing a final
+     * segment would read/write the same deleted-paths set, leaking deletions
+     * between unrelated projects. getCurrentChatId() falls back to 'default'.
+     */
+    const scope = getCurrentChatId();
 
     return `bolt-deleted-paths:${scope}`;
   }

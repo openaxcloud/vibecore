@@ -233,11 +233,20 @@ function safeTokenEqual(left: string, right: string): boolean {
   return timingSafeEqual(leftBuffer, rightBuffer);
 }
 
-export function authorizeAgentRun(input: { authorizationHeader?: string | string[]; expectedToken?: string }): boolean {
+export function authorizeAgentRun(input: {
+  authorizationHeader?: string | string[];
+  expectedToken?: string;
+  allowInsecure?: boolean;
+}): boolean {
   const expectedToken = input.expectedToken?.trim();
 
   if (!expectedToken) {
-    return true;
+    /*
+     * Fail CLOSED when no executor token is configured. /v1/agent-runs triggers
+     * paid LLM agent runs, so an unset token must not silently open the endpoint
+     * to anyone. Only an explicit `allowInsecure` (dev/test) keeps it permissive.
+     */
+    return Boolean(input.allowInsecure);
   }
 
   const authorizationHeader = Array.isArray(input.authorizationHeader)

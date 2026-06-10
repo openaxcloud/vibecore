@@ -517,11 +517,9 @@ export class PrismaApiStore implements ApiStore {
      * direct access to every project they were invited to. Scoped to this org's
      * projects via the relational filter.
      */
-    await this.prisma.projectCollaborator
-      .deleteMany({ where: { userId, project: { organizationId } } })
-      .catch(() => {
-        // Best-effort offboarding cleanup; never block membership removal on it.
-      });
+    await this.prisma.projectCollaborator.deleteMany({ where: { userId, project: { organizationId } } }).catch(() => {
+      // Best-effort offboarding cleanup; never block membership removal on it.
+    });
 
     return mapMembership(membership);
   }
@@ -914,7 +912,12 @@ export class PrismaApiStore implements ApiStore {
 
       const updated = await this.prisma.projectIdeState.findUnique({ where: { projectId: input.projectId } });
 
-      return mapProjectIdeState(updated!);
+      if (!updated) {
+        // The row was deleted/archived between the updateMany and this read.
+        throw Object.assign(new Error('IDE state was concurrently deleted'), { code: 'IDE_STATE_NOT_FOUND' });
+      }
+
+      return mapProjectIdeState(updated);
     }
 
     return mapProjectIdeState(
@@ -962,7 +965,12 @@ export class PrismaApiStore implements ApiStore {
 
       const updated = await this.prisma.workspaceIdeState.findUnique({ where: { workspaceId: input.workspaceId } });
 
-      return mapWorkspaceIdeState(updated!);
+      if (!updated) {
+        // The row was deleted/archived between the updateMany and this read.
+        throw Object.assign(new Error('IDE state was concurrently deleted'), { code: 'IDE_STATE_NOT_FOUND' });
+      }
+
+      return mapWorkspaceIdeState(updated);
     }
 
     return mapWorkspaceIdeState(
@@ -1437,8 +1445,7 @@ export class PrismaApiStore implements ApiStore {
      * this update sets a status, restrict the WHERE to non-terminal rows; if it
      * matches nothing the row is left as-is and returned unchanged.
      */
-    const statusGuard =
-      input.status !== undefined ? { status: { notIn: ['READY', 'FAILED', 'CANCELED'] as any } } : {};
+    const statusGuard = input.status !== undefined ? { status: { notIn: ['READY', 'FAILED', 'CANCELED'] as any } } : {};
 
     await this.prisma.deployment.updateMany({
       where: { id: deploymentId, projectId, ...statusGuard },

@@ -53,9 +53,7 @@ function scriptedGateway(scripts: Record<AgentRoleId, RoleScript>): AiGateway {
     complete: async (request: { messages: Array<{ role: string; content: string }> }) => {
       calls.push(request);
       const systemMessage = request.messages.find((m) => m.role === 'system')?.content ?? '';
-      const role = (Object.keys(scripts) as AgentRoleId[]).find((r) =>
-        systemMessage.toLowerCase().includes(r),
-      );
+      const role = (Object.keys(scripts) as AgentRoleId[]).find((r) => systemMessage.toLowerCase().includes(r));
       const script = role ? scripts[role] : scripts.architect;
       return {
         provider: 'openai',
@@ -85,7 +83,7 @@ describe('parallel-subagents E2E with consensus', () => {
     const app = await buildAiGatewayApp({
       gateway: scriptedGateway(fiveRoleScripts),
       logger: false,
-      env: {},
+      env: { NODE_ENV: 'test' },
       agentRunPersistence: null,
     });
 
@@ -111,9 +109,7 @@ describe('parallel-subagents E2E with consensus', () => {
 
     // 4 of 5 roles list "service mesh adds 30ms" risk → should be accepted
     // (4/5 = 0.8 >= 0.66 threshold)
-    const meshRisk = body.consensus.claimVotes.find(
-      (vote) => vote.type === 'risk' && /service mesh/i.test(vote.claim),
-    );
+    const meshRisk = body.consensus.claimVotes.find((vote) => vote.type === 'risk' && /service mesh/i.test(vote.claim));
     expect(meshRisk).toBeTruthy();
     expect(meshRisk!.decision).toBe('accepted');
     expect(meshRisk!.supporters.sort()).toEqual(['architect', 'backend', 'devops', 'qa'].sort());
@@ -170,7 +166,7 @@ describe('parallel-subagents E2E with consensus', () => {
     const app = await buildAiGatewayApp({
       gateway: scriptedGateway(uniform),
       logger: false,
-      env: {},
+      env: { NODE_ENV: 'test' },
       agentRunPersistence: null,
     });
 
@@ -200,7 +196,7 @@ describe('parallel-subagents E2E with consensus', () => {
     const app = await buildAiGatewayApp({
       gateway: scriptedGateway(overlapping),
       logger: false,
-      env: {},
+      env: { NODE_ENV: 'test' },
       agentRunPersistence: null,
     });
 
@@ -245,7 +241,7 @@ describe('parallel-subagents E2E with consensus', () => {
     const app = await buildAiGatewayApp({
       gateway: flakyGateway,
       logger: false,
-      env: {},
+      env: { NODE_ENV: 'test' },
       agentRunPersistence: null,
     });
 

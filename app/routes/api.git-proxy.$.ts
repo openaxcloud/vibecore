@@ -79,6 +79,7 @@ function isSafeProxyTarget(rawUrl: string): boolean {
     host === 'localhost' ||
     host === '0.0.0.0' ||
     host === '::1' ||
+    host === '::' ||
     host === '[::1]' ||
     host.endsWith('.localhost') ||
     host.endsWith('.internal') ||
@@ -109,6 +110,18 @@ function canonicalizeProxyHost(rawHost: string): string {
 
   if (mapped) {
     return mapped[1];
+  }
+
+  /*
+   * IPv4-mapped IPv6 in HEX-COMPRESSED form (::ffff:7f00:1). The WHATWG URL parser
+   * normalizes [::ffff:127.0.0.1] to this hex form, which the dotted regex above
+   * misses — decode the two hextets back to dotted-quad so the blocklist applies.
+   */
+  const hexMapped = host.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+
+  if (hexMapped) {
+    const value = (parseInt(hexMapped[1], 16) << 16) | parseInt(hexMapped[2], 16);
+    return [(value >>> 24) & 0xff, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff].join('.');
   }
 
   let asInt: number | undefined;

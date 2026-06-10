@@ -34,7 +34,13 @@ spec:
         app.kubernetes.io/part-of: vibecore
     spec:
       serviceAccountName: {{ include "vibecore-platform.fullname" $ }}-{{ kebabcase $name }}
-      automountServiceAccountToken: true
+      # Only workspace-manager talks to the Kubernetes API server (it creates and
+      # deletes workspace pods/PVCs via @vibecore/k8s-client). Every other service
+      # is a stateless HTTP app that never calls the API, so mounting the SA token
+      # into those pods only widens the attack surface. Computed from the service
+      # name in-template so it survives `helm upgrade --reuse-values`, which ignores
+      # newly-added values keys.
+      automountServiceAccountToken: {{ if has $name (list "workspaceManager") }}true{{ else }}false{{ end }}
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

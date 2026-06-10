@@ -87,7 +87,7 @@ describe('AI gateway app', () => {
     const app = await buildAiGatewayApp({
       gateway: fakeGateway(),
       logger: false,
-      env: { ECODE_SUBAGENT_EXECUTOR_RATE_LIMIT_PER_MINUTE: '1' },
+      env: { ECODE_SUBAGENT_EXECUTOR_RATE_LIMIT_PER_MINUTE: '1', NODE_ENV: 'test' },
       agentRunPersistence: null,
     });
 
@@ -109,7 +109,7 @@ describe('AI gateway app', () => {
     const app = await buildAiGatewayApp({
       gateway: fakeGateway(),
       logger: false,
-      env: { ECODE_SUBAGENT_EXECUTOR_RATE_LIMIT_PER_MINUTE: '9' },
+      env: { ECODE_SUBAGENT_EXECUTOR_RATE_LIMIT_PER_MINUTE: '9', NODE_ENV: 'test' },
       agentRunRateLimiter: limiter,
       agentRunPersistence: null,
     });
@@ -124,7 +124,12 @@ describe('AI gateway app', () => {
   });
 
   it('rejects invalid agent-run payloads before provider execution', async () => {
-    const app = await buildAiGatewayApp({ gateway: fakeGateway(), logger: false, env: {}, agentRunPersistence: null });
+    const app = await buildAiGatewayApp({
+      gateway: fakeGateway(),
+      logger: false,
+      env: { NODE_ENV: 'test' },
+      agentRunPersistence: null,
+    });
     const response = await app.inject({
       method: 'POST',
       url: '/v1/agent-runs',
