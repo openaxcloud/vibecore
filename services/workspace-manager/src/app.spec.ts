@@ -4,7 +4,12 @@ import { buildWorkspaceManagerApp } from './app.js';
 import { WorkspaceManager, type EventBus, type WorkspaceRecord, type WorkspaceStore } from './manager.js';
 import type { WorkspaceEvent } from '@vibecore/workspace-sdk';
 
-const ENV_KEYS = ['WORKSPACE_RUNTIME_NAMESPACE', 'PREVIEW_PROXY_SHARED_SECRET', 'WORKSPACE_AGENT_URL_TEMPLATE'] as const;
+const ENV_KEYS = [
+  'WORKSPACE_RUNTIME_NAMESPACE',
+  'PREVIEW_PROXY_SHARED_SECRET',
+  'WORKSPACE_MANAGER_SHARED_SECRET',
+  'WORKSPACE_AGENT_URL_TEMPLATE',
+] as const;
 
 class TestWorkspaceStore implements WorkspaceStore {
   readonly workspaces = new Map<string, WorkspaceRecord>();
@@ -128,7 +133,8 @@ describe('workspace-manager app', () => {
 
   it('requires the shared secret on control-plane routes when one is configured', async () => {
     process.env.WORKSPACE_RUNTIME_NAMESPACE = 'prod-workspaces';
-    process.env.PREVIEW_PROXY_SHARED_SECRET = 'cp-secret';
+    // Control plane now requires the DEDICATED secret (no PREVIEW_PROXY fallback).
+    process.env.WORKSPACE_MANAGER_SHARED_SECRET = 'cp-secret';
     const runtime = manager();
     const app = buildWorkspaceManagerApp(runtime.manager);
 

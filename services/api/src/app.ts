@@ -7857,12 +7857,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let response: Response;
 
     /*
-     * The workspace manager gates its control-plane routes behind a shared secret
-     * (WORKSPACE_MANAGER_SHARED_SECRET, falling back to PREVIEW_PROXY_SHARED_SECRET).
-     * Forward it as a bearer so authenticated api→manager calls succeed.
+     * The workspace manager gates its control-plane routes behind a dedicated
+     * WORKSPACE_MANAGER_SHARED_SECRET. The fallback to PREVIEW_PROXY_SHARED_SECRET
+     * was removed (the distinct secret is now provisioned) so the broadly-shared
+     * preview secret can no longer authenticate control-plane calls.
      */
-    const managerSecret =
-      process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim() || process.env.PREVIEW_PROXY_SHARED_SECRET?.trim();
+    const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
     const { init: timedInit, done } = withRequestTimeout(init);
 

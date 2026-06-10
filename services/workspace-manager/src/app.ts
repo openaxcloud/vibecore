@@ -90,10 +90,13 @@ function secretsMatch(a: string, b: string): boolean {
  * so local/dev and tests keep working without a secret.
  */
 function controlPlaneSecret(): string | undefined {
-  return (
-    normalizeSharedSecret(process.env.WORKSPACE_MANAGER_SHARED_SECRET) ??
-    normalizeSharedSecret(process.env.PREVIEW_PROXY_SHARED_SECRET)
-  );
+  /*
+   * Control plane requires a DEDICATED WORKSPACE_MANAGER_SHARED_SECRET. The old
+   * fallback to PREVIEW_PROXY_SHARED_SECRET meant the (more widely-shared) preview
+   * secret could mint agent tokens / start/stop/delete workspaces. The distinct
+   * secret is now provisioned in the cluster secret, so the fallback is removed.
+   */
+  return normalizeSharedSecret(process.env.WORKSPACE_MANAGER_SHARED_SECRET);
 }
 
 export function buildWorkspaceManagerApp(manager: WorkspaceManager) {

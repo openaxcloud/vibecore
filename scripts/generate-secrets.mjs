@@ -10,6 +10,10 @@ const keys = [
   { name: 'COOKIE_SECRET', bytes: 64 },
   { name: 'CONFIG_ENCRYPTION_KEY', bytes: 32 },
   { name: 'WORKSPACE_AGENT_TOKEN_SECRET', bytes: 64 },
+  // Dedicated control-plane secret for api↔workspace-manager. Must be DISTINCT
+  // from PREVIEW_PROXY_SHARED_SECRET (the manager no longer falls back to it),
+  // so re-provisioning must include this key or the control plane fails closed.
+  { name: 'WORKSPACE_MANAGER_SHARED_SECRET', bytes: 48 },
   { name: 'BACKUP_ENCRYPTION_KEY', bytes: 32 },
   { name: 'SIEM_SIGNING_SECRET', bytes: 32 },
 ];
