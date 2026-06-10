@@ -1,45 +1,10 @@
-import { lookup as dnsLookup } from 'node:dns';
 import { lookup } from 'node:dns/promises';
-import { request as httpRequest } from 'node:http';
-import { request as httpsRequest } from 'node:https';
 import { json } from '@remix-run/cloudflare';
 import type { ActionFunctionArgs } from '@remix-run/cloudflare';
 import { isAllowedUrl, isPrivateIp } from '~/utils/url';
 
 const MAX_CONTENT_LENGTH = 8000;
 const MAX_REDIRECTS = 5;
-const MAX_FETCH_BYTES = 5 * 1024 * 1024;
-const FETCH_TIMEOUT_MS = 10_000;
-
-/*
- * Connect-time DNS validation. The pre-fetch assertHostAllowed() check resolves
- * + validates the host, but global fetch re-resolves DNS independently right
- * before connecting — so a public→private rebind (attacker domain, TTL=0) could
- * slip an internal IP past the pre-check. By using node:http(s) with a custom
- * `lookup` that re-validates EVERY resolved address at the moment of connection,
- * the socket can only ever connect to a public IP — closing the TOCTOU window.
- */
-export function validatingLookup(
-  hostname: string,
-  options: unknown,
-  callback: (err: NodeJS.ErrnoException | null, address?: string, family?: number) => void,
-): void {
-  dnsLookup(hostname, { all: true }, (err, addresses) => {
-    if (err) {
-      callback(err);
-      return;
-    }
-
-    const list = Array.isArray(addresses) ? addresses : [];
-
-    if (list.length === 0 || list.some((entry) => isPrivateIp(entry.address))) {
-      callback(Object.assign(new Error('Resolved to a disallowed (internal) address'), { code: 'SSRF_BLOCKED' }));
-      return;
-    }
-
-    callback(null, list[0].address, list[0].family);
-  });
-}
 
 const FETCH_HEADERS = {
   'User-Agent':
@@ -110,36 +75,72 @@ async function assertHostAllowed(rawUrl: string): Promise<{ ok: true } | { ok: f
   return { ok: true };
 }
 
+const MAX_FETCH_BYTES = 5 * 1024 * 1024;
+
 type SafeFetchResult =
   | { ok: true; status: number; statusText: string; contentType: string; html: string }
   | { ok: false; status: number; error: string };
 
 /**
- * One HTTP(S) GET via node:http(s) with the connect-time-validating lookup, a
- * hard timeout, and a streamed body cap. Returns either a redirect Location or
- * the (capped) body. Built on node modules so we can pin DNS validation to the
- * actual socket connection — global fetch offers no per-connection lookup hook.
+ * One HTTP(S) GET with connect-time DNS validation. node:* modules are imported
+ * DYNAMICALLY inside this server-only function — a static top-level `node:dns` /
+ * `node:http` import makes the vite client build fail ("externalized for browser
+ * compatibility"), whereas a runtime import is left alone in the SSR bundle and
+ * tree-shaken from the client one.
+ *
+ * The custom `lookup` re-validates EVERY resolved address at the moment of
+ * connection, so a public→private DNS rebind (attacker domain, TTL=0) between the
+ * pre-fetch assertHostAllowed() check and the actual connect can't reach an
+ * internal host — closing the TOCTOU that global fetch (no per-connection lookup
+ * hook) left open.
  */
-function httpGetOnce(
+async function httpGetOnce(
   targetUrl: string,
 ): Promise<
   | { kind: 'redirect'; location: string }
   | { kind: 'body'; status: number; statusText: string; contentType: string; html: string }
   | { kind: 'too-large' }
 > {
+  const [{ lookup: dnsLookup }, { request: httpRequest }, { request: httpsRequest }] = await Promise.all([
+    import('node:dns'),
+    import('node:http'),
+    import('node:https'),
+  ]);
+
+  const validatingLookup = (
+    hostname: string,
+    _options: unknown,
+    callback: (err: NodeJS.ErrnoException | null, address?: string, family?: number) => void,
+  ): void => {
+    dnsLookup(hostname, { all: true }, (err, addresses) => {
+      if (err) {
+        callback(err);
+        return;
+      }
+
+      const list = Array.isArray(addresses) ? addresses : [];
+
+      if (list.length === 0 || list.some((entry) => isPrivateIp(entry.address))) {
+        callback(Object.assign(new Error('Resolved to a disallowed (internal) address'), { code: 'SSRF_BLOCKED' }));
+        return;
+      }
+
+      callback(null, list[0].address, list[0].family);
+    });
+  };
+
   return new Promise((resolve, reject) => {
-    const parsed = new URL(targetUrl);
-    const requestImpl = parsed.protocol === 'https:' ? httpsRequest : httpRequest;
+    const requestImpl = new URL(targetUrl).protocol === 'https:' ? httpsRequest : httpRequest;
 
     const req = requestImpl(
       targetUrl,
-      { method: 'GET', headers: FETCH_HEADERS, lookup: validatingLookup as never, timeout: FETCH_TIMEOUT_MS },
+      { method: 'GET', headers: FETCH_HEADERS, lookup: validatingLookup as never, timeout: 10_000 },
       (res) => {
         const status = res.statusCode ?? 0;
         const location = res.headers.location;
 
         if (status >= 300 && status < 400 && typeof location === 'string' && location) {
-          res.resume(); // drain so the socket is freed
+          res.resume();
           resolve({ kind: 'redirect', location });
 
           return;
@@ -163,7 +164,6 @@ function httpGetOnce(
 
           if (total > MAX_FETCH_BYTES) {
             res.destroy();
-
             return;
           }
 
@@ -191,7 +191,7 @@ function httpGetOnce(
 /**
  * Fetch following redirects manually so every hop's destination is re-validated
  * against the SSRF allow-list (scheme/host) AND connect-time-validated (resolved
- * IP), closing both the open-redirect and the DNS-rebinding TOCTOU windows.
+ * IP), closing both the open-redirect and DNS-rebinding windows.
  */
 async function safeFetch(initialUrl: string): Promise<SafeFetchResult> {
   let currentUrl = initialUrl;
