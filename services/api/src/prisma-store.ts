@@ -108,6 +108,20 @@ export class PrismaApiStore implements ApiStore {
     await this.prisma.$queryRaw`SELECT 1`;
   }
 
+  async withSerializedMutation<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    /*
+     * Hold a transaction-scoped advisory lock for the duration of `fn`. A second
+     * caller with the same key blocks on pg_advisory_xact_lock until this
+     * transaction commits, so the wrapped check-then-mutate runs serially across
+     * all pods. `fn`'s own queries use the pooled client and observe committed
+     * state because the prior holder commits before the lock is granted.
+     */
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', key);
+      return fn();
+    });
+  }
+
   async createUser(input: {
     email: string;
     name?: string;

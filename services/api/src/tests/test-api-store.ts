@@ -141,6 +141,11 @@ export class TestApiStore implements ApiStore {
     // In-memory store is always reachable.
   }
 
+  async withSerializedMutation<T>(_key: string, fn: () => Promise<T>): Promise<T> {
+    // Single-process test store — no cross-pod lock needed; just run the section.
+    return fn();
+  }
+
   async createUser(input: { email: string; name?: string; passwordHash: string; platformAdmin?: boolean }) {
     const user = {
       id: id('user'),

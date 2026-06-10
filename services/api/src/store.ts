@@ -612,6 +612,14 @@ export interface ApiStore {
    * inferring it from environment-variable presence.
    */
   ping(): Promise<void>;
+  /**
+   * Serialize a read-modify-write critical section across all pods using a
+   * Postgres transaction-scoped advisory lock keyed by `key`. Concurrent callers
+   * with the same key run strictly one-at-a-time, so check-then-mutate guards
+   * (last-owner / last-admin / quota) can't be defeated by a TOCTOU race. The
+   * callback should be short (it runs while the lock is held).
+   */
+  withSerializedMutation<T>(key: string, fn: () => Promise<T>): Promise<T>;
   createUser(input: {
     email: string;
     name?: string;

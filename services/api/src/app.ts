@@ -11028,11 +11028,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireAdminMfaForSensitiveAction(request);
     await requireRecentAdminReauth(request);
 
-    if (!body.platformAdmin) {
-      await assertNotLastPlatformAdmin(store, userId);
-    }
-
-    const user = await store.updateUser({ userId, platformAdmin: body.platformAdmin });
+    /*
+     * Serialize the last-admin check + revoke so two concurrent revokes can't
+     * both pass assertNotLastPlatformAdmin and leave the platform with zero
+     * administrators (TOCTOU). Grants don't need the guard.
+     */
+    const user = body.platformAdmin
+      ? await store.updateUser({ userId, platformAdmin: true })
+      : await store.withSerializedMutation('platform-admin', async () => {
+          await assertNotLastPlatformAdmin(store, userId);
+          return store.updateUser({ userId, platformAdmin: false });
+        });
     await audit(request, store, {
       action: body.platformAdmin ? 'admin.platform_admin.grant' : 'admin.platform_admin.revoke',
       resourceType: 'user',
@@ -11140,15 +11146,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Membership not found', code: 'MEMBERSHIP_NOT_FOUND' });
     }
 
-    if (existing.roleKey === 'owner' && body.roleKey !== 'owner') {
-      const owners = (await store.listMembers(orgId)).filter((member) => member.roleKey === 'owner');
+    /*
+     * Serialize the last-owner check + role change so two concurrent demotions
+     * can't both pass the owners.length>1 check and leave the org owner-less
+     * (TOCTOU). Only the owner→non-owner demotion needs the guard.
+     */
+    let membership;
 
-      if (owners.length <= 1) {
+    if (existing.roleKey === 'owner' && body.roleKey !== 'owner') {
+      const result = await store.withSerializedMutation(`org-members:${orgId}`, async () => {
+        const owners = (await store.listMembers(orgId)).filter((m) => m.roleKey === 'owner');
+
+        if (owners.length <= 1) {
+          return { conflict: true as const };
+        }
+
+        return { membership: await store.addMember({ organizationId: orgId, userId, roleKey: body.roleKey }) };
+      });
+
+      if ('conflict' in result) {
         return reply.code(409).send({ error: 'Cannot demote the last organization owner', code: 'LAST_OWNER' });
       }
+
+      membership = result.membership;
+    } else {
+      membership = await store.addMember({ organizationId: orgId, userId, roleKey: body.roleKey });
     }
 
-    const membership = await store.addMember({ organizationId: orgId, userId, roleKey: body.roleKey });
     await audit(request, store, {
       organizationId: orgId,
       action: 'member.updateRole',
@@ -11169,15 +11193,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Membership not found', code: 'MEMBERSHIP_NOT_FOUND' });
     }
 
-    if (existing.roleKey === 'owner') {
-      const owners = (await store.listMembers(orgId)).filter((member) => member.roleKey === 'owner');
+    /*
+     * Serialize the last-owner check + removal so concurrent removals can't both
+     * pass the guard and leave the org with zero owners (TOCTOU).
+     */
+    let membership;
 
-      if (owners.length <= 1) {
+    if (existing.roleKey === 'owner') {
+      const result = await store.withSerializedMutation(`org-members:${orgId}`, async () => {
+        const owners = (await store.listMembers(orgId)).filter((m) => m.roleKey === 'owner');
+
+        if (owners.length <= 1) {
+          return { conflict: true as const };
+        }
+
+        return { membership: await store.removeMember(orgId, userId) };
+      });
+
+      if ('conflict' in result) {
         return reply.code(409).send({ error: 'Cannot remove the last organization owner', code: 'LAST_OWNER' });
       }
+
+      membership = result.membership;
+    } else {
+      membership = await store.removeMember(orgId, userId);
     }
 
-    const membership = await store.removeMember(orgId, userId);
     await audit(request, store, {
       organizationId: orgId,
       action: 'member.remove',
@@ -15901,45 +15942,59 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Reject a new deploy while one is already in flight for the same project +
      * workspace. Concurrent builds share the same build CWD/node_modules and
      * would clobber each other's install/output; a second build could also flip
-     * the record READY while the first is still building.
+     * the record READY while the first is still building. Serialize the
+     * check + create per project+workspace so two simultaneous requests can't
+     * both pass the in-flight guard (and both consume deploy quota) via a TOCTOU.
      */
-    const existingDeployments = await store.listDeployments(project.id);
-    const inFlight = existingDeployments.find(
-      (deployment) =>
-        (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') &&
-        (deployment.workspaceId ?? undefined) === persistedWorkspaceId,
+    const createResult = await store.withSerializedMutation(
+      `deploy:${project.id}:${persistedWorkspaceId ?? ''}`,
+      async () => {
+        const inFlight = (await store.listDeployments(project.id)).find(
+          (deployment) =>
+            (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') &&
+            (deployment.workspaceId ?? undefined) === persistedWorkspaceId,
+        );
+
+        if (inFlight) {
+          return { conflict: true as const, deploymentId: inFlight.id };
+        }
+
+        return {
+          queued: await store.createDeployment({
+            projectId: project.id,
+            workspaceId: persistedWorkspaceId,
+            provider: body.provider,
+            environment: body.environment,
+            status: 'QUEUED',
+            framework: detectFramework(body),
+            buildCommand: body.buildCommand,
+            outputDirectory: body.outputDirectory,
+            branch: body.githubIntegration?.branch ?? body.branch,
+            commitSha: body.commitSha,
+            customDomain: body.customDomain,
+            metadata: {
+              previewDeployment: body.previewDeployment,
+              timeoutSeconds: body.timeoutSeconds,
+              artifactSizeLimitMb: body.artifactSizeLimitMb,
+              githubIntegration: body.githubIntegration,
+              envVars: sanitizeDeploymentEnvVars(body.envVars),
+              injectedSecrets: body.injectSecrets,
+            },
+            startedAt: new Date().toISOString(),
+          }),
+        };
+      },
     );
 
-    if (inFlight) {
+    if ('conflict' in createResult) {
       return reply.code(409).send({
         error: 'A deployment is already in progress for this project',
         code: 'DEPLOYMENT_IN_PROGRESS',
-        deploymentId: inFlight.id,
+        deploymentId: createResult.deploymentId,
       });
     }
 
-    const queued = await store.createDeployment({
-      projectId: project.id,
-      workspaceId: persistedWorkspaceId,
-      provider: body.provider,
-      environment: body.environment,
-      status: 'QUEUED',
-      framework: detectFramework(body),
-      buildCommand: body.buildCommand,
-      outputDirectory: body.outputDirectory,
-      branch: body.githubIntegration?.branch ?? body.branch,
-      commitSha: body.commitSha,
-      customDomain: body.customDomain,
-      metadata: {
-        previewDeployment: body.previewDeployment,
-        timeoutSeconds: body.timeoutSeconds,
-        artifactSizeLimitMb: body.artifactSizeLimitMb,
-        githubIntegration: body.githubIntegration,
-        envVars: sanitizeDeploymentEnvVars(body.envVars),
-        injectedSecrets: body.injectSecrets,
-      },
-      startedAt: new Date().toISOString(),
-    });
+    const queued = createResult.queued;
 
     const hookResult = await triggerProviderDeployHook(body.provider);
 
