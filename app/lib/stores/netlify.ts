@@ -53,6 +53,7 @@ export async function initializeNetlifyConnection() {
       headers: {
         Authorization: `Bearer ${envToken}`,
       },
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!response.ok) {
@@ -103,6 +104,7 @@ export async function fetchNetlifyStats(token: string) {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!sitesResponse.ok) {

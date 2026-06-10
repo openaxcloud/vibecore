@@ -1,5 +1,6 @@
 import { json } from '@remix-run/cloudflare';
 import { withSecurity } from '~/lib/security';
+import { isSafeGitForgeUrl } from '~/utils/url';
 
 interface GitLabBranch {
   name: string;
@@ -21,41 +22,12 @@ interface BranchInfo {
 }
 
 /*
- * Reject URLs that resolve to private/internal hosts so a caller can't make the
- * server send its bearer token to an arbitrary internal endpoint (SSRF).
+ * SSRF guard for the user-supplied gitlabUrl (the user's bearer token is attached
+ * to the outbound request). isSafeGitForgeUrl is IPv6-aware — blocks bracketed
+ * IPv6 / IPv4-mapped-IPv6 / ULA / link-local that the old string-prefix check let
+ * through — and shared with api.gitlab-projects.ts.
  */
-function isSafeGitLabUrl(rawUrl: string): boolean {
-  let url: URL;
-
-  try {
-    url = new URL(rawUrl);
-  } catch {
-    return false;
-  }
-
-  if (url.protocol !== 'https:') {
-    return false;
-  }
-
-  const host = url.hostname.toLowerCase();
-
-  if (
-    host === 'localhost' ||
-    host === '0.0.0.0' ||
-    host.endsWith('.localhost') ||
-    host.endsWith('.internal') ||
-    host.endsWith('.local') ||
-    /^127\./.test(host) ||
-    /^10\./.test(host) ||
-    /^192\.168\./.test(host) ||
-    /^169\.254\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
-  ) {
-    return false;
-  }
-
-  return true;
-}
+const isSafeGitLabUrl = isSafeGitForgeUrl;
 
 async function gitlabBranchesLoader({ request }: { request: Request }) {
   try {

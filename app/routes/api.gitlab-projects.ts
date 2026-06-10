@@ -1,46 +1,17 @@
 import { json } from '@remix-run/cloudflare';
 import { withSecurity } from '~/lib/security';
 import type { GitLabProjectInfo } from '~/types/GitLab';
+import { isSafeGitForgeUrl } from '~/utils/url';
 
 /*
  * SSRF guard: gitlabUrl is attacker-controlled and the user's GitLab token is
  * attached to the outbound request, so an attacker could point it at an internal
  * address (cloud metadata, in-cluster services) to reach internal hosts AND
- * exfiltrate the bearer token. Allow only https public hosts. Mirrors
- * isSafeGitLabUrl in api.gitlab-branches.ts.
+ * exfiltrate the bearer token. isSafeGitForgeUrl is IPv6-aware (blocks bracketed
+ * IPv6 / IPv4-mapped-IPv6 / ULA / link-local that the old string-prefix check
+ * missed) and shared with api.gitlab-branches.ts.
  */
-function isSafeGitLabUrl(rawUrl: string): boolean {
-  let url: URL;
-
-  try {
-    url = new URL(rawUrl);
-  } catch {
-    return false;
-  }
-
-  if (url.protocol !== 'https:') {
-    return false;
-  }
-
-  const host = url.hostname.toLowerCase();
-
-  if (
-    host === 'localhost' ||
-    host === '0.0.0.0' ||
-    host.endsWith('.localhost') ||
-    host.endsWith('.internal') ||
-    host.endsWith('.local') ||
-    /^127\./.test(host) ||
-    /^10\./.test(host) ||
-    /^192\.168\./.test(host) ||
-    /^169\.254\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
-  ) {
-    return false;
-  }
-
-  return true;
-}
+const isSafeGitLabUrl = isSafeGitForgeUrl;
 
 interface GitLabProject {
   id: number;

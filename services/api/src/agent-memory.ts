@@ -332,32 +332,62 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
       references: string[];
     },
   ) {
-    const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
-      `INSERT INTO "AgentMemory"
-       ("id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "embedding", "embeddingModel", "embeddingDimensions", "metadata", "memoryType", "tags", "references", "importance", "source", "expiresAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::vector, $10, $11, $12::jsonb, $13, $14::text[], $15::text[], $16, $17, $18)
-       RETURNING "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "memoryType", "tags", "references", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt", "accessCount"`,
-      input.id,
-      input.userId,
-      input.organizationId ?? null,
-      input.projectId ?? null,
-      input.sessionId ?? null,
-      input.scope,
-      input.content,
-      input.summary,
-      vectorLiteral(input.embedding),
-      input.embeddingModel,
-      input.embeddingDimensions,
-      JSON.stringify(input.metadata ?? {}),
-      input.memoryType,
-      input.tags,
-      input.references,
-      input.importance ?? 0.5,
-      input.source,
-      input.expiresAt ? new Date(input.expiresAt) : null,
-    );
+    /*
+     * Enforce the per-user+scope cap ATOMICALLY: hold a transaction-scoped
+     * advisory lock keyed by user+scope, re-count inside it, then insert. Without
+     * this, concurrent remember() calls each read the same sub-limit count and all
+     * insert, exceeding AGENT_MEMORY_SCOPE_LIMIT (TOCTOU). The embedding is already
+     * computed by the caller, so this transaction is short (count + insert only).
+     */
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        `agent-memory:${input.userId}:${input.scope}`,
+      );
 
-    return rowToMemory(rows[0]);
+      const countRows = await tx.$queryRawUnsafe<Array<{ c: bigint | number }>>(
+        `SELECT COUNT(*)::bigint AS c FROM "AgentMemory"
+         WHERE "userId" = $1 AND "scope" = $2 AND "archivedAt" IS NULL
+           AND ("expiresAt" IS NULL OR "expiresAt" > CURRENT_TIMESTAMP)
+           AND ($3::text IS NULL OR "organizationId" = $3)
+           AND ($4::text IS NULL OR "projectId" = $4)`,
+        input.userId,
+        input.scope,
+        input.organizationId ?? null,
+        input.projectId ?? null,
+      );
+
+      if (Number(countRows[0]?.c ?? 0) >= AGENT_MEMORY_SCOPE_LIMIT) {
+        throw Object.assign(new Error('Agent memory scope limit reached'), { code: 'AGENT_MEMORY_QUOTA' });
+      }
+
+      const rows = await tx.$queryRawUnsafe<Array<Record<string, any>>>(
+        `INSERT INTO "AgentMemory"
+         ("id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "embedding", "embeddingModel", "embeddingDimensions", "metadata", "memoryType", "tags", "references", "importance", "source", "expiresAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::vector, $10, $11, $12::jsonb, $13, $14::text[], $15::text[], $16, $17, $18)
+         RETURNING "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "memoryType", "tags", "references", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt", "accessCount"`,
+        input.id,
+        input.userId,
+        input.organizationId ?? null,
+        input.projectId ?? null,
+        input.sessionId ?? null,
+        input.scope,
+        input.content,
+        input.summary,
+        vectorLiteral(input.embedding),
+        input.embeddingModel,
+        input.embeddingDimensions,
+        JSON.stringify(input.metadata ?? {}),
+        input.memoryType,
+        input.tags,
+        input.references,
+        input.importance ?? 0.5,
+        input.source,
+        input.expiresAt ? new Date(input.expiresAt) : null,
+      );
+
+      return rowToMemory(rows[0]);
+    });
   }
 
   async update(input: {
@@ -780,23 +810,33 @@ export class AgentMemoryService {
       return { skipped: 'quota_exceeded' };
     }
 
-    return {
-      memory: await this.repository.create({
-        ...input,
-        id: randomUUID(),
-        content,
-        summary,
-        embedding,
-        embeddingModel: this.embeddings.model,
-        embeddingDimensions: this.embeddings.dimensions,
-        memoryType,
-        tags,
-        references,
-        metadata,
-        importance,
-      }),
-      updated: false,
-    };
+    try {
+      return {
+        memory: await this.repository.create({
+          ...input,
+          id: randomUUID(),
+          content,
+          summary,
+          embedding,
+          embeddingModel: this.embeddings.model,
+          embeddingDimensions: this.embeddings.dimensions,
+          memoryType,
+          tags,
+          references,
+          metadata,
+          importance,
+        }),
+        updated: false,
+      };
+    } catch (error) {
+      // create() enforces the cap atomically; a concurrent writer may have filled
+      // the scope after the pre-check above — surface it as a clean skip, not a 500.
+      if ((error as { code?: string } | undefined)?.code === 'AGENT_MEMORY_QUOTA') {
+        return { skipped: 'quota_exceeded' };
+      }
+
+      throw error;
+    }
   }
 
   async replace(input: {

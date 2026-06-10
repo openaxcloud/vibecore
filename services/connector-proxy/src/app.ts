@@ -231,12 +231,18 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
       return reply.send();
     }
 
-    const contentType = upstreamResponse.headers.get('content-type') ?? '';
     const contentLength = Number(upstreamResponse.headers.get('content-length') ?? '0');
+    const MAX_BUFFER_BYTES = 1024 * 1024;
+
+    /*
+     * Only buffer responses whose declared size is known AND small. The old check
+     * buffered ANY application/json or text/* body regardless of size, so a large
+     * (or no-/lying-Content-Length) provider response was arrayBuffer()'d whole
+     * into the proxy heap — an OOM/DoS vector. Everything else streams through
+     * (connector-proxy never rewrites bodies).
+     */
     const shouldBufferResponse =
-      contentType.includes('application/json') ||
-      contentType.startsWith('text/') ||
-      (Number.isFinite(contentLength) && contentLength > 0 && contentLength <= 1024 * 1024);
+      Number.isFinite(contentLength) && contentLength > 0 && contentLength <= MAX_BUFFER_BYTES;
 
     if (shouldBufferResponse) {
       return reply.send(Buffer.from(await upstreamResponse.arrayBuffer()));

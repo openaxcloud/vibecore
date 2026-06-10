@@ -404,6 +404,14 @@ export class WorkspaceManager {
         return undefined;
       }
 
+      /*
+       * A transient update failure (DB blip) already recorded the throttle entry
+       * above, which would suppress re-touch for the whole interval and let
+       * lastActiveAt go stale — risking premature GC of an active workspace. Roll
+       * the throttle marker back so the next touch retries immediately.
+       */
+      this.lastTouchAt.delete(workspaceId);
+
       throw error;
     }
   }
