@@ -25,7 +25,13 @@ const lookupSavedPassword = (url: string) => {
 
 const saveGitAuth = (url: string, auth: GitAuth) => {
   const domain = url.split('/')[2];
-  Cookies.set(`git:${domain}`, JSON.stringify(auth));
+
+  /*
+   * Harden the git PAT/credential cookie: HTTPS-only, strict same-site (never
+   * sent on cross-site requests), and a bounded 7-day lifetime instead of the
+   * long-lived insecure default.
+   */
+  Cookies.set(`git:${domain}`, JSON.stringify(auth), { secure: true, sameSite: 'strict', expires: 7 });
 };
 
 export function useGit() {

@@ -239,7 +239,18 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
   if (!response.ok) {
     const payloadCode = typeof payload === 'object' && payload ? (payload as { code?: string }).code : undefined;
 
-    if (response.status === 403 && payloadCode === 'MFA_REQUIRED' && !path.startsWith('/auth/mfa')) {
+    if (
+      response.status === 403 &&
+      payloadCode === 'MFA_REQUIRED' &&
+      !path.startsWith('/auth/mfa') &&
+      isPageNavigation(request)
+    ) {
+      /*
+       * Only redirect real page navigations to the MFA page. For /api/ resource
+       * routes consumed by fetch() (same guard as the 401 branch), let the 403
+       * JSON propagate so the caller can handle it instead of getting an opaque
+       * redirect to an HTML page.
+       */
       throw redirect(MFA_REQUIRED_REDIRECT_PATH);
     }
 

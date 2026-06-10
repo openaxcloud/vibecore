@@ -42,8 +42,9 @@ export async function selectContext(props: {
 
       content = simplifyBoltActions(content);
 
-      content = content.replace(/<div class="__boltThought__">.*?<\/div>/s, '');
-      content = content.replace(/<think>.*?<\/think>/s, '');
+      // Global flag: strip ALL thought/think blocks (a turn can contain several).
+      content = content.replace(/<div class="__boltThought__">.*?<\/div>/gs, '');
+      content = content.replace(/<think>.*?<\/think>/gs, '');
 
       return { ...message, content };
     }

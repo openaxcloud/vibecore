@@ -219,6 +219,12 @@ export async function action({ request }: ActionFunctionArgs) {
                     'Content-Type': 'application/octet-stream',
                   },
                   body: content,
+
+                  /*
+                   * Bound the upload so a hung Netlify endpoint can't pin the
+                   * request forever; the surrounding retry/backoff handles aborts.
+                   */
+                  signal: AbortSignal.timeout(30000),
                 },
               );
 

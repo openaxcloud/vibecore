@@ -183,7 +183,16 @@ export const Markdown = memo(
                   } else if (type === 'link' && typeof href === 'string') {
                     try {
                       const url = new URL(href, window.location.origin);
-                      window.open(url.toString(), '_blank', 'noopener,noreferrer');
+
+                      /*
+                       * Only open http(s): a model-authored `javascript:`/`data:`
+                       * href would otherwise execute script in our origin (XSS).
+                       */
+                      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                        console.error('Blocked non-http(s) link:', href);
+                      } else {
+                        window.open(url.toString(), '_blank', 'noopener,noreferrer');
+                      }
                     } catch (error) {
                       console.error('Invalid URL:', href, error);
                     }

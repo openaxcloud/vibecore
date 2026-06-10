@@ -50,8 +50,16 @@ export function checkRateLimit(request: Request, endpoint: string): { allowed: b
     }
   }
 
-  // Get or create rate limit data
-  const rateLimitData = rateLimitStore.get(key) || { count: 0, resetTime: now + config.windowMs };
+  /*
+   * Get or create/roll rate limit data. Roll the window once it has expired,
+   * otherwise the count kept accumulating across windows and a client that once
+   * hit the cap stayed blocked until the entry was GC'd (no per-window reset).
+   */
+  let rateLimitData = rateLimitStore.get(key);
+
+  if (!rateLimitData || now >= rateLimitData.resetTime) {
+    rateLimitData = { count: 0, resetTime: now + config.windowMs };
+  }
 
   if (rateLimitData.count >= config.maxRequests) {
     return { allowed: false, resetTime: rateLimitData.resetTime };

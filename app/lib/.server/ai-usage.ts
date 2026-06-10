@@ -11,7 +11,18 @@ const IN_CLUSTER_API_URL = 'http://vibecore-vibecore-platform-api.vibecore.svc.c
 const WEB_SESSION_COOKIE_NAME = 'vc_session';
 
 function apiBaseUrl() {
-  const fromEnv = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? process.env.VITE_API_URL;
+  /*
+   * vite-plugin-node-polyfills shims `process.env` to {} in the SSR bundle, so
+   * bare process.env.SAAS_API_URL read undefined and we silently fell back to
+   * localhost in prod. Read the real env off globalThis. (NODE_ENV stays a bare
+   * read — it's build-time inlined via vite `define`.)
+   */
+  const env = ((globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {}) as Record<
+    string,
+    string | undefined
+  >;
+
+  const fromEnv = env.SAAS_API_URL ?? env.API_BASE_URL ?? env.VITE_API_URL;
 
   if (fromEnv && fromEnv.length > 0) {
     return fromEnv;

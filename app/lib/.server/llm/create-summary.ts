@@ -34,8 +34,13 @@ export async function createSummary(props: {
       let content = message.content;
 
       content = simplifyBoltActions(content);
-      content = content.replace(/<div class="__boltThought__">.*?<\/div>/s, '');
-      content = content.replace(/<think>.*?<\/think>/s, '');
+
+      /*
+       * Global flag: strip ALL thought/think blocks, not just the first (a turn
+       * can contain several), so they don't leak into the summary context.
+       */
+      content = content.replace(/<div class="__boltThought__">.*?<\/div>/gs, '');
+      content = content.replace(/<think>.*?<\/think>/gs, '');
 
       return { ...message, content };
     }

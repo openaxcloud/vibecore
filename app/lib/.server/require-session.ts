@@ -11,7 +11,16 @@ const IN_CLUSTER_API_URL = 'http://vibecore-vibecore-platform-api.vibecore.svc.c
 const WEB_SESSION_COOKIE_NAME = 'vc_session';
 
 function apiBaseUrl() {
-  const fromEnv = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? process.env.VITE_API_URL;
+  /*
+   * SSR shims bare process.env to {} (see ai-usage.ts) — read the real env off
+   * globalThis so SAAS_API_URL isn't silently lost. NODE_ENV stays inlined.
+   */
+  const env = ((globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {}) as Record<
+    string,
+    string | undefined
+  >;
+
+  const fromEnv = env.SAAS_API_URL ?? env.API_BASE_URL ?? env.VITE_API_URL;
 
   if (fromEnv && fromEnv.length > 0) {
     return fromEnv;

@@ -11,7 +11,10 @@ const githubHeaders = (token: string) => ({
 });
 
 async function githubJson<T>(token: string, path: string): Promise<T> {
-  const response = await fetch(`https://api.github.com${path}`, { headers: githubHeaders(token) });
+  const response = await fetch(`https://api.github.com${path}`, {
+    headers: githubHeaders(token),
+    signal: AbortSignal.timeout(15000),
+  });
 
   if (!response.ok) {
     throw new Error(`GitHub API error: ${response.status}`);
@@ -43,6 +46,7 @@ async function githubCount(token: string, path: string): Promise<number> {
 
   const response = await fetch(`https://api.github.com${path}${separator}per_page=1`, {
     headers: githubHeaders(token),
+    signal: AbortSignal.timeout(15000),
   });
 
   if (!response.ok) {
@@ -97,7 +101,10 @@ async function githubStatsLoader({ request, context }: { request: Request; conte
       return json({ error: 'GitHub token not found' }, { status: 401 });
     }
 
-    const userResponse = await fetch('https://api.github.com/user', { headers: githubHeaders(githubToken) });
+    const userResponse = await fetch('https://api.github.com/user', {
+      headers: githubHeaders(githubToken),
+      signal: AbortSignal.timeout(15000),
+    });
 
     if (!userResponse.ok) {
       if (userResponse.status === 401) {
