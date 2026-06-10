@@ -213,11 +213,15 @@ export function isIpAllowed(ip: string, allowlist: string[] | undefined) {
     return true;
   }
 
-  const normalizedIp = ip.trim().replace(/^::ffff:/, '');
+  // Case-insensitive prefix strip: `::FFFF:10.0.0.5` is a valid RFC text form
+  // some stacks/proxies emit. A lowercase-only strip left it as a 128-bit IPv6
+  // address that could never match a 32-bit IPv4 allowlist entry, wrongly
+  // blocking the legitimate client.
+  const normalizedIp = ip.trim().replace(/^::ffff:/i, '');
   const ipParsed = ipToBigInt(normalizedIp);
 
   return allowlist.some((entry) => {
-    const normalizedEntry = entry.trim().replace(/^::ffff:/, '');
+    const normalizedEntry = entry.trim().replace(/^::ffff:/i, '');
 
     if (normalizedEntry === normalizedIp) {
       return true;
@@ -286,7 +290,12 @@ export interface AbuseSignal {
 const abuseCommandPatterns: Array<{ pattern: RegExp; signal: AbuseSignal }> = [
   {
     pattern: /\b(xmrig|minerd|cpuminer|ethminer|monero|stratum\+tcp|nicehash)\b/i,
-    signal: { type: 'crypto_mining', severity: 'critical', action: 'stop_workspace', reason: 'crypto mining command pattern' },
+    signal: {
+      type: 'crypto_mining',
+      severity: 'critical',
+      action: 'stop_workspace',
+      reason: 'crypto mining command pattern',
+    },
   },
   {
     pattern: /:\(\)\s*\{\s*:\|:|while\s+true.*fork|bomb/i,
@@ -297,12 +306,23 @@ const abuseCommandPatterns: Array<{ pattern: RegExp; signal: AbuseSignal }> = [
     signal: { type: 'port_scanning', severity: 'high', action: 'stop_workspace', reason: 'port scanning tool' },
   },
   {
-    pattern: /\b(curl|wget|nc|netcat|socat)\b.*\b(169\.254\.169\.254|metadata\.google|metadata\.aws|100\.100\.100\.200)\b/i,
-    signal: { type: 'suspicious_egress', severity: 'critical', action: 'stop_workspace', reason: 'metadata service access attempt' },
+    pattern:
+      /\b(curl|wget|nc|netcat|socat)\b.*\b(169\.254\.169\.254|metadata\.google|metadata\.aws|100\.100\.100\.200)\b/i,
+    signal: {
+      type: 'suspicious_egress',
+      severity: 'critical',
+      action: 'stop_workspace',
+      reason: 'metadata service access attempt',
+    },
   },
   {
     pattern: /\b(curl|wget)\b.*\|\s*(sh|bash|zsh)|base64\s+-d\s*\|\s*(sh|bash|zsh)/i,
-    signal: { type: 'malware_download', severity: 'high', action: 'manual_review', reason: 'download and execute pattern' },
+    signal: {
+      type: 'malware_download',
+      severity: 'high',
+      action: 'manual_review',
+      reason: 'download and execute pattern',
+    },
   },
   {
     pattern: /\b(bash|sh|zsh|python|perl|ruby|php)\b.*\/dev\/tcp|nc\s+-e|socat\s+.*exec:|mkfifo\s+.*nc/i,
@@ -310,7 +330,12 @@ const abuseCommandPatterns: Array<{ pattern: RegExp; signal: AbuseSignal }> = [
   },
   {
     pattern: /;\s*(rm|curl|wget|bash|sh)\b|&&\s*(rm|curl|wget|bash|sh)\b|\|\s*(bash|sh|zsh)\b/i,
-    signal: { type: 'command_injection', severity: 'high', action: 'manual_review', reason: 'command chaining/injection pattern' },
+    signal: {
+      type: 'command_injection',
+      severity: 'high',
+      action: 'manual_review',
+      reason: 'command chaining/injection pattern',
+    },
   },
 ];
 
@@ -331,13 +356,23 @@ export function detectUsageAbuse(input: {
     return { type: 'failed_auth_spike', severity: 'high', action: 'throttle', reason: 'many failed auth attempts' };
   }
   if ((input.workspaceCreations ?? 0) >= 30) {
-    return { type: 'workspace_creation_spike', severity: 'high', action: 'manual_review', reason: 'workspace creation spike' };
+    return {
+      type: 'workspace_creation_spike',
+      severity: 'high',
+      action: 'manual_review',
+      reason: 'workspace creation spike',
+    };
   }
   if ((input.aiMessages ?? 0) >= 1000) {
     return { type: 'excessive_ai_usage', severity: 'medium', action: 'throttle', reason: 'excessive AI usage' };
   }
   if ((input.storageBytes ?? 0) >= 100 * 1024 * 1024 * 1024) {
-    return { type: 'storage_abuse', severity: 'high', action: 'manual_review', reason: 'storage abuse threshold exceeded' };
+    return {
+      type: 'storage_abuse',
+      severity: 'high',
+      action: 'manual_review',
+      reason: 'storage abuse threshold exceeded',
+    };
   }
   if ((input.cpuSeconds ?? 0) >= 6 * 60 * 60) {
     return { type: 'cpu_abuse', severity: 'high', action: 'manual_review', reason: 'CPU abuse threshold exceeded' };

@@ -3520,8 +3520,12 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
     });
   }
 
+  let idTokenClaims: JWTPayload | undefined;
+
   if (provider === 'oidc' && tokens.id_token) {
-    await assertOidcIdToken(tokens.id_token);
+    // Keep the verified claims — they are the cryptographically-trusted identity
+    // source for OIDC (the userinfo response below is unsigned and substitutable).
+    idTokenClaims = await assertOidcIdToken(tokens.id_token);
   }
 
   const userInfoHeaders: Record<string, string> = {
@@ -3577,17 +3581,51 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
   /*
    * Never trust an unverified provider email: an attacker can set a victim's
    * address as an *unverified* email on their own OAuth account and, on match,
-   * get linked to / logged in as the victim's existing password account. If the
-   * provider explicitly tells us the email is unverified, reject it.
+   * get linked to / logged in as the victim's existing password account.
+   *
+   * For OIDC the verified id_token claims override the unsigned userinfo body:
+   * we read email + email_verified from the signed token, and reject if the
+   * userinfo email disagrees with it (substitution between the two responses).
+   *
+   * Verification handling:
+   *  - explicit `false` from any provider → reject (was already the case).
+   *  - OMITTED verification claim → treated as UNVERIFIED for generic OIDC
+   *    (omission is not proof). github/google establish verification by other
+   *    means (google always sends it; github only uses verified /user/emails),
+   *    so for them an omitted flag stays permissive as before.
    */
-  if (profile.email && (profile.email_verified === false || profile.verified === false)) {
+  const claimEmail = typeof idTokenClaims?.email === 'string' ? idTokenClaims.email : undefined;
+  const claimEmailVerified =
+    typeof idTokenClaims?.email_verified === 'boolean'
+      ? idTokenClaims.email_verified
+      : (profile.email_verified ?? profile.verified);
+
+  if (provider === 'oidc' && claimEmail && profile.email && claimEmail.toLowerCase() !== profile.email.toLowerCase()) {
+    throw Object.assign(new Error('OIDC id_token email does not match userinfo email'), {
+      statusCode: 401,
+      code: 'OAUTH_EMAIL_MISMATCH',
+    });
+  }
+
+  const effectiveEmail = provider === 'oidc' && claimEmail ? claimEmail : profile.email;
+
+  if (effectiveEmail && claimEmailVerified === false) {
     throw Object.assign(new Error('OAuth email is not verified'), {
       statusCode: 401,
       code: 'OAUTH_EMAIL_UNVERIFIED',
     });
   }
 
-  let email = profile.email ?? undefined;
+  if (provider === 'oidc' && effectiveEmail && claimEmailVerified !== true) {
+    // Generic OIDC IdP omitted email_verified — do not auto-link on an
+    // unproven email.
+    throw Object.assign(new Error('OIDC email verification status is unknown'), {
+      statusCode: 401,
+      code: 'OAUTH_EMAIL_UNVERIFIED',
+    });
+  }
+
+  let email = effectiveEmail ?? undefined;
 
   const externalId =
     profile.id !== undefined && profile.id !== null ? String(profile.id) : (profile.sub ?? profile.login);
@@ -8852,7 +8890,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         store.sumUsage(organizationId, 'ai.messages').catch(() => 0),
         store.sumUsage(organizationId, 'previews.public').catch(() => 0),
         store.sumUsage(organizationId, 'workspaces.active').catch(() => 0),
-        store.listAbuseEvents().catch(() => []),
+        // Scope to this org only — this runs on the usage hot path, so an
+        // unbounded all-org scan here is a per-request full-table read.
+        store.listAbuseEvents({ organizationId }).catch(() => []),
       ]);
       const failedAuthAttempts = abuseEvents.filter(
         (event) => event.organizationId === organizationId && event.type === 'failed_auth_spike',
@@ -14573,6 +14613,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           })
         ).id,
       }));
+    /*
+     * Trial length is server-side billing policy, NOT a customer choice. The
+     * client-supplied trialDays was forwarded verbatim to Stripe, so any
+     * billing:manage member could request a paid plan with trialDays=365 and get
+     * a full year of Pro/Team entitlements (TRIALING is an entitled status) for
+     * free — and repeat it after each cancellation. Cap the length and grant a
+     * trial only to orgs that have never had a subscription before.
+     */
+    const MAX_TRIAL_DAYS = 14;
+    const trialEligible = !currentSubscription;
+    const requestedTrialDays = body.trialDays ?? 0;
+    const trialDays =
+      trialEligible && requestedTrialDays > 0 ? Math.min(requestedTrialDays, MAX_TRIAL_DAYS) : undefined;
+
     const session = await stripeClient.createCheckoutSession({
       customerId: customer.externalId,
       priceId: plan.stripePriceId,
@@ -14580,7 +14634,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       successUrl: body.successUrl,
       cancelUrl: body.cancelUrl,
       organizationId: orgId,
-      trialDays: body.trialDays,
+      trialDays,
     });
 
     if (!session.url) {

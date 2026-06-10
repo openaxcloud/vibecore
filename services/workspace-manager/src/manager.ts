@@ -49,7 +49,9 @@ export interface EventBus {
 }
 
 export class JsonWorkspaceStore implements WorkspaceStore {
-  constructor(readonly filePath = process.env.WORKSPACE_MANAGER_STORE_PATH ?? '.vibecore/workspace-manager/workspaces.json') {}
+  constructor(
+    readonly filePath = process.env.WORKSPACE_MANAGER_STORE_PATH ?? '.vibecore/workspace-manager/workspaces.json',
+  ) {}
 
   async create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>) {
     const now = new Date().toISOString();
@@ -89,7 +91,9 @@ export class JsonWorkspaceStore implements WorkspaceStore {
       throw error;
     });
 
-    return new Map<string, WorkspaceRecord>((JSON.parse(content) as WorkspaceRecord[]).map((workspace) => [workspace.id, workspace]));
+    return new Map<string, WorkspaceRecord>(
+      (JSON.parse(content) as WorkspaceRecord[]).map((workspace) => [workspace.id, workspace]),
+    );
   }
 
   private async write(workspaces: Map<string, WorkspaceRecord>) {
@@ -143,7 +147,9 @@ export class WorkspaceManager {
     const pvcName = `pvc-${input.workspaceId}`;
     const agentTokenSecretName = `agent-token-${input.workspaceId}`;
     const allowedSecrets = input.allowedSecrets ?? {};
-    const secretEnv = Object.fromEntries([...new Set([...input.allowedSecretKeys, ...Object.keys(allowedSecrets)])].map((key) => [key, key]));
+    const secretEnv = Object.fromEntries(
+      [...new Set([...input.allowedSecretKeys, ...Object.keys(allowedSecrets)])].map((key) => [key, key]),
+    );
     const runtimeInput = {
       ...input,
       pvcName,
@@ -206,12 +212,35 @@ export class WorkspaceManager {
     }
 
     try {
-      await this.k8s.apply(workspacePvc(runtimeInput));
-      await this.k8s.apply({ ...workspaceAgentSecret(runtimeInput), stringData: { tokenSecret: this.tokenSecret, ...allowedSecrets } });
+      /*
+       * Create the PVC only if it doesn't already exist. startWorkspace is
+       * re-entered with the SAME deterministic id on every reopen, and the PVC's
+       * requested storage tracks the org's *current* plan entitlement. Re-applying
+       * it after a plan change asks Kubernetes to shrink (forbidden outright →
+       * permanent FAILED wedge) or grow (no-op/expansion error) a bound PVC. The
+       * first-provision size is authoritative for the volume's lifetime; data and
+       * size are preserved across reopens by never re-applying.
+       */
+      const pvc = workspacePvc(runtimeInput);
+      const existingPvc = await this.k8s
+        .get('PersistentVolumeClaim', input.namespace, pvc.metadata?.name ?? '')
+        .catch(() => undefined);
+
+      if (!existingPvc) {
+        await this.k8s.apply(pvc);
+      }
+
+      await this.k8s.apply({
+        ...workspaceAgentSecret(runtimeInput),
+        stringData: { tokenSecret: this.tokenSecret, ...allowedSecrets },
+      });
       await this.k8s.apply(workspacePod(runtimeInput));
       await this.k8s.apply(workspaceService(runtimeInput));
       await this.waitForReadiness(input.namespace, record.podName);
-      const running = await this.store.update(input.workspaceId, { status: 'RUNNING', lastActiveAt: new Date().toISOString() });
+      const running = await this.store.update(input.workspaceId, {
+        status: 'RUNNING',
+        lastActiveAt: new Date().toISOString(),
+      });
       await this.publish(running, 'workspace.running');
       return running;
     } catch (error) {
@@ -252,7 +281,11 @@ export class WorkspaceManager {
      * bumps lastActiveAt, and stopping/deleting against the stale decision would
      * kill the freshly re-provisioned workspace.
      */
-    if (guard && ((guard.status && workspace.status !== guard.status) || (guard.lastActiveAt && workspace.lastActiveAt !== guard.lastActiveAt))) {
+    if (
+      guard &&
+      ((guard.status && workspace.status !== guard.status) ||
+        (guard.lastActiveAt && workspace.lastActiveAt !== guard.lastActiveAt))
+    ) {
       return workspace;
     }
 
@@ -278,7 +311,11 @@ export class WorkspaceManager {
      * touched since the caller observed it, abort — deleting the PVC of a
      * just-reopened workspace is the destructive TOCTOU this prevents.
      */
-    if (guard && ((guard.status && workspace.status !== guard.status) || (guard.lastActiveAt && workspace.lastActiveAt !== guard.lastActiveAt))) {
+    if (
+      guard &&
+      ((guard.status && workspace.status !== guard.status) ||
+        (guard.lastActiveAt && workspace.lastActiveAt !== guard.lastActiveAt))
+    ) {
       return workspace;
     }
 
@@ -468,7 +505,13 @@ export class WorkspaceManager {
   }
 
   private async publish(workspace: WorkspaceRecord, type: string) {
-    await this.events.publish({ type, workspaceId: workspace.id, orgId: workspace.orgId, projectId: workspace.projectId, createdAt: new Date().toISOString() });
+    await this.events.publish({
+      type,
+      workspaceId: workspace.id,
+      orgId: workspace.orgId,
+      projectId: workspace.projectId,
+      createdAt: new Date().toISOString(),
+    });
   }
 }
 
@@ -484,7 +527,9 @@ type PodStatusView = {
 };
 
 function isPodReady(pod: PodStatusView) {
-  return pod.status?.conditions?.some((condition) => condition.type === 'Ready' && condition.status === 'True') === true;
+  return (
+    pod.status?.conditions?.some((condition) => condition.type === 'Ready' && condition.status === 'True') === true
+  );
 }
 
 /**

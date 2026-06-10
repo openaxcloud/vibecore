@@ -297,7 +297,12 @@ async function retry<T>(operation: () => Promise<T>, attempts = 3, signal?: Abor
        */
       const upstreamStatus = (error as { upstreamStatus?: number })?.upstreamStatus;
 
-      if (typeof upstreamStatus === 'number' && upstreamStatus >= 400 && upstreamStatus < 500 && upstreamStatus !== 429) {
+      if (
+        typeof upstreamStatus === 'number' &&
+        upstreamStatus >= 400 &&
+        upstreamStatus < 500 &&
+        upstreamStatus !== 429
+      ) {
         throw error;
       }
 
@@ -364,7 +369,8 @@ const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
 const HARD_MAX_OUTPUT_TOKENS = 32768;
 
 function resolveMaxOutputTokens(request: AiChatRequest): number {
-  const requested = typeof request.maxTokens === 'number' && request.maxTokens > 0 ? request.maxTokens : DEFAULT_MAX_OUTPUT_TOKENS;
+  const requested =
+    typeof request.maxTokens === 'number' && request.maxTokens > 0 ? request.maxTokens : DEFAULT_MAX_OUTPUT_TOKENS;
 
   return Math.min(requested, HARD_MAX_OUTPUT_TOKENS);
 }
@@ -575,17 +581,23 @@ export class AiGateway {
           return { provider: config.id, healthy: false, configured: false };
         }
 
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 1500);
+
         try {
-          const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), 1500);
           const response = await fetch(
             config.kind === 'ollama' ? `${config.baseUrl.replace(/\/+$/, '')}/api/tags` : config.baseUrl,
             { method: 'GET', signal: controller.signal },
           );
-          clearTimeout(timer);
+          // Release the probe connection — the body is never read.
+          await response.body?.cancel().catch(() => {});
           return { provider: config.id, healthy: response.status < 500, configured: true };
         } catch {
           return { provider: config.id, healthy: false, configured: true };
+        } finally {
+          // Clear the abort timer on EVERY path (the catch branch previously left
+          // a dangling timer to fire against an already-settled controller).
+          clearTimeout(timer);
         }
       }),
     );

@@ -53,6 +53,10 @@ class TestK8sClient implements WorkspaceK8sClient {
     this.namespaces.push(namespace);
   }
 
+  async get(kind: string, namespace: string, name: string) {
+    return this.objects.get(`${namespace}:${kind}:${name}`);
+  }
+
   async getPod(namespace: string, name: string) {
     const pod = this.objects.get(`${namespace}:Pod:${name}`);
     return pod ? ({ ...pod, status: { conditions: [{ type: 'Ready', status: 'True' }] } } as K8sObject) : undefined;

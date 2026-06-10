@@ -43,6 +43,7 @@ export interface K8sObject {
 export interface WorkspaceK8sClient {
   apply(object: K8sObject): Promise<K8sObject>;
   delete(kind: string, namespace: string, name: string): Promise<void>;
+  get(kind: string, namespace: string, name: string): Promise<K8sObject | undefined>;
   getPod(namespace: string, name: string): Promise<K8sObject | undefined>;
   streamPodLogs(namespace: string, name: string): AsyncIterable<string>;
 }
@@ -283,9 +284,7 @@ function resolveWorkspaceResources(input: WorkspaceRuntimeInput) {
     cpuRequest: cpuMillicores
       ? formatCpuMillicores(Math.min(cpuMillicores, Math.max(50, Math.floor(cpuMillicores / 4))))
       : plan.cpuRequest,
-    memoryRequest: ramMb
-      ? formatMemoryMb(Math.min(ramMb, Math.max(128, Math.floor(ramMb / 4))))
-      : plan.memoryRequest,
+    memoryRequest: ramMb ? formatMemoryMb(Math.min(ramMb, Math.max(128, Math.floor(ramMb / 4)))) : plan.memoryRequest,
     cpuLimit: cpuMillicores ? formatCpuMillicores(cpuMillicores) : plan.cpuLimit,
     memoryLimit: ramMb ? formatMemoryMb(ramMb) : plan.memoryLimit,
     storageRequest: storageGb ? `${storageGb}Gi` : plan.storageRequest,
@@ -426,6 +425,23 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
 
   async getPod(namespace: string, name: string) {
     const { stdout } = await execFile(this.kubectl, ['get', 'pod', name, '-n', namespace, '-o', 'json']).catch(
+      (error: any) => {
+        if (error?.code === 1) {
+          return { stdout: '' };
+        }
+
+        throw error;
+      },
+    );
+
+    return stdout ? (JSON.parse(stdout) as K8sObject) : undefined;
+  }
+
+  // Generic single-resource read; returns undefined when the object is absent
+  // (kubectl exits 1 on not-found). Used to make apply idempotent for immutable
+  // resources like PVCs that must not be re-applied with a changed spec.
+  async get(kind: string, namespace: string, name: string) {
+    const { stdout } = await execFile(this.kubectl, ['get', kind, name, '-n', namespace, '-o', 'json']).catch(
       (error: any) => {
         if (error?.code === 1) {
           return { stdout: '' };

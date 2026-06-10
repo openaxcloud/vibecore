@@ -26,6 +26,9 @@ resourceQuota:
   limitsCpu: "1000"
   limitsMemory: 2Ti
   persistentVolumeClaims: "500"
+  # Aggregate PVC storage cap for the namespace, kept below the regional persistent
+  # disk quota so a burst of workspaces can't exhaust it. Empty => no storage cap.
+  requestsStorage: 4000Gi
 
 limitRange:
   defaultRequest:

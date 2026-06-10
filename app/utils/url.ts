@@ -49,6 +49,57 @@ export function isSafeGitForgeUrl(rawUrl: string): boolean {
   return url.protocol === 'https:' && Boolean(url.hostname) && !isBlockedHost(url.hostname);
 }
 
+/**
+ * SSRF-safe fetch for user-supplied git-forge URLs that carry the caller's
+ * bearer token. Plain fetch() defaults to redirect:'follow', so a host that
+ * passes the initial isSafeGitForgeUrl() check can 3xx-redirect the request to
+ * an internal target (cloud metadata, RFC1918, in-cluster) while fetch silently
+ * re-attaches the token — defeating the guard. This follows redirects manually,
+ * re-validates EVERY hop, and drops the Authorization header on any cross-origin
+ * hop so the token is never leaked to a third-party host.
+ */
+export async function safeGitForgeFetch(
+  initialUrl: string,
+  init: RequestInit = {},
+  maxRedirects = 5,
+): Promise<Response> {
+  let current = initialUrl;
+  const headers = new Headers(init.headers);
+  const initialOrigin = (() => {
+    try {
+      return new URL(initialUrl).origin;
+    } catch {
+      return null;
+    }
+  })();
+
+  for (let hop = 0; hop <= maxRedirects; hop += 1) {
+    if (!isSafeGitForgeUrl(current)) {
+      throw Object.assign(new Error('Blocked SSRF redirect target'), { code: 'SSRF_BLOCKED' });
+    }
+
+    const response = await fetch(current, { ...init, headers, redirect: 'manual' });
+
+    const isRedirect = response.status >= 300 && response.status < 400 && response.headers.has('location');
+
+    if (!isRedirect) {
+      return response;
+    }
+
+    const next = new URL(response.headers.get('location')!, current);
+
+    // Leaving the original origin → never carry the credential along.
+    if (initialOrigin && next.origin !== initialOrigin) {
+      headers.delete('authorization');
+    }
+
+    await response.body?.cancel().catch(() => {});
+    current = next.toString();
+  }
+
+  throw Object.assign(new Error('Too many redirects'), { code: 'TOO_MANY_REDIRECTS' });
+}
+
 export function isValidUrl(input: string): boolean {
   try {
     const url = new URL(input);

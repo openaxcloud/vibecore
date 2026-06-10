@@ -903,7 +903,7 @@ export interface ApiStore {
     type: string;
     severity: string;
   }): Promise<AbuseEventRecord>;
-  listAbuseEvents(): Promise<AbuseEventRecord[]>;
+  listAbuseEvents(filter?: { organizationId?: string; type?: string; take?: number }): Promise<AbuseEventRecord[]>;
   setSystemSetting(input: { key: string; value?: unknown }): Promise<SystemSettingRecord>;
   listSystemSettings(): Promise<SystemSettingRecord[]>;
   /**

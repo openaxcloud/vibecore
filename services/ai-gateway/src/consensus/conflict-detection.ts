@@ -35,31 +35,38 @@ export function detectFileOverlapConflicts(results: AgentRunResult[]): Consensus
 }
 
 export function detectRiskDisagreement(results: AgentRunResult[], minDissentingRoles = 2): ConsensusConflict[] {
-  const claims = new Map<string, { raw: string; supporters: Set<AgentRoleId>; allRoles: Set<AgentRoleId> }>();
+  const claims = new Map<string, { raw: string; supporters: Set<AgentRoleId> }>();
+
+  /*
+   * The full set of participating (non-failed) roles, computed up front. The
+   * previous version grew each bucket's allRoles incrementally as results were
+   * processed, so any role seen BEFORE a bucket was first created was never
+   * recorded as a dissenter for that bucket — undercounting dissent and silently
+   * dropping real risk-disagreement conflicts depending on caller-controlled
+   * role order. Dissent is allRoles \ supporters, so allRoles must be complete.
+   */
+  const allRoles = new Set<AgentRoleId>();
 
   for (const result of results) {
     if (result.status === 'failed') continue;
+    allRoles.add(result.roleId);
     for (const risk of result.risks ?? []) {
       const trimmed = risk.trim();
       if (!trimmed) continue;
       const key = normalizeClaim(trimmed);
       let bucket = claims.get(key);
       if (!bucket) {
-        bucket = { raw: trimmed, supporters: new Set(), allRoles: new Set() };
+        bucket = { raw: trimmed, supporters: new Set() };
         claims.set(key, bucket);
       }
       bucket.supporters.add(result.roleId);
-    }
-
-    for (const bucket of claims.values()) {
-      bucket.allRoles.add(result.roleId);
     }
   }
 
   const conflicts: ConsensusConflict[] = [];
 
   for (const bucket of claims.values()) {
-    const dissenters = [...bucket.allRoles].filter((role) => !bucket.supporters.has(role));
+    const dissenters = [...allRoles].filter((role) => !bucket.supporters.has(role));
     if (dissenters.length >= minDissentingRoles && bucket.supporters.size >= 1) {
       conflicts.push({
         type: 'risk-disagreement',

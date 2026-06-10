@@ -35,14 +35,14 @@ resource "google_container_cluster" "app" {
     http_load_balancing {
       disabled = false
     }
+    # Dataplane V2 (datapath_provider = ADVANCED_DATAPATH, set above) has built-in
+    # NetworkPolicy enforcement. The Calico network-policy addon + the standalone
+    # `network_policy` block conflict with Dataplane V2 (GKE rejects/ignores the
+    # combination) — so the Calico addon must be disabled and the network_policy
+    # block omitted. Our NetworkPolicy objects are still enforced, natively by DPv2.
     network_policy_config {
-      disabled = false
+      disabled = true
     }
-  }
-
-  network_policy {
-    enabled  = true
-    provider = "CALICO"
   }
 
   master_authorized_networks_config {}

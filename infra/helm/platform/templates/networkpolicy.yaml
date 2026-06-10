@@ -108,3 +108,39 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+{{- $dbEgress := .Values.networkPolicy.databaseRedisEgress | default dict }}
+---
+# Cloud SQL (Postgres) and Memorystore (Redis) are private-VPC endpoints, NOT
+# pods, reached on 5432/6379 over RFC1918 IPs. deny-all-default + the 443-only
+# egress rule above otherwise blocks them, so api/worker/ai-gateway cannot reach
+# the DB/cache — a full outage on a NetworkPolicy-enforcing dataplane (this is
+# Dataplane V2). Prod had this hand-patched out-of-band as a NetworkPolicy named
+# `allow-database-redis-egress` (NOT helm-managed); bringing the rule into the
+# chart makes a fresh/DR deploy self-contained. The chart object uses a distinct
+# name (`-managed`) so helm doesn't collide with / try to adopt the pre-existing
+# unmanaged object — both coexist additively, and the manual one can be deleted
+# by an operator once this chart-managed policy is verified live. CIDRs/ports are
+# overridable but defaulted inline so `helm upgrade --reuse-values` (which drops
+# newly-added values keys) still renders them.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-database-redis-egress-managed
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  podSelector: {}
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: {{ $dbEgress.postgresCidr | default "10.237.1.0/24" | quote }}
+      ports:
+        - protocol: TCP
+          port: {{ $dbEgress.postgresPort | default 5432 }}
+    - to:
+        - ipBlock:
+            cidr: {{ $dbEgress.redisCidr | default "10.237.0.0/24" | quote }}
+      ports:
+        - protocol: TCP
+          port: {{ $dbEgress.redisPort | default 6379 }}

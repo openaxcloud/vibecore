@@ -11,3 +11,9 @@ spec:
     limits.cpu: {{ .Values.resourceQuota.limitsCpu | quote }}
     limits.memory: {{ .Values.resourceQuota.limitsMemory | quote }}
     persistentvolumeclaims: {{ .Values.resourceQuota.persistentVolumeClaims | quote }}
+    {{- if .Values.resourceQuota.requestsStorage }}
+    # Aggregate PVC storage cap. Without it the PVC *count* is bounded but total
+    # provisioned storage is not, so workspaces could exceed the regional disk
+    # quota and wedge provisioning namespace-wide.
+    requests.storage: {{ .Values.resourceQuota.requestsStorage | quote }}
+    {{- end }}

@@ -1601,8 +1601,24 @@ export class PrismaApiStore implements ApiStore {
     return mapAbuseEvent(await this.prisma.abuseEvent.create({ data: input }));
   }
 
-  async listAbuseEvents() {
-    return (await this.prisma.abuseEvent.findMany({ orderBy: { createdAt: 'desc' } })).map(mapAbuseEvent);
+  async listAbuseEvents(filter?: { organizationId?: string; type?: string; take?: number }) {
+    /*
+     * Bounded + filterable. The unfiltered version did a platform-wide,
+     * unbounded full-table scan on the usage hot path (evaluateUsageAbuse runs
+     * on every AI message / preview / workspace start). Callers that only care
+     * about one org pass organizationId so the query is scoped; admin views pass
+     * a take cap. A hard default cap protects against an ever-growing table.
+     */
+    const where =
+      filter?.organizationId || filter?.type ? { organizationId: filter.organizationId, type: filter.type } : undefined;
+
+    return (
+      await this.prisma.abuseEvent.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: filter?.take ?? 1000,
+      })
+    ).map(mapAbuseEvent);
   }
 
   async setSystemSetting(input: { key: string; value?: unknown }) {

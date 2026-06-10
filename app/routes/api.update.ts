@@ -48,7 +48,26 @@ function writeProgress(controller: TransformStreamDefaultController<Uint8Array>,
   controller.enqueue(new TextEncoder().encode(`${JSON.stringify(progress)}\n`));
 }
 
-async function collectUpdateDetails(branch: string) {
+/*
+ * git parses options anywhere on the command line, so a branch value starting
+ * with `-` (e.g. `--upload-pack=<cmd>`) is consumed as an option rather than a
+ * refspec — an argument-injection → RCE on the spliced `git fetch upstream
+ * <branch>` / `rev-parse upstream/<branch>` calls. Restrict the branch to a
+ * conservative git-ref charset, forbid leading dashes and `..`, before it ever
+ * reaches execFile.
+ */
+function assertSafeBranch(branch: string): string {
+  const valid = /^[A-Za-z0-9](?:[A-Za-z0-9._/-]*[A-Za-z0-9_])?$/.test(branch) && !branch.includes('..');
+
+  if (!valid) {
+    throw Object.assign(new Error('Invalid branch name'), { code: 'INVALID_BRANCH' });
+  }
+
+  return branch;
+}
+
+async function collectUpdateDetails(rawBranch: string) {
+  const branch = assertSafeBranch(rawBranch);
   await git(['fetch', 'upstream', branch]);
 
   const currentCommit = await git(['rev-parse', '--short', 'HEAD']);

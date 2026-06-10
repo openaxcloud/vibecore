@@ -19,6 +19,10 @@ class TestWorkspaceK8sClient implements WorkspaceK8sClient {
     this.events.push(`delete:${kind}:${name}`);
   }
 
+  async get(kind: string, namespace: string, name: string) {
+    return this.objects.get(`${namespace}:${kind}:${name}`);
+  }
+
   async getPod(namespace: string, name: string) {
     const pod = this.objects.get(`${namespace}:Pod:${name}`);
 

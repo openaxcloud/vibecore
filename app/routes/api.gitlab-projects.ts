@@ -1,7 +1,7 @@
 import { json } from '@remix-run/cloudflare';
 import { withSecurity } from '~/lib/security';
 import type { GitLabProjectInfo } from '~/types/GitLab';
-import { isSafeGitForgeUrl } from '~/utils/url';
+import { isSafeGitForgeUrl, safeGitForgeFetch } from '~/utils/url';
 
 /*
  * SSRF guard: gitlabUrl is attacker-controlled and the user's GitLab token is
@@ -43,7 +43,7 @@ async function gitlabProjectsLoader({ request }: { request: Request }) {
     // Fetch user's projects from GitLab API
     const url = `${gitlabUrl}/api/v4/projects?membership=true&per_page=100&order_by=updated_at&sort=desc`;
 
-    const response = await fetch(url, {
+    const response = await safeGitForgeFetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',

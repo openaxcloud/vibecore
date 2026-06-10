@@ -32,14 +32,13 @@ resource "google_container_cluster" "workspaces" {
   }
 
   addons_config {
+    # Dataplane V2 (datapath_provider = ADVANCED_DATAPATH, set above) has built-in
+    # NetworkPolicy enforcement that conflicts with the Calico network-policy addon
+    # and the standalone `network_policy` block — disable/omit them; DPv2 enforces
+    # our NetworkPolicy objects natively.
     network_policy_config {
-      disabled = false
+      disabled = true
     }
-  }
-
-  network_policy {
-    enabled  = true
-    provider = "CALICO"
   }
 
   master_authorized_networks_config {}

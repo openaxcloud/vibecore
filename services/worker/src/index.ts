@@ -104,6 +104,15 @@ async function deliverSiemAuditEvents() {
             'x-vibecore-signature': `sha256=${signature}`,
           },
           body,
+          /*
+           * Do NOT follow redirects. The only SSRF protection on a webhook URL is
+           * config-time validation of the stored string; a customer endpoint that
+           * passes that check can still 3xx-redirect delivery to an internal target
+           * (169.254.169.254, RFC1918, in-cluster DNS) — redirect-based blind SSRF
+           * from this in-cluster worker. With redirect:'manual' a 3xx surfaces as a
+           * non-ok status and is treated as a failed delivery below.
+           */
+          redirect: 'manual',
           // Webhooks are delivered serially; without a timeout a single hung
           // customer endpoint stalls the whole batch (and the worker tick)
           // indefinitely. Treat a slow/hung call as a failed delivery and retry next run.

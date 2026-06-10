@@ -176,6 +176,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       const isUtf8 = !charset || charset === 'utf-8' || charset === 'utf8';
       const isHtml = contentType.includes('text/html') && isUtf8;
 
+      /*
+       * undici's fetch transparently DECODES gzip/deflate/br bodies — the body
+       * we stream is decompressed, but upstreamResponse.headers still reports the
+       * original (compressed) content-length. Forwarding that stale length with a
+       * decoded body truncates/corrupts every compressed asset. So whenever the
+       * upstream declared a content-encoding (which we strip below), we must also
+       * drop content-length and let the transfer be length-less/chunked.
+       */
+      const upstreamWasEncoded = upstreamResponse.headers.has('content-encoding');
+
       upstreamResponse.headers.forEach((value, name) => {
         const lower = name.toLowerCase();
         if (
@@ -183,6 +193,8 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           lower === 'transfer-encoding' ||
           lower === 'connection' ||
           lower === 'keep-alive' ||
+          // length no longer matches the decoded body
+          (upstreamWasEncoded && lower === 'content-length') ||
           // recomputed after a possible body rewrite below
           (isHtml && injectInspector && lower === 'content-length')
         ) {

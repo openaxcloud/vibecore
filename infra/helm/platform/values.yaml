@@ -243,3 +243,11 @@ networkPolicy:
   ingressControllerNamespaceSelector:
     kubernetes.io/metadata.name: ingress-nginx
     app.kubernetes.io/name: ingress-nginx
+  # Egress allow-list for the private-VPC Cloud SQL (Postgres) and Memorystore
+  # (Redis) endpoints. deny-all-default blocks these otherwise. Override the
+  # CIDRs to match your VPC's private-service-access ranges.
+  databaseRedisEgress:
+    postgresCidr: 10.237.1.0/24
+    postgresPort: 5432
+    redisCidr: 10.237.0.0/24
+    redisPort: 6379

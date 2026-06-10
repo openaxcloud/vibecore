@@ -1,6 +1,6 @@
 import { json } from '@remix-run/cloudflare';
 import { withSecurity } from '~/lib/security';
-import { isSafeGitForgeUrl } from '~/utils/url';
+import { isSafeGitForgeUrl, safeGitForgeFetch } from '~/utils/url';
 
 interface GitLabBranch {
   name: string;
@@ -49,7 +49,7 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
     // Fetch branches from GitLab API
     const branchesUrl = `${gitlabUrl}/api/v4/projects/${projectId}/repository/branches?per_page=100`;
 
-    const response = await fetch(branchesUrl, {
+    const response = await safeGitForgeFetch(branchesUrl, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
@@ -85,7 +85,7 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
     // Also fetch project info to get default branch name
     const projectUrl = `${gitlabUrl}/api/v4/projects/${projectId}`;
 
-    const projectResponse = await fetch(projectUrl, {
+    const projectResponse = await safeGitForgeFetch(projectUrl, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
