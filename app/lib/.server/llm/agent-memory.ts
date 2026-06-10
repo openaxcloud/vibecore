@@ -18,12 +18,36 @@ export interface AgentMemoryContextPayload {
   }>;
 }
 
-export function latestUserText(messages: Messages) {
-  return messages
-    .filter((message) => message.role === 'user')
-    .map((message) => message.content)
-    .filter(Boolean)
-    .slice(-1)[0];
+export function latestUserText(messages: Messages): string | undefined {
+  const latest = messages.filter((message) => message.role === 'user').slice(-1)[0];
+
+  if (!latest) {
+    return undefined;
+  }
+
+  /*
+   * A Message's `content` can be a string OR an array of content parts (AI SDK
+   * type). Returning the array verbatim sent `query: [{type:'text',...}]` to the
+   * agent-memory API (which expects a string), breaking retrieval. Extract the
+   * text parts and join them.
+   */
+  const { content } = latest;
+
+  if (typeof content === 'string') {
+    return content || undefined;
+  }
+
+  if (Array.isArray(content)) {
+    const text = (content as Array<{ type?: string; text?: string }>)
+      .filter((part) => part && part.type === 'text' && typeof part.text === 'string')
+      .map((part) => part.text)
+      .join('\n')
+      .trim();
+
+    return text || undefined;
+  }
+
+  return undefined;
 }
 
 export function agentMemoryAnnotation(memories: AgentMemoryContextPayload['memories']): ContextAnnotation {

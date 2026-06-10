@@ -874,7 +874,13 @@ const customRoleSchema = z.object({
     .min(1),
 });
 const siemWebhookSchema = z.object({
-  url: z.string().url(),
+  // SSRF guard: the stored URL is fetched server-side on every abuse event +
+  // SIEM delivery tick, so block internal/loopback/metadata/private hosts
+  // (reuses the git-remote host blocklist incl. IP-literal canonicalization).
+  url: z
+    .string()
+    .url()
+    .refine(isSafeWebhookUrl, 'Webhook URL must be an https URL to a public host (no internal/metadata addresses)'),
   secret: z.string().min(16),
   enabled: z.boolean().default(true),
 });
@@ -1470,6 +1476,19 @@ function isBlockedGitHost(rawHost: string): boolean {
     host.startsWith('fd') ||
     host.startsWith('fe80')
   );
+}
+
+function isSafeWebhookUrl(value: string): boolean {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(value);
+  } catch {
+    return false;
+  }
+
+  // Only https to a public host — block loopback/private/link-local/metadata/CGNAT/ULA.
+  return parsed.protocol === 'https:' && Boolean(parsed.hostname) && !isBlockedGitHost(parsed.hostname);
 }
 
 function isSafeGitRemoteUrl(value: string) {
@@ -10131,52 +10150,67 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
   };
 
+  /*
+   * Shared terminal-authz gate for shell-exec sockets. /commands/stream and
+   * /terminal both spawn arbitrary client-supplied commands on the agent, so BOTH
+   * must honor the per-project terminal permission model — read-only collaborators
+   * denied unless explicitly granted, everyone else allowed unless explicitly
+   * revoked. Returns true (and closes the socket) when access is denied.
+   */
+  const denyTerminalSocketIfRevoked = async (
+    socket: unknown,
+    authorized: { projectId: string },
+    request: FastifyRequest,
+  ): Promise<boolean> => {
+    const role = await projectCollaborationRole(store, authorized.projectId, request.currentUser?.id);
+    const state = await store.getProjectIdeState(authorized.projectId);
+    const { collaboration } = collaborationDocuments(state);
+
+    const permissions =
+      collaboration.terminalPermissions &&
+      typeof collaboration.terminalPermissions === 'object' &&
+      !Array.isArray(collaboration.terminalPermissions)
+        ? (collaboration.terminalPermissions as Record<string, { allowed?: boolean }>)
+        : {};
+
+    const entry = permissions[request.currentUser!.id];
+    const denied = isReadOnlyProjectRole(role) ? entry?.allowed !== true : entry?.allowed === false;
+
+    if (denied) {
+      const client = normalizeRuntimeApiWebSocket(socket);
+      client.send(
+        JSON.stringify({
+          type: 'error',
+          error: { code: 'TERMINAL_ACCESS_DENIED', message: 'Terminal access is restricted for this project role' },
+          timestamp: new Date().toISOString(),
+        }),
+      );
+      client.close();
+
+      return true;
+    }
+
+    return false;
+  };
+
   app.get('/api/runtime/workspaces/:workspaceId/commands/stream', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
+    // Same shell-exec capability as /terminal — enforce the terminal revocation here too.
+    if (await denyTerminalSocketIfRevoked(socket, authorized, request)) {
+      return;
+    }
+
     await proxyRuntimeSocket(socket, authorized.workspaceId, '/commands/stream', false);
   });
 
   app.get('/api/runtime/workspaces/:workspaceId/terminal', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-    const role = await projectCollaborationRole(store, authorized.projectId, request.currentUser?.id);
 
-    {
-      const state = await store.getProjectIdeState(authorized.projectId);
-      const { collaboration } = collaborationDocuments(state);
-
-      const permissions =
-        collaboration.terminalPermissions &&
-        typeof collaboration.terminalPermissions === 'object' &&
-        !Array.isArray(collaboration.terminalPermissions)
-          ? (collaboration.terminalPermissions as Record<string, { allowed?: boolean }>)
-          : {};
-
-      const entry = permissions[request.currentUser!.id];
-
-      /*
-       * Two regimes, both now actually enforced (the per-user revocation used to
-       * be dead code — it sat inside `if (isReadOnlyProjectRole)`, so an explicit
-       * revocation never applied to editors/members):
-       *  - read-only collaborators: terminal DENIED unless explicitly granted;
-       *  - everyone else: terminal ALLOWED unless explicitly revoked.
-       */
-      const denied = isReadOnlyProjectRole(role) ? entry?.allowed !== true : entry?.allowed === false;
-
-      if (denied) {
-        const client = normalizeRuntimeApiWebSocket(socket);
-        client.send(
-          JSON.stringify({
-            type: 'error',
-            error: { code: 'TERMINAL_ACCESS_DENIED', message: 'Terminal access is restricted for this project role' },
-            timestamp: new Date().toISOString(),
-          }),
-        );
-        client.close();
-
-        return;
-      }
+    if (await denyTerminalSocketIfRevoked(socket, authorized, request)) {
+      return;
     }
 
     if (authorized.organizationId) {

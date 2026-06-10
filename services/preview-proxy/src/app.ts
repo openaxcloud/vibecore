@@ -170,7 +170,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       reply.status(upstreamResponse.status);
 
       const contentType = upstreamResponse.headers.get('content-type') ?? '';
-      const isHtml = contentType.includes('text/html');
+      /*
+       * Only treat the body as injectable HTML when it is UTF-8 (or has no
+       * declared charset, which we read as UTF-8). The inspector injection
+       * buffers + toString('utf8'); doing that to an ISO-8859-1 / Shift_JIS / etc.
+       * page corrupts every non-ASCII byte. For non-UTF-8 HTML, fall through to
+       * the byte-exact stream-through path instead of rewriting it.
+       */
+      const charset = /charset\s*=\s*"?([\w-]+)"?/i.exec(contentType)?.[1]?.toLowerCase();
+      const isUtf8 = !charset || charset === 'utf-8' || charset === 'utf8';
+      const isHtml = contentType.includes('text/html') && isUtf8;
 
       upstreamResponse.headers.forEach((value, name) => {
         const lower = name.toLowerCase();

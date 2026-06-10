@@ -1385,7 +1385,11 @@ export const Preview = memo(
 
     const openInNewTab = () => {
       if (activePreview?.baseUrl) {
-        window.open(activePreview?.baseUrl, '_blank');
+        /*
+         * noopener,noreferrer: the preview runs untrusted user/AI-generated code —
+         * deny it window.opener access to this origin and strip the Referer.
+         */
+        window.open(activePreview?.baseUrl, '_blank', 'noopener,noreferrer');
       }
     };
 

@@ -25,7 +25,15 @@ export function getApiKeysFromCookies() {
     parsedKeys = apiKeyMemoizeCache[storedApiKeys];
 
     if (!parsedKeys) {
-      parsedKeys = apiKeyMemoizeCache[storedApiKeys] = JSON.parse(storedApiKeys);
+      try {
+        /*
+         * A malformed/tampered apiKeys cookie must not throw an uncaught SyntaxError
+         * that breaks chat rendering — fall back to an empty key set.
+         */
+        parsedKeys = apiKeyMemoizeCache[storedApiKeys] = JSON.parse(storedApiKeys);
+      } catch {
+        parsedKeys = {};
+      }
     }
   }
 

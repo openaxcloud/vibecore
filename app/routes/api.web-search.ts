@@ -1,10 +1,45 @@
+import { lookup as dnsLookup } from 'node:dns';
 import { lookup } from 'node:dns/promises';
+import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
 import { json } from '@remix-run/cloudflare';
 import type { ActionFunctionArgs } from '@remix-run/cloudflare';
 import { isAllowedUrl, isPrivateIp } from '~/utils/url';
 
 const MAX_CONTENT_LENGTH = 8000;
 const MAX_REDIRECTS = 5;
+const MAX_FETCH_BYTES = 5 * 1024 * 1024;
+const FETCH_TIMEOUT_MS = 10_000;
+
+/*
+ * Connect-time DNS validation. The pre-fetch assertHostAllowed() check resolves
+ * + validates the host, but global fetch re-resolves DNS independently right
+ * before connecting — so a public→private rebind (attacker domain, TTL=0) could
+ * slip an internal IP past the pre-check. By using node:http(s) with a custom
+ * `lookup` that re-validates EVERY resolved address at the moment of connection,
+ * the socket can only ever connect to a public IP — closing the TOCTOU window.
+ */
+export function validatingLookup(
+  hostname: string,
+  options: unknown,
+  callback: (err: NodeJS.ErrnoException | null, address?: string, family?: number) => void,
+): void {
+  dnsLookup(hostname, { all: true }, (err, addresses) => {
+    if (err) {
+      callback(err);
+      return;
+    }
+
+    const list = Array.isArray(addresses) ? addresses : [];
+
+    if (list.length === 0 || list.some((entry) => isPrivateIp(entry.address))) {
+      callback(Object.assign(new Error('Resolved to a disallowed (internal) address'), { code: 'SSRF_BLOCKED' }));
+      return;
+    }
+
+    callback(null, list[0].address, list[0].family);
+  });
+}
 
 const FETCH_HEADERS = {
   'User-Agent':
@@ -75,14 +110,90 @@ async function assertHostAllowed(rawUrl: string): Promise<{ ok: true } | { ok: f
   return { ok: true };
 }
 
+type SafeFetchResult =
+  | { ok: true; status: number; statusText: string; contentType: string; html: string }
+  | { ok: false; status: number; error: string };
+
 /**
- * Fetch following redirects manually so every hop's destination is
- * re-validated against the SSRF allow-list. The default `redirect: 'follow'`
- * would let a public URL 302 the request into an internal host.
+ * One HTTP(S) GET via node:http(s) with the connect-time-validating lookup, a
+ * hard timeout, and a streamed body cap. Returns either a redirect Location or
+ * the (capped) body. Built on node modules so we can pin DNS validation to the
+ * actual socket connection — global fetch offers no per-connection lookup hook.
  */
-async function safeFetch(
-  initialUrl: string,
-): Promise<{ ok: true; response: Response } | { ok: false; status: number; error: string }> {
+function httpGetOnce(
+  targetUrl: string,
+): Promise<
+  | { kind: 'redirect'; location: string }
+  | { kind: 'body'; status: number; statusText: string; contentType: string; html: string }
+  | { kind: 'too-large' }
+> {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(targetUrl);
+    const requestImpl = parsed.protocol === 'https:' ? httpsRequest : httpRequest;
+
+    const req = requestImpl(
+      targetUrl,
+      { method: 'GET', headers: FETCH_HEADERS, lookup: validatingLookup as never, timeout: FETCH_TIMEOUT_MS },
+      (res) => {
+        const status = res.statusCode ?? 0;
+        const location = res.headers.location;
+
+        if (status >= 300 && status < 400 && typeof location === 'string' && location) {
+          res.resume(); // drain so the socket is freed
+          resolve({ kind: 'redirect', location });
+
+          return;
+        }
+
+        const declaredLength = Number(res.headers['content-length'] ?? '');
+
+        if (Number.isFinite(declaredLength) && declaredLength > MAX_FETCH_BYTES) {
+          res.destroy();
+          resolve({ kind: 'too-large' });
+
+          return;
+        }
+
+        const chunks: Buffer[] = [];
+
+        let total = 0;
+
+        res.on('data', (chunk: Buffer) => {
+          total += chunk.length;
+
+          if (total > MAX_FETCH_BYTES) {
+            res.destroy();
+
+            return;
+          }
+
+          chunks.push(chunk);
+        });
+        res.on('end', () =>
+          resolve({
+            kind: 'body',
+            status,
+            statusText: res.statusMessage ?? '',
+            contentType: (res.headers['content-type'] as string | undefined) ?? '',
+            html: Buffer.concat(chunks).toString('utf8'),
+          }),
+        );
+        res.on('error', reject);
+      },
+    );
+
+    req.on('timeout', () => req.destroy(Object.assign(new Error('timeout'), { name: 'TimeoutError' })));
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+/**
+ * Fetch following redirects manually so every hop's destination is re-validated
+ * against the SSRF allow-list (scheme/host) AND connect-time-validated (resolved
+ * IP), closing both the open-redirect and the DNS-rebinding TOCTOU windows.
+ */
+async function safeFetch(initialUrl: string): Promise<SafeFetchResult> {
   let currentUrl = initialUrl;
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
@@ -92,18 +203,38 @@ async function safeFetch(
       return { ok: false, status: 400, error: guard.error };
     }
 
-    const response = await fetch(currentUrl, {
-      headers: FETCH_HEADERS,
-      redirect: 'manual',
-      signal: AbortSignal.timeout(10_000),
-    });
+    let result;
 
-    if (response.status >= 300 && response.status < 400 && response.headers.has('location')) {
-      currentUrl = new URL(response.headers.get('location')!, currentUrl).toString();
+    try {
+      result = await httpGetOnce(currentUrl);
+    } catch (error) {
+      if ((error as { code?: string })?.code === 'SSRF_BLOCKED') {
+        return { ok: false, status: 400, error: 'URL resolves to a disallowed (internal) address.' };
+      }
+
+      if ((error as Error)?.name === 'TimeoutError') {
+        return { ok: false, status: 504, error: 'Request timed out after 10 seconds' };
+      }
+
+      return { ok: false, status: 502, error: (error as Error)?.message ?? 'Failed to fetch URL' };
+    }
+
+    if (result.kind === 'too-large') {
+      return { ok: false, status: 413, error: 'Page too large' };
+    }
+
+    if (result.kind === 'redirect') {
+      currentUrl = new URL(result.location, currentUrl).toString();
       continue;
     }
 
-    return { ok: true, response };
+    return {
+      ok: true,
+      status: result.status,
+      statusText: result.statusText,
+      contentType: result.contentType,
+      html: result.html,
+    };
   }
 
   return { ok: false, status: 502, error: 'Too many redirects' };
@@ -127,61 +258,15 @@ export async function action({ request }: ActionFunctionArgs) {
       return json({ error: fetched.error }, { status: fetched.status });
     }
 
-    const response = fetched.response;
-
-    if (!response.ok) {
-      return json({ error: `Failed to fetch URL: ${response.status} ${response.statusText}` }, { status: 502 });
+    if (fetched.status < 200 || fetched.status >= 300) {
+      return json({ error: `Failed to fetch URL: ${fetched.status} ${fetched.statusText}` }, { status: 502 });
     }
 
-    const contentType = response.headers.get('content-type') || '';
-
-    if (!contentType.includes('text/html') && !contentType.includes('text/plain')) {
+    if (!fetched.contentType.includes('text/html') && !fetched.contentType.includes('text/plain')) {
       return json({ error: 'URL must point to an HTML or text page' }, { status: 400 });
     }
 
-    /*
-     * Bound the body so a huge (or lying-Content-Length) page can't be fully
-     * buffered into memory. Early-reject on a declared oversize, then stream-read
-     * with a hard byte cap instead of response.text().
-     */
-    const MAX_FETCH_BYTES = 5 * 1024 * 1024;
-    const declaredLength = Number(response.headers.get('content-length') ?? '');
-
-    if (Number.isFinite(declaredLength) && declaredLength > MAX_FETCH_BYTES) {
-      return json({ error: 'Page too large' }, { status: 413 });
-    }
-
-    let html = '';
-
-    if (response.body) {
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      let total = 0;
-
-      for (;;) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-          break;
-        }
-
-        if (value) {
-          total += value.length;
-
-          if (total > MAX_FETCH_BYTES) {
-            await reader.cancel().catch(() => {});
-            break;
-          }
-
-          html += decoder.decode(value, { stream: true });
-        }
-      }
-
-      html += decoder.decode();
-    } else {
-      html = await response.text();
-    }
+    const html = fetched.html;
 
     const title = extractTitle(html);
     const description = extractMetaDescription(html);
