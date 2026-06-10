@@ -1482,9 +1482,11 @@ function isBlockedGitHost(rawHost: string): boolean {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
-    host.startsWith('fc') ||
-    host.startsWith('fd') ||
-    host.startsWith('fe80')
+    // ULA fc00::/7 + link-local fe80::/10, but only as IPv6 LITERALS (hextets +
+    // ':'). The old startsWith('fc'/'fd'/'fe80') wrongly blocked public hosts like
+    // fcbarcelona.com / fdic.gov / fe80.example.com.
+    /^f[cd][0-9a-f]{0,2}:/.test(host) ||
+    /^fe[89ab][0-9a-f]:/.test(host)
   );
 }
 
@@ -3227,7 +3229,10 @@ async function sessionExpiresAtForUser(store: ApiStore, userId: string) {
  * back to the capped JS RegExp so search still works.
  */
 const requireNative = createRequire(import.meta.url);
-let re2Engine: (new (pattern: string, flags?: string) => { exec(input: string): RegExpExecArray | null }) | null | undefined;
+let re2Engine:
+  | (new (pattern: string, flags?: string) => { exec(input: string): RegExpExecArray | null })
+  | null
+  | undefined;
 
 function loadRe2() {
   if (re2Engine !== undefined) {
@@ -3249,7 +3254,10 @@ function loadRe2() {
  * falls back to JS RegExp only if re2 didn't load (callers still cap input length
  * as defense-in-depth). Throws on an invalid pattern so the route can 400.
  */
-function createUserPatternMatcher(pattern: string, caseInsensitive: boolean): { exec(line: string): RegExpExecArray | null } {
+function createUserPatternMatcher(
+  pattern: string,
+  caseInsensitive: boolean,
+): { exec(line: string): RegExpExecArray | null } {
   const RE2 = loadRe2();
 
   if (RE2) {
@@ -3914,8 +3922,15 @@ function parseSamlXmlAssertion(xml: string, certificate: string, expectedAudienc
     assertionXml,
     /<Attribute[^>]+Name=["']roleKey["'][^>]*>\s*<AttributeValue[^>]*>([\s\S]*?)<\/(?:\w+:)?AttributeValue>/,
   );
-  const roleKey = ['owner', 'admin', 'member', 'viewer'].includes(roleText ?? '')
-    ? (roleText as 'owner' | 'admin' | 'member' | 'viewer')
+  /*
+   * Never honor an asserted `owner` role from SAML. owner is the top privilege
+   * (billing, delete-org, owner management); letting an IdP attribute grant it is
+   * a vertical-escalation path (a misconfigured/compromised IdP, or XSW, could
+   * mint owners, and an existing admin could self-escalate via a crafted
+   * assertion). Owner is assigned out-of-band through the app, not via SSO.
+   */
+  const roleKey = ['admin', 'member', 'viewer'].includes(roleText ?? '')
+    ? (roleText as 'admin' | 'member' | 'viewer')
     : undefined;
 
   if (!email || !externalId) {
@@ -15083,10 +15098,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           Boolean(existingSubscription.externalId) &&
           existingSubscription.externalId === eventExternalId;
 
-        if (isStaleReactivation) {
+        /*
+         * General out-of-order guard: Stripe doesn't guarantee delivery order, so a
+         * stale customer.subscription.updated (older event.created) can land after a
+         * newer one and overwrite current plan/seat/status state. Drop any event for
+         * the SAME subscription whose event.created predates the latest one we've
+         * applied. (deletion is terminal and handled by isStaleReactivation above.)
+         */
+        const eventCreatedAt = Number.isFinite(Number(event.created))
+          ? new Date(Number(event.created) * 1000)
+          : undefined;
+        const isStaleByTimestamp = Boolean(
+          eventCreatedAt &&
+            existingSubscription?.lastStripeEventAt &&
+            existingSubscription.externalId === eventExternalId &&
+            eventCreatedAt.getTime() < new Date(existingSubscription.lastStripeEventAt).getTime(),
+        );
+
+        if (isStaleReactivation || isStaleByTimestamp) {
           request.log.warn(
             { organizationId, eventType: event.type, externalId: eventExternalId },
-            'Ignoring out-of-order Stripe event that would reactivate a canceled subscription',
+            'Ignoring out-of-order Stripe subscription event (stale)',
           );
         } else {
           await store.upsertSubscription({
@@ -15121,6 +15153,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             currentPeriodEnd: object.current_period_end
               ? new Date(Number(object.current_period_end) * 1000)
               : undefined,
+            lastStripeEventAt: eventCreatedAt,
           });
           // Non-critical: a failed audit write must NOT trigger the dedup rollback
           // (which would re-run the non-idempotent revenue recordUsageEvent above and

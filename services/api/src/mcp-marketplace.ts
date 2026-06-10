@@ -164,6 +164,41 @@ interface JsonSchema {
   additionalProperties?: boolean;
 }
 
+/*
+ * Reject local/stdio MCP servers in the user "Configuration" tab. A stdio server
+ * carries a `command`/`args` that the chat flow spawns as a CHILD PROCESS inside
+ * the shared multi-tenant Remix/Node host (mcpService._createStdioClient →
+ * child_process.spawn) — i.e. authenticated RCE on the shared server. Unlike the
+ * marketplace install path (whose command/args come from an admin-seeded catalog
+ * template), this map is fully user-supplied, so only REMOTE transports
+ * (sse / streamable-http with a url) are permitted. Default-deny; an operator can
+ * re-enable stdio for a trusted single-tenant/local deployment via
+ * MCP_ALLOW_STDIO_SERVERS=true.
+ */
+export function assertNoLocalMcpServers(mcpServers: Record<string, unknown>): void {
+  if (process.env.MCP_ALLOW_STDIO_SERVERS === 'true') {
+    return;
+  }
+
+  for (const [name, raw] of Object.entries(mcpServers)) {
+    if (!raw || typeof raw !== 'object') {
+      continue;
+    }
+
+    const cfg = raw as Record<string, unknown>;
+    const type = typeof cfg.type === 'string' ? cfg.type.toLowerCase() : undefined;
+    const isStdio = type === 'stdio' || 'command' in cfg || 'args' in cfg;
+
+    if (isStdio) {
+      throw new McpMarketplaceError(
+        `MCP server '${name}': local (stdio/command) servers are not allowed. Use a remote server (type "sse" or "streamable-http") with a "url".`,
+        400,
+        'MCP_STDIO_SERVER_FORBIDDEN',
+      );
+    }
+  }
+}
+
 export function validateConfigAgainstSchema(value: unknown, rawSchema: unknown): string[] {
   const errors: string[] = [];
   const schema = (rawSchema ?? {}) as JsonSchema;
@@ -524,6 +559,9 @@ export class McpMarketplaceService {
     maxLLMSteps?: number;
   }): Promise<McpUserConfigView> {
     const mcpServers = input.config?.mcpServers ?? {};
+
+    assertNoLocalMcpServers(mcpServers);
+
     const configJson = { mcpServers } as never;
 
     const row = await this.deps.prisma.mcpUserConfig.upsert({

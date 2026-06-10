@@ -685,6 +685,10 @@ model Subscription {
   currentPeriodEnd   DateTime?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
+  // Stripe `event.created` of the latest applied subscription event. Used to drop
+  // out-of-order webhook deliveries (Stripe does not guarantee ordering) that
+  // would otherwise overwrite newer plan/seat/status state with stale data.
+  lastStripeEventAt  DateTime?
   organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   plan               Plan               @relation(fields: [planId], references: [id])
 

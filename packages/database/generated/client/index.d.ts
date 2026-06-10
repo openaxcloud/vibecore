@@ -50474,6 +50474,7 @@ export namespace Prisma {
     currentPeriodEnd: Date | null
     createdAt: Date | null
     updatedAt: Date | null
+    lastStripeEventAt: Date | null
   }
 
   export type SubscriptionMaxAggregateOutputType = {
@@ -50488,6 +50489,7 @@ export namespace Prisma {
     currentPeriodEnd: Date | null
     createdAt: Date | null
     updatedAt: Date | null
+    lastStripeEventAt: Date | null
   }
 
   export type SubscriptionCountAggregateOutputType = {
@@ -50502,6 +50504,7 @@ export namespace Prisma {
     currentPeriodEnd: number
     createdAt: number
     updatedAt: number
+    lastStripeEventAt: number
     _all: number
   }
 
@@ -50518,6 +50521,7 @@ export namespace Prisma {
     currentPeriodEnd?: true
     createdAt?: true
     updatedAt?: true
+    lastStripeEventAt?: true
   }
 
   export type SubscriptionMaxAggregateInputType = {
@@ -50532,6 +50536,7 @@ export namespace Prisma {
     currentPeriodEnd?: true
     createdAt?: true
     updatedAt?: true
+    lastStripeEventAt?: true
   }
 
   export type SubscriptionCountAggregateInputType = {
@@ -50546,6 +50551,7 @@ export namespace Prisma {
     currentPeriodEnd?: true
     createdAt?: true
     updatedAt?: true
+    lastStripeEventAt?: true
     _all?: true
   }
 
@@ -50633,6 +50639,7 @@ export namespace Prisma {
     currentPeriodEnd: Date | null
     createdAt: Date
     updatedAt: Date
+    lastStripeEventAt: Date | null
     _count: SubscriptionCountAggregateOutputType | null
     _min: SubscriptionMinAggregateOutputType | null
     _max: SubscriptionMaxAggregateOutputType | null
@@ -50664,6 +50671,7 @@ export namespace Prisma {
     currentPeriodEnd?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    lastStripeEventAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     plan?: boolean | PlanDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["subscription"]>
@@ -50680,6 +50688,7 @@ export namespace Prisma {
     currentPeriodEnd?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    lastStripeEventAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     plan?: boolean | PlanDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["subscription"]>
@@ -50696,6 +50705,7 @@ export namespace Prisma {
     currentPeriodEnd?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    lastStripeEventAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     plan?: boolean | PlanDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["subscription"]>
@@ -50712,9 +50722,10 @@ export namespace Prisma {
     currentPeriodEnd?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    lastStripeEventAt?: boolean
   }
 
-  export type SubscriptionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "planId" | "externalId" | "status" | "cancelAtPeriodEnd" | "trialEndsAt" | "currentPeriodStart" | "currentPeriodEnd" | "createdAt" | "updatedAt", ExtArgs["result"]["subscription"]>
+  export type SubscriptionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "planId" | "externalId" | "status" | "cancelAtPeriodEnd" | "trialEndsAt" | "currentPeriodStart" | "currentPeriodEnd" | "createdAt" | "updatedAt" | "lastStripeEventAt", ExtArgs["result"]["subscription"]>
   export type SubscriptionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     plan?: boolean | PlanDefaultArgs<ExtArgs>
@@ -50746,6 +50757,7 @@ export namespace Prisma {
       currentPeriodEnd: Date | null
       createdAt: Date
       updatedAt: Date
+      lastStripeEventAt: Date | null
     }, ExtArgs["result"]["subscription"]>
     composites: {}
   }
@@ -51182,6 +51194,7 @@ export namespace Prisma {
     readonly currentPeriodEnd: FieldRef<"Subscription", 'DateTime'>
     readonly createdAt: FieldRef<"Subscription", 'DateTime'>
     readonly updatedAt: FieldRef<"Subscription", 'DateTime'>
+    readonly lastStripeEventAt: FieldRef<"Subscription", 'DateTime'>
   }
     
 
@@ -99378,7 +99391,8 @@ export namespace Prisma {
     currentPeriodStart: 'currentPeriodStart',
     currentPeriodEnd: 'currentPeriodEnd',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    lastStripeEventAt: 'lastStripeEventAt'
   };
 
   export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
@@ -103074,6 +103088,7 @@ export namespace Prisma {
     currentPeriodEnd?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     createdAt?: DateTimeFilter<"Subscription"> | Date | string
     updatedAt?: DateTimeFilter<"Subscription"> | Date | string
+    lastStripeEventAt?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
     plan?: XOR<PlanScalarRelationFilter, PlanWhereInput>
   }
@@ -103090,6 +103105,7 @@ export namespace Prisma {
     currentPeriodEnd?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    lastStripeEventAt?: SortOrderInput | SortOrder
     organization?: OrganizationOrderByWithRelationInput
     plan?: PlanOrderByWithRelationInput
   }
@@ -103109,6 +103125,7 @@ export namespace Prisma {
     currentPeriodEnd?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     createdAt?: DateTimeFilter<"Subscription"> | Date | string
     updatedAt?: DateTimeFilter<"Subscription"> | Date | string
+    lastStripeEventAt?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
     plan?: XOR<PlanScalarRelationFilter, PlanWhereInput>
   }, "id" | "externalId">
@@ -103125,6 +103142,7 @@ export namespace Prisma {
     currentPeriodEnd?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    lastStripeEventAt?: SortOrderInput | SortOrder
     _count?: SubscriptionCountOrderByAggregateInput
     _max?: SubscriptionMaxOrderByAggregateInput
     _min?: SubscriptionMinOrderByAggregateInput
@@ -103145,6 +103163,7 @@ export namespace Prisma {
     currentPeriodEnd?: DateTimeNullableWithAggregatesFilter<"Subscription"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Subscription"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Subscription"> | Date | string
+    lastStripeEventAt?: DateTimeNullableWithAggregatesFilter<"Subscription"> | Date | string | null
   }
 
   export type PlanWhereInput = {
@@ -109275,6 +109294,7 @@ export namespace Prisma {
     currentPeriodEnd?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    lastStripeEventAt?: Date | string | null
     organization: OrganizationCreateNestedOneWithoutSubscriptionsInput
     plan: PlanCreateNestedOneWithoutSubscriptionsInput
   }
@@ -109291,6 +109311,7 @@ export namespace Prisma {
     currentPeriodEnd?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    lastStripeEventAt?: Date | string | null
   }
 
   export type SubscriptionUpdateInput = {
@@ -109303,6 +109324,7 @@ export namespace Prisma {
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastStripeEventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     organization?: OrganizationUpdateOneRequiredWithoutSubscriptionsNestedInput
     plan?: PlanUpdateOneRequiredWithoutSubscriptionsNestedInput
   }
@@ -109319,6 +109341,7 @@ export namespace Prisma {
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastStripeEventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type SubscriptionCreateManyInput = {
@@ -109333,6 +109356,7 @@ export namespace Prisma {
     currentPeriodEnd?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    lastStripeEventAt?: Date | string | null
   }
 
   export type SubscriptionUpdateManyMutationInput = {
@@ -109345,6 +109369,7 @@ export namespace Prisma {
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastStripeEventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type SubscriptionUncheckedUpdateManyInput = {
@@ -109359,6 +109384,7 @@ export namespace Prisma {
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastStripeEventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type PlanCreateInput = {
@@ -115102,6 +115128,7 @@ export namespace Prisma {
     currentPeriodEnd?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    lastStripeEventAt?: SortOrder
   }
 
   export type SubscriptionMaxOrderByAggregateInput = {
@@ -115116,6 +115143,7 @@ export namespace Prisma {
     currentPeriodEnd?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    lastStripeEventAt?: SortOrder
   }
 
   export type SubscriptionMinOrderByAggregateInput = {
@@ -115130,6 +115158,7 @@ export namespace Prisma {
     currentPeriodEnd?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    lastStripeEventAt?: SortOrder
   }
 
   export type EnumSubscriptionStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -125076,6 +125105,7 @@ export namespace Prisma {
     currentPeriodEnd?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    lastStripeEventAt?: Date | string | null
     plan: PlanCreateNestedOneWithoutSubscriptionsInput
   }
 
@@ -125090,6 +125120,7 @@ export namespace Prisma {
     currentPeriodEnd?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    lastStripeEventAt?: Date | string | null
   }
 
   export type SubscriptionCreateOrConnectWithoutOrganizationInput = {
@@ -125932,6 +125963,7 @@ export namespace Prisma {
     currentPeriodEnd?: DateTimeNullableFilter<"Subscription"> | Date | string | null
     createdAt?: DateTimeFilter<"Subscription"> | Date | string
     updatedAt?: DateTimeFilter<"Subscription"> | Date | string
+    lastStripeEventAt?: DateTimeNullableFilter<"Subscription"> | Date | string | null
   }
 
   export type UsageEventUpsertWithWhereUniqueWithoutOrganizationInput = {
@@ -135105,6 +135137,7 @@ export namespace Prisma {
     currentPeriodEnd?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    lastStripeEventAt?: Date | string | null
     organization: OrganizationCreateNestedOneWithoutSubscriptionsInput
   }
 
@@ -135119,6 +135152,7 @@ export namespace Prisma {
     currentPeriodEnd?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    lastStripeEventAt?: Date | string | null
   }
 
   export type SubscriptionCreateOrConnectWithoutPlanInput = {
@@ -143721,6 +143755,7 @@ export namespace Prisma {
     currentPeriodEnd?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    lastStripeEventAt?: Date | string | null
   }
 
   export type UsageEventCreateManyOrganizationInput = {
@@ -144091,6 +144126,7 @@ export namespace Prisma {
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastStripeEventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     plan?: PlanUpdateOneRequiredWithoutSubscriptionsNestedInput
   }
 
@@ -144105,6 +144141,7 @@ export namespace Prisma {
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastStripeEventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type SubscriptionUncheckedUpdateManyWithoutOrganizationInput = {
@@ -144118,6 +144155,7 @@ export namespace Prisma {
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastStripeEventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type UsageEventUpdateWithoutOrganizationInput = {
@@ -146025,6 +146063,7 @@ export namespace Prisma {
     currentPeriodEnd?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    lastStripeEventAt?: Date | string | null
   }
 
   export type SubscriptionUpdateWithoutPlanInput = {
@@ -146037,6 +146076,7 @@ export namespace Prisma {
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastStripeEventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     organization?: OrganizationUpdateOneRequiredWithoutSubscriptionsNestedInput
   }
 
@@ -146051,6 +146091,7 @@ export namespace Prisma {
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastStripeEventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type SubscriptionUncheckedUpdateManyWithoutPlanInput = {
@@ -146064,6 +146105,7 @@ export namespace Prisma {
     currentPeriodEnd?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastStripeEventAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type AiMessageCreateManyConversationInput = {

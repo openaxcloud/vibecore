@@ -222,9 +222,15 @@ export class WorkspaceManager {
        * size are preserved across reopens by never re-applying.
        */
       const pvc = workspacePvc(runtimeInput);
-      const existingPvc = await this.k8s
-        .get('PersistentVolumeClaim', input.namespace, pvc.metadata?.name ?? '')
-        .catch(() => undefined);
+
+      /*
+       * Do NOT swallow errors from get(): the k8s client returns undefined ONLY
+       * for a real NotFound and THROWS on transient/RBAC failures. Catching here
+       * would turn a transient error into "absent" → re-apply the bound PVC →
+       * shrink-forbidden wedge (the exact bug this guard exists to avoid). Let it
+       * propagate to the outer catch, which fails the start cleanly instead.
+       */
+      const existingPvc = await this.k8s.get('PersistentVolumeClaim', input.namespace, pvc.metadata?.name ?? '');
 
       if (!existingPvc) {
         await this.k8s.apply(pvc);

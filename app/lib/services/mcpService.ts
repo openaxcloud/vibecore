@@ -162,6 +162,22 @@ export class MCPService {
       throw new Error(`provided "type" is invalid, only "stdio", "sse" or "streamable-http" are valid options.`);
     }
 
+    /*
+     * Defense-in-depth against authenticated RCE on the shared multi-tenant host:
+     * a stdio server's `command`/`args` is spawned as a CHILD PROCESS in this
+     * Node/SSR process (_createStdioClient → child_process.spawn). The API
+     * already rejects stdio at save time, but block it here too so any
+     * already-stored config can't execute. Allow stdio only when explicitly
+     * enabled for a trusted single-tenant/local deployment.
+     */
+    const allowStdio = (globalThis as any).process?.env?.MCP_ALLOW_STDIO_SERVERS === 'true';
+
+    if (config.type === 'stdio' && !allowStdio) {
+      throw new Error(
+        `local (stdio) MCP servers are disabled on this deployment; use a remote server (type "sse" or "streamable-http").`,
+      );
+    }
+
     // Check for type/field mismatch
     if (config.type === 'stdio' && !hasStdioField) {
       throw new Error(`missing "command" field.`);

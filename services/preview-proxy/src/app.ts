@@ -159,6 +159,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         headers,
         body: shouldStreamBody(request.method) ? (request.raw as unknown as ReadableStream<Uint8Array>) : undefined,
         signal: controller.signal,
+        /*
+         * Do NOT follow redirects. The path-traversal sandbox + agent resolution
+         * validate the INITIAL upstream URL only; with the default redirect:'follow'
+         * the workspace dev server (attacker-controlled app code) could 3xx us to
+         * an internal address or out of the /preview/{port}/ sandbox while carrying
+         * the agent bearer token. Surface the 3xx to the client verbatim instead.
+         */
+        redirect: 'manual',
         ...({ duplex: 'half' } as Record<string, unknown>),
       });
 

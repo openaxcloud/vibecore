@@ -663,12 +663,23 @@ export class PrismaApiStore implements ApiStore {
       const slug = await this.nextProjectSlug(input.targetOrganizationId, current.slug);
 
       try {
-        return mapProject(
-          await this.prisma.project.update({
-            where: { id: input.projectId },
-            data: { organizationId: input.targetOrganizationId, slug },
-          }),
-        );
+        return await this.prisma.$transaction(async (tx) => {
+          /*
+           * Revoke all explicit ProjectCollaborator grants on transfer. They were
+           * issued to the SOURCE org's users; leaving them in place after the
+           * project moves to a different org keeps those (now cross-org) users with
+           * access to a project they no longer belong to. The target org's members
+           * get access via org membership; collaborators must be re-invited.
+           */
+          await tx.projectCollaborator.deleteMany({ where: { projectId: input.projectId } });
+
+          return mapProject(
+            await tx.project.update({
+              where: { id: input.projectId },
+              data: { organizationId: input.targetOrganizationId, slug },
+            }),
+          );
+        });
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002' && attempt < 5) {
           continue;
@@ -2474,6 +2485,7 @@ export class PrismaApiStore implements ApiStore {
     trialEndsAt?: Date;
     currentPeriodStart?: Date;
     currentPeriodEnd?: Date;
+    lastStripeEventAt?: Date;
   }) {
     const plan = await this.ensurePlan(input.planKey);
 
@@ -2486,6 +2498,7 @@ export class PrismaApiStore implements ApiStore {
       trialEndsAt: input.trialEndsAt,
       currentPeriodStart: input.currentPeriodStart,
       currentPeriodEnd: input.currentPeriodEnd,
+      ...(input.lastStripeEventAt ? { lastStripeEventAt: input.lastStripeEventAt } : {}),
     };
 
     /*
@@ -3497,6 +3510,7 @@ function mapSubscription(subscription: any): SubscriptionRecord {
     currentPeriodEnd: toIso(subscription.currentPeriodEnd),
     createdAt: toIso(subscription.createdAt)!,
     updatedAt: toIso(subscription.updatedAt),
+    lastStripeEventAt: toIso(subscription.lastStripeEventAt),
   };
 }
 

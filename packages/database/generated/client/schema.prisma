@@ -685,6 +685,10 @@ model Subscription {
   currentPeriodEnd   DateTime?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
+  // Stripe `event.created` of the latest applied subscription event. Used to drop
+  // out-of-order webhook deliveries (Stripe does not guarantee ordering) that
+  // would otherwise overwrite newer plan/seat/status state with stale data.
+  lastStripeEventAt  DateTime?
   organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   plan               Plan               @relation(fields: [planId], references: [id])
 
@@ -763,6 +767,9 @@ model AiConversation {
   project   Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages  AiMessage[]
+
+  @@index([projectId])
+  @@index([userId])
 }
 
 model AiMessage {
@@ -774,6 +781,11 @@ model AiMessage {
   conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   toolCalls      AiToolCall[]
   tokenUsage     AiTokenUsage?
+
+  // listAiMessages runs WHERE conversationId = ? ORDER BY createdAt DESC on the
+  // highest-volume table in the product (one row per chat message) on every
+  // conversation open — without this it was a full table scan + sort.
+  @@index([conversationId, createdAt])
 }
 
 model AiToolCall {
@@ -784,6 +796,8 @@ model AiToolCall {
   output    Json?
   createdAt DateTime  @default(now())
   message   AiMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
 }
 
 model AiTokenUsage {
@@ -827,6 +841,9 @@ model AbuseEvent {
   metadata       Json?
   createdAt      DateTime      @default(now())
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  // evaluateUsageAbuse queries by (organizationId, type) on the usage hot path.
+  @@index([organizationId, type, createdAt])
 }
 
 model SupportTicket {
@@ -1026,6 +1043,7 @@ model OAuthConnection {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, externalId])
+  @@index([userId])
 }
 
 enum McpDomain {

@@ -560,6 +560,7 @@ export interface SubscriptionRecord {
   currentPeriodEnd?: string;
   createdAt: string;
   updatedAt?: string;
+  lastStripeEventAt?: string;
 }
 
 export interface UsageEventRecord {
@@ -1091,6 +1092,7 @@ export interface ApiStore {
     trialEndsAt?: Date;
     currentPeriodStart?: Date;
     currentPeriodEnd?: Date;
+    lastStripeEventAt?: Date;
   }): Promise<SubscriptionRecord>;
   getSubscription(organizationId: string): Promise<SubscriptionRecord | undefined>;
   listAdminSubscriptions(): Promise<SubscriptionRecord[]>;
