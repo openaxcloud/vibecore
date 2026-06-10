@@ -30,7 +30,9 @@ export interface WebContainerProcessLike {
 
 export interface WebContainerFileSystemLike {
   mkdir(path: string, options?: { recursive?: boolean }): Promise<void>;
-  readFile(path: string, encoding?: string | { encoding?: string }): Promise<string>;
+  // The real WebContainer fs returns a Uint8Array when no encoding is given and a
+  // string when 'utf-8' is passed — model both so binary reads aren't mistyped.
+  readFile(path: string, encoding?: string | { encoding?: string }): Promise<string | Uint8Array>;
   writeFile(path: string, content: string | Uint8Array, encoding?: string | { encoding?: string }): Promise<void>;
   rm(path: string, options?: { recursive?: boolean; force?: boolean }): Promise<void>;
   rename(oldPath: string, newPath: string): Promise<void>;
@@ -268,7 +270,9 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
 
   async readFile(path: string): Promise<string> {
     const webcontainer = await this.#getWebContainer();
-    return webcontainer.fs.readFile(this.#toRuntimePath(path), 'utf-8');
+    const content = await webcontainer.fs.readFile(this.#toRuntimePath(path), 'utf-8');
+
+    return typeof content === 'string' ? content : new TextDecoder().decode(content);
   }
 
   async writeFile(path: string, content: string): Promise<void> {
@@ -697,12 +701,29 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
         node.children = await this.#listFiles(webcontainer, path);
       } else {
         try {
-          const content = await webcontainer.fs.readFile(path, 'utf-8');
-          node.content = content;
-          node.size = content.length;
-          node.encoding = 'utf8';
+          /*
+           * Read raw bytes, not 'utf-8'. The old code decoded every file as UTF-8
+           * (lossily corrupting binary assets) and, on decode failure, set
+           * encoding:'binary' with NO content — so restoreSnapshot wrote '' and
+           * ZEROED the file (#38). Classify by content and base64-encode binary so
+           * it round-trips through snapshot/restore intact.
+           */
+          const raw = await webcontainer.fs.readFile(path);
+          const bytes = typeof raw === 'string' ? new TextEncoder().encode(raw) : raw;
+
+          if (isUtf8(bytes)) {
+            node.content = new TextDecoder().decode(bytes);
+            node.encoding = 'utf8';
+          } else {
+            node.content = toBase64(bytes);
+            node.encoding = 'base64';
+          }
+
+          node.size = bytes.length;
         } catch {
-          node.encoding = 'binary';
+          // Truly unreadable (vanished/permission) — record as empty text, not binary-with-no-content.
+          node.content = '';
+          node.encoding = 'utf8';
         }
       }
 
@@ -771,6 +792,13 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
         const webcontainer = await this.#getWebContainer();
         await webcontainer.fs.mkdir(targetPath, { recursive: true });
         await this.#restoreNodes(node.children ?? [], basePath);
+      } else if (node.encoding === 'base64' && typeof node.content === 'string') {
+        // Restore binary files from their base64 bytes — writing the base64 string
+        // as text (or '') would corrupt/zero the asset.
+        const webcontainer = await this.#getWebContainer();
+        const runtimePath = this.#toRuntimePath(targetPath);
+        await this.#ensureParentDirectory(webcontainer, runtimePath);
+        await webcontainer.fs.writeFile(runtimePath, fromBase64(node.content));
       } else {
         await this.writeFile(targetPath, node.content ?? '');
       }
@@ -870,4 +898,19 @@ function toBase64(buffer: Uint8Array): string {
   }
 
   return btoa(binary);
+}
+
+function fromBase64(value: string): Uint8Array {
+  if (typeof Buffer !== 'undefined') {
+    return new Uint8Array(Buffer.from(value, 'base64'));
+  }
+
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return bytes;
 }

@@ -25,10 +25,51 @@ async function pathExists(path: string) {
     .catch(() => false);
 }
 
+/**
+ * How a file's `content` string is encoded. Absent/`utf8` = plain text (the
+ * legacy/default shape, so existing persisted data keeps working). `base64` =
+ * the file is binary (image, font, wasm, …) and `content` is its base64 — this
+ * is what stops binary assets being mangled when read/written as UTF-8 during
+ * git import, archive/snapshot round-trips, and webcontainer restore.
+ */
+export type FileEncoding = 'utf8' | 'base64';
+
 export interface ProjectFile {
   path: string;
   content: string;
+  encoding?: FileEncoding;
   updatedAt: string;
+}
+
+/**
+ * Decide whether a buffer is binary: a NUL byte in the head, or bytes that don't
+ * round-trip cleanly through UTF-8 (lossy decode). Text files stay UTF-8; binary
+ * files are base64-encoded so no byte is lost.
+ */
+export function detectBinaryBuffer(buf: Buffer): boolean {
+  const sample = Math.min(buf.length, 8000);
+
+  for (let i = 0; i < sample; i += 1) {
+    if (buf[i] === 0) {
+      return true;
+    }
+  }
+
+  // Re-encoding a valid-UTF-8 buffer yields identical bytes; a mismatch means the
+  // original wasn't valid UTF-8 (i.e. it's binary) and would be corrupted as text.
+  return !Buffer.from(buf.toString('utf8'), 'utf8').equals(buf);
+}
+
+/** Encode a raw file buffer into the {content, encoding} ProjectFile shape. */
+export function encodeFileBuffer(buf: Buffer): { content: string; encoding: FileEncoding } {
+  return detectBinaryBuffer(buf)
+    ? { content: buf.toString('base64'), encoding: 'base64' }
+    : { content: buf.toString('utf8'), encoding: 'utf8' };
+}
+
+/** Decode a ProjectFile's content string back to its raw bytes for writing. */
+export function decodeFileContent(content: string, encoding?: FileEncoding): Buffer {
+  return Buffer.from(content, encoding === 'base64' ? 'base64' : 'utf8');
 }
 
 export interface StoredArchive {
@@ -147,7 +188,7 @@ export interface GitProvider {
 export interface ProjectStorage {
   writeFiles(
     projectId: string,
-    files: Array<{ path: string; content: string }>,
+    files: Array<{ path: string; content: string; encoding?: FileEncoding }>,
     workspaceId?: string,
   ): Promise<ProjectFile[]>;
   listFiles(projectId: string, workspaceId?: string): Promise<ProjectFile[]>;
@@ -353,18 +394,23 @@ async function walkFiles(root: string, current = ''): Promise<ProjectFile[]> {
     if (entry.isFile()) {
       const fullPath = join(root, child);
       const metadata = await stat(fullPath);
-      files.push({ path: child, content: await readFile(fullPath, 'utf8'), updatedAt: metadata.mtime.toISOString() });
+      // Read raw bytes and detect binary, so non-text assets (images, fonts, wasm)
+      // survive instead of being lossily decoded as UTF-8 (git-import corruption).
+      const { content, encoding } = encodeFileBuffer(await readFile(fullPath));
+      files.push({ path: child, content, encoding, updatedAt: metadata.mtime.toISOString() });
     }
   }
 
   return files;
 }
 
-export async function archiveFiles(files: Array<{ path: string; content: string }>) {
+export async function archiveFiles(files: Array<{ path: string; content: string; encoding?: FileEncoding }>) {
   const zip = new JSZip();
 
   for (const file of files) {
-    zip.file(file.path, file.content);
+    // Pack the real bytes (base64-decoded for binary) so the zip preserves the
+    // file exactly rather than storing a UTF-8-mangled string.
+    zip.file(file.path, decodeFileContent(file.content, file.encoding));
   }
 
   return zip.generateAsync({ type: 'nodebuffer' });
@@ -381,18 +427,22 @@ function zipLimitError(code: string, message: string) {
   return Object.assign(new Error(message), { statusCode: 413, code });
 }
 
-export async function filesFromZipBase64(base64: string): Promise<Array<{ path: string; content: string }>> {
+export async function filesFromZipBase64(
+  base64: string,
+): Promise<Array<{ path: string; content: string; encoding: FileEncoding }>> {
   return filesFromZip(await JSZip.loadAsync(Buffer.from(base64, 'base64')));
 }
 
-export async function filesFromZip(zip: JSZip): Promise<Array<{ path: string; content: string }>> {
+export async function filesFromZip(
+  zip: JSZip,
+): Promise<Array<{ path: string; content: string; encoding: FileEncoding }>> {
   const entries = Object.entries(zip.files).filter(([, entry]) => !entry.dir);
 
   if (entries.length > MAX_ZIP_ENTRIES) {
     throw zipLimitError('ZIP_TOO_MANY_ENTRIES', `Archive contains too many files (limit ${MAX_ZIP_ENTRIES})`);
   }
 
-  const files: Array<{ path: string; content: string }> = [];
+  const files: Array<{ path: string; content: string; encoding: FileEncoding }> = [];
   let totalBytes = 0;
 
   for (const [path, entry] of entries) {
@@ -403,8 +453,10 @@ export async function filesFromZip(zip: JSZip): Promise<Array<{ path: string; co
       throw zipLimitError('ZIP_FILE_TOO_LARGE', `Archive entry ${path} exceeds the per-file size limit`);
     }
 
-    const content = await entry.async('string');
-    const byteLength = Buffer.byteLength(content, 'utf8');
+    // Read raw bytes and classify, so a binary entry is preserved as base64
+    // rather than corrupted by a UTF-8 string decode.
+    const bytes = Buffer.from(await entry.async('uint8array'));
+    const byteLength = bytes.length;
 
     if (byteLength > MAX_ZIP_FILE_BYTES) {
       throw zipLimitError('ZIP_FILE_TOO_LARGE', `Archive entry ${path} exceeds the per-file size limit`);
@@ -415,19 +467,23 @@ export async function filesFromZip(zip: JSZip): Promise<Array<{ path: string; co
       throw zipLimitError('ZIP_TOTAL_TOO_LARGE', 'Archive exceeds the total decompressed size limit');
     }
 
-    files.push({ path, content });
+    files.push({ path, ...encodeFileBuffer(bytes) });
   }
 
   return files;
 }
 
 export class LocalProjectStorage implements ProjectStorage {
-  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>, workspaceId?: string) {
+  async writeFiles(
+    projectId: string,
+    files: Array<{ path: string; content: string; encoding?: FileEncoding }>,
+    workspaceId?: string,
+  ) {
     return withProjectLock(projectId, async () => {
       for (const file of files) {
         const target = safeWorkspacePath(projectId, workspaceId, file.path);
         await mkdir(dirname(target), { recursive: true });
-        await writeFile(target, file.content, 'utf8');
+        await writeFile(target, decodeFileContent(file.content, file.encoding));
       }
 
       return walkFiles(safeWorkspacePath(projectId, workspaceId));
@@ -468,7 +524,7 @@ export class LocalProjectStorage implements ProjectStorage {
       for (const file of files) {
         const target = safeProjectPath(projectId, file.path);
         await mkdir(dirname(target), { recursive: true });
-        await writeFile(target, file.content, 'utf8');
+        await writeFile(target, decodeFileContent(file.content, file.encoding));
       }
 
       return walkFiles(safeProjectPath(projectId));
@@ -511,7 +567,7 @@ export class LocalProjectStorage implements ProjectStorage {
       for (const file of input.files) {
         const writeTarget = safeWorkspacePath(input.projectId, input.workspaceId, file.path);
         await mkdir(dirname(writeTarget), { recursive: true });
-        await writeFile(writeTarget, file.content, 'utf8');
+        await writeFile(writeTarget, decodeFileContent(file.content, file.encoding));
       }
 
       return walkFiles(safeWorkspacePath(input.projectId, input.workspaceId));
@@ -771,7 +827,10 @@ export class GitCliProvider implements GitProvider {
           ['diff', '--name-only', '--diff-filter=U'],
           input.workspaceId,
         ).catch(() => '');
-        const conflicts = conflictsOut.split('\n').map((line) => line.trim()).filter(Boolean);
+        const conflicts = conflictsOut
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean);
 
         if (conflicts.length > 0) {
           throw Object.assign(new Error('Pull produced merge conflicts that must be resolved.'), {

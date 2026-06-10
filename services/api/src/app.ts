@@ -121,6 +121,7 @@ import {
   filesFromZipBase64,
   GitCliProvider,
   LocalProjectStorage,
+  type FileEncoding,
   type GitProvider,
   type ProjectFile,
   type ProjectStorage,
@@ -2674,12 +2675,12 @@ function projectFileManifestFromPersistedInput(input: unknown): {
   };
 }
 
-function projectFilesFromPersistedFileManifest(input: unknown): Array<{ path: string; content: string }> {
+function projectFilesFromPersistedFileManifest(input: unknown): Array<{ path: string; content: string; encoding?: FileEncoding }> {
   const manifest =
     input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
 
   const entries = Array.isArray(manifest.entries) ? manifest.entries : [];
-  const files: Array<{ path: string; content: string }> = [];
+  const files: Array<{ path: string; content: string; encoding?: FileEncoding }> = [];
 
   for (const entry of entries) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
@@ -2698,17 +2699,23 @@ function projectFilesFromPersistedFileManifest(input: unknown): Array<{ path: st
       continue;
     }
 
-    files.push({ path: normalizedPath, content: record.content });
+    // Preserve binary encoding if the manifest recorded it (absent = utf8 text).
+    const encoding = record.encoding === 'base64' ? 'base64' : undefined;
+    files.push({ path: normalizedPath, content: record.content, ...(encoding ? { encoding } : {}) });
   }
 
   return files;
 }
 
-function projectFileManifestState(files: Array<{ path: string; content: string }>) {
+function projectFileManifestState(files: Array<{ path: string; content: string; encoding?: FileEncoding }>) {
   return {
     entries: files
-      .map((file) => ({ path: normalizeProjectPath(file.path), content: file.content }))
-      .filter((file): file is { path: string; content: string } => Boolean(file.path)),
+      .map((file) => ({
+        path: normalizeProjectPath(file.path),
+        content: file.content,
+        ...(file.encoding === 'base64' ? { encoding: 'base64' as const } : {}),
+      }))
+      .filter((file): file is { path: string; content: string; encoding?: 'base64' } => Boolean(file.path)),
     updatedAt: new Date().toISOString(),
   };
 }

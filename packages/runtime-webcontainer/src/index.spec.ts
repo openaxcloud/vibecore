@@ -5,24 +5,28 @@ import { WebContainerRuntimeAdapter, type WebContainerLike, type WebContainerPro
 type WebContainerListener = (...args: unknown[]) => void;
 
 class MemoryFs {
-  files = new Map<string, string>();
+  // Store raw bytes, mirroring the real WebContainer fs: readFile() with no
+  // encoding returns a Uint8Array, with 'utf-8' returns a string.
+  files = new Map<string, Uint8Array>();
 
   async mkdir() {
     return undefined;
   }
 
-  async readFile(path: string) {
+  async readFile(path: string, encoding?: string | { encoding?: string }): Promise<string | Uint8Array> {
     const content = this.files.get(path);
 
     if (content === undefined) {
       throw new Error(`ENOENT ${path}`);
     }
 
-    return content;
+    const enc = typeof encoding === 'string' ? encoding : encoding?.encoding;
+
+    return enc ? new TextDecoder().decode(content) : content;
   }
 
   async writeFile(path: string, content: string | Uint8Array) {
-    this.files.set(path, typeof content === 'string' ? content : new TextDecoder().decode(content));
+    this.files.set(path, typeof content === 'string' ? new TextEncoder().encode(content) : content);
   }
 
   async rm(path: string) {
@@ -30,7 +34,12 @@ class MemoryFs {
   }
 
   async rename(oldPath: string, newPath: string) {
-    const content = await this.readFile(oldPath);
+    const content = this.files.get(oldPath);
+
+    if (content === undefined) {
+      throw new Error(`ENOENT ${oldPath}`);
+    }
+
     this.files.delete(oldPath);
     this.files.set(newPath, content);
   }
@@ -153,6 +162,34 @@ describe('WebContainerRuntimeAdapter', () => {
       ['-c', 'cat package.json | head -n 20'],
       expect.any(Object),
     );
+  });
+
+  it('preserves binary files through snapshot create + restore (#38)', async () => {
+    const webcontainer = createWebContainer();
+    const adapter = new WebContainerRuntimeAdapter({ webcontainer });
+    await adapter.boot();
+
+    // A binary asset (NUL + non-UTF-8 high bytes) written straight to the fs at
+    // the relative key the adapter uses.
+    const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0xfe, 0x01]);
+    await webcontainer.fs.writeFile('logo.png', pngBytes);
+    await webcontainer.fs.writeFile('readme.txt', new TextEncoder().encode('hello'));
+
+    const listed = await adapter.listFiles('.');
+    const png = listed.find((f) => f.name === 'logo.png')!;
+    expect(png.encoding).toBe('base64');
+
+    const snapshot = await adapter.createSnapshot();
+
+    // Corrupt/replace the live file, then restore the snapshot.
+    await webcontainer.fs.writeFile('logo.png', new TextEncoder().encode('corrupted'));
+    await adapter.restoreSnapshot(snapshot.id);
+
+    // The restored bytes must equal the original binary exactly — not '' (zeroed)
+    // and not a UTF-8-mangled version.
+    const restored = (await webcontainer.fs.readFile('logo.png')) as Uint8Array;
+    expect(Array.from(restored)).toEqual(Array.from(pngBytes));
+    expect(await adapter.readFile('readme.txt')).toBe('hello');
   });
 
   it('imports real zip archives into the workspace filesystem', async () => {

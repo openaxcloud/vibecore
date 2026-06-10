@@ -4,7 +4,15 @@ import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildApiApp } from '../app.js';
 import type { EmailMessage, EmailProvider } from '../email.js';
-import { archiveFiles, filesFromZipBase64, GitCliProvider, LocalProjectStorage } from '../project-storage.js';
+import {
+  archiveFiles,
+  decodeFileContent,
+  detectBinaryBuffer,
+  encodeFileBuffer,
+  filesFromZipBase64,
+  GitCliProvider,
+  LocalProjectStorage,
+} from '../project-storage.js';
 import { TestApiStore } from './test-api-store.js';
 
 const previousProjectStorageDir = process.env.PROJECT_STORAGE_DIR;
@@ -40,8 +48,8 @@ describe('filesFromZipBase64 bounds decompression (zip-bomb defence)', () => {
     const files = await filesFromZipBase64(buffer.toString('base64'));
     expect(files).toEqual(
       expect.arrayContaining([
-        { path: 'index.html', content: '<h1>hi</h1>' },
-        { path: 'src/app.ts', content: 'export const x = 1;' },
+        { path: 'index.html', content: '<h1>hi</h1>', encoding: 'utf8' },
+        { path: 'src/app.ts', content: 'export const x = 1;', encoding: 'utf8' },
       ]),
     );
   });
@@ -65,6 +73,55 @@ describe('filesFromZipBase64 bounds decompression (zip-bomb defence)', () => {
       code: 'ZIP_FILE_TOO_LARGE',
       statusCode: 413,
     });
+  });
+});
+
+describe('binary file preservation (#16/#38)', () => {
+  // A PNG header + an embedded NUL byte + a high byte that is NOT valid UTF-8.
+  const binaryBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0xff, 0xfe, 0x42]);
+
+  it('detectBinaryBuffer flags binary and passes text', () => {
+    expect(detectBinaryBuffer(binaryBytes)).toBe(true);
+    expect(detectBinaryBuffer(Buffer.from('plain text', 'utf8'))).toBe(false);
+  });
+
+  it('encodeFileBuffer/decodeFileContent round-trip binary losslessly', () => {
+    const encoded = encodeFileBuffer(binaryBytes);
+    expect(encoded.encoding).toBe('base64');
+    expect(decodeFileContent(encoded.content, encoded.encoding).equals(binaryBytes)).toBe(true);
+  });
+
+  it('round-trips a binary file through archive → zip → decode without corruption', async () => {
+    const encoded = encodeFileBuffer(binaryBytes);
+    const buffer = await archiveFiles([
+      { path: 'assets/logo.png', content: encoded.content, encoding: encoded.encoding },
+      { path: 'readme.md', content: '# hello' },
+    ]);
+
+    const files = await filesFromZipBase64(buffer.toString('base64'));
+    const png = files.find((f) => f.path === 'assets/logo.png')!;
+    const md = files.find((f) => f.path === 'readme.md')!;
+
+    expect(png.encoding).toBe('base64');
+    expect(decodeFileContent(png.content, png.encoding).equals(binaryBytes)).toBe(true);
+    expect(md.encoding).toBe('utf8');
+    expect(md.content).toBe('# hello');
+  });
+
+  it('writes + reads back a binary file through LocalProjectStorage without corruption', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'vc-binary-'));
+    process.env.PROJECT_STORAGE_DIR = dir;
+    const storage = new LocalProjectStorage();
+    const encoded = encodeFileBuffer(binaryBytes);
+
+    await storage.writeFiles('proj_bin', [
+      { path: 'img/icon.ico', content: encoded.content, encoding: encoded.encoding },
+    ]);
+    const listed = await storage.listFiles('proj_bin');
+    const icon = listed.find((f) => f.path === 'img/icon.ico')!;
+
+    expect(icon.encoding).toBe('base64');
+    expect(decodeFileContent(icon.content, icon.encoding).equals(binaryBytes)).toBe(true);
   });
 });
 
@@ -144,9 +201,7 @@ describe('LocalProjectStorage workspace-scoped writes', () => {
     await projectStorage.restoreSnapshot({
       projectId,
       workspaceId,
-      files: [
-        { path: 'app.ts', content: 'workspace-content', updatedAt: new Date().toISOString() },
-      ],
+      files: [{ path: 'app.ts', content: 'workspace-content', updatedAt: new Date().toISOString() }],
     });
 
     const workspacePath = join(storage, projectId, '.vibecore-workspaces', workspaceId);
@@ -251,9 +306,7 @@ describe('git commit endpoint syncs the manifest to the targeted workspace tree'
       expect(await readFile(join(workspacePath, 'src/agent-output.ts'), 'utf8')).toBe(
         'export const value = "from-manifest";\n',
       );
-      expect(await readFile(join(workspacePath, 'docs/changelog.md'), 'utf8')).toBe(
-        '# Changelog\n\n- AI edit\n',
-      );
+      expect(await readFile(join(workspacePath, 'docs/changelog.md'), 'utf8')).toBe('# Changelog\n\n- AI edit\n');
 
       // The primary tree must NOT have received the manifest writes.
       expect(await pathExists(join(storage, projectId, 'src/agent-output.ts'))).toBe(false);
