@@ -22,15 +22,28 @@ interface PbftPhaseResult {
  * (small N), require a strict majority of participants instead, so a lone (or
  * minority) claim is never accepted as consensus.
  */
-function requiredCommitVotes(participantCount: number, faultThreshold: number): number {
-  return Math.max(2 * faultThreshold + 1, Math.floor(participantCount / 2) + 1);
+function requiredCommitVotes(participantCount: number, faultThreshold: number, threshold: number): number {
+  /*
+   * Honor the CONFIGURED agreement threshold too. Previously the commit bar was
+   * only max(2f+1, majority), so a caller-set high threshold (e.g. 0.9) was
+   * silently ignored and claims committed at a bare majority. Require at least
+   * ceil(threshold * N) supporters as well.
+   */
+  const thresholdVotes = Math.ceil(Math.max(0, Math.min(1, threshold)) * participantCount);
+
+  return Math.max(2 * faultThreshold + 1, Math.floor(participantCount / 2) + 1, thresholdVotes);
 }
 
-function runPbftRound(claim: ClaimVote, allParticipating: AgentRoleId[], faultThreshold: number): PbftPhaseResult {
+function runPbftRound(
+  claim: ClaimVote,
+  allParticipating: AgentRoleId[],
+  faultThreshold: number,
+  threshold: number,
+): PbftPhaseResult {
   // Pre-prepare: a leader (first supporter) broadcasts the claim.
   // Prepare: every supporter that has seen the required matching pre-prepares signs.
   // Commit: every node that has seen the required prepares signs commit.
-  const required = requiredCommitVotes(allParticipating.length, faultThreshold);
+  const required = requiredCommitVotes(allParticipating.length, faultThreshold, threshold);
   const prepared = claim.supporters.length >= required ? [...claim.supporters] : [];
   const committed = prepared.length >= required ? [...prepared] : [];
 
@@ -62,9 +75,9 @@ export class ByzantineConsensus implements ConsensusEngine {
         return { ...vote, decision: 'accepted' as const };
       }
 
-      const phase = runPbftRound(vote, participating, faultThreshold);
+      const phase = runPbftRound(vote, participating, faultThreshold, threshold);
       const supportersAfterCommit = phase.committed.length > 0 ? phase.committed : vote.supporters;
-      const required = requiredCommitVotes(participating.length, faultThreshold);
+      const required = requiredCommitVotes(participating.length, faultThreshold, threshold);
       const decision: ClaimVote['decision'] =
         phase.committed.length >= required
           ? 'accepted'

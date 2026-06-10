@@ -15,11 +15,24 @@ const logger = createScopedLogger('FileLocks');
 export function getCurrentChatId(): string {
   try {
     if (typeof window !== 'undefined') {
-      // Extract chat ID from URL (format: /chat/123)
-      const match = window.location.pathname.match(/\/chat\/([^/]+)/);
+      const pathname = window.location.pathname;
 
-      if (match && match[1]) {
-        return match[1];
+      /*
+       * Per-project scope for the canonical IDE route `/projects/<projectId>/ide`
+       * (the production IDE) AND the legacy `/chat/<id>` route. Without the
+       * /projects match every project collapsed to the shared 'default' scope, so
+       * deleted-paths and file-locks leaked across ALL projects.
+       */
+      const projectMatch = pathname.match(/\/projects\/([^/]+)/);
+
+      if (projectMatch && projectMatch[1]) {
+        return `project:${projectMatch[1]}`;
+      }
+
+      const chatMatch = pathname.match(/\/chat\/([^/]+)/);
+
+      if (chatMatch && chatMatch[1]) {
+        return chatMatch[1];
       }
     }
 

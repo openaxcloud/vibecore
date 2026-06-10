@@ -2494,7 +2494,13 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
    * return for any non-BUILDING status never reconciled QUEUED). Time it out so
    * the UI doesn't show "building" indefinitely.
    */
-  const STALE_DEPLOYMENT_MS = 20 * 60 * 1000;
+  /*
+   * Must exceed the maximum allowed build time, else a long-but-legitimate build
+   * is reconciled to FAILED mid-run and the monotonic status guard then locks it
+   * there even though it succeeds. Static builds run synchronously in the request
+   * and timeoutSeconds allows up to 1800s (30 min), so use 40 min.
+   */
+  const STALE_DEPLOYMENT_MS = 40 * 60 * 1000;
 
   if (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') {
     const startedMs = new Date(deployment.startedAt ?? deployment.createdAt).getTime();

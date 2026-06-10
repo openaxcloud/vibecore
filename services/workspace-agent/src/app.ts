@@ -131,8 +131,19 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     // always returning the full root tree). resolveWorkspacePath enforces that the
     // target stays inside the workspace root.
     const requestedPath = (request.query as { path?: unknown }).path;
-    const start =
-      typeof requestedPath === 'string' && requestedPath.trim() ? resolveWorkspacePath(root, requestedPath) : root;
+    let start = root;
+
+    if (typeof requestedPath === 'string' && requestedPath.trim()) {
+      start = resolveWorkspacePath(root, requestedPath);
+
+      /*
+       * resolveWorkspacePath is a LEXICAL check only. Without resolving symlinks,
+       * an intra-workspace symlink at `start` would let readdir() enumerate a
+       * directory OUTSIDE the workspace root (host-filesystem disclosure). Re-check
+       * the real path is contained, like /files/read and the write paths do.
+       */
+      await assertRealPathContained(root, start);
+    }
 
     return listTree(root, start);
   });
@@ -687,6 +698,10 @@ function normalizeWebSocket(rawSocket: unknown) {
 
   return {
     send: candidate.send.bind(candidate),
+    // Expose the raw socket's send-buffer depth so streaming handlers can apply
+    // backpressure. The backpressure code previously read bufferedAmount off THIS
+    // wrapper object (always undefined), making it dead code.
+    bufferedAmount: () => (candidate as { bufferedAmount?: number }).bufferedAmount ?? 0,
     onMessage: (listener: (message: Buffer) => void) => {
       if (typeof candidate.on === 'function') {
         candidate.on('message', listener);
@@ -1198,7 +1213,7 @@ async function runCommandStream(
   let drainTimer: ReturnType<typeof setInterval> | undefined;
 
   const applyBackpressure = () => {
-    const buffered = (options.socket as { bufferedAmount?: number }).bufferedAmount ?? 0;
+    const buffered = (options.socket as { bufferedAmount?: () => number }).bufferedAmount?.() ?? 0;
 
     if (buffered <= SEND_BUFFER_HIGH_WATER || drainTimer) {
       return;
@@ -1207,7 +1222,7 @@ async function runCommandStream(
     child.stdout.pause();
     child.stderr.pause();
     drainTimer = setInterval(() => {
-      const current = (options.socket as { bufferedAmount?: number }).bufferedAmount ?? 0;
+      const current = (options.socket as { bufferedAmount?: () => number }).bufferedAmount?.() ?? 0;
 
       if (!options.isOpen() || current <= SEND_BUFFER_HIGH_WATER / 2) {
         clearInterval(drainTimer);

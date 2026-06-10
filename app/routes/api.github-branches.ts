@@ -18,7 +18,7 @@ interface BranchInfo {
   isDefault: boolean;
 }
 
-async function githubBranchesLoader({ request, context }: { request: Request; context: any }) {
+async function githubBranchesLoader({ request }: { request: Request; context?: any }) {
   try {
     let owner: string;
     let repo: string;
@@ -52,15 +52,13 @@ async function githubBranchesLoader({ request, context }: { request: Request; co
       const cookieHeader = request.headers.get('Cookie');
       const apiKeys = getApiKeysFromCookie(cookieHeader);
 
-      // Try to get GitHub token from various sources
-      githubToken =
-        apiKeys.GITHUB_API_KEY ||
-        apiKeys.VITE_GITHUB_ACCESS_TOKEN ||
-        context?.cloudflare?.env?.GITHUB_TOKEN ||
-        context?.cloudflare?.env?.VITE_GITHUB_ACCESS_TOKEN ||
-        process.env.GITHUB_TOKEN ||
-        process.env.VITE_GITHUB_ACCESS_TOKEN ||
-        '';
+      /*
+       * Only the caller's OWN token (from their cookie) — never the server's
+       * GITHUB_TOKEN. Falling back to the server token on this unauthenticated GET
+       * turned it into a repo-existence oracle (and rate-limit/abuse vector) using
+       * the platform's credential.
+       */
+      githubToken = apiKeys.GITHUB_API_KEY || apiKeys.VITE_GITHUB_ACCESS_TOKEN || '';
     }
 
     if (!githubToken) {
@@ -68,16 +66,19 @@ async function githubBranchesLoader({ request, context }: { request: Request; co
     }
 
     // First, get repository info to know the default branch
-    const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-      headers: {
-        Accept: 'application/vnd.github.v3+json',
-        Authorization: `Bearer ${githubToken}`,
-        'User-Agent': 'bolt.diy-app',
-      },
+    const repoResponse = await fetch(
+      `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
+      {
+        headers: {
+          Accept: 'application/vnd.github.v3+json',
+          Authorization: `Bearer ${githubToken}`,
+          'User-Agent': 'bolt.diy-app',
+        },
 
-      // Bound the upstream call so a hung GitHub endpoint can't pin the handler.
-      signal: AbortSignal.timeout(15000),
-    });
+        // Bound the upstream call so a hung GitHub endpoint can't pin the handler.
+        signal: AbortSignal.timeout(15000),
+      },
+    );
 
     if (!repoResponse.ok) {
       if (repoResponse.status === 404) {
@@ -95,16 +96,19 @@ async function githubBranchesLoader({ request, context }: { request: Request; co
     const defaultBranch = repoInfo.default_branch;
 
     // Fetch branches
-    const branchesResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches?per_page=100`, {
-      headers: {
-        Accept: 'application/vnd.github.v3+json',
-        Authorization: `Bearer ${githubToken}`,
-        'User-Agent': 'bolt.diy-app',
-      },
+    const branchesResponse = await fetch(
+      `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches?per_page=100`,
+      {
+        headers: {
+          Accept: 'application/vnd.github.v3+json',
+          Authorization: `Bearer ${githubToken}`,
+          'User-Agent': 'bolt.diy-app',
+        },
 
-      // Bound the upstream call so a hung GitHub endpoint can't pin the handler.
-      signal: AbortSignal.timeout(15000),
-    });
+        // Bound the upstream call so a hung GitHub endpoint can't pin the handler.
+        signal: AbortSignal.timeout(15000),
+      },
+    );
 
     if (!branchesResponse.ok) {
       throw new Error(`Failed to fetch branches: ${branchesResponse.status}`);
