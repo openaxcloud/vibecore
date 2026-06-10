@@ -74,6 +74,9 @@ async function githubBranchesLoader({ request, context }: { request: Request; co
         Authorization: `Bearer ${githubToken}`,
         'User-Agent': 'bolt.diy-app',
       },
+
+      // Bound the upstream call so a hung GitHub endpoint can't pin the handler.
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!repoResponse.ok) {
@@ -98,6 +101,9 @@ async function githubBranchesLoader({ request, context }: { request: Request; co
         Authorization: `Bearer ${githubToken}`,
         'User-Agent': 'bolt.diy-app',
       },
+
+      // Bound the upstream call so a hung GitHub endpoint can't pin the handler.
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!branchesResponse.ok) {

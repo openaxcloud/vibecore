@@ -134,6 +134,12 @@ export function createAgentRunRateLimiter(input?: {
     clear() {
       buckets.clear();
     },
+    close() {
+      // Clear the sweep interval so a replaced/reconfigured limiter doesn't leak a
+      // live timer (clear() only emptied the map, leaving the interval running).
+      clearInterval(sweep);
+      buckets.clear();
+    },
   };
 }
 

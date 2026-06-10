@@ -88,10 +88,20 @@ export const githubConnectionStore = {
         rateLimit,
       };
 
-      // Set cookies for client-side access
-      Cookies.set('githubUsername', user.login);
-      Cookies.set('githubToken', token);
-      Cookies.set('git:github.com', JSON.stringify({ username: token, password: 'x-oauth-basic' }));
+      /*
+       * Set cookies for client-side access. The token-bearing cookies must carry
+       * Secure + SameSite=strict + a bounded expiry (matching useGit.ts) — the
+       * js-cookie default is an insecure, session-less, long-lived cookie sent
+       * cross-site over plain HTTP.
+       */
+      const secureCookieOptions = { secure: true, sameSite: 'strict' as const, expires: 7 };
+      Cookies.set('githubUsername', user.login, secureCookieOptions);
+      Cookies.set('githubToken', token, secureCookieOptions);
+      Cookies.set(
+        'git:github.com',
+        JSON.stringify({ username: token, password: 'x-oauth-basic' }),
+        secureCookieOptions,
+      );
 
       // Store connection details in localStorage
       localStorage.setItem('github_connection', JSON.stringify(connection));

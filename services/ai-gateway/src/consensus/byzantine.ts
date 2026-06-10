@@ -68,10 +68,19 @@ export class ByzantineConsensus implements ConsensusEngine {
 
     const conflicts = detectAllConflicts(input.results);
     const accepted = finalVotes.filter((v) => v.decision === 'accepted');
+
+    /*
+     * Exclude file votes from the agreement score, consistent with QuorumConsensus
+     * (computeAgreementScore): files are individual artifacts each role legitimately
+     * owns, so scoring them as "disagreement" understated/inflated the score
+     * inconsistently between the two engines. Conflicts on files are surfaced
+     * separately via detectAllConflicts.
+     */
+    const opinionVotes = finalVotes.filter((v) => v.type !== 'file');
     const agreementScore =
-      finalVotes.length === 0
+      opinionVotes.length === 0
         ? 0
-        : finalVotes.reduce((sum, vote) => sum + vote.agreementRatio, 0) / finalVotes.length;
+        : opinionVotes.reduce((sum, vote) => sum + vote.agreementRatio, 0) / opinionVotes.length;
 
     const outcome: ConsensusOutcome =
       participating.length === 0

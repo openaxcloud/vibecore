@@ -58,6 +58,9 @@ async function githubUserLoader({ request, context }: { request: Request; contex
         Authorization: `Bearer ${githubToken}`,
         'User-Agent': 'bolt.diy-app',
       },
+
+      // Bound the upstream call so a hung GitHub endpoint can't pin the handler.
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!response.ok) {
@@ -260,6 +263,9 @@ async function githubUserAction({ request, context }: { request: Request; contex
           Authorization: `Bearer ${githubToken}`,
           'User-Agent': 'bolt.diy-app',
         },
+
+        // Bound the upstream call so a hung GitHub endpoint can't pin the handler.
+        signal: AbortSignal.timeout(15000),
       });
 
       if (!response.ok) {
@@ -309,6 +315,9 @@ async function githubUserAction({ request, context }: { request: Request; contex
           Authorization: `Bearer ${githubToken}`,
           'User-Agent': 'bolt.diy-app',
         },
+
+        // Bound the upstream call so a hung GitHub endpoint can't pin the handler.
+        signal: AbortSignal.timeout(15000),
       });
 
       if (!response.ok) {
@@ -357,6 +366,9 @@ async function githubUserAction({ request, context }: { request: Request; contex
             Authorization: `Bearer ${githubToken}`,
             'User-Agent': 'bolt.diy-app',
           },
+
+          // Bound the upstream call so a hung GitHub endpoint can't pin the handler.
+          signal: AbortSignal.timeout(15000),
         },
       );
 

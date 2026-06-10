@@ -16003,8 +16003,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(400).send(providerConfigError);
     }
 
-    await ensureQuota(request, project.organizationId, 'deployments.count');
-
     /*
      * If the caller supplied a workspaceId, resolve it against the project's
      * workspaces. resolveGitWorkspaceId returns undefined for the primary
@@ -16016,16 +16014,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const persistedWorkspaceId = body.workspaceId ?? undefined;
 
     /*
-     * Reject a new deploy while one is already in flight for the same project +
-     * workspace. Concurrent builds share the same build CWD/node_modules and
-     * would clobber each other's install/output; a second build could also flip
-     * the record READY while the first is still building. Serialize the
-     * check + create per project+workspace so two simultaneous requests can't
-     * both pass the in-flight guard (and both consume deploy quota) via a TOCTOU.
+     * Serialize the deploy quota check + in-flight guard + create at the ORG
+     * level. deployments.count quota is org-scoped, so a per-project lock would
+     * let two concurrent creates in DIFFERENT projects of the same org both pass
+     * ensureQuota and exceed the limit. The in-flight check inside still filters
+     * by project+workspace (concurrent same-project builds share the build CWD).
      */
     const createResult = await store.withSerializedMutation(
-      `deploy:${project.id}:${persistedWorkspaceId ?? ''}`,
+      `deploy-org:${project.organizationId}`,
       async () => {
+        await ensureQuota(request, project.organizationId, 'deployments.count');
+
         const inFlight = (await store.listDeployments(project.id)).find(
           (deployment) =>
             (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') &&
@@ -16276,7 +16275,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
-    await ensureQuota(request, project.organizationId, 'deployments.count');
+    // A suspended org must not queue new builds (matches the create route).
+    await requireOrganizationNotSuspended(store, project.organizationId);
 
     /*
      * A redeploy must actually re-run the build, not just clone the previous
@@ -16294,43 +16294,59 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(400).send(providerConfigError);
     }
 
-    /*
-     * Same in-flight guard as the create route: builds share the persistent
-     * project/workspace build CWD (node_modules/dist), so a redeploy concurrent
-     * with a create or another redeploy for the same project+workspace would
-     * clobber each other's install/output and race the status to READY.
-     */
     const redeployPersistedWorkspaceId = source.workspaceId ?? undefined;
-    const redeployInFlight = (await store.listDeployments(project.id)).find(
-      (deployment) =>
-        (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') &&
-        (deployment.workspaceId ?? undefined) === redeployPersistedWorkspaceId,
+
+    /*
+     * Serialize quota + in-flight guard + create at the ORG level, identical to
+     * the create route — otherwise concurrent redeploys (or redeploy racing a
+     * create) both pass the org quota / per-project in-flight check via TOCTOU and
+     * clobber the shared build CWD / double-consume quota.
+     */
+    const redeployResult = await store.withSerializedMutation(
+      `deploy-org:${project.organizationId}`,
+      async () => {
+        await ensureQuota(request, project.organizationId, 'deployments.count');
+
+        const inFlight = (await store.listDeployments(project.id)).find(
+          (deployment) =>
+            (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') &&
+            (deployment.workspaceId ?? undefined) === redeployPersistedWorkspaceId,
+        );
+
+        if (inFlight) {
+          return { conflict: true as const, deploymentId: inFlight.id };
+        }
+
+        return {
+          queued: await store.createDeployment({
+            projectId: project.id,
+            workspaceId: source.workspaceId,
+            provider: source.provider,
+            environment: source.environment,
+            status: 'QUEUED',
+            framework: source.framework,
+            buildCommand: source.buildCommand,
+            outputDirectory: source.outputDirectory,
+            branch: source.branch,
+            commitSha: source.commitSha,
+            customDomain: source.customDomain,
+            metadata: { ...source.metadata, redeployedFromId: source.id },
+            startedAt: new Date().toISOString(),
+            logs: [{ timestamp: new Date().toISOString(), level: 'info', message: `Redeploying from ${source.id}` }],
+          }),
+        };
+      },
     );
 
-    if (redeployInFlight) {
+    if ('conflict' in redeployResult) {
       return reply.code(409).send({
         error: 'A deployment is already in progress for this project',
         code: 'DEPLOYMENT_IN_PROGRESS',
-        deploymentId: redeployInFlight.id,
+        deploymentId: redeployResult.deploymentId,
       });
     }
 
-    const redeploy = await store.createDeployment({
-      projectId: project.id,
-      workspaceId: source.workspaceId,
-      provider: source.provider,
-      environment: source.environment,
-      status: 'QUEUED',
-      framework: source.framework,
-      buildCommand: source.buildCommand,
-      outputDirectory: source.outputDirectory,
-      branch: source.branch,
-      commitSha: source.commitSha,
-      customDomain: source.customDomain,
-      metadata: { ...source.metadata, redeployedFromId: source.id },
-      startedAt: new Date().toISOString(),
-      logs: [{ timestamp: new Date().toISOString(), level: 'info', message: `Redeploying from ${source.id}` }],
-    });
+    const redeploy = redeployResult.queued;
 
     const secondaryWorkspaceId = await resolveGitWorkspaceId(store, project.id, source.workspaceId ?? undefined);
     const sourceMetadata = (source.metadata ?? {}) as Record<string, unknown>;
