@@ -287,6 +287,12 @@ export async function executeAgentOrchestration(input: {
   messages: Array<Omit<Message, 'id'> | Message>;
   timeoutMs?: number;
   fetchImpl?: typeof fetch;
+  /*
+   * Per-tenant key for the executor's rate limiter (e.g. the project id). Without
+   * it the gateway falls back to the caller pod's IP, collapsing every tenant into
+   * one shared rate-limit bucket.
+   */
+  rateLimitKey?: string;
 }): Promise<AgentExecutionResponse> {
   if (!input.plan.enabled || input.plan.mode !== 'parallel-subagents') {
     throw new AgentExecutorError('Parallel sub-agent execution is not enabled for this request.', 'not-configured');
@@ -318,6 +324,7 @@ export async function executeAgentOrchestration(input: {
           role: message.role,
           content: getTextContent(message),
         })),
+        ...(input.rateLimitKey ? { rateLimitKey: input.rateLimitKey } : {}),
       }),
       signal: controller.signal,
     });

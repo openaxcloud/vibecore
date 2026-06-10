@@ -20,6 +20,7 @@ async function supabaseUserLoader({ request, context }: { request: Request; cont
 
     // Make server-side request to Supabase API
     const response = await fetch('https://api.supabase.com/v1/projects', {
+      signal: AbortSignal.timeout(15000),
       headers: {
         Authorization: `Bearer ${supabaseToken}`,
         'User-Agent': 'bolt.diy-app',
@@ -100,6 +101,7 @@ async function supabaseUserAction({ request, context }: { request: Request; cont
     if (action === 'get_projects') {
       // Fetch user projects
       const response = await fetch('https://api.supabase.com/v1/projects', {
+        signal: AbortSignal.timeout(15000),
         headers: {
           Authorization: `Bearer ${supabaseToken}`,
           'User-Agent': 'bolt.diy-app',
@@ -150,6 +152,7 @@ async function supabaseUserAction({ request, context }: { request: Request; cont
 
       // Fetch project API keys
       const response = await fetch(`https://api.supabase.com/v1/projects/${projectId}/api-keys`, {
+        signal: AbortSignal.timeout(15000),
         headers: {
           Authorization: `Bearer ${supabaseToken}`,
           'User-Agent': 'bolt.diy-app',

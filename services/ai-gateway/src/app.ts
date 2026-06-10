@@ -75,26 +75,55 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
     }
 
     if (body.stream) {
+      const abortController = new AbortController();
+      const onClientClose = () => abortController.abort();
+      request.raw.on('close', onClientClose);
+
+      /*
+       * gateway.stream() is a lazy generator: route() (which throws 403
+       * AI_MODEL_PLAN_BLOCKED / 503 AI_PROVIDER_UNAVAILABLE) and the first provider
+       * call only run on the first .next(). Pull that first chunk BEFORE committing
+       * the 200 + SSE headers, so those errors return a proper HTTP status instead
+       * of a hung 200 stream with no error event (the headers can't be unsent once
+       * written).
+       */
+      const iterator = gateway.stream(body, abortController.signal)[Symbol.asyncIterator]();
+      let firstResult: IteratorResult<unknown>;
+
+      try {
+        firstResult = await iterator.next();
+      } catch (error) {
+        request.raw.off('close', onClientClose);
+
+        const rawStatus = (error as { statusCode?: unknown }).statusCode;
+        const statusCode = typeof rawStatus === 'number' ? rawStatus : 500;
+
+        return reply.code(statusCode).send({
+          error: error instanceof Error ? error.message : 'AI stream failed.',
+          code: statusCode >= 400 && statusCode < 500 ? 'AI_STREAM_BAD_REQUEST' : 'AI_STREAM_FAILED',
+        });
+      }
+
       reply.raw.writeHead(200, {
         'content-type': 'text/event-stream; charset=utf-8',
         'cache-control': 'no-cache',
         connection: 'keep-alive',
       });
 
-      const abortController = new AbortController();
-      const onClientClose = () => abortController.abort();
-      request.raw.on('close', onClientClose);
-
       try {
-        for await (const chunk of gateway.stream(body, abortController.signal)) {
+        let result = firstResult;
+
+        while (!result.done) {
           if (abortController.signal.aborted || reply.raw.writableEnded) {
             break;
           }
 
-          reply.raw.write(`data: ${JSON.stringify(chunk)}\n\n`);
+          reply.raw.write(`data: ${JSON.stringify(result.value)}\n\n`);
+          result = await iterator.next();
         }
       } finally {
         request.raw.off('close', onClientClose);
+        await iterator.return?.();
       }
 
       if (!reply.raw.writableEnded) {
@@ -135,7 +164,10 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
 
     try {
       const body = parseAgentRunRequest(request.body);
-      const rateLimitKey = body.organizationId ?? request.ip;
+      // Prefer an explicit per-tenant key, then the org id, then the (pod) IP.
+      // Without rateLimitKey/organizationId the limiter collapsed to one global
+      // bucket keyed on the caller pod's IP → cross-tenant DoS.
+      const rateLimitKey = body.rateLimitKey ?? body.organizationId ?? request.ip;
       const rateLimit = await agentRunRateLimiter.check(rateLimitKey);
 
       reply.header('x-ratelimit-limit', String(agentRunRateLimit));

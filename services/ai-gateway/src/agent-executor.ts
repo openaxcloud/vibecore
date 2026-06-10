@@ -24,6 +24,14 @@ export interface AgentRunRequest {
   roles: AgentRunRole[];
   messages: AiMessage[];
   organizationId?: string;
+  /*
+   * Per-tenant rate-limit discriminator. The only caller (web) reaches the
+   * gateway from a single pod IP and does not always have a real organizationId,
+   * so without this the limiter collapsed to one global bucket keyed on the pod
+   * IP — a cross-tenant DoS. Distinct from organizationId so it never lands in the
+   * persistence FK column.
+   */
+  rateLimitKey?: string;
   plan?: AiChatRequest['plan'];
   provider?: AiChatRequest['provider'];
   model?: string;
@@ -373,6 +381,7 @@ export function parseAgentRunRequest(value: unknown): AgentRunRequest {
     roles,
     messages,
     organizationId: typeof value.organizationId === 'string' ? value.organizationId : undefined,
+    rateLimitKey: typeof value.rateLimitKey === 'string' ? value.rateLimitKey : undefined,
     plan: typeof value.plan === 'string' ? (value.plan as AgentRunRequest['plan']) : undefined,
     provider: typeof value.provider === 'string' ? (value.provider as AgentRunRequest['provider']) : undefined,
     model: typeof value.model === 'string' ? value.model : undefined,

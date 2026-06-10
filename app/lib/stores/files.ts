@@ -1004,6 +1004,11 @@ export class FilesStore {
         throw new Error(`EINVAL: invalid file path, create '${relativePath}'`);
       }
 
+      // #size tracks file count (folders excluded, matching the loader). Increment
+      // only when this is a genuinely new file, so the count doesn't drift low
+      // (createFile previously never updated it).
+      const existedBefore = Boolean(this.files.get()[filePath]);
+
       const isBinary = content instanceof Uint8Array;
 
       if (isBinary) {
@@ -1031,7 +1036,11 @@ export class FilesStore {
         this.#modifiedFiles.set(filePath, content as string);
       }
 
-      this.#deletedPaths.delete(filePath);
+      if (!existedBefore) {
+        this.#size++;
+      }
+
+      this.#clearDeletedPathForCreate(filePath);
       this.#persistDeletedPaths();
 
       logger.info(`File created: ${filePath}`);
@@ -1040,6 +1049,22 @@ export class FilesStore {
     } catch (error) {
       logger.error('Failed to create file\n\n', error);
       throw error;
+    }
+  }
+
+  /*
+   * Clear a (re)created path from the deleted-paths set — including any ANCESTOR
+   * folder that is still marked deleted. #cleanupDeletedFiles re-deletes anything
+   * under a deleted-folder prefix on reload, so deleting only the exact path left
+   * a file recreated under a previously-deleted folder to be silently wiped again.
+   */
+  #clearDeletedPathForCreate(path: string) {
+    this.#deletedPaths.delete(path);
+
+    for (const deleted of [...this.#deletedPaths]) {
+      if (path === deleted || path.startsWith(`${deleted}/`)) {
+        this.#deletedPaths.delete(deleted);
+      }
     }
   }
 
@@ -1054,7 +1079,7 @@ export class FilesStore {
       await this.#runtime.createDirectory(relativePath);
 
       this.files.setKey(folderPath, { type: 'folder' });
-      this.#deletedPaths.delete(folderPath);
+      this.#clearDeletedPathForCreate(folderPath);
       this.#persistDeletedPaths();
 
       logger.info(`Folder created: ${folderPath}`);

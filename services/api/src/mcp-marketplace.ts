@@ -124,9 +124,7 @@ export const installListQuerySchema = z.object({
  * the runtime when clients are created, so we only enforce the envelope shape.
  */
 export const mcpUserConfigSchema = z.object({
-  config: z
-    .object({ mcpServers: z.record(z.unknown()).default({}) })
-    .default({ mcpServers: {} }),
+  config: z.object({ mcpServers: z.record(z.unknown()).default({}) }).default({ mcpServers: {} }),
   maxLLMSteps: z.coerce.number().int().min(1).max(50).optional(),
 });
 
@@ -183,6 +181,23 @@ export function validateConfigAgainstSchema(value: unknown, rawSchema: unknown):
   const cfg = value as Record<string, unknown>;
   const properties = schema.properties ?? {};
   const required = schema.required ?? [];
+
+  /*
+   * Reject runtime-reserved keys ALWAYS, independent of the catalog schema's
+   * additionalProperties. These keys define how/where the MCP server process is
+   * spawned or contacted; if a user could smuggle them through configJson they
+   * could run arbitrary commands (command/args/env/cwd) or point the server at an
+   * internal target (url/headers) — RCE/SSRF on the shared host. None of the
+   * seeded catalog schemas set additionalProperties:false, so this blocklist is
+   * the actual trust boundary.
+   */
+  const RESERVED_CONFIG_KEYS = new Set(['command', 'args', 'url', 'headers', 'env', 'cwd', 'transport']);
+
+  for (const key of Object.keys(cfg)) {
+    if (RESERVED_CONFIG_KEYS.has(key.toLowerCase())) {
+      errors.push(`reserved field not allowed: '${key}'`);
+    }
+  }
 
   for (const key of required) {
     const present = cfg[key];
@@ -245,10 +260,7 @@ export function validateConfigAgainstSchema(value: unknown, rawSchema: unknown):
       }
     }
 
-    if (
-      typeof raw === 'number' &&
-      (propSchema.type === 'number' || propSchema.type === 'integer')
-    ) {
+    if (typeof raw === 'number' && (propSchema.type === 'number' || propSchema.type === 'integer')) {
       if (typeof propSchema.minimum === 'number' && raw < propSchema.minimum) {
         errors.push(`'${key}' must be >= ${propSchema.minimum}`);
       }
@@ -323,12 +335,7 @@ export class McpMarketplaceService {
 
     const entries = await this.deps.prisma.mcpCatalogEntry.findMany({
       where,
-      orderBy: [
-        { featured: 'desc' },
-        { verified: 'desc' },
-        { installCount: 'desc' },
-        { name: 'asc' },
-      ],
+      orderBy: [{ featured: 'desc' }, { verified: 'desc' }, { installCount: 'desc' }, { name: 'asc' }],
       take: filter.limit + 1,
       ...(filter.cursor ? { cursor: { id: filter.cursor }, skip: 1 } : {}),
     });
@@ -361,11 +368,7 @@ export class McpMarketplaceService {
     const validationErrors = validateConfigAgainstSchema(input.config, entry.configSchema);
 
     if (validationErrors.length > 0) {
-      throw new McpMarketplaceError(
-        `Invalid MCP config: ${validationErrors.join('; ')}`,
-        400,
-        'MCP_CONFIG_INVALID',
-      );
+      throw new McpMarketplaceError(`Invalid MCP config: ${validationErrors.join('; ')}`, 400, 'MCP_CONFIG_INVALID');
     }
 
     const conflict = await this.deps.prisma.mcpInstall.findUnique({
@@ -373,11 +376,7 @@ export class McpMarketplaceService {
     });
 
     if (conflict) {
-      throw new McpMarketplaceError(
-        `Alias '${input.alias}' is already in use`,
-        409,
-        'MCP_ALIAS_CONFLICT',
-      );
+      throw new McpMarketplaceError(`Alias '${input.alias}' is already in use`, 409, 'MCP_ALIAS_CONFLICT');
     }
 
     const install = await this.deps.prisma.$transaction(async (tx) => {
@@ -446,26 +445,15 @@ export class McpMarketplaceService {
       });
 
       if (conflict) {
-        throw new McpMarketplaceError(
-          `Alias '${input.patch.alias}' is already in use`,
-          409,
-          'MCP_ALIAS_CONFLICT',
-        );
+        throw new McpMarketplaceError(`Alias '${input.patch.alias}' is already in use`, 409, 'MCP_ALIAS_CONFLICT');
       }
     }
 
     if (input.patch.config !== undefined) {
-      const validationErrors = validateConfigAgainstSchema(
-        input.patch.config,
-        install.catalogEntry.configSchema,
-      );
+      const validationErrors = validateConfigAgainstSchema(input.patch.config, install.catalogEntry.configSchema);
 
       if (validationErrors.length > 0) {
-        throw new McpMarketplaceError(
-          `Invalid MCP config: ${validationErrors.join('; ')}`,
-          400,
-          'MCP_CONFIG_INVALID',
-        );
+        throw new McpMarketplaceError(`Invalid MCP config: ${validationErrors.join('; ')}`, 400, 'MCP_CONFIG_INVALID');
       }
     }
 

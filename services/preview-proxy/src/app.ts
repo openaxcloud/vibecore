@@ -221,7 +221,12 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       const declaredLength = Number(upstreamResponse.headers.get('content-length') ?? '');
 
       if (Number.isFinite(declaredLength) && declaredLength > MAX_INJECT_BYTES) {
-        reply.header('content-length', String(declaredLength));
+        // Only re-assert content-length when the body is NOT decoded. If the
+        // upstream was content-encoded, undici hands us the DECODED stream while
+        // declaredLength is the compressed size — setting it truncates the body.
+        if (!upstreamWasEncoded) {
+          reply.header('content-length', String(declaredLength));
+        }
 
         return sendStream(Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>));
       }

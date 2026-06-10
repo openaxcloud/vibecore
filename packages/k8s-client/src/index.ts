@@ -8,6 +8,9 @@ const execFile = promisify(execFileCallback);
 
 export type WorkspacePlan = 'free' | 'pro' | 'enterprise';
 
+// Platform-owned pod env names that user project env/secrets must never override.
+const RESERVED_WORKSPACE_ENV = new Set(['WORKSPACE_ROOT', 'WORKSPACE_AGENT_TOKEN_SECRET']);
+
 export interface WorkspaceRuntimeInput {
   namespace: string;
   orgId: string;
@@ -176,17 +179,27 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
               name: 'WORKSPACE_AGENT_TOKEN_SECRET',
               valueFrom: { secretKeyRef: { name: input.agentTokenSecretName, key: 'tokenSecret' } },
             },
-            ...Object.entries(input.env).map(([name, value]) => ({ name, value })),
-            ...Object.entries(input.secretEnv).map(([name, key]) => ({
-              name,
+            /*
+             * Strip platform-reserved names from user-supplied env/secrets so a
+             * project variable named WORKSPACE_AGENT_TOKEN_SECRET / WORKSPACE_ROOT
+             * can't shadow or spoof the real ones (k8s keeps the LAST entry for a
+             * duplicate name, so an appended user value would win).
+             */
+            ...Object.entries(input.env)
+              .filter(([name]) => !RESERVED_WORKSPACE_ENV.has(name))
+              .map(([name, value]) => ({ name, value })),
+            ...Object.entries(input.secretEnv)
+              .filter(([name]) => !RESERVED_WORKSPACE_ENV.has(name))
+              .map(([name, key]) => ({
+                name,
 
-              /*
-               * optional so a referenced key that is absent from the Secret (e.g. a
-               * newly-added project secret not yet synced) cannot brick pod startup
-               * with CreateContainerConfigError.
-               */
-              valueFrom: { secretKeyRef: { name: input.agentTokenSecretName, key, optional: true } },
-            })),
+                /*
+                 * optional so a referenced key that is absent from the Secret (e.g. a
+                 * newly-added project secret not yet synced) cannot brick pod startup
+                 * with CreateContainerConfigError.
+                 */
+                valueFrom: { secretKeyRef: { name: input.agentTokenSecretName, key, optional: true } },
+              })),
           ],
           volumeMounts: [{ name: 'workspace', mountPath: '/workspace' }],
           resources: {
@@ -424,26 +437,30 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
   }
 
   async getPod(namespace: string, name: string) {
-    const { stdout } = await execFile(this.kubectl, ['get', 'pod', name, '-n', namespace, '-o', 'json']).catch(
-      (error: any) => {
-        if (error?.code === 1) {
-          return { stdout: '' };
-        }
-
-        throw error;
-      },
-    );
-
-    return stdout ? (JSON.parse(stdout) as K8sObject) : undefined;
+    return this.getResource('pod', namespace, name);
   }
 
-  // Generic single-resource read; returns undefined when the object is absent
-  // (kubectl exits 1 on not-found). Used to make apply idempotent for immutable
-  // resources like PVCs that must not be re-applied with a changed spec.
+  // Generic single-resource read; returns undefined when the object is genuinely
+  // absent. Used to make apply idempotent for immutable resources like PVCs that
+  // must not be re-applied with a changed spec.
   async get(kind: string, namespace: string, name: string) {
+    return this.getResource(kind, namespace, name);
+  }
+
+  /*
+   * Only a real "NotFound" maps to undefined. kubectl exits 1 for MANY reasons —
+   * Forbidden (RBAC), Unauthorized, connection-refused, API-server throttling —
+   * and mapping all of them to "absent" masked transient/permission failures and
+   * defeated the PVC idempotency guard (a transient error → "not found" → re-apply
+   * a bound PVC → shrink-forbidden wedge). Inspect stderr and rethrow anything
+   * that isn't an explicit NotFound.
+   */
+  private async getResource(kind: string, namespace: string, name: string): Promise<K8sObject | undefined> {
     const { stdout } = await execFile(this.kubectl, ['get', kind, name, '-n', namespace, '-o', 'json']).catch(
       (error: any) => {
-        if (error?.code === 1) {
+        const stderr = String(error?.stderr ?? '');
+
+        if (error?.code === 1 && /\bNotFound\b|not found/i.test(stderr)) {
           return { stdout: '' };
         }
 
@@ -455,7 +472,11 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
   }
 
   async *streamPodLogs(namespace: string, name: string) {
-    const { stdout } = await execFile(this.kubectl, ['logs', name, '-n', namespace, '--tail=500']);
+    // Bump maxBuffer well above Node's 1MB default: 500 tail lines of a verbose
+    // workspace can exceed 1MB, which would otherwise throw ENOBUFS and 500.
+    const { stdout } = await execFile(this.kubectl, ['logs', name, '-n', namespace, '--tail=500'], {
+      maxBuffer: 16 * 1024 * 1024,
+    });
 
     for (const line of stdout.split('\n').filter(Boolean)) {
       yield line;

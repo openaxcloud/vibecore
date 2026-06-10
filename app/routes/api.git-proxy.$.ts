@@ -90,12 +90,11 @@ function isSafeProxyTarget(rawUrl: string): boolean {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
-    host.startsWith('fc') ||
-    host.startsWith('fd') ||
-    host.startsWith('fe80') ||
-    host.startsWith('[fc') ||
-    host.startsWith('[fd') ||
-    host.startsWith('[fe80')
+    // ULA fc00::/7 and link-local fe80::/10 — but ONLY as IPv6 literals (must be
+    // hextets followed by ':'). The old startsWith('fc'/'fd'/'fe80') wrongly
+    // blocked public hostnames like fcbarcelona.com / fdic.gov / fe80.example.com.
+    /^f[cd][0-9a-f]{0,2}:/.test(host) ||
+    /^fe[89ab][0-9a-f]:/.test(host)
   ) {
     return false;
   }
@@ -260,6 +259,13 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
      * guard so a public host can't bounce us into the metadata/internal network.
      */
     let redirectsLeft = 5;
+    const initialOrigin = (() => {
+      try {
+        return new URL(targetURL).origin;
+      } catch {
+        return null;
+      }
+    })();
 
     while (response.status >= 300 && response.status < 400 && response.headers.has('location') && redirectsLeft > 0) {
       redirectsLeft -= 1;
@@ -274,12 +280,34 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
       await response.body?.cancel().catch(() => {});
 
       /*
+       * Drop the caller's git credential (Authorization/Basic PAT) when the
+       * redirect leaves the original origin. Even a redirect to a public host is
+       * a third party that must never receive the user's token. The SSRF guard
+       * above only blocks internal targets; it does not stop credential leakage
+       * to an arbitrary external host the attacker controls.
+       */
+      const nextOrigin = (() => {
+        try {
+          return new URL(nextUrl).origin;
+        } catch {
+          return null;
+        }
+      })();
+
+      const redirectHeaders = new Headers(headers);
+
+      if (!initialOrigin || nextOrigin !== initialOrigin) {
+        redirectHeaders.delete('authorization');
+        redirectHeaders.delete('x-authorization');
+      }
+
+      /*
        * Redirects are followed as GET without the original body (matches fetch's
        * default redirect handling for cross-origin/credentialed hops).
        */
       response = await fetch(nextUrl, {
         method: 'GET',
-        headers,
+        headers: redirectHeaders,
         redirect: 'manual',
         signal: AbortSignal.timeout(30000),
       });

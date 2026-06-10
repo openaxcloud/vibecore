@@ -1257,11 +1257,20 @@ function verifyChatShareToken(token: string): string | undefined {
   const signature = token.slice(separator + 1);
   const expected = createHmac('sha256', chatShareTokenSecret()).update(raw).digest('base64url');
 
-  if (expected.length !== signature.length) {
+  /*
+   * Compare BYTE lengths, not character lengths. A crafted signature can be 43
+   * characters but contain a multibyte UTF-8 char (>43 bytes); the old char-length
+   * check passed, then timingSafeEqual threw RangeError on mismatched Buffer sizes
+   * → 500 instead of a clean 404.
+   */
+  const expectedBuffer = Buffer.from(expected);
+  const signatureBuffer = Buffer.from(signature);
+
+  if (expectedBuffer.length !== signatureBuffer.length) {
     return undefined;
   }
 
-  if (!timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) {
+  if (!timingSafeEqual(expectedBuffer, signatureBuffer)) {
     return undefined;
   }
 
@@ -2333,6 +2342,32 @@ async function requireRoleAssignableByCaller(
     throw Object.assign(new Error(`Cannot grant a role with permissions you do not hold: ${escalated.join(', ')}`), {
       statusCode: 403,
       code: 'RBAC_PRIVILEGE_ESCALATION',
+    });
+  }
+}
+
+/*
+ * Ensure the caller outranks (holds a superset of the permissions of) the member
+ * they are about to modify/remove. requireRoleAssignableByCaller only checks the
+ * role being GRANTED, so without this an admin (members:manage) could demote or
+ * remove an OWNER — the target's *existing* role was never rank-checked.
+ */
+async function requireCallerOutranksMember(
+  store: ApiStore,
+  organizationId: string,
+  callerRoleKey: string,
+  targetCurrentRoleKey: string,
+) {
+  const [callerPermissions, targetPermissions] = await Promise.all([
+    permissionsForOrganizationRole(store, organizationId, callerRoleKey),
+    permissionsForOrganizationRole(store, organizationId, targetCurrentRoleKey),
+  ]);
+  const outranks = targetPermissions.filter((permission) => !callerPermissions.includes(permission));
+
+  if (outranks.length > 0) {
+    throw Object.assign(new Error('Cannot modify a member whose role outranks yours'), {
+      statusCode: 403,
+      code: 'RBAC_TARGET_OUTRANKS_CALLER',
     });
   }
 }
@@ -5093,6 +5128,14 @@ async function deliverSiemAbuseSignal(
             'x-vibecore-event': 'abuse.signal',
           },
           body,
+          /*
+           * Do NOT follow redirects. SIEM webhook URLs are validated only at
+           * config time; a customer endpoint that passed that check can 3xx-redirect
+           * delivery from this in-cluster pod to an internal target (metadata,
+           * RFC1918, in-cluster DNS) — redirect-based blind SSRF. A 3xx is treated
+           * as a (silently ignored) delivery attempt rather than followed.
+           */
+          redirect: 'manual',
           signal: controller.signal,
         });
       } catch {
@@ -5637,6 +5680,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     reply.header('cache-control', 'public, max-age=60, must-revalidate');
     reply.header('x-vibecore-static-deployment', deploymentId);
+
+    /*
+     * This PUBLIC route serves attacker-controlled HTML/JS from the SAME origin as
+     * the authenticated API, and the session cookie is sameSite=lax + path=/ — so
+     * without isolation a deployed page's JS could make fully-authenticated,
+     * same-origin calls to /projects, /orgs, etc. as any logged-in visitor
+     * (account/data takeover; the CSRF check is presence-only).
+     *
+     * `Content-Security-Policy: sandbox` forces the document into a UNIQUE opaque
+     * origin: scripts still run (allow-scripts) but every request to the API
+     * origin is now cross-origin and the lax cookie is NOT sent, removing the
+     * ambient authority. allow-forms/allow-popups keep ordinary static sites
+     * working. nosniff stops content-type confusion on the served bytes.
+     */
+    reply.header('content-security-policy', 'sandbox allow-scripts allow-forms allow-popups allow-modals');
+    reply.header('x-content-type-options', 'nosniff');
     reply.type(staticDeploymentMimeType(filePath));
 
     return reply.send(createReadStream(realFile));
@@ -6859,6 +6918,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         if (!project || project.organizationId !== context.organizationId) {
           return reply.code(404).send({ error: 'Project not found', code: 'PROJECT_NOT_FOUND' });
         }
+
+        /*
+         * Re-check write permission at completion time, not just at connect time.
+         * The signed state has a 600s TTL, so a user downgraded to viewer / removed
+         * as a collaborator mid-flow could otherwise still link a connection to the
+         * project. requireProject enforces the current permission.
+         */
+        await requireProject(request, store, context.projectId, 'projects:write');
       }
 
       const credentials = connectorCredentialsFor(params.provider);
@@ -11222,11 +11289,40 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const existing = await store.getMembership(body.userId, orgId);
 
+    // Re-POSTing an existing member is an upsert (role update). Apply the same
+    // guards as PATCH: caller must outrank the member, and the last owner can't
+    // be demoted (lockout).
+    if (existing) {
+      await requireCallerOutranksMember(store, orgId, member.roleKey, existing.roleKey);
+    }
+
     if (!existing) {
       await ensureQuota(request, orgId, 'team.members');
     }
 
-    const membership = await store.addMember({ organizationId: orgId, userId: body.userId, roleKey: body.roleKey });
+    let membership;
+
+    if (existing && existing.roleKey === 'owner' && body.roleKey !== 'owner') {
+      const result = await store.withSerializedMutation(`org-members:${orgId}`, async () => {
+        const owners = (await store.listMembers(orgId)).filter((m) => m.roleKey === 'owner');
+
+        if (owners.length <= 1) {
+          return { conflict: true as const };
+        }
+
+        return {
+          membership: await store.addMember({ organizationId: orgId, userId: body.userId, roleKey: body.roleKey }),
+        };
+      });
+
+      if ('conflict' in result) {
+        return reply.code(409).send({ error: 'Cannot demote the last organization owner', code: 'LAST_OWNER' });
+      }
+
+      membership = result.membership;
+    } else {
+      membership = await store.addMember({ organizationId: orgId, userId: body.userId, roleKey: body.roleKey });
+    }
 
     if (!existing) {
       await recordUsage(request, orgId, 'team.members');
@@ -11254,6 +11350,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!existing) {
       return reply.code(404).send({ error: 'Membership not found', code: 'MEMBERSHIP_NOT_FOUND' });
     }
+
+    // Caller must outrank the member being modified (else an admin could demote
+    // an owner — the granted role passes requireRoleAssignableByCaller, but the
+    // target's existing higher role was never checked).
+    await requireCallerOutranksMember(store, orgId, member.roleKey, existing.roleKey);
 
     /*
      * Serialize the last-owner check + role change so two concurrent demotions
@@ -11294,13 +11395,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.delete('/orgs/:orgId/memberships/:userId', async (request, reply) => {
     const { orgId, userId } = parse(membershipParams, request.params);
-    await requireOrg(request, store, orgId, 'members:manage');
+    const member = await requireOrg(request, store, orgId, 'members:manage');
 
     const existing = await store.getMembership(userId, orgId);
 
     if (!existing) {
       return reply.code(404).send({ error: 'Membership not found', code: 'MEMBERSHIP_NOT_FOUND' });
     }
+
+    // Caller must outrank the member being removed (else an admin could remove an
+    // owner).
+    await requireCallerOutranksMember(store, orgId, member.roleKey, existing.roleKey);
 
     /*
      * Serialize the last-owner check + removal so concurrent removals can't both
@@ -14586,13 +14691,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const currentSubscription = await store.getSubscription(orgId);
 
-    if (
-      currentSubscription &&
-      ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(currentSubscription.status) &&
-      !currentSubscription.cancelAtPeriodEnd
-    ) {
+    /*
+     * Block a new checkout whenever a still-billing subscription exists — INCLUDING
+     * one scheduled to cancel at period end. A cancelAtPeriodEnd subscription that
+     * is still ACTIVE/TRIALING has not reached its period end yet (the webhook flips
+     * it to CANCELED then), so it is still paid + entitled. Allowing a checkout in
+     * that window created a SECOND overlapping Stripe subscription on the same
+     * customer → double-billing until period end. Resume or change the plan via the
+     * billing portal (which can un-cancel) instead.
+     */
+    if (currentSubscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(currentSubscription.status)) {
       throw Object.assign(
-        new Error('Organization already has an active subscription; use the billing portal to change plans.'),
+        new Error('Organization already has an active subscription; use the billing portal to change or resume plans.'),
         { statusCode: 409, code: 'STRIPE_SUBSCRIPTION_ALREADY_ACTIVE' },
       );
     }
@@ -14878,46 +14988,74 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
         const status =
           event.type === 'customer.subscription.deleted' ? 'CANCELED' : String(object.status ?? 'active').toUpperCase();
-        await store.upsertSubscription({
-          organizationId,
-          planKey: plan?.key ?? 'free',
-          externalId: object.subscription ?? object.id,
-          status:
-            status === 'TRIALING'
-              ? 'TRIALING'
-              : status === 'PAST_DUE'
-                ? 'PAST_DUE'
-                : status === 'CANCELED'
-                  ? 'CANCELED'
-                  : status === 'UNPAID'
-                    ? 'UNPAID'
-                    : status === 'ACTIVE'
-                      ? 'ACTIVE'
-                      : /*
-                         * incomplete / incomplete_expired / paused / unknown are NOT paying,
-                         * entitled states and must not map to ACTIVE. A checkout.session.completed
-                         * carries a session status ('complete'), not a subscription status, and is
-                         * always a successful, entitled checkout — treat only that as ACTIVE.
-                         */
-                        event.type === 'checkout.session.completed'
+
+        /*
+         * Out-of-order delivery guard: Stripe does not guarantee event ordering,
+         * so a stale `customer.subscription.updated` (generated before the cancel)
+         * can arrive AFTER `customer.subscription.deleted` and resurrect a
+         * canceled subscription back to a paid/entitled plan. Once a subscription
+         * is CANCELED it is terminal in Stripe — a genuine re-subscribe always
+         * creates a NEW subscription with a different externalId. So drop a
+         * non-deleted event that targets an already-canceled subscription with the
+         * same externalId.
+         */
+        const eventExternalId = object.subscription ?? object.id;
+        const existingSubscription = await store.getSubscription(organizationId).catch(() => undefined);
+        const isStaleReactivation =
+          event.type !== 'customer.subscription.deleted' &&
+          existingSubscription?.status === 'CANCELED' &&
+          Boolean(existingSubscription.externalId) &&
+          existingSubscription.externalId === eventExternalId;
+
+        if (isStaleReactivation) {
+          request.log.warn(
+            { organizationId, eventType: event.type, externalId: eventExternalId },
+            'Ignoring out-of-order Stripe event that would reactivate a canceled subscription',
+          );
+        } else {
+          await store.upsertSubscription({
+            organizationId,
+            planKey: plan?.key ?? 'free',
+            externalId: object.subscription ?? object.id,
+            status:
+              status === 'TRIALING'
+                ? 'TRIALING'
+                : status === 'PAST_DUE'
+                  ? 'PAST_DUE'
+                  : status === 'CANCELED'
+                    ? 'CANCELED'
+                    : status === 'UNPAID'
+                      ? 'UNPAID'
+                      : status === 'ACTIVE'
                         ? 'ACTIVE'
-                        : 'CANCELED',
-          cancelAtPeriodEnd: Boolean(object.cancel_at_period_end),
-          trialEndsAt: object.trial_end ? new Date(Number(object.trial_end) * 1000) : undefined,
-          currentPeriodStart: object.current_period_start
-            ? new Date(Number(object.current_period_start) * 1000)
-            : undefined,
-          currentPeriodEnd: object.current_period_end ? new Date(Number(object.current_period_end) * 1000) : undefined,
-        });
-        // Non-critical: a failed audit write must NOT trigger the dedup rollback
-        // (which would re-run the non-idempotent revenue recordUsageEvent above and
-        // double-count). Swallow audit errors.
-        await audit(request, store, {
-          organizationId,
-          action: `billing.stripe.${event.type}`,
-          resourceType: 'subscription',
-          resourceId: object.subscription ?? object.id,
-        }).catch(() => {});
+                        : /*
+                           * incomplete / incomplete_expired / paused / unknown are NOT paying,
+                           * entitled states and must not map to ACTIVE. A checkout.session.completed
+                           * carries a session status ('complete'), not a subscription status, and is
+                           * always a successful, entitled checkout — treat only that as ACTIVE.
+                           */
+                          event.type === 'checkout.session.completed'
+                          ? 'ACTIVE'
+                          : 'CANCELED',
+            cancelAtPeriodEnd: Boolean(object.cancel_at_period_end),
+            trialEndsAt: object.trial_end ? new Date(Number(object.trial_end) * 1000) : undefined,
+            currentPeriodStart: object.current_period_start
+              ? new Date(Number(object.current_period_start) * 1000)
+              : undefined,
+            currentPeriodEnd: object.current_period_end
+              ? new Date(Number(object.current_period_end) * 1000)
+              : undefined,
+          });
+          // Non-critical: a failed audit write must NOT trigger the dedup rollback
+          // (which would re-run the non-idempotent revenue recordUsageEvent above and
+          // double-count). Swallow audit errors.
+          await audit(request, store, {
+            organizationId,
+            action: `billing.stripe.${event.type}`,
+            resourceType: 'subscription',
+            resourceId: object.subscription ?? object.id,
+          }).catch(() => {});
+        }
       }
 
       /*
@@ -16416,7 +16554,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const secondaryWorkspaceId = await resolveGitWorkspaceId(store, project.id, source.workspaceId ?? undefined);
     const sourceMetadata = (source.metadata ?? {}) as Record<string, unknown>;
-    const sourceEnvVars = (sourceMetadata.envVars ?? {}) as Record<string, string>;
+    /*
+     * Stored env values matching the secret pattern were persisted as the literal
+     * '[REDACTED]' (the raw value is never stored). Feeding '[REDACTED]' back into
+     * a rebuild would silently corrupt any secret-pattern build-time var (e.g. a
+     * public VITE_ or NEXT_PUBLIC_ var that happened to match). Drop redacted
+     * entries so the build sees them as absent rather than the literal placeholder.
+     */
+    const sourceEnvVars = Object.fromEntries(
+      Object.entries((sourceMetadata.envVars ?? {}) as Record<string, string>).filter(
+        ([, value]) => value !== '[REDACTED]',
+      ),
+    );
 
     const sourceTimeoutSeconds =
       typeof sourceMetadata.timeoutSeconds === 'number' ? sourceMetadata.timeoutSeconds : 600;
@@ -16747,11 +16896,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const existingMembership = await store.getMembership(user.id, orgId);
 
+    /*
+     * Only provision the role for NEW members. addMember is an upsert
+     * (update: { roleId }), so re-POSTing an already-provisioned user — a routine
+     * SCIM re-sync operation — would otherwise overwrite their current role with
+     * 'member', silently demoting an existing owner/admin and (for the sole owner,
+     * with no last-owner guard on this path) locking the org out. Mirrors the
+     * invite-consume and OAuth/SAML join paths, which guard addMember the same way.
+     */
     if (!existingMembership) {
       await ensureQuota(request, orgId, 'team.members');
     }
 
-    const membership = await store.addMember({ organizationId: orgId, userId: user.id, roleKey: 'member' });
+    const membership = existingMembership
+      ? existingMembership
+      : await store.addMember({ organizationId: orgId, userId: user.id, roleKey: 'member' });
 
     if (!existingMembership) {
       await recordUsage(request, orgId, 'team.members');

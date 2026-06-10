@@ -241,7 +241,15 @@ export class WorkspaceManager {
         status: 'RUNNING',
         lastActiveAt: new Date().toISOString(),
       });
-      await this.publish(running, 'workspace.running');
+
+      /*
+       * The workspace is fully provisioned and committed RUNNING at this point.
+       * The success notification is best-effort: if publish throws it must NOT
+       * fall into the catch below, which would tear down the live Pod/Service and
+       * mark a healthy workspace FAILED. Publish outside the try.
+       */
+      void this.publish(running, 'workspace.running').catch(() => {});
+
       return running;
     } catch (error) {
       /*

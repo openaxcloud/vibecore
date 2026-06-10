@@ -463,6 +463,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 env: context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
                 plan: orchestrationPlan,
                 messages: processedMessages,
+                // Per-tenant rate-limit bucket (projectId is the best tenant key
+                // available here) so one project can't exhaust the global limit.
+                rateLimitKey: projectId,
               });
               agentOrchestrationContext = createAgentExecutionContext(execution);
               dataStream.writeMessageAnnotation(buildAgentExecutionAnnotation(execution) satisfies ContextAnnotation);

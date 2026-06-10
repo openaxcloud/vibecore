@@ -606,7 +606,40 @@ export class AiGateway {
   route(request: AiChatRequest) {
     const plan = request.plan ?? 'free';
     const requestedModel = request.model ? modelCatalog.find((model) => model.id === request.model) : undefined;
-    const selectedModel = requestedModel ?? this.models(plan)[0] ?? modelCatalog[0];
+
+    let selectedModel: AiModel;
+
+    if (request.model && !requestedModel) {
+      /*
+       * Uncatalogued requested model (a real provider model we don't price). The
+       * old code fell back to the CHEAPEST plan model for plan-check + pricing,
+       * then sent the arbitrary model to the provider — a plan bypass + cost
+       * undercount (expensive model billed at the cheap rate). Instead, gate and
+       * price it against the MOST EXPENSIVE plan-allowed catalog model of the
+       * target provider: the caller must be entitled to that provider's top model,
+       * and billing is conservative (never cheaper than the catalog).
+       */
+      const providerId = request.provider;
+      const candidates = modelCatalog.filter(
+        (model) => model.plans.includes(plan) && (!providerId || model.provider === providerId),
+      );
+
+      if (candidates.length === 0) {
+        throw Object.assign(new Error('Model is not available on this plan'), {
+          statusCode: 403,
+          code: 'AI_MODEL_PLAN_BLOCKED',
+        });
+      }
+
+      selectedModel = candidates.reduce((most, model) =>
+        model.inputCentsPerMillion + model.outputCentsPerMillion >
+        most.inputCentsPerMillion + most.outputCentsPerMillion
+          ? model
+          : most,
+      );
+    } else {
+      selectedModel = requestedModel ?? this.models(plan)[0] ?? modelCatalog[0];
+    }
 
     if (!selectedModel.plans.includes(plan)) {
       throw Object.assign(new Error('Model is not available on this plan'), {

@@ -164,7 +164,9 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
 
     if (
       resolvedUrl.origin !== baseUrl.origin ||
-      (basePathPrefix && resolvedUrl.pathname !== basePathPrefix && !resolvedUrl.pathname.startsWith(`${basePathPrefix}/`))
+      (basePathPrefix &&
+        resolvedUrl.pathname !== basePathPrefix &&
+        !resolvedUrl.pathname.startsWith(`${basePathPrefix}/`))
     ) {
       return sendError(reply, 400, {
         error: 'Upstream path escapes the provider API base path',
@@ -176,15 +178,33 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
 
     let upstreamResponse: Response;
 
+    /*
+     * Bound only the connect/headers phase with the timeout, then clear it once
+     * the response headers arrive. AbortSignal.timeout(30s) governs the WHOLE
+     * response lifetime, so a large/slow streamed provider body was aborted and
+     * silently truncated at 30s mid-transfer. A manual controller lets us stop the
+     * timer before streaming the body.
+     */
+    const controller = new AbortController();
+    const connectTimeout = setTimeout(() => controller.abort(), 30_000);
+
     try {
       upstreamResponse = await fetchImpl(resolvedUrl.toString(), {
         method: request.method,
         headers,
         body,
-        signal: AbortSignal.timeout(30_000),
+        signal: controller.signal,
+        /*
+         * Do NOT follow redirects: a provider open-redirect/parameter-reflection
+         * endpoint could 3xx us to an internal address — redirect-based SSRF.
+         * Return the 3xx to the caller instead of chasing it.
+         */
+        redirect: 'manual',
         ...({ duplex: 'half' } as Record<string, unknown>),
       });
     } catch (error: any) {
+      clearTimeout(connectTimeout);
+
       const timedOut = error?.name === 'TimeoutError' || error?.name === 'AbortError';
 
       return sendError(reply, timedOut ? 504 : 502, {
@@ -195,6 +215,9 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
         detail: error?.message,
       });
     }
+
+    // Headers received — the connect phase is done; let the body stream unbounded.
+    clearTimeout(connectTimeout);
 
     /*
      * Only 401 is an unambiguous bad-credentials signal. A 403 frequently means
@@ -213,6 +236,12 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
     }
 
     reply.status(upstreamResponse.status);
+
+    // undici decodes gzip/deflate/br, so the body we forward is decoded but
+    // content-length still reflects the compressed size — drop it (and the
+    // content-encoding) so a decoded body isn't truncated to the compressed length.
+    const upstreamWasEncoded = upstreamResponse.headers.has('content-encoding');
+
     upstreamResponse.headers.forEach((value, name) => {
       const lower = name.toLowerCase();
 
@@ -221,6 +250,10 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
       }
 
       if (lower === 'content-encoding') {
+        return;
+      }
+
+      if (upstreamWasEncoded && lower === 'content-length') {
         return;
       }
 

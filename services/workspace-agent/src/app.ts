@@ -126,7 +126,16 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
   app.get('/health', async () => ({ status: 'ok', workspaceRoot: root }));
 
-  app.get('/files/tree', async () => listTree(root, root));
+  app.get('/files/tree', async (request) => {
+    // Honor an optional `path` to return just that subtree (was silently ignored,
+    // always returning the full root tree). resolveWorkspacePath enforces that the
+    // target stays inside the workspace root.
+    const requestedPath = (request.query as { path?: unknown }).path;
+    const start =
+      typeof requestedPath === 'string' && requestedPath.trim() ? resolveWorkspacePath(root, requestedPath) : root;
+
+    return listTree(root, start);
+  });
   app.get('/files/read', async (request) => {
     const { path } = filePathSchema.parse(request.query);
     const safePath = resolveWorkspacePath(root, path);
@@ -292,16 +301,32 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       target.search = request.url.slice(queryIndex);
     }
 
-    const response = await fetch(target, {
-      method: request.method,
-      headers: previewProxyHeaders(request.headers),
-      body:
-        request.method === 'GET' || request.method === 'HEAD'
-          ? undefined
-          : serializePreviewBody(request.body, request.headers['content-type']),
-      redirect: 'manual',
-      signal: AbortSignal.timeout(30_000),
-    });
+    /*
+     * Bound only the connect/headers phase, then clear the timer. AbortSignal.
+     * timeout(30s) governs the ENTIRE response lifetime, so a long-lived preview
+     * response — SSE/HMR streams, slow or large assets — was aborted and truncated
+     * mid-stream at 30s. A manual controller lets the body stream unbounded once
+     * headers have arrived.
+     */
+    const previewController = new AbortController();
+    const previewConnectTimeout = setTimeout(() => previewController.abort(), 30_000);
+
+    let response: Response;
+
+    try {
+      response = await fetch(target, {
+        method: request.method,
+        headers: previewProxyHeaders(request.headers),
+        body:
+          request.method === 'GET' || request.method === 'HEAD'
+            ? undefined
+            : serializePreviewBody(request.body, request.headers['content-type']),
+        redirect: 'manual',
+        signal: previewController.signal,
+      });
+    } finally {
+      clearTimeout(previewConnectTimeout);
+    }
 
     for (const [key, value] of response.headers.entries()) {
       if (!['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) {
@@ -495,6 +520,16 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
         .getOrCreate(sessionId, { cols, rows })
         .then((created) => {
           if (closed) {
+            /*
+             * The client disconnected while the shell was still starting. The
+             * reattach-grace dispose timer is only armed by detach(), which we
+             * never reached — so without this the unviewed shell leaks forever.
+             * Do a no-op attach/detach to arm the grace timer; the session is then
+             * reaped after the grace window if nobody reattaches.
+             */
+            const detachImmediately = created.attach(() => {});
+            detachImmediately();
+
             return;
           }
 
@@ -845,25 +880,51 @@ function previewProxyHeaders(headers: FastifyRequest['headers']) {
   return forwarded;
 }
 
+// Bounds for the materialized tree so a workspace with a giant node_modules /
+// deeply-nested or symlink-looped tree can't exhaust memory/CPU building one
+// in-memory JSON blob. Mirrors listSnapshotFiles' ignore set.
+const TREE_MAX_DEPTH = 24;
+const TREE_MAX_ENTRIES = 20_000;
+
 async function listTree(
   root: string,
   current: string,
+  depth = 0,
+  budget: { count: number } = { count: 0 },
 ): Promise<{ path: string; type: 'file' | 'directory'; children?: unknown[] }[]> {
   if (current === root) {
     await mkdir(root, { recursive: true });
+  }
+
+  if (depth >= TREE_MAX_DEPTH) {
+    return [];
   }
 
   const entries = await readdir(current, { withFileTypes: true });
   const nodes = [];
 
   for (const entry of entries) {
+    // Skip heavy/derived dirs (node_modules, .git, dist, …) — they balloon the
+    // tree and are never useful in the file explorer.
+    if (entry.isDirectory() && SNAPSHOT_IGNORED_DIRS.has(entry.name)) {
+      continue;
+    }
+
+    if (budget.count >= TREE_MAX_ENTRIES) {
+      break;
+    }
+
+    budget.count += 1;
+
     const fullPath = resolve(current, entry.name);
     const path = relative(root, fullPath);
     const type: 'file' | 'directory' = entry.isDirectory() ? 'directory' : 'file';
     nodes.push({
       path,
       type,
-      children: entry.isDirectory() ? await listTree(root, fullPath) : undefined,
+      // Only recurse into REAL directories (not symlinked ones) to avoid following
+      // a symlink loop off-tree or into an ignored target.
+      children: entry.isDirectory() ? await listTree(root, fullPath, depth + 1, budget) : undefined,
     });
   }
 

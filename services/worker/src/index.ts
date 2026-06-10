@@ -337,8 +337,43 @@ export function startWorkers() {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  startWorkers();
+  const started = startWorkers();
   console.log(JSON.stringify({ level: 'info', service: 'worker', message: 'worker started' }));
+
+  /*
+   * Graceful shutdown on rollout/scale-down (replicas:2 → this fires routinely).
+   * Without it, SIGTERM kills in-flight BullMQ jobs mid-execution and drops the
+   * Redis/Prisma connections abruptly (job left "active" until stalled-reclaim,
+   * possible half-applied side effects). Close the workers (lets active jobs
+   * finish), then quit Redis and disconnect Prisma. Bounded so we still exit
+   * before the pod's termination grace period elapses.
+   */
+  let shuttingDown = false;
+  const shutdown = async (signal: string) => {
+    if (shuttingDown) {
+      return;
+    }
+
+    shuttingDown = true;
+    console.log(JSON.stringify({ level: 'info', service: 'worker', message: `received ${signal}, shutting down` }));
+
+    const deadline = setTimeout(() => process.exit(0), 25_000);
+    deadline.unref();
+
+    try {
+      const { worker, enterpriseWorker, connection } = await started;
+      await Promise.allSettled([worker.close(), enterpriseWorker.close()]);
+      await Promise.allSettled([connection.quit(), getPrisma().$disconnect()]);
+    } catch {
+      // best-effort shutdown; never block exit on a cleanup error
+    } finally {
+      clearTimeout(deadline);
+      process.exit(0);
+    }
+  };
+
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
 
   /*
    * Liveness heartbeat. The worker has no HTTP server, so the Deployment's exec

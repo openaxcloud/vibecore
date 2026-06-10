@@ -1298,7 +1298,17 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async countSnapshots(organizationId: string) {
-    return this.prisma.projectSnapshot.count({ where: { project: { organizationId, deletedAt: null } } });
+    /*
+     * Exclude system-generated 'before-ai-change' snapshots from the user's
+     * snapshots.count quota. They are created automatically on every AI
+     * delete/rename/patch tool call WITHOUT consuming quota, but were counted
+     * here — so they accumulated toward the cap and eventually 429'd the user's
+     * manual snapshot endpoint even though they took no manual snapshots
+     * (self-lockout). The quota governs user-initiated snapshots only.
+     */
+    return this.prisma.projectSnapshot.count({
+      where: { project: { organizationId, deletedAt: null }, kind: { not: 'before-ai-change' } },
+    });
   }
 
   async countDeployments(organizationId: string) {

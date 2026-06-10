@@ -145,9 +145,13 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     } catch (error) {
       // Prisma's P2025 surfaces as a typed error; surfacing the same string
       // the JSON store throws keeps all WorkspaceManager error paths uniform.
+      // PRESERVE the P2025 code on the thrown error — WorkspaceManager.touch()
+      // and the GC/offboarding concurrent-deletion handling branch on
+      // err.code === 'P2025' to swallow the race; stripping it made touch() 500
+      // and stop/delete non-idempotent.
       const code = (error as { code?: string } | null)?.code;
       if (code === 'P2025') {
-        throw new Error('Workspace not found');
+        throw Object.assign(new Error('Workspace not found'), { code: 'P2025' });
       }
       throw error;
     }

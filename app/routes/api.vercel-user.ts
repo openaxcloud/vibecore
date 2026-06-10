@@ -29,6 +29,7 @@ async function vercelUserLoader({ request, context }: { request: Request; contex
 
     // Make server-side request to Vercel API
     const response = await fetch('https://api.vercel.com/v2/user', {
+      signal: AbortSignal.timeout(15000),
       headers: {
         Authorization: `Bearer ${vercelToken}`,
         'User-Agent': 'bolt.diy-app',
@@ -108,6 +109,7 @@ async function vercelUserAction({ request, context }: { request: Request; contex
     if (action === 'get_projects') {
       // Fetch user projects
       const response = await fetch('https://api.vercel.com/v13/projects', {
+        signal: AbortSignal.timeout(15000),
         headers: {
           Authorization: `Bearer ${vercelToken}`,
           'User-Agent': 'bolt.diy-app',

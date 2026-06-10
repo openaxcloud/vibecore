@@ -20,6 +20,7 @@ async function netlifyUserLoader({ request, context }: { request: Request; conte
 
     // Make server-side request to Netlify API
     const response = await fetch('https://api.netlify.com/api/v1/user', {
+      signal: AbortSignal.timeout(15000),
       headers: {
         Authorization: `Bearer ${netlifyToken}`,
         'User-Agent': 'bolt.diy-app',
@@ -88,6 +89,7 @@ async function netlifyUserAction({ request, context }: { request: Request; conte
     if (action === 'get_sites') {
       // Fetch user sites
       const response = await fetch('https://api.netlify.com/api/v1/sites', {
+        signal: AbortSignal.timeout(15000),
         headers: {
           Authorization: `Bearer ${netlifyToken}`,
           'Content-Type': 'application/json',

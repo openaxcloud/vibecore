@@ -1,8 +1,9 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
 import { Form, Link, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
 import { CheckCircle, Chrome, Code2, Eye, EyeOff, Github, KeyRound, Lock, Mail, Shield, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AuthField, AuthScreen, AuthSubmit } from '~/components/auth/AuthScreen';
+import { invalidateRuntimeToken } from '~/lib/runtime/RuntimeAdapterProvider';
 import {
   apiRequest,
   apiBaseUrl,
@@ -105,9 +106,13 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json({ error: message, mfaRequired: false }, { status: error.status });
     }
 
+    // Do NOT leak the internal in-cluster API hostname (apiBaseUrl()) to end
+    // users. Log the target server-side; show a generic message.
+    console.error(`Login failed: API service not reachable at ${apiBaseUrl()}`);
+
     return json(
       {
-        error: `Login failed. API service is not reachable at ${apiBaseUrl()}. Start it with pnpm run dev:api or pnpm run dev:all.`,
+        error: 'Login is temporarily unavailable. Please try again in a moment.',
       },
       { status: 503 },
     );
@@ -116,6 +121,16 @@ export async function action({ request }: EnterpriseActionArgs) {
 
 export default function LoginPage() {
   const actionData = useActionData<typeof action>();
+
+  /*
+   * Drop any cached runtime token when the login screen mounts. All logout paths
+   * redirect here, and the token cache is a module-global that survives SPA
+   * navigation — without this, the next user to log in in the SAME tab would
+   * reuse the previous user's runtime token (cross-user reuse).
+   */
+  useEffect(() => {
+    invalidateRuntimeToken();
+  }, []);
 
   const loaderData = useLoaderData<typeof loader>() as
     | { oauth?: { provider: string; error: string; detail?: string | null } | null }

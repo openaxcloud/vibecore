@@ -196,9 +196,29 @@ export async function runConnectorTokenHealthCheck(
     // This check only inspects the status code; the body is never read, so drain
     // it once here to release the connection on every branch below instead of
     // leaking a socket per scanned connection.
+    const rateLimited =
+      response.status === 429 ||
+      response.headers.get('x-ratelimit-remaining') === '0' ||
+      response.headers.get('retry-after') !== null;
+
     await response.body?.cancel().catch(() => {});
 
-    if (response.status === 401 || response.status === 403) {
+    /*
+     * Only 401 is an unambiguous revoked/expired credential. A 403 frequently
+     * means rate-limit (GitHub returns 403 with x-ratelimit-remaining:0), scope,
+     * or per-resource policy — NOT a dead token. Flipping a valid connection to
+     * needs_reconnect on a rate-limit 403/429 forced needless re-auth and noisy
+     * alerts. Treat rate-limited responses as transient (skip), and only 401 (or a
+     * non-rate-limited 403) as a credential failure.
+     */
+    if (rateLimited) {
+      await input.prisma.userConnection
+        .update({ where: { id: connection.id }, data: { lastHealthCheckAt: now } })
+        .catch(() => {});
+      continue;
+    }
+
+    if (response.status === 401) {
       await input.prisma.userConnection.update({
         where: { id: connection.id },
         data: { status: 'needs_reconnect' },

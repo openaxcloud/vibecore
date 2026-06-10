@@ -30,6 +30,7 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
 
   // Get repository info to find default branch
   const repoResponse = await fetch(`${baseUrl}/repos/${repo}`, {
+    signal: AbortSignal.timeout(15000),
     headers: {
       Accept: 'application/vnd.github.v3+json',
       'User-Agent': 'bolt.diy-app',
@@ -46,6 +47,7 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
 
   // Get the tree recursively
   const treeResponse = await fetch(`${baseUrl}/repos/${repo}/git/trees/${defaultBranch}?recursive=1`, {
+    signal: AbortSignal.timeout(15000),
     headers: {
       Accept: 'application/vnd.github.v3+json',
       'User-Agent': 'bolt.diy-app',
@@ -93,6 +95,7 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
     const batchPromises = batch.map(async (file: any) => {
       try {
         const contentResponse = await fetch(`${baseUrl}/repos/${repo}/contents/${file.path}`, {
+          signal: AbortSignal.timeout(15000),
           headers: {
             Accept: 'application/vnd.github.v3+json',
             'User-Agent': 'bolt.diy-app',
@@ -145,6 +148,7 @@ async function fetchRepoContentsZip(repo: string, githubToken?: string) {
 
   // Get the latest release
   const releaseResponse = await fetch(`${baseUrl}/repos/${repo}/releases/latest`, {
+    signal: AbortSignal.timeout(15000),
     headers: {
       Accept: 'application/vnd.github.v3+json',
       'User-Agent': 'bolt.diy-app',
@@ -161,6 +165,7 @@ async function fetchRepoContentsZip(repo: string, githubToken?: string) {
 
   // Fetch the zipball
   const zipResponse = await fetch(zipballUrl, {
+    signal: AbortSignal.timeout(30000),
     headers: {
       ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
     },
