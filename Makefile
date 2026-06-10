@@ -128,6 +128,13 @@ deploy-ai-gateway: ## Rebuild ai-gateway only (against pinned deps).
 deploy-workspace-manager: ## Rebuild workspace-manager only (against pinned deps).
 	@$(call _deploy_node_service,workspace-manager,@vibecore/workspace-manager,tsx dist/server.js)
 
+deploy-workspace-agent: ## Rebuild the workspace-agent RUNTIME image (own Dockerfile, node-pty).
+	@echo "::: workspace-agent runtime image -> sha-$(SHORT_SHA)"; \
+	$(GCLOUD) \
+		--config=infra/cloudbuild/workspace-agent.yaml \
+		--substitutions=_SHORT_SHA=$(SHORT_SHA) \
+		--timeout=$(TIMEOUT_SINGLE) .
+
 deploy-preview-proxy: ## Rebuild preview-proxy only (against pinned deps).
 	@$(call _deploy_node_service,preview-proxy,@vibecore/preview-proxy,tsx dist/server.js)
 
