@@ -1567,6 +1567,52 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('rejects a replayed SAML assertion (one-time use)', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const owner = await register(app, { email: 'replay-owner@example.com', organizationName: 'Replay Org' });
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+    const orgId = owner.organization.id;
+
+    const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const certificate = publicKey.export({ type: 'spki', format: 'pem' }).toString();
+    await reauth(app, owner.token);
+    await app.inject({
+      method: 'PUT',
+      url: `/orgs/${orgId}/sso/saml`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { entityId: 'urn:test:idp', ssoUrl: 'https://idp.example.com/sso', x509Certificate: certificate },
+    });
+
+    const notOnOrAfter = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    const assertionXml =
+      `<Assertion ID="_replay-assert-1"><Subject><NameID>replay-user@example.com</NameID></Subject>` +
+      `<Conditions NotOnOrAfter="${notOnOrAfter}"><AudienceRestriction><Audience>vibecore:${orgId}</Audience></AudienceRestriction></Conditions>` +
+      `<AttributeStatement><Attribute Name="externalId"><AttributeValue>replay_1</AttributeValue></Attribute></AttributeStatement></Assertion>`;
+    const signature = createSign('RSA-SHA256').update(assertionXml).end().sign(privateKey, 'base64');
+    const samlResponse = Buffer.from(
+      `<Response>${assertionXml}<Signature><SignatureValue>${signature}</SignatureValue></Signature></Response>`,
+      'utf8',
+    ).toString('base64url');
+
+    const first = await app.inject({
+      method: 'POST',
+      url: `/auth/saml/${orgId}/acs`,
+      payload: { SAMLResponse: samlResponse },
+    });
+    expect(first.statusCode).toBe(200);
+
+    // Same assertion replayed within its validity window must be rejected.
+    const replay = await app.inject({
+      method: 'POST',
+      url: `/auth/saml/${orgId}/acs`,
+      payload: { SAMLResponse: samlResponse },
+    });
+    expect(replay.statusCode).toBe(401);
+    expect(replay.json().code).toBe('SAML_ASSERTION_REPLAYED');
+    await app.close();
+  });
+
   it('bootstraps and manages platform administrators with MFA and re-authentication', async () => {
     process.env.PLATFORM_ADMIN_EMAILS = 'platform@example.com';
 

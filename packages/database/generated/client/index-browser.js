@@ -667,6 +667,14 @@ exports.Prisma.EmailVerificationTokenScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.SamlAssertionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  assertionId: 'assertionId',
+  expiresAt: 'expiresAt',
+  consumedAt: 'consumedAt'
+};
+
 exports.Prisma.PasswordResetTokenScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1174,6 +1182,7 @@ exports.Prisma.ModelName = {
   FeatureFlag: 'FeatureFlag',
   SystemSetting: 'SystemSetting',
   EmailVerificationToken: 'EmailVerificationToken',
+  SamlAssertion: 'SamlAssertion',
   PasswordResetToken: 'PasswordResetToken',
   MfaRecoveryCode: 'MfaRecoveryCode',
   EnterpriseOrganizationSettings: 'EnterpriseOrganizationSettings',

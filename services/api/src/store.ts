@@ -1105,6 +1105,15 @@ export interface ApiStore {
     payload: unknown;
   }): Promise<{ event: StripeEventRecord; created: boolean }>;
   deleteStripeEvent(id: string): Promise<void>;
+  /**
+   * Record a consumed SAML assertion id for one-time-use replay protection.
+   * Returns created:false when this (org, assertionId) was already consumed.
+   */
+  recordSamlAssertionConsumption(input: {
+    organizationId: string;
+    assertionId: string;
+    expiresAt: Date;
+  }): Promise<{ created: boolean }>;
   recordEmailDeliveryEvent(input: {
     provider: string;
     providerEventId: string;

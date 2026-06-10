@@ -878,6 +878,19 @@ model EmailVerificationToken {
   @@index([userId])
 }
 
+// One-time-use record of consumed SAML assertion IDs, so a captured assertion
+// can't be replayed within its validity window. Pruned by expiresAt.
+model SamlAssertion {
+  id             String   @id @default(cuid())
+  organizationId String
+  assertionId    String
+  expiresAt      DateTime
+  consumedAt     DateTime @default(now())
+
+  @@unique([organizationId, assertionId])
+  @@index([expiresAt])
+}
+
 model PasswordResetToken {
   id        String    @id @default(cuid())
   userId    String

@@ -2569,6 +2569,29 @@ export class PrismaApiStore implements ApiStore {
     await this.prisma.stripeEvent.deleteMany({ where: { id } });
   }
 
+  async recordSamlAssertionConsumption(input: { organizationId: string; assertionId: string; expiresAt: Date }) {
+    // Best-effort prune so the dedup table stays bounded (assertions are short-lived).
+    await this.prisma.samlAssertion.deleteMany({ where: { expiresAt: { lt: new Date() } } }).catch(() => {});
+
+    try {
+      await this.prisma.samlAssertion.create({
+        data: {
+          organizationId: input.organizationId,
+          assertionId: input.assertionId,
+          expiresAt: input.expiresAt,
+        },
+      });
+
+      return { created: true };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        return { created: false };
+      }
+
+      throw error;
+    }
+  }
+
   async recordEmailDeliveryEvent(input: {
     provider: string;
     providerEventId: string;

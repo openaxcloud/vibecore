@@ -1953,6 +1953,20 @@ export class TestApiStore implements ApiStore {
     this.stripeEvents.delete(id);
   }
 
+  readonly samlAssertions = new Set<string>();
+
+  async recordSamlAssertionConsumption(input: { organizationId: string; assertionId: string; expiresAt: Date }) {
+    const key = `${input.organizationId}:${input.assertionId}`;
+
+    if (this.samlAssertions.has(key)) {
+      return { created: false };
+    }
+
+    this.samlAssertions.add(key);
+
+    return { created: true };
+  }
+
   async recordEmailDeliveryEvent(input: {
     provider: string;
     providerEventId: string;

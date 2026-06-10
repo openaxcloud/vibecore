@@ -3667,11 +3667,16 @@ function parseSamlXmlAssertion(xml: string, certificate: string, expectedAudienc
   const audience = xmlText(assertionXml, /<(?:\w+:)?Audience>([\s\S]*?)<\/(?:\w+:)?Audience>/);
   const audienceValid = !expectedAudience || !audience || audience.trim() === expectedAudience;
 
+  // Assertion ID + expiry for one-time-use replay protection (consumed in ACS).
+  const assertionId = /<(?:\w+:)?Assertion\b[^>]*\bID=["']([^"']+)["']/.exec(assertionXml)?.[1];
+
   return {
     email: email.toLowerCase(),
     name,
     externalId,
     roleKey,
+    assertionId,
+    assertionExpiresAt: notOnOrAfter,
     signatureValid: signatureValid && timeValid && audienceValid,
   };
 }
@@ -3724,6 +3729,8 @@ function parseSamlAssertion(encoded: string, certificate?: string, expectedAudie
       name: assertion.name,
       externalId: assertion.externalId,
       roleKey: assertion.roleKey,
+      assertionId: undefined as string | undefined,
+      assertionExpiresAt: undefined as number | undefined,
       signatureValid: assertion.signatureValid === true,
     };
   } catch (error) {
@@ -6059,6 +6066,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!assertion.signatureValid) {
         return reply.code(401).send({ error: 'Invalid SAML assertion signature', code: 'SAML_INVALID_SIGNATURE' });
+      }
+
+      /*
+       * One-time use: even a validly-signed, in-window, correctly-audienced
+       * assertion must not be replayable. Record its id; reject if already
+       * consumed for this org. (Falls back to time-window-only protection when
+       * the IdP/assertion omits an ID.)
+       */
+      if (assertion.assertionId) {
+        const consumption = await store.recordSamlAssertionConsumption({
+          organizationId: orgId,
+          assertionId: assertion.assertionId,
+          expiresAt: assertion.assertionExpiresAt
+            ? new Date(assertion.assertionExpiresAt)
+            : new Date(Date.now() + 10 * 60 * 1000),
+        });
+
+        if (!consumption.created) {
+          return reply.code(401).send({ error: 'SAML assertion already used', code: 'SAML_ASSERTION_REPLAYED' });
+        }
       }
 
       const user =
