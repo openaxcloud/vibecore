@@ -1,7 +1,7 @@
 import type { FileSearchOptions } from '@vibecore/runtime-contract';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
+import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
 import { debounce } from '~/utils/debounce';
@@ -30,6 +30,9 @@ function groupResultsByFile(results: DisplayMatch[]): Record<string, DisplayMatc
 }
 
 export function Search() {
+  // Use the workspace-bound adapter from context, NOT the module singleton (which
+  // has no workspaceId and fails in remote-kubernetes mode → broken file search).
+  const runtimeAdapter = useRuntimeAdapter();
   const [searchQuery, setSearchQuery] = useState('');
   const [replaceQuery, setReplaceQuery] = useState('');
   const [caseSensitive, setCaseSensitive] = useState(false);

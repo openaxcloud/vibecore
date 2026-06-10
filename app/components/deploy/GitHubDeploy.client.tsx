@@ -4,12 +4,14 @@ import { toast } from 'react-toastify';
 import { formatBuildFailureOutput } from './deployUtils';
 import { getLocalStorage } from '~/lib/persistence/localStorage';
 import { chatId } from '~/lib/persistence/useChatHistory';
-import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
+import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
 import { workbenchStore } from '~/lib/stores/workbench';
 
 export function useGitHubDeploy() {
+  // Workspace-bound adapter (the module singleton has no workspaceId → fails in remote-k8s).
+  const runtimeAdapter = useRuntimeAdapter();
   const [isDeploying, setIsDeploying] = useState(false);
   const currentChatId = useStore(chatId);
 

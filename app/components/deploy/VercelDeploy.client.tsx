@@ -3,13 +3,14 @@ import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { BOLT_DEPLOY_OUTPUT_DIRECTORIES, DEFAULT_DEPLOY_BUILD_COMMAND, formatBuildFailureOutput } from './deployUtils';
 import { chatId } from '~/lib/persistence/useChatHistory';
-import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
+import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { collectRuntimeTextFiles, runtimeDirectoryExists } from '~/lib/runtime/runtime-files';
 import { vercelConnection } from '~/lib/stores/vercel';
 import { workbenchStore } from '~/lib/stores/workbench';
 
 export function useVercelDeploy() {
+  const runtimeAdapter = useRuntimeAdapter();
   const [isDeploying, setIsDeploying] = useState(false);
   const vercelConn = useStore(vercelConnection);
   const currentChatId = useStore(chatId);
