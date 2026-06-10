@@ -23,9 +23,10 @@ export async function selectContext(props: {
   promptId?: string;
   contextOptimization?: boolean;
   summary: string;
+  abortSignal?: AbortSignal;
   onFinish?: (resp: GenerateTextResult<Record<string, CoreTool<any, any>>, never>) => void;
 }) {
-  const { messages, env: serverEnv, apiKeys, files, providerSettings, summary, onFinish } = props;
+  const { messages, env: serverEnv, apiKeys, files, providerSettings, summary, abortSignal, onFinish } = props;
 
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -38,7 +39,18 @@ export async function selectContext(props: {
 
       return { ...message, content };
     } else if (message.role == 'assistant') {
-      let content = message.content;
+      /*
+       * Coerce parts-array content to a string before the string operations
+       * below (they'd throw on an array), joining any text parts.
+       */
+      const rawContent = message.content as unknown;
+
+      let content =
+        typeof rawContent === 'string'
+          ? rawContent
+          : Array.isArray(rawContent)
+            ? rawContent.map((part: any) => (typeof part === 'string' ? part : (part?.text ?? ''))).join('')
+            : '';
 
       content = simplifyBoltActions(content);
 
@@ -198,6 +210,9 @@ export async function selectContext(props: {
       modelDetails.name,
       modelDetails.provider,
     ),
+
+    // Abortable: clicking Stop must also cancel context selection, not keep burning tokens.
+    ...(abortSignal ? { abortSignal } : {}),
   });
 
   const response = resp.text;

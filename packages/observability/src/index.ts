@@ -209,10 +209,15 @@ export function createSentryReporter(input: { dsn?: string; environment?: string
         contexts: context,
         timestamp: new Date().toISOString(),
       };
+      /*
+       * Bound the report so a slow/unreachable Sentry endpoint can't leak a
+       * socket per error during an error storm (no default fetch timeout).
+       */
       await fetch(dsn, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(5_000),
       }).catch(() => undefined);
     },
   };

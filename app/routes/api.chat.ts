@@ -526,6 +526,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               providerSettings,
               promptId,
               contextOptimization,
+              abortSignal: request.signal,
               onFinish(resp) {
                 if (resp.usage) {
                   logger.debug('createSummary token usage', JSON.stringify(resp.usage));
@@ -567,6 +568,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               promptId,
               contextOptimization,
               summary,
+              abortSignal: request.signal,
               onFinish(resp) {
                 if (resp.usage) {
                   logger.debug('selectContext token usage', JSON.stringify(resp.usage));
@@ -831,6 +833,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       },
       onError: (error: any) => {
         streamRecovery.stop();
+
+        /*
+         * Release this request's MCP clients (stdio child processes / HTTP
+         * transports) on the error path too. The success/terminal paths close
+         * them in onFinish and the abort handler covers client disconnects, but a
+         * generation error WITHOUT a disconnect previously leaked them. Idempotent.
+         */
+        void mcpService.close();
 
         const code = clientDisconnected ? 'STREAM_ABORTED' : classifyStreamError(error);
         const baseMessage = streamErrorCodeMessages[code];

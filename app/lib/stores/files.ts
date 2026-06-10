@@ -98,7 +98,7 @@ export class FilesStore {
     // Load deleted paths from localStorage if available
     try {
       if (typeof localStorage !== 'undefined') {
-        const deletedPathsJson = localStorage.getItem('bolt-deleted-paths');
+        const deletedPathsJson = localStorage.getItem(this.#deletedPathsStorageKey());
 
         if (deletedPathsJson) {
           const deletedPaths = JSON.parse(deletedPathsJson);
@@ -1149,10 +1149,35 @@ export class FilesStore {
   }
 
   // method to persist deleted paths to localStorage
+  /*
+   * Scope the deleted-paths key per project. A single global `bolt-deleted-paths`
+   * key meant files deleted in one project stayed hidden in EVERY other project
+   * that happened to share the same relative path (e.g. src/index.ts) — silently
+   * hiding legitimate files. Derive the scope from the current chat/project URL
+   * segment so each project tracks its own deletions.
+   */
+  #deletedPathsStorageKey() {
+    let scope = 'default';
+
+    try {
+      if (typeof window !== 'undefined') {
+        const segment = window.location.pathname.split('/').filter(Boolean).pop();
+
+        if (segment) {
+          scope = segment;
+        }
+      }
+    } catch {
+      // location unavailable (SSR/tests) — fall back to the default scope.
+    }
+
+    return `bolt-deleted-paths:${scope}`;
+  }
+
   #persistDeletedPaths() {
     try {
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('bolt-deleted-paths', JSON.stringify([...this.#deletedPaths]));
+        localStorage.setItem(this.#deletedPathsStorageKey(), JSON.stringify([...this.#deletedPaths]));
       }
     } catch (error) {
       logger.error('Failed to persist deleted paths to localStorage', error);

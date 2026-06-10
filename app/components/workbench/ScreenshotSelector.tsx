@@ -204,12 +204,17 @@ export const ScreenshotSelector = memo(
       } catch (error) {
         console.error('Failed to capture screenshot:', error);
         toast.error('Failed to capture screenshot');
-
+      } finally {
+        /*
+         * Always release the screen-capture MediaStream — on success too, not
+         * just on error. Leaving the tracks live kept the browser's "sharing your
+         * screen" indicator on and held the capture session open after capture.
+         */
         if (mediaStreamRef.current) {
           mediaStreamRef.current.getTracks().forEach((track) => track.stop());
           mediaStreamRef.current = null;
         }
-      } finally {
+
         setIsCapturing(false);
         setSelectionStart(null);
         setSelectionEnd(null);

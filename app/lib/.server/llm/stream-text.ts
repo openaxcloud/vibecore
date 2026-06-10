@@ -397,7 +397,12 @@ ${agentMemoryContext}`;
     ...(abortSignal ? { abortSignal } : {}),
   };
 
-  // DEBUG: Log final streaming parameters
+  /*
+   * Log only the SHAPE of the streaming params, never the values. The previous
+   * `streamParams: Object.fromEntries(...)` dump serialized the full option
+   * values (provider options can carry Supabase credentials, MCP tool schemas,
+   * etc.) into application logs at INFO, defeating the keys-only intent.
+   */
   logger.info(
     `DEBUG STREAM: Final streaming params for model "${modelDetails.name}":`,
     JSON.stringify(
@@ -406,9 +411,6 @@ ${agentMemoryContext}`;
         hasMaxTokens: 'maxTokens' in streamParams,
         hasMaxCompletionTokens: 'maxCompletionTokens' in streamParams,
         paramKeys: Object.keys(streamParams).filter((key) => !['model', 'messages', 'system'].includes(key)),
-        streamParams: Object.fromEntries(
-          Object.entries(streamParams).filter(([key]) => !['model', 'messages', 'system'].includes(key)),
-        ),
       },
       null,
       2,

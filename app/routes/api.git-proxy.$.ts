@@ -66,11 +66,19 @@ function isSafeProxyTarget(rawUrl: string): boolean {
     return false;
   }
 
-  const host = url.hostname.toLowerCase();
+  const rawHost = url.hostname.toLowerCase();
+
+  /*
+   * Strip IPv6 brackets, fold IPv4-mapped IPv6, and expand integer IP literals
+   * (decimal/hex/octal) so a `[::ffff:169.254.169.254]` or `https://2130706433/`
+   * can't slip past the dotted-quad/prefix checks below.
+   */
+  const host = canonicalizeProxyHost(rawHost);
 
   if (
     host === 'localhost' ||
     host === '0.0.0.0' ||
+    host === '::1' ||
     host === '[::1]' ||
     host.endsWith('.localhost') ||
     host.endsWith('.internal') ||
@@ -80,6 +88,10 @@ function isSafeProxyTarget(rawUrl: string): boolean {
     /^192\.168\./.test(host) ||
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
+    host.startsWith('fc') ||
+    host.startsWith('fd') ||
+    host.startsWith('fe80') ||
     host.startsWith('[fc') ||
     host.startsWith('[fd') ||
     host.startsWith('[fe80')
@@ -88,6 +100,32 @@ function isSafeProxyTarget(rawUrl: string): boolean {
   }
 
   return true;
+}
+
+function canonicalizeProxyHost(rawHost: string): string {
+  const host = rawHost.replace(/^\[/, '').replace(/\]$/, '');
+
+  const mapped = host.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+
+  if (mapped) {
+    return mapped[1];
+  }
+
+  let asInt: number | undefined;
+
+  if (/^\d+$/.test(host)) {
+    asInt = Number.parseInt(host, 10);
+  } else if (/^0x[0-9a-f]+$/.test(host)) {
+    asInt = Number.parseInt(host, 16);
+  } else if (/^0[0-7]+$/.test(host)) {
+    asInt = Number.parseInt(host, 8);
+  }
+
+  if (asInt !== undefined && Number.isFinite(asInt) && asInt >= 0 && asInt <= 0xffffffff) {
+    return [(asInt >>> 24) & 0xff, (asInt >>> 16) & 0xff, (asInt >>> 8) & 0xff, asInt & 0xff].join('.');
+  }
+
+  return host;
 }
 
 // Header names whose values are credentials and must never be written to logs.

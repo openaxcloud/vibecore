@@ -770,6 +770,17 @@ export class ActionRunner {
     this.#clearActionWatchdog(actionId);
 
     const initialAction = this.actions.get()[actionId];
+
+    /*
+     * `start` launches the dev server, which stays running indefinitely by
+     * design — arming a fixed-duration watchdog spuriously marked it "failed"
+     * (and tore down the preview) after 60s. It has its own non-blocking
+     * lifecycle (#runStartAction), so it must not be watchdog-timed.
+     */
+    if (initialAction?.type === 'start') {
+      return;
+    }
+
     const timeoutMs = initialAction ? this.#timeoutMsForAction(initialAction) : TOOL_TIMEOUT_MS;
 
     const timeoutId = setTimeout(() => {

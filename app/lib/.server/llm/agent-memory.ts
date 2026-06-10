@@ -52,8 +52,14 @@ export async function isAgentMemoryEnabled(request: Request, input: { projectId?
 
     return payload.preference?.enabled !== false;
   } catch (error) {
-    logger.warn('Agent memory preference lookup skipped', error);
-    return true;
+    /*
+     * Fail CLOSED: this gates a user privacy opt-out, so if the preference can't
+     * be read we must not assume memory is enabled (that would persist/retrieve
+     * memories against a user who may have disabled them). Skip memory for this
+     * request instead.
+     */
+    logger.warn('Agent memory preference lookup failed; treating memory as disabled', error);
+    return false;
   }
 }
 

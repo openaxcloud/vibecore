@@ -176,7 +176,13 @@ const detectFramework = (files: Record<string, string>): string => {
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const projectId = url.searchParams.get('projectId');
-  const token = url.searchParams.get('token');
+
+  /*
+   * Read the Vercel token from a request header, not the query string. A token
+   * in the URL leaks into access logs, browser history and Referer headers. The
+   * query param is kept only as a deprecated fallback for already-loaded clients.
+   */
+  const token = request.headers.get('x-vercel-token') ?? url.searchParams.get('token');
 
   if (!projectId || !token) {
     return json({ error: 'Missing projectId or token' }, { status: 400 });

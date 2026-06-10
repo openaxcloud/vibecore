@@ -16,9 +16,10 @@ export async function createSummary(props: {
   providerSettings?: Record<string, IProviderSetting>;
   promptId?: string;
   contextOptimization?: boolean;
+  abortSignal?: AbortSignal;
   onFinish?: (resp: GenerateTextResult<Record<string, CoreTool<any, any>>, never>) => void;
 }) {
-  const { messages, env: serverEnv, apiKeys, providerSettings, onFinish } = props;
+  const { messages, env: serverEnv, apiKeys, providerSettings, abortSignal, onFinish } = props;
 
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -31,7 +32,19 @@ export async function createSummary(props: {
 
       return { ...message, content };
     } else if (message.role == 'assistant') {
-      let content = message.content;
+      /*
+       * Assistant content can arrive as a parts array (not a string); calling the
+       * string methods below on it would throw. Coerce to a string first, the
+       * same guard stream-text applies, joining any text parts.
+       */
+      const rawContent = message.content as unknown;
+
+      let content =
+        typeof rawContent === 'string'
+          ? rawContent
+          : Array.isArray(rawContent)
+            ? rawContent.map((part: any) => (typeof part === 'string' ? part : (part?.text ?? ''))).join('')
+            : '';
 
       content = simplifyBoltActions(content);
 
@@ -229,6 +242,9 @@ Please provide a summary of the chat till now including the hitorical summary of
      * to its full (often huge) completion limit, burning tokens/cost on every turn.
      */
     maxTokens: Math.min(modelDetails.maxTokenAllowed ?? 8000, 8000),
+
+    // Abortable: clicking Stop must also cancel the summary call, not keep burning tokens.
+    ...(abortSignal ? { abortSignal } : {}),
   });
 
   const response = resp.text;
