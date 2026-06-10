@@ -385,7 +385,20 @@ export class WorkspaceManager {
 
     this.lastTouchAt.set(workspaceId, now);
 
-    return this.store.update(workspaceId, { lastActiveAt: new Date(now).toISOString() });
+    try {
+      return await this.store.update(workspaceId, { lastActiveAt: new Date(now).toISOString() });
+    } catch (error) {
+      /*
+       * The row can be deleted (GC/offboarding) between the get() above and this
+       * update — a best-effort activity touch must not throw P2025 and surface as
+       * a 500 to the agent-token caller. Treat "gone" as a no-op.
+       */
+      if ((error as { code?: string } | undefined)?.code === 'P2025') {
+        return undefined;
+      }
+
+      throw error;
+    }
   }
 
   private async waitForReadiness(namespace: string, podName: string) {

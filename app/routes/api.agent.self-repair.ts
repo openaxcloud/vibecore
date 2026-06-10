@@ -22,6 +22,18 @@ const logger = createScopedLogger('api.agent.self-repair');
 
 const MAX_PROMPT_BYTES = 64_000;
 
+/*
+ * Tolerate malformed percent-encoding in a cookie value/name — a stray '%' must
+ * not throw a URIError that 500s the whole request; fall back to the raw text.
+ */
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 function parseCookies(cookieHeader: string): Record<string, string> {
   const cookies: Record<string, string> = {};
 
@@ -29,7 +41,7 @@ function parseCookies(cookieHeader: string): Record<string, string> {
     const [name, ...rest] = item.split('=');
 
     if (name && rest.length > 0) {
-      cookies[decodeURIComponent(name.trim())] = decodeURIComponent(rest.join('=').trim());
+      cookies[safeDecode(name.trim())] = safeDecode(rest.join('=').trim());
     }
   }
 

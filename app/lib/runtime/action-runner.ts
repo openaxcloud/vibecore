@@ -653,7 +653,7 @@ export class ActionRunner {
      * anyway — the user can still edit it in place — and the failure is
      * surfaced through the workspace log and the patch-review banner.
      */
-    payload = await this.#repairWithSelfRepairLoop(relativePath, payload);
+    payload = await this.#repairWithSelfRepairLoop(relativePath, payload, action.abortSignal);
 
     try {
       await this.#runtime.writeFile(relativePath, payload);
@@ -664,7 +664,7 @@ export class ActionRunner {
     }
   }
 
-  async #repairWithSelfRepairLoop(relativePath: string, initialPayload: string): Promise<string> {
+  async #repairWithSelfRepairLoop(relativePath: string, initialPayload: string, signal?: AbortSignal): Promise<string> {
     let payload = initialPayload;
     let validation: Awaited<ReturnType<typeof validateAndFormatHunk>>;
 
@@ -702,7 +702,9 @@ export class ActionRunner {
 
       try {
         const prompt = buildSelfRepairPrompt(relativePath, payload, lastError);
-        const corrected = await callSelfRepairEndpoint(prompt);
+
+        // Propagate the action's abort signal so Stop cancels the self-repair LLM call.
+        const corrected = await callSelfRepairEndpoint(prompt, signal);
         const reValidation = await validateAndFormatHunk(relativePath, corrected);
 
         if (reValidation.kind === 'ok') {

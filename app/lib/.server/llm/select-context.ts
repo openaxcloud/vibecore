@@ -211,6 +211,13 @@ export async function selectContext(props: {
       modelDetails.provider,
     ),
 
+    /*
+     * Cap output — selectContext only emits a short include/exclude file list, but
+     * without a ceiling a reasoning model can run to its full completion limit,
+     * burning tokens/latency on every context-optimization pass (matches createSummary).
+     */
+    maxTokens: Math.min(modelDetails.maxTokenAllowed ?? 4000, 4000),
+
     // Abortable: clicking Stop must also cancel context selection, not keep burning tokens.
     ...(abortSignal ? { abortSignal } : {}),
   });

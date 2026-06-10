@@ -9932,7 +9932,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
-    return reply.code(response.status).send(Buffer.from(await response.arrayBuffer()));
+    /*
+     * Stream the (fully user-controlled) preview response instead of
+     * arrayBuffer()-buffering it. A previewed dev server returning a large body
+     * (file download, HLS, big SPA bundle) would otherwise be buffered whole into
+     * the shared multi-tenant api pod's heap — a cross-tenant OOM vector. Pass
+     * content-length through so the client still gets it.
+     */
+    const contentLength = response.headers.get('content-length');
+
+    if (contentLength) {
+      reply.header('content-length', contentLength);
+    }
+
+    if (!response.body) {
+      return reply.code(response.status).send();
+    }
+
+    return reply.code(response.status).send(Readable.fromWeb(response.body as ReadableStream<Uint8Array>));
   };
   app.all('/api/runtime/workspaces/:workspaceId/preview/:port/proxy', handleRuntimePreviewProxy);
   app.all('/api/runtime/workspaces/:workspaceId/preview/:port/proxy/*', handleRuntimePreviewProxy);
@@ -10078,16 +10095,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     });
     upstream.addEventListener('message', async (event) => {
-      const data = await runtimeWebSocketData(event.data);
-      client.send(
-        wrapMessages
-          ? JSON.stringify({
-              type: 'stdout',
-              data,
-              timestamp: new Date().toISOString(),
-            })
-          : data,
-      );
+      /*
+       * This async listener's promise is never awaited, so any throw becomes an
+       * unhandled rejection (no process-level handler exists) — and that's a
+       * routine event here: runtimeWebSocketData (Blob.arrayBuffer) can reject on
+       * a malformed frame, and client.send throws once the downstream socket is
+       * CLOSING/CLOSED (normal on disconnect of these long-lived sockets).
+       */
+      try {
+        const data = await runtimeWebSocketData(event.data);
+        client.send(
+          wrapMessages
+            ? JSON.stringify({
+                type: 'stdout',
+                data,
+                timestamp: new Date().toISOString(),
+              })
+            : data,
+        );
+      } catch (error) {
+        app.log.warn({ err: error }, 'runtime socket relay failed');
+      }
     });
     upstream.addEventListener('close', () => client.close());
     upstream.addEventListener('error', () =>
@@ -10099,12 +10127,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }),
       ),
     );
+    // Bound the pre-open buffer: if the upstream never opens, an active client
+    // could otherwise push unbounded input into memory. Drop oldest past the cap.
+    const MAX_PENDING_MESSAGES = 1000;
     client.onMessage((message) => {
       const text = message.toString();
 
       if (upstream.readyState === WebSocket.OPEN) {
         upstream.send(text);
-      } else {
+      } else if (pendingMessages.length < MAX_PENDING_MESSAGES) {
         pendingMessages.push(text);
       }
     });
@@ -14045,6 +14076,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+    // A suspended org must not keep consuming paid LLM completions.
+    await requireOrganizationNotSuspended(store, project.organizationId);
 
     const conversationId = (request.params as { conversationId: string }).conversationId;
     const conversation = await store.getAiConversation(conversationId);
@@ -15939,6 +15972,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+    // A suspended org must not queue new builds (resource consumption) — matches
+    // the workspace create/start routes.
+    await requireOrganizationNotSuspended(store, project.organizationId);
     const body = {
       provider: 'static' as const,
       environment: 'preview' as const,

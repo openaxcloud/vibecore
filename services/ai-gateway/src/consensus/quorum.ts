@@ -33,6 +33,24 @@ function computeOutcome(
     return participatingCount === totalCount ? 'ABSTAINED' : 'PARTIAL';
   }
 
+  /*
+   * File votes are excluded from agreement scoring (each role owns its files), so
+   * a run that produced ONLY file claims has opinionVotes=[] → agreementScore 0 →
+   * the `<= 1 - threshold` branch would REJECT it, contradicting the accepted
+   * files. Decide a file-only run by its accepted claims + participation instead.
+   */
+  const hasOpinionVotes = votes.some((v) => v.type !== 'file');
+
+  if (!hasOpinionVotes) {
+    const acceptedCount = votes.filter((v) => v.decision === 'accepted').length;
+
+    if (acceptedCount === 0) {
+      return 'REJECTED';
+    }
+
+    return participatingCount === totalCount ? 'ACCEPTED' : 'PARTIAL';
+  }
+
   const agreementScore = computeAgreementScore(votes);
   if (agreementScore >= threshold && participatingCount === totalCount) return 'ACCEPTED';
   if (agreementScore >= threshold) return 'PARTIAL';
