@@ -1190,7 +1190,30 @@ async function runCommandStream(
     .digest('hex')
     .slice(0, 12);
 
-  const child = spawn(command, normalizedArgs, { cwd, shell: false, env: process.env });
+  // detached: own process group so we can SIGTERM/SIGKILL the WHOLE tree. Streamed
+  // commands are dev servers etc. that spawn children; killing only the direct
+  // child orphaned those grandchildren (leaked processes + held ports).
+  const child = spawn(command, normalizedArgs, { cwd, shell: false, env: process.env, detached: true });
+
+  /*
+   * Signal the child's PROCESS GROUP (negative pid) so its children die too;
+   * fall back to the direct child if the group send fails (e.g. already exited).
+   */
+  const killTree = (signal: NodeJS.Signals) => {
+    try {
+      if (child.pid) {
+        process.kill(-child.pid, signal);
+      } else {
+        child.kill(signal);
+      }
+    } catch {
+      try {
+        child.kill(signal);
+      } catch {
+        // already exited
+      }
+    }
+  };
 
   const record: ProcessRecord = {
     id,
@@ -1284,14 +1307,10 @@ async function runCommandStream(
       }
     }
 
-    child.kill('SIGTERM');
+    killTree('SIGTERM');
   }, options.streamTimeoutMs);
   const sigkillTimer = setTimeout(() => {
-    try {
-      child.kill('SIGKILL');
-    } catch {
-      // Already exited.
-    }
+    killTree('SIGKILL');
   }, options.streamTimeoutMs + 5000);
   sigkillTimer.unref();
 

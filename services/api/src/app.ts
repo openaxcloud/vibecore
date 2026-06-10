@@ -9376,9 +9376,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id, gitWorkspaceId),
       });
     } else if (toolName === 'deploy_project') {
-      await ensureQuota(request, project.organizationId, 'deployments.count');
+      /*
+       * Serialize quota + create at the org level, like the HTTP deploy routes —
+       * the AI deploy_project tool otherwise bypassed that guard, allowing a
+       * deployments.count TOCTOU and duplicate concurrent deploys.
+       */
       output = {
-        deployment: await store.createDeployment({ projectId: project.id, provider: input.provider ?? 'manual' }),
+        deployment: await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+          await ensureQuota(request, project.organizationId, 'deployments.count');
+          return store.createDeployment({ projectId: project.id, provider: input.provider ?? 'manual' });
+        }),
       };
       await recordUsage(request, project.organizationId, 'deployments.count');
     }
@@ -16712,6 +16719,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (providerConfigError) {
       return reply.code(400).send(providerConfigError);
     }
+
+    /*
+     * Re-enforce the plan gate at redeploy time against the org's CURRENT plan,
+     * exactly like create — otherwise an org that downgraded after an enterprise-
+     * only (e.g. docker) deploy could keep redeploying it for free.
+     */
+    const { subscription: redeploySubscription } = await billingState(project.organizationId);
+    assertDeploymentRequestAllowed(
+      {
+        provider: sourceProvider,
+        buildCommand: source.buildCommand ?? '',
+        outputDirectory: source.outputDirectory ?? 'dist',
+        environment: source.environment,
+      } as never,
+      redeploySubscription?.planKey ?? 'free',
+    );
 
     const redeployPersistedWorkspaceId = source.workspaceId ?? undefined;
 
