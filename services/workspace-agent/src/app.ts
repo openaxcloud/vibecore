@@ -278,7 +278,24 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   app.post('/processes/:id/kill', async (request) => {
     const id = (request.params as { id: string }).id;
     const record = processes.get(id);
-    record?.process.kill('SIGTERM');
+
+    /*
+     * Streamed commands are spawned detached (own process group), so signal the
+     * GROUP (negative pid) to take down the dev server's children too; the direct
+     * .kill() left grandchildren orphaned (leaked processes + held ports).
+     */
+    if (record?.process.pid) {
+      try {
+        process.kill(-record.process.pid, 'SIGTERM');
+      } catch {
+        try {
+          record.process.kill('SIGTERM');
+        } catch {
+          // already exited
+        }
+      }
+    }
+
     processes.delete(id);
 
     return { killed: Boolean(record), id };

@@ -8815,6 +8815,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   }) => {
     let response: Response;
 
+    /*
+     * Send the org's REAL plan so the gateway's model-tier gating applies. It was
+     * hardcoded to 'business', so a free org got business-tier models for free.
+     * Map the billing plan key to the gateway's AiPlanKey (billing 'team' ==
+     * gateway 'business'); unknown/free → 'free'.
+     */
+    const billingPlanKey = (await billingState(input.project.organizationId).catch(() => undefined))?.subscription
+      ?.planKey;
+    const gatewayPlan =
+      billingPlanKey === 'team'
+        ? 'business'
+        : billingPlanKey === 'pro'
+          ? 'pro'
+          : billingPlanKey === 'enterprise'
+            ? 'enterprise'
+            : 'free';
+
     try {
       response = await fetch(`${aiGatewayUrl}/chat/completions`, {
         method: 'POST',
@@ -8822,7 +8839,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         signal: AbortSignal.timeout(60_000),
         body: JSON.stringify({
           organizationId: input.project.organizationId,
-          plan: process.env.AI_DEFAULT_PLAN ?? 'business',
+          plan: gatewayPlan,
           provider: input.provider,
           model: input.model,
           messages: [
