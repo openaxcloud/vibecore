@@ -6,12 +6,14 @@ import { createDatabaseClient } from '@vibecore/database';
 import { decryptJson } from '@vibecore/security';
 import { runConnectorReconnectionNotifier, runConnectorTokenHealthCheck } from './connector-jobs.js';
 
-const connection = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
-  maxRetriesPerRequest: null,
-});
-
-export const workspaceQueue = new Queue('workspace-jobs', { connection });
-export const enterpriseQueue = new Queue('enterprise-jobs', { connection });
+/*
+ * Worker runtime (Redis connection, BullMQ Queues + Workers) is created lazily
+ * via startWorkers(), NOT at module load. Importing this module — e.g. the
+ * workspace-gc test importing triggerWorkspaceGarbageCollect, or any tooling
+ * reusing an exported job handler — must not spin up two live job-consuming
+ * Workers and their Redis connections as a side effect. Only the process
+ * entrypoint (bottom of file) calls startWorkers().
+ */
 
 // Single shared Prisma client for the lifetime of this long-running worker.
 // Previously each job handler called createDatabaseClient() per invocation,
@@ -233,80 +235,100 @@ export async function triggerWorkspaceGarbageCollect(jobData: Record<string, unk
   await response.body?.cancel().catch(() => {});
 }
 
-export const worker = new Worker(
-  'workspace-jobs',
-  async (job) => {
-    job.log(`processing ${job.name}`);
+export function startWorkers() {
+  const connection = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
+    maxRetriesPerRequest: null,
+  });
 
-    if (job.name === 'workspace.gc') {
-      await triggerWorkspaceGarbageCollect((job.data ?? {}) as Record<string, unknown>);
-      return { collected: true };
-    }
+  // Queues are created alongside the workers so importing this module never opens
+  // a Redis connection; producers (the enqueue-cli CronJob trigger) are standalone.
+  const workspaceQueue = new Queue('workspace-jobs', { connection });
+  const enterpriseQueue = new Queue('enterprise-jobs', { connection });
+  void workspaceQueue;
+  void enterpriseQueue;
 
-    throw new Error(`Unsupported workspace job: ${job.name}`);
-  },
-  { connection },
-);
+  const worker = new Worker(
+    'workspace-jobs',
+    async (job) => {
+      job.log(`processing ${job.name}`);
 
-export const enterpriseWorker = new Worker(
-  'enterprise-jobs',
-  async (job) => {
-    job.log(`processing ${job.name}`);
+      if (job.name === 'workspace.gc') {
+        await triggerWorkspaceGarbageCollect((job.data ?? {}) as Record<string, unknown>);
+        return { collected: true };
+      }
 
-    if (job.name === 'siem.deliver') {
-      await deliverSiemAuditEvents();
-      return { delivered: true };
-    }
+      throw new Error(`Unsupported workspace job: ${job.name}`);
+    },
+    { connection },
+  );
 
-    if (job.name === 'retention.enforce') {
-      await enforceDataRetention();
-      return { retained: true };
-    }
+  const enterpriseWorker = new Worker(
+    'enterprise-jobs',
+    async (job) => {
+      job.log(`processing ${job.name}`);
 
-    if (job.name === 'connector.healthcheck') {
-      const result = await runConnectorTokenHealthCheck({ prisma: getPrisma() });
-      return result;
-    }
+      if (job.name === 'siem.deliver') {
+        await deliverSiemAuditEvents();
+        return { delivered: true };
+      }
 
-    if (job.name === 'connector.notify.reconnect') {
-      const result = await runConnectorReconnectionNotifier({ prisma: getPrisma() });
-      return result;
-    }
+      if (job.name === 'retention.enforce') {
+        await enforceDataRetention();
+        return { retained: true };
+      }
 
-    throw new Error(`Unsupported enterprise job: ${job.name}`);
-  },
-  { connection },
-);
+      if (job.name === 'connector.healthcheck') {
+        const result = await runConnectorTokenHealthCheck({ prisma: getPrisma() });
+        return result;
+      }
 
-worker.on('failed', (job, error) => {
-  console.error(JSON.stringify({ level: 'error', service: 'worker', jobId: job?.id, error: error?.message }));
-});
+      if (job.name === 'connector.notify.reconnect') {
+        const result = await runConnectorReconnectionNotifier({ prisma: getPrisma() });
+        return result;
+      }
 
-enterpriseWorker.on('failed', (job, error) => {
-  console.error(JSON.stringify({ level: 'error', service: 'enterprise-worker', jobId: job?.id, error: error?.message }));
-});
+      throw new Error(`Unsupported enterprise job: ${job.name}`);
+    },
+    { connection },
+  );
 
-/*
- * BullMQ Workers/Queues re-emit the underlying ioredis connection's `'error'`
- * event (failover, DNS blip, AUTH failure, Memorystore maintenance). On an
- * EventEmitter, an `'error'` event with no listener is *thrown* — which here
- * would be an uncaught exception that crashes the long-running worker process
- * and stops every cron job until the pod restarts. Log and swallow so a
- * transient Redis fault is survivable.
- */
-connection.on('error', (error) => {
-  console.error(JSON.stringify({ level: 'error', service: 'worker', component: 'redis', error: error?.message }));
-});
+  worker.on('failed', (job, error) => {
+    console.error(JSON.stringify({ level: 'error', service: 'worker', jobId: job?.id, error: error?.message }));
+  });
 
-worker.on('error', (error) => {
-  console.error(JSON.stringify({ level: 'error', service: 'worker', component: 'bullmq', error: error?.message }));
-});
+  enterpriseWorker.on('failed', (job, error) => {
+    console.error(
+      JSON.stringify({ level: 'error', service: 'enterprise-worker', jobId: job?.id, error: error?.message }),
+    );
+  });
 
-enterpriseWorker.on('error', (error) => {
-  console.error(JSON.stringify({ level: 'error', service: 'enterprise-worker', component: 'bullmq', error: error?.message }));
-});
+  /*
+   * BullMQ Workers/Queues re-emit the underlying ioredis connection's `'error'`
+   * event (failover, DNS blip, AUTH failure, Memorystore maintenance). On an
+   * EventEmitter, an `'error'` event with no listener is *thrown* — which here
+   * would be an uncaught exception that crashes the long-running worker process
+   * and stops every cron job until the pod restarts. Log and swallow so a
+   * transient Redis fault is survivable.
+   */
+  connection.on('error', (error) => {
+    console.error(JSON.stringify({ level: 'error', service: 'worker', component: 'redis', error: error?.message }));
+  });
+
+  worker.on('error', (error) => {
+    console.error(JSON.stringify({ level: 'error', service: 'worker', component: 'bullmq', error: error?.message }));
+  });
+
+  enterpriseWorker.on('error', (error) => {
+    console.error(
+      JSON.stringify({ level: 'error', service: 'enterprise-worker', component: 'bullmq', error: error?.message }),
+    );
+  });
+
+  return { worker, enterpriseWorker, connection };
+}
 
 if (import.meta.url === `file://${process.argv[1]}`) {
+  startWorkers();
   console.log(JSON.stringify({ level: 'info', service: 'worker', message: 'worker started' }));
 
   /*
