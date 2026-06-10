@@ -1168,6 +1168,38 @@ async function runCommandStream(
   options.processes.set(id, record);
   options.onActiveProcess(child);
 
+  /*
+   * Backpressure: a runaway child can produce output far faster than a slow WS
+   * client drains it. Without pausing, the queued bytes accumulate in the
+   * socket's send buffer (bufferedAmount) and OOM the agent. Pause the child's
+   * stdout/stderr when the buffer crosses the high-water mark and resume once it
+   * drains below half.
+   */
+  const SEND_BUFFER_HIGH_WATER = 8 * 1024 * 1024;
+  let drainTimer: ReturnType<typeof setInterval> | undefined;
+
+  const applyBackpressure = () => {
+    const buffered = (options.socket as { bufferedAmount?: number }).bufferedAmount ?? 0;
+
+    if (buffered <= SEND_BUFFER_HIGH_WATER || drainTimer) {
+      return;
+    }
+
+    child.stdout.pause();
+    child.stderr.pause();
+    drainTimer = setInterval(() => {
+      const current = (options.socket as { bufferedAmount?: number }).bufferedAmount ?? 0;
+
+      if (!options.isOpen() || current <= SEND_BUFFER_HIGH_WATER / 2) {
+        clearInterval(drainTimer);
+        drainTimer = undefined;
+        child.stdout.resume();
+        child.stderr.resume();
+      }
+    }, 50);
+    drainTimer.unref?.();
+  };
+
   const send = (type: 'stdout' | 'stderr', chunk: Buffer) => {
     const data = chunk.toString('utf8');
     record.output = `${record.output ?? ''}${data}`.slice(-options.maxOutputBytes);
@@ -1182,6 +1214,7 @@ async function runCommandStream(
 
     try {
       options.socket.send(JSON.stringify({ type, data, timestamp: new Date().toISOString() }));
+      applyBackpressure();
     } catch {
       // Socket transitioned to CLOSING after the isOpen() check; drop the chunk
       // instead of throwing out of the child's 'data' listener.
@@ -1190,6 +1223,12 @@ async function runCommandStream(
 
   child.stdout.on('data', (chunk) => send('stdout', chunk));
   child.stderr.on('data', (chunk) => send('stderr', chunk));
+  child.on('close', () => {
+    if (drainTimer) {
+      clearInterval(drainTimer);
+      drainTimer = undefined;
+    }
+  });
 
   /*
    * Bound the lifetime of a streamed command so it can't pin a process slot
