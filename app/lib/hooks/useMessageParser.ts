@@ -69,8 +69,20 @@ export function useMessageParser() {
       if (message.role === 'assistant' || message.role === 'user') {
         let newParsedContent = '';
 
+        let replaceContent = reset;
+
         try {
           newParsedContent = messageParser.parse(message.id, extractTextContent(message));
+
+          /*
+           * When the enhanced parser rewrites detected code blocks into artifacts
+           * it does a reset()+full-reparse, so its return is the COMPLETE message
+           * content, not an incremental delta. Appending it would duplicate the
+           * body (the raw streamed text + the re-parsed artifact). Replace instead.
+           */
+          if (messageParser.consumeDidReset(message.id)) {
+            replaceContent = true;
+          }
         } catch (error) {
           /*
            * A single malformed tag from the model (e.g. an invalid supabase
@@ -84,7 +96,7 @@ export function useMessageParser() {
 
         setParsedMessages((prevParsed) => ({
           ...prevParsed,
-          [index]: !reset ? (prevParsed[index] || '') + newParsedContent : newParsedContent,
+          [index]: !replaceContent ? (prevParsed[index] || '') + newParsedContent : newParsedContent,
         }));
       }
     }

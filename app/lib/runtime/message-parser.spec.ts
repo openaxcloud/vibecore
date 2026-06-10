@@ -202,6 +202,90 @@ describe('StreamingMessageParser', () => {
 });
 
 describe('EnhancedStreamingMessageParser', () => {
+  describe('reset/delta duplication regression (#37)', () => {
+    const mkParser = () =>
+      new EnhancedStreamingMessageParser({
+        callbacks: {
+          onArtifactOpen: vi.fn(),
+          onArtifactClose: vi.fn(),
+          onActionOpen: vi.fn(),
+          onActionClose: vi.fn(),
+        },
+      });
+
+    /*
+     * Cumulative streaming chunks of a message that wraps a code block into an
+     * artifact part-way through (the model never emits explicit artifact tags).
+     */
+    const fullMessage =
+      "Create index.js:\n\n```javascript\nfunction hello() {\n  console.log('UNIQUE_TOKEN_X');\n}\n```\n";
+
+    const streamChunks = () => {
+      const chunks: string[] = [];
+
+      for (let i = 4; i < fullMessage.length; i += 5) {
+        chunks.push(fullMessage.slice(0, i));
+      }
+
+      chunks.push(fullMessage);
+
+      return chunks;
+    };
+
+    it('signals a reset (full-reparse, not delta) when wrapping a detected code block', () => {
+      const parser = mkParser();
+
+      let sawReset = false;
+
+      for (const cumulative of streamChunks()) {
+        parser.parse('stream_id', cumulative);
+
+        if (parser.consumeDidReset('stream_id')) {
+          sawReset = true;
+        }
+      }
+
+      expect(sawReset).toBe(true);
+    });
+
+    it('does NOT duplicate content when the caller replaces on reset (vs naive append)', () => {
+      // Buggy strategy: always append the returned string (the pre-fix caller).
+      const buggyParser = mkParser();
+
+      let buggy = '';
+
+      for (const cumulative of streamChunks()) {
+        buggy += buggyParser.parse('buggy', cumulative);
+        buggyParser.consumeDidReset('buggy');
+      }
+
+      // Fixed strategy: replace on reset, append otherwise (the post-fix caller).
+      const fixedParser = mkParser();
+
+      let fixed = '';
+
+      for (const cumulative of streamChunks()) {
+        const out = fixedParser.parse('fixed', cumulative);
+        fixed = fixedParser.consumeDidReset('fixed') ? out : fixed + out;
+      }
+
+      const count = (haystack: string) => haystack.split('UNIQUE_TOKEN_X').length - 1;
+
+      /*
+       * The naive-append path duplicates the payload (raw streamed text + the
+       * re-parsed result); the replace-on-reset path keeps it to at most one.
+       */
+      expect(count(buggy)).toBeGreaterThan(count(fixed));
+      expect(count(fixed)).toBeLessThanOrEqual(1);
+    });
+
+    it('consumeDidReset returns false for a plain-text message (no wrapping)', () => {
+      const parser = mkParser();
+      parser.parse('plain', 'just some prose with no code block');
+      expect(parser.consumeDidReset('plain')).toBe(false);
+    });
+  });
+
   it('should detect shell commands in code blocks', () => {
     const callbacks = {
       onArtifactOpen: vi.fn(),

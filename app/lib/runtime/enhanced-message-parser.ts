@@ -12,6 +12,15 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
   private _processedCodeBlocks = new Map<string, Set<string>>();
   private _artifactCounter = 0;
 
+  /*
+   * Tracks messages whose last parse() did a resetMessage()+full-reparse (the
+   * code-block-wrapping path). On those calls the returned string is the FULL
+   * re-parsed message, NOT an incremental delta — the caller must REPLACE its
+   * accumulated content for the message rather than append, or the body
+   * duplicates. consumeDidReset() reports + clears the flag per call.
+   */
+  private _didResetMessages = new Set<string>();
+
   // Optimized command pattern lookup
   private _commandPatternMap = new Map<string, RegExp>([
     ['npm', /^(npm|yarn|pnpm)\s+(install|run|start|build|dev|test|init|create|add|remove)/],
@@ -48,11 +57,27 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
 
       if (enhancedInput !== input) {
         this.resetMessage(messageId);
+
+        // Returned value is the FULL re-parsed message — flag it so the caller replaces.
+        this._didResetMessages.add(messageId);
+
         return super.parse(messageId, enhancedInput);
       }
     }
 
     return super.parse(messageId, input);
+  }
+
+  /**
+   * Returns (and clears) whether the most recent parse() for `messageId` was a
+   * reset+full-reparse. When true, that parse()'s return value is the complete
+   * message content and the caller must REPLACE rather than append it.
+   */
+  consumeDidReset(messageId: string): boolean {
+    const didReset = this._didResetMessages.has(messageId);
+    this._didResetMessages.delete(messageId);
+
+    return didReset;
   }
 
   private _hasDetectedArtifacts(input: string): boolean {
