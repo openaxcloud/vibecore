@@ -558,6 +558,14 @@ export class GitCliProvider implements GitProvider {
     return {
       ...process.env,
       GIT_CEILING_DIRECTORIES: storageRoot(),
+      /*
+       * Never let git block on an interactive credential/passphrase prompt — a
+       * private remote (or a bad credential) would otherwise hang the child
+       * process indefinitely, pinning the worker and holding the project lock.
+       */
+      GIT_TERMINAL_PROMPT: '0',
+      GIT_ASKPASS: '',
+      GCM_INTERACTIVE: 'never',
     };
   }
 
@@ -633,6 +641,14 @@ export class GitCliProvider implements GitProvider {
       {
         cwd: this.workspacePath(projectId, workspaceId),
         env: this.gitEnv(),
+        /*
+         * 64MB output cap (vs execFile's 1MB default) so a large diff/log/blame
+         * on a big repo/file doesn't throw ERR_CHILD_PROCESS_STDIO_MAXBUFFER and
+         * 500; a hard timeout so a network op (push/pull/fetch) that stalls can't
+         * pin the worker and hold the project lock indefinitely.
+         */
+        maxBuffer: 64 * 1024 * 1024,
+        timeout: 120_000,
       },
     );
 
@@ -648,9 +664,9 @@ export class GitCliProvider implements GitProvider {
       await execFile(
         'git',
         ['clone', '--depth=1', ...(input.branch ? ['--branch', input.branch] : []), input.repositoryUrl, target],
-        {
-          env: this.gitEnv(),
-        },
+        // Network clone: hard timeout + raised maxBuffer so a stalled or chatty
+        // remote can't hang the worker or overflow the 1MB default output buffer.
+        { env: this.gitEnv(), timeout: 120_000, maxBuffer: 64 * 1024 * 1024 },
       );
 
       const files = await walkFiles(target);

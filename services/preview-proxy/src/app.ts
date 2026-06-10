@@ -138,6 +138,24 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
 
+    /*
+     * When we hand a Readable to reply.send the body streams AFTER this function
+     * returns, so the finally-block clearTimeout would kill the abort timer
+     * before the transfer finishes — leaving a stalled upstream body with no
+     * timeout. Mark a streaming handoff and clear the timer on stream
+     * end/close/error instead so the body transfer stays bounded.
+     */
+    let streamingHandoff = false;
+    const sendStream = (readable: Readable) => {
+      streamingHandoff = true;
+      const clear = () => clearTimeout(timeout);
+      readable.on('close', clear);
+      readable.on('end', clear);
+      readable.on('error', clear);
+
+      return reply.send(readable);
+    };
+
     try {
       const upstreamResponse = await fetchImpl(upstream, {
         method: request.method,
@@ -179,7 +197,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        * through, so a large asset can never be buffered into the proxy heap.
        */
       if (!(isHtml && injectInspector)) {
-        return reply.send(Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>));
+        return sendStream(Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>));
       }
 
       // Inspector-injection path: bound the in-memory buffer. If the document is
@@ -189,7 +207,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       if (Number.isFinite(declaredLength) && declaredLength > MAX_INJECT_BYTES) {
         reply.header('content-length', String(declaredLength));
 
-        return reply.send(Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>));
+        return sendStream(Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>));
       }
 
       /*
@@ -243,7 +261,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           }
         }
 
-        return reply.send(Readable.from(passthrough()));
+        return sendStream(Readable.from(passthrough()));
       }
 
       const bodyBuffer = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
@@ -260,7 +278,11 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         .code(502)
         .send({ error: 'Preview upstream error', code: 'PREVIEW_UPSTREAM_ERROR', detail: error?.message });
     } finally {
-      clearTimeout(timeout);
+      // Streamed responses clear the timer on stream completion (see sendStream);
+      // only clear here for the fully-buffered/early-return paths.
+      if (!streamingHandoff) {
+        clearTimeout(timeout);
+      }
     }
   };
 

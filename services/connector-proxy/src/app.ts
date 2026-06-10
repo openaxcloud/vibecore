@@ -142,14 +142,42 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
 
     const upstreamPath = params['*'] ? `/${params['*']}` : '/';
     const queryString = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
+
+    /*
+     * Reject path traversal in the forwarded path. Providers whose base URL
+     * carries a path prefix (e.g. gitlab `…/api/v4`) would otherwise let a `..`
+     * segment normalize out of the prefix and reach a more sensitive sibling
+     * endpoint (e.g. gitlab.com/oauth/token) with the user's bearer token. Verify
+     * the resolved URL stays under the provider base before forwarding.
+     */
     const upstreamUrl = `${upstream.baseUrl}${upstreamPath}${queryString}`;
+    const baseUrl = new URL(upstream.baseUrl);
+    let resolvedUrl: URL;
+
+    try {
+      resolvedUrl = new URL(upstreamUrl);
+    } catch {
+      return sendError(reply, 400, { error: 'Invalid upstream path', code: 'CONNECTOR_INVALID_PATH' });
+    }
+
+    const basePathPrefix = baseUrl.pathname.replace(/\/+$/, '');
+
+    if (
+      resolvedUrl.origin !== baseUrl.origin ||
+      (basePathPrefix && resolvedUrl.pathname !== basePathPrefix && !resolvedUrl.pathname.startsWith(`${basePathPrefix}/`))
+    ) {
+      return sendError(reply, 400, {
+        error: 'Upstream path escapes the provider API base path',
+        code: 'CONNECTOR_PATH_TRAVERSAL',
+      });
+    }
     const headers = buildUpstreamHeaders(request, resolution.accessToken, upstream.auth, upstream.defaultAccept);
     const body = shouldStreamBody(request.method) ? (request.raw as unknown as ReadableStream<Uint8Array>) : undefined;
 
     let upstreamResponse: Response;
 
     try {
-      upstreamResponse = await fetchImpl(upstreamUrl, {
+      upstreamResponse = await fetchImpl(resolvedUrl.toString(), {
         method: request.method,
         headers,
         body,
