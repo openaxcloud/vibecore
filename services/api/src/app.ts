@@ -9425,11 +9425,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const countsAsActive =
       !!existingWorkspace && ['PENDING', 'STARTING', 'RUNNING'].includes(existingWorkspace.status as string);
 
-    if (authorized.organizationId && !countsAsActive) {
-      await ensureQuota(request, authorized.organizationId, 'workspaces.active');
-    }
-
-    const workspaceRecord = await ensureRuntimeWorkspaceRecord(workspaceId, project);
+    /*
+     * Serialize the quota check + the record transition that makes this workspace
+     * count as active, so two concurrent reopens for the same org can't both pass
+     * ensureQuota via TOCTOU and exceed workspaces.active. The slow manager start
+     * (HTTP) stays OUTSIDE the advisory-lock transaction. When the workspace is
+     * already active (reopening a live IDE), no quota is consumed — just create
+     * the record.
+     */
+    const orgIdForQuota = authorized.organizationId;
+    const workspaceRecord =
+      orgIdForQuota && !countsAsActive
+        ? await store.withSerializedMutation(`workspaces:${orgIdForQuota}`, async () => {
+            await ensureQuota(request, orgIdForQuota, 'workspaces.active');
+            return ensureRuntimeWorkspaceRecord(workspaceId, project);
+          })
+        : await ensureRuntimeWorkspaceRecord(workspaceId, project);
     authorized.workspaceId = workspaceRecord.id;
 
     const workspaceStartAt = nowSeconds();
@@ -11682,11 +11693,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const existingMembership = await store.getMembership(request.currentUser!.id, pendingInvitation.organizationId);
 
-    if (!existingMembership) {
-      await ensureQuota(request, pendingInvitation.organizationId, 'team.members');
-    }
-
-    const invitation = await store.consumeOrganizationInvite(body.token, request.currentUser!.id);
+    /*
+     * Serialize the seat-quota check + invite consumption (which adds the member)
+     * so concurrent accepts for the same org can't both pass ensureQuota via TOCTOU
+     * and over-seat the org past team.members.
+     */
+    const invitation = existingMembership
+      ? await store.consumeOrganizationInvite(body.token, request.currentUser!.id)
+      : await store.withSerializedMutation(`org-members:${pendingInvitation.organizationId}`, async () => {
+          await ensureQuota(request, pendingInvitation.organizationId, 'team.members');
+          return store.consumeOrganizationInvite(body.token, request.currentUser!.id);
+        });
 
     if (!invitation) {
       return reply.code(400).send({ error: 'Invalid invitation token', code: 'INVITE_INVALID_TOKEN' });
@@ -14108,12 +14125,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(createWorkspaceSchema, request.body);
     await requireOrganizationNotSuspended(store, project.organizationId);
-    await ensureQuota(request, project.organizationId, 'workspaces.active');
 
-    const workspace = await store.createWorkspace({
-      projectId: project.id,
-      name: body.name,
-      runtimeMode: body.runtimeMode ?? 'remote-kubernetes',
+    /*
+     * Serialize the quota check + create so concurrent workspace creations for the
+     * same org can't both pass ensureQuota via TOCTOU and over-provision past the
+     * workspaces.active limit.
+     */
+    const workspace = await store.withSerializedMutation(`workspaces:${project.organizationId}`, async () => {
+      await ensureQuota(request, project.organizationId, 'workspaces.active');
+
+      return store.createWorkspace({
+        projectId: project.id,
+        name: body.name,
+        runtimeMode: body.runtimeMode ?? 'remote-kubernetes',
+      });
     });
     await recordUsage(request, project.organizationId, 'workspaces.active');
     await audit(request, store, {

@@ -154,6 +154,11 @@ export class WorkbenchStore {
 
   #reloadedMessages = new Set<string>();
   #previewStartPromise: Promise<string> | undefined;
+  // Synchronous in-flight guard: #previewStartPromise is only set late (after the
+  // install/detect awaits), so two concurrent startPreviewServer calls could both
+  // pass that check and launch two dev servers. This flag is set synchronously at
+  // entry to dedup them.
+  #previewStarting = false;
   #previewCommandRunning = false;
   #projectId: string | undefined;
   #autosaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -474,6 +479,25 @@ export class WorkbenchStore {
   }
 
   async startPreviewServer(options: { forceInstall?: boolean } = {}) {
+    // Dedup concurrent starts synchronously (before any await) — see #previewStarting.
+    if (this.#previewStartPromise) {
+      return this.#previewStartPromise;
+    }
+
+    if (this.#previewStarting) {
+      return 'preview starting';
+    }
+
+    this.#previewStarting = true;
+
+    try {
+      return await this.#runStartPreviewServer(options);
+    } finally {
+      this.#previewStarting = false;
+    }
+  }
+
+  async #runStartPreviewServer(options: { forceInstall?: boolean } = {}) {
     const forceInstall = options.forceInstall ?? false;
     const previousPreviewState = this.previewServerState.get();
 

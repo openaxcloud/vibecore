@@ -97,6 +97,27 @@ function rebuildLookupMaps(items: LockedItem[]): void {
 /**
  * Save locked items to localStorage with debouncing
  */
+let flushListenerRegistered = false;
+
+/**
+ * Write the current cache to localStorage immediately, cancelling any pending
+ * debounced write. Safe to call repeatedly.
+ */
+export function flushLockedItems(): void {
+  if (saveDebounceTimer) {
+    clearTimeout(saveDebounceTimer);
+    saveDebounceTimer = null;
+  }
+
+  try {
+    if (typeof localStorage !== 'undefined' && lockedItemsCache !== null) {
+      localStorage.setItem(LOCKED_FILES_KEY, JSON.stringify(lockedItemsCache));
+    }
+  } catch (error) {
+    logger.error('Failed to flush locked items to localStorage', error);
+  }
+}
+
 export function saveLockedItems(items: LockedItem[]): void {
   // Update the in-memory cache immediately
   lockedItemsCache = [...items];
@@ -104,19 +125,36 @@ export function saveLockedItems(items: LockedItem[]): void {
   // Rebuild the lookup maps
   rebuildLookupMaps(items);
 
-  // Debounce the localStorage write
+  /*
+   * Flush the pending write when the tab is hidden/closed — a debounced write
+   * that hasn't fired yet would otherwise silently drop the most recent
+   * lock/unlock on navigation or close.
+   */
+  if (!flushListenerRegistered && typeof window !== 'undefined') {
+    flushListenerRegistered = true;
+    window.addEventListener('pagehide', flushLockedItems);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        flushLockedItems();
+      }
+    });
+  }
+
+  // Debounce the localStorage write (writes the latest cache, not a captured snapshot)
   if (saveDebounceTimer) {
     clearTimeout(saveDebounceTimer);
   }
 
   saveDebounceTimer = setTimeout(() => {
     try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(LOCKED_FILES_KEY, JSON.stringify(items));
-        logger.info(`Saved ${items.length} locked items to localStorage`);
+      if (typeof localStorage !== 'undefined' && lockedItemsCache !== null) {
+        localStorage.setItem(LOCKED_FILES_KEY, JSON.stringify(lockedItemsCache));
+        logger.info(`Saved ${lockedItemsCache.length} locked items to localStorage`);
       }
     } catch (error) {
       logger.error('Failed to save locked items to localStorage', error);
+    } finally {
+      saveDebounceTimer = null;
     }
   }, SAVE_DEBOUNCE_MS);
 }
@@ -429,6 +467,11 @@ export function migrateLegacyLocks(currentChatId: string): void {
  * (e.g., after another tab has modified the locks)
  */
 export function clearCache(): void {
+  // Persist any pending debounced write BEFORE dropping the cache, so just-set
+  // locks aren't lost, and cancel the timer so a now-stale write can't fire after
+  // the cache is cleared and clobber another tab's state.
+  flushLockedItems();
+
   lockedItemsCache = null;
   lockedItemsMap.clear();
   logger.debug('Cleared locked items cache');
