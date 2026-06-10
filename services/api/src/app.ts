@@ -2,6 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, createHmac, createVerify, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, readdir, readFile, realpath, stat, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { dirname, extname, sep, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import cookie from '@fastify/cookie';
@@ -3215,6 +3216,47 @@ async function sessionExpiresAtForUser(store: ApiStore, userId: string) {
   }
 
   return new Date(Date.now() + strictestMinutes * 60_000);
+}
+
+/*
+ * Lazy-loaded RE2 (Google's linear-time regex engine). User-supplied search
+ * patterns are run with RE2 instead of JS RegExp so a catastrophic-backtracking
+ * pattern (e.g. (a+)+$) can't pin the single-threaded event loop and DoS every
+ * tenant — RE2 has no backtracking and is linear-time. It's a native N-API addon
+ * (CJS); load it via createRequire and FAIL SOFT: if it can't load, callers fall
+ * back to the capped JS RegExp so search still works.
+ */
+const requireNative = createRequire(import.meta.url);
+let re2Engine: (new (pattern: string, flags?: string) => { exec(input: string): RegExpExecArray | null }) | null | undefined;
+
+function loadRe2() {
+  if (re2Engine !== undefined) {
+    return re2Engine;
+  }
+
+  try {
+    re2Engine = requireNative('re2');
+  } catch (error) {
+    console.warn('re2 unavailable; falling back to capped JS RegExp for search', error);
+    re2Engine = null;
+  }
+
+  return re2Engine;
+}
+
+/*
+ * Build a regex matcher for a user-supplied pattern. Prefers RE2 (ReDoS-immune);
+ * falls back to JS RegExp only if re2 didn't load (callers still cap input length
+ * as defense-in-depth). Throws on an invalid pattern so the route can 400.
+ */
+function createUserPatternMatcher(pattern: string, caseInsensitive: boolean): { exec(line: string): RegExpExecArray | null } {
+  const RE2 = loadRe2();
+
+  if (RE2) {
+    return new RE2(pattern, caseInsensitive ? 'i' : '');
+  }
+
+  return new RegExp(pattern, caseInsensitive ? 'i' : '');
 }
 
 async function createLoginSession(input: {
@@ -9707,10 +9749,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let findMatch: (line: string) => { start: number; length: number } | null;
 
     if (options.isRegex) {
-      let regex: RegExp;
+      let regex: { exec(line: string): RegExpExecArray | null };
 
       try {
-        regex = new RegExp(body.query, options.caseSensitive ? '' : 'i');
+        // RE2 (linear-time, ReDoS-immune) when available; capped JS RegExp fallback.
+        regex = createUserPatternMatcher(body.query, !options.caseSensitive);
       } catch {
         return reply.code(400).send({ error: 'Invalid regular expression', code: 'RUNTIME_SEARCH_BAD_REGEX' });
       }
@@ -9755,9 +9798,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     /*
      * Hard caps so a workspaces:read user can't pin the single-threaded event
      * loop: bound the number of files scanned, skip oversized files, and cap the
-     * per-line length fed to the (potentially user-supplied) regex — JS RegExp is
-     * synchronous and a catastrophic pattern over a long line blocks all tenants.
-     * (A linear-time engine swap, re2, is tracked separately.)
+     * per-line length. The user pattern now runs through RE2 (linear-time, no
+     * catastrophic backtracking) via createUserPatternMatcher, so ReDoS is closed
+     * at the engine level; these caps remain as defense-in-depth (and protect the
+     * JS RegExp fallback path if re2 ever fails to load).
      */
     const MAX_SEARCH_FILES = 5000;
     const MAX_FILE_BYTES = 2 * 1024 * 1024;
