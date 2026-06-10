@@ -1467,12 +1467,20 @@ function canonicalizeHostForBlocklist(host: string): string {
 }
 
 function isBlockedGitHost(rawHost: string): boolean {
-  const host = canonicalizeHostForBlocklist(rawHost.toLowerCase().replace(/^\[/, '').replace(/\]$/, ''));
+  const host = canonicalizeHostForBlocklist(
+    rawHost
+      .toLowerCase()
+      .replace(/^\[/, '')
+      .replace(/\]$/, '')
+      // FQDN trailing dot resolves identically but evaded the suffix/IP checks.
+      .replace(/\.+$/, ''),
+  );
 
   return (
     host === 'localhost' ||
     host === '0.0.0.0' ||
     host === '::1' ||
+    host === '::' ||
     host.endsWith('.localhost') ||
     host.endsWith('.internal') ||
     host.endsWith('.local') ||

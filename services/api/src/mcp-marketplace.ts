@@ -196,7 +196,70 @@ export function assertNoLocalMcpServers(mcpServers: Record<string, unknown>): vo
         'MCP_STDIO_SERVER_FORBIDDEN',
       );
     }
+
+    /*
+     * SSRF guard on the user-supplied remote URL. After stdio was blocked, the
+     * free-form `url` (sse/streamable-http) became the sanctioned user-controlled
+     * path; the shared web pod connects to it, so an internal/metadata URL is a
+     * full-read SSRF. Require https to a non-internal host.
+     */
+    if (typeof cfg.url === 'string' && cfg.url.trim()) {
+      if (isBlockedMcpUrl(cfg.url)) {
+        throw new McpMarketplaceError(
+          `MCP server '${name}': url must be an https URL to a public host (internal/loopback/metadata addresses are not allowed).`,
+          400,
+          'MCP_URL_BLOCKED',
+        );
+      }
+    }
   }
+}
+
+/*
+ * Block non-https URLs and internal/loopback/link-local/private/metadata hosts
+ * for user-supplied remote MCP server URLs (SSRF). Hostname-based; DNS-rebinding
+ * is out of scope here (the connecting side would need a resolve+recheck).
+ */
+export function isBlockedMcpUrl(rawUrl: string): boolean {
+  let url: URL;
+
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return true;
+  }
+
+  if (url.protocol !== 'https:') {
+    return true;
+  }
+
+  const host = url.hostname.toLowerCase().replace(/^\[/, '').replace(/\]$/, '').replace(/\.+$/, '');
+
+  if (!host) {
+    return true;
+  }
+
+  if (
+    host === 'localhost' ||
+    host === '0.0.0.0' ||
+    host === '::1' ||
+    host === '::' ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.internal') ||
+    host.endsWith('.local') ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
+    /^f[cd][0-9a-f]{0,2}:/.test(host) ||
+    /^fe[89ab][0-9a-f]:/.test(host)
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 export function validateConfigAgainstSchema(value: unknown, rawSchema: unknown): string[] {

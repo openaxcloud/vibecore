@@ -103,7 +103,9 @@ function isSafeProxyTarget(rawUrl: string): boolean {
 }
 
 function canonicalizeProxyHost(rawHost: string): string {
-  const host = rawHost.replace(/^\[/, '').replace(/\]$/, '');
+  // Strip brackets AND a trailing dot — `169.254.169.254.` / `foo.internal.` are
+  // FQDN forms that resolve identically but evaded the blocklist (SSRF bypass).
+  const host = rawHost.replace(/^\[/, '').replace(/\]$/, '').replace(/\.+$/, '');
 
   const mapped = host.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
 

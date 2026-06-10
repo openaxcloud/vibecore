@@ -23,7 +23,12 @@ const BLOCKED_HOSTNAMES = new Set(['localhost', '[::1]', '0.0.0.0']);
  */
 export function isBlockedHost(rawHostname: string): boolean {
   const hostname = rawHostname.toLowerCase();
-  const bare = hostname.replace(/^\[/, '').replace(/\]$/, '');
+  /*
+   * Strip a trailing dot: `metadata.google.internal.` / `169.254.169.254.` are
+   * fully-qualified forms that resolve identically but evaded the .internal/.local
+   * suffix checks and the IP-literal match below (SSRF/credential-relay bypass).
+   */
+  const bare = hostname.replace(/^\[/, '').replace(/\]$/, '').replace(/\.+$/, '');
 
   if (BLOCKED_HOSTNAMES.has(hostname) || BLOCKED_HOSTNAMES.has(bare) || bare === '::1' || bare === '::') {
     return true;
