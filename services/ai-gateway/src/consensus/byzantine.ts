@@ -15,12 +15,24 @@ interface PbftPhaseResult {
   committed: AgentRoleId[];
 }
 
+/*
+ * Required signatures to commit. Classic PBFT is 2f+1, but with fewer than 3f+1
+ * (=4) participating roles f collapses to 0 and 2f+1 = 1, so a SINGLE supporter
+ * would "commit" — false byzantine assurance. When BFT can't tolerate a fault
+ * (small N), require a strict majority of participants instead, so a lone (or
+ * minority) claim is never accepted as consensus.
+ */
+function requiredCommitVotes(participantCount: number, faultThreshold: number): number {
+  return Math.max(2 * faultThreshold + 1, Math.floor(participantCount / 2) + 1);
+}
+
 function runPbftRound(claim: ClaimVote, allParticipating: AgentRoleId[], faultThreshold: number): PbftPhaseResult {
   // Pre-prepare: a leader (first supporter) broadcasts the claim.
-  // Prepare: every supporter that has seen 2f+1 matching pre-prepares signs prepare.
-  // Commit: every node that has seen 2f+1 prepares signs commit.
-  const prepared = claim.supporters.length >= 2 * faultThreshold + 1 ? [...claim.supporters] : [];
-  const committed = prepared.length >= 2 * faultThreshold + 1 ? [...prepared] : [];
+  // Prepare: every supporter that has seen the required matching pre-prepares signs.
+  // Commit: every node that has seen the required prepares signs commit.
+  const required = requiredCommitVotes(allParticipating.length, faultThreshold);
+  const prepared = claim.supporters.length >= required ? [...claim.supporters] : [];
+  const committed = prepared.length >= required ? [...prepared] : [];
 
   if (prepared.length === 0 && claim.supporters.length === allParticipating.length && allParticipating.length > 0) {
     return { prepared: [...claim.supporters], committed: [...claim.supporters] };
@@ -52,8 +64,9 @@ export class ByzantineConsensus implements ConsensusEngine {
 
       const phase = runPbftRound(vote, participating, faultThreshold);
       const supportersAfterCommit = phase.committed.length > 0 ? phase.committed : vote.supporters;
+      const required = requiredCommitVotes(participating.length, faultThreshold);
       const decision: ClaimVote['decision'] =
-        phase.committed.length >= 2 * faultThreshold + 1
+        phase.committed.length >= required
           ? 'accepted'
           : phase.prepared.length === 0 && vote.supporters.length === 0
             ? 'rejected'
@@ -94,14 +107,17 @@ export class ByzantineConsensus implements ConsensusEngine {
               : 'REJECTED';
 
     const consolidated = {
-      summary: input.results
-        .filter((r) => r.status !== 'failed' && r.summary)
-        .map((r) => `[${r.roleId}] ${r.summary}`)
-        .join('\n\n') || 'No sub-agent produced a usable summary.',
+      summary:
+        input.results
+          .filter((r) => r.status !== 'failed' && r.summary)
+          .map((r) => `[${r.roleId}] ${r.summary}`)
+          .join('\n\n') || 'No sub-agent produced a usable summary.',
       acceptedRisks: accepted.filter((v) => v.type === 'risk').map((v) => v.claim),
       acceptedVerification: accepted.filter((v) => v.type === 'verification').map((v) => v.claim),
       acceptedFiles: accepted.filter((v) => v.type === 'file').map((v) => v.claim),
-      rejectedClaims: finalVotes.filter((v) => v.decision === 'rejected').map((v) => ({ claim: v.claim, type: v.type })),
+      rejectedClaims: finalVotes
+        .filter((v) => v.decision === 'rejected')
+        .map((v) => ({ claim: v.claim, type: v.type })),
       perRoleSummaries: input.results.map((r) => ({ roleId: r.roleId, summary: r.summary, status: r.status })),
     };
 

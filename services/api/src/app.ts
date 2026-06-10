@@ -12030,6 +12030,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const body = parse(createProjectSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
+    await requireOrganizationNotSuspended(store, orgId);
     await ensureQuota(request, orgId, 'projects.count');
 
     const project = await store.createProject({
@@ -12065,6 +12066,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const body = parse(createProjectFromTemplateSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
+    await requireOrganizationNotSuspended(store, orgId);
     await ensureQuota(request, orgId, 'projects.count');
 
     const project = await store.createProject({
@@ -12102,6 +12104,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const body = parse(createProjectFromAiSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
+    await requireOrganizationNotSuspended(store, orgId);
     await ensureQuota(request, orgId, 'projects.count');
 
     const name = body.name ?? body.prompt.slice(0, 60);
@@ -12144,6 +12147,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const body = parse(githubImportSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
+    await requireOrganizationNotSuspended(store, orgId);
     await ensureQuota(request, orgId, 'projects.count');
 
     const imported = await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch });
@@ -12187,6 +12191,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const body = parse(zipImportSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
+    await requireOrganizationNotSuspended(store, orgId);
     await ensureQuota(request, orgId, 'projects.count');
 
     const name = body.name ?? 'Imported zip project';
@@ -13893,6 +13898,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
 
+    /*
+     * Destroying (or restoring) a whole project requires REAL org membership, not
+     * the requireProject collaborator fallback — otherwise a share-link redeemer
+     * with editor/member/admin role (not an org member) could soft-delete or
+     * undelete the entire project. requireOrg enforces actual membership.
+     */
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
     const deleted = await store.softDeleteProject(project.id);
     await store.recordProjectActivity({
       projectId: project.id,
@@ -13916,6 +13929,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
       { allowDeleted: true },
     );
+
+    // Restore is destructive-equivalent — require real org membership (see DELETE).
+    await requireOrg(request, store, project.organizationId, 'projects:write');
 
     const restored = await store.restoreProject(project.id);
     await store.recordProjectActivity({
@@ -15176,7 +15192,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (organizationId && event.type === 'invoice.payment_failed') {
         const existing = await store.getSubscription(organizationId).catch(() => undefined);
 
-        if (existing && existing.status === 'ACTIVE') {
+        // Also downgrade TRIALING: a failed trial-conversion payment must not leave
+        // the org on paid entitlements if the follow-up subscription.updated drops.
+        if (existing && (existing.status === 'ACTIVE' || existing.status === 'TRIALING')) {
           await store.upsertSubscription({
             organizationId,
             planKey: existing.planKey,
@@ -17086,11 +17104,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (active === false) {
-      if (await isLastOwnerRemoval(store, orgId, membership)) {
+      /*
+       * Serialize the last-owner check + removal so two concurrent SCIM
+       * deactivations can't both pass isLastOwnerRemoval and leave the org with
+       * zero owners (TOCTOU), matching the interactive membership routes.
+       */
+      const removalConflict = await store.withSerializedMutation(`org-members:${orgId}`, async () => {
+        if (await isLastOwnerRemoval(store, orgId, membership)) {
+          return true as const;
+        }
+
+        await store.removeMember(orgId, userId).catch(() => undefined);
+        return false as const;
+      });
+
+      if (removalConflict) {
         return reply.code(409).send({ error: 'Cannot deactivate the last organization owner', code: 'LAST_OWNER' });
       }
 
-      await store.removeMember(orgId, userId).catch(() => undefined);
       await store.recordAudit({
         organizationId: orgId,
         action: 'scim.user.deactivate',
@@ -17132,11 +17163,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'User is not a member of this organization', code: 'SCIM_USER_NOT_FOUND' });
     }
 
-    if (await isLastOwnerRemoval(store, orgId, membership)) {
+    // Serialize check+removal so concurrent SCIM deletes can't both pass the
+    // last-owner guard and zero out the org's owners (TOCTOU).
+    const deleteConflict = await store.withSerializedMutation(`org-members:${orgId}`, async () => {
+      if (await isLastOwnerRemoval(store, orgId, membership)) {
+        return true as const;
+      }
+
+      await store.removeMember(orgId, userId);
+      return false as const;
+    });
+
+    if (deleteConflict) {
       return reply.code(409).send({ error: 'Cannot remove the last organization owner', code: 'LAST_OWNER' });
     }
 
-    await store.removeMember(orgId, userId);
     await store.recordAudit({
       organizationId: orgId,
       action: 'scim.user.delete',

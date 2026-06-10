@@ -274,8 +274,15 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
      * into the proxy heap — an OOM/DoS vector. Everything else streams through
      * (connector-proxy never rewrites bodies).
      */
+    /*
+     * Never buffer a content-encoded response by its declared length: that length
+     * is the COMPRESSED size, but arrayBuffer() returns the undici-DECODED body —
+     * a small gzip can decompress to gigabytes and OOM the proxy heap
+     * (decompression bomb). Stream encoded bodies through instead (piped, bounded
+     * by backpressure).
+     */
     const shouldBufferResponse =
-      Number.isFinite(contentLength) && contentLength > 0 && contentLength <= MAX_BUFFER_BYTES;
+      !upstreamWasEncoded && Number.isFinite(contentLength) && contentLength > 0 && contentLength <= MAX_BUFFER_BYTES;
 
     if (shouldBufferResponse) {
       return reply.send(Buffer.from(await upstreamResponse.arrayBuffer()));

@@ -70,7 +70,11 @@ export function createTotpCode(secret: string, timeStep = Math.floor(Date.now() 
   counter.writeBigUInt64BE(BigInt(timeStep));
   const digest = createHmac('sha1', decodeBase32(secret)).update(counter).digest();
   const offset = digest[digest.length - 1] & 0xf;
-  const binary = ((digest[offset] & 0x7f) << 24) | ((digest[offset + 1] & 0xff) << 16) | ((digest[offset + 2] & 0xff) << 8) | (digest[offset + 3] & 0xff);
+  const binary =
+    ((digest[offset] & 0x7f) << 24) |
+    ((digest[offset + 1] & 0xff) << 16) |
+    ((digest[offset + 2] & 0xff) << 8) |
+    (digest[offset + 3] & 0xff);
 
   return String(binary % 1_000_000).padStart(6, '0');
 }
@@ -118,14 +122,20 @@ export function hashPassword(password: string) {
   return `scrypt$${salt}$${derived}`;
 }
 
-export function verifyPassword(password: string, storedHash: string | null | undefined) {
-  if (!storedHash) {
-    return false;
-  }
+// Fixed dummy salt for the no-user / malformed-hash path so we still spend a
+// scrypt's worth of time and don't reveal (via a fast return) whether an account
+// exists — closes the login user-enumeration timing side channel.
+const DUMMY_PASSWORD_SALT = 'ZHVtbXktc2FsdC1mb3ItdGltaW5n';
 
-  const [scheme, salt, expected] = storedHash.split('$');
+export function verifyPassword(password: string, storedHash: string | null | undefined) {
+  const [scheme, salt, expected] =
+    storedHash && storedHash.includes('$') ? storedHash.split('$') : ['scrypt', undefined, undefined];
 
   if (scheme !== 'scrypt' || !salt || !expected) {
+    // Compute a throwaway scrypt to equalize timing with the success path, then
+    // fail. Without this, a missing/invalid hash returned instantly while a real
+    // user incurred a scrypt — an account-existence oracle.
+    scryptSync(password, DUMMY_PASSWORD_SALT, 64);
     return false;
   }
 

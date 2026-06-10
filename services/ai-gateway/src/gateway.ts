@@ -501,14 +501,30 @@ async function* providerStream(
         : config.kind === 'ollama'
           ? { model, messages: request.messages, stream: true }
           : openAiPayload(request, model, true);
-  const timeout = AbortSignal.timeout(60_000);
-  const upstreamSignal = signal ? ((AbortSignal as any).any?.([signal, timeout]) ?? signal) : timeout;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: headers(config),
-    body: JSON.stringify(body),
-    signal: upstreamSignal,
-  });
+  /*
+   * Bound only the CONNECT/headers phase with 60s, then clear it. A fixed
+   * wall-clock over the whole fetch aborted long but legitimate streaming
+   * completions mid-stream at 60s. After headers arrive, the body stream is
+   * governed by the caller's `signal` (client disconnect) only.
+   */
+  const connectController = new AbortController();
+  const connectTimer = setTimeout(() => connectController.abort(), 60_000);
+  const upstreamSignal = signal
+    ? ((AbortSignal as any).any?.([signal, connectController.signal]) ?? connectController.signal)
+    : connectController.signal;
+
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: headers(config),
+      body: JSON.stringify(body),
+      signal: upstreamSignal,
+    });
+  } finally {
+    clearTimeout(connectTimer);
+  }
 
   if (!response.ok || !response.body) {
     // Drain/cancel the error body before throwing. An error status (429/5xx,
@@ -682,10 +698,14 @@ export class AiGateway {
     plan: AiPlanKey,
     primaryProviderId: AiProviderId,
   ): { id: string; catalog?: AiModel } {
-    // The primary provider honors the explicitly requested model id (which may be
-    // a valid provider model outside our catalog). Only FALLBACK providers need a
-    // provider-appropriate substitute, since a model id is provider-specific.
-    if (provider.id === primaryProviderId) {
+    /*
+     * The primary provider honors the explicitly requested model id — but ONLY
+     * when that model actually belongs to this provider. If the caller overrode
+     * `provider` to one that doesn't match the model's provider, sending the
+     * foreign model id would 4xx at the upstream; fall through to a
+     * provider-appropriate catalog model instead (same as a fallback provider).
+     */
+    if (provider.id === primaryProviderId && (!request.model || selectedModel.provider === provider.id)) {
       return { id: request.model ?? selectedModel.id, catalog: selectedModel };
     }
 

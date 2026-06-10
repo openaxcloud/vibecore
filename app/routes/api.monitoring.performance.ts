@@ -41,13 +41,12 @@ function rememberReport(report: BufferedPerformanceReport) {
   }
 }
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  const url = new URL(request.url);
-
-  if (url.searchParams.get('debug') === 'recent') {
-    return json({ reports: recentPerformanceReports.slice(-20) }, { headers: { 'Cache-Control': 'no-store' } });
-  }
-
+export async function loader(_args: LoaderFunctionArgs) {
+  /*
+   * The `?debug=recent` dump exposed other users' client IPs and submitted
+   * payloads to ANY unauthenticated caller. Removed — the buffer is retained only
+   * for in-process inspection via the __testing export, never served over HTTP.
+   */
   return json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
