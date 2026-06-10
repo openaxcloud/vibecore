@@ -12,7 +12,7 @@ describe('applyContextOptimizedHistoryWindow', () => {
   it('keeps the requested recent history window when the conversation is long', () => {
     const messages = ['m1', 'm2', 'm3', 'm4', 'm5'];
 
-    expect(applyContextOptimizedHistoryWindow(messages, 2)).toEqual(['m3', 'm4', 'm5']);
+    expect(applyContextOptimizedHistoryWindow(messages, 2)).toEqual(['m4', 'm5']);
   });
 });
 

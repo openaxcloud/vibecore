@@ -203,10 +203,21 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
       return reply.send();
     }
 
+    const contentType = upstreamResponse.headers.get('content-type') ?? '';
+    const contentLength = Number(upstreamResponse.headers.get('content-length') ?? '0');
+    const shouldBufferResponse =
+      contentType.includes('application/json') ||
+      contentType.startsWith('text/') ||
+      (Number.isFinite(contentLength) && contentLength > 0 && contentLength <= 1024 * 1024);
+
+    if (shouldBufferResponse) {
+      return reply.send(Buffer.from(await upstreamResponse.arrayBuffer()));
+    }
+
     /*
-     * Stream the provider response through instead of buffering it whole with
-     * arrayBuffer(). connector-proxy never rewrites the body, and provider
-     * responses can be large (list endpoints, downloads) — buffering risked OOM.
+     * Stream large provider responses through instead of buffering them whole.
+     * connector-proxy never rewrites binary bodies, and provider downloads can
+     * be large enough that buffering risks avoidable memory pressure.
      */
     return reply.send(Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>));
   });
