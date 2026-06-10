@@ -1555,6 +1555,15 @@ export async function action({ request, params }: EnterpriseActionArgs) {
           body: JSON.stringify({ key: integrationSecretKey(integrationId), value: body.apiToken }),
         });
       }
+
+      if (intent === 'disconnect') {
+        // Remove the stored integration token on disconnect — otherwise the
+        // credential lingers in project secrets after the integration is gone.
+        await apiRequest(request, `/projects/${projectId}/secrets`, {
+          method: 'DELETE',
+          body: JSON.stringify({ key: integrationSecretKey(integrationId) }),
+        }).catch(() => undefined);
+      }
     } else if (intent === 'sync') {
       const integrationId = body.integrationId;
 
@@ -1598,6 +1607,15 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       );
     } else if (intent === 'delete-webhook') {
       state.webhooks = state.webhooks.filter((webhook: any) => webhook.id !== body.webhookId);
+
+      // Delete the webhook's signing secret too — leaving it orphaned in project
+      // secrets keeps a live signing key for a webhook that no longer exists.
+      if (body.webhookId) {
+        await apiRequest(request, `/projects/${projectId}/secrets`, {
+          method: 'DELETE',
+          body: JSON.stringify({ key: `INTEGRATION_WEBHOOK_SECRET_${body.webhookId}` }),
+        }).catch(() => undefined);
+      }
     } else if (intent === 'create-api-key') {
       const id = randomUUID();
       const prefix = body.environment === 'production' ? 'ek_live_' : body.environment === 'ci' ? 'ek_ci_' : 'ek_test_';

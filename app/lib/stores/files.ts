@@ -128,9 +128,12 @@ export class FilesStore {
           this.#loadLockedFiles(currentChatId);
 
           // Deleted-paths are chat-scoped too; swap to the new chat's set so the
-          // previous chat's deletions don't bleed into this one.
+          // previous chat's deletions don't bleed into this one, then apply them
+          // (without #cleanupDeletedFiles the newly-loaded chat's deletions
+          // wouldn't take effect on the current file map until the next reload).
           this.#deletedPaths = new Set();
           this.#loadDeletedPaths();
+          this.#cleanupDeletedFiles();
         }
       }, 1000);
     }
@@ -164,6 +167,14 @@ export class FilesStore {
     this.files.set({});
     this.#size = 0;
     this.#modifiedFiles.clear();
+
+    /*
+     * Reload deleted-paths for the new runtime/project scope. Without this the
+     * PREVIOUS project's deleted paths persist and #cleanupDeletedFiles would
+     * hide legitimately-present files in the newly-bound project.
+     */
+    this.#deletedPaths = new Set();
+    this.#loadDeletedPaths();
 
     void this.#init().catch((error) => {
       logger.error('Failed to initialize FilesStore', error);
@@ -981,6 +992,17 @@ export class FilesStore {
     }
 
     this.files.setKey(sanitizedPath, { type: 'file', content, isBinary });
+
+    /*
+     * The runtime re-created this path (build output, external write, etc.), so it
+     * genuinely exists again — clear it (and any deleted-folder ancestor) from
+     * #deletedPaths. Otherwise the watch resurrects it in the UI but the stale
+     * deleted-paths entry hides it again on the next reload/#cleanupDeletedFiles.
+     */
+    if ((change.type === 'create' || change.type === 'rename') && this.#deletedPaths.size > 0) {
+      this.#clearDeletedPathForCreate(sanitizedPath);
+      this.#persistDeletedPaths();
+    }
   }
 
   #decodeFileContent(buffer?: Uint8Array) {
