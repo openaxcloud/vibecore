@@ -40,6 +40,12 @@ export interface AgentMemorySearchInput {
   scopes?: AgentMemoryScope[];
   memoryTypes?: AgentMemoryType[];
   tags?: string[];
+  /*
+   * When false, the search does not bump accessCount/lastUsedAt on the matched
+   * rows. Used by the dedup probe inside remember(), which must not inflate the
+   * usage stats of an unrelated memory on every write.
+   */
+  trackAccess?: boolean;
 }
 
 export interface AgentMemoryWriteInput {
@@ -436,7 +442,7 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
       Math.min(Math.max(input.limit ?? 8, 1), 30),
     );
 
-    if (rows.length) {
+    if (rows.length && input.trackAccess !== false) {
       await this.prisma.$executeRawUnsafe(
         `UPDATE "AgentMemory" SET "lastUsedAt" = CURRENT_TIMESTAMP, "accessCount" = "accessCount" + 1 WHERE "id" = ANY($1::text[])`,
         rows.map((row) => row.id),
@@ -715,6 +721,8 @@ export class AgentMemoryService {
       memoryTypes: [memoryType],
       tags: tags.length ? tags : undefined,
       limit: 1,
+      // Dedup probe — must not inflate the matched memory's usage stats.
+      trackAccess: false,
     });
 
     const duplicate = similar.find((memory) => (memory.score ?? 0) >= 0.92);

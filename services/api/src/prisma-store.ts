@@ -1099,6 +1099,15 @@ export class PrismaApiStore implements ApiStore {
     return mapProjectShareLink(link);
   }
 
+  async revokeProjectShareLink(input: { projectId: string; id: string }) {
+    const result = await this.prisma.projectShareLink.updateMany({
+      where: { id: input.id, projectId: input.projectId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    return result.count > 0;
+  }
+
   async createChatShare(input: {
     tokenHash: string;
     conversationId: string;
@@ -1133,6 +1142,26 @@ export class PrismaApiStore implements ApiStore {
     }
 
     return mapChatShare(share);
+  }
+
+  async listChatShares(projectId: string) {
+    return (await this.prisma.chatShare.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(
+      mapChatShare,
+    );
+  }
+
+  async revokeChatShare(input: { id: string; authorUserId?: string; projectId?: string }) {
+    const result = await this.prisma.chatShare.updateMany({
+      where: {
+        id: input.id,
+        revokedAt: null,
+        ...(input.authorUserId ? { authorUserId: input.authorUserId } : {}),
+        ...(input.projectId ? { projectId: input.projectId } : {}),
+      },
+      data: { revokedAt: new Date() },
+    });
+
+    return result.count > 0;
   }
 
   async upsertAgentPatchProposal(input: {
@@ -2382,6 +2411,11 @@ export class PrismaApiStore implements ApiStore {
       where: { provider_externalId: { provider, externalId } },
     });
     return customer?.organizationId ?? undefined;
+  }
+
+  async findOrganizationIdBySubscriptionExternalId(externalId: string) {
+    const subscription = await this.prisma.subscription.findUnique({ where: { externalId } });
+    return subscription?.organizationId ?? undefined;
   }
 
   async upsertSubscription(input: {

@@ -472,6 +472,16 @@ async function reauth(app: Awaited<ReturnType<typeof buildTestApiApp>>, token: s
   expect(response.statusCode).toBe(200);
 }
 
+async function verifyEmail(app: Awaited<ReturnType<typeof buildTestApiApp>>, verificationToken: string) {
+  const response = await app.inject({
+    method: 'POST',
+    url: '/auth/verify-email',
+    payload: { token: verificationToken },
+  });
+
+  expect(response.statusCode).toBe(200);
+}
+
 function stripeSignature(payload: string, secret: string) {
   const timestamp = Math.floor(Date.now() / 1000);
   const signature = createHmac('sha256', secret).update(`${timestamp}.${payload}`).digest('hex');
@@ -1494,6 +1504,13 @@ describe('SaaS API', () => {
 
     const owner = await register(app, { email: 'saml-owner@example.com', organizationName: 'SAML Org' });
     await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+    // SAML now binds the asserted email to a domain the org has verified ownership of.
+    await store.createDomainVerification({
+      organizationId: owner.organization.id,
+      domain: 'example.com',
+      verificationToken: 'domain-tok',
+    });
+    await store.verifyDomain({ organizationId: owner.organization.id, domain: 'example.com' });
 
     const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
     const certificate = publicKey.export({ type: 'spki', format: 'pem' }).toString();
@@ -1573,6 +1590,9 @@ describe('SaaS API', () => {
     const owner = await register(app, { email: 'replay-owner@example.com', organizationName: 'Replay Org' });
     await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
     const orgId = owner.organization.id;
+    // SAML now binds the asserted email to a verified org domain.
+    await store.createDomainVerification({ organizationId: orgId, domain: 'example.com', verificationToken: 'domain-tok' });
+    await store.verifyDomain({ organizationId: orgId, domain: 'example.com' });
 
     const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
     const certificate = publicKey.export({ type: 'spki', format: 'pem' }).toString();
@@ -1619,6 +1639,8 @@ describe('SaaS API', () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const platform = await register(app, { email: 'platform@example.com', organizationName: 'Platform Org' });
+    // Platform-admin bootstrap is now applied only after email ownership is proven.
+    await verifyEmail(app, platform.verificationToken);
     const target = await register(app, { email: 'target-admin@example.com', organizationName: 'Target Org' });
 
     const blocked = await app.inject({
@@ -1629,6 +1651,8 @@ describe('SaaS API', () => {
     });
     expect(blocked.statusCode).toBe(403);
 
+    // MFA enrollment now requires a recent re-auth.
+    await reauth(app, platform.token);
     const setup = await app.inject({
       method: 'POST',
       url: '/auth/mfa/setup',
@@ -1674,7 +1698,9 @@ describe('SaaS API', () => {
     process.env.PLATFORM_ADMIN_EMAILS = 'console-admin@example.com';
 
     const admin = await register(app, { email: 'console-admin@example.com', organizationName: 'Admin Org' });
+    await verifyEmail(app, admin.verificationToken);
 
+    await reauth(app, admin.token);
     const setup = await app.inject({
       method: 'POST',
       url: '/auth/mfa/setup',
@@ -1705,11 +1731,13 @@ describe('SaaS API', () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const admin = await register(app, { email: 'billing-admin@example.com', organizationName: 'Billing Admin Org' });
+    await verifyEmail(app, admin.verificationToken);
 
     const customer = await register(app, {
       email: 'billing-customer@example.com',
       organizationName: 'Billing Customer Org',
     });
+    await reauth(app, admin.token);
     const setup = await app.inject({
       method: 'POST',
       url: '/auth/mfa/setup',
@@ -1758,22 +1786,19 @@ describe('SaaS API', () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const admin = await register(app, { email: 'abuse-admin@example.com', organizationName: 'Abuse Admin Org' });
+    await verifyEmail(app, admin.verificationToken);
 
     const customer = await register(app, {
       email: 'abuse-customer@example.com',
       organizationName: 'Abuse Customer Org',
     });
-    const setup = await app.inject({
-      method: 'POST',
-      url: '/auth/mfa/setup',
-      headers: { authorization: `Bearer ${admin.token}` },
-    });
-    await app.inject({
-      method: 'POST',
-      url: '/auth/mfa/verify',
-      headers: { authorization: `Bearer ${admin.token}` },
-      payload: { code: createTotpCode(setup.json().secret) },
-    });
+
+    /*
+     * Enable MFA directly so this test's session stays NON-reauthed — exercising
+     * the reauth gate below. (The /auth/mfa/setup endpoint now itself requires a
+     * recent reauth, which would otherwise mark the session reauthenticated.)
+     */
+    await store.updateUser({ userId: admin.user.id, mfaEnabled: true, mfaSecretEncrypted: 'test-secret' });
 
     const staleSession = await app.inject({
       method: 'POST',
@@ -1813,20 +1838,13 @@ describe('SaaS API', () => {
   it('requires re-authentication for dangerous admin actions', async () => {
     process.env.PLATFORM_ADMIN_EMAILS = 'danger-admin@example.com';
 
-    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
     const admin = await register(app, { email: 'danger-admin@example.com', organizationName: 'Danger Org' });
+    await verifyEmail(app, admin.verificationToken);
 
-    const setup = await app.inject({
-      method: 'POST',
-      url: '/auth/mfa/setup',
-      headers: { authorization: `Bearer ${admin.token}` },
-    });
-    await app.inject({
-      method: 'POST',
-      url: '/auth/mfa/verify',
-      headers: { authorization: `Bearer ${admin.token}` },
-      payload: { code: createTotpCode(setup.json().secret) },
-    });
+    // Enable MFA directly so the session stays non-reauthed (setup now needs reauth).
+    await store.updateUser({ userId: admin.user.id, mfaEnabled: true, mfaSecretEncrypted: 'test-secret' });
 
     const response = await app.inject({
       method: 'POST',
@@ -1845,7 +1863,9 @@ describe('SaaS API', () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const admin = await register(app, { email: 'ops-admin@example.com', organizationName: 'Ops Org' });
+    await verifyEmail(app, admin.verificationToken);
 
+    await reauth(app, admin.token);
     const setup = await app.inject({
       method: 'POST',
       url: '/auth/mfa/setup',
@@ -1954,6 +1974,8 @@ describe('SaaS API', () => {
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'mfa@example.com' });
 
+    // MFA enrollment + recovery-code rotation now require a recent re-auth.
+    await reauth(app, auth.token);
     const setup = await app.inject({
       method: 'POST',
       url: '/auth/mfa/setup',
@@ -1987,6 +2009,8 @@ describe('SaaS API', () => {
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'mfa-login@example.com' });
 
+    // MFA enrollment + recovery-code rotation now require a recent re-auth.
+    await reauth(app, auth.token);
     const setup = await app.inject({
       method: 'POST',
       url: '/auth/mfa/setup',

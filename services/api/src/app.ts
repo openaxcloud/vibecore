@@ -1404,8 +1404,51 @@ function maskConnectionUrl(value: string) {
  * (SSRF / metadata exfil at clone time). Hostname-based; DNS-rebinding is out of
  * scope for this validator.
  */
+/*
+ * Collapse the many ways an IP literal can be written down to a canonical
+ * dotted-quad / bare-IPv6 string so the range checks below can't be bypassed:
+ *   - IPv4-mapped IPv6  [::ffff:169.254.169.254] / ::ffff:7f00:1
+ *   - decimal integer   2130706433  (= 127.0.0.1)
+ *   - hex integer       0x7f000001
+ *   - octal/dotted-hex  0177.0.0.1 / 0x7f.1
+ * Without this, `https://[::ffff:169.254.169.254]/` or `https://2130706433/`
+ * reached loopback/metadata despite the prefix blocklist.
+ */
+function canonicalizeHostForBlocklist(host: string): string {
+  // IPv4-mapped IPv6 — fold the embedded IPv4 out to dotted-quad.
+  const mapped = host.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+
+  if (mapped) {
+    return mapped[1];
+  }
+
+  const hexMapped = host.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+
+  if (hexMapped) {
+    const value = (parseInt(hexMapped[1], 16) << 16) | parseInt(hexMapped[2], 16);
+    return [(value >>> 24) & 0xff, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff].join('.');
+  }
+
+  // Single integer host (decimal / hex / octal) → dotted IPv4.
+  let asInt: number | undefined;
+
+  if (/^\d+$/.test(host)) {
+    asInt = Number.parseInt(host, 10);
+  } else if (/^0x[0-9a-f]+$/.test(host)) {
+    asInt = Number.parseInt(host, 16);
+  } else if (/^0[0-7]+$/.test(host)) {
+    asInt = Number.parseInt(host, 8);
+  }
+
+  if (asInt !== undefined && Number.isFinite(asInt) && asInt >= 0 && asInt <= 0xffffffff) {
+    return [(asInt >>> 24) & 0xff, (asInt >>> 16) & 0xff, (asInt >>> 8) & 0xff, asInt & 0xff].join('.');
+  }
+
+  return host;
+}
+
 function isBlockedGitHost(rawHost: string): boolean {
-  const host = rawHost.toLowerCase().replace(/^\[/, '').replace(/\]$/, '');
+  const host = canonicalizeHostForBlocklist(rawHost.toLowerCase().replace(/^\[/, '').replace(/\]$/, ''));
 
   return (
     host === 'localhost' ||
@@ -1437,6 +1480,16 @@ function isSafeGitRemoteUrl(value: string) {
     const parsed = new URL(remoteUrl);
 
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'ssh:') {
+      return false;
+    }
+
+    /*
+     * Reject embedded credentials (https://user:token@host). They'd be persisted
+     * verbatim on the project (gitRepositoryUrl) and re-surfaced in the UI / API
+     * in the clear; the platform injects auth at push/pull time from the user's
+     * stored connection instead.
+     */
+    if (parsed.username || parsed.password) {
       return false;
     }
 
@@ -2088,7 +2141,10 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     mfaPathname === '/auth/recovery-codes' ||
     mfaPathname.startsWith('/auth/recovery-codes/') ||
     mfaPathname === '/auth/sessions' ||
-    mfaPathname.startsWith('/auth/sessions/');
+    mfaPathname.startsWith('/auth/sessions/') ||
+    // Re-auth is the gateway to enrolling MFA (mfa/setup now requires it); a
+    // platform admin without MFA must be able to reach it or they'd be deadlocked.
+    mfaPathname === '/auth/reauth';
 
   if (adminMfaRequired() && user.platformAdmin && !user.mfaEnabled && !mfaExempt) {
     return reply.code(403).send({ error: 'MFA required for platform administrators', code: 'MFA_REQUIRED' });
@@ -2517,6 +2573,48 @@ function collaborationDocuments(state?: ProjectIdeStateRecord) {
   return { root, collaboration, documents };
 }
 
+/*
+ * Atomic read-modify-write of the shared ProjectIdeState blob. The collaboration
+ * handlers each mutate one sub-key (a document, a terminal grant, the
+ * ai-conversation flag) but persisted the WHOLE blob with no version guard, so
+ * two concurrent writers both read the same snapshot and the later write silently
+ * clobbered the earlier one — dropping a peer's edit, or even resurrecting a
+ * just-revoked terminal grant (authz-affecting). This re-reads + re-applies the
+ * mutation under the store's optimistic-concurrency version check and retries on
+ * conflict, so each writer composes onto the latest committed state.
+ */
+async function mutateProjectIdeState(
+  store: ApiStore,
+  projectId: string,
+  updatedByUserId: string,
+  build: (ctx: ReturnType<typeof collaborationDocuments>, existing?: ProjectIdeStateRecord) => unknown,
+): Promise<ProjectIdeStateRecord> {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const existingState = await store.getProjectIdeState(projectId);
+    const nextState = build(collaborationDocuments(existingState), existingState);
+
+    try {
+      return await store.upsertProjectIdeState({
+        projectId,
+        updatedByUserId,
+        state: nextState,
+        expectedVersion: existingState?.version,
+      });
+    } catch (error) {
+      if ((error as { code?: string } | undefined)?.code === 'IDE_STATE_VERSION_CONFLICT') {
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  throw Object.assign(new Error('IDE state is being modified too frequently; please retry'), {
+    code: 'IDE_STATE_CONTENDED',
+    statusCode: 409,
+  });
+}
+
 function projectFilesFromPersistedIdeState(state?: PersistedIdeStateLike): Array<{ path: string; content: string }> {
   const persistedManifest = projectFileManifestFromPersistedIdeState(state);
 
@@ -2932,6 +3030,45 @@ async function requireRecentAdminReauth(request: FastifyRequest, ttlSeconds = 30
     throw Object.assign(new Error('Recent administrator re-authentication required'), {
       statusCode: 403,
       code: 'ADMIN_REAUTH_REQUIRED',
+    });
+  }
+}
+
+/*
+ * Guard against locking the platform out of all administrators. Used before
+ * revoking platform-admin or suspending a user: if the target is currently an
+ * admin and no OTHER active (non-suspended) admin would remain, reject. Also
+ * blocks an admin from removing their own last-admin access.
+ */
+async function assertNotLastPlatformAdmin(
+  store: ApiStore,
+  targetUserId: string,
+  suspendedUserIds?: Set<string>,
+) {
+  const admins = (await store.listAdminUsers()).filter((user) => user.platformAdmin);
+  const target = admins.find((user) => user.id === targetUserId);
+
+  if (!target) {
+    return;
+  }
+
+  const remaining = admins.filter(
+    (user) => user.id !== targetUserId && !(suspendedUserIds?.has(user.id) ?? false),
+  );
+
+  if (remaining.length === 0) {
+    throw Object.assign(new Error('Cannot remove the last platform administrator'), {
+      statusCode: 409,
+      code: 'LAST_PLATFORM_ADMIN',
+    });
+  }
+}
+
+async function requireRecentReauth(request: FastifyRequest, ttlSeconds = 300) {
+  if (!hasRecentReauth(request.currentSession?.lastReauthAt, ttlSeconds)) {
+    throw Object.assign(new Error('Recent re-authentication required'), {
+      statusCode: 403,
+      code: 'REAUTH_REQUIRED',
     });
   }
 }
@@ -5198,30 +5335,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const authorization = request.headers.authorization;
 
       /*
-       * Only fold the org into the bucket key for AUTHENTICATED requests. For
-       * anonymous requests (login/register/reset — keyed before auth runs) the
-       * `x-org-id` header is fully attacker-controlled, so including it let a
-       * brute-forcer mint a fresh bucket per request by varying the header,
-       * defeating the limit. Anonymous requests key on IP only.
-       */
-      const org = request.currentUser ? ((request.headers['x-org-id'] as string | undefined) ?? 'no-org') : 'no-org';
-
-      /*
-       * Only an explicit Bearer credential (or an already-resolved currentUser)
-       * may widen the bucket beyond the IP. The previous fallback hashed the raw
-       * `session` cookie, which on unauthenticated routes (login/register/reset,
-       * keyed before auth runs) is fully attacker-controlled — sending a fresh
-       * random cookie per request minted a brand-new bucket and defeated the
-       * brute-force / credential-stuffing limit. For anonymous requests, key on
-       * IP+org only so the rate limit can't be sidestepped.
+       * NOTE: @fastify/rate-limit runs this keyGenerator in its own onRequest
+       * hook, which is registered BEFORE our auth hook — so `request.currentUser`
+       * is never populated here. Don't read it (the old code did, silently
+       * dead): a Bearer credential is the only authenticated signal available at
+       * this phase, and only it may widen the bucket beyond the IP.
+       *
+       * The `session` cookie / `x-org-id` header are attacker-controlled on the
+       * pre-auth routes that matter for brute force (login/register/reset), so
+       * folding them in would let an attacker mint a fresh bucket per request and
+       * defeat the limit. Bearer requests key per-token; everything else by IP.
        */
       const credentialKey =
-        request.currentUser?.id ??
-        (typeof authorization === 'string' && authorization.startsWith('Bearer ')
+        typeof authorization === 'string' && authorization.startsWith('Bearer ')
           ? hashToken(authorization.slice('Bearer '.length)).slice(0, 16)
-          : 'anonymous');
+          : 'anonymous';
 
-      return `${request.ip}:${credentialKey}:${org}`;
+      return `${request.ip}:${credentialKey}`;
     },
   });
 
@@ -5552,11 +5682,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.code(409).send({ error: 'Email already registered', code: 'AUTH_EMAIL_EXISTS' });
       }
 
+      /*
+       * Do NOT grant platform-admin here based on the unverified email — anyone
+       * could register with a configured admin address and immediately hold
+       * platform-admin before proving they own the inbox. The bootstrap grant is
+       * applied in /auth/verify-email once email ownership is proven.
+       */
       const user = await store.createUser({
         email: body.email,
         name: body.name,
         passwordHash: hashPassword(body.password),
-        platformAdmin: bootstrapPlatformAdmin(body.email),
       });
 
       const verificationToken = createOpaqueToken('verify');
@@ -5678,6 +5813,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!user) {
         return reply.code(400).send({ error: 'Invalid verification token', code: 'AUTH_INVALID_VERIFICATION_TOKEN' });
+      }
+
+      /*
+       * Apply the platform-admin bootstrap only now that email ownership is
+       * proven (and only if not already an admin), so a configured admin
+       * address can't be claimed by an attacker who never controls the inbox.
+       */
+      if (!user.platformAdmin && bootstrapPlatformAdmin(user.email)) {
+        await store.updateUser({ userId: user.id, platformAdmin: true });
       }
 
       await audit(request, store, { action: 'auth.email.verify', resourceType: 'user', resourceId: user.id });
@@ -6088,6 +6232,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
       }
 
+      /*
+       * Bind the asserted email to a domain the org has PROVEN it owns. Without
+       * this, any org owner can stand up a SAML IdP with their own cert (only
+       * needs security:manage on their OWN org), sign an assertion claiming an
+       * arbitrary victim's email — including a platform admin or another org's
+       * user — and the valid-against-their-own-cert signature would mint a full
+       * session for that victim account (cross-org / platform-admin takeover).
+       * Enterprise SSO must only assert identities on domains the org controls.
+       */
+      const emailDomain = assertion.email.split('@')[1]?.toLowerCase();
+      const verifiedDomains = (await store.listDomainVerifications(orgId))
+        .filter((d) => Boolean(d.verifiedAt))
+        .map((d) => d.domain.toLowerCase());
+
+      if (!emailDomain || !verifiedDomains.includes(emailDomain)) {
+        return reply.code(403).send({
+          error: 'SAML assertion email domain is not a verified domain for this organization',
+          code: 'SAML_EMAIL_DOMAIN_NOT_VERIFIED',
+        });
+      }
+
       const user =
         (await store.findUserByEmail(assertion.email)) ??
         (await store.createUser({
@@ -6251,6 +6416,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
+    /*
+     * Some routes carry the org/project id only in the request body (e.g. the
+     * project-create and workspace routes). Without this fallback those bypassed
+     * the allowlist entirely. The body is already parsed by the time preHandler
+     * runs, so resolve from it too.
+     */
+    if (!orgId && request.body && typeof request.body === 'object') {
+      const body = request.body as { organizationId?: unknown; orgId?: unknown; projectId?: unknown };
+      const bodyOrgId = typeof body.organizationId === 'string' ? body.organizationId : typeof body.orgId === 'string' ? body.orgId : undefined;
+
+      if (bodyOrgId) {
+        orgId = bodyOrgId;
+      } else if (typeof body.projectId === 'string') {
+        const project = await store.getProject(body.projectId).catch(() => undefined);
+        orgId = project?.organizationId;
+      }
+    }
+
     if (orgId) {
       const settings = await store.getEnterpriseSettings(orgId);
 
@@ -6352,6 +6535,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(agentMemoryWriteSchema, request.body);
     const service = requireAgentMemoryService(agentMemory);
     const authorized = await authorizeAgentMemoryScope(request, store, body, 'projects:write');
+
+    /*
+     * Honor the user's opt-out. The preference flag was surfaced in the UI/API
+     * but never enforced server-side, so memories kept being persisted even with
+     * memory disabled. Respect a stored enabled=false by skipping the write.
+     */
+    const preference = await service.getPreference({
+      userId: request.currentUser!.id,
+      organizationId: authorized.organizationId ?? body.organizationId,
+      projectId: authorized.projectId ?? body.projectId,
+    });
+
+    if (preference && preference.enabled === false) {
+      return reply.code(202).send({ skipped: 'memory_disabled' });
+    }
 
     const result = await service.remember({
       userId: request.currentUser!.id,
@@ -9346,13 +9544,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const includeMatchers = (options.includes ?? []).map(globToRegExp);
     const excludeMatchers = (options.excludes ?? []).map(globToRegExp);
 
+    /*
+     * Skip dependency/VCS/build trees by default (node_modules, .git, dist, …).
+     * Scanning them read every minified vendor file into the api process — both a
+     * memory/latency drain and the amplifier for the regex ReDoS below. The user
+     * can still target them explicitly via `includes`.
+     */
+    const DEFAULT_SEARCH_IGNORES = /(^|\/)(node_modules|\.git|dist|build|\.next|\.cache|coverage|out)(\/|$)/;
     const isPathSearchable = (path: string) => {
       if (excludeMatchers.some((matcher) => matcher.test(path))) {
         return false;
       }
 
-      return includeMatchers.length === 0 || includeMatchers.some((matcher) => matcher.test(path));
+      if (includeMatchers.length > 0) {
+        return includeMatchers.some((matcher) => matcher.test(path));
+      }
+
+      return !DEFAULT_SEARCH_IGNORES.test(path);
     };
+
+    /*
+     * Hard caps so a workspaces:read user can't pin the single-threaded event
+     * loop: bound the number of files scanned, skip oversized files, and cap the
+     * per-line length fed to the (potentially user-supplied) regex — JS RegExp is
+     * synchronous and a catastrophic pattern over a long line blocks all tenants.
+     * (A linear-time engine swap, re2, is tracked separately.)
+     */
+    const MAX_SEARCH_FILES = 5000;
+    const MAX_FILE_BYTES = 2 * 1024 * 1024;
+    const MAX_LINE_LENGTH = 20000;
+    let filesScanned = 0;
 
     const matches = [];
 
@@ -9361,10 +9582,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         continue;
       }
 
+      if (++filesScanned > MAX_SEARCH_FILES) {
+        break;
+      }
+
       const content = await agentFileContent(authorized.workspaceId, file.path);
 
+      if (content.length > MAX_FILE_BYTES) {
+        continue;
+      }
+
       for (const [index, line] of content.split('\n').entries()) {
-        const hit = findMatch(line);
+        const hit = line.length > MAX_LINE_LENGTH ? null : findMatch(line);
 
         if (hit) {
           matches.push({
@@ -9691,8 +9920,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree');
     const zip = new JSZip();
 
+    /*
+     * Skip dependency/VCS/build trees and cap total bytes + file count. The old
+     * export read every file (incl. node_modules) into the API process and then
+     * generated the whole zip in memory — a multi-GB workspace could OOM the
+     * shared api pod. node_modules is reproducible from the manifest, so omit it.
+     */
+    const EXPORT_IGNORES = /(^|\/)(node_modules|\.git|dist|build|\.next|\.cache|coverage|out)(\/|$)/;
+    const MAX_EXPORT_BYTES = 200 * 1024 * 1024;
+    const MAX_EXPORT_FILES = 20000;
+    let exportBytes = 0;
+    let exportFiles = 0;
+
     for (const file of flattenRuntimeFiles(nodes)) {
-      zip.file(file.path, await agentFileContent(authorized.workspaceId, file.path));
+      if (EXPORT_IGNORES.test(file.path)) {
+        continue;
+      }
+
+      if (++exportFiles > MAX_EXPORT_FILES) {
+        return reply
+          .code(413)
+          .send({ error: 'Workspace has too many files to export', code: 'RUNTIME_EXPORT_TOO_MANY_FILES' });
+      }
+
+      const content = await agentFileContent(authorized.workspaceId, file.path);
+      exportBytes += Buffer.byteLength(content);
+
+      if (exportBytes > MAX_EXPORT_BYTES) {
+        return reply
+          .code(413)
+          .send({ error: 'Workspace is too large to export', code: 'RUNTIME_EXPORT_TOO_LARGE' });
+      }
+
+      zip.file(file.path, content);
     }
 
     return reply.header('content-type', 'application/zip').send(await zip.generateAsync({ type: 'nodebuffer' }));
@@ -9967,7 +10227,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }, 3000);
 
-    client.onClose(() => clearInterval(interval));
+    /*
+     * The 3s poll only emits frames when there are NEW log lines, so an idle
+     * workspace produces no traffic and the ~30s LB idle timeout tears the socket
+     * down (reconnect flap). A native WS ping every 15s keeps the API→browser leg
+     * alive regardless of log activity; invisible to the JSON message stream.
+     */
+    const keepAlive = setInterval(() => client.ping(), 15_000);
+    (keepAlive as unknown as { unref?: () => void }).unref?.();
+
+    client.onClose(() => {
+      clearInterval(interval);
+      clearInterval(keepAlive);
+    });
   });
   app.get('/api/runtime/workspaces/:workspaceId/logs/snapshot', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
@@ -10079,7 +10351,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }, 2000);
 
-    client.onClose(() => clearInterval(interval));
+    // Native WS ping so an idle (no structural changes) socket survives the LB
+    // idle timeout — the 2s poll only emits frames on create/delete transitions.
+    const keepAlive = setInterval(() => client.ping(), 15_000);
+    (keepAlive as unknown as { unref?: () => void }).unref?.();
+
+    client.onClose(() => {
+      clearInterval(interval);
+      clearInterval(keepAlive);
+    });
   });
   app.get('/api/runtime/workspaces/:workspaceId/ports/watch', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
@@ -10160,7 +10440,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }, 5000);
 
-    client.onClose(() => clearInterval(interval));
+    // Native WS ping so an idle (no port transitions) socket survives the LB idle timeout.
+    const keepAlive = setInterval(() => client.ping(), 15_000);
+    (keepAlive as unknown as { unref?: () => void }).unref?.();
+
+    client.onClose(() => {
+      clearInterval(interval);
+      clearInterval(keepAlive);
+    });
   });
 
   app.get('/auth/me', async (request) => {
@@ -10572,6 +10859,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.post('/auth/mfa/setup', async (request, reply) => {
     /*
+     * Enrolling a new TOTP secret is a security-state change — require a recent
+     * password re-auth (POST /auth/reauth) so a hijacked but un-stepped-up
+     * session can't silently bind its own authenticator to the account.
+     */
+    await requireRecentReauth(request);
+
+    /*
      * Audit v3 (H): refuse to re-enroll while MFA is already enabled.
      * Previously setup unconditionally minted and stored a NEW secret. If an
      * already-enrolled user re-ran setup and abandoned before re-verifying,
@@ -10674,6 +10968,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   );
   app.post('/auth/recovery-codes', async (request) => {
+    /*
+     * Rotating recovery codes invalidates the old set and mints new ones — a
+     * sensitive change that must require a recent re-auth, otherwise a hijacked
+     * session could silently issue itself a fresh MFA bypass set.
+     */
+    await requireRecentReauth(request);
+
     const codes = createRecoveryCodes();
     await store.setRecoveryCodes(request.currentUser!.id, codes.map(hashRecoveryCode));
     await audit(request, store, {
@@ -10698,6 +10999,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await requireAdminMfaForSensitiveAction(request);
     await requireRecentAdminReauth(request);
+
+    if (!body.platformAdmin) {
+      await assertNotLastPlatformAdmin(store, userId);
+    }
 
     const user = await store.updateUser({ userId, platformAdmin: body.platformAdmin });
     await audit(request, store, {
@@ -12497,45 +12802,89 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(collaborationEditSchema, request.body);
     const filePath = normalizeProjectPath(body.filePath)!;
-    const existingState = await store.getProjectIdeState(project.id);
-    const { root, collaboration, documents } = collaborationDocuments(existingState);
 
-    const existingDocument = (
-      documents[filePath] && typeof documents[filePath] === 'object'
-        ? (documents[filePath] as Record<string, unknown>)
-        : {}
-    ) as { version?: number };
+    /*
+     * Re-read + re-apply under optimistic concurrency so a concurrent edit to a
+     * different file (or this one) can't clobber this write. The per-document
+     * baseVersion check runs against the freshly-read snapshot on each attempt.
+     */
+    let document!: {
+      filePath: string;
+      content: string;
+      version: number;
+      updatedByUserId: string;
+      updatedAt: string;
+      cursor: typeof body.cursor;
+      selection: typeof body.selection;
+    };
+    let conflictDocument: unknown;
+    let ideState;
 
-    const currentVersion = Number(existingDocument.version ?? 0);
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const existingState = await store.getProjectIdeState(project.id);
+      const { root, collaboration, documents } = collaborationDocuments(existingState);
 
-    if (typeof body.baseVersion === 'number' && body.baseVersion !== currentVersion) {
+      const existingDocument = (
+        documents[filePath] && typeof documents[filePath] === 'object'
+          ? (documents[filePath] as Record<string, unknown>)
+          : {}
+      ) as { version?: number };
+
+      const currentVersion = Number(existingDocument.version ?? 0);
+
+      if (typeof body.baseVersion === 'number' && body.baseVersion !== currentVersion) {
+        conflictDocument = documents[filePath] ?? null;
+        break;
+      }
+
+      document = {
+        filePath,
+        content: body.content,
+        version: currentVersion + 1,
+        updatedByUserId: request.currentUser!.id,
+        updatedAt: new Date().toISOString(),
+        cursor: body.cursor,
+        selection: body.selection,
+      };
+
+      try {
+        ideState = await store.upsertProjectIdeState({
+          projectId: project.id,
+          updatedByUserId: request.currentUser!.id,
+          state: {
+            ...root,
+            collaboration: {
+              ...collaboration,
+              documents: { ...documents, [filePath]: document },
+            },
+          },
+          expectedVersion: existingState?.version,
+        });
+        break;
+      } catch (error) {
+        if ((error as { code?: string } | undefined)?.code === 'IDE_STATE_VERSION_CONFLICT') {
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    if (conflictDocument !== undefined) {
       return reply.code(409).send({
         code: 'DOCUMENT_CONFLICT',
         error: 'Document version conflict',
-        document: documents[filePath] ?? null,
+        document: conflictDocument,
       });
     }
 
-    const document = {
-      filePath,
-      content: body.content,
-      version: currentVersion + 1,
-      updatedByUserId: request.currentUser!.id,
-      updatedAt: new Date().toISOString(),
-      cursor: body.cursor,
-      selection: body.selection,
-    };
-    const ideState = await store.upsertProjectIdeState({
-      projectId: project.id,
-      updatedByUserId: request.currentUser!.id,
-      state: {
-        ...root,
-        collaboration: {
-          ...collaboration,
-          documents: { ...documents, [filePath]: document },
-        },
-      },
-    });
+    if (!ideState) {
+      return reply.code(409).send({
+        code: 'IDE_STATE_CONTENDED',
+        error: 'Document is being edited too frequently; please retry',
+      });
+    }
+
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
@@ -12562,25 +12911,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(collaborationTerminalPermissionSchema, request.body);
-    const existingState = await store.getProjectIdeState(project.id);
-    const { root, collaboration } = collaborationDocuments(existingState);
 
-    const terminalPermissions =
-      collaboration.terminalPermissions &&
-      typeof collaboration.terminalPermissions === 'object' &&
-      !Array.isArray(collaboration.terminalPermissions)
-        ? ({ ...(collaboration.terminalPermissions as Record<string, unknown>) } as Record<string, unknown>)
-        : {};
-    terminalPermissions[body.userId] = {
-      allowed: body.allowed,
-      grantedByUserId: request.currentUser!.id,
-      grantedAt: new Date().toISOString(),
-    };
+    /*
+     * Atomic RMW: a non-atomic blob rewrite here could resurrect a terminal
+     * grant that another admin just revoked (authz-affecting race).
+     */
+    const ideState = await mutateProjectIdeState(store, project.id, request.currentUser!.id, ({ root, collaboration }) => {
+      const terminalPermissions =
+        collaboration.terminalPermissions &&
+        typeof collaboration.terminalPermissions === 'object' &&
+        !Array.isArray(collaboration.terminalPermissions)
+          ? ({ ...(collaboration.terminalPermissions as Record<string, unknown>) } as Record<string, unknown>)
+          : {};
+      terminalPermissions[body.userId] = {
+        allowed: body.allowed,
+        grantedByUserId: request.currentUser!.id,
+        grantedAt: new Date().toISOString(),
+      };
 
-    const ideState = await store.upsertProjectIdeState({
-      projectId: project.id,
-      updatedByUserId: request.currentUser!.id,
-      state: { ...root, collaboration: { ...collaboration, terminalPermissions } },
+      return { ...root, collaboration: { ...collaboration, terminalPermissions } };
     });
 
     if (body.sessionId) {
@@ -12614,7 +12963,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       allowed: body.allowed,
     });
 
-    return { terminalPermissions, ideState };
+    return { terminalPermissions: collaborationDocuments(ideState).collaboration.terminalPermissions ?? {}, ideState };
   });
   app.post('/projects/:projectId/collaboration/share-links', async (request, reply) => {
     const project = await requireProject(
@@ -12653,6 +13002,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { tokenHash: _tokenHash, ...safeLink } = link;
 
     return reply.code(201).send({ shareLink: safeLink, token });
+  });
+
+  /*
+   * Revoke a project share link. Without this there was no way to set revokedAt,
+   * so the revoked-check on redeem was dead code and a leaked link was valid
+   * until expiry. Requires projects:write (link management is an editor action).
+   */
+  app.delete('/projects/:projectId/collaboration/share-links/:id', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const { id } = parse(z.object({ id: z.string().min(1) }), request.params);
+    const revoked = await store.revokeProjectShareLink({ projectId: project.id, id });
+
+    if (!revoked) {
+      return reply.code(404).send({ error: 'Share link not found', code: 'SHARE_LINK_NOT_FOUND' });
+    }
+
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'project.collaboration.share_link.revoke',
+      metadata: { shareLinkId: id },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'project.collaboration.share_link.revoke',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { shareLinkId: id },
+    });
+
+    return { revoked: true };
   });
 
   /*
@@ -12776,6 +13161,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /*
+   * Revoke a published chat share. Previously chat shares could never be taken
+   * down (no revoke path), so the revoked-check on the public read was dead and a
+   * leaked link stayed live until expiry. Scoped to the project (projects:write).
+   */
+  app.delete('/projects/:projectId/chat-shares/:id', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const { id } = parse(z.object({ id: z.string().min(1) }), request.params);
+    const revoked = await store.revokeChatShare({ id, projectId: project.id });
+
+    if (!revoked) {
+      return reply.code(404).send({ error: 'Chat share not found', code: 'CHAT_SHARE_NOT_FOUND' });
+    }
+
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'project.chat_share.revoke',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { chatShareId: id },
+    });
+
+    return { revoked: true };
+  });
+
+  /*
    * Public read of a chat share: verify the HMAC signature, then resolve the
    * stored snapshot by the token hash. Exempt from auth via the allowlist so a
    * shared link works for logged-out recipients.
@@ -12825,8 +13240,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(collaborationAiSharingSchema, request.body);
-    const existingState = await store.getProjectIdeState(project.id);
-    const { root, collaboration } = collaborationDocuments(existingState);
 
     const aiConversation = {
       shared: body.shared,
@@ -12834,11 +13247,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       updatedByUserId: request.currentUser!.id,
       updatedAt: new Date().toISOString(),
     };
-    const ideState = await store.upsertProjectIdeState({
-      projectId: project.id,
-      updatedByUserId: request.currentUser!.id,
-      state: { ...root, collaboration: { ...collaboration, aiConversation } },
-    });
+    // Atomic RMW so this flag flip doesn't replay a stale blob over peers' edits.
+    const ideState = await mutateProjectIdeState(store, project.id, request.currentUser!.id, ({ root, collaboration }) => ({
+      ...root,
+      collaboration: { ...collaboration, aiConversation },
+    }));
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
@@ -12977,6 +13390,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             line: body.line,
             selection: body.selection,
             body: body.body,
+          });
+          // Mirror the HTTP comment path's activity + audit trail — the WS path
+          // previously created comments with no project-activity or audit record.
+          await store.recordProjectActivity({
+            projectId: project.id,
+            actorUserId: request.currentUser!.id,
+            action: 'project.collaboration.comment',
+            metadata: { filePath: comment.filePath, line: comment.line },
+          });
+          await audit(request, store, {
+            organizationId: project.organizationId,
+            action: 'project.collaboration.comment',
+            resourceType: 'project',
+            resourceId: project.id,
+            metadata: { commentId: comment.id, filePath: comment.filePath },
           });
           collaborationBroker.publish(project.id, { type: 'comment.create', comment }, client);
 
@@ -13328,6 +13756,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
     const archive = await projectStorage.createSnapshot({ projectId: project.id, label: body.label, files });
+
+    /*
+     * Enforce the snapshots.sizeMb storage quota. It was recorded as usage below
+     * but never checked, so the storage cap was non-functional and an org could
+     * accumulate unbounded snapshot storage. Check the new archive's size against
+     * the remaining allowance before persisting it durably.
+     */
+    const snapshotSizeMb = Math.ceil((archive.byteLength ?? 0) / 1_048_576);
+
+    if (snapshotSizeMb > 0) {
+      await ensureQuota(request, project.organizationId, 'snapshots.sizeMb', snapshotSizeMb);
+    }
+
     await persistProjectArchiveObject(archive, {
       projectId: project.id,
       kind: body.kind === 'before-ai-change' ? 'before-ai-change' : 'snapshot',
@@ -14114,9 +14555,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let organizationId = event.data?.object?.metadata?.organizationId as string | undefined;
 
     if (!organizationId && object.customer) {
-      organizationId = await store
-        .findOrganizationIdByBillingCustomer('stripe', String(object.customer))
-        .catch(() => undefined);
+      /*
+       * Do NOT swallow a DB error here. This runs before the dedup row is
+       * written, so letting a transient failure throw yields a 500 and Stripe
+       * retries (no dedup row to block it). Swallowing it to `undefined` would
+       * persist a dedup row with no org and permanently skip the invoice branch.
+       * A genuine "no mapping" still returns undefined normally (no throw).
+       */
+      organizationId = await store.findOrganizationIdByBillingCustomer('stripe', String(object.customer));
+    }
+
+    /*
+     * Last resort: resolve the org from the subscription external id. invoice.*
+     * events (esp. invoice.payment_failed) carry `subscription` but may predate a
+     * BillingCustomer mapping; without this the payment-failed branch is skipped
+     * and the org silently keeps its paid plan for free.
+     */
+    if (!organizationId && object.subscription) {
+      organizationId = await store.findOrganizationIdBySubscriptionExternalId(String(object.subscription));
     }
 
     const persisted = await store.recordStripeEvent({ id: event.id, organizationId, type: event.type, payload: event });
@@ -14132,7 +14588,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * ever succeeding). Ack the event instead so Stripe stops retrying.
      */
     if (organizationId) {
-      const org = await store.getOrganization(organizationId).catch(() => undefined);
+      let org;
+
+      try {
+        org = await store.getOrganization(organizationId);
+      } catch (error) {
+        /*
+         * A transient DB error here must not be mistaken for "org deleted" — that
+         * would ack the event and leave the committed dedup row blocking Stripe's
+         * retry, silently dropping it. Roll back the dedup row and rethrow so the
+         * retry re-runs the full resolution + side effects.
+         */
+        await store.deleteStripeEvent(event.id).catch(() => {});
+        throw error;
+      }
 
       if (!org) {
         request.log.warn(
@@ -14598,6 +15067,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireRecentAdminReauth(request);
 
     const { userId } = parse(adminUserParams, request.params);
+    // Don't let an admin suspend the last remaining administrator (incl. self).
+    await assertNotLastPlatformAdmin(store, userId);
     await store.mutateSystemSettingIds('admin.suspendedUserIds', { add: userId });
     await store.revokeAllSessions(userId);
     await recordAdminAction(request, store, { action: 'admin.user.suspend', metadata: { userId } });
@@ -14678,6 +15149,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireRecentAdminReauth(request);
 
     const { workspaceId } = parse(adminWorkspaceParams, request.params);
+
+    /*
+     * Actually reclaim the pod + PVC via the manager, not just flip the DB row to
+     * STOPPED. The old handler left the workload running (and billable storage
+     * allocated) while reporting deleted:true. Treat an already-gone workspace as
+     * success; rethrow genuine manager faults so the admin sees the failure.
+     */
+    try {
+      await managerRequest(`/workspaces/${workspaceId}`, { method: 'DELETE' });
+    } catch (error) {
+      if (!isRuntimeWorkspaceGone(error)) {
+        throw error;
+      }
+    }
+
     const workspace = await store.updateWorkspaceStatus({ workspaceId, status: 'STOPPED' });
     await recordAdminAction(request, store, { action: 'admin.workspace.delete', metadata: { workspaceId } });
 
@@ -15646,6 +16132,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (providerConfigError) {
       return reply.code(400).send(providerConfigError);
+    }
+
+    /*
+     * Same in-flight guard as the create route: builds share the persistent
+     * project/workspace build CWD (node_modules/dist), so a redeploy concurrent
+     * with a create or another redeploy for the same project+workspace would
+     * clobber each other's install/output and race the status to READY.
+     */
+    const redeployPersistedWorkspaceId = source.workspaceId ?? undefined;
+    const redeployInFlight = (await store.listDeployments(project.id)).find(
+      (deployment) =>
+        (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') &&
+        (deployment.workspaceId ?? undefined) === redeployPersistedWorkspaceId,
+    );
+
+    if (redeployInFlight) {
+      return reply.code(409).send({
+        error: 'A deployment is already in progress for this project',
+        code: 'DEPLOYMENT_IN_PROGRESS',
+        deploymentId: redeployInFlight.id,
+      });
     }
 
     const redeploy = await store.createDeployment({

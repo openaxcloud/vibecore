@@ -770,6 +770,8 @@ export interface ApiStore {
    * mirroring {@link findSessionByToken}. Used to redeem share links.
    */
   findProjectShareLinkByToken(token: string): Promise<ProjectShareLinkRecord | undefined>;
+  /** Revoke a project share link (sets revokedAt). Returns false if not found / already revoked. */
+  revokeProjectShareLink(input: { projectId: string; id: string }): Promise<boolean>;
   /**
    * Persist a shared conversation snapshot. The caller supplies the sha256
    * hash of the (random) share token so the raw token is never stored.
@@ -789,6 +791,10 @@ export interface ApiStore {
    * only when it exists, is unrevoked, and is unexpired.
    */
   findChatShareByTokenHash(tokenHash: string): Promise<ChatShareRecord | undefined>;
+  /** List a project's chat shares (most recent first). */
+  listChatShares(projectId: string): Promise<ChatShareRecord[]>;
+  /** Revoke a chat share (sets revokedAt). Returns false if not found / already revoked. */
+  revokeChatShare(input: { id: string; authorUserId?: string; projectId?: string }): Promise<boolean>;
   upsertAgentPatchProposal(input: {
     id: string;
     projectId: string;
@@ -1067,6 +1073,7 @@ export interface ApiStore {
   }): Promise<BillingCustomerRecord>;
   getBillingCustomer(organizationId: string): Promise<BillingCustomerRecord | undefined>;
   findOrganizationIdByBillingCustomer(provider: string, externalId: string): Promise<string | undefined>;
+  findOrganizationIdBySubscriptionExternalId(externalId: string): Promise<string | undefined>;
   upsertSubscription(input: {
     organizationId: string;
     planKey: PlanKey;

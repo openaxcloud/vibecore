@@ -846,6 +846,17 @@ export class TestApiStore implements ApiStore {
     return link;
   }
 
+  async revokeProjectShareLink(input: { projectId: string; id: string }) {
+    const link = this.projectShareLinks.get(input.id);
+
+    if (!link || link.projectId !== input.projectId || link.revokedAt) {
+      return false;
+    }
+
+    this.projectShareLinks.set(input.id, { ...link, revokedAt: now() });
+    return true;
+  }
+
   async createChatShare(input: {
     tokenHash: string;
     conversationId: string;
@@ -880,6 +891,26 @@ export class TestApiStore implements ApiStore {
     }
 
     return share;
+  }
+
+  async listChatShares(projectId: string) {
+    return [...this.chatShares.values()].filter((share) => share.projectId === projectId);
+  }
+
+  async revokeChatShare(input: { id: string; authorUserId?: string; projectId?: string }) {
+    for (const [key, share] of this.chatShares.entries()) {
+      if (
+        share.id === input.id &&
+        !share.revokedAt &&
+        (!input.authorUserId || share.authorUserId === input.authorUserId) &&
+        (!input.projectId || share.projectId === input.projectId)
+      ) {
+        this.chatShares.set(key, { ...share, revokedAt: now() });
+        return true;
+      }
+    }
+
+    return false;
   }
 
   async upsertAgentPatchProposal(input: {
@@ -1819,6 +1850,16 @@ export class TestApiStore implements ApiStore {
     for (const customer of this.billingCustomers.values()) {
       if (customer.provider === provider && customer.externalId === externalId) {
         return customer.organizationId;
+      }
+    }
+
+    return undefined;
+  }
+
+  async findOrganizationIdBySubscriptionExternalId(externalId: string) {
+    for (const subscription of this.subscriptions.values()) {
+      if (subscription.externalId === externalId) {
+        return subscription.organizationId;
       }
     }
 
