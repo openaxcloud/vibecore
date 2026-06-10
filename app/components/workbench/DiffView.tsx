@@ -21,6 +21,21 @@ interface CodeComparisonProps {
 }
 
 /*
+ * Escape raw text for the pre-highlighter fallback paths below. Those branches
+ * feed file content straight into dangerouslySetInnerHTML before/while shiki
+ * loads; without escaping, attacker-controlled file content (e.g. `<img onerror>`)
+ * is parsed as HTML — stored XSS in the diff panel.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/*
  * The grammars loaded into the shared shiki highlighter. getLanguageFromExtension can
  * return languages outside this set (e.g. 'swift', 'bash'); passing one of those to
  * codeToHtml throws synchronously inside dangerouslySetInnerHTML during a child render,
@@ -415,7 +430,7 @@ const NoChangesView = memo(
                           })
                           .replace(/<\/?pre[^>]*>/g, '')
                           .replace(/<\/?code[^>]*>/g, '')
-                      : line,
+                      : escapeHtml(line),
                   }}
                 />
               </div>
@@ -460,7 +475,7 @@ const CodeLine = memo(
               .codeToHtml(content, { lang: language, theme: theme === 'dark' ? 'github-dark' : 'github-light' })
               .replace(/<\/?pre[^>]*>/g, '')
               .replace(/<\/?code[^>]*>/g, '')
-          : content;
+          : escapeHtml(content);
         return <span dangerouslySetInnerHTML={{ __html: highlightedCode }} />;
       }
 
@@ -477,7 +492,7 @@ const CodeLine = memo(
                   })
                   .replace(/<\/?pre[^>]*>/g, '')
                   .replace(/<\/?code[^>]*>/g, '')
-              : change.value;
+              : escapeHtml(change.value);
 
             return <span key={index} className={changeClass} dangerouslySetInnerHTML={{ __html: highlightedCode }} />;
           })}

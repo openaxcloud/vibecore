@@ -59,14 +59,10 @@ const fuzzyMatch = (query: string, text: string): { score: number; matches: bool
 };
 
 const highlightText = (text: string, query: string): string => {
-  if (!query) {
-    return text;
-  }
-
   /*
-   * Escape HTML in both the search query and the matched text before injecting as raw HTML
-   * (this result is rendered via dangerouslySetInnerHTML), otherwise a crafted query/model
-   * name could inject arbitrary markup.
+   * The result is rendered via dangerouslySetInnerHTML, so EVERY path must escape
+   * HTML — including the no-query path, which previously returned the raw model/
+   * provider name (stored XSS if a name contains markup).
    */
   const escapeHtml = (value: string) =>
     value
@@ -75,6 +71,10 @@ const highlightText = (text: string, query: string): string => {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+
+  if (!query) {
+    return escapeHtml(text);
+  }
 
   const safeQuery = escapeHtml(query);
   const regex = new RegExp(`(${safeQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');

@@ -3874,7 +3874,7 @@ function extractFallbackVerifiedAssertion(xml: string, certificate: string): str
     return null;
   }
 
-  const signatureValue = xmlText(xml, /<SignatureValue[^>]*>([\s\S]*?)<\/(?:\w+:)?SignatureValue>/);
+  const signatureValue = xmlText(xml, /<(?:\w+:)?SignatureValue[^>]*>([\s\S]*?)<\/(?:\w+:)?SignatureValue>/);
 
   if (!signatureValue) {
     return null;
@@ -3913,28 +3913,28 @@ function parseSamlXmlAssertion(xml: string, certificate: string, expectedAudienc
   const signatureValid = verifiedAssertion !== null;
 
   const email =
-    xmlText(assertionXml, /<NameID[^>]*>([\s\S]*?)<\/(?:\w+:)?NameID>/) ??
+    xmlText(assertionXml, /<(?:\w+:)?NameID[^>]*>([\s\S]*?)<\/(?:\w+:)?NameID>/) ??
     xmlText(
       assertionXml,
-      /<Attribute[^>]+Name=["']email["'][^>]*>\s*<AttributeValue[^>]*>([\s\S]*?)<\/(?:\w+:)?AttributeValue>/,
+      /<(?:\w+:)?Attribute[^>]+Name=["']email["'][^>]*>\s*<(?:\w+:)?AttributeValue[^>]*>([\s\S]*?)<\/(?:\w+:)?AttributeValue>/,
     );
   const externalId =
     xmlText(
       assertionXml,
-      /<Attribute[^>]+Name=["']externalId["'][^>]*>\s*<AttributeValue[^>]*>([\s\S]*?)<\/(?:\w+:)?AttributeValue>/,
+      /<(?:\w+:)?Attribute[^>]+Name=["']externalId["'][^>]*>\s*<(?:\w+:)?AttributeValue[^>]*>([\s\S]*?)<\/(?:\w+:)?AttributeValue>/,
     ) ??
     xmlText(
       assertionXml,
-      /<Attribute[^>]+Name=["']sub["'][^>]*>\s*<AttributeValue[^>]*>([\s\S]*?)<\/(?:\w+:)?AttributeValue>/,
+      /<(?:\w+:)?Attribute[^>]+Name=["']sub["'][^>]*>\s*<(?:\w+:)?AttributeValue[^>]*>([\s\S]*?)<\/(?:\w+:)?AttributeValue>/,
     ) ??
     email;
   const name = xmlText(
     assertionXml,
-    /<Attribute[^>]+Name=["']name["'][^>]*>\s*<AttributeValue[^>]*>([\s\S]*?)<\/(?:\w+:)?AttributeValue>/,
+    /<(?:\w+:)?Attribute[^>]+Name=["']name["'][^>]*>\s*<(?:\w+:)?AttributeValue[^>]*>([\s\S]*?)<\/(?:\w+:)?AttributeValue>/,
   );
   const roleText = xmlText(
     assertionXml,
-    /<Attribute[^>]+Name=["']roleKey["'][^>]*>\s*<AttributeValue[^>]*>([\s\S]*?)<\/(?:\w+:)?AttributeValue>/,
+    /<(?:\w+:)?Attribute[^>]+Name=["']roleKey["'][^>]*>\s*<(?:\w+:)?AttributeValue[^>]*>([\s\S]*?)<\/(?:\w+:)?AttributeValue>/,
   );
   /*
    * Never honor an asserted `owner` role from SAML. owner is the top privilege
@@ -11712,6 +11712,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ error: 'Invitation was issued to a different email', code: 'INVITE_EMAIL_MISMATCH' });
     }
 
+    /*
+     * The email match alone is not enough: account email is user-mutable, so an
+     * attacker could set their address to the invite's target and join. Require
+     * the accepter's email to be VERIFIED so the binding is to a proven owner of
+     * that address.
+     */
+    if (!request.currentUser!.emailVerifiedAt) {
+      return reply
+        .code(403)
+        .send({ error: 'Verify your email before accepting an invitation', code: 'EMAIL_NOT_VERIFIED' });
+    }
+
     const existingMembership = await store.getMembership(request.currentUser!.id, pendingInvitation.organizationId);
 
     /*
@@ -14025,7 +14037,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     // Restore is destructive-equivalent — require real org membership (see DELETE).
     await requireOrg(request, store, project.organizationId, 'projects:write');
 
-    const restored = await store.restoreProject(project.id);
+    /*
+     * Restoring re-adds the project to the active count, so it must pass the
+     * projects.count quota (serialized like create) — otherwise an org at its plan
+     * limit could soft-delete then restore to exceed it.
+     */
+    const restored = await store.withSerializedMutation(`projects:${project.organizationId}`, async () => {
+      await ensureQuota(request, project.organizationId, 'projects.count');
+      return store.restoreProject(project.id);
+    });
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,

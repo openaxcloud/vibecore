@@ -78,10 +78,17 @@ export class ByzantineConsensus implements ConsensusEngine {
       const phase = runPbftRound(vote, participating, faultThreshold, threshold);
       const supportersAfterCommit = phase.committed.length > 0 ? phase.committed : vote.supporters;
       const required = requiredCommitVotes(participating.length, faultThreshold, threshold);
+      /*
+       * Below the commit bar: a claim only a small minority raised (agreement at/
+       * below 1-threshold) is REJECTED, otherwise inconclusive. The old
+       * `vote.supporters.length === 0` condition was unreachable (aggregateClaims
+       * always seeds a bucket with its declaring role), so byzantine never marked
+       * anything rejected — disputed minority claims silently became inconclusive.
+       */
       const decision: ClaimVote['decision'] =
         phase.committed.length >= required
           ? 'accepted'
-          : phase.prepared.length === 0 && vote.supporters.length === 0
+          : vote.agreementRatio <= 1 - threshold
             ? 'rejected'
             : 'inconclusive';
 

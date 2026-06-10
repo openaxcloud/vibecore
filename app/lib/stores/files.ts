@@ -986,12 +986,24 @@ export class FilesStore {
     const content = change.content ?? '';
     const isBinary = change.binary ?? false;
     const existing = this.files.get()[sanitizedPath];
+    const existingFile = existing?.type === 'file' ? existing : undefined;
 
     if (!existing && (change.type === 'create' || change.type === 'rename')) {
       this.#size++;
     }
 
-    this.files.setKey(sanitizedPath, { type: 'file', content, isBinary });
+    /*
+     * Preserve the lock state across a runtime file-change event. A modify/create
+     * from the watcher must not silently clear isLocked/lockedByFolder — dropping
+     * them disables AI lock-protection on a file the user explicitly locked.
+     */
+    this.files.setKey(sanitizedPath, {
+      type: 'file',
+      content,
+      isBinary,
+      ...(existingFile?.isLocked !== undefined ? { isLocked: existingFile.isLocked } : {}),
+      ...(existingFile?.lockedByFolder !== undefined ? { lockedByFolder: existingFile.lockedByFolder } : {}),
+    });
 
     /*
      * The runtime re-created this path (build output, external write, etc.), so it

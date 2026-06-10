@@ -961,6 +961,8 @@ describe('SaaS API', () => {
     const app = await buildTestApiApp({ store, emailProvider });
     const owner = await register(app, { email: 'invite-owner@example.com', organizationName: 'Invite Org' });
     const invitee = await register(app, { email: 'invitee@example.com', organizationName: 'Invitee Org' });
+    // Accepting an invite now requires a verified email (binding to a proven owner).
+    await store.updateUser({ userId: invitee.user.id, emailVerifiedAt: new Date().toISOString() });
     await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
 
     const created = await app.inject({
@@ -1044,6 +1046,8 @@ describe('SaaS API', () => {
     });
 
     const invitee = await register(app, { email: 'quota-invitee@example.com', organizationName: 'Quota Invitee Org' });
+    // Invite acceptance now requires a verified email.
+    await store.updateUser({ userId: invitee.user.id, emailVerifiedAt: new Date().toISOString() });
 
     const created = await app.inject({
       method: 'POST',
@@ -1285,7 +1289,9 @@ describe('SaaS API', () => {
     // /auth/oauth/github/start. Pull a genuine state from the start endpoint.
     const githubState = async (app: Awaited<ReturnType<typeof buildTestApiApp>>) => {
       const start = await app.inject({ method: 'GET', url: '/auth/oauth/github/start' });
-      return new URL((start.json() as { authorizationUrl: string }).authorizationUrl).searchParams.get('state') as string;
+      return new URL((start.json() as { authorizationUrl: string }).authorizationUrl).searchParams.get(
+        'state',
+      ) as string;
     };
 
     it('falls back to /user/emails when GitHub returns a null email for a private profile', async () => {
@@ -1591,7 +1597,11 @@ describe('SaaS API', () => {
     await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
     const orgId = owner.organization.id;
     // SAML now binds the asserted email to a verified org domain.
-    await store.createDomainVerification({ organizationId: orgId, domain: 'example.com', verificationToken: 'domain-tok' });
+    await store.createDomainVerification({
+      organizationId: orgId,
+      domain: 'example.com',
+      verificationToken: 'domain-tok',
+    });
     await store.verifyDomain({ organizationId: orgId, domain: 'example.com' });
 
     const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -4740,7 +4750,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
         .map((call) => call.pathname)
         .filter((pathname) => pathname.endsWith('/agent-token'));
       expect(tokenLookups.length).toBeGreaterThan(0);
-      expect(tokenLookups.every((pathname) => pathname === `/workspaces/${expectedWorkspaceId}/agent-token`)).toBe(true);
+      expect(tokenLookups.every((pathname) => pathname === `/workspaces/${expectedWorkspaceId}/agent-token`)).toBe(
+        true,
+      );
       expect(tokenLookups).not.toContain(`/workspaces/${projectId}/agent-token`);
     } finally {
       await runtime.close();
