@@ -220,7 +220,15 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     const fetchOptions: StreamingRequestInit = {
       method: request.method,
       headers,
-      redirect: 'follow',
+
+      /*
+       * Manual redirect handling — NOT 'follow'. With 'follow', fetch would
+       * transparently chase a 3xx to an internal host (169.254.169.254, RFC1918,
+       * in-cluster) while still carrying the user's git credential, defeating the
+       * isSafeProxyTarget() guard that only checked the initial target. Re-validate
+       * every redirect hop (mirrors api.web-search.ts's safeFetch loop).
+       */
+      redirect: 'manual',
     };
 
     // Add body for non-GET/HEAD requests
@@ -232,7 +240,37 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     // Forward the request to the target URL (bounded so a hung upstream can't pin the pod)
     fetchOptions.signal = AbortSignal.timeout(30000);
 
-    const response = await fetch(targetURL, fetchOptions);
+    let response = await fetch(targetURL, fetchOptions);
+
+    /*
+     * Follow redirects manually, re-validating each destination against the SSRF
+     * guard so a public host can't bounce us into the metadata/internal network.
+     */
+    let redirectsLeft = 5;
+
+    while (response.status >= 300 && response.status < 400 && response.headers.has('location') && redirectsLeft > 0) {
+      redirectsLeft -= 1;
+
+      const nextUrl = new URL(response.headers.get('location')!, response.url || targetURL).toString();
+
+      if (!isSafeProxyTarget(nextUrl)) {
+        await response.body?.cancel().catch(() => {});
+        return json({ error: 'Proxy redirect target not allowed' }, { status: 403 });
+      }
+
+      await response.body?.cancel().catch(() => {});
+
+      /*
+       * Redirects are followed as GET without the original body (matches fetch's
+       * default redirect handling for cross-origin/credentialed hops).
+       */
+      response = await fetch(nextUrl, {
+        method: 'GET',
+        headers,
+        redirect: 'manual',
+        signal: AbortSignal.timeout(30000),
+      });
+    }
 
     console.log('Response status:', response.status);
 

@@ -1,6 +1,14 @@
 import { type ActionFunctionArgs, json } from '@remix-run/cloudflare';
 import type { NetlifySiteInfo } from '~/types/netlify';
 
+/*
+ * All outbound Netlify API calls go through this so a hung upstream can't pin the
+ * request handler indefinitely. Preserves any explicitly-passed signal.
+ */
+function timeoutFetch(input: Parameters<typeof fetch>[0], init: RequestInit = {}) {
+  return fetch(input, { ...init, signal: init.signal ?? AbortSignal.timeout(30_000) });
+}
+
 interface DeployRequestBody {
   siteId?: string;
   files: Record<string, string>;
@@ -48,7 +56,7 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!targetSiteId) {
       const siteName = `bolt-diy-${chatId}-${Date.now()}`;
 
-      const createSiteResponse = await fetch('https://api.netlify.com/api/v1/sites', {
+      const createSiteResponse = await timeoutFetch('https://api.netlify.com/api/v1/sites', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -79,7 +87,7 @@ export async function action({ request }: ActionFunctionArgs) {
     } else {
       // Get existing site info
       if (targetSiteId) {
-        const siteResponse = await fetch(`https://api.netlify.com/api/v1/sites/${targetSiteId}`, {
+        const siteResponse = await timeoutFetch(`https://api.netlify.com/api/v1/sites/${targetSiteId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -102,7 +110,7 @@ export async function action({ request }: ActionFunctionArgs) {
       if (!targetSiteId) {
         const siteName = `bolt-diy-${chatId}-${Date.now()}`;
 
-        const createSiteResponse = await fetch('https://api.netlify.com/api/v1/sites', {
+        const createSiteResponse = await timeoutFetch('https://api.netlify.com/api/v1/sites', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -144,7 +152,7 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     // Create a new deploy with digests
-    const deployResponse = await fetch(`https://api.netlify.com/api/v1/sites/${targetSiteId}/deploys`, {
+    const deployResponse = await timeoutFetch(`https://api.netlify.com/api/v1/sites/${targetSiteId}/deploys`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -178,12 +186,15 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // Poll until deploy is ready for file uploads
     while (retryCount < maxRetries) {
-      const statusResponse = await fetch(`https://api.netlify.com/api/v1/sites/${targetSiteId}/deploys/${deploy.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const statusResponse = await timeoutFetch(
+        `https://api.netlify.com/api/v1/sites/${targetSiteId}/deploys/${deploy.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          signal: AbortSignal.timeout(30000),
         },
-        signal: AbortSignal.timeout(30000),
-      });
+      );
 
       if (!statusResponse.ok) {
         const errorDetail = await readNetlifyError(statusResponse);
@@ -210,7 +221,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
           while (!uploadSuccess && uploadRetries < 3) {
             try {
-              const uploadResponse = await fetch(
+              const uploadResponse = await timeoutFetch(
                 `https://api.netlify.com/api/v1/deploys/${deploy.id}/files${encodedPath}`,
                 {
                   method: 'PUT',

@@ -1,6 +1,14 @@
 import { type ActionFunctionArgs, type LoaderFunctionArgs, json } from '@remix-run/cloudflare';
 import type { VercelProjectInfo } from '~/types/vercel';
 
+/*
+ * All outbound Vercel API calls go through this so a hung upstream can't pin the
+ * request handler indefinitely. Preserves any explicitly-passed signal.
+ */
+function timeoutFetch(input: Parameters<typeof fetch>[0], init: RequestInit = {}) {
+  return fetch(input, { ...init, signal: init.signal ?? AbortSignal.timeout(30_000) });
+}
+
 // Function to detect framework from project files
 const detectFramework = (files: Record<string, string>): string => {
   // Check for package.json first
@@ -190,7 +198,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   try {
     // Get project info
-    const projectResponse = await fetch(`https://api.vercel.com/v9/projects/${projectId}`, {
+    const projectResponse = await timeoutFetch(`https://api.vercel.com/v9/projects/${projectId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -203,11 +211,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const projectData = (await projectResponse.json()) as any;
 
     // Get latest deployment
-    const deploymentsResponse = await fetch(`https://api.vercel.com/v6/deployments?projectId=${projectId}&limit=1`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
+    const deploymentsResponse = await timeoutFetch(
+      `https://api.vercel.com/v6/deployments?projectId=${projectId}&limit=1`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    });
+    );
 
     if (!deploymentsResponse.ok) {
       return json({ error: 'Failed to fetch deployments' }, { status: 400 });
@@ -271,7 +282,7 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!targetProjectId) {
       const projectName = `bolt-diy-${chatId}-${Date.now()}`;
 
-      const createProjectResponse = await fetch('https://api.vercel.com/v9/projects', {
+      const createProjectResponse = await timeoutFetch('https://api.vercel.com/v9/projects', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -301,7 +312,7 @@ export async function action({ request }: ActionFunctionArgs) {
       };
     } else {
       // Get existing project info
-      const projectResponse = await fetch(`https://api.vercel.com/v9/projects/${targetProjectId}`, {
+      const projectResponse = await timeoutFetch(`https://api.vercel.com/v9/projects/${targetProjectId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -319,7 +330,7 @@ export async function action({ request }: ActionFunctionArgs) {
         // If project doesn't exist, create a new one
         const projectName = `bolt-diy-${chatId}-${Date.now()}`;
 
-        const createProjectResponse = await fetch('https://api.vercel.com/v9/projects', {
+        const createProjectResponse = await timeoutFetch('https://api.vercel.com/v9/projects', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -422,7 +433,7 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     // Create a new deployment
-    const deployResponse = await fetch(`https://api.vercel.com/v13/deployments`, {
+    const deployResponse = await timeoutFetch(`https://api.vercel.com/v13/deployments`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -450,7 +461,7 @@ export async function action({ request }: ActionFunctionArgs) {
     let deploymentState = '';
 
     while (retryCount < maxRetries) {
-      const statusResponse = await fetch(`https://api.vercel.com/v13/deployments/${deployData.id}`, {
+      const statusResponse = await timeoutFetch(`https://api.vercel.com/v13/deployments/${deployData.id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

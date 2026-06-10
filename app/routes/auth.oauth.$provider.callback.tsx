@@ -114,5 +114,17 @@ function readCookie(request: Request, name: string) {
     .find((part) => part.startsWith(`${name}=`))
     ?.slice(name.length + 1);
 
-  return value ? decodeURIComponent(value) : undefined;
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    /*
+     * Malformed percent-encoding in an attacker-supplied cookie must not throw a
+     * URIError (uncaught 500) during the OAuth callback — treat it as absent.
+     */
+    return undefined;
+  }
 }

@@ -16,6 +16,9 @@ export async function action({ request }: ActionFunctionArgs) {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+
+      // Bound the upstream call so a hung Supabase API can't pin the request handler.
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!response.ok) {

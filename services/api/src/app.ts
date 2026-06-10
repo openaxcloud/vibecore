@@ -588,7 +588,9 @@ const collaborationCommentSchema = z.object({
 const collaborationEditSchema = z.object({
   filePath: z.string().min(1),
   baseVersion: z.coerce.number().int().min(0).optional(),
-  content: z.string(),
+  // Cap per-document content (10MB) so a single collaboration edit can't be
+  // used to balloon the persisted IDE-state blob and exhaust memory/storage.
+  content: z.string().max(10_000_000),
   cursor: z.unknown().optional(),
   selection: z.unknown().optional(),
 });
@@ -4739,6 +4741,26 @@ async function runtimeWebSocketData(data: unknown) {
   }
 
   return String(data);
+}
+
+function previewForwardBody(request: FastifyRequest): string | Buffer | undefined {
+  if (request.method === 'GET' || request.method === 'HEAD') {
+    return undefined;
+  }
+
+  const body = (request as { rawBody?: string; body?: unknown }).rawBody ?? request.body;
+
+  if (body === undefined || body === null) {
+    return undefined;
+  }
+
+  if (typeof body === 'string' || Buffer.isBuffer(body)) {
+    return body as string | Buffer;
+  }
+
+  // Parsed JSON object/array — re-serialize so it forwards as real JSON rather
+  // than coercing to "[object Object]".
+  return JSON.stringify(body);
 }
 
 function previewProxyHeaders(headers: Record<string, string | string[] | undefined>) {
@@ -9858,7 +9880,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ...previewProxyHeaders(request.headers),
           authorization: `Bearer ${token}`,
         },
-        body: request.method === 'GET' || request.method === 'HEAD' ? undefined : (request.body as any),
+        /*
+         * Reconstruct the forwarded body. Fastify's default parser turns a JSON
+         * POST from the previewed app into a parsed object; passing that object
+         * straight to fetch() coerced it to the literal string "[object Object]",
+         * corrupting every JSON/form POST proxied to the user's dev server.
+         */
+        body: previewForwardBody(request),
         redirect: 'manual',
         signal: AbortSignal.timeout(30_000),
       });

@@ -167,10 +167,15 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
         request.raw.off('close', onClientClose);
       }
     } catch (error) {
-      const statusCode = typeof (error as { statusCode?: unknown }).statusCode === 'number' ? 400 : 500;
+      /*
+       * Use the error's ACTUAL statusCode (the old ternary collapsed every coded
+       * error to 400 and everything else to 500, discarding 401/403/429/etc).
+       */
+      const rawStatus = (error as { statusCode?: unknown }).statusCode;
+      const statusCode = typeof rawStatus === 'number' ? rawStatus : 500;
       return reply.code(statusCode).send({
         error: error instanceof Error ? error.message : 'Agent run failed.',
-        code: statusCode === 400 ? 'AGENT_RUN_BAD_REQUEST' : 'AGENT_RUN_FAILED',
+        code: statusCode >= 400 && statusCode < 500 ? 'AGENT_RUN_BAD_REQUEST' : 'AGENT_RUN_FAILED',
       });
     }
   });
