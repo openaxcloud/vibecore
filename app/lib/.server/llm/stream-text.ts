@@ -80,9 +80,15 @@ function sanitizeText(text: string): string {
   return sanitized.trim();
 }
 
-export function applyContextOptimizedHistoryWindow<T>(messages: T[], messageSliceId?: number) {
-  if (typeof messageSliceId === 'number' && messageSliceId > 0) {
-    return messages.slice(messageSliceId);
+export function applyContextOptimizedHistoryWindow<T>(messages: T[], recentMessageCount?: number) {
+  /*
+   * Keep the last `recentMessageCount` messages of THIS array. Previously the
+   * caller passed an absolute index computed on a DIFFERENT (unfiltered) array
+   * and we did messages.slice(index) — once the array differed, the window was
+   * wrong (dropped too many or too few). Slicing from the end is array-agnostic.
+   */
+  if (typeof recentMessageCount === 'number' && recentMessageCount > 0 && messages.length > recentMessageCount) {
+    return messages.slice(-recentMessageCount);
   }
 
   return messages;

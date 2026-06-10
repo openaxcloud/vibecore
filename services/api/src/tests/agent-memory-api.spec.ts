@@ -1,7 +1,12 @@
-import { describe, expect, it } from 'vitest';
 import { hashPassword } from '@vibecore/auth';
+import { describe, expect, it } from 'vitest';
+import {
+  AgentMemoryService,
+  type AgentMemoryEmbeddingProvider,
+  type AgentMemoryRepository,
+  type AgentMemoryScope,
+} from '../agent-memory.js';
 import { buildApiApp } from '../app.js';
-import { AgentMemoryService, type AgentMemoryEmbeddingProvider, type AgentMemoryRepository } from '../agent-memory.js';
 import type { EmailProvider } from '../email.js';
 import { TestApiStore } from './test-api-store.js';
 
@@ -77,6 +82,14 @@ class TestMemoryRepository implements AgentMemoryRepository {
       .filter((row) => !input.projectId || row.projectId === input.projectId);
   }
 
+  async count(input: { userId: string; scope: AgentMemoryScope; organizationId?: string; projectId?: string }) {
+    return this.rows
+      .filter((row) => row.userId === input.userId)
+      .filter((row) => row.scope === input.scope)
+      .filter((row) => !input.organizationId || row.organizationId === input.organizationId)
+      .filter((row) => !input.projectId || row.projectId === input.projectId).length;
+  }
+
   async archive(input: { id: string; userId: string }) {
     const index = this.rows.findIndex((row) => row.id === input.id && row.userId === input.userId);
 
@@ -110,6 +123,7 @@ class TestEmailProvider implements EmailProvider {
 async function setup() {
   const store = new TestApiStore();
   const repository = new TestMemoryRepository();
+
   const app = await buildApiApp({
     store,
     emailProvider: new TestEmailProvider(),
@@ -120,12 +134,14 @@ async function setup() {
     name: 'Memory User',
     passwordHash: hashPassword('password123'),
   });
+
   const org = await store.createOrganization({ name: 'Memory Org', slug: 'memory-org', ownerUserId: user.id });
   await store.createSession({
     userId: user.id,
     token: 'memory-token',
     expiresAt: new Date(Date.now() + 3600_000),
   });
+
   const project = await store.createProject({ organizationId: org.id, name: 'Memory Project', slug: 'memory-project' });
 
   return { app, repository, token: 'memory-token', project };
@@ -134,6 +150,7 @@ async function setup() {
 describe('agent memory API', () => {
   it('creates, searches, patches and deletes authenticated project memory', async () => {
     const { app, token, project } = await setup();
+
     const create = await app.inject({
       method: 'POST',
       url: '/agent-memory',
@@ -150,6 +167,7 @@ describe('agent memory API', () => {
     });
 
     expect(create.statusCode).toBe(201);
+
     const memoryId = create.json().memory.id;
 
     const context = await app.inject({
@@ -186,6 +204,7 @@ describe('agent memory API', () => {
 
   it('exports only authenticated visible project memories and audits the export', async () => {
     const { app, token, project, repository } = await setup();
+
     const create = await app.inject({
       method: 'POST',
       url: '/agent-memory',
@@ -236,6 +255,7 @@ describe('agent memory API', () => {
 
   it('includes authenticated agent memories in the account data export', async () => {
     const { app, token, project, repository } = await setup();
+
     const create = await app.inject({
       method: 'POST',
       url: '/agent-memory',
@@ -285,6 +305,7 @@ describe('agent memory API', () => {
 
   it('rejects secret-like content through the API', async () => {
     const { app, token, project } = await setup();
+
     const response = await app.inject({
       method: 'POST',
       url: '/agent-memory',
@@ -304,6 +325,7 @@ describe('agent memory API', () => {
 
   it('persists project memory preferences through authenticated API', async () => {
     const { app, token, project } = await setup();
+
     const update = await app.inject({
       method: 'PATCH',
       url: '/agent-memory/preferences',

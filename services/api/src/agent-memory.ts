@@ -109,6 +109,12 @@ export interface AgentMemoryRepository {
     limit?: number;
   }): Promise<AgentMemoryRecord[]>;
   export(input: { userId: string; organizationId?: string; projectId?: string }): Promise<AgentMemoryRecord[]>;
+  count(input: {
+    userId: string;
+    scope: AgentMemoryScope;
+    organizationId?: string;
+    projectId?: string;
+  }): Promise<number>;
   archive(input: { id: string; userId: string }): Promise<AgentMemoryRecord | undefined>;
   getPreference(input: {
     userId: string;
@@ -377,10 +383,12 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
       input.userId,
     );
 
-    // The row can vanish between the caller's read and this update (archived /
-    // deleted concurrently): RETURNING then yields no row, so rows[0] is
-    // undefined and rowToMemory would crash. Return undefined like the sibling
-    // read methods; callers already treat that as "not found".
+    /*
+     * The row can vanish between the caller's read and this update (archived /
+     * deleted concurrently): RETURNING then yields no row, so rows[0] is
+     * undefined and rowToMemory would crash. Return undefined like the sibling
+     * read methods; callers already treat that as "not found".
+     */
     return rows[0] ? rowToMemory(rows[0]) : undefined;
   }
 
@@ -401,6 +409,7 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
     const scopes = input.scopes?.length ? input.scopes : ['user', 'organization', 'project', 'session'];
     const memoryTypes = input.memoryTypes?.length ? input.memoryTypes : undefined;
     const tags = normalizeStringList(input.tags);
+
     const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
       `SELECT "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "memoryType", "tags", "references", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt", "accessCount",
               ("embedding" <=> $1::vector) AS distance
@@ -477,6 +486,25 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
     );
 
     return rows.map(rowToMemory);
+  }
+
+  async count(input: { userId: string; scope: AgentMemoryScope; organizationId?: string; projectId?: string }) {
+    const rows = await this.prisma.$queryRawUnsafe<Array<{ count: bigint | number }>>(
+      `SELECT COUNT(*)::bigint AS count
+       FROM "AgentMemory"
+       WHERE "userId" = $1
+         AND "scope" = $2
+         AND "archivedAt" IS NULL
+         AND ("expiresAt" IS NULL OR "expiresAt" > CURRENT_TIMESTAMP)
+         AND ($3::text IS NULL OR "organizationId" = $3)
+         AND ($4::text IS NULL OR "projectId" = $4)`,
+      input.userId,
+      input.scope,
+      input.organizationId ?? null,
+      input.projectId ?? null,
+    );
+
+    return Number(rows[0]?.count ?? 0);
   }
 
   async archive(input: { id: string; userId: string }) {
@@ -613,11 +641,20 @@ function scoreImportance(content: string, explicit?: number) {
   }
 
   const normalized = content.toLowerCase();
+
   let score = 0.45;
 
-  if (/always|never|toujours|jamais|must|doit|obligatoire/.test(normalized)) score += 0.25;
-  if (/security|secret|credential|auth|billing|production|s[eé]curit[eé]/.test(normalized)) score += 0.15;
-  if (/preference|pr[eé]f[eé]rence|convention|workflow|decision|d[eé]cision/.test(normalized)) score += 0.1;
+  if (/always|never|toujours|jamais|must|doit|obligatoire/.test(normalized)) {
+    score += 0.25;
+  }
+
+  if (/security|secret|credential|auth|billing|production|s[eé]curit[eé]/.test(normalized)) {
+    score += 0.15;
+  }
+
+  if (/preference|pr[eé]f[eé]rence|convention|workflow|decision|d[eé]cision/.test(normalized)) {
+    score += 0.1;
+  }
 
   return Math.min(1, score);
 }
@@ -630,6 +667,15 @@ function rerank(memories: AgentMemoryRecord[]) {
     }))
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0) || b.importance - a.importance);
 }
+
+/*
+ * Max stored (non-archived, unexpired) memories per user+scope. Configurable so
+ * ops can raise it for power users; defaults to a generous-but-bounded value.
+ */
+export const AGENT_MEMORY_SCOPE_LIMIT = (() => {
+  const raw = Number(process.env.AGENT_MEMORY_SCOPE_LIMIT);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1000;
+})();
 
 export class AgentMemoryService {
   constructor(
@@ -657,6 +703,7 @@ export class AgentMemoryService {
     const tags = normalizeStringList(input.tags);
     const references = normalizeReferences(input.references);
     const embedding = await this.embeddings.embed(`${summary}\n\n${content}`);
+
     const similar = await this.repository.search({
       userId: input.userId,
       organizationId: input.organizationId,
@@ -669,16 +716,20 @@ export class AgentMemoryService {
       tags: tags.length ? tags : undefined,
       limit: 1,
     });
+
     const duplicate = similar.find((memory) => (memory.score ?? 0) >= 0.92);
+
     const metadata = {
       ...(duplicate?.metadata ?? {}),
       ...(input.metadata ?? {}),
       deduplicatedAt: duplicate ? new Date().toISOString() : undefined,
     };
 
-    // Secrets can ride in via the summary or metadata (e.g. assistantExcerpt),
-    // not just content — scan those too before persisting, or they'd be stored
-    // (and later surfaced back into prompts) in the clear.
+    /*
+     * Secrets can ride in via the summary or metadata (e.g. assistantExcerpt),
+     * not just content — scan those too before persisting, or they'd be stored
+     * (and later surfaced back into prompts) in the clear.
+     */
     assertNoMemorySecrets(summary);
     assertNoMemorySecrets(JSON.stringify(metadata));
 
@@ -701,6 +752,24 @@ export class AgentMemoryService {
         }),
         updated: true,
       };
+    }
+
+    /*
+     * Cap the number of stored memories per user+scope so a runaway agent (or a
+     * malicious caller) can't grow the AgentMemory table unbounded — each row
+     * also rides back into prompts on recall, so an unbounded scope degrades both
+     * storage and retrieval quality. Only enforced for fresh inserts; dedup
+     * updates above never add a row.
+     */
+    const scopeCount = await this.repository.count({
+      userId: input.userId,
+      scope: input.scope,
+      organizationId: input.organizationId,
+      projectId: input.projectId,
+    });
+
+    if (scopeCount >= AGENT_MEMORY_SCOPE_LIMIT) {
+      return { skipped: 'quota_exceeded' };
     }
 
     return {
@@ -741,6 +810,7 @@ export class AgentMemoryService {
 
     const content = input.content.trim();
     assertNoMemorySecrets(content);
+
     const summary = input.summary?.trim() || summarizeMemory(content);
     const embedding = await this.embeddings.embed(`${summary}\n\n${content}`);
     const memoryType = normalizeMemoryType(input.memoryType ?? existing.memoryType);
@@ -783,6 +853,7 @@ export class AgentMemoryService {
       limit: input.limit ?? 8,
       scopes: input.scopes ?? ['project', 'organization', 'user', 'session'],
     });
+
     const selected = memories.filter((memory) => (memory.score ?? 0) >= 0.35).slice(0, input.limit ?? 8);
 
     return {

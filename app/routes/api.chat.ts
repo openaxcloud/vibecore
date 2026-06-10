@@ -501,7 +501,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         }
 
         if (processedMessages.length > RECENT_HISTORY_MESSAGES) {
-          messageSliceId = processedMessages.length - RECENT_HISTORY_MESSAGES;
+          /*
+           * Pass the WINDOW SIZE (keep last N), not an absolute index — the
+           * consumer slices its own (filtered) array from the end.
+           */
+          messageSliceId = RECENT_HISTORY_MESSAGES;
         }
 
         if (filePaths.length > 0 && contextOptimization) {

@@ -7,6 +7,7 @@ import {
   type AgentMemoryRecord,
   type AgentMemoryRepository,
   type AgentMemorySearchInput,
+  type AgentMemoryScope,
   type AgentMemoryType,
   type AgentMemoryWriteInput,
 } from '../agent-memory.js';
@@ -46,6 +47,7 @@ class MemoryRepository implements AgentMemoryRepository {
     },
   ) {
     const now = new Date().toISOString();
+
     const memory = {
       id: input.id,
       userId: input.userId,
@@ -144,6 +146,14 @@ class MemoryRepository implements AgentMemoryRepository {
       .filter((memory) => !input.projectId || memory.projectId === input.projectId);
   }
 
+  async count(input: { userId: string; scope: AgentMemoryScope; organizationId?: string; projectId?: string }) {
+    return [...this.records.values()]
+      .filter((memory) => memory.userId === input.userId)
+      .filter((memory) => memory.scope === input.scope)
+      .filter((memory) => !input.organizationId || memory.organizationId === input.organizationId)
+      .filter((memory) => !input.projectId || memory.projectId === input.projectId).length;
+  }
+
   async archive(input: { id: string; userId: string }) {
     const memory = this.records.get(input.id);
 
@@ -162,6 +172,7 @@ class MemoryRepository implements AgentMemoryRepository {
 
   async setPreference(input: { userId: string; organizationId?: string; projectId?: string; enabled: boolean }) {
     const now = new Date().toISOString();
+
     const preference = {
       ...input,
       createdAt: now,
@@ -186,6 +197,7 @@ describe('agent memory service', () => {
   it('stores, deduplicates and retrieves scoped memories', async () => {
     const repository = new MemoryRepository();
     const service = new AgentMemoryService(repository, new DeterministicEmbeddingProvider());
+
     const first = await service.remember({
       userId: 'user-1',
       organizationId: 'org-1',
