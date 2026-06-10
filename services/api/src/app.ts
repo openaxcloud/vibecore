@@ -3579,7 +3579,7 @@ function extractFallbackVerifiedAssertion(xml: string, certificate: string): str
   }
 }
 
-function parseSamlXmlAssertion(xml: string, certificate: string) {
+function parseSamlXmlAssertion(xml: string, certificate: string, expectedAudience?: string) {
   const verifiedAssertion =
     extractXmlCryptoSignedAssertion(xml, certificate) ?? extractFallbackVerifiedAssertion(xml, certificate);
 
@@ -3656,7 +3656,24 @@ function parseSamlXmlAssertion(xml: string, certificate: string) {
     (notBefore === undefined || nowMs >= notBefore - SAML_CLOCK_SKEW_MS) &&
     (notOnOrAfter === undefined || nowMs < notOnOrAfter + SAML_CLOCK_SKEW_MS);
 
-  return { email: email.toLowerCase(), name, externalId, roleKey, signatureValid: signatureValid && timeValid };
+  /*
+   * Audience binding: the assertion must be intended for THIS org's SP (entityId
+   * `vibecore:<orgId>`). Without it, an assertion minted for another SP/org that
+   * shares the same IdP certificate could be replayed against this org's ACS
+   * (assertion/audience confusion). Read <Audience> from the signature-verified
+   * assertion; enforce only when the assertion actually declares one (lenient for
+   * IdPs/fixtures that omit AudienceRestriction).
+   */
+  const audience = xmlText(assertionXml, /<(?:\w+:)?Audience>([\s\S]*?)<\/(?:\w+:)?Audience>/);
+  const audienceValid = !expectedAudience || !audience || audience.trim() === expectedAudience;
+
+  return {
+    email: email.toLowerCase(),
+    name,
+    externalId,
+    roleKey,
+    signatureValid: signatureValid && timeValid && audienceValid,
+  };
 }
 
 function samlInstant(xml: string, pattern: RegExp): number | undefined {
@@ -3671,7 +3688,7 @@ function samlInstant(xml: string, pattern: RegExp): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
-function parseSamlAssertion(encoded: string, certificate?: string) {
+function parseSamlAssertion(encoded: string, certificate?: string, expectedAudience?: string) {
   try {
     const decoded = Buffer.from(encoded, 'base64url').toString('utf8');
 
@@ -3683,7 +3700,7 @@ function parseSamlAssertion(encoded: string, certificate?: string) {
         });
       }
 
-      return parseSamlXmlAssertion(decoded, certificate);
+      return parseSamlXmlAssertion(decoded, certificate, expectedAudience);
     }
 
     const assertion = JSON.parse(decoded) as {
@@ -6033,7 +6050,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       try {
         const samlConfig = decryptJson<{ x509Certificate: string }>(config.encryptedConfig);
-        assertion = parseSamlAssertion(body.SAMLResponse, samlConfig.x509Certificate);
+        assertion = parseSamlAssertion(body.SAMLResponse, samlConfig.x509Certificate, `vibecore:${orgId}`);
       } catch {
         // Attacker-controlled SAMLResponse that makes parsing throw must return a
         // clean 401, not an unauthenticated 500 (+ Sentry amplification).
