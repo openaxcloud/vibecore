@@ -160,6 +160,13 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     assertContentSize(body.content, maxFileBytes);
 
     const safePath = resolveWorkspacePath(root, body.path);
+    /*
+     * Check containment BEFORE mkdir. assertRealPathContained realpaths the
+     * deepest existing ancestor, so a symlink inside the workspace pointing out of
+     * root is caught here — running mkdir first would create directories outside
+     * the workspace root along the symlinked path before the check ran.
+     */
+    await assertRealPathContained(root, safePath);
     await mkdir(dirname(safePath), { recursive: true });
     await assertRealPathContained(root, safePath);
     await writeFile(safePath, body.content, 'utf8').catch(rethrowFsError);
@@ -179,6 +186,8 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
     const content = body.content ?? '';
     assertContentSize(content, maxFileBytes);
+    // Check containment before mkdir so a symlink can't make mkdir create dirs outside root.
+    await assertRealPathContained(root, safePath);
     await mkdir(dirname(safePath), { recursive: true });
     await assertRealPathContained(root, safePath);
     await writeFile(safePath, content, { flag: 'wx' }).catch(rethrowFsError);
@@ -199,6 +208,9 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const body = renameSchema.parse(request.body);
     const from = resolveWorkspacePath(root, body.from);
     const to = resolveWorkspacePath(root, body.to);
+    // Verify containment of the destination before mkdir (a symlink could
+    // otherwise make mkdir create dirs outside root).
+    await assertRealPathContained(root, to);
     await mkdir(dirname(to), { recursive: true });
     await assertRealPathContained(root, dirname(from));
     await assertRealPathContained(root, to);
@@ -214,6 +226,8 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       assertContentSize(file.content, maxFileBytes);
 
       const safePath = resolveWorkspacePath(root, file.path);
+      // Containment before mkdir — see /files/write.
+      await assertRealPathContained(root, safePath);
       await mkdir(dirname(safePath), { recursive: true });
       await assertRealPathContained(root, safePath);
       await writeFile(safePath, file.content, 'utf8').catch(rethrowFsError);
@@ -321,6 +335,8 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       assertContentSize(file.content, maxFileBytes);
 
       const safePath = resolveWorkspacePath(root, file.path);
+      // Containment before mkdir — see /files/write.
+      await assertRealPathContained(root, safePath);
       await mkdir(dirname(safePath), { recursive: true });
       await assertRealPathContained(root, safePath);
       await writeFile(safePath, file.content, 'utf8').catch(rethrowFsError);
@@ -443,7 +459,15 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       let detach: (() => void) | undefined;
       let closed = false;
 
+      /*
+       * Input that arrives before the PTY/pipe session is ready is buffered here
+       * and flushed once it exists. Bound it: if session creation lags or fails, a
+       * client streaming input could otherwise grow this array without limit and
+       * exhaust the agent's memory.
+       */
       const earlyInput: string[] = [];
+      const EARLY_INPUT_MAX_BYTES = 256 * 1024;
+      let earlyInputBytes = 0;
 
       /*
        * The remote-runtime client (packages/runtime-remote) consumes this socket as a
@@ -485,6 +509,8 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           for (const data of earlyInput.splice(0)) {
             created.write(data);
           }
+
+          earlyInputBytes = 0;
         })
         .catch((error) => {
           sendOutput(`\r\n[terminal error] ${error instanceof Error ? error.message : String(error)}\r\n`);
@@ -532,7 +558,12 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           }
 
           if (!session) {
-            earlyInput.push(data);
+            // Drop buffered input once the cap is hit rather than growing unbounded.
+            if (earlyInputBytes < EARLY_INPUT_MAX_BYTES) {
+              earlyInput.push(data);
+              earlyInputBytes += Buffer.byteLength(data);
+            }
+
             return;
           }
 

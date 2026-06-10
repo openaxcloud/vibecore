@@ -176,14 +176,34 @@ export class WorkspaceManager {
      * it to STARTING and clearing any prior failure so a fresh pod/PVC/Service
      * is provisioned below. This also makes restartWorkspace (stop→start) work.
      */
+    const resetUpdate = {
+      ...baseRecord,
+      error: undefined,
+      lastActiveAt: new Date().toISOString(),
+    };
     const existing = await this.store.get(input.workspaceId);
-    const record = existing
-      ? await this.store.update(input.workspaceId, {
-          ...baseRecord,
-          error: undefined,
-          lastActiveAt: new Date().toISOString(),
-        })
-      : await this.store.create(baseRecord);
+    let record;
+
+    if (existing) {
+      record = await this.store.update(input.workspaceId, resetUpdate);
+    } else {
+      try {
+        record = await this.store.create(baseRecord);
+      } catch (error) {
+        /*
+         * get()-then-create() is a TOCTOU: two concurrent FIRST-time starts for
+         * the same deterministic id both see "no existing" and both create, so
+         * the loser hits a P2002 unique violation → unhandled 500 → API 502 →
+         * "Crashed runtime". Treat the lost create race as "row now exists" and
+         * fall back to the reset update instead of crashing.
+         */
+        if ((error as { code?: string } | undefined)?.code === 'P2002') {
+          record = await this.store.update(input.workspaceId, resetUpdate);
+        } else {
+          throw error;
+        }
+      }
+    }
 
     try {
       await this.k8s.apply(workspacePvc(runtimeInput));
@@ -216,8 +236,19 @@ export class WorkspaceManager {
     }
   }
 
-  async stopWorkspace(namespace: string, workspaceId: string) {
+  async stopWorkspace(namespace: string, workspaceId: string, guard?: { status?: string; lastActiveAt?: string }) {
     const workspace = await this.requireWorkspace(workspaceId);
+
+    /*
+     * Optional optimistic guard (used by GC): bail if the row changed since the
+     * caller observed it — a concurrent reopen flips STOPPED/RUNNING→STARTING and
+     * bumps lastActiveAt, and stopping/deleting against the stale decision would
+     * kill the freshly re-provisioned workspace.
+     */
+    if (guard && ((guard.status && workspace.status !== guard.status) || (guard.lastActiveAt && workspace.lastActiveAt !== guard.lastActiveAt))) {
+      return workspace;
+    }
+
     await this.k8s.delete('Pod', namespace, workspace.podName);
     const stopped = await this.store.update(workspaceId, { status: 'STOPPED' });
     // Drop the throttle marker so a later reopen (same deterministic id) touches
@@ -232,8 +263,17 @@ export class WorkspaceManager {
     return this.startWorkspace(input);
   }
 
-  async deleteWorkspace(namespace: string, workspaceId: string) {
+  async deleteWorkspace(namespace: string, workspaceId: string, guard?: { status?: string; lastActiveAt?: string }) {
     const workspace = await this.requireWorkspace(workspaceId);
+
+    /*
+     * Optional optimistic guard (used by GC): if the row was re-provisioned/
+     * touched since the caller observed it, abort — deleting the PVC of a
+     * just-reopened workspace is the destructive TOCTOU this prevents.
+     */
+    if (guard && ((guard.status && workspace.status !== guard.status) || (guard.lastActiveAt && workspace.lastActiveAt !== guard.lastActiveAt))) {
+      return workspace;
+    }
 
     /*
      * allSettled, not all: with Promise.all a single transient kubectl failure
@@ -275,10 +315,13 @@ export class WorkspaceManager {
           continue;
         }
         const inactiveFor = now - new Date(workspace.lastActiveAt).getTime();
+        // Pass the observed state as an optimistic guard so a reopen that races
+        // between this decision and the actual k8s deletes aborts the reap.
+        const guard = { status: workspace.status, lastActiveAt: workspace.lastActiveAt };
         if (workspace.status === 'RUNNING' && inactiveFor > inactiveMs) {
-          await this.stopWorkspace(namespace, workspace.id);
+          await this.stopWorkspace(namespace, workspace.id, guard);
         } else if (workspace.status === 'STOPPED' && inactiveFor > deleteMs) {
-          await this.deleteWorkspace(namespace, workspace.id);
+          await this.deleteWorkspace(namespace, workspace.id, guard);
         } else if ((workspace.status === 'FAILED' || workspace.status === 'STARTING') && inactiveFor > deleteMs) {
           // Reap abandoned provisioning. A FAILED start (readiness timeout, or a
           // PVC reaped out from under it) — and a STARTING row orphaned by a
@@ -288,7 +331,7 @@ export class WorkspaceManager {
           // stamped at start, so a legitimately in-flight start (seconds to the
           // ~180s readiness window, far below deleteMs) is never caught here. The
           // row goes DELETED and reopening re-provisions via the reuse path.
-          await this.deleteWorkspace(namespace, workspace.id);
+          await this.deleteWorkspace(namespace, workspace.id, guard);
         }
       } catch (error) {
         console.error('workspace garbage-collection failed', { workspaceId: snapshot.id, error });

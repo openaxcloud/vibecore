@@ -47,75 +47,89 @@ async function deliverSiemAuditEvents() {
       }
 
       const SIEM_BATCH_SIZE = 250;
-
-      /*
-       * Compound keyset cursor on (createdAt, id). A millisecond-resolution
-       * DateTime alone can't disambiguate rows sharing the same createdAt, so a
-       * batch boundary inside a same-ms group used to silently drop the overflow.
-       * The secondary `id` cursor advances strictly within a millisecond, so
-       * every row is delivered exactly once with no trimming.
-       */
-      const events = await prisma.auditLog.findMany({
-        where: {
-          organizationId: webhook.organizationId,
-          ...(webhook.lastDeliveredAt
-            ? {
-                OR: [
-                  { createdAt: { gt: webhook.lastDeliveredAt } },
-                  {
-                    AND: [{ createdAt: webhook.lastDeliveredAt }, { id: { gt: webhook.lastDeliveredId ?? '' } }],
-                  },
-                ],
-              }
-            : {}),
-        },
-        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-        take: SIEM_BATCH_SIZE,
-      });
-
-      if (events.length === 0) {
-        continue;
-      }
-
-      const deliverable = events;
+      // Drain several batches per tick (bounded) so a high-volume org doesn't fall
+      // permanently behind delivering only 250 events per scheduled run.
+      const MAX_BATCHES_PER_TICK = 20;
 
       const { secret } = decryptJson<{ secret: string }>(webhook.secretCiphertext);
-      const body = JSON.stringify({
-        type: 'audit.batch',
-        organizationId: webhook.organizationId,
-        events: deliverable,
-      });
-      const timestamp = Math.floor(Date.now() / 1000).toString();
-      const signature = createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
+      let cursorAt = webhook.lastDeliveredAt;
+      let cursorId = webhook.lastDeliveredId ?? '';
 
-      const response = await fetch(webhook.url, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-vibecore-timestamp': timestamp,
-          'x-vibecore-signature': `sha256=${signature}`,
-        },
-        body,
-        // Webhooks are delivered serially; without a timeout a single hung
-        // customer endpoint stalls the whole batch (and the worker tick)
-        // indefinitely. Treat a slow/hung call as a failed delivery and retry next run.
-        signal: AbortSignal.timeout(10_000),
-      });
+      for (let batch = 0; batch < MAX_BATCHES_PER_TICK; batch += 1) {
+        /*
+         * Compound keyset cursor on (createdAt, id). A millisecond-resolution
+         * DateTime alone can't disambiguate rows sharing the same createdAt, so a
+         * batch boundary inside a same-ms group used to silently drop the overflow.
+         * The secondary `id` cursor advances strictly within a millisecond, so
+         * every row is delivered exactly once with no trimming.
+         */
+        const events = await prisma.auditLog.findMany({
+          where: {
+            organizationId: webhook.organizationId,
+            ...(cursorAt
+              ? {
+                  OR: [
+                    { createdAt: { gt: cursorAt } },
+                    {
+                      AND: [{ createdAt: cursorAt }, { id: { gt: cursorId } }],
+                    },
+                  ],
+                }
+              : {}),
+          },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          take: SIEM_BATCH_SIZE,
+        });
 
-      if (!response.ok) {
-        // Drain the body so the failed-delivery connection is released instead of leaking.
+        if (events.length === 0) {
+          break;
+        }
+
+        const deliverable = events;
+        const body = JSON.stringify({
+          type: 'audit.batch',
+          organizationId: webhook.organizationId,
+          events: deliverable,
+        });
+        const timestamp = Math.floor(Date.now() / 1000).toString();
+        const signature = createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
+
+        const response = await fetch(webhook.url, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-vibecore-timestamp': timestamp,
+            'x-vibecore-signature': `sha256=${signature}`,
+          },
+          body,
+          // Webhooks are delivered serially; without a timeout a single hung
+          // customer endpoint stalls the whole batch (and the worker tick)
+          // indefinitely. Treat a slow/hung call as a failed delivery and retry next run.
+          signal: AbortSignal.timeout(10_000),
+        });
+
+        if (!response.ok) {
+          // Drain the body so the failed-delivery connection is released instead of leaking.
+          await response.body?.cancel().catch(() => {});
+          throw new Error(`SIEM webhook delivery failed: ${response.status}`);
+        }
+
+        // Drain the success body too — an unconsumed response keeps the underlying
+        // connection pinned in the pool and eventually exhausts the agent's sockets.
         await response.body?.cancel().catch(() => {});
-        throw new Error(`SIEM webhook delivery failed: ${response.status}`);
+
+        cursorAt = deliverable.at(-1)!.createdAt;
+        cursorId = deliverable.at(-1)!.id;
+        await prisma.siemWebhook.update({
+          where: { id: webhook.id },
+          data: { lastDeliveredAt: cursorAt, lastDeliveredId: cursorId },
+        });
+
+        // Last partial batch — nothing more pending for this webhook this tick.
+        if (events.length < SIEM_BATCH_SIZE) {
+          break;
+        }
       }
-
-      // Drain the success body too — an unconsumed response keeps the underlying
-      // connection pinned in the pool and eventually exhausts the agent's sockets.
-      await response.body?.cancel().catch(() => {});
-
-      await prisma.siemWebhook.update({
-        where: { id: webhook.id },
-        data: { lastDeliveredAt: deliverable.at(-1)!.createdAt, lastDeliveredId: deliverable.at(-1)!.id },
-      });
     } catch (error) {
       console.error(`SIEM webhook ${webhook.id} delivery failed; continuing with remaining webhooks`, error);
     }
@@ -132,7 +146,31 @@ async function enforceDataRetention() {
     // deleteMany is idempotent so a failed org is simply retried next run.
     try {
       const cutoff = new Date(Date.now() - setting.dataRetentionDays * 24 * 60 * 60 * 1000);
-      await prisma.auditLog.deleteMany({ where: { organizationId: setting.organizationId, createdAt: { lt: cutoff } } });
+
+      /*
+       * Never delete audit logs a SIEM webhook hasn't delivered yet — that
+       * silently loses the customer's compliance record. Cap the audit-log
+       * deletion to the slowest enabled webhook's delivery watermark (a webhook
+       * that never delivered → epoch → nothing deleted beyond what's delivered).
+       * projectActivity is not SIEM-delivered, so it uses the full retention cutoff.
+       */
+      let auditCutoff = cutoff;
+      const webhooks = await prisma.siemWebhook.findMany({
+        where: { organizationId: setting.organizationId, enabled: true },
+        select: { lastDeliveredAt: true },
+      });
+
+      if (webhooks.length > 0) {
+        const watermark = Math.min(...webhooks.map((w) => w.lastDeliveredAt?.getTime() ?? 0));
+
+        if (watermark < auditCutoff.getTime()) {
+          auditCutoff = new Date(watermark);
+        }
+      }
+
+      await prisma.auditLog.deleteMany({
+        where: { organizationId: setting.organizationId, createdAt: { lt: auditCutoff } },
+      });
       await prisma.projectActivity.deleteMany({
         where: {
           project: { organizationId: setting.organizationId },

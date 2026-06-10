@@ -170,20 +170,31 @@ export function createRedisAgentRunRateLimiter(input: {
   return {
     backend: 'redis',
     async check(key: string): Promise<AgentRunRateLimitDecision> {
-      const [count, ttl] = await input.redis.eval(
-        redisRateLimitScript,
-        1,
-        stableRateLimitKey(prefix, key),
-        String(limit),
-        String(windowMs),
-      );
-      const resetAt = now() + Math.max(1, ttl);
+      try {
+        const [count, ttl] = await input.redis.eval(
+          redisRateLimitScript,
+          1,
+          stableRateLimitKey(prefix, key),
+          String(limit),
+          String(windowMs),
+        );
+        const resetAt = now() + Math.max(1, ttl);
 
-      return {
-        allowed: count <= limit,
-        remaining: Math.max(0, limit - count),
-        resetAt,
-      };
+        return {
+          allowed: count <= limit,
+          remaining: Math.max(0, limit - count),
+          resetAt,
+        };
+      } catch (error) {
+        /*
+         * Fail OPEN: a Redis outage/error must not 500 the entire agent-run
+         * endpoint. Rate limiting is a protective layer — if it's unavailable,
+         * allow the request (logged) rather than denying all traffic.
+         */
+        console.warn('agent-run rate limiter unavailable; failing open', error);
+
+        return { allowed: true, remaining: limit, resetAt: now() + windowMs };
+      }
     },
     async close() {
       if (input.redis.quit) {

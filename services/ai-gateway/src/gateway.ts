@@ -691,6 +691,8 @@ export class AiGateway {
   async *stream(request: AiChatRequest, signal?: AbortSignal): AsyncGenerator<AiChatChunk> {
     await ensureGptTokenizer();
     const routed = this.route(request);
+    const plan = request.plan ?? 'free';
+    const primaryProviderId = request.provider ?? routed.model.provider;
     const inputTokens = countTokens(request.messages);
 
     for (const provider of routed.providers) {
@@ -700,27 +702,35 @@ export class AiGateway {
         return;
       }
 
+      /*
+       * Remap the model id for THIS provider, exactly as complete() does. The old
+       * code sent `request.model ?? routed.model.id` (the primary provider's id)
+       * verbatim to every fallback provider, so cross-provider fallback always
+       * failed with an unknown-model error instead of recovering.
+       */
+      const resolved = this.resolveModelForProvider(provider, request, routed.model, plan, primaryProviderId);
+
       // Reset per provider so a failed provider's partial deltas aren't concatenated
       // onto the fallback provider's output (garbled message + double-counted cost).
       let content = '';
       let yieldedDelta = false;
 
       try {
-        for await (const delta of providerStream(provider, request, request.model ?? routed.model.id, signal)) {
+        for await (const delta of providerStream(provider, request, resolved.id, signal)) {
           content += delta;
           yieldedDelta = true;
-          yield { type: 'delta', content: delta, provider: provider.id, model: request.model ?? routed.model.id };
+          yield { type: 'delta', content: delta, provider: provider.id, model: resolved.id };
         }
 
         const outputTokens = countTokens(content);
         yield {
           type: 'done',
           provider: provider.id,
-          model: request.model ?? routed.model.id,
+          model: resolved.id,
           usage: {
             inputTokens,
             outputTokens,
-            estimatedCostCents: estimateCost(routed.model, inputTokens, outputTokens),
+            estimatedCostCents: estimateCost(resolved.catalog ?? routed.model, inputTokens, outputTokens),
           },
         };
         return;
@@ -734,7 +744,7 @@ export class AiGateway {
         yield {
           type: 'error',
           provider: provider.id,
-          model: request.model ?? routed.model.id,
+          model: resolved.id,
           error: error instanceof Error ? error.message : 'Provider stream failed',
         };
 

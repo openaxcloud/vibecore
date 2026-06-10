@@ -178,6 +178,17 @@ export async function runConnectorTokenHealthCheck(
         signal: AbortSignal.timeout(10_000),
       });
     } catch {
+      /*
+       * Bump the health-check cursor even on failure. Previously only success
+       * advanced lastHealthCheckAt, so during a provider outage the failing
+       * connections stayed at the front of the (oldest-first) queue and every
+       * tick re-checked the same first `maxConnections`, permanently starving the
+       * rest. Advancing on failure rotates them to the back; a degraded provider
+       * is retried on the next full sweep cycle instead of blocking everyone.
+       */
+      await input.prisma.userConnection
+        .update({ where: { id: connection.id }, data: { lastHealthCheckAt: now } })
+        .catch(() => {});
       unreachable += 1;
       continue;
     }
@@ -215,19 +226,19 @@ export async function runConnectorTokenHealthCheck(
     }
 
     /*
-     * Any other non-2xx is treated as a transient upstream blip; the
-     * sweep retries on the next tick. lastHealthCheckAt is bumped only on
-     * success so a degraded provider stays at the front of the queue.
-     * lastUsedAt is left untouched — it reflects real user usage only.
+     * Bump lastHealthCheckAt on every checked connection (success or transient
+     * non-2xx) so the oldest-first cursor advances and the sweep makes progress
+     * through ALL connections over successive ticks rather than re-checking the
+     * same failing first `maxConnections` forever. lastUsedAt is left untouched —
+     * it reflects real user usage only.
      */
-    if (response.ok) {
-      await input.prisma.userConnection.update({
-        where: { id: connection.id },
-        data: { lastHealthCheckAt: now },
-      });
-    } else {
+    if (!response.ok) {
       unreachable += 1;
     }
+
+    await input.prisma.userConnection
+      .update({ where: { id: connection.id }, data: { lastHealthCheckAt: now } })
+      .catch(() => {});
   }
 
   return {
