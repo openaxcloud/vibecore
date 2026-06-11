@@ -2308,11 +2308,26 @@ export class PrismaApiStore implements ApiStore {
     return rows.map(mapUserConnection);
   }
 
-  async markUserConnectionStatus(input: { id: string; status: UserConnectionStatus; revokedAt?: Date }) {
+  async markUserConnectionStatus(input: {
+    id: string;
+    status: UserConnectionStatus;
+    revokedAt?: Date;
+    clearTokens?: boolean;
+  }) {
     try {
       const updated = await this.prisma.userConnection.update({
         where: { id: input.id },
-        data: { status: input.status, revokedAt: input.revokedAt },
+        data: {
+          status: input.status,
+          revokedAt: input.revokedAt,
+          /*
+           * On revoke, destroy the stored credentials — leaving the encrypted
+           * access/refresh tokens in the DB after the user revokes is needless
+           * retention of a live secret (the connector-proxy keys off status, but
+           * the row still holds usable tokens until purged).
+           */
+          ...(input.clearTokens ? { accessTokenEncrypted: null, refreshTokenEncrypted: null } : {}),
+        },
       });
 
       return mapUserConnection(updated);

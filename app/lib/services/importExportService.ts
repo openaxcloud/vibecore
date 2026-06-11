@@ -751,7 +751,17 @@ export class ImportExportService {
    */
   private static _safeSetCookie(key: string, value: any): void {
     try {
-      Cookies.set(key, typeof value === 'string' ? value : JSON.stringify(value), { expires: 365 });
+      /*
+       * Harden restored cookies — the settings-backup restore writes the apiKeys
+       * cookie (provider credentials) through here, and without these attributes
+       * it was set without Secure/SameSite (sent over plain HTTP, exposed to CSRF).
+       * Matches the dedicated API-key import path (SameSite=Strict; Secure).
+       */
+      Cookies.set(key, typeof value === 'string' ? value : JSON.stringify(value), {
+        expires: 365,
+        secure: true,
+        sameSite: 'strict',
+      });
     } catch (err) {
       console.error(`Error setting cookie ${key}:`, err);
     }

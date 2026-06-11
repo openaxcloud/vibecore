@@ -1019,6 +1019,7 @@ export interface ApiStore {
     id: string;
     status: UserConnectionStatus;
     revokedAt?: Date;
+    clearTokens?: boolean;
   }): Promise<UserConnectionRecord | undefined>;
   linkProjectToUserConnection(input: {
     projectId: string;

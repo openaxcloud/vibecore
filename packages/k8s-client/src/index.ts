@@ -99,7 +99,26 @@ export function workspaceEgressBlockedCidrs(additionalBlockedCidrs: readonly str
 }
 
 export function assertWorkspaceImageAllowed(image: string, production = process.env.NODE_ENV === 'production') {
-  if (production && /(^|:)latest$/i.test(image)) {
+  if (!production) {
+    return;
+  }
+
+  // A digest-pinned image (repo@sha256:...) is always pinned — allow.
+  if (image.includes('@')) {
+    return;
+  }
+
+  /*
+   * Determine the tag. The ':' that introduces a tag is the one AFTER the last
+   * '/' (an earlier ':' is a registry port). A reference with NO such ':' has no
+   * tag and docker defaults it to ':latest' — the old /(^|:)latest$/ check missed
+   * this tag-less case, letting an unpinned image through in production.
+   */
+  const afterLastSlash = image.slice(image.lastIndexOf('/') + 1);
+  const colon = afterLastSlash.lastIndexOf(':');
+  const tag = colon >= 0 ? afterLastSlash.slice(colon + 1) : '';
+
+  if (tag === '' || tag.toLowerCase() === 'latest') {
     throw Object.assign(new Error('Workspace images must be pinned in production'), {
       code: 'WORKSPACE_IMAGE_LATEST_FORBIDDEN',
     });

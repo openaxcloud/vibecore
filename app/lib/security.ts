@@ -205,7 +205,13 @@ export function sanitizeErrorMessage(error: unknown, isDevelopment = false): str
 export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctionArgs) => Promise<Response>>(
   handler: T,
   options: {
-    requireAuth?: boolean;
+    /*
+     * NOTE: there is intentionally no `requireAuth` option. The wrapper enforces
+     * only method allowlisting, rate limiting, and security headers; it has no
+     * session/auth mechanism (auth is delegated to the API). A `requireAuth` flag
+     * here was removed because it was never enforced — passing it would have been a
+     * silent auth-bypass footgun. Gate authentication in the API layer instead.
+     */
     rateLimit?: boolean;
     allowedMethods?: string[];
   } = {},

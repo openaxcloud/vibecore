@@ -29,7 +29,23 @@ interface SignedStatePayload extends IntegrationOAuthStateContext {
 export const DEFAULT_STATE_TTL_SECONDS = 600;
 
 export function resolveIntegrationOauthStateSecret(envProvider: Record<string, string | undefined> = process.env): string {
-  return envProvider.OAUTH_STATE_SECRET || envProvider.JWT_SECRET || 'dev-jwt-secret-change-me';
+  const secret = envProvider.OAUTH_STATE_SECRET || envProvider.JWT_SECRET;
+
+  if (secret) {
+    return secret;
+  }
+
+  /*
+   * Fail closed in production: with the hardcoded dev fallback, anyone could forge
+   * a valid integration-OAuth state token (it signs project/user/org context),
+   * enabling CSRF / cross-account connection linking. Mirrors the login OAuth
+   * state flow. Dev/test keep the constant for local convenience.
+   */
+  if ((envProvider.NODE_ENV ?? '') === 'production') {
+    throw new Error('OAUTH_STATE_SECRET or JWT_SECRET must be set in production');
+  }
+
+  return 'dev-jwt-secret-change-me';
 }
 
 export function signIntegrationOauthState(input: {

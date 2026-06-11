@@ -7228,7 +7228,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         organizationId = orgs[0].id;
       }
 
-      const testResult = await connector.testApiKey({ apiKey: body.apiKey });
+      // Bound the outbound provider call (see the OAuth callback) — a hung/slow
+      // provider must not hold this request and a worker open indefinitely.
+      const testApiKeyFetch: typeof fetch = (input, init) =>
+        fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(15_000) });
+      const testResult = await connector.testApiKey({ apiKey: body.apiKey, fetchImpl: testApiKeyFetch });
 
       if (!testResult.ok) {
         const status =
@@ -7350,6 +7354,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       id: existing.id,
       status: 'revoked',
       revokedAt: new Date(),
+      clearTokens: true,
     });
 
     await audit(request, store, {
@@ -8251,6 +8256,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const service = requireMcpMarketplaceService(mcpMarketplace);
 
     try {
+      /*
+       * Re-verify org membership for an org-scoped install before mutating it —
+       * POST /mcp/installs gates with requireOrg, but PATCH/DELETE only scoped by
+       * userId, so a user removed from the org could still manage the org's install.
+       */
+      const existingInstall = await service.getInstall({ id: installId, userId: request.currentUser!.id });
+
+      if (existingInstall.organizationId) {
+        await requireOrg(request, store, existingInstall.organizationId, 'projects:write');
+      }
+
       const install = await service.updateInstall({
         id: installId,
         userId: request.currentUser!.id,
@@ -8287,6 +8303,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const service = requireMcpMarketplaceService(mcpMarketplace);
 
     try {
+      // Org-scoped installs: re-verify membership before delete (see PATCH above).
+      const existingInstall = await service.getInstall({ id: installId, userId: request.currentUser!.id });
+
+      if (existingInstall.organizationId) {
+        await requireOrg(request, store, existingInstall.organizationId, 'projects:write');
+      }
+
       const removed = await service.uninstall({ id: installId, userId: request.currentUser!.id });
 
       await audit(request, store, {
@@ -15448,7 +15471,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                            * always a successful, entitled checkout — treat only that as ACTIVE.
                            */
                           event.type === 'checkout.session.completed'
-                          ? 'ACTIVE'
+                          ? /*
+                             * A completed checkout SESSION is only entitled when its
+                             * payment actually settled. Delayed-payment methods (SEPA,
+                             * bank transfer) fire checkout.session.completed with
+                             * payment_status 'unpaid' while the charge is still pending —
+                             * granting ACTIVE then hands out the plan before payment.
+                             * Map those to UNPAID; a later invoice.paid / subscription
+                             * event promotes to ACTIVE once the charge settles.
+                             */
+                            object.payment_status === 'paid' || object.payment_status === 'no_payment_required'
+                            ? 'ACTIVE'
+                            : 'UNPAID'
                           : 'CANCELED',
             cancelAtPeriodEnd: Boolean(object.cancel_at_period_end),
             trialEndsAt: object.trial_end ? new Date(Number(object.trial_end) * 1000) : undefined,

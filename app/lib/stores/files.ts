@@ -1232,7 +1232,10 @@ export class FilesStore {
           const deletedPaths = JSON.parse(deletedPathsJson);
 
           if (Array.isArray(deletedPaths)) {
-            deletedPaths.forEach((path) => this.#deletedPaths.add(path));
+            // Filter to strings — setDeletedPaths() persists only strings, but a
+            // corrupted/tampered localStorage value could carry non-strings that
+            // would pollute #deletedPaths and break path comparisons downstream.
+            deletedPaths.filter((path): path is string => typeof path === 'string').forEach((path) => this.#deletedPaths.add(path));
           }
         }
       }

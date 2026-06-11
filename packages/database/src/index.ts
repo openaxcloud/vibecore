@@ -48,5 +48,17 @@ export function createDatabaseClient(options?: { poolMax?: number }) {
       { emit: 'stdout', level: 'error' },
       { emit: 'stdout', level: 'warn' },
     ],
+    /*
+     * Interactive-transaction bounds (#27). Prisma's defaults (timeout 5s, maxWait
+     * 2s) are too tight for transactions that legitimately wait — notably the
+     * advisory-lock transactions in withSerializedMutation, which block on
+     * pg_advisory_xact_lock under contention; a 5s default would abort the wait and
+     * fail the mutation. Raise both (still bounded by the pg statement_timeout
+     * above). Overridable via env, NaN-safe.
+     */
+    transactionOptions: {
+      timeout: Number(process.env.DATABASE_TX_TIMEOUT_MS) || 30_000,
+      maxWait: Number(process.env.DATABASE_TX_MAX_WAIT_MS) || 10_000,
+    },
   });
 }
