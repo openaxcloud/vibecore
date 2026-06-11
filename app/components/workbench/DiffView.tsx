@@ -84,7 +84,9 @@ interface FullscreenButtonProps {
 
 const FullscreenButton = memo(({ onClick, isFullscreen }: FullscreenButtonProps) => (
   <button
+    type="button"
     onClick={onClick}
+    aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
     className="ml-4 p-1 rounded hover:bg-bolt-elements-background-depth-3 text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-colors"
     title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
   >

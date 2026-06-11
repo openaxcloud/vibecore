@@ -167,7 +167,14 @@ $code-font-size: 13px;
 
   table {
     border-collapse: collapse;
-    width: 100%;
+    // Scroll wide tables instead of clipping them off the chat column.
+    // display:block lets the table box scroll horizontally; width:max-content
+    // sizes it to its content, capped by max-width so it never overflows the
+    // chat width. (needs visual review)
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    overflow-x: auto;
     margin-block-end: 16px;
 
     :is(th, td) {
