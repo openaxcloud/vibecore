@@ -1095,6 +1095,7 @@ function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativ
           'i-ph:caret-down scale-98': !collapsed,
         })}
         title={folder.fullPath}
+        ariaExpanded={!collapsed}
         onClick={onClick}
       >
         <div className="flex w-full min-w-0 items-center">
@@ -1300,6 +1301,9 @@ interface ButtonProps {
   className?: string;
   onClick?: () => void;
   onDoubleClick?: () => void;
+  // Folder rows pass !collapsed so screen readers announce expand/collapse state;
+  // file rows leave it undefined (no aria-expanded attribute).
+  ariaExpanded?: boolean;
 }
 
 function NodeButton({
@@ -1311,11 +1315,13 @@ function NodeButton({
   onDoubleClick,
   className,
   children,
+  ariaExpanded,
 }: ButtonProps) {
   return (
     <button
       className={classNames('bolt-file-tree-node flex items-center border-transparent text-faded', className)}
       title={title}
+      aria-expanded={ariaExpanded}
       onClick={() => onClick?.()}
       onDoubleClick={() => onDoubleClick?.()}
     >
