@@ -272,6 +272,31 @@ export class WorkspaceManager {
       return running;
     } catch (error) {
       /*
+       * Surface the actual provisioning failure to stdout. Previously the only
+       * trace of a failed start was the `workspace.failed` event (which carries
+       * no reason) — the real k8s error (PVC admission/quota, Pod scheduling,
+       * readiness timeout, RBAC) was stored ONLY in the DB record's `error`
+       * field, invisible to anyone tailing the manager. That left a user unable
+       * to create a project with NOTHING in the logs explaining why. Log it
+       * loudly, with enough context to correlate to a specific start.
+       */
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          service: 'workspace-manager',
+          event: 'workspace.start.failed',
+          workspaceId: input.workspaceId,
+          orgId: input.orgId,
+          projectId: input.projectId,
+          plan: input.plan,
+          namespace: input.namespace,
+          resourceLimits: input.resourceLimits,
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        }),
+      );
+
+      /*
        * Tear down the compute objects we just created so a failed start (e.g. a
        * readiness timeout) doesn't leave a CrashLooping/Pending Pod and its
        * Service churning resources until the 24h GC. Best-effort — never let
