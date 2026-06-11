@@ -13,15 +13,16 @@ export function getDatabaseUrl() {
   return process.env.DATABASE_URL;
 }
 
-export function createDatabaseClient() {
+export function createDatabaseClient(options?: { poolMax?: number }) {
   /*
    * Pool tuning + timeouts (#31). Without these the pg pool used node-postgres
    * defaults: an unbounded wait for a free connection and no statement timeout,
    * so one hung query could pin a connection (and, under load, exhaust the pool
    * and wedge the service). All overridable via env; NaN-safe so a bad/absent
-   * value falls back to the default.
+   * value falls back to the default. `options.poolMax` lets a caller create a
+   * small dedicated pool (e.g. the advisory-lock connection pool).
    */
-  const poolMax = Number(process.env.DATABASE_POOL_MAX) || 10;
+  const poolMax = options?.poolMax ?? (Number(process.env.DATABASE_POOL_MAX) || 10);
   const connectionTimeoutMillis = Number(process.env.DATABASE_CONNECTION_TIMEOUT_MS) || 10_000;
   const idleTimeoutMillis = Number(process.env.DATABASE_IDLE_TIMEOUT_MS) || 30_000;
   const statementTimeoutMs = Number(process.env.DATABASE_STATEMENT_TIMEOUT_MS) || 30_000;

@@ -113,14 +113,36 @@ export class PrismaApiStore implements ApiStore {
      * Hold a transaction-scoped advisory lock for the duration of `fn`. A second
      * caller with the same key blocks on pg_advisory_xact_lock until this
      * transaction commits, so the wrapped check-then-mutate runs serially across
-     * all pods. `fn`'s own queries use the pooled client and observe committed
-     * state because the prior holder commits before the lock is granted.
+     * all pods. `fn`'s own queries use the MAIN pooled client and observe
+     * committed state because the prior holder commits before the lock is granted.
+     *
+     * The lock transaction runs on a SMALL DEDICATED pool, not the main query
+     * pool. Otherwise, under same-key burst >= mainPoolMax, every waiter would sit
+     * inside its transaction holding a main-pool connection while blocked on the
+     * advisory lock — starving the lock holder's fn() of a connection and
+     * deadlocking the pool. Isolating lock-wait connections keeps the main pool
+     * free for fn() (only one fn runs at a time, so it needs just one connection).
      */
-    return this.prisma.$transaction(async (tx) => {
+    return this.lockClient.$transaction(async (tx) => {
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', key);
       return fn();
     });
   }
+
+  /*
+   * Lazily-created dedicated client for advisory-lock transactions (see
+   * withSerializedMutation). Small pool: it only ever holds lock-wait/holder
+   * connections, which are serialized by the lock itself.
+   */
+  private get lockClient(): DatabaseClient {
+    if (!this.#lockClient) {
+      this.#lockClient = createDatabaseClient({ poolMax: 5 });
+    }
+
+    return this.#lockClient;
+  }
+
+  #lockClient?: DatabaseClient;
 
   async createUser(input: {
     email: string;
