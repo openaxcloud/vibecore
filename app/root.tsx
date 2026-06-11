@@ -180,8 +180,8 @@ function AppToastContainer() {
     <ToastContainer
       closeButton={({ closeToast }) => {
         return (
-          <button className="Toastify__close-button" onClick={closeToast}>
-            <div className="i-ph:x text-lg" />
+          <button type="button" className="Toastify__close-button" aria-label="Dismiss notification" onClick={closeToast}>
+            <div className="i-ph:x text-lg" aria-hidden="true" />
           </button>
         );
       }}

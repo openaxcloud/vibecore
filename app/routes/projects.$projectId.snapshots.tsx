@@ -71,7 +71,16 @@ export default function ProjectSnapshotsPage() {
             <Button type="submit">Create snapshot</Button>
           </Form>
           {data.snapshots.map((snapshot) => (
-            <Form method="post" key={snapshot.id}>
+            <Form
+              method="post"
+              key={snapshot.id}
+              onSubmit={(event) => {
+                // Restore overwrites the live project files with the snapshot.
+                if (!window.confirm('Restore this snapshot? It overwrites the current project files.')) {
+                  event.preventDefault();
+                }
+              }}
+            >
               <input type="hidden" name="intent" value="restore" />
               <input type="hidden" name="snapshotId" value={snapshot.id} />
               <Button type="submit" variant="outline">
