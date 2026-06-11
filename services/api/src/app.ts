@@ -3986,14 +3986,25 @@ function parseSamlXmlAssertion(xml: string, certificate: string, expectedAudienc
    * IDs is a separate, persisted control — see follow-up task.)
    */
   const SAML_CLOCK_SKEW_MS = 60_000;
+  // Cap the acceptance window for assertions that declare no NotOnOrAfter. A real
+  // signed IdP assertion ALWAYS carries an Assertion @IssueInstant (required by the
+  // SAML spec), so bound such assertions to a few minutes from issuance — otherwise
+  // a captured no-expiry assertion is replayable forever (the ID-dedup row only
+  // covers a 10-min window). Only fully-minimal fixtures omit both, and stay lenient.
+  const SAML_MAX_ASSERTION_AGE_MS = 5 * 60_000;
   const notBefore = samlInstant(assertionXml, /<(?:\w+:)?Conditions\b[^>]*\bNotBefore=["']([^"']+)["']/);
   const notOnOrAfter =
     samlInstant(assertionXml, /<(?:\w+:)?Conditions\b[^>]*\bNotOnOrAfter=["']([^"']+)["']/) ??
     samlInstant(assertionXml, /<(?:\w+:)?SubjectConfirmationData\b[^>]*\bNotOnOrAfter=["']([^"']+)["']/);
+  const issueInstant = samlInstant(assertionXml, /<(?:\w+:)?Assertion\b[^>]*\bIssueInstant=["']([^"']+)["']/);
   const nowMs = Date.now();
-  const timeValid =
-    (notBefore === undefined || nowMs >= notBefore - SAML_CLOCK_SKEW_MS) &&
-    (notOnOrAfter === undefined || nowMs < notOnOrAfter + SAML_CLOCK_SKEW_MS);
+  const upperBoundValid =
+    notOnOrAfter !== undefined
+      ? nowMs < notOnOrAfter + SAML_CLOCK_SKEW_MS
+      : issueInstant !== undefined
+        ? nowMs < issueInstant + SAML_MAX_ASSERTION_AGE_MS
+        : true;
+  const timeValid = (notBefore === undefined || nowMs >= notBefore - SAML_CLOCK_SKEW_MS) && upperBoundValid;
 
   /*
    * Audience binding: the assertion must be intended for THIS org's SP (entityId
@@ -14565,40 +14576,44 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(createSnapshotSchema, request.body);
-    await ensureQuota(request, project.organizationId, 'snapshots.count');
 
     const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
     const archive = await projectStorage.createSnapshot({ projectId: project.id, label: body.label, files });
 
-    /*
-     * Enforce the snapshots.sizeMb storage quota. It was recorded as usage below
-     * but never checked, so the storage cap was non-functional and an org could
-     * accumulate unbounded snapshot storage. Check the new archive's size against
-     * the remaining allowance before persisting it durably.
-     */
     const snapshotSizeMb = Math.ceil((archive.byteLength ?? 0) / 1_048_576);
-
-    if (snapshotSizeMb > 0) {
-      await ensureQuota(request, project.organizationId, 'snapshots.sizeMb', snapshotSizeMb);
-    }
 
     await persistProjectArchiveObject(archive, {
       projectId: project.id,
       kind: body.kind === 'before-ai-change' ? 'before-ai-change' : 'snapshot',
     });
 
-    const snapshot = await store.createSnapshot({
-      projectId: project.id,
-      label: body.label,
-      kind: body.kind,
-      manifest: {
-        ...((body.manifest ?? {}) as Record<string, unknown>),
-        files: publicFiles(files),
-        excludesRuntimeSecrets: true,
-      },
-      storageKey: archive.storageKey,
-      byteLength: archive.byteLength,
-      createdByUserId: request.currentUser!.id,
+    /*
+     * Serialize the quota check + the row insert that makes this snapshot COUNT,
+     * so two concurrent snapshot creates for the same org can't both pass
+     * ensureQuota and exceed snapshots.count / snapshots.sizeMb (TOCTOU). Matches
+     * the deploy/workspace create paths. The slow archive build + blob write stay
+     * OUTSIDE the advisory-lock transaction.
+     */
+    const snapshot = await store.withSerializedMutation(`snapshots:${project.organizationId}`, async () => {
+      await ensureQuota(request, project.organizationId, 'snapshots.count');
+
+      if (snapshotSizeMb > 0) {
+        await ensureQuota(request, project.organizationId, 'snapshots.sizeMb', snapshotSizeMb);
+      }
+
+      return store.createSnapshot({
+        projectId: project.id,
+        label: body.label,
+        kind: body.kind,
+        manifest: {
+          ...((body.manifest ?? {}) as Record<string, unknown>),
+          files: publicFiles(files),
+          excludesRuntimeSecrets: true,
+        },
+        storageKey: archive.storageKey,
+        byteLength: archive.byteLength,
+        createdByUserId: request.currentUser!.id,
+      });
     });
     await recordUsage(request, project.organizationId, 'snapshots.count');
     await recordUsage(
@@ -14629,8 +14644,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
-    await ensureQuota(request, project.organizationId, 'snapshots.count');
-
     const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
 
     const archive = await projectStorage.createSnapshot({
@@ -14639,28 +14652,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       files,
     });
 
-    /*
-     * Enforce the snapshots.sizeMb storage quota here too — this endpoint records
-     * sizeMb usage below but previously only gated on snapshots.count, so a tenant
-     * could blow past their storage cap by routing through before-ai-change.
-     * Mirror the primary POST /snapshots endpoint.
-     */
     const snapshotSizeMb = Math.ceil((archive.byteLength ?? 0) / 1_048_576);
-
-    if (snapshotSizeMb > 0) {
-      await ensureQuota(request, project.organizationId, 'snapshots.sizeMb', snapshotSizeMb);
-    }
 
     await persistProjectArchiveObject(archive, { projectId: project.id, kind: 'before-ai-change' });
 
-    const snapshot = await store.createSnapshot({
-      projectId: project.id,
-      label: 'Before AI large change',
-      kind: 'before-ai-change',
-      manifest: { files: publicFiles(files), excludesRuntimeSecrets: true },
-      storageKey: archive.storageKey,
-      byteLength: archive.byteLength,
-      createdByUserId: request.currentUser!.id,
+    /*
+     * Serialize quota check + row insert (snapshots.count / snapshots.sizeMb TOCTOU);
+     * see the primary POST /snapshots endpoint. Slow archive/blob work stays outside.
+     */
+    const snapshot = await store.withSerializedMutation(`snapshots:${project.organizationId}`, async () => {
+      await ensureQuota(request, project.organizationId, 'snapshots.count');
+
+      if (snapshotSizeMb > 0) {
+        await ensureQuota(request, project.organizationId, 'snapshots.sizeMb', snapshotSizeMb);
+      }
+
+      return store.createSnapshot({
+        projectId: project.id,
+        label: 'Before AI large change',
+        kind: 'before-ai-change',
+        manifest: { files: publicFiles(files), excludesRuntimeSecrets: true },
+        storageKey: archive.storageKey,
+        byteLength: archive.byteLength,
+        createdByUserId: request.currentUser!.id,
+      });
     });
     await recordUsage(request, project.organizationId, 'snapshots.count');
     await recordUsage(
@@ -17198,8 +17213,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const sourceTimeoutSeconds =
       typeof sourceMetadata.timeoutSeconds === 'number' ? sourceMetadata.timeoutSeconds : 600;
 
+    /*
+     * Default to the standard 250MB cap when the source metadata doesn't carry a
+     * limit — passing undefined disabled the artifact-size check entirely in
+     * runStaticBuild (the gate is `if (options.artifactSizeLimitMb)`), so a
+     * redeploy of an older deployment could publish an unbounded artifact.
+     */
     const sourceArtifactSizeLimitMb =
-      typeof sourceMetadata.artifactSizeLimitMb === 'number' ? sourceMetadata.artifactSizeLimitMb : undefined;
+      typeof sourceMetadata.artifactSizeLimitMb === 'number' ? sourceMetadata.artifactSizeLimitMb : 250;
 
     const hookResult = await triggerProviderDeployHook(sourceProvider);
 
@@ -17397,9 +17418,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let finalDeployment = rollback;
 
     if (providerRollback) {
+      const rollbackFailed = providerRollback.status === 'failed';
       finalDeployment = await store.updateDeployment(project.id, rollback.id, {
         // QUEUED → READY on success / FAILED on failure (allowed by the monotonic guard).
-        status: providerRollback.status === 'failed' ? 'FAILED' : 'READY',
+        status: rollbackFailed ? 'FAILED' : 'READY',
+        /*
+         * On a FAILED provider rollback, clear the live URLs copied from the target
+         * deployment up-front — the provider never actually switched traffic, so a
+         * FAILED row advertising the target's preview/production URL is misleading
+         * (dashboards/links point at a rollback that didn't happen).
+         */
+        ...(rollbackFailed ? { url: '', previewUrl: '', productionUrl: '' } : {}),
         logs: [
           ...rollback.logs,
           {
