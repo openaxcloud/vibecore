@@ -1147,9 +1147,11 @@ export function useDataOperations({
           for (const chat of lastOperation.data.previous.chats) {
             const request = store.put(chat);
 
-            // Skip a single failing record (e.g. a duplicate urlId →
-            // ConstraintError) instead of aborting the whole restore transaction
-            // and losing every other previously-saved chat on undo.
+            /*
+             * Skip a single failing record (e.g. a duplicate urlId →
+             * ConstraintError) instead of aborting the whole restore transaction
+             * and losing every other previously-saved chat on undo.
+             */
             request.onerror = (event) => {
               event.preventDefault();
               undoSkipped += 1;
@@ -1209,8 +1211,10 @@ export function useDataOperations({
           for (const chat of lastOperation.data.previous.chats) {
             const request = chatStore.put(chat);
 
-            // Skip a single failing record instead of aborting the whole restore
-            // transaction and losing every other chat on undo.
+            /*
+             * Skip a single failing record instead of aborting the whole restore
+             * transaction and losing every other chat on undo.
+             */
             request.onerror = (event) => {
               event.preventDefault();
               resetUndoSkipped += 1;

@@ -330,8 +330,10 @@ function InlineAction({
 }) {
   const ActionIcon = icon;
 
-  // Rollback/cancel are production-impacting; require a confirmation before
-  // firing them on a single click. Redeploy is non-destructive (no prompt).
+  /*
+   * Rollback/cancel are production-impacting; require a confirmation before
+   * firing them on a single click. Redeploy is non-destructive (no prompt).
+   */
   const confirmMessages: Record<string, string> = {
     rollback: 'Roll back to this deployment? This changes what production currently serves.',
     cancel: 'Cancel this in-progress deployment?',

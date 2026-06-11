@@ -187,10 +187,12 @@ export class FilesStore {
     const nodes = await this.#runtime.listFiles(rootPath);
     const nextFiles: FileMap = {};
 
-    // Honor user deletions: a path the user deleted (or anything under a deleted
-    // folder) must not be resurrected just because the runtime tree still lists
-    // it (e.g. a reload that races the delete propagating). Mirrors
-    // replaceWithProjectStorageFiles, which already skips #deletedPaths.
+    /*
+     * Honor user deletions: a path the user deleted (or anything under a deleted
+     * folder) must not be resurrected just because the runtime tree still lists
+     * it (e.g. a reload that races the delete propagating). Mirrors
+     * replaceWithProjectStorageFiles, which already skips #deletedPaths.
+     */
     const deletedPrefixes = [...this.#deletedPaths].map((path) => `${path}/`);
 
     let fileCount = 0;

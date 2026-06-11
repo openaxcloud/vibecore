@@ -1279,10 +1279,12 @@ export class WorkbenchStore {
       this.saveFile(filePath).catch((error) => {
         console.error(`Autosave failed for ${filePath}`, error);
 
-        // Surface autosave failures instead of swallowing them — silent loss of
-        // edits is the worst outcome. Dedupe per file (toastId) so a repeatedly
-        // failing autosave shows one non-stacking toast; the file stays in the
-        // unsaved set so a manual save can still retry.
+        /*
+         * Surface autosave failures instead of swallowing them — silent loss of
+         * edits is the worst outcome. Dedupe per file (toastId) so a repeatedly
+         * failing autosave shows one non-stacking toast; the file stays in the
+         * unsaved set so a manual save can still retry.
+         */
         toast.error(`Autosave failed for ${filePath.split('/').pop()} — your changes are not saved.`, {
           toastId: `autosave-fail-${filePath}`,
         });
