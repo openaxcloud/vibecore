@@ -180,8 +180,6 @@ const ChatActionButton = forwardRef(
         <button
           ref={ref}
           type="button"
-          // Icon-only button (icon applied via CSS class) — surface the tooltip text
-          // as the accessible name so screen readers announce the action.
           aria-label={toolTipContent}
           title={toolTipContent}
           className={`text-gray-400 dark:text-gray-500 hover:text-purple-500 dark:hover:text-purple-400 transition-colors ${icon} ${className ? className : ''}`}

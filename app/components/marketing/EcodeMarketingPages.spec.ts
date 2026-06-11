@@ -19,6 +19,7 @@ describe('E-Code marketing page registry', () => {
         'features',
         'careers',
         'blog',
+        'docs',
         'contact',
         'partners',
         'press',
@@ -84,7 +85,9 @@ describe('E-Code marketing page registry', () => {
       expect.arrayContaining(['github-codespaces', 'glitch', 'heroku', 'codesandbox', 'aws-cloud9']),
     );
     expect(Object.keys(marketingCampaignPages)).toEqual(expect.arrayContaining(['bounties', 'deployments', 'teams']));
-    expect(Object.keys(newsletterPages)).toEqual(expect.arrayContaining(['confirmed', 'confirm', 'unsubscribe']));
+    expect(Object.keys(newsletterPages)).toEqual(
+      expect.arrayContaining(['index', 'confirmed', 'confirm', 'unsubscribe']),
+    );
   });
 
   it('connects the broader E-Code product surface registry to the marketing import', () => {

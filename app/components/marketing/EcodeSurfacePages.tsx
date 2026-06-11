@@ -30,7 +30,8 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
-import { LinkButton, PublicShell } from '~/components/dashboard/SaaSLayout';
+import type { ReactNode } from 'react';
+import { PublicShell } from '~/components/dashboard/SaaSLayout';
 
 type SurfaceCategory =
   | 'builder'
@@ -908,96 +909,170 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
 
   return (
     <PublicShell>
-      <article className="vc-surface-page" data-surface-category={page.category}>
-        <section className="vc-surface-hero">
-          <div className="vc-surface-hero-copy">
-            <span className="vc-badge">
-              <Icon className="h-3 w-3" aria-hidden />
-              {page.eyebrow}
-            </span>
-            <h1>{page.title}</h1>
-            <p>{page.description}</p>
-            <div className="vc-marketing-page-actions">
-              <LinkButton to={page.primaryAction[1]}>{page.primaryAction[0]}</LinkButton>
-              <LinkButton to={page.secondaryAction[1]} variant="outline">
-                {page.secondaryAction[0]}
-              </LinkButton>
+      <main
+        className="bg-[var(--ecode-background)] text-[var(--ecode-text)]"
+        data-ecode-surface-page={page.slug}
+        data-surface-category={page.category}
+      >
+        <section className="relative overflow-hidden border-b border-[var(--ecode-border)]">
+          <div className="absolute inset-0 marketing-gradient opacity-70" aria-hidden />
+          <div className="absolute inset-0 marketing-grid opacity-40" aria-hidden />
+          <div className="container-responsive relative grid gap-10 py-20 sm:py-28 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+            <div className="max-w-4xl">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
+                <Icon className="h-4 w-4" aria-hidden />
+                {page.eyebrow}
+              </span>
+              <h1 className="mt-8 max-w-4xl text-5xl font-bold leading-[1.04] tracking-tight text-[var(--ecode-text)] sm:text-6xl lg:text-7xl">
+                {page.title}
+              </h1>
+              <p className="mt-6 max-w-3xl text-lg leading-8 text-[var(--ecode-text-secondary)] sm:text-xl">
+                {page.description}
+              </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <EcodeSurfaceActionLink to={page.primaryAction[1]}>{page.primaryAction[0]}</EcodeSurfaceActionLink>
+                <EcodeSurfaceActionLink to={page.secondaryAction[1]} variant="secondary">
+                  {page.secondaryAction[0]}
+                </EcodeSurfaceActionLink>
+              </div>
             </div>
+
+            <aside
+              className="overflow-hidden rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] shadow-[0_24px_80px_rgba(0,0,0,0.18)]"
+              aria-label={`${page.title} route details`}
+            >
+              <div className="flex h-11 items-center gap-2 border-b border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] px-4">
+                <span className="h-2.5 w-2.5 rounded-full bg-red-400" aria-hidden />
+                <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" aria-hidden />
+                <span className="h-2.5 w-2.5 rounded-full bg-green-400" aria-hidden />
+                <strong className="ml-2 min-w-0 truncate text-[12px] font-semibold text-[var(--ecode-text-secondary)]">
+                  {page.route}
+                </strong>
+              </div>
+              <div className="grid gap-4 p-5">
+                <div className="flex min-w-0 items-center gap-3 rounded-lg bg-[var(--ecode-background)] p-3 font-mono text-[12px] text-[var(--ecode-text-secondary)]">
+                  <Terminal className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
+                  <span className="min-w-0 [overflow-wrap:anywhere]">ecode route verify {page.route}</span>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                  {page.stats.map((stat) => (
+                    <div
+                      key={`${stat.label}-${stat.value}`}
+                      className="min-h-[5.75rem] rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-background)] p-4"
+                    >
+                      <span className="block text-[12px] leading-5 text-[var(--ecode-text-muted)]">{stat.label}</span>
+                      <strong className="mt-2 block text-lg font-bold leading-tight text-[var(--ecode-text)]">
+                        {stat.value}
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 rounded-lg bg-[var(--ecode-background)] p-3 text-[13px] text-[var(--ecode-text-secondary)]">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
+                  <span>Imported from E-Code and rendered through Vibecore public navigation.</span>
+                </div>
+              </div>
+            </aside>
           </div>
-          <aside className="vc-surface-console" aria-label={`${page.title} route details`}>
-            <div className="vc-home-browser-bar">
-              <span />
-              <span />
-              <span />
-              <strong>{page.route}</strong>
-            </div>
-            <div className="vc-surface-console-body">
-              <div className="vc-surface-command-line">
-                <Terminal className="h-4 w-4" aria-hidden />
-                <span>ecode route verify {page.route}</span>
-              </div>
-              <div className="vc-surface-stat-grid">
-                {page.stats.map((stat) => (
-                  <div key={`${stat.label}-${stat.value}`}>
-                    <span>{stat.label}</span>
-                    <strong>{stat.value}</strong>
-                  </div>
-                ))}
-              </div>
-              <div className="vc-surface-route-note">
-                <CheckCircle2 className="h-4 w-4" aria-hidden />
-                <span>Imported from E-Code and rendered through Vibecore public navigation.</span>
-              </div>
-            </div>
-          </aside>
         </section>
 
-        <section className="vc-surface-proof" aria-label={`${page.title} imported capabilities`}>
-          {page.highlights.map((highlight) => (
-            <div key={highlight}>
-              <CheckCircle2 className="h-4 w-4" aria-hidden />
-              <span>{highlight}</span>
-            </div>
-          ))}
-        </section>
-
-        <section className="vc-surface-section-grid">
-          {page.sections.map((section) => (
-            <div key={section.title} className="vc-marketing-section-card">
-              <h2>{section.title}</h2>
-              <p>{section.body}</p>
-              <ul>
-                {section.items.map((item) => (
-                  <li key={item}>
-                    <ArrowRight className="h-4 w-4" aria-hidden />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </section>
-
-        <section className="vc-surface-related" aria-label={`${page.title} related routes`}>
-          <div>
-            <span className="vc-badge">Connected routes</span>
-            <h2>Keep moving through real pages.</h2>
-          </div>
-          <div className="vc-surface-related-grid">
-            {page.relatedRoutes.map((route) => (
-              <Link key={route.to} to={route.to}>
-                <strong>{route.label}</strong>
-                <small>{route.description}</small>
-                <span>
-                  Open
-                  <ArrowRight className="h-4 w-4" aria-hidden />
-                </span>
-              </Link>
+        <section className="container-responsive py-16 sm:py-24" aria-label={`${page.title} imported capabilities`}>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {page.highlights.map((highlight) => (
+              <div
+                key={highlight}
+                className="flex min-h-[4.75rem] items-center gap-3 rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-4 text-[14px] font-medium text-[var(--ecode-text)]"
+              >
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
+                <span>{highlight}</span>
+              </div>
             ))}
           </div>
         </section>
-      </article>
+
+        <section className="container-responsive grid gap-5 lg:grid-cols-2">
+          {page.sections.map((section) => (
+            <article
+              key={section.title}
+              className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-6 sm:p-7"
+            >
+              <h2 className="text-2xl font-bold tracking-tight text-[var(--ecode-text)]">{section.title}</h2>
+              <p className="mt-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]">{section.body}</p>
+              <ul className="mt-6 grid gap-3">
+                {section.items.map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-[14px] font-medium text-[var(--ecode-text)]">
+                    <ArrowRight className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </section>
+
+        <section className="container-responsive py-16 sm:py-24" aria-label={`${page.title} related routes`}>
+          <div className="grid gap-8 rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-6 sm:p-8 lg:grid-cols-[0.7fr_1.3fr]">
+            <div>
+              <span className="inline-flex rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-background)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
+                Connected routes
+              </span>
+              <h2 className="mt-5 text-3xl font-bold tracking-tight text-[var(--ecode-text)] sm:text-5xl">
+                Keep moving through real pages.
+              </h2>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {page.relatedRoutes.map((route) => (
+                <Link
+                  key={route.to}
+                  to={route.to}
+                  className="group flex min-h-[9rem] flex-col rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-background)] p-5 text-[var(--ecode-text)] no-underline transition hover:-translate-y-1 hover:border-[var(--ecode-accent)]"
+                >
+                  <strong className="text-base font-bold">{route.label}</strong>
+                  <small className="mt-2 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">
+                    {route.description}
+                  </small>
+                  <span className="mt-auto inline-flex items-center pt-5 text-[13px] font-semibold text-[var(--ecode-accent)]">
+                    Open
+                    <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" aria-hidden />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
     </PublicShell>
+  );
+}
+
+function EcodeSurfaceActionLink({
+  children,
+  to,
+  variant = 'primary',
+}: {
+  children: ReactNode;
+  to: string;
+  variant?: 'primary' | 'secondary';
+}) {
+  const className =
+    variant === 'primary'
+      ? 'inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--ecode-accent)] px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-[var(--ecode-accent-hover)]'
+      : 'inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--ecode-border)] bg-transparent px-5 py-3 text-[13px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]';
+
+  if (/^(https?:)?\/\//.test(to)) {
+    return (
+      <a href={to} className={className}>
+        {children}
+        <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+      </a>
+    );
+  }
+
+  return (
+    <Link to={to} className={className}>
+      {children}
+      <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+    </Link>
   );
 }
 

@@ -78,7 +78,9 @@ const AUTH_NAVIGATION_GUARD = String.raw`
 })();
 </script>`;
 
-const ECODE_MARKETING_SHELL_HTML = ecodeStaticHtml.replace('</head>', `${AUTH_NAVIGATION_GUARD}</head>`);
+const ECODE_MARKETING_SHELL_HTML = ecodeStaticHtml
+  .replace('<body', '<body data-ecode-static-shell="true"')
+  .replace('</head>', `${AUTH_NAVIGATION_GUARD}</head>`);
 
 export function ecodeMarketingShellLoader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);

@@ -153,8 +153,10 @@ export function BranchSelector({
     }
   }, [isOpen]);
 
-  // Esc closes the modal (this is a hand-rolled overlay, not Radix, so it had no
-  // built-in Esc/backdrop dismissal).
+  /*
+   * Esc closes the modal (this is a hand-rolled overlay, not Radix, so it had no
+   * built-in Esc/backdrop dismissal).
+   */
   useEffect(() => {
     if (!isOpen) {
       return undefined;

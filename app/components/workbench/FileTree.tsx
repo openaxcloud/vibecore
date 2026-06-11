@@ -1301,8 +1301,11 @@ interface ButtonProps {
   className?: string;
   onClick?: () => void;
   onDoubleClick?: () => void;
-  // Folder rows pass !collapsed so screen readers announce expand/collapse state;
-  // file rows leave it undefined (no aria-expanded attribute).
+
+  /*
+   * Folder rows pass !collapsed so screen readers announce expand/collapse state;
+   * file rows leave it undefined (no aria-expanded attribute).
+   */
   ariaExpanded?: boolean;
 }
 

@@ -99,8 +99,10 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
                 style={{ backgroundColor: palette[role.key] }}
                 onClick={() => document.getElementById(`color-input-${role.key}`)?.click()}
                 onKeyDown={(e) => {
-                  // role=button + tabIndex=0 but only onClick — keyboard users couldn't
-                  // activate the swatch. Enter/Space opens the native color picker.
+                  /*
+                   * role=button + tabIndex=0 but only onClick — keyboard users couldn't
+                   * activate the swatch. Enter/Space opens the native color picker.
+                   */
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     document.getElementById(`color-input-${role.key}`)?.click();

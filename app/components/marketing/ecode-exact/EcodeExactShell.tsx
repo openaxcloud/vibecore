@@ -184,7 +184,7 @@ const mobileMenuItems = [...productItems, ...solutionsItems, ...resourcesItems, 
 
 export function EcodeExactPublicShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
+    <div className="min-h-screen flex flex-col bg-background text-foreground" data-ecode-static-shell>
       <EcodeExactPublicNavbar />
       {children}
       <EcodeExactPublicFooter />

@@ -2,6 +2,6 @@ import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/compon
 
 export const meta = makeMarketingMeta(marketingPages['ai-documentation']);
 
-export default function AiDocumentationRoute() {
+export default function AiDocsAliasRoute() {
   return <MarketingStaticPage page={marketingPages['ai-documentation']} />;
 }

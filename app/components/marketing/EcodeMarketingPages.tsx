@@ -27,7 +27,8 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
-import { LinkButton, PublicShell } from '~/components/dashboard/SaaSLayout';
+import type { ReactNode } from 'react';
+import { PublicShell } from '~/components/dashboard/SaaSLayout';
 
 type MarketingPageKind = 'standard' | 'legal' | 'solution' | 'compare' | 'resource';
 
@@ -203,6 +204,30 @@ export const marketingPages = {
         title: 'Editorial tracks',
         body: 'Content is organized around shipping software safely, faster and with clearer operational feedback.',
         items: ['Build systems', 'Collaboration', 'Security', 'Deployment infrastructure'],
+      },
+    ],
+  },
+  docs: {
+    slug: 'docs',
+    title: 'Documentation',
+    eyebrow: 'Resources',
+    description:
+      'Practical E-Code documentation for creating projects, using the AI agent, running previews, deploying apps and operating teams safely.',
+    kind: 'resource',
+    icon: BookOpen,
+    primaryAction: ['Start building', '/signup'],
+    secondaryAction: ['Read AI docs', '/ai-documentation'],
+    highlights: ['Getting started', 'AI agent', 'Preview workflows', 'Deployments'],
+    sections: [
+      {
+        title: 'Build workflow',
+        body: 'Documentation follows the real production loop: create a project, generate code, inspect changes, run validation and ship through a controlled path.',
+        items: ['Project setup', 'Agent prompts', 'File review', 'Preview verification'],
+      },
+      {
+        title: 'Operational guides',
+        body: 'Teams can use the docs to understand runtime requirements, environment variables, deployment checks and troubleshooting paths.',
+        items: ['Runtime setup', 'Secrets handling', 'Deployment logs', 'Support escalation'],
       },
     ],
   },
@@ -999,6 +1024,30 @@ export const marketingCampaignPages = {
 } as const satisfies Record<string, MarketingPageDefinition>;
 
 export const newsletterPages = {
+  index: {
+    slug: 'newsletter',
+    title: 'E-Code Newsletter',
+    eyebrow: 'Newsletter',
+    description:
+      'Product updates, engineering notes, template drops and security announcements for teams building with E-Code.',
+    kind: 'resource',
+    icon: Newspaper,
+    primaryAction: ['Confirm preferences', '/newsletter/confirm'],
+    secondaryAction: ['Read changelog', '/changelog'],
+    highlights: ['Product updates', 'Engineering notes', 'Template drops', 'Security notices'],
+    sections: [
+      {
+        title: 'What ships in the newsletter',
+        body: 'Newsletter content focuses on useful release notes, practical workflow guidance and production AI development patterns.',
+        items: ['Feature releases', 'Template launches', 'Security notes', 'Operational guidance'],
+      },
+      {
+        title: 'Preference controls',
+        body: 'People can confirm preferences, unsubscribe from marketing mail and still receive required transactional security notices.',
+        items: ['Confirm subscription', 'Manage preferences', 'Unsubscribe', 'Account security notices'],
+      },
+    ],
+  },
   confirmed: {
     slug: 'confirmed',
     title: 'Newsletter confirmed',
@@ -1063,7 +1112,9 @@ export function makeMarketingMeta(page: MarketingPageDefinition): MetaFunction {
 export function MarketingStaticPage({ page }: { page: MarketingPageDefinition }) {
   return (
     <PublicShell>
-      <MarketingPageContent page={page} />
+      <main className="bg-[var(--ecode-background)] text-[var(--ecode-text)]" data-ecode-marketing-page={page.slug}>
+        <MarketingPageContent page={page} />
+      </main>
     </PublicShell>
   );
 }
@@ -1097,31 +1148,53 @@ export function MarketingIndexPage({
 }) {
   return (
     <PublicShell>
-      <section className="vc-marketing-page">
-        <div className="vc-marketing-page-hero">
-          <span className="vc-badge">E-Code</span>
-          <h1>{title}</h1>
-          <p>{description}</p>
-        </div>
-        <div className="vc-marketing-card-grid">
-          {Object.values(pages).map((page) => {
-            const Icon = page.icon;
-            return (
-              <Link key={page.slug} to={routeForPage(page)} className="vc-marketing-card">
-                <span className="vc-marketing-card-icon">
-                  <Icon className="h-5 w-5" aria-hidden />
-                </span>
-                <strong>{page.title}</strong>
-                <small>{page.description}</small>
-                <span className="vc-marketing-card-link">
-                  View page
-                  <ArrowRight className="h-4 w-4" aria-hidden />
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+      <main className="bg-[var(--ecode-background)] text-[var(--ecode-text)]" data-ecode-marketing-page="index">
+        <section className="relative overflow-hidden border-b border-[var(--ecode-border)]">
+          <div className="absolute inset-0 marketing-gradient opacity-70" aria-hidden />
+          <div className="absolute inset-0 marketing-grid opacity-40" aria-hidden />
+          <div className="container-responsive relative py-20 sm:py-28">
+            <div className="max-w-4xl">
+              <span className="inline-flex items-center rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
+                E-Code
+              </span>
+              <h1 className="mt-8 max-w-4xl text-5xl font-bold leading-[1.04] tracking-tight text-[var(--ecode-text)] sm:text-6xl lg:text-7xl">
+                {title}
+              </h1>
+              <p className="mt-6 max-w-3xl text-lg leading-8 text-[var(--ecode-text-secondary)] sm:text-xl">
+                {description}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="container-responsive py-16 sm:py-24">
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {Object.values(pages).map((page) => {
+              const Icon = page.icon;
+
+              return (
+                <Link
+                  key={page.slug}
+                  to={routeForPage(page)}
+                  className="group flex min-h-[15rem] flex-col rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-6 text-[var(--ecode-text)] no-underline transition hover:-translate-y-1 hover:border-[var(--ecode-accent)] hover:shadow-xl"
+                >
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--ecode-surface-secondary)] text-[var(--ecode-accent)]">
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </span>
+                  <strong className="mt-5 text-xl font-bold tracking-tight">{page.title}</strong>
+                  <small className="mt-3 text-[14px] leading-6 text-[var(--ecode-text-secondary)]">
+                    {page.description}
+                  </small>
+                  <span className="mt-auto inline-flex items-center pt-7 text-[13px] font-semibold text-[var(--ecode-accent)]">
+                    View page
+                    <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" aria-hidden />
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      </main>
     </PublicShell>
   );
 }
@@ -1133,60 +1206,123 @@ function MarketingPageContent({ page }: { page: MarketingPageDefinition }) {
     'logoSrc' in page ? (page as MarketingPageDefinition & { logoSrc: string; competitor: string }) : null;
 
   return (
-    <article className="vc-marketing-page" data-marketing-kind={page.kind}>
-      <section className="vc-marketing-page-hero">
-        <span className="vc-badge">
-          <Icon className="h-3 w-3" aria-hidden />
-          {page.eyebrow}
-        </span>
-        <h1>{page.title}</h1>
-        <p>{page.description}</p>
-        <div className="vc-marketing-page-actions">
-          {page.primaryAction ? <LinkButton to={page.primaryAction[1]}>{page.primaryAction[0]}</LinkButton> : null}
-          {page.secondaryAction ? (
-            <LinkButton to={page.secondaryAction[1]} variant="outline">
-              {page.secondaryAction[0]}
-            </LinkButton>
-          ) : null}
+    <>
+      <section className="relative overflow-hidden border-b border-[var(--ecode-border)]">
+        <div className="absolute inset-0 marketing-gradient opacity-70" aria-hidden />
+        <div className="absolute inset-0 marketing-grid opacity-40" aria-hidden />
+        <div className="container-responsive relative py-20 sm:py-28">
+          <div className="max-w-4xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
+              <Icon className="h-4 w-4" aria-hidden />
+              {page.eyebrow}
+            </span>
+            <h1 className="mt-8 max-w-4xl text-5xl font-bold leading-[1.04] tracking-tight text-[var(--ecode-text)] sm:text-6xl lg:text-7xl">
+              {page.title}
+            </h1>
+            <p className="mt-6 max-w-3xl text-lg leading-8 text-[var(--ecode-text-secondary)] sm:text-xl">
+              {page.description}
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              {page.primaryAction ? (
+                <EcodeMarketingActionLink to={page.primaryAction[1]}>{page.primaryAction[0]}</EcodeMarketingActionLink>
+              ) : null}
+              {page.secondaryAction ? (
+                <EcodeMarketingActionLink to={page.secondaryAction[1]} variant="secondary">
+                  {page.secondaryAction[0]}
+                </EcodeMarketingActionLink>
+              ) : null}
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="vc-marketing-proof" aria-label={`${page.title} highlights`}>
-        {page.highlights.map((highlight) => (
-          <div key={highlight}>
-            <CheckCircle2 className="h-4 w-4" aria-hidden />
-            <span>{highlight}</span>
-          </div>
-        ))}
+      <section className="container-responsive py-16 sm:py-24" aria-label={`${page.title} highlights`}>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {page.highlights.map((highlight) => (
+            <div
+              key={highlight}
+              className="flex min-h-[4.75rem] items-center gap-3 rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-4 text-[14px] font-medium text-[var(--ecode-text)]"
+            >
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
+              <span>{highlight}</span>
+            </div>
+          ))}
+        </div>
       </section>
 
       {compare ? (
-        <section className="vc-marketing-compare-hero" aria-label={`E-Code compared with ${compare.competitor}`}>
-          <img src={compare.logoSrc} alt={`${compare.competitor} logo`} loading="lazy" decoding="async" />
-          <div>
-            <span>Compared with {compare.competitor}</span>
-            <strong>E-Code combines the IDE, AI agent, runtime previews and enterprise release controls.</strong>
+        <section className="container-responsive pb-6" aria-label={`E-Code compared with ${compare.competitor}`}>
+          <div className="grid gap-5 rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
+            <img
+              src={compare.logoSrc}
+              alt={`${compare.competitor} logo`}
+              className="h-16 w-16 object-contain"
+              loading="lazy"
+              decoding="async"
+            />
+            <div>
+              <span className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[var(--ecode-text-muted)]">
+                Compared with {compare.competitor}
+              </span>
+              <strong className="mt-2 block text-xl font-bold leading-8 text-[var(--ecode-text)]">
+                E-Code combines the IDE, AI agent, runtime previews and enterprise release controls.
+              </strong>
+            </div>
           </div>
         </section>
       ) : null}
 
-      <section className="vc-marketing-section-grid">
+      <section className="container-responsive grid gap-5 pb-20 sm:pb-28 lg:grid-cols-2">
         {page.sections.map((section) => (
-          <div key={section.title} className="vc-marketing-section-card">
-            <h2>{section.title}</h2>
-            <p>{section.body}</p>
-            <ul>
+          <article
+            key={section.title}
+            className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-6 sm:p-7"
+          >
+            <h2 className="text-2xl font-bold tracking-tight text-[var(--ecode-text)]">{section.title}</h2>
+            <p className="mt-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]">{section.body}</p>
+            <ul className="mt-6 grid gap-3">
               {section.items.map((item) => (
-                <li key={item}>
-                  <ArrowRight className="h-4 w-4" aria-hidden />
-                  {item}
+                <li key={item} className="flex items-center gap-3 text-[14px] font-medium text-[var(--ecode-text)]">
+                  <ArrowRight className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
+                  <span>{item}</span>
                 </li>
               ))}
             </ul>
-          </div>
+          </article>
         ))}
       </section>
-    </article>
+    </>
+  );
+}
+
+function EcodeMarketingActionLink({
+  children,
+  to,
+  variant = 'primary',
+}: {
+  children: ReactNode;
+  to: string;
+  variant?: 'primary' | 'secondary';
+}) {
+  const className =
+    variant === 'primary'
+      ? 'inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--ecode-accent)] px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-[var(--ecode-accent-hover)]'
+      : 'inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--ecode-border)] bg-transparent px-5 py-3 text-[13px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]';
+
+  if (/^(https?:)?\/\//.test(to)) {
+    return (
+      <a href={to} className={className}>
+        {children}
+        <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+      </a>
+    );
+  }
+
+  return (
+    <Link to={to} className={className}>
+      {children}
+      <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+    </Link>
   );
 }
 

@@ -1,1 +1,7 @@
-export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';
+import { makeMarketingMeta, MarketingStaticPage, marketingPages } from '~/components/marketing/EcodeMarketingPages';
+
+export const meta = makeMarketingMeta(marketingPages.polyglot);
+
+export default function PolyglotRoute() {
+  return <MarketingStaticPage page={marketingPages.polyglot} />;
+}

@@ -563,8 +563,11 @@ if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {
     if (event.key === LOCKED_FILES_KEY) {
       logger.info('Detected localStorage change for locked items, refreshing cache');
-      // flush:false — the OTHER tab just wrote; flushing our stale cache here would
-      // clobber that write. Drop cache + cancel pending write, then reload on next read.
+
+      /*
+       * flush:false — the OTHER tab just wrote; flushing our stale cache here would
+       * clobber that write. Drop cache + cancel pending write, then reload on next read.
+       */
       clearCache({ flush: false });
     }
   });
