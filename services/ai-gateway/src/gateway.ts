@@ -538,6 +538,16 @@ async function* providerStream(
   const decoder = new TextDecoder();
   let buffer = '';
 
+  /*
+   * Idle (between-chunk) timeout. The connect timeout only bounds time-to-headers;
+   * after that a provider that sends headers then stalls (or a half-open socket)
+   * would hang this read loop — and the caller's request — indefinitely. Bound the
+   * gap between chunks; on timeout the throw propagates to the finally below, which
+   * cancels the upstream body. Generous default so legitimate slow generation isn't
+   * cut (override via env).
+   */
+  const streamIdleTimeoutMs = Number(process.env.AI_GATEWAY_STREAM_IDLE_TIMEOUT_MS) || 120_000;
+
   try {
     const parseLine = (rawLine: string): string => {
       const line = rawLine.trim();
@@ -567,7 +577,16 @@ async function* providerStream(
     };
 
     while (true) {
-      const { value, done } = await reader.read();
+      let idleTimer: ReturnType<typeof setTimeout> | undefined;
+      const { value, done } = await Promise.race([
+        reader.read(),
+        new Promise<never>((_resolve, reject) => {
+          idleTimer = setTimeout(
+            () => reject(Object.assign(new Error('Provider stream idle timeout'), { statusCode: 504 })),
+            streamIdleTimeoutMs,
+          );
+        }),
+      ]).finally(() => clearTimeout(idleTimer));
 
       if (done) {
         /*
