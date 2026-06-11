@@ -40,6 +40,11 @@ platformEnv:
   apiBaseUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
   publicApiBaseUrl: ''
   platformAdminEmails: ''
+  # Set to 'true' to make the ai-gateway REQUIRE the shared-secret bearer on
+  # /chat/completions. Leave empty until the secret is confirmed present on both
+  # the api and ai-gateway pods (it is provisioned by templates/ai-gateway-auth-secret.yaml
+  # and the api sends it automatically) — flipping this on is the safe final step.
+  aiGatewayRequireAuth: ''
   # Fastify trust-proxy. Staging/prod sit behind ingress-nginx; leave true.
   # Override to "false" only for local helm template debugging.
   trustProxy: 'true'

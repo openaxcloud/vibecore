@@ -38,6 +38,12 @@ data:
   # Comma-separated list of emails granted PlatformAdmin (services/api/src/app.ts:2224).
   PLATFORM_ADMIN_EMAILS: {{ .Values.platformEnv.platformAdminEmails | quote }}
 
+  # When 'true', the ai-gateway requires the shared-secret bearer on
+  # /chat/completions (the api always sends it once provisioned). Separate flag so
+  # the secret rolls out to both pods BEFORE enforcement is enabled — flipping this
+  # to 'true' is the LAST, safe step (no chat outage).
+  AI_GATEWAY_REQUIRE_AUTH: {{ .Values.platformEnv.aiGatewayRequireAuth | default "" | quote }}
+
   # Tell Fastify to honor X-Forwarded-* from the GKE ingress so request.ip
   # is the real client IP (audit logs, rate-limits, OAuth callback origin).
   TRUST_PROXY: {{ .Values.platformEnv.trustProxy | default "true" | quote }}

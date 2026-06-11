@@ -57,6 +57,65 @@ describe('AI gateway app', () => {
     await app.close();
   });
 
+  it('rejects /chat/completions without the shared secret when enforcement is on', async () => {
+    const app = await buildAiGatewayApp({
+      gateway: fakeGateway(),
+      logger: false,
+      env: { AI_GATEWAY_REQUIRE_AUTH: 'true', AI_GATEWAY_SHARED_SECRET: 's3cret' },
+      agentRunPersistence: null,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/chat/completions',
+      payload: { messages: [{ role: 'user', content: 'hi' }] },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toMatchObject({ code: 'AI_GATEWAY_UNAUTHORIZED' });
+
+    await app.close();
+  });
+
+  it('allows /chat/completions with the correct shared secret when enforcement is on', async () => {
+    const app = await buildAiGatewayApp({
+      gateway: fakeGateway(),
+      logger: false,
+      env: { AI_GATEWAY_REQUIRE_AUTH: 'true', AI_GATEWAY_SHARED_SECRET: 's3cret' },
+      agentRunPersistence: null,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/chat/completions',
+      headers: { authorization: 'Bearer s3cret' },
+      payload: { messages: [{ role: 'user', content: 'hi' }] },
+    });
+
+    expect(response.statusCode).not.toBe(401);
+
+    await app.close();
+  });
+
+  it('leaves /chat/completions open when enforcement is off (default)', async () => {
+    const app = await buildAiGatewayApp({
+      gateway: fakeGateway(),
+      logger: false,
+      env: {},
+      agentRunPersistence: null,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/chat/completions',
+      payload: { messages: [{ role: 'user', content: 'hi' }] },
+    });
+
+    expect(response.statusCode).not.toBe(401);
+
+    await app.close();
+  });
+
   it('executes valid agent runs and returns rate-limit headers', async () => {
     const app = await buildAiGatewayApp({
       gateway: fakeGateway(),

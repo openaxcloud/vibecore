@@ -68,6 +68,25 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
   });
 
   app.post('/chat/completions', async (request, reply) => {
+    /*
+     * Shared-secret auth, gated on AI_GATEWAY_REQUIRE_AUTH so the rollout never
+     * 401s prod chat: the api is deployed sending the secret (and the secret is
+     * provisioned to both pods) BEFORE this flag is flipped to 'true'. Until then
+     * the endpoint stays open exactly as before. /health stays unauthenticated
+     * (probes). Reuses the timing-safe Bearer check from the agent-run path.
+     */
+    if ((env.AI_GATEWAY_REQUIRE_AUTH ?? '').trim() === 'true') {
+      const authorized = authorizeAgentRun({
+        authorizationHeader: request.headers.authorization,
+        expectedToken: env.AI_GATEWAY_SHARED_SECRET,
+        allowInsecure: false,
+      });
+
+      if (!authorized) {
+        return reply.code(401).send({ error: 'Unauthorized ai-gateway request.', code: 'AI_GATEWAY_UNAUTHORIZED' });
+      }
+    }
+
     const body = request.body as AiChatRequest;
 
     if (!Array.isArray(body?.messages)) {

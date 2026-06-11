@@ -65,6 +65,11 @@ spec:
           envFrom:
             - secretRef:
                 name: {{ $.Values.secrets.existingSecret }}
+            # Chart-managed shared secret for api -> ai-gateway auth (wave-29 #30).
+            # Mounted on every pod (api sends it, ai-gateway verifies it; others
+            # ignore it) so both sides always agree on the value.
+            - secretRef:
+                name: {{ include "vibecore-platform.fullname" $ }}-ai-gateway-auth
             # Non-secret platform-wide URLs (OAuth endpoints, in-cluster api
             # base URL, admin allowlist). Defined in templates/configmap.yaml.
             - configMapRef:

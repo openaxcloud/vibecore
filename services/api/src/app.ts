@@ -8927,9 +8927,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             : 'free';
 
     try {
+      /*
+       * Authenticate to the ai-gateway with the shared secret when configured.
+       * Sent unconditionally (when the secret is present) BEFORE the gateway flips
+       * on enforcement, so the two-phase rollout never 401s: api-sends-secret is
+       * deployed first, gateway-requires-secret second. When unset, no header is
+       * sent and the gateway (also unset/not-enforcing) stays open — no breakage.
+       */
+      const aiGatewaySharedSecret = (globalThis.process.env.AI_GATEWAY_SHARED_SECRET ?? '').trim();
+
       response = await fetch(`${aiGatewayUrl}/chat/completions`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json',
+          ...(aiGatewaySharedSecret ? { authorization: `Bearer ${aiGatewaySharedSecret}` } : {}),
+        },
         signal: AbortSignal.timeout(60_000),
         body: JSON.stringify({
           organizationId: input.project.organizationId,
