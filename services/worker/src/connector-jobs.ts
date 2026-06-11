@@ -219,29 +219,40 @@ export async function runConnectorTokenHealthCheck(
     }
 
     if (response.status === 401) {
-      await input.prisma.userConnection.update({
-        where: { id: connection.id },
-        data: { status: 'needs_reconnect' },
-      });
-
       /*
-       * Skip when an unresolved alert already exists so the notifier
-       * does not double-fire on the same connection.
+       * Guard the token-revoked DB writes like every other branch in this loop
+       * (.catch(() => {})). These were the ONE unguarded set, so a transient DB
+       * error on a single connection threw out of the loop and aborted the entire
+       * sweep, leaving all later connections unchecked.
        */
-      const existing = await input.prisma.reconnectionAlert.findFirst({
-        where: { userConnectionId: connection.id, resolvedAt: null },
-      });
-
-      if (!existing) {
-        await input.prisma.reconnectionAlert.create({
-          data: {
-            userConnectionId: connection.id,
-            reason: 'token_revoked',
-          },
+      try {
+        await input.prisma.userConnection.update({
+          where: { id: connection.id },
+          data: { status: 'needs_reconnect' },
         });
+
+        /*
+         * Skip when an unresolved alert already exists so the notifier
+         * does not double-fire on the same connection.
+         */
+        const existing = await input.prisma.reconnectionAlert.findFirst({
+          where: { userConnectionId: connection.id, resolvedAt: null },
+        });
+
+        if (!existing) {
+          await input.prisma.reconnectionAlert.create({
+            data: {
+              userConnectionId: connection.id,
+              reason: 'token_revoked',
+            },
+          });
+        }
+
+        flaggedReconnect += 1;
+      } catch {
+        // One connection's DB error must not abort the whole sweep.
       }
 
-      flaggedReconnect += 1;
       continue;
     }
 

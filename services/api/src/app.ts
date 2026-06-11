@@ -3254,7 +3254,10 @@ async function sessionExpiresAtForUser(store: ApiStore, userId: string) {
  */
 const requireNative = createRequire(import.meta.url);
 let re2Engine:
-  | (new (pattern: string, flags?: string) => { exec(input: string): RegExpExecArray | null })
+  | (new (
+      pattern: string,
+      flags?: string,
+    ) => { exec(input: string): RegExpExecArray | null; test(input: string): boolean })
   | null
   | undefined;
 
@@ -4011,7 +4014,14 @@ function parseSamlXmlAssertion(xml: string, certificate: string, expectedAudienc
     externalId,
     roleKey,
     assertionId,
-    assertionExpiresAt: notOnOrAfter,
+    /*
+     * The replay-dedup row must outlive the ACCEPTANCE window, not just
+     * NotOnOrAfter. timeValid accepts until `notOnOrAfter + SAML_CLOCK_SKEW_MS`,
+     * but the dedup row was pruned at bare notOnOrAfter — leaving a clock-skew
+     * window where the assertion is still accepted yet no longer deduped (replay).
+     * Extend the dedup expiry by the same skew so it brackets the full window.
+     */
+    assertionExpiresAt: notOnOrAfter !== undefined ? notOnOrAfter + SAML_CLOCK_SKEW_MS : undefined,
     signatureValid: signatureValid && timeValid && audienceValid,
   };
 }
@@ -4831,7 +4841,7 @@ function flattenRuntimeFiles(nodes: AgentNode[]): AgentNode[] {
  * an immediately following `/` is optional so `**​/foo` also matches `foo` at
  * the root); `*`/`?` stay within a single segment. Anchored to the whole path.
  */
-function globToRegExp(glob: string): RegExp {
+function globToRegExp(glob: string): { test(input: string): boolean } {
   let pattern = '';
 
   for (let i = 0; i < glob.length; i += 1) {
@@ -4857,7 +4867,17 @@ function globToRegExp(glob: string): RegExp {
     }
   }
 
-  return new RegExp(`^${pattern}$`);
+  /*
+   * Compile via RE2 (linear-time, ReDoS-immune) when available — a glob like
+   * `**a**b**c…` expands to many `.*` and is catastrophic-backtracking-prone
+   * under JS RegExp. The query path already uses RE2 (createUserPatternMatcher);
+   * the include/exclude globs took this unguarded path. Fall back to JS RegExp
+   * only when re2 didn't load. RE2 and RegExp both expose .test().
+   */
+  const source = `^${pattern}$`;
+  const RE2 = loadRe2();
+
+  return RE2 ? new RE2(source) : new RegExp(source);
 }
 
 function normalizeRuntimeApiWebSocket(rawSocket: unknown) {
@@ -7067,8 +7087,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       try {
-        const tokenResult = await connector.exchangeCodeForToken({ credentials, code: body.code });
-        const userInfo = await connector.fetchUserInfo({ accessToken: tokenResult.accessToken });
+        /*
+         * Bound every outbound OAuth provider call (token exchange + userinfo) on
+         * this user-facing callback. Without a timeout a hung/slow provider
+         * (gitlab/github/etc.) holds the request — and a server worker — open
+         * indefinitely. Inject a timeout-wrapping fetchImpl so all 6 providers
+         * are covered in one place.
+         */
+        const oauthFetch: typeof fetch = (input, init) =>
+          fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(15_000) });
+        const tokenResult = await connector.exchangeCodeForToken({
+          credentials,
+          code: body.code,
+          fetchImpl: oauthFetch,
+        });
+        const userInfo = await connector.fetchUserInfo({
+          accessToken: tokenResult.accessToken,
+          fetchImpl: oauthFetch,
+        });
 
         const accessTokenEncrypted = encryptJson({ value: tokenResult.accessToken });
 
@@ -14170,11 +14206,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(transferProjectSchema, request.body);
     await requireOrg(request, store, body.targetOrganizationId, 'projects:write');
     await requireOrganizationNotSuspended(store, body.targetOrganizationId);
-    await ensureQuota(request, body.targetOrganizationId, 'projects.count');
 
-    const transferred = await store.transferProject({
-      projectId: project.id,
-      targetOrganizationId: body.targetOrganizationId,
+    /*
+     * Serialize quota-check + transfer (projects.count is a live count) so two
+     * concurrent transfers/duplicates into the same org can't both pass the gate
+     * and exceed the plan limit (TOCTOU). Matches the create handlers.
+     */
+    const transferred = await store.withSerializedMutation(`projects:${body.targetOrganizationId}`, async () => {
+      await ensureQuota(request, body.targetOrganizationId, 'projects.count');
+
+      return store.transferProject({
+        projectId: project.id,
+        targetOrganizationId: body.targetOrganizationId,
+      });
     });
     await store.recordProjectActivity({
       projectId: project.id,
@@ -14204,12 +14248,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrg(request, store, project.organizationId, 'projects:write');
 
     const body = parse(duplicateProjectSchema, request.body);
-    await ensureQuota(request, project.organizationId, 'projects.count');
 
-    const duplicate = await store.duplicateProject({
-      projectId: project.id,
-      name: body.name,
-      slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    // Serialize quota-check + duplicate (projects.count TOCTOU); see /transfer.
+    const duplicate = await store.withSerializedMutation(`projects:${project.organizationId}`, async () => {
+      await ensureQuota(request, project.organizationId, 'projects.count');
+
+      return store.duplicateProject({
+        projectId: project.id,
+        name: body.name,
+        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      });
     });
 
     const sourceFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
@@ -14441,6 +14489,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       label: 'Before AI large change',
       files,
     });
+
+    /*
+     * Enforce the snapshots.sizeMb storage quota here too — this endpoint records
+     * sizeMb usage below but previously only gated on snapshots.count, so a tenant
+     * could blow past their storage cap by routing through before-ai-change.
+     * Mirror the primary POST /snapshots endpoint.
+     */
+    const snapshotSizeMb = Math.ceil((archive.byteLength ?? 0) / 1_048_576);
+
+    if (snapshotSizeMb > 0) {
+      await ensureQuota(request, project.organizationId, 'snapshots.sizeMb', snapshotSizeMb);
+    }
+
     await persistProjectArchiveObject(archive, { projectId: project.id, kind: 'before-ai-change' });
 
     const snapshot = await store.createSnapshot({
@@ -15403,9 +15464,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (organizationId && event.type === 'invoice.payment_failed') {
         const existing = await store.getSubscription(organizationId).catch(() => undefined);
 
+        /*
+         * Out-of-order guard (matches the customer.subscription.* branch above):
+         * a payment_failed that predates the last-processed event must NOT
+         * downgrade a since-recovered ACTIVE subscription. Without it a delayed
+         * retry of an old failure flips a healthy sub back to PAST_DUE. Stamp
+         * lastStripeEventAt on the downgrade so later events order against it.
+         */
+        const eventCreatedAt = Number.isFinite(Number(event.created))
+          ? new Date(Number(event.created) * 1000)
+          : undefined;
+        const isStaleByTimestamp = Boolean(
+          eventCreatedAt &&
+            existing?.lastStripeEventAt &&
+            eventCreatedAt.getTime() < new Date(existing.lastStripeEventAt).getTime(),
+        );
+
         // Also downgrade TRIALING: a failed trial-conversion payment must not leave
         // the org on paid entitlements if the follow-up subscription.updated drops.
-        if (existing && (existing.status === 'ACTIVE' || existing.status === 'TRIALING')) {
+        if (existing && !isStaleByTimestamp && (existing.status === 'ACTIVE' || existing.status === 'TRIALING')) {
           await store.upsertSubscription({
             organizationId,
             planKey: existing.planKey,
@@ -15414,6 +15491,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             cancelAtPeriodEnd: existing.cancelAtPeriodEnd,
             currentPeriodStart: existing.currentPeriodStart ? new Date(existing.currentPeriodStart) : undefined,
             currentPeriodEnd: existing.currentPeriodEnd ? new Date(existing.currentPeriodEnd) : undefined,
+            lastStripeEventAt: eventCreatedAt,
           });
         }
       }
@@ -17258,6 +17336,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const body = parse(scimUserSchema, request.body);
+
+    /*
+     * SCIM may only provision identities on domains the org has VERIFIED — the
+     * same rule the SAML ACS path enforces. Without it, a SCIM token holder
+     * could add ANY pre-existing VibeCore account to the org simply by sending
+     * that user's address as userName (account-grafting / cross-org access).
+     */
+    const emailDomain = body.userName.split('@')[1]?.toLowerCase();
+    const verifiedDomains = (await store.listDomainVerifications(orgId))
+      .filter((d) => Boolean(d.verifiedAt))
+      .map((d) => d.domain.toLowerCase());
+
+    if (!emailDomain || !verifiedDomains.includes(emailDomain)) {
+      return reply.code(403).send({
+        error: 'SCIM userName email domain is not a verified domain for this organization',
+        code: 'SCIM_EMAIL_DOMAIN_NOT_VERIFIED',
+      });
+    }
+
     const existing = await store.findUserByEmail(body.userName);
 
     const user =

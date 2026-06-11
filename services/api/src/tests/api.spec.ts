@@ -2203,6 +2203,13 @@ describe('SaaS API', () => {
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'scim-admin@example.com', organizationName: 'SCIM Org' });
     await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'team', status: 'ACTIVE' });
+    // SCIM now binds the provisioned email to a domain the org has verified (like SAML).
+    await store.createDomainVerification({
+      organizationId: auth.organization.id,
+      domain: 'example.com',
+      verificationToken: 'domain-tok',
+    });
+    await store.verifyDomain({ organizationId: auth.organization.id, domain: 'example.com' });
     await reauth(app, auth.token);
 
     const tokenResponse = await app.inject({
@@ -2228,6 +2235,17 @@ describe('SaaS API', () => {
     });
     expect(provision.statusCode).toBe(201);
     expect(await store.findUserByEmail('provisioned@example.com')).toBeTruthy();
+
+    // A userName on a domain the org has NOT verified must be rejected (no
+    // grafting arbitrary accounts into the org via SCIM).
+    const rejected = await app.inject({
+      method: 'POST',
+      url: `/scim/v2/${auth.organization.id}/Users`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { userName: 'outsider@unverified.com', active: true },
+    });
+    expect(rejected.statusCode).toBe(403);
+    expect(rejected.json().code).toBe('SCIM_EMAIL_DOMAIN_NOT_VERIFIED');
     await app.close();
   });
 

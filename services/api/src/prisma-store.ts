@@ -673,6 +673,15 @@ export class PrismaApiStore implements ApiStore {
            */
           await tx.projectCollaborator.deleteMany({ where: { projectId: input.projectId } });
 
+          /*
+           * Share links are bearer capability tokens minted for the SOURCE org.
+           * GET /collaboration/share-links/:token resolves them by token alone
+           * (only revokedAt/expiry, not org) and mints a fresh collaborator grant,
+           * so a leaked/outstanding link would re-grant cross-org access after the
+           * project moves. Revoke them all on transfer (target org re-issues).
+           */
+          await tx.projectShareLink.deleteMany({ where: { projectId: input.projectId } });
+
           return mapProject(
             await tx.project.update({
               where: { id: input.projectId },

@@ -7,6 +7,11 @@ metadata:
     cert-manager.io/cluster-issuer: {{ .Values.ingress.issuerName | quote }}
     nginx.ingress.kubernetes.io/proxy-read-timeout: {{ .Values.ingress.proxyReadTimeoutSeconds | default 180 | quote }}
     nginx.ingress.kubernetes.io/proxy-send-timeout: {{ .Values.ingress.proxySendTimeoutSeconds | default 180 | quote }}
+    # The API accepts request bodies up to 25 MB (API_BODY_LIMIT_BYTES — zip
+    # project imports, large file uploads). nginx's default proxy-body-size is
+    # 1 MB, which silently 413s those uploads before they reach Fastify. Raise the
+    # ingress limit to match (slightly above, for multipart overhead).
+    nginx.ingress.kubernetes.io/proxy-body-size: {{ .Values.ingress.proxyBodySize | default "26m" | quote }}
     # Cookie session affinity pins each browser to one web pod for the life of the
     # cookie. The frontend is a Vite/Remix build whose code is split into hashed
     # chunks served from each pod's local disk. During a RollingUpdate two builds
@@ -103,6 +108,8 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: {{ .Values.ingress.className | quote }}
     cert-manager.io/cluster-issuer: {{ .Values.ingress.issuerName | quote }}
+    # Match the -app limit so uploads to a running preview app aren't 413'd at 1 MB.
+    nginx.ingress.kubernetes.io/proxy-body-size: {{ .Values.ingress.proxyBodySize | default "26m" | quote }}
   labels:
     app.kubernetes.io/part-of: vibecore
 spec:
