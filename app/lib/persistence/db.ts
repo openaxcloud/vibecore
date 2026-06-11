@@ -320,6 +320,17 @@ export async function getSnapshot(db: IDBDatabase, chatId: string): Promise<Snap
   });
 }
 
+export async function getAllSnapshots(db: IDBDatabase): Promise<{ chatId: string; snapshot: Snapshot }[]> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('snapshots', 'readonly');
+    const store = transaction.objectStore('snapshots');
+    const request = store.getAll();
+
+    request.onsuccess = () => resolve((request.result ?? []) as { chatId: string; snapshot: Snapshot }[]);
+    request.onerror = () => reject(request.error);
+  });
+}
+
 export async function setSnapshot(db: IDBDatabase, chatId: string, snapshot: Snapshot): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('snapshots', 'readwrite');

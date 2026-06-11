@@ -1,6 +1,8 @@
 import { type Message } from 'ai';
 import Cookies from 'js-cookie';
 import { getAllChats, deleteChat } from '~/lib/persistence/chats';
+import { openDatabase, getAllSnapshots, setSnapshot, deleteSnapshot } from '~/lib/persistence/db';
+import type { Snapshot } from '~/lib/persistence/types';
 
 interface ExtendedMessage extends Message {
   name?: string;
@@ -156,7 +158,7 @@ export class ImportExportService {
         },
 
         // Chat snapshots (for chat history)
-        chatSnapshots: this._getChatSnapshots(),
+        chatSnapshots: await this._getChatSnapshots(),
 
         /*
          * Raw data (for debugging and complete backup). Deliberately redacted:
@@ -344,15 +346,27 @@ export class ImportExportService {
       await Promise.all(deletePromises);
     }
 
-    // 4. Clear any chat snapshots
-    const snapshotKeys = Object.keys(localStorage).filter((key) => key.startsWith('snapshot:'));
-    snapshotKeys.forEach((key) => {
-      try {
-        localStorage.removeItem(key);
-      } catch (err) {
-        console.error(`Error removing snapshot ${key}:`, err);
+    // 4. Clear any chat snapshots from IndexedDB (they migrated off localStorage).
+    try {
+      const rows = await getAllSnapshots(db);
+
+      for (const { chatId } of rows) {
+        await deleteSnapshot(db, chatId);
       }
-    });
+    } catch (err) {
+      console.error('Error clearing chat snapshots:', err);
+    }
+
+    // Also sweep any legacy localStorage snapshot:* keys left by old versions.
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith('snapshot:'))
+      .forEach((key) => {
+        try {
+          localStorage.removeItem(key);
+        } catch (err) {
+          console.error(`Error removing legacy snapshot ${key}:`, err);
+        }
+      });
   }
 
   /**
@@ -538,17 +552,26 @@ export class ImportExportService {
       }
     }
 
-    // Import chat snapshots
+    // Import chat snapshots into IndexedDB (where snapshots now live).
     if (data.chatSnapshots) {
-      Object.entries(data.chatSnapshots).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
+      const db = await openDatabase();
+
+      if (db) {
+        for (const [key, value] of Object.entries(data.chatSnapshots)) {
+          if (value === null || value === undefined) {
+            continue;
+          }
+
+          // Back-compat: older backups keyed snapshots as `snapshot:<chatId>`.
+          const chatId = key.startsWith('snapshot:') ? key.slice('snapshot:'.length) : key;
+
           try {
-            this._safeSetItem(key, value);
+            await setSnapshot(db, chatId, value as Snapshot);
           } catch (err) {
             console.error(`Error importing chat snapshot ${key}:`, err);
           }
         }
-      });
+      }
     }
   }
 
@@ -677,23 +700,33 @@ export class ImportExportService {
   }
 
   /**
-   * Get chat snapshots from localStorage
+   * Get chat snapshots from IndexedDB (keyed by chatId)
    * @returns Chat snapshots
    */
-  private static _getChatSnapshots(): Record<string, any> {
+  private static async _getChatSnapshots(): Promise<Record<string, any>> {
     const result: Record<string, any> = {};
 
-    // Get chat snapshots from localStorage
-    const snapshotKeys = Object.keys(localStorage).filter((key) => key.startsWith('snapshot:'));
-    snapshotKeys.forEach((key) => {
-      try {
-        const value = localStorage.getItem(key);
-        result[key] = value ? JSON.parse(value) : null;
-      } catch (err) {
-        console.error(`Error getting chat snapshot ${key}:`, err);
-        result[key] = null;
+    /*
+     * Snapshots live in IndexedDB's `snapshots` store (keyPath 'chatId'), not
+     * localStorage `snapshot:*` anymore. Reading the old location returned an
+     * EMPTY set, so every settings backup silently contained no snapshots. Read
+     * from IDB and key by chatId.
+     */
+    try {
+      const db = await openDatabase();
+
+      if (!db) {
+        return result;
       }
-    });
+
+      const rows = await getAllSnapshots(db);
+
+      for (const { chatId, snapshot } of rows) {
+        result[chatId] = snapshot;
+      }
+    } catch (err) {
+      console.error('Error getting chat snapshots from IndexedDB:', err);
+    }
 
     return result;
   }
