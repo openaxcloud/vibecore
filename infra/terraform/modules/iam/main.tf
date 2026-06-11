@@ -38,6 +38,20 @@ resource "google_project_iam_member" "node_monitoring" {
   member  = "serviceAccount:${each.value}"
 }
 
+# Read-only Artifact Registry access so the nodes can still PULL container images
+# once their OAuth scope is narrowed off cloud-platform to the GKE-default set
+# (devstorage.read_only). Additive + non-disruptive — apply this BEFORE the
+# node-pool scope change so image pulls never break.
+resource "google_project_iam_member" "node_artifact_registry_reader" {
+  for_each = toset([
+    google_service_account.app_gke_nodes.email,
+    google_service_account.workspaces_gke_nodes.email
+  ])
+  project = var.project_id
+  role    = "roles/artifactregistry.reader"
+  member  = "serviceAccount:${each.value}"
+}
+
 # workspace-manager talks to the kube-apiserver in-cluster using its mounted
 # ServiceAccount token, scoped by the namespaced RBAC Role
 # `workspace-manager-runtime` (infra/helm/workspaces-runtime/templates/rbac.yaml).
