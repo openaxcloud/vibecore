@@ -90,6 +90,18 @@ const RESERVED_WORKSPACE_ENV = new Set([
   'WORKSPACE_COMMAND_TIMEOUT_MS',
   'WORKSPACE_STREAM_TIMEOUT_MS',
   'WORKSPACE_DISABLE_SANDBOX_SCHEDULING',
+  /*
+   * The agent's bootstrap/runtime vars (set by the runtime image, not by the
+   * manager). A tenant project env var of the same name would be injected into
+   * the pod and override the image value: PORT/HOST would move the agent off
+   * the port the Service/probes expect (provisioning bricked); NODE_ENV could
+   * flip it out of production and downgrade requireProductionSecret's identity
+   * guard; SHELL would hijack the interactive terminal's shell. Reserve them.
+   */
+  'PORT',
+  'HOST',
+  'SHELL',
+  'NODE_ENV',
 ]);
 
 export interface WorkspaceRuntimeInput {

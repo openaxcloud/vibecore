@@ -26,19 +26,25 @@ async function githubJson<T>(token: string, path: string): Promise<T> {
 async function githubPaginated<T>(token: string, path: string): Promise<T[]> {
   const items: T[] = [];
 
-  let page = 1;
+  /*
+   * Bound the sequential blocking fan-out: an account/org with thousands of
+   * repos/gists could otherwise pin the request through dozens of serial GitHub
+   * fetches (and blow the rate budget). 20 pages × 100 = 2000 items is plenty
+   * for a stats summary.
+   */
+  const MAX_PAGES = 20;
 
-  while (true) {
+  for (let page = 1; page <= MAX_PAGES; page += 1) {
     const separator = path.includes('?') ? '&' : '?';
     const pageItems = await githubJson<T[]>(token, `${path}${separator}per_page=100&page=${page}`);
     items.push(...pageItems);
 
     if (pageItems.length < 100) {
-      return items;
+      break;
     }
-
-    page += 1;
   }
+
+  return items;
 }
 
 async function githubCount(token: string, path: string): Promise<number> {

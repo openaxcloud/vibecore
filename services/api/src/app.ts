@@ -14612,6 +14612,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+    // A suspended org must not keep consuming snapshot storage/quota.
+    await requireOrganizationNotSuspended(store, project.organizationId);
 
     const body = parse(createSnapshotSchema, request.body);
 
