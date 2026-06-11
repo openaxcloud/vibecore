@@ -7636,6 +7636,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         'user-agent': 'e-code-api',
         'x-github-api-version': '2022-11-28',
       },
+      // Bound the outbound call so a stalled GitHub response can't pin an api
+      // worker indefinitely (no global undici fetch timeout is configured).
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {
@@ -7690,6 +7693,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           'user-agent': 'e-code-api',
           'x-github-api-version': '2022-11-28',
         },
+        signal: AbortSignal.timeout(15_000),
       },
     );
 
@@ -7859,6 +7863,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         ...(method !== 'GET' && body.body ? { 'content-type': 'application/json' } : {}),
       },
       body: method !== 'GET' && body.body ? JSON.stringify(body.body) : undefined,
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {
@@ -16965,6 +16970,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             level: 'info',
             message: `Static deploy: snapshot stored at ${staticDeploymentSnapshotDir(queued.id)}`,
           });
+
+          /*
+           * The static build runs outside any lock, so a concurrent
+           * POST /deployments/:id/cancel can flip this deploy to CANCELED while
+           * it ran. The serve path already 404s a canceled deploy, but the
+           * snapshot we just wrote would otherwise linger on disk forever —
+           * discard it when the deploy was canceled mid-build.
+           */
+          const ownerStatus = await store.getDeploymentOwnerStatus(queued.id).catch(() => undefined);
+
+          if (ownerStatus?.status === 'CANCELED') {
+            await removeStaticDeploymentSnapshot(queued.id).catch(() => undefined);
+            staticBuildLogs.push({
+              timestamp: new Date().toISOString(),
+              level: 'info',
+              message: 'Static deploy: deployment was canceled mid-build; snapshot discarded.',
+            });
+          }
         } catch (error) {
           staticBuildFailed = true;
 
