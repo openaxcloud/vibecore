@@ -190,6 +190,15 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
           ports: [{ containerPort: 8080, name: 'agent' }],
           env: [
             { name: 'WORKSPACE_ROOT', value: '/workspace' },
+            /*
+             * WORKSPACE_ID is platform-reserved (the agent reads its identity from
+             * process.env.WORKSPACE_ID), so it is filtered out of the manager/user
+             * env below to stop a tenant spoofing it. Re-inject the authoritative
+             * value here — exactly like WORKSPACE_ROOT — otherwise the reserved
+             * filter strips the manager's own WORKSPACE_ID and the agent boots
+             * with no identity (workspace provisioning broken).
+             */
+            { name: 'WORKSPACE_ID', value: input.workspaceId },
             {
               name: 'WORKSPACE_AGENT_TOKEN_SECRET',
               valueFrom: { secretKeyRef: { name: input.agentTokenSecretName, key: 'tokenSecret' } },
