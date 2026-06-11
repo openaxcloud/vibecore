@@ -23,7 +23,7 @@ export interface WorkspaceAgentOptions {
   maxProcesses?: number;
 }
 
-interface ProcessRecord {
+export interface ProcessRecord {
   id: string;
   command: string;
   startedAt: string;
@@ -1604,7 +1604,7 @@ async function runCommandStream(
   });
 }
 
-type DetectedPort = { port: number; processId: string };
+export type DetectedPort = { port: number; processId: string };
 
 /*
  * Authoritative port detection: read the kernel's listening TCP sockets from /proc/net/tcp(6) and
@@ -1782,7 +1782,13 @@ async function parentPid(pid: number): Promise<number | undefined> {
   }
 }
 
-function detectPortsFromOutput(processes: Map<string, ProcessRecord>): DetectedPort[] {
+/*
+ * Exported for unit testing: the /proc-based detectPorts() path preempts this
+ * heuristic on Linux (incl. CI runners, which are shared hosts whose /proc
+ * exposes unrelated listening sockets), so the output-parsing logic can only be
+ * exercised deterministically by calling it directly.
+ */
+export function detectPortsFromOutput(processes: Map<string, ProcessRecord>): DetectedPort[] {
   return [...processes.values()].flatMap((record) => {
     const source = `${record.command}\n${record.output ?? ''}`;
 
