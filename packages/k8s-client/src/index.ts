@@ -9,7 +9,22 @@ const execFile = promisify(execFileCallback);
 export type WorkspacePlan = 'free' | 'pro' | 'enterprise';
 
 // Platform-owned pod env names that user project env/secrets must never override.
-const RESERVED_WORKSPACE_ENV = new Set(['WORKSPACE_ROOT', 'WORKSPACE_AGENT_TOKEN_SECRET']);
+// Platform/agent-control env names user project env/secrets must never set. Beyond
+// the two the pod spec injects, the workspace-agent reads these resource-limit /
+// control vars and falls back to in-agent defaults when unset — so a user env var
+// would be the ONLY value, letting a tenant raise their own process/file/output
+// caps and timeouts (resource abuse). Reserve the agent-control namespace.
+const RESERVED_WORKSPACE_ENV = new Set([
+  'WORKSPACE_ROOT',
+  'WORKSPACE_AGENT_TOKEN_SECRET',
+  'WORKSPACE_ID',
+  'WORKSPACE_MAX_PROCESSES',
+  'WORKSPACE_MAX_OUTPUT_BYTES',
+  'WORKSPACE_MAX_FILE_BYTES',
+  'WORKSPACE_COMMAND_TIMEOUT_MS',
+  'WORKSPACE_STREAM_TIMEOUT_MS',
+  'WORKSPACE_DISABLE_SANDBOX_SCHEDULING',
+]);
 
 export interface WorkspaceRuntimeInput {
   namespace: string;

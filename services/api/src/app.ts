@@ -10500,9 +10500,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (authorized.organizationId) {
       const organizationId = authorized.organizationId;
-      await ensureQuota(request, organizationId, 'terminals.concurrent');
-      await recordUsage(request, organizationId, 'terminals.concurrent', 1, {
-        workspaceId: authorized.workspaceId,
+      /*
+       * Serialize the concurrency check + the +1 so two concurrent terminal opens
+       * can't both pass ensureQuota via TOCTOU and exceed terminals.concurrent.
+       */
+      await store.withSerializedMutation(`terminals:${organizationId}`, async () => {
+        await ensureQuota(request, organizationId, 'terminals.concurrent');
+        await recordUsage(request, organizationId, 'terminals.concurrent', 1, {
+          workspaceId: authorized.workspaceId,
+        });
       });
 
       /*
@@ -16999,6 +17005,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * triggerProviderRollback below stays outside it to avoid holding the
      * advisory-lock transaction across a network call.
      */
+    /*
+     * When a provider rollback will run, create the row as non-terminal (QUEUED)
+     * so it can later transition to READY (success) or FAILED (failure). Creating
+     * it as READY up-front meant the monotonic updateDeployment guard
+     * (notIn READY/FAILED/CANCELED) blocked the failure transition, leaving a
+     * failed provider rollback looking successful. Non-provider rollbacks have no
+     * follow-up call, so READY immediately is correct for them.
+     */
+    const willTriggerProviderRollback = deploymentProviders.includes(
+      target.provider as (typeof deploymentProviders)[number],
+    );
+
     const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
       await ensureQuota(request, project.organizationId, 'deployments.count');
 
@@ -17007,7 +17025,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         workspaceId: target.workspaceId,
         provider: target.provider,
         environment: target.environment,
-        status: 'READY',
+        status: willTriggerProviderRollback ? 'QUEUED' : 'READY',
         url: target.url,
         previewUrl: target.previewUrl,
         productionUrl: target.productionUrl,
@@ -17034,7 +17052,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         ],
       });
     });
-    const providerRollback = deploymentProviders.includes(target.provider as (typeof deploymentProviders)[number])
+    const providerRollback = willTriggerProviderRollback
       ? await triggerProviderRollback(
           target.provider as (typeof deploymentProviders)[number],
           (target.metadata as Record<string, unknown>)?.providerBuildId as string | undefined,
@@ -17045,7 +17063,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (providerRollback) {
       finalDeployment = await store.updateDeployment(project.id, rollback.id, {
-        status: providerRollback.status === 'failed' ? 'FAILED' : rollback.status,
+        // QUEUED → READY on success / FAILED on failure (allowed by the monotonic guard).
+        status: providerRollback.status === 'failed' ? 'FAILED' : 'READY',
         logs: [
           ...rollback.logs,
           {
