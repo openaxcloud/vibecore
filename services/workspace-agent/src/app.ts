@@ -128,6 +128,18 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       return;
     }
 
+    /*
+     * Fail CLOSED in production when the agent has no workspace identity. The token
+     * binding check in verifyAgentToken is `!workspaceId || parsed.workspaceId ===
+     * workspaceId`, so an unset workspaceId DISABLES the per-workspace binding and a
+     * token minted for ANY workspace would be accepted. The manager always injects
+     * WORKSPACE_ID (k8s-client), so this only fires on a misconfig — reject rather
+     * than silently fall open. Dev/local (no WORKSPACE_ID) stays lenient.
+     */
+    if (!workspaceId && process.env.NODE_ENV === 'production') {
+      return reply.code(503).send({ error: 'workspace identity not configured' });
+    }
+
     const token = readBearerToken(request);
     const verified = token ? verifyAgentToken(token, tokenSecret, workspaceId) : false;
 

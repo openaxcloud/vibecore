@@ -112,7 +112,12 @@ export class ByzantineConsensus implements ConsensusEngine {
     const opinionVotes = finalVotes.filter((v) => v.type !== 'file');
     const agreementScore =
       opinionVotes.length === 0
-        ? 0
+        ? // File-only run: nothing is contested (each role owns its files), so report
+          // FULL agreement when at least one vote was accepted rather than a misleading
+          // 0 alongside an ACCEPTED/PARTIAL outcome. Matches quorum.ts.
+          finalVotes.some((v) => v.decision === 'accepted')
+          ? 1
+          : 0
         : opinionVotes.reduce((sum, vote) => sum + vote.agreementRatio, 0) / opinionVotes.length;
 
     const outcome: ConsensusOutcome =

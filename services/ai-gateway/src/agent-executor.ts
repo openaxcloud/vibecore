@@ -290,6 +290,22 @@ function validateRole(value: unknown): AgentRunRole | undefined {
     return undefined;
   }
 
+  /*
+   * Cap each role string. maxAgentInputCharacters bounds the `messages` array but
+   * NOT these per-role fields, so a request could smuggle megabytes of text through
+   * title/responsibility/output (memory + prompt-size blowup, cost). 8k chars is
+   * generous for a role description.
+   */
+  const MAX_ROLE_FIELD_CHARS = 8000;
+
+  if (
+    value.title.length > MAX_ROLE_FIELD_CHARS ||
+    value.responsibility.length > MAX_ROLE_FIELD_CHARS ||
+    value.output.length > MAX_ROLE_FIELD_CHARS
+  ) {
+    return undefined;
+  }
+
   return {
     id: value.id as AgentRoleId,
     title: value.title,

@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { StringDecoder } from 'node:string_decoder';
 
 /*
  * Real, persistent terminal sessions for the workspace agent.
@@ -197,8 +198,20 @@ function createPipeBackend(
   const dataListeners: Array<(chunk: string) => void> = [];
   const exitListeners: Array<(exitCode: number) => void> = [];
 
+  /*
+   * Decode through a StringDecoder, not chunk.toString(): a multi-byte UTF-8
+   * sequence (emoji/CJK/accented chars, common in dev-server output and CLI
+   * spinners) that straddles a chunk boundary would otherwise be mangled into
+   * replacement chars. StringDecoder buffers the incomplete tail across chunks.
+   */
+  const outputDecoder = new StringDecoder('utf8');
+
   const emit = (chunk: Buffer) => {
-    const text = chunk.toString();
+    const text = outputDecoder.write(chunk);
+
+    if (!text) {
+      return;
+    }
 
     for (const listener of dataListeners) {
       listener(text);

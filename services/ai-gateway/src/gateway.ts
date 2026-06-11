@@ -539,10 +539,52 @@ async function* providerStream(
   let buffer = '';
 
   try {
+    const parseLine = (rawLine: string): string => {
+      const line = rawLine.trim();
+
+      if (!line || line === 'data: [DONE]') {
+        return '';
+      }
+
+      const jsonLine = line.startsWith('data:') ? line.slice(5).trim() : line;
+
+      try {
+        const payload = JSON.parse(jsonLine);
+
+        return (
+          payload.choices?.[0]?.delta?.content ??
+          payload.delta?.text ??
+          payload.contentBlockDelta?.delta?.text ??
+          payload.candidates?.[0]?.content?.parts?.map((part: any) => part.text ?? '').join('') ??
+          payload.message?.content ??
+          ''
+        );
+      } catch {
+        // A malformed SSE chunk is not assistant content — yielding the raw JSON would
+        // splice literal `{"choices":...}` text into the streamed message. Skip it.
+        return '';
+      }
+    };
+
     while (true) {
       const { value, done } = await reader.read();
 
       if (done) {
+        /*
+         * Flush the decoder and process the trailing partial line. A provider that
+         * sends its LAST SSE event without a terminating newline left that event
+         * (often the final content delta) stuck in `buffer` and silently dropped.
+         */
+        buffer += decoder.decode();
+
+        if (buffer.trim()) {
+          const delta = parseLine(buffer);
+
+          if (delta) {
+            yield delta;
+          }
+        }
+
         break;
       }
 
@@ -551,30 +593,10 @@ async function* providerStream(
       buffer = lines.pop() ?? '';
 
       for (const rawLine of lines) {
-        const line = rawLine.trim();
+        const delta = parseLine(rawLine);
 
-        if (!line || line === 'data: [DONE]') {
-          continue;
-        }
-
-        const jsonLine = line.startsWith('data:') ? line.slice(5).trim() : line;
-        try {
-          const payload = JSON.parse(jsonLine);
-          const delta =
-            payload.choices?.[0]?.delta?.content ??
-            payload.delta?.text ??
-            payload.contentBlockDelta?.delta?.text ??
-            payload.candidates?.[0]?.content?.parts?.map((part: any) => part.text ?? '').join('') ??
-            payload.message?.content ??
-            '';
-
-          if (delta) {
-            yield delta;
-          }
-        } catch {
-          // A malformed SSE chunk is not assistant content — yielding the raw JSON would
-          // splice literal `{"choices":...}` text into the streamed message. Skip it.
-          continue;
+        if (delta) {
+          yield delta;
         }
       }
     }
@@ -686,7 +708,10 @@ export class AiGateway {
       request.provider ?? selectedModel.provider,
       ...((process.env.AI_FALLBACK_PROVIDERS?.split(',').filter(Boolean) as AiProviderId[] | undefined) ?? []),
     ];
-    const providers = providerIds
+    // Dedup: if the primary provider is also listed in AI_FALLBACK_PROVIDERS, the
+    // same provider would otherwise be retried back-to-back (wasted call + double
+    // cost) instead of falling through to a genuinely different fallback.
+    const providers = [...new Set(providerIds)]
       .map((providerId) => providerConfigs().find((config) => config.id === providerId))
       .filter((config): config is ProviderConfig => Boolean(config))
       .filter(configured);
