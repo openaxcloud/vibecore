@@ -1,5 +1,5 @@
 import { execFile as execFileCallback } from 'node:child_process';
-import { access, link, mkdir, readFile, readdir, rm, stat, unlink, writeFile } from 'node:fs/promises';
+import { access, link, mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { dirname, join, normalize, relative } from 'node:path';
 import { promisify } from 'node:util';
@@ -268,7 +268,13 @@ function safeProjectPath(projectId: string, filePath = '') {
  */
 const PROJECT_MUTATION_QUEUE = new Map<string, Promise<unknown>>();
 const PROJECT_LOCK_OWNER = `${hostname()}-${process.pid}`;
-const PROJECT_LOCK_STALE_MS = 90_000;
+/*
+ * Must exceed the longest single locked operation, else a legitimately-running
+ * git op gets its lock declared stale and stolen mid-flight (concurrent writers
+ * on one working tree → index.lock collisions / corrupt refs). git network ops
+ * run with a 120s execFile timeout, so keep this comfortably above that.
+ */
+const PROJECT_LOCK_STALE_MS = 180_000;
 const PROJECT_LOCK_ACQUIRE_TIMEOUT_MS = 60_000;
 const PROJECT_LOCK_RETRY_BASE_MS = 25;
 const PROJECT_LOCK_RETRY_MAX_MS = 500;
@@ -288,12 +294,13 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
   await mkdir(root, { recursive: true });
 
   const lockPath = join(root, `${projectId}.lock`);
-  const sentinelPath = join(
-    root,
-    `${projectId}.${PROJECT_LOCK_OWNER}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`,
-  );
+  // Unique per-acquire fencing token, stored as the lock file's content (the
+  // sentinel is hardlinked to lockPath). Lets release verify the lock is still
+  // OURS before deleting it, and tags any stale-steal we perform.
+  const lockToken = `${PROJECT_LOCK_OWNER}.${Date.now()}.${Math.random().toString(36).slice(2)}`;
+  const sentinelPath = join(root, `${projectId}.${lockToken}.tmp`);
 
-  await writeFile(sentinelPath, `${PROJECT_LOCK_OWNER}\n${new Date().toISOString()}\n`, 'utf8');
+  await writeFile(sentinelPath, `${lockToken}\n${new Date().toISOString()}\n`, 'utf8');
 
   const startedAt = Date.now();
 
@@ -303,7 +310,17 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
       await unlink(sentinelPath).catch(() => undefined);
 
       return async () => {
-        await unlink(lockPath).catch(() => undefined);
+        /*
+         * Only release the lock if it is still OURS. The previous unconditional
+         * unlink could delete a DIFFERENT replica's live lock if ours had been
+         * stale-reclaimed in the meantime. Compare the fencing token in the lock
+         * file's content; a missing file (already gone) is a no-op.
+         */
+        const current = await readFile(lockPath, 'utf8').catch(() => '');
+
+        if (current.startsWith(lockToken)) {
+          await unlink(lockPath).catch(() => undefined);
+        }
       };
     } catch (error) {
       const code = (error as NodeJS.ErrnoException).code;
@@ -315,7 +332,21 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
 
       const stats = await stat(lockPath).catch(() => undefined);
       if (stats && Date.now() - stats.mtimeMs > PROJECT_LOCK_STALE_MS) {
-        await unlink(lockPath).catch(() => undefined);
+        /*
+         * Atomic stale-steal: rename (not unlink) the stale lock to a unique
+         * path so only ONE concurrent reclaimer wins. Losing reclaimers' rename
+         * fails (source already gone) and they fall through to retry/wait — so
+         * two replicas can't both delete the lock and both proceed.
+         */
+        const stolenPath = `${lockPath}.stale.${lockToken}`;
+        const reclaimed = await rename(lockPath, stolenPath)
+          .then(() => true)
+          .catch(() => false);
+
+        if (reclaimed) {
+          await unlink(stolenPath).catch(() => undefined);
+        }
+
         continue;
       }
 
