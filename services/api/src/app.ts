@@ -81,6 +81,7 @@ import {
   staticDeploymentSnapshotDir,
   triggerProviderDeployHook,
   triggerProviderRollback,
+  providerRollbackProviders,
   createDeploymentSchema,
   deploymentProviders,
   detectFramework,
@@ -9994,6 +9995,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeCommandSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
+    /*
+     * This synchronous endpoint is a shell-exec path just like /commands/stream
+     * and /terminal, so it must honor the same per-project terminal-revocation
+     * model — requireProject('workspaces:write') only blocks read-only roles, so
+     * without this an editor/member whose terminal access was explicitly revoked
+     * could still run arbitrary commands here.
+     */
+    if (await isTerminalAccessRevoked(authorized, request)) {
+      throw Object.assign(new Error('Terminal access is restricted for this project role'), {
+        statusCode: 403,
+        code: 'TERMINAL_ACCESS_DENIED',
+      });
+    }
+
     const signal = detectCommandAbuse(body.command, body.args);
 
     if (signal) {
@@ -10467,8 +10483,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * denied unless explicitly granted, everyone else allowed unless explicitly
    * revoked. Returns true (and closes the socket) when access is denied.
    */
-  const denyTerminalSocketIfRevoked = async (
-    socket: unknown,
+  /*
+   * Shared terminal-permission check used by EVERY shell-exec path (the two
+   * WebSocket sockets AND the synchronous POST /commands). Returns true when the
+   * caller's terminal access is revoked for this project: read-only roles need an
+   * explicit allow, everyone else is denied only on an explicit deny.
+   */
+  const isTerminalAccessRevoked = async (
     authorized: { projectId: string },
     request: FastifyRequest,
   ): Promise<boolean> => {
@@ -10484,7 +10505,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         : {};
 
     const entry = permissions[request.currentUser!.id];
-    const denied = isReadOnlyProjectRole(role) ? entry?.allowed !== true : entry?.allowed === false;
+
+    return isReadOnlyProjectRole(role) ? entry?.allowed !== true : entry?.allowed === false;
+  };
+
+  const denyTerminalSocketIfRevoked = async (
+    socket: unknown,
+    authorized: { projectId: string },
+    request: FastifyRequest,
+  ): Promise<boolean> => {
+    const denied = await isTerminalAccessRevoked(authorized, request);
 
     if (denied) {
       const client = normalizeRuntimeApiWebSocket(socket);
@@ -17051,8 +17081,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * failed provider rollback looking successful. Non-provider rollbacks have no
      * follow-up call, so READY immediately is correct for them.
      */
-    const willTriggerProviderRollback = deploymentProviders.includes(
-      target.provider as (typeof deploymentProviders)[number],
+    const willTriggerProviderRollback = providerRollbackProviders.includes(
+      target.provider as (typeof providerRollbackProviders)[number],
     );
 
     const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {

@@ -14,6 +14,16 @@ export const deploymentProviders = [
   'docker',
 ] as const;
 
+/*
+ * The subset of providers for which triggerProviderRollback() actually performs
+ * an async follow-up call (so the rollback row must start QUEUED and transition
+ * later). Every OTHER provider — static (in-process), github-pages,
+ * google-cloud-run, docker — has no follow-up, so its rollback must be created
+ * READY immediately; otherwise it sits QUEUED forever (the monotonic status
+ * guard never flips it) and the in-flight lock blocks all new deploys for ~40min.
+ */
+export const providerRollbackProviders = ['vercel', 'netlify', 'cloudflare-pages'] as const;
+
 const deploymentSecretKeyPattern = /(SECRET|TOKEN|PASSWORD|PRIVATE[_-]?KEY|API[_-]?KEY|CREDENTIAL|WEBHOOK)/i;
 
 const dangerousBuildPatterns = [

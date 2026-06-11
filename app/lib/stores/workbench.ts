@@ -2381,12 +2381,23 @@ export class WorkbenchStore {
   }
 
   async #persistRuntimeFilesToProjectStorage(artifactId: string) {
-    if (!this.#projectId) {
+    /*
+     * Capture projectId + runtime as a consistent snapshot up-front. This is a
+     * long async flow (collect files, zip) and WorkbenchStore is a singleton
+     * whose #projectId/#runtime flip synchronously on a project switch. Re-reading
+     * the LIVE this.#projectId at the destructive replaceExisting POST below meant
+     * a switch mid-flow sent one project's files to ANOTHER project's storage,
+     * overwriting it. Bind both here and use the captured pair throughout.
+     */
+    const projectId = this.#projectId;
+    const runtime = this.#runtime;
+
+    if (!projectId) {
       return;
     }
 
     try {
-      const files = await collectRuntimeTextFiles(this.#runtime, '.', {
+      const files = await collectRuntimeTextFiles(runtime, '.', {
         excludeDirectory: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES.has(name),
         excludeFile: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_FILES.has(name),
       });
@@ -2418,7 +2429,7 @@ export class WorkbenchStore {
         return;
       }
 
-      const response = await fetch(`/api/projects/${encodeURIComponent(this.#projectId)}/files/import/zip`, {
+      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/import/zip`, {
         method: 'POST',
         credentials: 'include',
         headers: {

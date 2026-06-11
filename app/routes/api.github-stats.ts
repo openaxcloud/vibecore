@@ -65,7 +65,7 @@ async function githubCount(token: string, path: string): Promise<number> {
   return Array.isArray(data) ? data.length : 0;
 }
 
-async function githubStatsLoader({ request, context }: { request: Request; context: any }) {
+async function githubStatsLoader({ request }: { request: Request; context?: unknown }) {
   try {
     /*
      * First try the UserConnection-backed flow: the API service decrypts
@@ -83,19 +83,17 @@ async function githubStatsLoader({ request, context }: { request: Request; conte
     }
 
     /*
-     * Legacy fallback: pull a GitHub PAT from cookies / env so existing
-     * builders keep seeing their stats until they reconnect through OAuth.
+     * Legacy fallback: pull a GitHub PAT from the CALLER's cookies only so
+     * existing builders keep seeing their stats until they reconnect through
+     * OAuth. The server credential (context env / process.env GITHUB_TOKEN) must
+     * NOT be used here: this loader is unauthenticated (withSecurity, no auth),
+     * so falling back to the platform token would let any anonymous caller read
+     * the platform account's repos/orgs/profile through this endpoint.
      */
     const cookieHeader = request.headers.get('Cookie');
     const apiKeys = getApiKeysFromCookie(cookieHeader);
 
-    const githubToken =
-      apiKeys.GITHUB_API_KEY ||
-      apiKeys.VITE_GITHUB_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.GITHUB_TOKEN ||
-      context?.cloudflare?.env?.VITE_GITHUB_ACCESS_TOKEN ||
-      process.env.GITHUB_TOKEN ||
-      process.env.VITE_GITHUB_ACCESS_TOKEN;
+    const githubToken = apiKeys.GITHUB_API_KEY || apiKeys.VITE_GITHUB_ACCESS_TOKEN;
 
     if (!githubToken) {
       return json({ error: 'GitHub token not found' }, { status: 401 });

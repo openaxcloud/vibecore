@@ -220,6 +220,32 @@ export function assertNoLocalMcpServers(mcpServers: Record<string, unknown>): vo
  * for user-supplied remote MCP server URLs (SSRF). Hostname-based; DNS-rebinding
  * is out of scope here (the connecting side would need a resolve+recheck).
  */
+/*
+ * Fold an IPv4-mapped IPv6 literal to its dotted-quad IPv4 so the private-range
+ * checks below catch it. The WHATWG URL parser normalizes `[::ffff:127.0.0.1]`
+ * to the HEX form `::ffff:7f00:1` (and `[::ffff:169.254.169.254]` to
+ * `::ffff:a9fe:a9fe`), which matches none of the dotted regexes — a trivial
+ * SSRF-guard bypass. Handle both the hex and the (rarer) dotted ::ffff: forms.
+ */
+function foldIpv4MappedIpv6(host: string): string | undefined {
+  const dotted = host.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+
+  if (dotted) {
+    return dotted[1];
+  }
+
+  const hex = host.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+
+  if (hex) {
+    const hi = parseInt(hex[1], 16);
+    const lo = parseInt(hex[2], 16);
+
+    return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+  }
+
+  return undefined;
+}
+
 export function isBlockedMcpUrl(rawUrl: string): boolean {
   let url: URL;
 
@@ -239,24 +265,29 @@ export function isBlockedMcpUrl(rawUrl: string): boolean {
     return true;
   }
 
-  if (
-    host === 'localhost' ||
-    host === '0.0.0.0' ||
-    host === '::1' ||
-    host === '::' ||
-    host.endsWith('.localhost') ||
-    host.endsWith('.internal') ||
-    host.endsWith('.local') ||
-    /^127\./.test(host) ||
-    /^10\./.test(host) ||
-    /^192\.168\./.test(host) ||
-    /^169\.254\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
-    /^f[cd][0-9a-f]{0,2}:/.test(host) ||
-    /^fe[89ab][0-9a-f]:/.test(host)
-  ) {
-    return true;
+  // Check the IPv4-mapped IPv6 folded form against the dotted private ranges too.
+  const candidates = [host, foldIpv4MappedIpv6(host)].filter((value): value is string => Boolean(value));
+
+  for (const candidate of candidates) {
+    if (
+      candidate === 'localhost' ||
+      candidate === '0.0.0.0' ||
+      candidate === '::1' ||
+      candidate === '::' ||
+      candidate.endsWith('.localhost') ||
+      candidate.endsWith('.internal') ||
+      candidate.endsWith('.local') ||
+      /^127\./.test(candidate) ||
+      /^10\./.test(candidate) ||
+      /^192\.168\./.test(candidate) ||
+      /^169\.254\./.test(candidate) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(candidate) ||
+      /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(candidate) ||
+      /^f[cd][0-9a-f]{0,2}:/.test(candidate) ||
+      /^fe[89ab][0-9a-f]:/.test(candidate)
+    ) {
+      return true;
+    }
   }
 
   return false;
