@@ -919,12 +919,14 @@ export default function NetlifyConnection() {
                 <div className="i-ph:arrow-square-out w-4 h-4" />
               </a>
             </div>
-            {/* Debug info - remove this later */}
-            <div className="mt-2 text-xs text-gray-500">
-              <p>Debug: Token present: {connection.token ? '✅' : '❌'}</p>
-              <p>Debug: User present: {connection.user ? '✅' : '❌'}</p>
-              <p>Debug: Env token: {import.meta.env?.VITE_NETLIFY_ACCESS_TOKEN ? '✅' : '❌'}</p>
-            </div>
+            {/* Debug info — dev-only (was leaking internal token state into the prod UI). */}
+            {import.meta.env?.DEV && (
+              <div className="mt-2 text-xs text-gray-500">
+                <p>Debug: Token present: {connection.token ? '✅' : '❌'}</p>
+                <p>Debug: User present: {connection.user ? '✅' : '❌'}</p>
+                <p>Debug: Env token: {import.meta.env?.VITE_NETLIFY_ACCESS_TOKEN ? '✅' : '❌'}</p>
+              </div>
+            )}
             <div className="flex gap-2 mt-4">
               <button
                 onClick={handleConnect}
@@ -950,16 +952,18 @@ export default function NetlifyConnection() {
                 )}
               </button>
 
-              {/* Debug button - remove this later */}
-              <button
-                onClick={async () => {
-                  console.log('Manual Netlify auto-connect test');
-                  await initializeNetlifyConnection();
-                }}
-                className="px-3 py-2 rounded-lg text-xs bg-blue-500 text-white hover:bg-blue-600"
-              >
-                Test Auto-Connect
-              </button>
+              {/* Debug button — dev-only (was shipped in the production settings UI). */}
+              {import.meta.env?.DEV && (
+                <button
+                  onClick={async () => {
+                    console.log('Manual Netlify auto-connect test');
+                    await initializeNetlifyConnection();
+                  }}
+                  className="px-3 py-2 rounded-lg text-xs bg-blue-500 text-white hover:bg-blue-600"
+                >
+                  Test Auto-Connect
+                </button>
+              )}
             </div>
           </div>
         ) : (
