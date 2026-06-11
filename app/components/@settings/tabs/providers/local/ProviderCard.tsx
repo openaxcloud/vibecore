@@ -74,6 +74,7 @@ function ProviderCard({
                   {isEditing ? (
                     <input
                       type="text"
+                      aria-label={`${provider.name} API endpoint base URL`}
                       defaultValue={provider.settings.baseUrl}
                       placeholder={`Enter ${provider.name} base URL`}
                       className="w-full px-4 py-3 rounded-lg text-sm bg-bolt-elements-background-depth-4 border border-purple-500/30 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all duration-200 shadow-sm"

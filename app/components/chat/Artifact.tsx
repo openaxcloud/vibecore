@@ -124,6 +124,10 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
           <AnimatePresence>
             {actions.length > 0 && artifact.type !== 'bundled' && (
               <motion.button
+                type="button"
+                aria-label={showActions ? 'Hide actions' : 'Show actions'}
+                aria-expanded={showActions}
+                title={showActions ? 'Hide actions' : 'Show actions'}
                 initial={{ width: 0 }}
                 animate={{ width: 'auto' }}
                 exit={{ width: 0 }}
@@ -132,7 +136,7 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
                 onClick={toggleActions}
               >
                 <div className="p-4">
-                  <div className={showActions ? 'i-ph:caret-up-bold' : 'i-ph:caret-down-bold'}></div>
+                  <div className={showActions ? 'i-ph:caret-up-bold' : 'i-ph:caret-down-bold'} aria-hidden="true"></div>
                 </div>
               </motion.button>
             )}

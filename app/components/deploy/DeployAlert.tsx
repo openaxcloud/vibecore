@@ -130,7 +130,7 @@ export default function DeployChatAlert({ alert, clearAlert, postMessage }: Depl
               )}
 
               {content && (
-                <div className="text-xs text-bolt-elements-textSecondary p-2 bg-bolt-elements-background-depth-3 rounded mt-4 mb-4">
+                <div className="text-xs text-bolt-elements-textSecondary p-2 bg-bolt-elements-background-depth-3 rounded mt-4 mb-4 whitespace-pre-wrap break-words overflow-x-hidden max-h-48 overflow-y-auto">
                   {content}
                 </div>
               )}

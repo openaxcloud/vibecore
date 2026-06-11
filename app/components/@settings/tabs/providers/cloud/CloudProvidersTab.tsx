@@ -242,6 +242,7 @@ const CloudProvidersTab = () => {
                         {editingProvider === provider.name ? (
                           <input
                             type="text"
+                            aria-label={`${provider.name} base URL`}
                             defaultValue={provider.settings.baseUrl}
                             placeholder={`Enter ${provider.name} base URL`}
                             className={classNames(

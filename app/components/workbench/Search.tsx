@@ -242,6 +242,7 @@ export function Search() {
           <button
             type="button"
             aria-label="Toggle case sensitive search"
+            aria-pressed={caseSensitive}
             title="Match case"
             onClick={() => setCaseSensitive((value) => !value)}
             className={`h-7 rounded px-2 text-xs ${caseSensitive ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent' : 'text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3'}`}
@@ -251,6 +252,7 @@ export function Search() {
           <button
             type="button"
             aria-label="Toggle regular expression search"
+            aria-pressed={isRegex}
             title="Use regular expression"
             onClick={() => setIsRegex((value) => !value)}
             className={`h-7 rounded px-2 text-xs ${isRegex ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent' : 'text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3'}`}

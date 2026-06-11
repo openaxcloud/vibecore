@@ -268,6 +268,7 @@ export default function FeaturesTab() {
             </p>
           </div>
           <select
+            aria-label="Prompt library"
             value={promptId}
             onChange={(e) => {
               setPromptId(e.target.value);
