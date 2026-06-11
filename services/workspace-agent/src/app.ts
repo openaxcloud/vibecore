@@ -172,6 +172,17 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       throw Object.assign(new Error('Path is a directory'), { statusCode: 400, code: 'EISDIR' });
     }
 
+    /*
+     * Only read regular files. A FIFO/named pipe reports size 0 (passing the
+     * size cap) and isDirectory() === false, so without this check readFile()
+     * would block a libuv thread-pool worker forever waiting for a writer that
+     * never comes — a trivial DoS on the agent's file I/O. Sockets and device
+     * nodes are likewise rejected.
+     */
+    if (!fileStat.isFile()) {
+      throw Object.assign(new Error('Path is not a regular file'), { statusCode: 400, code: 'EINVAL' });
+    }
+
     return { path, content: await readFile(realPath, 'utf8').catch(rethrowFsError), size: fileStat.size };
   });
 
@@ -464,8 +475,33 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       socket.onClose(() => {
         socketClosed = true;
 
+        /*
+         * Streamed commands are spawned detached (own process group), so a bare
+         * child.kill() signals only the shell/launcher and leaves its children
+         * (a dev server, a `make`-spawned compiler, etc.) orphaned — leaking
+         * processes and holding maxProcesses slots + ports. Signal the whole
+         * process group via the negative pid, exactly like runCommandStream's
+         * killTree; fall back to a direct kill if the group send fails (e.g. the
+         * leader already reaped).
+         */
+        const killChildGroup = (child: ChildProcessWithoutNullStreams, signal: NodeJS.Signals) => {
+          if (child.pid === undefined) {
+            return;
+          }
+
+          try {
+            process.kill(-child.pid, signal);
+          } catch {
+            try {
+              child.kill(signal);
+            } catch {
+              // Already exited — nothing to kill.
+            }
+          }
+        };
+
         for (const child of activeChildren) {
-          child.kill('SIGTERM');
+          killChildGroup(child, 'SIGTERM');
 
           /*
            * A child that traps/ignores SIGTERM (dev servers, shells) would
@@ -473,11 +509,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
            * SIGKILL after a grace period.
            */
           const sigkillTimer = setTimeout(() => {
-            try {
-              child.kill('SIGKILL');
-            } catch {
-              // Already exited — nothing to kill.
-            }
+            killChildGroup(child, 'SIGKILL');
           }, 5000);
           sigkillTimer.unref();
         }

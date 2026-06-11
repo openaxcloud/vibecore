@@ -94,6 +94,15 @@ spec:
                 - {{ $cron.queue | quote }}
                 - --job
                 - {{ $cron.job | quote }}
+              env:
+                # K8s Job name — stable across OnFailure retries of the SAME
+                # scheduled run, distinct per schedule. enqueue-cli uses it as the
+                # BullMQ jobId so a retried enqueue dedupes instead of piling up
+                # duplicate jobs.
+                - name: ENQUEUE_DEDUP_KEY
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.labels['batch.kubernetes.io/job-name']
               envFrom:
                 - secretRef:
                     name: {{ $.Values.secrets.existingSecret }}

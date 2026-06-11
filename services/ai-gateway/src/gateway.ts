@@ -697,7 +697,7 @@ export class AiGateway {
     selectedModel: AiModel,
     plan: AiPlanKey,
     primaryProviderId: AiProviderId,
-  ): { id: string; catalog?: AiModel } {
+  ): { id: string; catalog?: AiModel } | undefined {
     /*
      * The primary provider honors the explicitly requested model id — but ONLY
      * when that model actually belongs to this provider. If the caller overrode
@@ -715,7 +715,14 @@ export class AiGateway {
       return { id: catalog.id, catalog };
     }
 
-    return { id: provider.defaultModel };
+    /*
+     * No catalog model for this provider is allowed on the request's plan. The
+     * old fallback to provider.defaultModel bypassed plan gating (defaultModel
+     * may be a higher tier the plan can't use) AND mis-billed: with no catalog,
+     * downstream cost estimation fell back to the PRIMARY model's price. Signal
+     * "no eligible model" so the caller skips this provider instead.
+     */
+    return undefined;
   }
 
   async complete(request: AiChatRequest, signal?: AbortSignal) {
@@ -733,6 +740,12 @@ export class AiGateway {
         }
 
         const resolved = this.resolveModelForProvider(provider, request, routed.model, plan, primaryProviderId);
+
+        if (!resolved) {
+          lastError = new Error(`Provider ${provider.id} has no model available on plan '${plan}'`);
+          continue;
+        }
+
         const content = await retry(() => providerCompletion(provider, request, resolved.id, signal), 3, signal);
         const outputTokens = countTokens(content);
         return {
@@ -775,6 +788,11 @@ export class AiGateway {
        * failed with an unknown-model error instead of recovering.
        */
       const resolved = this.resolveModelForProvider(provider, request, routed.model, plan, primaryProviderId);
+
+      if (!resolved) {
+        lastError = new Error(`Provider ${provider.id} has no model available on plan '${plan}'`);
+        continue;
+      }
 
       // Reset per provider so a failed provider's partial deltas aren't concatenated
       // onto the fallback provider's output (garbled message + double-counted cost).

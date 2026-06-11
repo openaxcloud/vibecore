@@ -71,10 +71,20 @@ export async function enqueue(parsed: Parsed): Promise<string> {
   const connection = new Redis(url, { maxRetriesPerRequest: null, lazyConnect: true });
   const queue = new Queue(parsed.queue, { connection });
   try {
+    /*
+     * Real idempotency across CronJob retries. The K8s CronJob runs with
+     * restartPolicy OnFailure + backoffLimit, so a process killed AFTER it
+     * added the job but BEFORE it exited cleanly is retried — without a stable
+     * jobId every retry minted a fresh auto-id and piled up duplicates (the old
+     * "Idempotency" comment was aspirational, not real). ENQUEUE_DEDUP_KEY is
+     * the K8s Job name (injected via the downward API in cronjobs.yaml): it is
+     * identical across retries of the SAME scheduled run and distinct per
+     * schedule, so BullMQ dedupes retries while still enqueuing each new tick.
+     * When unset (manual CLI use) we keep the auto-id behaviour.
+     */
+    const dedupKey = process.env.ENQUEUE_DEDUP_KEY?.trim();
     const added = await queue.add(parsed.job, parsed.data, {
-      // Idempotency: a CronJob may retry; we don't want a flood of duplicate
-      // jobs piling up if Redis briefly hiccups. removeOnComplete keeps the
-      // queue lean; removeOnFail leaves failed jobs around for triage.
+      ...(dedupKey ? { jobId: `${parsed.job}:${dedupKey}` } : {}),
       removeOnComplete: { age: 3600, count: 1000 },
       removeOnFail: { age: 24 * 3600 },
       attempts: 3,

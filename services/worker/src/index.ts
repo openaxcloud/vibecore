@@ -383,13 +383,32 @@ if (import.meta.url === `file://${process.argv[1]}`) {
    * unref() so the timer never by itself keeps the process alive.
    */
   const heartbeatPath = process.env.WORKER_HEARTBEAT_PATH ?? '/tmp/worker-heartbeat';
-  const writeHeartbeat = () => {
+
+  /*
+   * Liveness must reflect Redis health, not just event-loop liveness. The Redis
+   * connection swallows 'error' (see startWorkers) so a permanent disconnect
+   * (AUTH rotation, network policy, instance replace) leaves the process alive
+   * but processing NOTHING — yet an unconditional heartbeat kept the probe green
+   * forever. Now we only REFRESH the heartbeat while the connection is actually
+   * usable (ioredis status 'ready'); a wedged worker lets the file go stale and
+   * Kubernetes restarts it.
+   *
+   * The probe treats a MISSING file as healthy (image-rollout compatibility), so
+   * we still write once at startup with `force` — that guarantees the file
+   * EXISTS and can therefore go stale even for a worker that never connects to
+   * Redis at all (otherwise a never-connected worker would stay false-green).
+   */
+  const writeHeartbeat = (force = false) => {
+    if (!force && started.connection.status !== 'ready') {
+      return;
+    }
+
     try {
       writeFileSync(heartbeatPath, String(Date.now()));
     } catch {
       // best-effort: a transient FS error must not crash the worker
     }
   };
-  writeHeartbeat();
-  setInterval(writeHeartbeat, 15_000).unref();
+  writeHeartbeat(true);
+  setInterval(() => writeHeartbeat(false), 15_000).unref();
 }
