@@ -37,12 +37,26 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 const recentFrontendLogs: BufferedFrontendLog[] = [];
 
 function getClientIP(request: Request) {
-  return (
-    request.headers.get('cf-connecting-ip') ||
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown'
-  );
+  /*
+   * x-real-ip is set by the ingress to the real peer (trustworthy). In
+   * x-forwarded-for the RIGHTMOST entry is the one the trusted proxy appended;
+   * the leftmost is client-spoofable. cf-connecting-ip is forgeable (no
+   * Cloudflare in front of prod). See app/lib/security.ts getClientIP.
+   */
+  const realIP = request.headers.get('x-real-ip');
+
+  if (realIP?.trim()) {
+    return realIP.trim();
+  }
+
+  const parts =
+    request.headers
+      .get('x-forwarded-for')
+      ?.split(',')
+      .map((part) => part.trim())
+      .filter(Boolean) ?? [];
+
+  return parts.length > 0 ? parts[parts.length - 1] : 'unknown';
 }
 
 function checkRateLimit(ip: string) {

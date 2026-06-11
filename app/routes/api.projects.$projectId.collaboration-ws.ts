@@ -16,12 +16,16 @@ function configuredPublicApiBaseUrl() {
 
 function inferredPublicApiBaseUrl(request: Request) {
   const url = new URL(request.url);
-  const forwardedHost = firstForwardedValue(request.headers.get('x-forwarded-host'));
-  const forwardedProto = firstForwardedValue(request.headers.get('x-forwarded-proto'));
 
-  if (forwardedHost) {
-    url.host = forwardedHost;
-  }
+  /*
+   * Derive the host from the request URL (the original Host header, which the
+   * ingress preserves) — NOT from x-forwarded-host. This URL carries a freshly
+   * minted collaboration ws-ticket; x-forwarded-host is a free-form
+   * client-controllable header (cache-poisoning / ticket-misdirection vector),
+   * whereas the Host the browser used to reach us is the correct same-origin
+   * basis. configuredPublicApiBaseUrl() still wins over this whenever set.
+   */
+  const forwardedProto = firstForwardedValue(request.headers.get('x-forwarded-proto'));
 
   if (forwardedProto === 'http' || forwardedProto === 'https') {
     url.protocol = `${forwardedProto}:`;

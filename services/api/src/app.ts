@@ -5744,7 +5744,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const ownerStatus = await store.getDeploymentOwnerStatus(deploymentId);
 
-    if (!ownerStatus || ownerStatus.projectDeletedAt) {
+    /*
+     * Stop serving when the owning project is soft-deleted OR the deployment was
+     * CANCELED. The synchronous static build runs outside any lock, so a cancel
+     * that lands mid-build still produces a snapshot on disk; gate the serve on
+     * the deployment's terminal status so a canceled build isn't publicly served.
+     */
+    if (!ownerStatus || ownerStatus.projectDeletedAt || ownerStatus.status === 'CANCELED') {
       return reply
         .code(404)
         .send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
@@ -6555,8 +6561,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const existingMembership = await store.getMembership(user.id, orgId);
 
       if (!existingMembership) {
-        await ensureQuota(request, orgId, 'team.members');
         /*
+         * Serialize seat-cap check + add (TOCTOU) like the invite path.
          * Only provision the role for NEW members. Calling addMember for an
          * existing member upserts (and overwrites) their role from the
          * assertion on every login — an IdP that omits a role attribute would
@@ -6564,7 +6570,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * an asserted elevated role would escalate privileges without any
          * org-admin involvement. Org roles must stay org-controlled.
          */
-        await store.addMember({ organizationId: orgId, userId: user.id, roleKey });
+        await store.withSerializedMutation(`org-members:${orgId}`, async () => {
+          await ensureQuota(request, orgId, 'team.members');
+          await store.addMember({ organizationId: orgId, userId: user.id, roleKey });
+        });
         await recordUsage(request, orgId, 'team.members');
       }
 
@@ -11540,10 +11549,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await requireCallerOutranksMember(store, orgId, member.roleKey, existing.roleKey);
     }
 
-    if (!existing) {
-      await ensureQuota(request, orgId, 'team.members');
-    }
-
     let membership;
 
     if (existing && existing.roleKey === 'owner' && body.roleKey !== 'owner') {
@@ -11564,7 +11569,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       membership = result.membership;
+    } else if (!existing) {
+      /*
+       * NEW member consumes a seat — serialize the seat-cap check + add so two
+       * concurrent adds can't both pass team.members and over-seat the org
+       * (TOCTOU). Matches the invite-accept path.
+       */
+      membership = await store.withSerializedMutation(`org-members:${orgId}`, async () => {
+        await ensureQuota(request, orgId, 'team.members');
+
+        return store.addMember({ organizationId: orgId, userId: body.userId, roleKey: body.roleKey });
+      });
     } else {
+      // Existing member, plain role update — no seat consumed.
       membership = await store.addMember({ organizationId: orgId, userId: body.userId, roleKey: body.roleKey });
     }
 
@@ -17375,13 +17392,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * with no last-owner guard on this path) locking the org out. Mirrors the
      * invite-consume and OAuth/SAML join paths, which guard addMember the same way.
      */
-    if (!existingMembership) {
-      await ensureQuota(request, orgId, 'team.members');
-    }
-
+    // Serialize seat-cap check + add for NEW members (TOCTOU) like the invite path.
     const membership = existingMembership
       ? existingMembership
-      : await store.addMember({ organizationId: orgId, userId: user.id, roleKey: 'member' });
+      : await store.withSerializedMutation(`org-members:${orgId}`, async () => {
+          await ensureQuota(request, orgId, 'team.members');
+
+          return store.addMember({ organizationId: orgId, userId: user.id, roleKey: 'member' });
+        });
 
     if (!existingMembership) {
       await recordUsage(request, orgId, 'team.members');

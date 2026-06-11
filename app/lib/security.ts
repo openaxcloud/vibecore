@@ -76,13 +76,37 @@ export function checkRateLimit(request: Request, endpoint: string): { allowed: b
  * Get client IP address from request
  */
 function getClientIP(request: Request): string {
-  // Try various headers that might contain the real IP
-  const forwardedFor = request.headers.get('x-forwarded-for');
+  /*
+   * Only trust headers the infrastructure actually sets. The prod ingress
+   * (nginx) overwrites x-real-ip with the real peer and APPENDS it to
+   * x-forwarded-for, so:
+   *  - x-real-ip is trustworthy.
+   *  - in x-forwarded-for the RIGHTMOST entry is the one the trusted proxy added;
+   *    the LEFTMOST is client-controlled (an attacker sends
+   *    `X-Forwarded-For: <victim>` to spoof another bucket / evade rate limits).
+   *  - cf-connecting-ip is NOT used: there is no Cloudflare in front of prod, so
+   *    a client can forge it freely.
+   */
   const realIP = request.headers.get('x-real-ip');
-  const cfConnectingIP = request.headers.get('cf-connecting-ip');
 
-  // Return the first available IP or a fallback
-  return cfConnectingIP || realIP || forwardedFor?.split(',')[0]?.trim() || 'unknown';
+  if (realIP?.trim()) {
+    return realIP.trim();
+  }
+
+  const forwardedFor = request.headers.get('x-forwarded-for');
+
+  if (forwardedFor) {
+    const parts = forwardedFor
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (parts.length > 0) {
+      return parts[parts.length - 1];
+    }
+  }
+
+  return 'unknown';
 }
 
 /**

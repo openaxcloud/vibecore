@@ -878,7 +878,7 @@ export interface ApiStore {
   getDeployment(projectId: string, deploymentId: string): Promise<DeploymentRecord | undefined>;
   getDeploymentOwnerStatus(
     deploymentId: string,
-  ): Promise<{ projectId: string; projectDeletedAt: Date | string | null } | undefined>;
+  ): Promise<{ projectId: string; status: string; projectDeletedAt: Date | string | null } | undefined>;
   updateDeployment(
     projectId: string,
     deploymentId: string,

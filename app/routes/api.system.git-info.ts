@@ -113,6 +113,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
             Accept: 'application/vnd.github.v3+json',
             Authorization: `Bearer ${token}`,
           },
+          signal: AbortSignal.timeout(30000),
         });
 
         if (!response.ok) {
@@ -139,6 +140,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
             Accept: 'application/vnd.github.v3+json',
             Authorization: `Bearer ${token}`,
           },
+          signal: AbortSignal.timeout(30000),
         });
 
         if (!reposResponse.ok) {
@@ -154,6 +156,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
             Accept: 'application/vnd.github.v3+json',
             Authorization: `Bearer ${token}`,
           },
+          signal: AbortSignal.timeout(30000),
         });
 
         const gists = gistsResponse.ok ? ((await gistsResponse.json()) as GitHubGist[]) : [];
@@ -223,6 +226,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
             Accept: 'application/vnd.github.v3+json',
             Authorization: `Bearer ${token}`,
           },
+          signal: AbortSignal.timeout(30000),
         });
 
         if (!response.ok) {

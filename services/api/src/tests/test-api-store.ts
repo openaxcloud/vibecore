@@ -1139,7 +1139,7 @@ export class TestApiStore implements ApiStore {
 
     const project = this.projects.get(deployment.projectId);
 
-    return { projectId: deployment.projectId, projectDeletedAt: project?.deletedAt ?? null };
+    return { projectId: deployment.projectId, status: deployment.status, projectDeletedAt: project?.deletedAt ?? null };
   }
 
   async updateDeployment(

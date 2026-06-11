@@ -1474,14 +1474,18 @@ export class PrismaApiStore implements ApiStore {
   async getDeploymentOwnerStatus(deploymentId: string) {
     const deployment = await this.prisma.deployment.findUnique({
       where: { id: deploymentId },
-      select: { projectId: true, project: { select: { deletedAt: true } } },
+      select: { projectId: true, status: true, project: { select: { deletedAt: true } } },
     });
 
     if (!deployment) {
       return undefined;
     }
 
-    return { projectId: deployment.projectId, projectDeletedAt: deployment.project?.deletedAt ?? null };
+    return {
+      projectId: deployment.projectId,
+      status: deployment.status,
+      projectDeletedAt: deployment.project?.deletedAt ?? null,
+    };
   }
 
   async updateDeployment(
@@ -2480,13 +2484,34 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async upsertBillingCustomer(input: { organizationId: string; provider: string; externalId: string }) {
-    return mapBillingCustomer(
-      await this.prisma.billingCustomer.upsert({
-        where: { organizationId: input.organizationId },
-        create: input,
-        update: { provider: input.provider, externalId: input.externalId },
-      }),
-    );
+    try {
+      return mapBillingCustomer(
+        await this.prisma.billingCustomer.upsert({
+          where: { organizationId: input.organizationId },
+          create: input,
+          update: { provider: input.provider, externalId: input.externalId },
+        }),
+      );
+    } catch (error) {
+      /*
+       * BillingCustomer has a SECOND unique constraint @@unique([provider,externalId]).
+       * Keying the upsert on organizationId alone, a create for an org whose Stripe
+       * customer id already maps to ANOTHER org row throws P2002 (unhandled 500).
+       * That's an anomalous state (one Stripe customer, two orgs) — return the
+       * existing (provider,externalId) mapping idempotently instead of crashing.
+       */
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const existing = await this.prisma.billingCustomer.findUnique({
+          where: { provider_externalId: { provider: input.provider, externalId: input.externalId } },
+        });
+
+        if (existing) {
+          return mapBillingCustomer(existing);
+        }
+      }
+
+      throw error;
+    }
   }
 
   async getBillingCustomer(organizationId: string) {
@@ -2884,33 +2909,43 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async updateSupportTicket(input: { ticketId: string; status: SupportTicketRecord['status']; response?: string }) {
-    const existing = await this.prisma.supportTicket.findUnique({ where: { id: input.ticketId } });
+    // Serialize the read-modify-write of the metadata JSON blob so two concurrent
+    // updates to the same ticket can't clobber each other's merged keys.
+    return this.withSerializedMutation(`support-ticket:${input.ticketId}`, async () => {
+      const existing = await this.prisma.supportTicket.findUnique({ where: { id: input.ticketId } });
 
-    const metadata = {
-      ...((existing?.metadata as Record<string, unknown> | null) ?? {}),
-      ...(input.response ? { latestAdminResponse: input.response } : {}),
-    };
+      const metadata = {
+        ...((existing?.metadata as Record<string, unknown> | null) ?? {}),
+        ...(input.response ? { latestAdminResponse: input.response } : {}),
+      };
 
-    return mapSupportTicket(
-      await this.prisma.supportTicket.update({
-        where: { id: input.ticketId },
-        data: { status: input.status, metadata: metadata as any },
-      }),
-    );
+      return mapSupportTicket(
+        await this.prisma.supportTicket.update({
+          where: { id: input.ticketId },
+          data: { status: input.status, metadata: metadata as any },
+        }),
+      );
+    });
   }
 
   async updateAbuseEvent(input: { abuseEventId: string; resolved?: boolean }) {
-    const existing = await this.prisma.abuseEvent.findUnique({ where: { id: input.abuseEventId } });
+    // Serialize the metadata read-modify-write (see updateSupportTicket).
+    return this.withSerializedMutation(`abuse-event:${input.abuseEventId}`, async () => {
+      const existing = await this.prisma.abuseEvent.findUnique({ where: { id: input.abuseEventId } });
 
-    const metadata = {
-      ...((existing?.metadata as Record<string, unknown> | null) ?? {}),
-      resolved: input.resolved ?? true,
-      resolvedAt: new Date().toISOString(),
-    };
+      const metadata = {
+        ...((existing?.metadata as Record<string, unknown> | null) ?? {}),
+        resolved: input.resolved ?? true,
+        resolvedAt: new Date().toISOString(),
+      };
 
-    return mapAbuseEvent(
-      await this.prisma.abuseEvent.update({ where: { id: input.abuseEventId }, data: { metadata: metadata as any } }),
-    );
+      return mapAbuseEvent(
+        await this.prisma.abuseEvent.update({
+          where: { id: input.abuseEventId },
+          data: { metadata: metadata as any },
+        }),
+      );
+    });
   }
 
   async recordAdminAudit(event: AdminAuditLogRecord) {
