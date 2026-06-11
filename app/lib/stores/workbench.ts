@@ -2287,19 +2287,21 @@ export class WorkbenchStore {
     const generatedFiles: GeneratedFile[] = [...files.entries()]
 
       /*
-       * Exclude package.json from this preview-path validation. A malformed or
-       * empty package.json (e.g. a project seeded from storage where an earlier
-       * write was cut short) must NOT hard-block the preview here: validateGeneratedFile
-       * JSON-parses every .json and throws, which returned early and surfaced a
-       * dead "Preview Error: Invalid JSON in package.json: Unexpected end of JSON
-       * input" — yet buildPreviewManifestRepair, which runs moments later in
-       * startPreviewServer, synthesizes a valid manifest from the source files.
-       * Blocking here defeated that recovery. The agent-apply path (validateGeneratedFiles
-       * at patch time) still rejects a corrupt manifest the model emits, so the
-       * agent feedback loop is unaffected. package.json has no imports, so dropping
-       * it loses nothing for the import check this method exists to perform.
+       * Exclude ALL .json files from this preview-path validation. This method
+       * exists to catch unresolved IMPORTS in source files; JSON files (package.json,
+       * tsconfig.json, *.config.json, …) have no JS imports, so dropping them loses
+       * nothing for that check. Crucially, a malformed or empty config JSON (e.g. a
+       * project seeded from storage where an earlier write was cut short, or a
+       * tsconfig still mid-stream) must NOT hard-block the preview: validateGeneratedFiles
+       * JSON-parses every .json and throws GeneratedFileJsonError, which returned
+       * early and surfaced a dead "Preview Error: Invalid JSON in tsconfig.json:
+       * Unexpected end of JSON input" with no path to recovery — even though vite
+       * serves fine without a valid tsconfig and buildPreviewManifestRepair
+       * synthesizes a valid package manifest moments later in startPreviewServer.
+       * The agent-apply path (validateGeneratedFiles at patch time, above) still
+       * validates every JSON the model emits, so the agent feedback loop is intact.
        */
-      .filter(([filePath]) => (filePath.split('/').pop() ?? '') !== 'package.json')
+      .filter(([filePath]) => !(filePath.split('/').pop() ?? '').toLowerCase().endsWith('.json'))
       .map(([filePath, content]) => ({
         path: filePath,
         content,
