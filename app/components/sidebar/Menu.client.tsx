@@ -309,6 +309,23 @@ export const Menu = () => {
     };
   }, [isSettingsOpen, dialogContent]);
 
+  // Esc closes the drawer (keyboard accessibility) when no modal owns the Esc.
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isSettingsOpen && dialogContent === null) {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, isSettingsOpen, dialogContent]);
+
   const handleDuplicate = async (id: string) => {
     await duplicateCurrentChat(id);
     loadEntries(); // Reload the list after duplication
@@ -330,12 +347,39 @@ export const Menu = () => {
 
   return (
     <>
+      {/*
+       * Touch/click entry point. The cursor-edge `mousemove` heuristic below is a
+       * desktop-only enhancement and never fires on touch devices, so without this
+       * button the entire sidebar (chat history, settings, theme) was unreachable
+       * on phones/tablets. Shown only while the drawer is closed.
+       */}
+      {!open && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Open menu"
+          aria-expanded={open}
+          className="fixed top-3 left-3 z-sidebar flex items-center justify-center w-10 h-10 rounded-lg bg-white/90 dark:bg-gray-900/90 border border-bolt-elements-borderColor shadow-sm text-bolt-elements-textPrimary hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        >
+          <span className="i-ph:list text-xl" />
+        </button>
+      )}
+
+      {/* Tap-dismiss backdrop on small screens (rendered below the drawer). */}
+      {open && (
+        <div
+          className="fixed inset-0 z-sidebar bg-black/20 lg:hidden"
+          onClick={() => setOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       <motion.div
         ref={menuRef}
         initial="closed"
         animate={open ? 'open' : 'closed'}
         variants={menuVariants}
-        style={{ width: '340px' }}
+        style={{ width: '340px', maxWidth: '90vw' }}
         className={classNames(
           'flex selection-accent flex-col side-menu fixed top-0 h-full rounded-r-2xl',
           'bg-white dark:bg-gray-950 border-r border-bolt-elements-borderColor',
