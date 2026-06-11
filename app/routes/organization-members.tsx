@@ -154,15 +154,31 @@ export default function OrganizationMembersPage() {
                     </option>
                   ))}
                 </select>
-                <button className="rounded-md border border-bolt-elements-borderColor px-3 text-xs" type="submit">
+                <button
+                  className="rounded-md border border-bolt-elements-borderColor px-3 text-xs"
+                  type="submit"
+                  aria-label={`Update role for ${member.userId}`}
+                >
                   Update
                 </button>
               </Form>
-              <Form method="post">
+              <Form
+                method="post"
+                onSubmit={(event) => {
+                  // Destructive: confirm before removing a member from the org.
+                  if (!window.confirm('Remove this member from the organization? They will lose access.')) {
+                    event.preventDefault();
+                  }
+                }}
+              >
                 <input type="hidden" name="intent" value="remove" />
                 <input type="hidden" name="orgId" value={orgId} />
                 <input type="hidden" name="userId" value={member.userId} />
-                <button className="h-9 rounded-md border border-bolt-elements-borderColor px-3 text-xs" type="submit">
+                <button
+                  className="h-9 rounded-md border border-bolt-elements-borderColor px-3 text-xs"
+                  type="submit"
+                  aria-label={`Remove ${member.userId}`}
+                >
                   Remove
                 </button>
               </Form>
