@@ -640,15 +640,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               cumulativeUsage.totalTokens += usage.totalTokens || 0;
             }
 
-            if (finishReason !== 'length') {
-              streamRecovery.stop();
-
-              /*
-               * Structured usage log so the local Cloud Logging metric still
-               * fires even if the api-side ledger call below fails. This is
-               * what C1.a wired; C1.b.3 now also POSTs to services/api so
-               * the AiCostLedger + quota counters get the data.
-               */
+            /*
+             * Record token usage to the structured log + api-side ledger/quota.
+             * Must run on EVERY terminal exit — including the two 'length'
+             * terminal branches below (max-segments / empty-content). Earlier
+             * this only fired on the non-'length' path, so tokens burned on a
+             * capped or empty generation were never billed (quota leak).
+             */
+            const flushUsage = async (terminalFinishReason: string) => {
               const lastUserMessageForUsage = processedMessages.filter((x) => x.role === 'user').slice(-1)[0];
 
               const { provider: completionProvider, model: completionModel } = lastUserMessageForUsage
@@ -660,7 +659,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   event: 'chat.completion.usage',
                   projectId,
                   chatMode,
-                  finishReason,
+                  finishReason: terminalFinishReason,
                   provider: completionProvider,
                   model: completionModel,
                   promptTokens: cumulativeUsage.promptTokens,
@@ -678,7 +677,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   model: completionModel,
                   inputTokens: cumulativeUsage.promptTokens,
                   outputTokens: cumulativeUsage.completionTokens,
-                  finishReason,
+                  finishReason: terminalFinishReason,
                   cookieHeader: request.headers.get('Cookie') ?? undefined,
                   source: 'remix-chat',
                 });
@@ -692,6 +691,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   totalTokens: cumulativeUsage.totalTokens,
                 },
               });
+            };
+
+            if (finishReason !== 'length') {
+              streamRecovery.stop();
+
+              await flushUsage(finishReason);
+
               dataStream.writeData({
                 type: 'progress',
                 label: 'response',
@@ -721,6 +727,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                * this bound the 'length' continuation recursed forever.
                */
               streamRecovery.stop();
+              await flushUsage('length');
               dataStream.writeData({
                 type: 'progress',
                 label: 'response',
@@ -743,6 +750,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              */
             if (content.trim().length === 0) {
               streamRecovery.stop();
+              await flushUsage('length');
               dataStream.writeData({
                 type: 'progress',
                 label: 'response',
