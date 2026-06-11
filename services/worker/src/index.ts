@@ -260,7 +260,10 @@ export function startWorkers() {
   const worker = new Worker(
     'workspace-jobs',
     async (job) => {
-      job.log(`processing ${job.name}`);
+      // job.log writes a log row to Redis (returns a Promise). Fire-and-forget,
+      // but swallow rejection: an unhandled rejection from a transient Redis fault
+      // (failover, AUTH rotation, maintenance) would otherwise crash the worker.
+      void job.log(`processing ${job.name}`).catch(() => {});
 
       if (job.name === 'workspace.gc') {
         await triggerWorkspaceGarbageCollect((job.data ?? {}) as Record<string, unknown>);
@@ -275,7 +278,10 @@ export function startWorkers() {
   const enterpriseWorker = new Worker(
     'enterprise-jobs',
     async (job) => {
-      job.log(`processing ${job.name}`);
+      // job.log writes a log row to Redis (returns a Promise). Fire-and-forget,
+      // but swallow rejection: an unhandled rejection from a transient Redis fault
+      // (failover, AUTH rotation, maintenance) would otherwise crash the worker.
+      void job.log(`processing ${job.name}`).catch(() => {});
 
       if (job.name === 'siem.deliver') {
         await deliverSiemAuditEvents();

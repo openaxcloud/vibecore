@@ -76,6 +76,12 @@ export class TerminalStore {
   }
 
   onTerminalResize(cols: number, rows: number) {
+    // The bolt terminal (tab 0) is the PRIMARY managed shell — where the AI runs
+    // commands and the dev server / install / build run. It was excluded here, so
+    // its remote PTY kept the default 80x24 and wrapped/truncated output. Resize
+    // it too, alongside the user-spawned shells.
+    this.#boltTerminal.process?.resize(cols, rows);
+
     for (const { process } of this.#terminals) {
       process.resize(cols, rows);
     }

@@ -6,6 +6,17 @@ import { promisify } from 'node:util';
 
 const execFile = promisify(execFileCallback);
 
+/*
+ * Bound every kubectl invocation. Node's execFile default timeout is 0 (none),
+ * so if the API server is reachable at TCP level but stops responding (control-
+ * plane upgrade, node preemption, throttling, network blackhole), a provision /
+ * delete / log call would hang forever, pinning the manager request and leaking
+ * the child process. The timeout kills the child; --request-timeout also bounds
+ * kubectl's own API wait so it exits cleanly first when possible.
+ */
+const KUBECTL_TIMEOUT_MS = Number(process.env.KUBECTL_TIMEOUT_MS) || 30_000;
+const KUBECTL_REQUEST_TIMEOUT = process.env.KUBECTL_REQUEST_TIMEOUT || '25s';
+
 export type WorkspacePlan = 'free' | 'pro' | 'enterprise';
 
 // Platform-owned pod env names that user project env/secrets must never override.
@@ -457,7 +468,9 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
 
     try {
       await writeFile(manifest, JSON.stringify(object));
-      await execFile(this.kubectl, ['apply', '-f', manifest]);
+      await execFile(this.kubectl, ['apply', '-f', manifest, `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`], {
+        timeout: KUBECTL_TIMEOUT_MS,
+      });
 
       return object;
     } finally {
@@ -466,7 +479,11 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
   }
 
   async delete(kind: string, namespace: string, name: string) {
-    await execFile(this.kubectl, ['delete', kind, name, '-n', namespace, '--ignore-not-found=true']);
+    await execFile(
+      this.kubectl,
+      ['delete', kind, name, '-n', namespace, '--ignore-not-found=true', `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`],
+      { timeout: KUBECTL_TIMEOUT_MS },
+    );
   }
 
   async getPod(namespace: string, name: string) {
@@ -489,7 +506,11 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
    * that isn't an explicit NotFound.
    */
   private async getResource(kind: string, namespace: string, name: string): Promise<K8sObject | undefined> {
-    const { stdout } = await execFile(this.kubectl, ['get', kind, name, '-n', namespace, '-o', 'json']).catch(
+    const { stdout } = await execFile(
+      this.kubectl,
+      ['get', kind, name, '-n', namespace, '-o', 'json', `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`],
+      { timeout: KUBECTL_TIMEOUT_MS },
+    ).catch(
       (error: any) => {
         const stderr = String(error?.stderr ?? '');
 
@@ -507,9 +528,14 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
   async *streamPodLogs(namespace: string, name: string) {
     // Bump maxBuffer well above Node's 1MB default: 500 tail lines of a verbose
     // workspace can exceed 1MB, which would otherwise throw ENOBUFS and 500.
-    const { stdout } = await execFile(this.kubectl, ['logs', name, '-n', namespace, '--tail=500'], {
-      maxBuffer: 16 * 1024 * 1024,
-    });
+    const { stdout } = await execFile(
+      this.kubectl,
+      ['logs', name, '-n', namespace, '--tail=500', `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`],
+      {
+        maxBuffer: 16 * 1024 * 1024,
+        timeout: KUBECTL_TIMEOUT_MS,
+      },
+    );
 
     for (const line of stdout.split('\n').filter(Boolean)) {
       yield line;

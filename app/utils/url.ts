@@ -153,6 +153,26 @@ export function isPrivateIp(ip: string): boolean {
     }
   }
 
+  /*
+   * IPv6 transition forms that embed an IPv4 the WHATWG parser does NOT fold to
+   * dotted: NAT64 (64:ff9b::/96, embeds v4 in the low 32 bits) and 6to4
+   * (2002::/16, embeds v4 in bits 16-48). e.g. NAT64 64:ff9b::a9fe:a9fe and 6to4
+   * 2002:a9fe:a9fe:: both target 169.254.169.254 (cloud metadata). Decode the two
+   * embedded hextets and re-check against the private ranges. (The dotted NAT64
+   * form 64:ff9b::169.254.169.254 is already caught by the mappedV4 check above.)
+   */
+  const transitionEmbedded =
+    addr.match(/^64:ff9b::([0-9a-f]{1,4}):([0-9a-f]{1,4})$/) || addr.match(/^2002:([0-9a-f]{1,4}):([0-9a-f]{1,4})/);
+
+  if (transitionEmbedded) {
+    const value = (parseInt(transitionEmbedded[1], 16) << 16) | parseInt(transitionEmbedded[2], 16);
+    const dotted = [(value >>> 24) & 0xff, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff].join('.');
+
+    if (PRIVATE_IP_PATTERNS.some((pattern) => pattern.test(dotted))) {
+      return true;
+    }
+  }
+
   if (addr.includes(':')) {
     // IPv6 loopback / unspecified.
     if (addr === '::1' || addr === '::') {

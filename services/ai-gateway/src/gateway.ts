@@ -653,6 +653,24 @@ export class AiGateway {
           ? model
           : most,
       );
+    } else if (!request.model && request.provider) {
+      /*
+       * Provider specified but NO model (a valid shape). The old code fell to
+       * this.models(plan)[0] — the global first plan model (gpt-4.1/openai) —
+       * regardless of the requested provider, so primaryProviderId (the requested
+       * provider) then got sent a foreign provider's model id and 4xx'd. Pick the
+       * first plan-allowed model OF THE REQUESTED PROVIDER instead.
+       */
+      const providerDefault = this.models(plan).find((model) => model.provider === request.provider);
+
+      if (!providerDefault) {
+        throw Object.assign(new Error('No model is available for this provider on your plan'), {
+          statusCode: 403,
+          code: 'AI_MODEL_PLAN_BLOCKED',
+        });
+      }
+
+      selectedModel = providerDefault;
     } else {
       selectedModel = requestedModel ?? this.models(plan)[0] ?? modelCatalog[0];
     }

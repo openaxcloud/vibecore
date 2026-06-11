@@ -125,6 +125,18 @@ function canonicalizeProxyHost(rawHost: string): string {
     return [(value >>> 24) & 0xff, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff].join('.');
   }
 
+  /*
+   * IPv6 transition forms that embed an IPv4 the parser doesn't fold: NAT64
+   * (64:ff9b::a9fe:a9fe) and 6to4 (2002:a9fe:a9fe::), both → 169.254.169.254.
+   * Decode the two embedded hextets to dotted-quad so the blocklist applies.
+   */
+  const transition = host.match(/^64:ff9b::([0-9a-f]{1,4}):([0-9a-f]{1,4})$/) || host.match(/^2002:([0-9a-f]{1,4}):([0-9a-f]{1,4})/);
+
+  if (transition) {
+    const value = (parseInt(transition[1], 16) << 16) | parseInt(transition[2], 16);
+    return [(value >>> 24) & 0xff, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff].join('.');
+  }
+
   let asInt: number | undefined;
 
   if (/^\d+$/.test(host)) {

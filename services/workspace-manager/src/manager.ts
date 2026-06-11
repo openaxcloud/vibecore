@@ -607,6 +607,30 @@ function detectPodTerminalFailure(pod: PodStatusView): { message: string; code: 
         code: 'WORKSPACE_POD_CRASHLOOP',
       };
     }
+
+    /*
+     * Image-pull and container-config failures are effectively permanent (bad/
+     * unreachable image tag, missing/invalid secret or config) — they never
+     * become Ready, so without fast-failing here the provision spins the full
+     * readiness timeout and throws an opaque "not ready". Surface an actionable
+     * error instead. (ImagePullBackOff is the backed-off persistent state; the
+     * one-shot ErrImagePull usually transitions into it, so we key on the
+     * persistent reasons.)
+     */
+    const waitingReason = container.state?.waiting?.reason;
+
+    if (
+      waitingReason === 'ImagePullBackOff' ||
+      waitingReason === 'ErrImageNeverPull' ||
+      waitingReason === 'InvalidImageName' ||
+      waitingReason === 'CreateContainerConfigError' ||
+      waitingReason === 'CreateContainerError'
+    ) {
+      return {
+        message: `Workspace pod could not start its container (${waitingReason})`,
+        code: 'WORKSPACE_POD_IMAGE_OR_CONFIG_ERROR',
+      };
+    }
   }
 
   return null;
