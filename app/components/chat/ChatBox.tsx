@@ -273,11 +273,11 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             )}
             onDragEnter={(e) => {
               e.preventDefault();
-              e.currentTarget.style.border = '2px solid #1488fc';
+              e.currentTarget.style.border = '2px solid var(--bolt-elements-focus)';
             }}
             onDragOver={(e) => {
               e.preventDefault();
-              e.currentTarget.style.border = '2px solid #1488fc';
+              e.currentTarget.style.border = '2px solid var(--bolt-elements-focus)';
             }}
             onDragLeave={(e) => {
               e.preventDefault();

@@ -98,6 +98,14 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
                 className="w-12 h-12 rounded-xl shadow-md cursor-pointer transition-all duration-200 hover:scale-110 ring-2 ring-transparent hover:ring-bolt-elements-borderColorActive"
                 style={{ backgroundColor: palette[role.key] }}
                 onClick={() => document.getElementById(`color-input-${role.key}`)?.click()}
+                onKeyDown={(e) => {
+                  // role=button + tabIndex=0 but only onClick — keyboard users couldn't
+                  // activate the swatch. Enter/Space opens the native color picker.
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    document.getElementById(`color-input-${role.key}`)?.click();
+                  }
+                }}
                 role="button"
                 tabIndex={0}
                 aria-label={`Change ${role.label} color`}
