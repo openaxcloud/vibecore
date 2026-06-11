@@ -143,6 +143,28 @@ jobs:
             .
           echo "::endgroup::"
 
+      # ---- Build 3/3: workspace-agent runtime image ----
+      # The agent runs INSIDE each workspace pod (its own Dockerfile, node-pty
+      # native build, NOT the deps base), so it can't join the runtime tier.
+      # Tag matches the prod convention `sha-<short>`; helm --set below points
+      # platformEnv.runtime.workspaceAgentImage at it. New workspaces use the
+      # fresh agent immediately; already-running workspaces keep their baked
+      # image until they are reprovisioned (reopen / GC), which is expected.
+      # Blocking on purpose: shipping a broken agent image should fail the deploy.
+      - name: Build workspace-agent (Cloud Build)
+        run: |
+          set -euo pipefail
+          echo "::group::gcloud builds submit — workspace-agent"
+          gcloud builds submit \
+            --project="${GCP_PROJECT_ID}" \
+            --region="${GAR_LOCATION}" \
+            --config=infra/cloudbuild/workspace-agent.yaml \
+            --substitutions=_SHORT_SHA="${SHORT_SHA}" \
+            --machine-type=e2-highcpu-8 \
+            --timeout=1800s \
+            .
+          echo "::endgroup::"
+
       - name: Set up Helm
         uses: azure/setup-helm@v4
         with:
@@ -166,9 +188,12 @@ jobs:
           helm history "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" || true
           echo "Rollback: helm rollback ${HELM_RELEASE} <REVISION> -n ${HELM_NAMESPACE}"
 
-      # --reuse-values preserves every existing value (including admin / worker /
-      # ai-gateway imageTags and all prod config) and only overrides the four
-      # tiers rebuilt above. --atomic auto-rolls-back on a failed upgrade.
+      # --reuse-values preserves every existing value (admin imageTag + all prod
+      # config) and overrides only the tiers rebuilt above: web, api,
+      # workspace-manager, preview-proxy, ai-gateway, worker, and the
+      # workspace-agent runtime image. --atomic auto-rolls-back on a failed
+      # upgrade (a bad ai-gateway/worker container fails readiness → rollback;
+      # the agent image is a configmap value the api re-reads on its restart).
       - name: Helm upgrade (web + runtime image tags)
         run: |
           set -euo pipefail
@@ -180,12 +205,15 @@ jobs:
             --set services.web.imageTag="${SHORT_SHA}" \
             --set services.api.imageTag="${SHORT_SHA}" \
             --set services.workspaceManager.imageTag="${SHORT_SHA}" \
-            --set services.previewProxy.imageTag="${SHORT_SHA}"
+            --set services.previewProxy.imageTag="${SHORT_SHA}" \
+            --set services.aiGateway.imageTag="${SHORT_SHA}" \
+            --set services.worker.imageTag="${SHORT_SHA}" \
+            --set platformEnv.runtime.workspaceAgentImage="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPO}/workspace-agent:sha-${SHORT_SHA}"
 
       - name: Verify rollout
         run: |
           set -euo pipefail
-          for svc in web api workspace-manager preview-proxy; do
+          for svc in web api workspace-manager preview-proxy ai-gateway worker; do
             dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy \
               -l "app.kubernetes.io/name=${svc}" -o name 2>/dev/null | head -n1)"
             if [ -z "${dep}" ]; then

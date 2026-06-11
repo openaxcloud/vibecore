@@ -45,7 +45,7 @@ steps:
     args:
       - -c
       - |
-        for img in deps api workspace-manager preview-proxy; do
+        for img in deps api workspace-manager preview-proxy ai-gateway worker; do
           docker pull ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/$img:latest || true
         done
 
@@ -116,6 +116,40 @@ steps:
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:latest
       - .
 
+  - id: build-ai-gateway
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-deps']
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - -f=infra/docker/node-service.Dockerfile
+      - --build-arg=BUILDKIT_INLINE_CACHE=1
+      - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
+      - --build-arg=PACKAGE_FILTER=@vibecore/ai-gateway
+      - --build-arg=START_CMD=tsx dist/server.js
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:latest
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:${_SHORT_SHA}
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:latest
+      - .
+
+  - id: build-worker
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-deps']
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - -f=infra/docker/node-service.Dockerfile
+      - --build-arg=BUILDKIT_INLINE_CACHE=1
+      - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
+      - --build-arg=PACKAGE_FILTER=@vibecore/worker
+      - --build-arg=START_CMD=tsx dist/index.js
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:latest
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:${_SHORT_SHA}
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:latest
+      - .
+
   # ---- 4. vulnerability scan (non-blocking) ----
   - id: scan-images
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -123,13 +157,15 @@ steps:
       - build-api
       - build-workspace-manager
       - build-preview-proxy
+      - build-ai-gateway
+      - build-worker
     allowFailure: true
     entrypoint: bash
     args:
       - -c
       - |
         set -u
-        for img in api workspace-manager preview-proxy; do
+        for img in api workspace-manager preview-proxy ai-gateway worker; do
           echo "::: scanning $img:${_SHORT_SHA}"
           gcloud artifacts docker images scan \
             "${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/$img:${_SHORT_SHA}" \
@@ -147,3 +183,7 @@ images:
   - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-manager:latest
   - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:${_SHORT_SHA}
   - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:latest
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:${_SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:latest
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:${_SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:latest
