@@ -28,7 +28,10 @@ export interface TerminalBackend {
   resize(cols: number, rows: number): void;
   interrupt(): void;
   onData(listener: (chunk: string) => void): void;
-  onExit(listener: (exitCode: number) => void): void;
+  // Returns a disposer that REMOVES the listener. The /terminal endpoint registers
+  // an onExit per WebSocket connection to a shared, long-lived session, so without
+  // removal the listeners accumulate on every reattach (leak).
+  onExit(listener: (exitCode: number) => void): () => void;
   kill(signal?: NodeJS.Signals): void;
   readonly mode: 'pty' | 'pipe';
 }
@@ -144,7 +147,11 @@ function createPtyBackend(
     },
     interrupt: () => proc.write('\x03'),
     onData: (listener) => proc.onData(listener),
-    onExit: (listener) => proc.onExit((event: { exitCode: number }) => listener(event.exitCode ?? 0)),
+    onExit: (listener) => {
+      const disposable = proc.onExit((event: { exitCode: number }) => listener(event.exitCode ?? 0));
+
+      return () => disposable.dispose();
+    },
     kill: (signal) => {
       try {
         proc.kill(signal);
@@ -278,6 +285,14 @@ function createPipeBackend(
     },
     onExit: (listener) => {
       exitListeners.push(listener);
+
+      return () => {
+        const idx = exitListeners.indexOf(listener);
+
+        if (idx !== -1) {
+          exitListeners.splice(idx, 1);
+        }
+      };
     },
     kill: (signal = 'SIGTERM') => signalGroup(signal),
   };

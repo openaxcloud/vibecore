@@ -9721,6 +9721,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrganizationNotSuspended(store, authorized.organizationId);
 
     /*
+     * A restart that brings a STOPPED/FAILED workspace back up consumes an active
+     * slot, so it must pass workspaces.active exactly like /start (which gated it
+     * but restart did not — a stop→restart cycle could exceed the plan limit).
+     * Serialize the check to avoid TOCTOU; the slow manager restart stays outside
+     * the lock. A restart of an already-active workspace consumes nothing.
+     */
+    const existingForRestart = await store.getWorkspace(authorized.workspaceId);
+    const restartCountsAsActive =
+      !!existingForRestart && ['PENDING', 'STARTING', 'RUNNING'].includes(existingForRestart.status as string);
+    const restartOrgId = authorized.organizationId;
+
+    if (restartOrgId && !restartCountsAsActive) {
+      await store.withSerializedMutation(`workspaces:${restartOrgId}`, async () => {
+        await ensureQuota(request, restartOrgId, 'workspaces.active');
+      });
+    }
+
+    /*
      * Resolve the org's plan + resource entitlements exactly like the start
      * handler. Previously restart hardcoded plan='free' and omitted
      * resourceLimits, so every restart reprovisioned a pro/enterprise pod with
@@ -10494,15 +10512,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     });
     upstream.addEventListener('close', () => client.close());
-    upstream.addEventListener('error', () =>
-      client.send(
-        JSON.stringify({
-          type: 'error',
-          error: { message: 'Workspace agent WebSocket failed' },
-          timestamp: new Date().toISOString(),
-        }),
-      ),
-    );
+    upstream.addEventListener('error', () => {
+      /*
+       * Guard client.send: the upstream usually errors BECAUSE the connection is
+       * tearing down, at which point the downstream client socket is often already
+       * CLOSING/CLOSED — an unguarded send then throws synchronously in this
+       * listener and, with no process-level handler, crashes the whole API.
+       */
+      try {
+        client.send(
+          JSON.stringify({
+            type: 'error',
+            error: { message: 'Workspace agent WebSocket failed' },
+            timestamp: new Date().toISOString(),
+          }),
+        );
+      } catch {
+        // Downstream already gone — nothing to deliver.
+      }
+    });
     // Bound the pre-open buffer: if the upstream never opens, an active client
     // could otherwise push unbounded input into memory. Drop oldest past the cap.
     const MAX_PENDING_MESSAGES = 1000;
@@ -15512,25 +15540,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       : status === 'ACTIVE'
                         ? 'ACTIVE'
                         : /*
-                           * incomplete / incomplete_expired / paused / unknown are NOT paying,
-                           * entitled states and must not map to ACTIVE. A checkout.session.completed
-                           * carries a session status ('complete'), not a subscription status, and is
-                           * always a successful, entitled checkout — treat only that as ACTIVE.
+                           * NON-terminal pending states must NOT map to CANCELED. 'incomplete'
+                           * (the NORMAL initial state for SCA/3DS card subs — mandatory in the EU —
+                           * and payment_behavior:default_incomplete) and 'paused' are recoverable:
+                           * mapping them to CANCELED made the isStaleReactivation guard below treat
+                           * the later customer.subscription.updated(active) as a stale reactivation
+                           * and DROP it, leaving a paying customer stuck on free with no recovery.
+                           * Map incomplete→UNPAID, paused→PAST_DUE (both not-entitled but recoverable),
+                           * incomplete_expired→CANCELED (genuinely terminal).
                            */
-                          event.type === 'checkout.session.completed'
-                          ? /*
-                             * A completed checkout SESSION is only entitled when its
-                             * payment actually settled. Delayed-payment methods (SEPA,
-                             * bank transfer) fire checkout.session.completed with
-                             * payment_status 'unpaid' while the charge is still pending —
-                             * granting ACTIVE then hands out the plan before payment.
-                             * Map those to UNPAID; a later invoice.paid / subscription
-                             * event promotes to ACTIVE once the charge settles.
-                             */
-                            object.payment_status === 'paid' || object.payment_status === 'no_payment_required'
-                            ? 'ACTIVE'
-                            : 'UNPAID'
-                          : 'CANCELED',
+                          status === 'INCOMPLETE'
+                          ? 'UNPAID'
+                          : status === 'INCOMPLETE_EXPIRED'
+                            ? 'CANCELED'
+                            : status === 'PAUSED'
+                              ? 'PAST_DUE'
+                              : event.type === 'checkout.session.completed'
+                                ? /*
+                                   * A completed checkout SESSION is only entitled when its payment
+                                   * actually settled. Delayed-payment methods (SEPA, bank transfer)
+                                   * fire checkout.session.completed with payment_status 'unpaid'
+                                   * while the charge is pending — map those to UNPAID; a later
+                                   * invoice.paid / subscription event promotes to ACTIVE.
+                                   */
+                                  object.payment_status === 'paid' || object.payment_status === 'no_payment_required'
+                                  ? 'ACTIVE'
+                                  : 'UNPAID'
+                                : /*
+                                   * Unknown/unrecognized status: default to UNPAID (not-entitled but
+                                   * RECOVERABLE) rather than CANCELED — a wrongly-terminal CANCELED
+                                   * would be locked by the reactivation guard; a genuine cancellation
+                                   * arrives as status 'canceled' and is handled explicitly above.
+                                   */
+                                  'UNPAID',
             cancelAtPeriodEnd: Boolean(object.cancel_at_period_end),
             trialEndsAt: object.trial_end ? new Date(Number(object.trial_end) * 1000) : undefined,
             currentPeriodStart: object.current_period_start

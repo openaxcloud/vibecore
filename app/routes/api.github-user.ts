@@ -3,7 +3,7 @@ import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { apiRequest } from '~/lib/enterprise-api.server';
 import { withSecurity } from '~/lib/security';
 
-async function githubUserLoader({ request, context }: { request: Request; context: any }) {
+async function githubUserLoader({ request }: { request: Request; context?: unknown }) {
   try {
     /*
      * First try the UserConnection-backed flow: the API service decrypts
@@ -40,13 +40,13 @@ async function githubUserLoader({ request, context }: { request: Request; contex
     const cookieHeader = request.headers.get('Cookie');
     const apiKeys = getApiKeysFromCookie(cookieHeader);
 
-    const githubToken =
-      apiKeys.GITHUB_API_KEY ||
-      apiKeys.VITE_GITHUB_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.GITHUB_TOKEN ||
-      context?.cloudflare?.env?.VITE_GITHUB_ACCESS_TOKEN ||
-      process.env.GITHUB_TOKEN ||
-      process.env.VITE_GITHUB_ACCESS_TOKEN;
+    /*
+     * Only the CALLER's cookie token — NOT the server credential. This loader is
+     * unauthenticated (withSecurity, no auth), so falling back to the platform
+     * GITHUB_TOKEN (context env / process.env) let any anonymous caller read the
+     * platform account's data through this route. Same fix as api.github-stats.
+     */
+    const githubToken = apiKeys.GITHUB_API_KEY || apiKeys.VITE_GITHUB_ACCESS_TOKEN;
 
     if (!githubToken) {
       return json({ error: 'GitHub token not found' }, { status: 401 });
@@ -137,7 +137,7 @@ async function githubProxyOrNull(
   }
 }
 
-async function githubUserAction({ request, context }: { request: Request; context: any }) {
+async function githubUserAction({ request }: { request: Request; context?: unknown }) {
   try {
     let action: string | null = null;
     let repoFullName: string | null = null;
@@ -243,13 +243,13 @@ async function githubUserAction({ request, context }: { request: Request; contex
     const apiKeys = getApiKeysFromCookie(cookieHeader);
 
     // Try to get GitHub token from various sources
-    const githubToken =
-      apiKeys.GITHUB_API_KEY ||
-      apiKeys.VITE_GITHUB_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.GITHUB_TOKEN ||
-      context?.cloudflare?.env?.VITE_GITHUB_ACCESS_TOKEN ||
-      process.env.GITHUB_TOKEN ||
-      process.env.VITE_GITHUB_ACCESS_TOKEN;
+    /*
+     * Only the CALLER's cookie token — NOT the server credential. This loader is
+     * unauthenticated (withSecurity, no auth), so falling back to the platform
+     * GITHUB_TOKEN (context env / process.env) let any anonymous caller read the
+     * platform account's data through this route. Same fix as api.github-stats.
+     */
+    const githubToken = apiKeys.GITHUB_API_KEY || apiKeys.VITE_GITHUB_ACCESS_TOKEN;
 
     if (!githubToken) {
       return json({ error: 'GitHub token not found' }, { status: 401 });
