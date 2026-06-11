@@ -23,6 +23,7 @@ const BLOCKED_HOSTNAMES = new Set(['localhost', '[::1]', '0.0.0.0']);
  */
 export function isBlockedHost(rawHostname: string): boolean {
   const hostname = rawHostname.toLowerCase();
+
   /*
    * Strip a trailing dot: `metadata.google.internal.` / `169.254.169.254.` are
    * fully-qualified forms that resolve identically but evaded the .internal/.local
@@ -69,7 +70,9 @@ export async function safeGitForgeFetch(
   maxRedirects = 5,
 ): Promise<Response> {
   let current = initialUrl;
+
   const headers = new Headers(init.headers);
+
   const initialOrigin = (() => {
     try {
       return new URL(initialUrl).origin;

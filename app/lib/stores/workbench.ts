@@ -154,10 +154,13 @@ export class WorkbenchStore {
 
   #reloadedMessages = new Set<string>();
   #previewStartPromise: Promise<string> | undefined;
-  // Synchronous in-flight guard: #previewStartPromise is only set late (after the
-  // install/detect awaits), so two concurrent startPreviewServer calls could both
-  // pass that check and launch two dev servers. This flag is set synchronously at
-  // entry to dedup them.
+
+  /*
+   * Synchronous in-flight guard: #previewStartPromise is only set late (after the
+   * install/detect awaits), so two concurrent startPreviewServer calls could both
+   * pass that check and launch two dev servers. This flag is set synchronously at
+   * entry to dedup them.
+   */
   #previewStarting = false;
   #previewCommandRunning = false;
   #projectId: string | undefined;

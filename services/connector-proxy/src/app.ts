@@ -85,6 +85,30 @@ const HOP_BY_HOP_HEADERS = new Set([
   'content-length',
 ]);
 
+function readableFromWebStream(stream: ReadableStream<Uint8Array>) {
+  return Readable.from(
+    (async function* readWebStream() {
+      const reader = stream.getReader();
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            return;
+          }
+
+          if (value) {
+            yield Buffer.from(value);
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    })(),
+  );
+}
+
 export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Promise<FastifyInstance> {
   if (!options.accessTokenSecret || options.accessTokenSecret.length < 16) {
     throw new Error('CONNECTOR_PROXY_ACCESS_TOKEN_SECRET must be at least 16 characters');
@@ -317,7 +341,7 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
     reply.raw.on('finish', () => clearTimeout(bodyDeadline));
     reply.raw.on('close', () => clearTimeout(bodyDeadline));
 
-    return reply.send(Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>));
+    return reply.send(readableFromWebStream(upstreamResponse.body as ReadableStream<Uint8Array>));
   });
 
   return app;

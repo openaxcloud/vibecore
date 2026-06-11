@@ -1218,9 +1218,12 @@ export function useDataOperations({
           // Restore previous API keys
           const previousAPIKeys = lastOperation.data.previous;
           const newKeys = ImportExportService.importAPIKeys(previousAPIKeys);
-          // Match the forward import-path hardening: URL-encode (so ';'/'=' in
-          // values can't truncate the cookie) and scope the credential cookie with
-          // SameSite=Strict; Secure.
+
+          /*
+           * Match the forward import-path hardening: URL-encode (so ';'/'=' in
+           * values can't truncate the cookie) and scope the credential cookie with
+           * SameSite=Strict; Secure.
+           */
           const apiKeysJson = encodeURIComponent(JSON.stringify(newKeys));
           document.cookie = `apiKeys=${apiKeysJson}; path=/; max-age=31536000; SameSite=Strict; Secure`;
 

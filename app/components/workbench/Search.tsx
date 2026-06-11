@@ -30,8 +30,10 @@ function groupResultsByFile(results: DisplayMatch[]): Record<string, DisplayMatc
 }
 
 export function Search() {
-  // Use the workspace-bound adapter from context, NOT the module singleton (which
-  // has no workspaceId and fails in remote-kubernetes mode → broken file search).
+  /*
+   * Use the workspace-bound adapter from context, NOT the module singleton (which
+   * has no workspaceId and fails in remote-kubernetes mode → broken file search).
+   */
   const runtimeAdapter = useRuntimeAdapter();
   const [searchQuery, setSearchQuery] = useState('');
   const [replaceQuery, setReplaceQuery] = useState('');

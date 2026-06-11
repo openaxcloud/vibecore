@@ -1,1 +1,1 @@
-export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';
+export { default, loader, meta } from './templates';

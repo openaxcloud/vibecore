@@ -9,8 +9,7 @@ async function supabaseUserLoader({ request }: { request: Request }) {
     const apiKeys = getApiKeysFromCookie(cookieHeader);
 
     // Try to get Supabase token from various sources
-    const supabaseToken =
-      apiKeys.VITE_SUPABASE_ACCESS_TOKEN;
+    const supabaseToken = apiKeys.VITE_SUPABASE_ACCESS_TOKEN;
 
     if (!supabaseToken) {
       return json({ error: 'Supabase token not found' }, { status: 401 });
@@ -87,8 +86,7 @@ async function supabaseUserAction({ request }: { request: Request }) {
     const apiKeys = getApiKeysFromCookie(cookieHeader);
 
     // Try to get Supabase token from various sources
-    const supabaseToken =
-      apiKeys.VITE_SUPABASE_ACCESS_TOKEN;
+    const supabaseToken = apiKeys.VITE_SUPABASE_ACCESS_TOKEN;
 
     if (!supabaseToken) {
       return json({ error: 'Supabase token not found' }, { status: 401 });

@@ -23,9 +23,9 @@ const highlighterOptions = {
 const EMPTY_ACTIONS = map<Record<string, ActionState>>({});
 
 const shellHighlighter: HighlighterGeneric<BundledLanguage, BundledTheme> =
-  import.meta.hot?.data.shellHighlighter ?? (await createHighlighter(highlighterOptions));
+  import.meta.hot?.data?.shellHighlighter ?? (await createHighlighter(highlighterOptions));
 
-if (import.meta.hot) {
+if (import.meta.hot?.data) {
   import.meta.hot.data.shellHighlighter = shellHighlighter;
 }
 

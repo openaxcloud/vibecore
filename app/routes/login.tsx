@@ -3,7 +3,6 @@ import { Form, Link, useActionData, useLoaderData, useNavigation } from '@remix-
 import { CheckCircle, Chrome, Code2, Eye, EyeOff, Github, KeyRound, Lock, Mail, Shield, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AuthField, AuthScreen, AuthSubmit } from '~/components/auth/AuthScreen';
-import { invalidateRuntimeToken } from '~/lib/runtime/RuntimeAdapterProvider';
 import {
   apiRequest,
   apiBaseUrl,
@@ -16,6 +15,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { invalidateRuntimeToken } from '~/lib/runtime/RuntimeAdapterProvider';
 
 export const meta: MetaFunction = () => [
   { title: 'Login - Vibecore' },
@@ -106,8 +106,10 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json({ error: message, mfaRequired: false }, { status: error.status });
     }
 
-    // Do NOT leak the internal in-cluster API hostname (apiBaseUrl()) to end
-    // users. Log the target server-side; show a generic message.
+    /*
+     * Do NOT leak the internal in-cluster API hostname (apiBaseUrl()) to end
+     * users. Log the target server-side; show a generic message.
+     */
     console.error(`Login failed: API service not reachable at ${apiBaseUrl()}`);
 
     return json(

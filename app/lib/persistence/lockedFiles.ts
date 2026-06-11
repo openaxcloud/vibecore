@@ -467,9 +467,11 @@ export function migrateLegacyLocks(currentChatId: string): void {
  * (e.g., after another tab has modified the locks)
  */
 export function clearCache(): void {
-  // Persist any pending debounced write BEFORE dropping the cache, so just-set
-  // locks aren't lost, and cancel the timer so a now-stale write can't fire after
-  // the cache is cleared and clobber another tab's state.
+  /*
+   * Persist any pending debounced write BEFORE dropping the cache, so just-set
+   * locks aren't lost, and cancel the timer so a now-stale write can't fire after
+   * the cache is cleared and clobber another tab's state.
+   */
   flushLockedItems();
 
   lockedItemsCache = null;

@@ -75,6 +75,13 @@ function isSafeProxyTarget(rawUrl: string): boolean {
    */
   const host = canonicalizeProxyHost(rawHost);
 
+  /*
+   * ULA fc00::/7 and link-local fe80::/10, but only as IPv6 literals. This must
+   * match hextets followed by ':' so public hostnames like fcbarcelona.com,
+   * fdic.gov and fe80.example.com are not blocked.
+   */
+  const isPrivateIpv6Literal = /^f[cd][0-9a-f]{0,2}:/.test(host) || /^fe[89ab][0-9a-f]:/.test(host);
+
   if (
     host === 'localhost' ||
     host === '0.0.0.0' ||
@@ -90,11 +97,7 @@ function isSafeProxyTarget(rawUrl: string): boolean {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
-    // ULA fc00::/7 and link-local fe80::/10 — but ONLY as IPv6 literals (must be
-    // hextets followed by ':'). The old startsWith('fc'/'fd'/'fe80') wrongly
-    // blocked public hostnames like fcbarcelona.com / fdic.gov / fe80.example.com.
-    /^f[cd][0-9a-f]{0,2}:/.test(host) ||
-    /^fe[89ab][0-9a-f]:/.test(host)
+    isPrivateIpv6Literal
   ) {
     return false;
   }
@@ -103,8 +106,10 @@ function isSafeProxyTarget(rawUrl: string): boolean {
 }
 
 function canonicalizeProxyHost(rawHost: string): string {
-  // Strip brackets AND a trailing dot — `169.254.169.254.` / `foo.internal.` are
-  // FQDN forms that resolve identically but evaded the blocklist (SSRF bypass).
+  /*
+   * Strip brackets AND a trailing dot — `169.254.169.254.` / `foo.internal.` are
+   * FQDN forms that resolve identically but evaded the blocklist (SSRF bypass).
+   */
   const host = rawHost.replace(/^\[/, '').replace(/\]$/, '').replace(/\.+$/, '');
 
   const mapped = host.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
@@ -130,7 +135,8 @@ function canonicalizeProxyHost(rawHost: string): string {
    * (64:ff9b::a9fe:a9fe) and 6to4 (2002:a9fe:a9fe::), both → 169.254.169.254.
    * Decode the two embedded hextets to dotted-quad so the blocklist applies.
    */
-  const transition = host.match(/^64:ff9b::([0-9a-f]{1,4}):([0-9a-f]{1,4})$/) || host.match(/^2002:([0-9a-f]{1,4}):([0-9a-f]{1,4})/);
+  const transition =
+    host.match(/^64:ff9b::([0-9a-f]{1,4}):([0-9a-f]{1,4})$/) || host.match(/^2002:([0-9a-f]{1,4}):([0-9a-f]{1,4})/);
 
   if (transition) {
     const value = (parseInt(transition[1], 16) << 16) | parseInt(transition[2], 16);
@@ -273,6 +279,7 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
      * guard so a public host can't bounce us into the metadata/internal network.
      */
     let redirectsLeft = 5;
+
     const initialOrigin = (() => {
       try {
         return new URL(targetURL).origin;

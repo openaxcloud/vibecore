@@ -61,12 +61,12 @@ export class FilesStore {
    * Needs to be reset when the user sends another message and all changes have to be submitted
    * for the model to be aware of the changes.
    */
-  #modifiedFiles: Map<string, string> = import.meta.hot?.data.modifiedFiles ?? new Map();
+  #modifiedFiles: Map<string, string> = import.meta.hot?.data?.modifiedFiles ?? new Map();
 
   /**
    * Keeps track of deleted files and folders to prevent them from reappearing on reload
    */
-  #deletedPaths: Set<string> = import.meta.hot?.data.deletedPaths ?? new Set();
+  #deletedPaths: Set<string> = import.meta.hot?.data?.deletedPaths ?? new Set();
 
   /**
    * Per-path write queue. Serializes concurrent saveFile() calls on the same
@@ -79,7 +79,7 @@ export class FilesStore {
   /**
    * Map of files that matches the state of the active runtime.
    */
-  files: MapStore<FileMap> = import.meta.hot?.data.files ?? map({});
+  files: MapStore<FileMap> = import.meta.hot?.data?.files ?? map({});
   #urlPollInterval?: ReturnType<typeof setInterval>;
   #lockRefreshInterval?: ReturnType<typeof setInterval>;
   #lockRefreshTimeout?: ReturnType<typeof setTimeout>;
@@ -101,7 +101,7 @@ export class FilesStore {
     // Load locked files from localStorage
     this.#loadLockedFiles();
 
-    if (import.meta.hot) {
+    if (import.meta.hot?.data) {
       // Persist our state across hot reloads
       import.meta.hot.data.files = this.files;
       import.meta.hot.data.modifiedFiles = this.#modifiedFiles;
@@ -127,10 +127,12 @@ export class FilesStore {
           lastChatId = currentChatId;
           this.#loadLockedFiles(currentChatId);
 
-          // Deleted-paths are chat-scoped too; swap to the new chat's set so the
-          // previous chat's deletions don't bleed into this one, then apply them
-          // (without #cleanupDeletedFiles the newly-loaded chat's deletions
-          // wouldn't take effect on the current file map until the next reload).
+          /*
+           * Deleted-paths are chat-scoped too; swap to the new chat's set so the
+           * previous chat's deletions don't bleed into this one, then apply them
+           * (without #cleanupDeletedFiles the newly-loaded chat's deletions
+           * wouldn't take effect on the current file map until the next reload).
+           */
           this.#deletedPaths = new Set();
           this.#loadDeletedPaths();
           this.#cleanupDeletedFiles();
@@ -1055,9 +1057,11 @@ export class FilesStore {
         throw new Error(`EINVAL: invalid file path, create '${relativePath}'`);
       }
 
-      // #size tracks file count (folders excluded, matching the loader). Increment
-      // only when this is a genuinely new file, so the count doesn't drift low
-      // (createFile previously never updated it).
+      /*
+       * #size tracks file count (folders excluded, matching the loader). Increment
+       * only when this is a genuinely new file, so the count doesn't drift low
+       * (createFile previously never updated it).
+       */
       const existedBefore = Boolean(this.files.get()[filePath]);
 
       const isBinary = content instanceof Uint8Array;
@@ -1232,10 +1236,14 @@ export class FilesStore {
           const deletedPaths = JSON.parse(deletedPathsJson);
 
           if (Array.isArray(deletedPaths)) {
-            // Filter to strings — setDeletedPaths() persists only strings, but a
-            // corrupted/tampered localStorage value could carry non-strings that
-            // would pollute #deletedPaths and break path comparisons downstream.
-            deletedPaths.filter((path): path is string => typeof path === 'string').forEach((path) => this.#deletedPaths.add(path));
+            /*
+             * Filter to strings — setDeletedPaths() persists only strings, but a
+             * corrupted/tampered localStorage value could carry non-strings that
+             * would pollute #deletedPaths and break path comparisons downstream.
+             */
+            deletedPaths
+              .filter((path): path is string => typeof path === 'string')
+              .forEach((path) => this.#deletedPaths.add(path));
           }
         }
       }

@@ -5012,6 +5012,30 @@ function previewProxyHeaders(headers: Record<string, string | string[] | undefin
   return forwarded;
 }
 
+function readableFromWebStream(stream: ReadableStream<Uint8Array>) {
+  return Readable.from(
+    (async function* readWebStream() {
+      const reader = stream.getReader();
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            return;
+          }
+
+          if (value) {
+            yield Buffer.from(value);
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    })(),
+  );
+}
+
 type CollaborationSocket = ReturnType<typeof normalizeRuntimeApiWebSocket>;
 
 function createCollaborationBroker() {
@@ -10355,7 +10379,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(response.status).send();
     }
 
-    return reply.code(response.status).send(Readable.fromWeb(response.body as ReadableStream<Uint8Array>));
+    return reply.code(response.status).send(readableFromWebStream(response.body as ReadableStream<Uint8Array>));
   };
   app.all('/api/runtime/workspaces/:workspaceId/preview/:port/proxy', handleRuntimePreviewProxy);
   app.all('/api/runtime/workspaces/:workspaceId/preview/:port/proxy/*', handleRuntimePreviewProxy);

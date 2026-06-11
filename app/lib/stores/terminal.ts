@@ -9,12 +9,12 @@ export class TerminalStore {
   #terminals: Array<{ terminal: ITerminal; process: TerminalSession }> = [];
   #boltTerminal = newBoltShellProcess();
 
-  showTerminal: WritableAtom<boolean> = import.meta.hot?.data.showTerminal ?? atom(true);
+  showTerminal: WritableAtom<boolean> = import.meta.hot?.data?.showTerminal ?? atom(true);
 
   constructor(runtime: RuntimeAdapter) {
     this.#runtime = runtime;
 
-    if (import.meta.hot) {
+    if (import.meta.hot?.data) {
       import.meta.hot.data.showTerminal = this.showTerminal;
     }
   }
@@ -76,10 +76,12 @@ export class TerminalStore {
   }
 
   onTerminalResize(cols: number, rows: number) {
-    // The bolt terminal (tab 0) is the PRIMARY managed shell — where the AI runs
-    // commands and the dev server / install / build run. It was excluded here, so
-    // its remote PTY kept the default 80x24 and wrapped/truncated output. Resize
-    // it too, alongside the user-spawned shells.
+    /*
+     * The bolt terminal (tab 0) is the PRIMARY managed shell — where the AI runs
+     * commands and the dev server / install / build run. It was excluded here, so
+     * its remote PTY kept the default 80x24 and wrapped/truncated output. Resize
+     * it too, alongside the user-spawned shells.
+     */
     this.#boltTerminal.process?.resize(cols, rows);
 
     for (const { process } of this.#terminals) {

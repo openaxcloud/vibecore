@@ -1557,8 +1557,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       }
 
       if (intent === 'disconnect') {
-        // Remove the stored integration token on disconnect — otherwise the
-        // credential lingers in project secrets after the integration is gone.
+        /*
+         * Remove the stored integration token on disconnect — otherwise the
+         * credential lingers in project secrets after the integration is gone.
+         */
         await apiRequest(request, `/projects/${projectId}/secrets`, {
           method: 'DELETE',
           body: JSON.stringify({ key: integrationSecretKey(integrationId) }),
@@ -1608,8 +1610,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     } else if (intent === 'delete-webhook') {
       state.webhooks = state.webhooks.filter((webhook: any) => webhook.id !== body.webhookId);
 
-      // Delete the webhook's signing secret too — leaving it orphaned in project
-      // secrets keeps a live signing key for a webhook that no longer exists.
+      /*
+       * Delete the webhook's signing secret too — leaving it orphaned in project
+       * secrets keeps a live signing key for a webhook that no longer exists.
+       */
       if (body.webhookId) {
         await apiRequest(request, `/projects/${projectId}/secrets`, {
           method: 'DELETE',

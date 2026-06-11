@@ -9,8 +9,7 @@ async function netlifyUserLoader({ request }: { request: Request }) {
     const apiKeys = getApiKeysFromCookie(cookieHeader);
 
     // Try to get Netlify token from various sources
-    const netlifyToken =
-      apiKeys.VITE_NETLIFY_ACCESS_TOKEN;
+    const netlifyToken = apiKeys.VITE_NETLIFY_ACCESS_TOKEN;
 
     if (!netlifyToken) {
       return json({ error: 'Netlify token not found' }, { status: 401 });
@@ -75,8 +74,7 @@ async function netlifyUserAction({ request }: { request: Request }) {
     const apiKeys = getApiKeysFromCookie(cookieHeader);
 
     // Try to get Netlify token from various sources
-    const netlifyToken =
-      apiKeys.VITE_NETLIFY_ACCESS_TOKEN;
+    const netlifyToken = apiKeys.VITE_NETLIFY_ACCESS_TOKEN;
 
     if (!netlifyToken) {
       return json({ error: 'Netlify token not found' }, { status: 401 });
