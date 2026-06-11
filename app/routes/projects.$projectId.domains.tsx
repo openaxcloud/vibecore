@@ -110,6 +110,7 @@ export default function ProjectDomainsPage() {
             <input
               className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none"
               name="domain"
+              aria-label="Custom domain"
               placeholder="app.example.com"
               required
             />

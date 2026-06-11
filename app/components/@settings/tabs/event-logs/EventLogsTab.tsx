@@ -969,6 +969,7 @@ export function EventLogsTab() {
         <div className="relative">
           <input
             type="text"
+            aria-label="Search event logs"
             placeholder="Search logs..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

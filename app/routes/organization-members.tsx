@@ -144,6 +144,7 @@ export default function OrganizationMembersPage() {
                 <input type="hidden" name="userId" value={member.userId} />
                 <select
                   name="roleKey"
+                  aria-label={`Role for ${member.userId}`}
                   defaultValue={member.roleKey}
                   className="h-9 min-w-0 flex-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2"
                 >

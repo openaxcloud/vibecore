@@ -1159,9 +1159,13 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
         >
           <CardHeader>
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <CardTitle className="text-lg">{project.name}</CardTitle>
-                <CardDescription>{project.stack ?? project.sourceType ?? 'Persistent Bolt project'}</CardDescription>
+              <div className="min-w-0">
+                <CardTitle className="truncate text-lg" title={project.name}>
+                  {project.name}
+                </CardTitle>
+                <CardDescription className="truncate">
+                  {project.stack ?? project.sourceType ?? 'Persistent Bolt project'}
+                </CardDescription>
               </div>
               <StatusPill label={project.status ?? 'Ready'} />
             </div>

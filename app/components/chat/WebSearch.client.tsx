@@ -138,6 +138,7 @@ export function WebSearch({
           <input
             ref={inputRef}
             type="url"
+            aria-label="URL to fetch"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => {
