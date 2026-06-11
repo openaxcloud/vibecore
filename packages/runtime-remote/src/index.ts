@@ -556,7 +556,15 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     }
 
     const token = await this.#resolveAuthToken();
-    const url = new URL(`${this.#baseUrl}${path}`);
+
+    /*
+     * Resolve against the page origin so a RELATIVE baseUrl (e.g. "/api/runtime")
+     * works for the socket the same way it does for #rawRequest's fetch. Without a
+     * base, `new URL("/api/runtime/...")` throws "Invalid URL" and silently breaks
+     * the remote runtime whenever baseUrl isn't absolute.
+     */
+    const origin = typeof globalThis !== 'undefined' ? (globalThis as { location?: { origin?: string } }).location?.origin : undefined;
+    const url = new URL(`${this.#baseUrl}${path}`, origin);
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
 
     if (token) {

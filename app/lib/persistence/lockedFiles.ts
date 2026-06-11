@@ -466,13 +466,24 @@ export function migrateLegacyLocks(currentChatId: string): void {
  * This is useful when you suspect the cache might be out of sync with localStorage
  * (e.g., after another tab has modified the locks)
  */
-export function clearCache(): void {
+export function clearCache(options?: { flush?: boolean }): void {
   /*
-   * Persist any pending debounced write BEFORE dropping the cache, so just-set
-   * locks aren't lost, and cancel the timer so a now-stale write can't fire after
-   * the cache is cleared and clobber another tab's state.
+   * Default: persist any pending debounced write BEFORE dropping the cache, so
+   * just-set locks aren't lost. But the cross-tab `storage` path passes
+   * flush:false — there, THIS tab's cache is stale (the OTHER tab is the source
+   * of truth for the change we're reacting to), so flushing it would write our
+   * stale state back to localStorage and CLOBBER the other tab's update. In that
+   * case just cancel the pending timer (so a stale debounced write can't fire
+   * later) and drop the cache without writing.
    */
-  flushLockedItems();
+  if (options?.flush === false) {
+    if (saveDebounceTimer) {
+      clearTimeout(saveDebounceTimer);
+      saveDebounceTimer = null;
+    }
+  } else {
+    flushLockedItems();
+  }
 
   lockedItemsCache = null;
   lockedItemsMap.clear();
@@ -552,7 +563,9 @@ if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {
     if (event.key === LOCKED_FILES_KEY) {
       logger.info('Detected localStorage change for locked items, refreshing cache');
-      clearCache();
+      // flush:false — the OTHER tab just wrote; flushing our stale cache here would
+      // clobber that write. Drop cache + cancel pending write, then reload on next read.
+      clearCache({ flush: false });
     }
   });
 }
