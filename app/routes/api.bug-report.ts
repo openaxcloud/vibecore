@@ -64,15 +64,27 @@ function checkRateLimit(ip: string): boolean {
 
 // Get client IP address
 function getClientIP(request: Request): string {
-  const cfConnectingIP = request.headers.get('cf-connecting-ip');
-  const xForwardedFor = request.headers.get('x-forwarded-for');
-  const xRealIP = request.headers.get('x-real-ip');
-
   /*
-   * Trim the first X-Forwarded-For hop so whitespace variations don't produce
-   * distinct rate-limit keys for the same client (a trivial limit bypass).
+   * Only trust headers the ingress actually sets. cf-connecting-ip and the
+   * LEFTMOST x-forwarded-for entry are client-forgeable (no Cloudflare in prod),
+   * so keying the rate limit on them let an attacker rotate the bucket and bypass
+   * the limit. Use the nginx-set x-real-ip, then the RIGHTMOST (proxy-appended)
+   * x-forwarded-for entry. (See app/lib/security.ts getClientIP.)
    */
-  return cfConnectingIP || xForwardedFor?.split(',')[0]?.trim() || xRealIP || 'unknown';
+  const realIP = request.headers.get('x-real-ip');
+
+  if (realIP?.trim()) {
+    return realIP.trim();
+  }
+
+  const parts =
+    request.headers
+      .get('x-forwarded-for')
+      ?.split(',')
+      .map((part) => part.trim())
+      .filter(Boolean) ?? [];
+
+  return parts.length > 0 ? parts[parts.length - 1] : 'unknown';
 }
 
 // Basic spam detection

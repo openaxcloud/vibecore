@@ -243,6 +243,17 @@ function foldIpv4MappedIpv6(host: string): string | undefined {
     return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
   }
 
+  // IPv6 transition forms embedding an IPv4: NAT64 (64:ff9b::a9fe:a9fe) and 6to4
+  // (2002:a9fe:a9fe::) — both → 169.254.169.254. Fold so the blocklist catches them.
+  const transition = host.match(/^64:ff9b::([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i) || host.match(/^2002:([0-9a-f]{1,4}):([0-9a-f]{1,4})/i);
+
+  if (transition) {
+    const hi = parseInt(transition[1], 16);
+    const lo = parseInt(transition[2], 16);
+
+    return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+  }
+
   return undefined;
 }
 

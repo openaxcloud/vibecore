@@ -1458,6 +1458,16 @@ function canonicalizeHostForBlocklist(host: string): string {
     return [(value >>> 24) & 0xff, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff].join('.');
   }
 
+  // IPv6 transition forms embedding an IPv4: NAT64 (64:ff9b::a9fe:a9fe) and 6to4
+  // (2002:a9fe:a9fe::) — both → 169.254.169.254. Fold to dotted-quad so the
+  // private-range checks catch them (SIEM-webhook / git-remote SSRF bypass).
+  const transition = host.match(/^64:ff9b::([0-9a-f]{1,4}):([0-9a-f]{1,4})$/) || host.match(/^2002:([0-9a-f]{1,4}):([0-9a-f]{1,4})/);
+
+  if (transition) {
+    const value = (parseInt(transition[1], 16) << 16) | parseInt(transition[2], 16);
+    return [(value >>> 24) & 0xff, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff].join('.');
+  }
+
   // Single integer host (decimal / hex / octal) → dotted IPv4.
   let asInt: number | undefined;
 
