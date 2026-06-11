@@ -9881,7 +9881,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         ? 'failed'
         : managerWorkspace.status === 'STOPPED'
           ? 'stopped'
-          : 'running';
+          : /*
+             * A still-provisioning workspace (the manager applies the PVC/Pod and
+             * polls readiness for up to ~3min) MUST report 'starting', not
+             * 'running'. Reporting 'running' while the pod is not ready made the IDE
+             * (and the runtime adapter's start poll) immediately hit the agent and
+             * 502 — the cold-start path that made brand-new projects appear broken.
+             */
+            ['STARTING', 'PENDING', 'BOOTING'].includes(managerWorkspace.status)
+            ? 'starting'
+            : 'running';
 
     /*
      * Self-heal the active-workspace quota. The inactivity GC reaps idle pods in

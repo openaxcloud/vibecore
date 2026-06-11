@@ -16,6 +16,7 @@ import {
   type WorkspacePort,
   type WorkspaceProcess,
   type WorkspaceSession,
+  type WorkspaceStatus,
 } from '@vibecore/runtime-contract';
 
 export interface RemoteKubernetesRuntimeAdapterOptions {
@@ -63,6 +64,14 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   #terminalStops = new Map<string, () => void>();
   #eventStreams = new Map<string, AsyncQueue<CommandEvent>>();
   #socketConnectTimeoutMs = 30_000;
+  /*
+   * Provisioning a cold workspace (PVC + Pod + image pull + readiness) runs in
+   * the manager for up to ~3min. The synchronous api->manager start aborts long
+   * before that (proxy + ingress idle caps), so startWorkspace can't rely on a
+   * single POST returning RUNNING — it polls status until the manager finishes.
+   */
+  #startReadinessTimeoutMs = 210_000;
+  #startPollIntervalMs = 2_500;
 
   constructor(options: RemoteKubernetesRuntimeAdapterOptions) {
     this.#baseUrl = options.baseUrl.replace(/\/+$/, '');
@@ -78,14 +87,113 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async startWorkspace(session: Partial<WorkspaceSession> = {}): Promise<WorkspaceSession> {
-    const payload = await this.#request<WorkspaceSession>('/workspaces', {
-      method: 'POST',
-      body: JSON.stringify({ workspaceId: session.id ?? this.#workspaceId, metadata: session.metadata }),
-    });
-    this.#workspaceId = payload.id;
-    this.#session = payload;
+    const requestedId = session.id ?? this.#workspaceId;
+    let payload: WorkspaceSession | undefined;
 
-    return payload;
+    try {
+      payload = await this.#request<WorkspaceSession>('/workspaces', {
+        method: 'POST',
+        body: JSON.stringify({ workspaceId: requestedId, metadata: session.metadata }),
+      });
+    } catch (error) {
+      /*
+       * Cold start: provisioning a brand-new workspace takes far longer than the
+       * synchronous api->manager start (which aborts at the proxy/ingress idle
+       * cap), so this POST can surface a transient 502/timeout even though the
+       * manager keeps provisioning the pod to completion. Don't treat that as
+       * fatal — fall through to polling status until the workspace is RUNNING.
+       * Genuine client errors (quota 402, auth 401/403, bad request) are NOT
+       * transient and must surface immediately.
+       */
+      if (!requestedId || !this.#isTransientStartError(error)) {
+        throw error;
+      }
+
+      this.#workspaceId = requestedId;
+    }
+
+    if (payload) {
+      this.#workspaceId = payload.id;
+      this.#session = payload;
+
+      if (payload.status === 'running') {
+        return payload;
+      }
+    }
+
+    const pollId = this.#workspaceId ?? requestedId;
+
+    if (!pollId) {
+      throw new RuntimeError('Cannot wait for workspace readiness without a workspace id', {
+        code: 'WORKSPACE_ID_REQUIRED',
+      });
+    }
+
+    return this.#waitForWorkspaceRunning(pollId);
+  }
+
+  #isTransientStartError(error: unknown): boolean {
+    if (error instanceof RuntimeError) {
+      // A 502/503/504 from the api runtime proxy, or a network/abort error with
+      // no HTTP status — the workspace may still be provisioning. 4xx (quota,
+      // auth, validation) are deterministic and must not be retried.
+      return error.status === undefined || error.status === 502 || error.status === 503 || error.status === 504;
+    }
+
+    // Raw fetch network/abort failures (no RuntimeError wrapper) are transient.
+    return true;
+  }
+
+  async #waitForWorkspaceRunning(workspaceId: string): Promise<WorkspaceSession> {
+    const deadline = Date.now() + this.#startReadinessTimeoutMs;
+    let lastStatus: WorkspaceStatus | undefined;
+
+    for (;;) {
+      let session: WorkspaceSession | undefined;
+
+      try {
+        session = await this.getWorkspaceStatus(workspaceId);
+      } catch (error) {
+        // Status itself can 502 transiently while the pod is coming up; keep
+        // polling. A deterministic error (auth, etc.) aborts the wait.
+        if (!this.#isTransientStartError(error)) {
+          throw error;
+        }
+      }
+
+      if (session) {
+        lastStatus = session.status;
+
+        if (session.status === 'running') {
+          return session;
+        }
+
+        // 'failed' is what the API actually emits for a failed start (the shared
+        // WorkspaceStatus type predates it); treat it as terminal alongside
+        // stopped/error so the wait fails fast instead of polling to timeout.
+        if (
+          session.status === 'stopped' ||
+          session.status === 'error' ||
+          (session.status as string) === 'failed'
+        ) {
+          throw new RuntimeError(`Workspace failed to start (status: ${session.status})`, {
+            code: 'WORKSPACE_START_FAILED',
+            status: 409,
+            details: session,
+          });
+        }
+      }
+
+      if (Date.now() >= deadline) {
+        throw new RuntimeError(
+          `Workspace did not become ready within ${Math.round(this.#startReadinessTimeoutMs / 1000)}s` +
+            ` (last status: ${lastStatus ?? 'unknown'})`,
+          { code: 'WORKSPACE_START_TIMEOUT', status: 504 },
+        );
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, this.#startPollIntervalMs));
+    }
   }
 
   async stopWorkspace(workspaceId = this.#requireWorkspaceId()): Promise<void> {
