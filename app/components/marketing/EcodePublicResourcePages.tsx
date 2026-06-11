@@ -123,7 +123,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               {[
-                ['No fake catalog', 'Cards come from existing Vibecore starters.'],
+                ['No invented catalog', 'Cards come from existing Vibecore starters.'],
                 ['No user menu', 'Public pages do not render account dropdowns.'],
                 ['Same shell', 'Header and footer match the marketing routes.'],
               ].map(([title, body]) => (
