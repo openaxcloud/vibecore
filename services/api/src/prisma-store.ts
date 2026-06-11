@@ -844,6 +844,14 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.projectCollaborator.findMany({ where: { projectId } })).map(mapProjectCollaborator);
   }
 
+  async removeProjectCollaborator(input: { projectId: string; userId: string }): Promise<boolean> {
+    const result = await this.prisma.projectCollaborator.deleteMany({
+      where: { projectId: input.projectId, userId: input.userId },
+    });
+
+    return result.count > 0;
+  }
+
   async recordProjectActivity(input: {
     projectId: string;
     actorUserId?: string;

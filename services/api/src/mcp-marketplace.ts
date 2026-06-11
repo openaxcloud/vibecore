@@ -246,6 +246,22 @@ function foldIpv4MappedIpv6(host: string): string | undefined {
   return undefined;
 }
 
+/*
+ * SSRF guard for the marketplace install/updateInstall path. The stored config's
+ * `url` (for a remote sse/streamable-http transport) is later connected to by the
+ * shared web pod with NO second check, so an attacker-chosen internal URL would be
+ * an SSRF primitive. validateConfigAgainstSchema only checks types/patterns — it
+ * does NOT validate the host. (PUT /mcp/config has assertNoLocalMcpServers; this
+ * mirrors its url check for the marketplace path.)
+ */
+function assertInstallConfigUrlAllowed(config: unknown): void {
+  const url = (config as { url?: unknown } | null | undefined)?.url;
+
+  if (typeof url === 'string' && url.trim() && isBlockedMcpUrl(url)) {
+    throw new McpMarketplaceError('MCP server URL is not allowed', 400, 'MCP_URL_BLOCKED');
+  }
+}
+
 export function isBlockedMcpUrl(rawUrl: string): boolean {
   let url: URL;
 
@@ -500,6 +516,8 @@ export class McpMarketplaceService {
       throw new McpMarketplaceError(`Invalid MCP config: ${validationErrors.join('; ')}`, 400, 'MCP_CONFIG_INVALID');
     }
 
+    assertInstallConfigUrlAllowed(input.config);
+
     const conflict = await this.deps.prisma.mcpInstall.findUnique({
       where: { userId_alias: { userId: input.userId, alias: input.alias } },
     });
@@ -584,6 +602,8 @@ export class McpMarketplaceService {
       if (validationErrors.length > 0) {
         throw new McpMarketplaceError(`Invalid MCP config: ${validationErrors.join('; ')}`, 400, 'MCP_CONFIG_INVALID');
       }
+
+      assertInstallConfigUrlAllowed(input.patch.config);
     }
 
     const updated = await this.deps.prisma.mcpInstall.update({

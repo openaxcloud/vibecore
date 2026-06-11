@@ -16,8 +16,18 @@ function computeAgreementScore(votes: ClaimVote[]): number {
   // from agreement scoring. Conflicts on file ownership are surfaced separately
   // through detectFileOverlapConflicts().
   const opinionVotes = votes.filter((v) => v.type !== 'file');
-  if (opinionVotes.length === 0) return 0;
+
+  if (opinionVotes.length === 0) {
+    /*
+     * File-only run: there are no contested opinions (each role owns its files),
+     * so report FULL agreement when at least one file was accepted rather than a
+     * misleading 0 alongside an ACCEPTED/PARTIAL outcome. No votes at all → 0.
+     */
+    return votes.some((v) => v.decision === 'accepted') ? 1 : 0;
+  }
+
   const sum = opinionVotes.reduce((acc, vote) => acc + vote.agreementRatio, 0);
+
   return sum / opinionVotes.length;
 }
 

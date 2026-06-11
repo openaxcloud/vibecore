@@ -142,7 +142,17 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   });
 
   app.get('/health', async () => ({ status: 'ok' }));
-  app.post('/workspaces/start', async (request) => manager.startWorkspace(startSchema.parse(request.body)));
+  /*
+   * The MANAGER pod's runtimeNamespace() is the single source of truth for where
+   * workspace pods live. start used to trust the request-body namespace while
+   * stop/delete/logs use runtimeNamespace() — if the API's and manager's
+   * WORKSPACE_RUNTIME_NAMESPACE ever diverged, pods were created in one namespace
+   * but stop/delete/GC targeted another (leaked pods, wrong-ns ops). Override the
+   * body namespace on every create path so all operations agree.
+   */
+  app.post('/workspaces/start', async (request) =>
+    manager.startWorkspace({ ...startSchema.parse(request.body), namespace: runtimeNamespace() }),
+  );
   app.get('/workspaces/:workspaceId', async (request) => manager.store.get((request.params as any).workspaceId));
   app.get('/workspaces/:workspaceId/agent-token', async (request) => {
     const workspaceId = (request.params as any).workspaceId;
@@ -170,11 +180,19 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     return { logs };
   });
   app.post('/workspaces/:workspaceId/stop', async (request) => manager.stopWorkspace(runtimeNamespace(), (request.params as any).workspaceId));
-  app.post('/workspaces/:workspaceId/restart', async (request) => manager.restartWorkspace({ ...startSchema.parse(request.body), workspaceId: (request.params as any).workspaceId }));
+  app.post('/workspaces/:workspaceId/restart', async (request) =>
+    manager.restartWorkspace({
+      ...startSchema.parse(request.body),
+      workspaceId: (request.params as any).workspaceId,
+      namespace: runtimeNamespace(),
+    }),
+  );
   app.delete('/workspaces/:workspaceId', async (request) => manager.deleteWorkspace(runtimeNamespace(), (request.params as any).workspaceId));
   app.post('/workspaces/gc', async (request) => {
     const body = z.object({ namespace: z.string().default('workspaces'), inactiveMs: z.number().default(30 * 60_000), deleteMs: z.number().default(24 * 60 * 60_000) }).parse(request.body ?? {});
-    await manager.garbageCollect(body.namespace, body.inactiveMs, body.deleteMs);
+    // GC against the manager's own namespace (single source of truth), not a
+    // caller-supplied one that could diverge and scan the wrong namespace.
+    await manager.garbageCollect(runtimeNamespace(), body.inactiveMs, body.deleteMs);
     return { ok: true };
   });
   app.get('/internal/workspaces/:workspaceId/agent', async (request, reply) => {

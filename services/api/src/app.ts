@@ -13278,6 +13278,40 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ collaborator });
   });
+  app.delete('/projects/:projectId/collaborators/:userId', async (request, reply) => {
+    const params = parse(z.object({ projectId: z.string().min(1), userId: z.string().min(1) }), request.params);
+    const project = await requireProject(request, store, params.projectId, 'projects:write');
+
+    /*
+     * Revoking a collaborator's project grant is the same ACL-management operation
+     * as adding one — require real org membership with members:manage (not the
+     * collaborator fallback). Previously there was NO route to remove or downgrade
+     * an individual collaborator, so a grant could never be revoked (only the share
+     * LINK could). To downgrade a role, remove then re-add.
+     */
+    await requireOrg(request, store, project.organizationId, 'members:manage');
+
+    const removed = await store.removeProjectCollaborator({ projectId: project.id, userId: params.userId });
+
+    if (!removed) {
+      return reply.code(404).send({ error: 'Collaborator not found', code: 'COLLABORATOR_NOT_FOUND' });
+    }
+
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'project.collaborator.remove',
+      metadata: { userId: params.userId },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'project.collaborator.remove',
+      resourceType: 'projectCollaborator',
+      resourceId: params.userId,
+    });
+
+    return { removed: true };
+  });
   app.get('/projects/:projectId/collaboration', async (request) => {
     const project = await requireProject(
       request,
@@ -15531,9 +15565,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             eventCreatedAt.getTime() < new Date(existing.lastStripeEventAt).getTime(),
         );
 
+        /*
+         * Only downgrade if the FAILED INVOICE belongs to the current subscription.
+         * getSubscription returns the org's newest row; an old/replaced subscription
+         * id on the failed invoice would otherwise wrongly downgrade the active one.
+         * (When the invoice carries no subscription id we fall through and apply the
+         * downgrade as before.)
+         */
+        const invoiceSubscriptionId = typeof object.subscription === 'string' ? object.subscription : undefined;
+        const subscriptionMatches = !invoiceSubscriptionId || invoiceSubscriptionId === existing?.externalId;
+
         // Also downgrade TRIALING: a failed trial-conversion payment must not leave
         // the org on paid entitlements if the follow-up subscription.updated drops.
-        if (existing && !isStaleByTimestamp && (existing.status === 'ACTIVE' || existing.status === 'TRIALING')) {
+        if (
+          existing &&
+          !isStaleByTimestamp &&
+          subscriptionMatches &&
+          (existing.status === 'ACTIVE' || existing.status === 'TRIALING')
+        ) {
           await store.upsertSubscription({
             organizationId,
             planKey: existing.planKey,

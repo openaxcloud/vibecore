@@ -649,6 +649,20 @@ export class TestApiStore implements ApiStore {
     return [...this.projectCollaborators.values()].filter((collaborator) => collaborator.projectId === projectId);
   }
 
+  async removeProjectCollaborator(input: { projectId: string; userId: string }) {
+    const existing = [...this.projectCollaborators.values()].find(
+      (collaborator) => collaborator.projectId === input.projectId && collaborator.userId === input.userId,
+    );
+
+    if (!existing) {
+      return false;
+    }
+
+    this.projectCollaborators.delete(existing.id);
+
+    return true;
+  }
+
   async recordProjectActivity(input: {
     projectId: string;
     actorUserId?: string;

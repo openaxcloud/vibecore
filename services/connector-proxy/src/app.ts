@@ -266,6 +266,8 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
 
     const contentLength = Number(upstreamResponse.headers.get('content-length') ?? '0');
     const MAX_BUFFER_BYTES = 1024 * 1024;
+    // Absolute cap on the streamed body phase (slow-loris upstream guard).
+    const BODY_MAX_DURATION_MS = Number(process.env.CONNECTOR_PROXY_BODY_TIMEOUT_MS) || 300_000;
 
     /*
      * Only buffer responses whose declared size is known AND small. The old check
@@ -302,6 +304,18 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
         controller.abort();
       }
     });
+
+    /*
+     * Bound the BODY phase too. The connect timeout was cleared once headers
+     * arrived (so legit large downloads aren't truncated), but nothing then capped
+     * the transfer — a slow-loris upstream that dribbles/stalls the body could pin
+     * the proxy connection indefinitely. Abort after an absolute max duration;
+     * cleared when the response finishes normally.
+     */
+    const bodyDeadline = setTimeout(() => controller.abort(), BODY_MAX_DURATION_MS);
+    bodyDeadline.unref?.();
+    reply.raw.on('finish', () => clearTimeout(bodyDeadline));
+    reply.raw.on('close', () => clearTimeout(bodyDeadline));
 
     return reply.send(Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>));
   });

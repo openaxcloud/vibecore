@@ -714,6 +714,7 @@ export interface ApiStore {
     expiresAt?: Date | null;
   }): Promise<ProjectCollaboratorRecord>;
   listProjectCollaborators(projectId: string): Promise<ProjectCollaboratorRecord[]>;
+  removeProjectCollaborator(input: { projectId: string; userId: string }): Promise<boolean>;
   recordProjectActivity(input: {
     projectId: string;
     actorUserId?: string;
