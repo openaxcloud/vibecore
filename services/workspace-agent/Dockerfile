@@ -35,10 +35,18 @@ fs.writeFileSync('package.json', JSON.stringify(p, null, 2));"
 # node-pty is a native module: it must be compiled against this image's
 # musl/node ABI. Alpine has no compiler by default, so install a virtual
 # build-deps group, build, then remove it to keep the runtime image lean.
-# Without this, `npm install` fails (node-pty is a regular, non-optional
-# dependency) or the terminal silently degrades to the non-PTY pipe fallback.
+#
+# node-pty lives in optionalDependencies (so local/CI installs without a
+# compiler don't hard-fail — terminal-session.ts importOptional()s it). But the
+# main install below uses --omit=optional to keep the image lean, which SKIPS
+# node-pty entirely → every workspace terminal silently degrades to the non-PTY
+# pipe fallback ("bash: cannot set terminal process group: Not a tty / no job
+# control"). The runtime IS the one place node-pty is mandatory, so install it
+# explicitly here (the .build-deps compiler is present for the native build).
 RUN apk add --no-cache --virtual .build-deps python3 make g++ \
   && npm install --omit=optional --no-audit --no-fund \
+  && npm install --no-save --no-audit --no-fund node-pty@^1.0.0 \
+  && node -e "require('node-pty'); console.log('node-pty native module loaded OK')" \
   && apk del .build-deps
 
 # Run as the unprivileged `node` user (uid 1000), matching the pod's

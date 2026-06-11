@@ -67,12 +67,12 @@ async function main() {
   assert(command.exitCode === 0 && command.output.includes('command-through-runtime-api'), `runCommand failed: ${JSON.stringify(command)}`);
 
   const terminal = await adapter.openTerminal({ terminal: { cols: 100, rows: 30 } });
-  const terminalEvent = await nextEvent(terminal.events, 10_000);
-  const terminalData = String((terminalEvent as { data?: unknown }).data ?? '');
-  assert(
-    terminalEvent.type === 'stdout' && (terminalData.includes('ready') || terminalData.includes(']654;prompt') || terminalData.includes(']654;interactive')),
-    `terminal did not become ready: ${JSON.stringify(terminalEvent)}`,
-  );
+  // Drain terminal events until the jsh readiness marker appears rather than
+  // asserting on the very first event: a real PTY emits shell-init output (and
+  // the rcfile sources bashrc) before PROMPT_COMMAND/PS1 emit the OSC markers,
+  // so the marker is rarely the first chunk.
+  const terminalReady = await waitForTerminalMarker(terminal.events, 25_000);
+  assert(terminalReady, 'terminal did not become ready (no jsh prompt/interactive marker within 25s)');
   await terminal.kill();
 
   const ports = await adapter.listPorts();
@@ -217,6 +217,50 @@ async function startPortForward(workspaceId: string) {
   }, 30_000);
 
   return child;
+}
+
+async function waitForTerminalMarker(
+  events: AsyncIterable<{ type?: string; data?: unknown }>,
+  timeoutMs: number,
+): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  const iterator = events[Symbol.asyncIterator]();
+  let buffer = '';
+
+  const hasMarker = () =>
+    buffer.includes(']654;prompt') || buffer.includes(']654;interactive') || buffer.includes('ready');
+
+  while (Date.now() < deadline) {
+    const remaining = deadline - Date.now();
+    let value: { type?: string; data?: unknown } | null | undefined;
+
+    try {
+      value = await Promise.race([
+        iterator.next().then((r) => (r.done ? null : r.value)),
+        new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), remaining)),
+      ]);
+    } catch {
+      return false;
+    }
+
+    if (value === null) {
+      return hasMarker(); // stream closed
+    }
+
+    if (value === undefined) {
+      break; // overall timeout
+    }
+
+    if (value.type === 'stdout') {
+      buffer += String(value.data ?? '');
+    }
+
+    if (hasMarker()) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 async function nextEvent<T>(events: AsyncIterable<T>, timeoutMs: number): Promise<T> {
