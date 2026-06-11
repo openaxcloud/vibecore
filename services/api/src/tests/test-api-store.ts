@@ -1130,6 +1130,18 @@ export class TestApiStore implements ApiStore {
     return deployment?.projectId === projectId ? deployment : undefined;
   }
 
+  async getDeploymentOwnerStatus(deploymentId: string) {
+    const deployment = this.deployments.get(deploymentId);
+
+    if (!deployment) {
+      return undefined;
+    }
+
+    const project = this.projects.get(deployment.projectId);
+
+    return { projectId: deployment.projectId, projectDeletedAt: project?.deletedAt ?? null };
+  }
+
   async updateDeployment(
     projectId: string,
     deploymentId: string,

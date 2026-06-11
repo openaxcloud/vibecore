@@ -272,11 +272,6 @@ export class FilesStore {
       const lockedFiles = lockedItems.filter((item) => !item.isFolder);
       const lockedFolders = lockedItems.filter((item) => item.isFolder);
 
-      if (lockedItems.length === 0) {
-        logger.debug(`No locked items found for chat ID: ${currentChatId}`);
-        return;
-      }
-
       logger.info(
         `Found ${lockedFiles.length} locked files and ${lockedFolders.length} locked folders for chat ID: ${currentChatId}`,
       );
@@ -308,6 +303,28 @@ export class FilesStore {
 
           // Also mark all files within the folder as locked
           this.#applyLockToFolderContents(currentFiles, updates, lockedFolder.path);
+        }
+      }
+
+      /*
+       * Reconcile, don't just add: clear isLocked on any dirent that is
+       * currently flagged locked but is NOT in the freshly-loaded locked set
+       * (the `updates` map now holds every path that should be locked). Without
+       * this an unlock performed in another tab / by another collaborator —
+       * surfaced here via the 30s refresh + cross-tab `storage` clearCache —
+       * left a stale lock in the map, so the AI was told a file was locked when
+       * it no longer is. This also covers the all-unlocked case (lockedItems
+       * empty → every previously-locked dirent gets cleared).
+       */
+      for (const path in currentFiles) {
+        const dirent = currentFiles[path];
+
+        if ((dirent?.type === 'file' || dirent?.type === 'folder') && dirent.isLocked && !(path in updates)) {
+          updates[path] = {
+            ...dirent,
+            isLocked: false,
+            lockedByFolder: undefined,
+          };
         }
       }
 

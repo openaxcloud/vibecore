@@ -1462,6 +1462,19 @@ export class PrismaApiStore implements ApiStore {
     return deployment ? mapDeployment(deployment) : undefined;
   }
 
+  async getDeploymentOwnerStatus(deploymentId: string) {
+    const deployment = await this.prisma.deployment.findUnique({
+      where: { id: deploymentId },
+      select: { projectId: true, project: { select: { deletedAt: true } } },
+    });
+
+    if (!deployment) {
+      return undefined;
+    }
+
+    return { projectId: deployment.projectId, projectDeletedAt: deployment.project?.deletedAt ?? null };
+  }
+
   async updateDeployment(
     projectId: string,
     deploymentId: string,

@@ -72,6 +72,10 @@ class TestWorkspaceStore implements WorkspaceStore {
   async list() {
     return [...this.workspaces.values()];
   }
+
+  async listNonDeleted() {
+    return [...this.workspaces.values()].filter((workspace) => workspace.status !== 'DELETED');
+  }
 }
 
 /*

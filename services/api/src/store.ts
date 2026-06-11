@@ -876,6 +876,9 @@ export interface ApiStore {
     canceledAt?: string;
   }): Promise<DeploymentRecord>;
   getDeployment(projectId: string, deploymentId: string): Promise<DeploymentRecord | undefined>;
+  getDeploymentOwnerStatus(
+    deploymentId: string,
+  ): Promise<{ projectId: string; projectDeletedAt: Date | string | null } | undefined>;
   updateDeployment(
     projectId: string,
     deploymentId: string,

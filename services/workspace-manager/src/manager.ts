@@ -42,6 +42,15 @@ export interface WorkspaceStore {
   update(workspaceId: string, patch: Partial<WorkspaceRecord>): Promise<WorkspaceRecord>;
   get(workspaceId: string): Promise<WorkspaceRecord | undefined>;
   list(): Promise<WorkspaceRecord[]>;
+
+  /*
+   * Like list() but excludes terminal DELETED rows. deleteWorkspace() never
+   * removes a row (it flips status to DELETED), and nothing prunes them, so the
+   * table grows unbounded with tombstones. The GC sweep only ever acts on
+   * non-DELETED workspaces — scanning the tombstones on every pass is pure
+   * O(lifetime-count) waste. Stores push the filter into the query.
+   */
+  listNonDeleted(): Promise<WorkspaceRecord[]>;
 }
 
 export interface EventBus {
@@ -80,6 +89,10 @@ export class JsonWorkspaceStore implements WorkspaceStore {
 
   async list() {
     return [...(await this.read()).values()];
+  }
+
+  async listNonDeleted() {
+    return [...(await this.read()).values()].filter((workspace) => workspace.status !== 'DELETED');
   }
 
   private async read() {
@@ -377,7 +390,7 @@ export class WorkspaceManager {
 
   async #garbageCollect(namespace: string, inactiveMs: number, deleteMs: number) {
     const now = Date.now();
-    for (const snapshot of await this.store.list()) {
+    for (const snapshot of await this.store.listNonDeleted()) {
       // Isolate each workspace: a transient kubectl/network error (or a row
       // concurrently deleted by another sweep) must not abort the whole GC pass
       // and leave every later workspace's pod/PVC leaking. Log and continue.

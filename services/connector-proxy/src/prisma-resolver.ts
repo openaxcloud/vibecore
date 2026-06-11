@@ -102,6 +102,7 @@ export function createPrismaConnectionResolver(deps: PrismaResolverDeps = {}) {
           userId: connection.userId,
         },
       },
+      include: { role: { select: { key: true } } },
     });
 
     if (!membership) {
@@ -129,6 +130,27 @@ export function createPrismaConnectionResolver(deps: PrismaResolverDeps = {}) {
         code: 'CONNECTOR_POLICY_DENIED',
         error: `${connection.provider} is disabled by an administrator for this organization.`,
       };
+    }
+
+    /*
+     * Enforce OrganizationConnectorPolicy.allowedRoleKeys. An admin can restrict
+     * a provider to a set of role keys; an empty array means "no role
+     * restriction" (any member). Until now this field was stored but never
+     * checked, so a role-restricted connector was usable by any member. The
+     * resolved connection is always the owner's (input.userId === connection.userId
+     * is enforced above), so the owner's role is the right thing to gate on.
+     */
+    if (policy && Array.isArray(policy.allowedRoleKeys) && policy.allowedRoleKeys.length > 0) {
+      const memberRoleKey = membership.role?.key;
+
+      if (!memberRoleKey || !policy.allowedRoleKeys.includes(memberRoleKey)) {
+        return {
+          ok: false,
+          status: 403,
+          code: 'CONNECTOR_POLICY_DENIED',
+          error: `Your organization role is not permitted to use ${connection.provider}.`,
+        };
+      }
     }
 
     if (!connection.accessTokenEncrypted) {

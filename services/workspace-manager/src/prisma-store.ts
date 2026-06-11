@@ -170,4 +170,12 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     })) as PrismaRuntimeRow[];
     return rows.map(rowToRecord);
   }
+
+  async listNonDeleted(): Promise<WorkspaceRecord[]> {
+    const rows = (await this.prisma.workspaceRuntime.findMany({
+      where: { status: { not: 'DELETED' } },
+      orderBy: { createdAt: 'asc' },
+    })) as PrismaRuntimeRow[];
+    return rows.map(rowToRecord);
+  }
 }

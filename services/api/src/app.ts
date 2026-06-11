@@ -1185,7 +1185,16 @@ function verifyCollaborationWebSocketTicket(ticket: string, input: { projectId: 
    */
   const expected = signCollaborationTicket(payload);
 
-  if (expected.length !== signature.length || !timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) {
+  /*
+   * Compare on byte length, not string .length: `signature` comes from the
+   * attacker-controlled ticket query param and may contain multibyte chars,
+   * so a UTF-16 char-length match can still hand timingSafeEqual two buffers
+   * of different byte length → uncaught RangeError (500 instead of 401).
+   */
+  const expectedBuf = Buffer.from(expected);
+  const signatureBuf = Buffer.from(signature);
+
+  if (expectedBuf.length !== signatureBuf.length || !timingSafeEqual(expectedBuf, signatureBuf)) {
     return undefined;
   }
 
@@ -5699,6 +5708,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const snapshotRoot = staticDeploymentSnapshotDir(deploymentId);
 
     if (!(await pathExistsAsync(snapshotRoot))) {
+      return reply
+        .code(404)
+        .send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
+    }
+
+    /*
+     * Stop serving once the owning project is soft-deleted (mirrors the
+     * /chat-shares/:token deletedAt gate). Soft-delete is reversible (restore),
+     * so we check at read time rather than removing the snapshot on delete — a
+     * restore must bring the live URL back. The lookup is a single indexed
+     * findUnique; an unknown deploymentId (snapshot present, row gone) is
+     * treated as not-found.
+     */
+    const ownerStatus = await store.getDeploymentOwnerStatus(deploymentId);
+
+    if (!ownerStatus || ownerStatus.projectDeletedAt) {
       return reply
         .code(404)
         .send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
@@ -13558,7 +13583,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const userId = request.currentUser!.id;
     const collaborators = await store.listProjectCollaborators(project.id);
-    const alreadyCollaborator = collaborators.some((collaborator) => collaborator.userId === userId);
+
+    /*
+     * Only an ACTIVE grant blocks re-redeem. listProjectCollaborators returns
+     * expired rows too; matching on userId alone meant that once a user's prior
+     * time-limited grant lapsed, re-redeeming a still-valid link was a no-op
+     * (the expired row was never refreshed) — a permanent lockout. Treat an
+     * expired grant as absent so addProjectCollaborator upserts a fresh expiry.
+     */
+    const now = Date.now();
+    const alreadyCollaborator = collaborators.some(
+      (collaborator) =>
+        collaborator.userId === userId &&
+        (!collaborator.expiresAt || new Date(collaborator.expiresAt).getTime() > now),
+    );
 
     let redeemed = false;
 
