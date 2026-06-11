@@ -1229,7 +1229,14 @@ function File({
               <span className="i-ph:bookmark-simple-fill scale-75 shrink-0 text-sky-500" title="Bookmarked" />
             )}
             {gitStatus && <GitStatusPill status={gitStatus} />}
-            {unsavedChanges && <span className="i-ph:circle-fill scale-68 shrink-0 text-orange-500" />}
+            {unsavedChanges && (
+              <span
+                className="i-ph:circle-fill scale-68 shrink-0 text-orange-500"
+                role="img"
+                aria-label="Unsaved changes"
+                title="Unsaved changes"
+              />
+            )}
           </div>
         </div>
       </NodeButton>
