@@ -131,8 +131,12 @@ export default function LocalProvidersTab() {
           status: 'idle' as const,
         })),
       );
-    } catch {
-      console.error('Error fetching Ollama models');
+    } catch (error) {
+      console.error('Error fetching Ollama models', error);
+      // Surface the failure instead of swallowing it: a silent catch left the UI
+      // showing a misleading "No Models Installed" empty state when Ollama was
+      // simply unreachable.
+      toast(`Could not reach Ollama at ${ollamaBaseUrl}. Is it running?`, { type: 'error' });
     } finally {
       setIsLoadingModels(false);
     }
