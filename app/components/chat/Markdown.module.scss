@@ -62,6 +62,11 @@ $code-font-size: 13px;
 
   p {
     white-space: pre-wrap;
+    // Break long unbroken strings (URLs, tokens, file paths, base64) so a chat
+    // message can't overflow its column / push horizontal scroll. Applies on ALL
+    // chat surfaces (the IDE-panel-only rules in index.scss missed standalone /chat).
+    overflow-wrap: anywhere;
+    word-break: break-word;
 
     &:not(:last-of-type) {
       margin-block-start: 0;
@@ -73,6 +78,8 @@ $code-font-size: 13px;
     color: var(--bolt-elements-messages-linkColor);
     text-decoration: none;
     cursor: pointer;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 
     &:hover {
       text-decoration: underline;
@@ -82,6 +89,8 @@ $code-font-size: 13px;
   :not(pre) > code {
     font-family: $font-mono;
     font-size: $code-font-size;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 
     @include not-inside-actions {
       border-radius: 6px;

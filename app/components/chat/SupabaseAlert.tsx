@@ -183,10 +183,11 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
               disabled={isExecuting}
               className={classNames(
                 `px-3 py-2 rounded-md text-sm font-medium`,
-                'bg-[#503B26]',
-                'hover:bg-[#774f28]',
+                // Theme tokens instead of a hardcoded dark-brown bg — the old
+                // bg-[#503B26]/text-[#F79007] looked broken on the light theme.
+                'bg-bolt-elements-background-depth-3 hover:bg-bolt-elements-background-depth-4',
                 'focus:outline-none',
-                'text-[#F79007]',
+                'text-bolt-elements-textSecondary',
                 isExecuting ? 'opacity-70 cursor-not-allowed' : '',
               )}
             >
