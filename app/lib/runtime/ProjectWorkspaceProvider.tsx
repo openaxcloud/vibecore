@@ -186,7 +186,19 @@ export function ProjectWorkspaceProvider({
       cancelled = true;
       stopLogs?.();
       void workbenchStore.stopPreviewServer().catch(() => undefined);
-      void stopRemoteWorkspace(runtime, activeWorkspaceId ?? workspaceId ?? projectId);
+
+      /*
+       * Do NOT tear the remote workspace down on unmount. A reload / route
+       * change / StrictMode remount unmounts this provider, and stopping the pod
+       * here meant every reload destroyed the workspace and forced a ~50s cold
+       * re-provision on the next mount — and worse, the same-(project,user)
+       * deterministic id makes the OLD unmount's stop race the NEW mount's start
+       * and kill the freshly-started pod (observed workspace.running →
+       * workspace.stopped churn). A genuinely abandoned IN-FLIGHT provision is
+       * still cleaned up by the `cancelled` checks inside startWorkspace (which
+       * stop the orphan once the start resolves); a fully-started workspace is
+       * left RUNNING and reaped by the inactivity GC like any cloud IDE.
+       */
       workbenchStore.configureProject(undefined);
     };
   }, [initialError, projectId, workspaceId, runtime]);

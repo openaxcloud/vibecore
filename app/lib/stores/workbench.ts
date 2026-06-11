@@ -2335,9 +2335,15 @@ export class WorkbenchStore {
      * skipped entirely, leaving node_modules empty and the preview dead. Retry
      * the whole sync with exponential backoff on transient errors — the file
      * writes here are idempotent so re-running is safe.
+     *
+     * Budget: 6 attempts (~0.75+1.5+3+6+8 ≈ 19s) so the FIRST open of a brand-new
+     * project survives the gap between the pod reporting Ready and the agent
+     * actually serving /files. The old 4-attempt (~5s) budget could expire while
+     * a cold workspace was still warming, silently skipping the sync → empty
+     * node_modules → dead preview on first load.
      */
     return withRuntimeRetry(() => this.#syncPreviewManifestFromRuntimeOnce(), {
-      attempts: 4,
+      attempts: 6,
       onRetry: (attempt, delayMs, error) => {
         const reason = error instanceof Error ? error.message : String(error);
         this.appendWorkspaceLog(
