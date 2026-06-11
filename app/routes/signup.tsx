@@ -16,7 +16,6 @@ import {
 import { useState } from 'react';
 import { AuthField, AuthScreen, AuthSubmit } from '~/components/auth/AuthScreen';
 import {
-  apiBaseUrl,
   apiRequest,
   formObject,
   json,
@@ -152,7 +151,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return json<ActionResult>(
       {
-        error: `Signup failed. API service is not reachable at ${apiBaseUrl()}. Start it with pnpm run dev:api or pnpm run dev:all.`,
+        error: `Signup failed. The API service is temporarily unreachable. Please try again in a moment.`,
         fields: { name, email, organizationName },
       },
       { status: 503 },

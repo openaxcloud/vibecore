@@ -172,6 +172,18 @@ async function githubUserAction({ request }: { request: Request; context?: unkno
     }
 
     /*
+     * repoFullName ("owner/repo") is interpolated verbatim into GitHub API
+     * paths (`/repos/${repoFullName}/branches`) on both the proxy and the legacy
+     * PAT path, with the server-side decrypted OAuth token attached. Reject
+     * anything that isn't a strict owner/repo so a crafted value (path
+     * traversal, extra segments, query injection) can't reach arbitrary GitHub
+     * endpoints with that token.
+     */
+    if (repoFullName && !/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(repoFullName)) {
+      return json({ error: 'Invalid repository name' }, { status: 400 });
+    }
+
+    /*
      * Phase 1 migration: try the UserConnection-backed proxy first so the
      * decrypted token never reaches the browser, then fall back to the
      * legacy cookie/env PAT for existing builders who have not yet

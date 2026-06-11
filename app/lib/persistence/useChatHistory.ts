@@ -436,13 +436,12 @@ ${value.content}
         }
       }
 
-      takeSnapshot(messages[messages.length - 1].id, workbenchStore.files.get(), _urlId, chatSummary);
-
-      if (!description.get() && firstArtifact?.title) {
-        description.set(firstArtifact?.title);
-      }
-
-      // Ensure chatId.get() is used here as well
+      /*
+       * Assign the chat id for a brand-new standalone chat BEFORE taking the
+       * first snapshot. takeSnapshot keys on chatId.get() and returns early when
+       * it's undefined, so taking the snapshot first silently dropped the very
+       * first turn's workbench files (lost on reload).
+       */
       if (initialMessages.length === 0 && !chatId.get()) {
         const nextId = projectId ? `project:${projectId}` : await getNextId(db!);
 
@@ -451,6 +450,12 @@ ${value.content}
         if (!projectId && !urlId) {
           navigateChat(nextId);
         }
+      }
+
+      takeSnapshot(messages[messages.length - 1].id, workbenchStore.files.get(), _urlId, chatSummary);
+
+      if (!description.get() && firstArtifact?.title) {
+        description.set(firstArtifact?.title);
       }
 
       // Ensure chatId.get() is used for the final setMessages call

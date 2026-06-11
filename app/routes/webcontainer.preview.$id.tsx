@@ -11,6 +11,18 @@ export async function loader({ params }: LoaderFunctionArgs) {
     throw new Response('Preview ID is required', { status: 400 });
   }
 
+  /*
+   * previewId is interpolated into the iframe host
+   * (`https://${previewId}.local-credentialless.webcontainer-api.io`). A
+   * WebContainer preview subdomain is a fixed lowercase alphanumeric/hyphen
+   * token; reject anything else so a crafted id can't break out of the host
+   * template (e.g. `evil.com#`, extra dots/slashes) and point the iframe at an
+   * attacker-controlled origin.
+   */
+  if (!/^[a-z0-9-]+$/.test(previewId)) {
+    throw new Response('Invalid preview ID', { status: 400 });
+  }
+
   return json({ previewId });
 }
 

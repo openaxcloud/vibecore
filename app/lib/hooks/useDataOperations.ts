@@ -1142,14 +1142,28 @@ export function useDataOperations({
           const transaction = db.transaction(['chats'], 'readwrite');
           const store = transaction.objectStore('chats');
 
+          let undoSkipped = 0;
+
           for (const chat of lastOperation.data.previous.chats) {
-            store.put(chat);
+            const request = store.put(chat);
+
+            // Skip a single failing record (e.g. a duplicate urlId →
+            // ConstraintError) instead of aborting the whole restore transaction
+            // and losing every other previously-saved chat on undo.
+            request.onerror = (event) => {
+              event.preventDefault();
+              undoSkipped += 1;
+            };
           }
 
           await new Promise((resolve, reject) => {
             transaction.oncomplete = resolve;
             transaction.onerror = reject;
           });
+
+          if (undoSkipped > 0) {
+            console.warn(`Skipped ${undoSkipped} chat(s) during undo restore (duplicate or invalid records)`);
+          }
 
           // Dismiss progress toast before showing success toast
           toast.dismiss('progress-toast');
@@ -1190,14 +1204,27 @@ export function useDataOperations({
           const chatTransaction = db.transaction(['chats'], 'readwrite');
           const chatStore = chatTransaction.objectStore('chats');
 
+          let resetUndoSkipped = 0;
+
           for (const chat of lastOperation.data.previous.chats) {
-            chatStore.put(chat);
+            const request = chatStore.put(chat);
+
+            // Skip a single failing record instead of aborting the whole restore
+            // transaction and losing every other chat on undo.
+            request.onerror = (event) => {
+              event.preventDefault();
+              resetUndoSkipped += 1;
+            };
           }
 
           await new Promise((resolve, reject) => {
             chatTransaction.oncomplete = resolve;
             chatTransaction.onerror = reject;
           });
+
+          if (resetUndoSkipped > 0) {
+            console.warn(`Skipped ${resetUndoSkipped} chat(s) during undo restore (duplicate or invalid records)`);
+          }
 
           // Dismiss progress toast before showing success toast
           toast.dismiss('progress-toast');
