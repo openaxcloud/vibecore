@@ -125,7 +125,7 @@ export function McpTools({ triggerClassName, triggerLabel = 'MCP tools', trigger
                     toggleServerExpanded={toggleServerExpanded}
                   />
                 ) : (
-                  <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 py-8 text-center text-bolt-elements-textSecondary">
+                  <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 py-8 text-center text-bolt-elements-textSecondary">
                     <p>No MCP servers configured</p>
                     <p className="text-xs mt-1">Configure servers in Settings → MCP Servers</p>
                   </div>

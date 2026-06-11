@@ -1005,7 +1005,7 @@ function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; em
             sideOffset={8}
             collisionPadding={12}
             hideWhenDetached
-            className="vc-sidebar-popover z-30 w-[min(14rem,calc(100vw-24px))] max-h-[min(420px,calc(100dvh-24px))] overflow-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-1 shadow-lg"
+            className="vc-sidebar-popover z-[70] w-[min(14rem,calc(100vw-24px))] max-h-[min(420px,calc(100dvh-24px))] overflow-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-1 shadow-lg"
           >
             <div className="border-b border-bolt-elements-borderColor px-3 py-2">
               <p className="truncate text-sm font-medium text-bolt-elements-textPrimary">{displayName}</p>

@@ -322,7 +322,7 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
 
   const cardClasses = classNames(
     'p-6 rounded-lg shadow-sm',
-    'bg-bolt-elements-bg-depth-1',
+    'bg-bolt-elements-background-depth-1',
     'border border-bolt-elements-borderColor',
   );
 

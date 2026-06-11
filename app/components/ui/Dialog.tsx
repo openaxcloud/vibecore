@@ -116,7 +116,7 @@ export const Dialog = memo(({ children, className, showCloseButton = true, onClo
       <RadixDialog.Content asChild>
         <motion.div
           className={classNames(
-            'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-bg-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none',
+            'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none',
             className,
           )}
           initial="closed"
@@ -210,7 +210,7 @@ export function ConfirmationDialog({
   return (
     <RadixDialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog showCloseButton={false}>
-        <div className="p-6 bg-bolt-elements-bg-depth-2 relative z-10">
+        <div className="p-6 bg-bolt-elements-background-depth-2 relative z-10">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="mb-4">{description}</DialogDescription>
           <div className="flex justify-end space-x-2">
@@ -350,7 +350,7 @@ export function SelectionDialog({
           'flex items-start space-x-3 p-2 rounded-md transition-colors',
           selectedItems.includes(item.id)
             ? 'bg-bolt-elements-item-backgroundAccent'
-            : 'bg-bolt-elements-bg-depth-2 hover:bg-bolt-elements-item-backgroundActive',
+            : 'bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-item-backgroundActive',
         )}
         style={{
           ...style,
@@ -384,7 +384,7 @@ export function SelectionDialog({
   return (
     <RadixDialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog showCloseButton={false}>
-        <div className="p-6 bg-bolt-elements-bg-depth-2 relative z-10">
+        <div className="p-6 bg-bolt-elements-background-depth-2 relative z-10">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="mt-2 mb-4">
             Select the items you want to include and click{' '}
@@ -400,14 +400,14 @@ export function SelectionDialog({
                 variant="ghost"
                 size="sm"
                 onClick={handleSelectAll}
-                className="text-xs h-8 px-2 text-bolt-elements-textPrimary hover:text-bolt-elements-item-contentAccent hover:bg-bolt-elements-item-backgroundAccent bg-bolt-elements-bg-depth-2 dark:bg-transparent"
+                className="text-xs h-8 px-2 text-bolt-elements-textPrimary hover:text-bolt-elements-item-contentAccent hover:bg-bolt-elements-item-backgroundAccent bg-bolt-elements-background-depth-2 dark:bg-transparent"
               >
                 {selectAll ? 'Deselect All' : 'Select All'}
               </Button>
             </div>
 
             <div
-              className="pr-2 border rounded-md border-bolt-elements-borderColor bg-bolt-elements-bg-depth-2"
+              className="pr-2 border rounded-md border-bolt-elements-borderColor bg-bolt-elements-background-depth-2"
               style={{
                 maxHeight,
               }}

@@ -189,7 +189,7 @@ export function BranchSelector({
             aria-modal="true"
             onClick={(e) => e.stopPropagation()}
             className={classNames(
-              'bg-bolt-elements-bg-depth-2 rounded-xl shadow-xl border border-bolt-elements-borderColor max-w-md w-full max-h-[80vh] flex flex-col',
+              'bg-bolt-elements-background-depth-2 rounded-xl shadow-xl border border-bolt-elements-borderColor max-w-md w-full max-h-[80vh] flex flex-col',
               className,
             )}
           >

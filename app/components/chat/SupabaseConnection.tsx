@@ -128,7 +128,7 @@ export function SupabaseConnection() {
                     placeholder="Enter your Supabase access token"
                     className={classNames(
                       'w-full px-3 py-2 rounded-lg text-sm',
-                      'bg-[#F8F8F8] dark:bg-bolt-elements-bg-depth-3',
+                      'bg-[#F8F8F8] dark:bg-bolt-elements-background-depth-3',
                       'border border-[#E5E5E5] dark:border-[#333333]',
                       'text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary',
                       'focus:outline-none focus:ring-1 focus:ring-[#3ECF8E]',
@@ -191,7 +191,7 @@ export function SupabaseConnection() {
                   </DialogTitle>
                 </div>
 
-                <div className="flex items-center gap-4 p-3 bg-[#F8F8F8] dark:bg-bolt-elements-bg-depth-3 rounded-lg">
+                <div className="flex items-center gap-4 p-3 bg-[#F8F8F8] dark:bg-bolt-elements-background-depth-3 rounded-lg">
                   <div>
                     <h4 className="text-sm font-medium text-bolt-elements-textPrimary">{supabaseConn.user?.email}</h4>
                     <p className="text-xs text-bolt-elements-textSecondary">Role: {supabaseConn.user?.role}</p>
@@ -222,7 +222,7 @@ export function SupabaseConnection() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => fetchSupabaseStats(supabaseConn.token)}
-                          className="px-2 py-1 rounded-md text-xs bg-[#F0F0F0] dark:bg-bolt-elements-bg-depth-3 text-bolt-elements-textSecondary hover:bg-[#E5E5E5] dark:hover:bg-bolt-elements-bg-depth-4 flex items-center gap-1"
+                          className="px-2 py-1 rounded-md text-xs bg-[#F0F0F0] dark:bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary hover:bg-[#E5E5E5] dark:hover:bg-bolt-elements-background-depth-4 flex items-center gap-1"
                           title="Refresh projects list"
                         >
                           <div className="i-ph:arrows-clockwise w-3 h-3" />
@@ -241,7 +241,7 @@ export function SupabaseConnection() {
                     {isProjectsExpanded && (
                       <>
                         {!supabaseConn.selectedProjectId && (
-                          <div className="mb-2 p-3 bg-[#F8F8F8] dark:bg-bolt-elements-bg-depth-3 rounded-lg text-sm text-bolt-elements-textSecondary">
+                          <div className="mb-2 p-3 bg-[#F8F8F8] dark:bg-bolt-elements-background-depth-3 rounded-lg text-sm text-bolt-elements-textSecondary">
                             Select a project or create a new one for this chat
                           </div>
                         )}
@@ -269,7 +269,7 @@ export function SupabaseConnection() {
                                       'px-3 py-1 rounded-md text-xs',
                                       supabaseConn.selectedProjectId === project.id
                                         ? 'bg-[#3ECF8E] text-white'
-                                        : 'bg-[#F0F0F0] dark:bg-bolt-elements-bg-depth-3 text-bolt-elements-textSecondary hover:bg-[#3ECF8E] hover:text-white',
+                                        : 'bg-[#F0F0F0] dark:bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary hover:bg-[#3ECF8E] hover:text-white',
                                     )}
                                   >
                                     {supabaseConn.selectedProjectId === project.id ? (
