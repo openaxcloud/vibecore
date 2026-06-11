@@ -704,6 +704,16 @@ export class PrismaApiStore implements ApiStore {
            */
           await tx.projectShareLink.deleteMany({ where: { projectId: input.projectId } });
 
+          /*
+           * Chat shares are bearer-token snapshots of the project's AI
+           * conversations, minted under the SOURCE org. findChatShareByTokenHash
+           * resolves them by token alone (no org check), so an outstanding link
+           * would keep leaking the source org's conversation data after the
+           * project moves to a different org. Revoke them all on transfer; the
+           * target org re-shares as needed.
+           */
+          await tx.chatShare.deleteMany({ where: { projectId: input.projectId } });
+
           return mapProject(
             await tx.project.update({
               where: { id: input.projectId },

@@ -8959,15 +8959,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * hardcoded to 'business', so a free org got business-tier models for free.
      * Map the billing plan key to the gateway's AiPlanKey (billing 'team' ==
      * gateway 'business'); unknown/free → 'free'.
+     *
+     * Use the STATUS-GATED entitled plan (billingState().plan.key), NOT the raw
+     * subscription.planKey: a past_due/canceled/unpaid subscription still carries
+     * its contracted planKey, so keying off it let a lapsed org keep premium-tier
+     * models. plan.key downgrades to free when the subscription isn't entitled
+     * (same source used for workspace resource limits).
      */
-    const billingPlanKey = (await billingState(input.project.organizationId).catch(() => undefined))?.subscription
-      ?.planKey;
+    const entitledPlanKey = (await billingState(input.project.organizationId).catch(() => undefined))?.plan?.key;
     const gatewayPlan =
-      billingPlanKey === 'team'
+      entitledPlanKey === 'team'
         ? 'business'
-        : billingPlanKey === 'pro'
+        : entitledPlanKey === 'pro'
           ? 'pro'
-          : billingPlanKey === 'enterprise'
+          : entitledPlanKey === 'enterprise'
             ? 'enterprise'
             : 'free';
 
@@ -9447,6 +9452,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'deploy_project',
     ]);
     await requireProject(request, store, project.id, writeTools.has(toolName) ? 'workspaces:write' : 'workspaces:read');
+    /*
+     * A suspended org must not keep consuming paid LLM/runtime/deploy spend
+     * through AI tools. The sibling AI routes (conversations/messages,
+     * record-usage) gate this, but the tool-execution path — which records
+     * ai.toolCalls and can write files, run_command, commit git and even
+     * deploy_project — did not.
+     */
+    await requireOrganizationNotSuspended(store, project.organizationId);
     await ensureQuota(request, project.organizationId, 'ai.toolCalls');
 
     const path = input.path ? normalizeAiPath(input.path) : undefined;
@@ -9505,6 +9518,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
       output = { applied: true, snapshotId };
     } else if (toolName === 'run_command') {
+      /*
+       * Honor per-collaborator terminal-access revocation here too. run_command
+       * proxies to the SAME workspace shell (/commands/run) as the interactive
+       * terminal — all three interactive surfaces (HTTP /commands and the two
+       * WS sockets) gate on isTerminalAccessRevoked, but the AI tool path did
+       * not, so a collaborator whose terminal access an admin explicitly revoked
+       * could still execute arbitrary shell via this tool (workspaces:write is
+       * orthogonal to terminal revocation).
+       */
+      if (await isTerminalAccessRevoked({ projectId: project.id }, request)) {
+        throw Object.assign(new Error('Terminal access is restricted for this project role'), {
+          statusCode: 403,
+          code: 'TERMINAL_ACCESS_DENIED',
+        });
+      }
+
       const signal = detectCommandAbuse(input.command, input.args);
 
       if (signal) {
