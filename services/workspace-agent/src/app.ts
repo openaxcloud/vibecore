@@ -357,38 +357,71 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       return reply.code(400).send({ error: 'invalid_port' });
     }
 
-    const target = new URL(`http://127.0.0.1:${port}/${targetPath}`);
     const queryIndex = request.url.indexOf('?');
-
-    if (queryIndex >= 0) {
-      target.search = request.url.slice(queryIndex);
-    }
+    const search = queryIndex >= 0 ? request.url.slice(queryIndex) : '';
 
     /*
-     * Bound only the connect/headers phase, then clear the timer. AbortSignal.
-     * timeout(30s) governs the ENTIRE response lifetime, so a long-lived preview
-     * response — SSE/HMR streams, slow or large assets — was aborted and truncated
-     * mid-stream at 30s. A manual controller lets the body stream unbounded once
-     * headers have arrived.
+     * Dev servers (Vite, CRA, etc.) default to binding "localhost". On a
+     * dual-stack container "localhost" can resolve to ::1 (IPv6) ONLY, so a
+     * fetch to 127.0.0.1 ECONNREFUSEs — and that throw used to escape this
+     * handler as an opaque 500, leaving the preview iframe blank even though
+     * the dev server was up. Try IPv4 then IPv6 loopback so we reach the server
+     * whichever stack it bound; on total failure return a clear, logged 502
+     * (the dev server is starting / crashed) instead of an unhandled 500.
      */
-    const previewController = new AbortController();
-    const previewConnectTimeout = setTimeout(() => previewController.abort(), 30_000);
+    const candidateHosts = ['127.0.0.1', '[::1]'];
+    let response: Response | undefined;
+    let lastError: unknown;
 
-    let response: Response;
+    for (const host of candidateHosts) {
+      const target = new URL(`http://${host}:${port}/${targetPath}`);
+      target.search = search;
 
-    try {
-      response = await fetch(target, {
-        method: request.method,
-        headers: previewProxyHeaders(request.headers),
-        body:
-          request.method === 'GET' || request.method === 'HEAD'
-            ? undefined
-            : serializePreviewBody(request.body, request.headers['content-type']),
-        redirect: 'manual',
-        signal: previewController.signal,
+      /*
+       * Bound only the connect/headers phase, then clear the timer. AbortSignal.
+       * timeout(30s) governs the ENTIRE response lifetime, so a long-lived preview
+       * response — SSE/HMR streams, slow or large assets — was aborted and truncated
+       * mid-stream at 30s. A manual controller lets the body stream unbounded once
+       * headers have arrived.
+       */
+      const previewController = new AbortController();
+      const previewConnectTimeout = setTimeout(() => previewController.abort(), 30_000);
+
+      try {
+        response = await fetch(target, {
+          method: request.method,
+          headers: previewProxyHeaders(request.headers),
+          body:
+            request.method === 'GET' || request.method === 'HEAD'
+              ? undefined
+              : serializePreviewBody(request.body, request.headers['content-type']),
+          redirect: 'manual',
+          signal: previewController.signal,
+        });
+        break;
+      } catch (error) {
+        lastError = error;
+      } finally {
+        clearTimeout(previewConnectTimeout);
+      }
+    }
+
+    if (!response) {
+      // eslint-disable-next-line no-console
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          service: 'workspace-agent',
+          event: 'preview.proxy.unreachable',
+          port,
+          error: lastError instanceof Error ? lastError.message : String(lastError),
+        }),
+      );
+
+      return reply.code(502).send({
+        error: 'preview_upstream_unreachable',
+        message: `Dev server on port ${port} is not reachable yet. It may still be starting, or it crashed — check the dev server logs.`,
       });
-    } finally {
-      clearTimeout(previewConnectTimeout);
     }
 
     for (const [key, value] of response.headers.entries()) {
