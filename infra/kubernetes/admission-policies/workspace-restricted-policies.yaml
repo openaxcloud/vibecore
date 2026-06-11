@@ -51,10 +51,15 @@ spec:
         message: "Workspace pods require labels, resource requests/limits, liveness and readiness probes."
         pattern:
           metadata:
+            # Match the labels the runtime ACTUALLY sets (packages/k8s-client
+            # labels()): vibecore.ai/org-id, /project-id, /workspace-id. The
+            # previous bare orgId/projectId/workspaceId keys are never present,
+            # so applying this policy in Enforce mode would reject EVERY workspace
+            # pod and take the whole runtime down.
             labels:
-              orgId: "?*"
-              projectId: "?*"
-              workspaceId: "?*"
+              "vibecore.ai/org-id": "?*"
+              "vibecore.ai/project-id": "?*"
+              "vibecore.ai/workspace-id": "?*"
           spec:
             containers:
               - resources:
