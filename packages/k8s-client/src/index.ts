@@ -1,10 +1,65 @@
 import { execFile as execFileCallback } from 'node:child_process';
+import { existsSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 const execFile = promisify(execFileCallback);
+
+/*
+ * Plain `kubectl` does NOT auto-use a pod's service-account credentials: with no
+ * kubeconfig it falls back to the default server `http://localhost:8080` and every
+ * call dies with "connection refused" — which silently broke ALL workspace
+ * provisioning in prod (manager start → kubectl get PVC → localhost:8080 refused →
+ * workspace.failed → no pod → dead IDE/preview). The SA token is mounted
+ * (automountServiceAccountToken), but nothing pointed kubectl at it. Build a
+ * minimal in-cluster kubeconfig from the mounted SA so kubectl talks to the real
+ * API server. tokenFile (not an embedded token) keeps the rotating token out of
+ * the file and off the process args / error logs.
+ *
+ * Activates ONLY when genuinely in a pod (SA token present) and no explicit
+ * KUBECONFIG is set, so local dev / CI / tests (which rely on ~/.kube/config or
+ * mocks) are untouched.
+ */
+const SERVICE_ACCOUNT_DIR = '/var/run/secrets/kubernetes.io/serviceaccount';
+
+function resolveInClusterKubeconfigArgs(): string[] {
+  if (process.env.KUBECONFIG) {
+    return [];
+  }
+
+  const host = process.env.KUBERNETES_SERVICE_HOST;
+  const tokenFile = `${SERVICE_ACCOUNT_DIR}/token`;
+  const caFile = `${SERVICE_ACCOUNT_DIR}/ca.crt`;
+
+  if (!host || !existsSync(tokenFile) || !existsSync(caFile)) {
+    return [];
+  }
+
+  const port = process.env.KUBERNETES_SERVICE_PORT_HTTPS || process.env.KUBERNETES_SERVICE_PORT || '443';
+  const hostForUrl = host.includes(':') ? `[${host}]` : host; // bracket IPv6 literals
+  const kubeconfig = {
+    apiVersion: 'v1',
+    kind: 'Config',
+    clusters: [{ name: 'in-cluster', cluster: { server: `https://${hostForUrl}:${port}`, 'certificate-authority': caFile } }],
+    users: [{ name: 'in-cluster', user: { tokenFile } }],
+    contexts: [{ name: 'in-cluster', context: { cluster: 'in-cluster', user: 'in-cluster' } }],
+    'current-context': 'in-cluster',
+  };
+
+  try {
+    const dir = mkdtempSync(join(tmpdir(), 'vibecore-kubeconfig-'));
+    const path = join(dir, 'config');
+    writeFileSync(path, JSON.stringify(kubeconfig), { mode: 0o600 });
+
+    return ['--kubeconfig', path];
+  } catch {
+    // If we can't materialize the kubeconfig, fall back to kubectl's own
+    // resolution rather than crashing the client constructor.
+    return [];
+  }
+}
 
 /*
  * Bound every kubectl invocation. Node's execFile default timeout is 0 (none),
@@ -479,7 +534,14 @@ export function managerAndPreviewIngressNetworkPolicy(namespace: string, platfor
 }
 
 export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
-  constructor(readonly kubectl = process.env.KUBECTL_BIN ?? 'kubectl') {}
+  // Connection flags (e.g. --kubeconfig <in-cluster config>) prepended to every
+  // kubectl call so it authenticates with the pod's service account instead of
+  // defaulting to localhost:8080. Empty outside a pod (local dev / tests).
+  private readonly configArgs: string[];
+
+  constructor(readonly kubectl = process.env.KUBECTL_BIN ?? 'kubectl') {
+    this.configArgs = resolveInClusterKubeconfigArgs();
+  }
 
   async apply(object: K8sObject) {
     const dir = await mkdtemp(join(tmpdir(), 'vibecore-k8s-'));
@@ -487,9 +549,13 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
 
     try {
       await writeFile(manifest, JSON.stringify(object));
-      await execFile(this.kubectl, ['apply', '-f', manifest, `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`], {
-        timeout: KUBECTL_TIMEOUT_MS,
-      });
+      await execFile(
+        this.kubectl,
+        [...this.configArgs, 'apply', '-f', manifest, `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`],
+        {
+          timeout: KUBECTL_TIMEOUT_MS,
+        },
+      );
 
       return object;
     } finally {
@@ -500,7 +566,16 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
   async delete(kind: string, namespace: string, name: string) {
     await execFile(
       this.kubectl,
-      ['delete', kind, name, '-n', namespace, '--ignore-not-found=true', `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`],
+      [
+        ...this.configArgs,
+        'delete',
+        kind,
+        name,
+        '-n',
+        namespace,
+        '--ignore-not-found=true',
+        `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`,
+      ],
       { timeout: KUBECTL_TIMEOUT_MS },
     );
   }
@@ -527,7 +602,7 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
   private async getResource(kind: string, namespace: string, name: string): Promise<K8sObject | undefined> {
     const { stdout } = await execFile(
       this.kubectl,
-      ['get', kind, name, '-n', namespace, '-o', 'json', `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`],
+      [...this.configArgs, 'get', kind, name, '-n', namespace, '-o', 'json', `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`],
       { timeout: KUBECTL_TIMEOUT_MS },
     ).catch(
       (error: any) => {
@@ -549,7 +624,7 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
     // workspace can exceed 1MB, which would otherwise throw ENOBUFS and 500.
     const { stdout } = await execFile(
       this.kubectl,
-      ['logs', name, '-n', namespace, '--tail=500', `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`],
+      [...this.configArgs, 'logs', name, '-n', namespace, '--tail=500', `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`],
       {
         maxBuffer: 16 * 1024 * 1024,
         timeout: KUBECTL_TIMEOUT_MS,
