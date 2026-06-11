@@ -11,11 +11,15 @@ interface AppContext {
   };
 }
 
-export const loader: LoaderFunction = async ({ request, context }: LoaderFunctionArgs & { context: AppContext }) => {
-  // Get environment variables
+export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs & { context: AppContext }) => {
+  /*
+   * Do NOT expose whether the SERVER holds GitHub/Netlify tokens: this loader is
+   * unauthenticated, and leaking hasGithubToken/hasNetlifyToken to anyone is an
+   * exploit oracle (it confirms the platform credential exists — the precondition
+   * for the unauth git-info token-leak class). Only the caller's OWN cookie state
+   * (below) and nodeEnv are reported.
+   */
   const envVars = {
-    hasGithubToken: Boolean(process.env.GITHUB_ACCESS_TOKEN || context.env?.GITHUB_ACCESS_TOKEN),
-    hasNetlifyToken: Boolean(process.env.NETLIFY_TOKEN || context.env?.NETLIFY_TOKEN),
     nodeEnv: process.env.NODE_ENV,
   };
 
