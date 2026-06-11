@@ -60,6 +60,27 @@ const commandSchema = z.object({
 
 const snapshotSchema = z.object({ files: z.array(writeSchema).default([]) });
 
+/*
+ * The agent's own signing secret must NEVER reach user-controlled child
+ * processes (terminals, run_command, streamed commands). Passing process.env
+ * verbatim leaked WORKSPACE_AGENT_TOKEN_SECRET into every shell the tenant runs,
+ * letting their code read it and forge agent tokens for OTHER workspaces
+ * (cross-tenant filesystem/command takeover). Strip the agent-private control
+ * vars before spawning; the user's own project env/secrets (injected into the
+ * pod by the workspace-manager) are preserved.
+ */
+const AGENT_PRIVATE_ENV_KEYS = ['WORKSPACE_AGENT_TOKEN_SECRET'];
+
+function sanitizedChildEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const env = { ...base };
+
+  for (const key of AGENT_PRIVATE_ENV_KEYS) {
+    delete env[key];
+  }
+
+  return env;
+}
+
 export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   const root = resolve(options.workspaceRoot ?? process.env.WORKSPACE_ROOT ?? '/workspace');
 
@@ -89,7 +110,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
   const terminalManager = new TerminalSessionManager({
     cwd: root,
-    env: process.env,
+    env: sanitizedChildEnv(),
     maxSessions: maxProcesses,
 
     /*
@@ -699,6 +720,17 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
         })
         .catch((error) => {
           sendOutput(`\r\n[terminal error] ${error instanceof Error ? error.message : String(error)}\r\n`);
+
+          // Shell session creation failed: close the socket instead of leaving a
+          // zombie WS open with no backing shell (no output, no exit frame, no
+          // teardown — the client would just see a dead terminal forever).
+          closed = true;
+
+          try {
+            rawSocket.close();
+          } catch {
+            // Already closed.
+          }
         });
 
       socket.onMessage((message) => {
@@ -862,7 +894,20 @@ function normalizeWebSocket(rawSocket: unknown) {
 function readBearerToken(request: FastifyRequest) {
   const authorization = request.headers.authorization;
 
-  if (!authorization?.startsWith('Bearer ')) {
+  if (authorization?.startsWith('Bearer ')) {
+    return authorization.slice('Bearer '.length);
+  }
+
+  /*
+   * Query-param tokens are honored ONLY for WebSocket upgrades (terminal /
+   * commands-stream): browsers can't set Authorization on a WS handshake. For
+   * plain HTTP a ?token= would leak the bearer credential into proxy/access
+   * logs, Referer headers and history, so require the Authorization header —
+   * every REST caller (the API runtime proxy) already sends it.
+   */
+  const isWebSocketUpgrade = String(request.headers.upgrade ?? '').toLowerCase() === 'websocket';
+
+  if (isWebSocketUpgrade) {
     if (typeof (request.query as { token?: unknown } | undefined)?.token === 'string') {
       return (request.query as { token: string }).token;
     }
@@ -870,7 +915,7 @@ function readBearerToken(request: FastifyRequest) {
     return new URL(request.url, 'http://workspace-agent.local').searchParams.get('token') ?? undefined;
   }
 
-  return authorization.slice('Bearer '.length);
+  return undefined;
 }
 
 /*
@@ -1244,7 +1289,7 @@ async function runCommand(
   // WHOLE tree (process.kill(-pid)). Without it a bare child.kill() left a spawned
   // child's grandchildren (e.g. a shell launching a server) orphaned, leaking
   // processes that hold a maxProcesses slot. Mirrors runCommandStream.
-  const child = spawn(command, normalizedArgs, { cwd, shell: false, env: process.env, detached: true });
+  const child = spawn(command, normalizedArgs, { cwd, shell: false, env: sanitizedChildEnv(), detached: true });
 
   const killGroup = (sig: NodeJS.Signals) => {
     if (child.pid === undefined) {
@@ -1388,7 +1433,7 @@ async function runCommandStream(
   // detached: own process group so we can SIGTERM/SIGKILL the WHOLE tree. Streamed
   // commands are dev servers etc. that spawn children; killing only the direct
   // child orphaned those grandchildren (leaked processes + held ports).
-  const child = spawn(command, normalizedArgs, { cwd, shell: false, env: process.env, detached: true });
+  const child = spawn(command, normalizedArgs, { cwd, shell: false, env: sanitizedChildEnv(), detached: true });
 
   /*
    * Signal the child's PROCESS GROUP (negative pid) so its children die too;
