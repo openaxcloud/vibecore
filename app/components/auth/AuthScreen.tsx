@@ -102,10 +102,18 @@ export function AuthScreen({
 
           <div className="vc-auth-card rounded-xl p-4 backdrop-blur-xl sm:p-6 md:p-7 lg:p-6">
             {status ? (
-              <div className="vc-auth-alert vc-auth-alert-success mb-4 rounded-md px-3 py-2 text-[12px]">{status}</div>
+              <div
+                role="status"
+                aria-live="polite"
+                className="vc-auth-alert vc-auth-alert-success mb-4 rounded-md px-3 py-2 text-[12px]"
+              >
+                {status}
+              </div>
             ) : null}
             {error ? (
-              <div className="vc-auth-alert vc-auth-alert-error mb-4 rounded-md px-3 py-2 text-[12px]">{error}</div>
+              <div role="alert" className="vc-auth-alert vc-auth-alert-error mb-4 rounded-md px-3 py-2 text-[12px]">
+                {error}
+              </div>
             ) : null}
 
             {children}
