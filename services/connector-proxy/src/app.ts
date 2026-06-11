@@ -292,7 +292,17 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
      * Stream large provider responses through instead of buffering them whole.
      * connector-proxy never rewrites binary bodies, and provider downloads can
      * be large enough that buffering risks avoidable memory pressure.
+     *
+     * If the CLIENT disconnects mid-stream, abort the upstream fetch — otherwise
+     * the token-bearing request to the provider keeps running to completion with
+     * no consumer, wasting the provider's rate budget and a local socket.
      */
+    reply.raw.on('close', () => {
+      if (!reply.raw.writableFinished) {
+        controller.abort();
+      }
+    });
+
     return reply.send(Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>));
   });
 

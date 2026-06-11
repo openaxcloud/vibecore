@@ -190,7 +190,8 @@ describe('workspace Kubernetes manifests', () => {
 
     expect(quota.spec?.hard).toMatchObject({
       pods: '500',
-      'requests.storage': '10Ti',
+      // In sync with the Helm chart's authoritative 4000Gi (under regional quota).
+      'requests.storage': '4000Gi',
       persistentvolumeclaims: '500',
     });
   });

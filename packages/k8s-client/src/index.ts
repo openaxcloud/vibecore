@@ -268,7 +268,16 @@ export function workspaceResourceQuota(namespace: string): K8sObject {
         'requests.memory': '500Gi',
         'limits.cpu': '1000',
         'limits.memory': '2Ti',
-        'requests.storage': '10Ti',
+        /*
+         * Keep requests.storage IN SYNC with the Helm chart's authoritative
+         * value (infra/helm/workspaces-runtime/values.yaml resourceQuota.requestsStorage,
+         * deliberately 4000Gi to stay under the regional persistent-disk quota —
+         * the fix from audit waves 23/24). This object and the chart both produce
+         * a ResourceQuota named `workspace-runtime-quota`; a divergent value here
+         * (was 10Ti) would, if ever applied, overwrite the chart's and re-break
+         * provisioning with QUOTA_EXCEEDED.
+         */
+        'requests.storage': '4000Gi',
         persistentvolumeclaims: '500',
       },
     },

@@ -81,7 +81,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     }
 
     const proxyPath = params['*'] ?? '';
-    const upstreamPath = `/preview/${portNumber}/${proxyPath}`;
+
+    /*
+     * Fastify URL-DECODES the wildcard param, so an encoded '?' (%3F) or '#'
+     * (%23) in the path arrives literally and, concatenated into the upstream URL
+     * string below, is mis-read as the query/fragment delimiter — truncating or
+     * corrupting the path. Re-encode just those two delimiters (other special
+     * chars are handled by the URL constructor) before building the URL.
+     */
+    const safeProxyPath = proxyPath.replace(/\?/g, '%3F').replace(/#/g, '%23');
+    const upstreamPath = `/preview/${portNumber}/${safeProxyPath}`;
     const queryString = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
     let upstream: URL;
 
