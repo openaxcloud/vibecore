@@ -325,8 +325,17 @@ export function Search() {
                     return (
                       <div
                         key={idx}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Result in ${match.path} line ${match.lineNumber}`}
                         className="hover:bg-bolt-elements-background-depth-3 cursor-pointer transition-colors pl-6 py-1"
                         onClick={() => handleResultClick(match.path, match.lineNumber)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            handleResultClick(match.path, match.lineNumber);
+                          }
+                        }}
                       >
                         <pre className="font-mono text-xs text-bolt-elements-textTertiary truncate">
                           {!isStart && <span>...</span>}

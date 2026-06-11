@@ -44,7 +44,16 @@ export const TabTile: React.FC<TabTileProps> = ({
                 movementDuration={0.4}
               />
               <div
+                role="button"
+                tabIndex={isLoading ? -1 : 0}
+                aria-pressed={isActive}
                 onClick={onClick}
+                onKeyDown={(event) => {
+                  if (!isLoading && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    onClick?.();
+                  }
+                }}
                 className={classNames(
                   'relative flex flex-col items-center justify-center h-full p-4 rounded-lg',
                   'bg-white dark:bg-[#141414]',

@@ -61,7 +61,7 @@ declare const __GIT_REPO_NAME: string;
  * declare const __GIT_REPO_URL: string;
  */
 
-export const loader: LoaderFunction = async ({ request, context }: LoaderFunctionArgs & { context: AppContext }) => {
+export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs & { context: AppContext }) => {
   // Handle CORS preflight requests
   if (request.method === 'OPTIONS') {
     return new Response(null, {
@@ -77,9 +77,6 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
   const action = searchParams.get('action');
 
   if (action === 'getUser' || action === 'getRepos' || action === 'getOrgs' || action === 'getActivity') {
-    // Use server-side token instead of client-side token
-    const serverGithubToken = process.env.GITHUB_ACCESS_TOKEN || context.env?.GITHUB_ACCESS_TOKEN;
-
     const cookieToken = request.headers
       .get('Cookie')
       ?.split(';')
@@ -90,7 +87,16 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
     const authHeader = request.headers.get('Authorization');
     const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
-    const token = serverGithubToken || headerToken || cookieToken;
+    /*
+     * Use ONLY the caller's token. This loader is unauthenticated, so preferring
+     * the server token (process.env.GITHUB_ACCESS_TOKEN) let any anonymous caller
+     * run /user, /user/repos, /user/orgs against the PLATFORM's GitHub account —
+     * leaking its private repos/profile/orgs (worsened by the wildcard CORS
+     * below). The sibling routes (api.github-stats / api.github-user /
+     * api.github-branches) all deliberately refuse the server credential here;
+     * match them.
+     */
+    const token = headerToken || cookieToken;
 
     if (!token) {
       console.error('No GitHub token available');

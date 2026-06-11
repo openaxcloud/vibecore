@@ -47,7 +47,7 @@ export function GitHubAuthDialog({ isOpen, onClose, onSuccess }: GitHubAuthDialo
           onPointerDownOutside={handleClose}
         >
           <motion.div
-            className="bg-bolt-elements-background border border-bolt-elements-borderColor rounded-lg shadow-lg"
+            className="bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor rounded-lg shadow-lg"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
