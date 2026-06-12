@@ -4486,14 +4486,31 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         const startY = event.clientY;
         const startHeight = terminalBottomHeight;
 
+        /*
+         * Drive the live drag straight through the DOM CSS vars instead of React
+         * state: setTerminalBottomHeight on every mousemove frame re-rendered the
+         * entire (very large) BaseChat and wrote localStorage per frame. Capture
+         * the two elements that carry the height vars, mutate them during the
+         * drag, and commit to state only once on mouseup.
+         */
+        const terminalShell = (event.currentTarget as HTMLElement).closest(
+          '.bolt-project-bottom-terminal-shell',
+        ) as HTMLElement | null;
+
+        const mainPanes = terminalShell?.parentElement?.querySelector('.bolt-project-main-panes') as HTMLElement | null;
+
+        let nextHeight = startHeight;
+
         const onMove = (moveEvent: MouseEvent) => {
-          const nextHeight = Math.min(720, Math.max(320, startHeight + startY - moveEvent.clientY));
-          setTerminalBottomHeight(nextHeight);
+          nextHeight = Math.min(720, Math.max(320, startHeight + startY - moveEvent.clientY));
+          terminalShell?.style.setProperty('--project-terminal-height', `${nextHeight}px`);
+          mainPanes?.style.setProperty('--project-terminal-bottom-height', `${nextHeight}px`);
         };
 
         const onUp = () => {
           window.removeEventListener('mousemove', onMove);
           window.removeEventListener('mouseup', onUp);
+          setTerminalBottomHeight(nextHeight);
         };
 
         window.addEventListener('mousemove', onMove);
@@ -13039,11 +13056,12 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
             placeholder="Name, author, tag or capability..."
           />
         </label>
-        <div className="bolt-project-extension-categories" role="tablist" aria-label="Extension domains">
+        <div className="bolt-project-extension-categories" role="group" aria-label="Extension domains">
           {domains.map((item) => (
             <button
               key={item}
               type="button"
+              aria-pressed={domain === item}
               className={domain === item ? 'selected' : ''}
               onClick={() => setDomain(item)}
             >
