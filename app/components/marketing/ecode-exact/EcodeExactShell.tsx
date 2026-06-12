@@ -1,4 +1,5 @@
 import { useStore } from '@nanostores/react';
+import * as Dialog from '@radix-ui/react-dialog';
 import {
   ArrowUpRight,
   ChevronRight,
@@ -18,9 +19,11 @@ import {
   X,
   Youtube,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge, Button, cn, Link, useMarketingNavigate } from './EcodeExactUi';
-import { themeStore, toggleTheme } from '~/lib/stores/theme';
+import { ScrollArea } from '~/components/ui/ScrollArea';
+import { applyThemeToDocument, themeStore, toggleTheme } from '~/lib/stores/theme';
+import type { Theme } from '~/lib/stores/theme';
 
 type MenuItem = {
   title: string;
@@ -180,9 +183,65 @@ const socialLinks = [
   { icon: Instagram, href: 'https://instagram.com/ecode', label: 'Instagram' },
 ];
 
-const mobileMenuItems = [...productItems, ...solutionsItems, ...resourcesItems, ...companyItems];
+const mobileMenuSections = [
+  { title: 'Product', items: productItems, icon: Sparkles, iconClassName: 'text-ecode-accent', bordered: false },
+  { title: 'Solutions', items: solutionsItems, icon: ArrowUpRight, iconClassName: 'text-indigo-400', bordered: true },
+  { title: 'Resources', items: resourcesItems, icon: Search, iconClassName: 'text-sky-400', bordered: true },
+  { title: 'Company', items: companyItems, icon: ChevronRight, iconClassName: 'text-indigo-400', bordered: true },
+] as const;
+
+const ECODE_PUBLIC_ROOT_FONT_SIZE = '16px';
+
+let publicThemeWasManuallyChanged = false;
+
+function useHomepagePublicChrome() {
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return undefined;
+    }
+
+    publicThemeWasManuallyChanged = false;
+
+    const root = document.documentElement;
+    const body = document.body;
+    const previousTheme: Theme = themeStore.get();
+    const previousRootFontSize = root.style.fontSize;
+    const previousBodyFontSize = body.style.fontSize;
+    const previousChrome = root.getAttribute('data-ecode-public-chrome');
+
+    root.setAttribute('data-ecode-public-chrome', 'homepage');
+    root.style.fontSize = ECODE_PUBLIC_ROOT_FONT_SIZE;
+    body.style.fontSize = ECODE_PUBLIC_ROOT_FONT_SIZE;
+    themeStore.set('light');
+    applyThemeToDocument('light');
+
+    return () => {
+      window.setTimeout(() => {
+        if (document.querySelector('[data-ecode-static-shell]')) {
+          return;
+        }
+
+        if (previousChrome) {
+          root.setAttribute('data-ecode-public-chrome', previousChrome);
+        } else {
+          root.removeAttribute('data-ecode-public-chrome');
+        }
+
+        root.style.fontSize = previousRootFontSize;
+        body.style.fontSize = previousBodyFontSize;
+
+        if (!publicThemeWasManuallyChanged && themeStore.get() === 'light' && previousTheme !== 'light') {
+          themeStore.set(previousTheme);
+          applyThemeToDocument(previousTheme);
+        }
+      }, 0);
+    };
+  }, []);
+}
 
 export function EcodeExactPublicShell({ children }: { children: React.ReactNode }) {
+  useHomepagePublicChrome();
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground" data-ecode-static-shell>
       <EcodeExactPublicNavbar />
@@ -327,46 +386,101 @@ export function EcodeExactPublicNavbar() {
         </div>
       </nav>
 
-      {mobileMenuOpen ? (
-        <div className="fixed inset-0 z-[70] lg:hidden">
-          <button
-            className="absolute inset-0 bg-black/70"
-            aria-label="Close mobile menu"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          <aside className="absolute right-0 top-0 h-full w-[min(24rem,88vw)] overflow-y-auto border-l border-border bg-surface-solid p-4 shadow-2xl">
-            <div className="flex items-center justify-between gap-3">
-              <EcodeLogo size="sm" />
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Close mobile menu"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <X className="h-5 w-5" />
-              </Button>
+      <Dialog.Root open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 lg:hidden" />
+          <Dialog.Content className="fixed z-50 gap-4 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500 inset-y-0 right-0 h-full data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm w-full sm:w-[380px] p-0 border-l border-border bg-background lg:hidden">
+            <div className="sr-only flex flex-col space-y-2 text-center sm:text-left">
+              <Dialog.Title className="text-lg font-semibold text-foreground">Mobile Navigation Menu</Dialog.Title>
+              <Dialog.Description className="text-sm text-muted-foreground">
+                Navigate through E-Code platform sections
+              </Dialog.Description>
             </div>
-            <div className="mt-6 space-y-3">
-              {mobileMenuItems.map((item) => (
-                <Link
-                  key={`${item.title}-${item.href}`}
-                  href={item.href}
-                  className="block rounded-xl border border-border bg-background p-4 transition hover:bg-surface-hover-solid"
+
+            <div className="sticky top-0 z-10 border-b border-border bg-background px-4 py-3">
+              <div className="flex items-center justify-between">
+                <EcodeLogo size="sm" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Close mobile menu"
+                  className="hover:bg-muted"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <span className="flex items-center justify-between text-[13px] font-semibold text-[var(--ecode-text)] dark:text-white">
-                    {item.title}
-                    <ChevronRight className="h-4 w-4" />
-                  </span>
-                  <span className="mt-2 block text-[13px] leading-relaxed text-[var(--ecode-text-secondary)] dark:text-slate-300">
-                    {item.description}
-                  </span>
-                </Link>
-              ))}
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </div>
             </div>
-          </aside>
-        </div>
-      ) : null}
+
+            <div className="p-4 border-b border-border">
+              <Button
+                className="w-full bg-ecode-accent hover:bg-ecode-accent-hover text-white"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate('/register');
+                }}
+              >
+                Get Started
+              </Button>
+              <Button
+                variant="outline"
+                className="mt-2 w-full border-border text-foreground hover:bg-muted"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate('/login');
+                }}
+              >
+                Sign In
+              </Button>
+            </div>
+
+            <ScrollArea className="h-[calc(100vh-180px)]">
+              <div className="p-4 space-y-1">
+                {mobileMenuSections.map((section) => {
+                  const SectionIcon = section.icon;
+
+                  return (
+                    <div
+                      key={section.title}
+                      className={cn(section.bordered ? 'border-t border-border pt-3 pb-3' : 'pb-3')}
+                    >
+                      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-3 flex items-center gap-2">
+                        <SectionIcon className={cn('h-3 w-3', section.iconClassName)} />
+                        {section.title}
+                      </h3>
+                      <div className="space-y-0.5">
+                        {section.items.map((item) => (
+                          <button
+                            key={`${section.title}-${item.href}`}
+                            className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-muted transition-colors flex items-center justify-between group"
+                            onClick={() => {
+                              setMobileMenuOpen(false);
+                              navigate(item.href);
+                            }}
+                          >
+                            <div>
+                              <div className="text-[13px] font-medium text-foreground">{item.title}</div>
+                              <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
+                                {item.description}
+                              </div>
+                            </div>
+                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 flex-shrink-0 ml-2" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+
+            <Dialog.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </Dialog.Close>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </header>
   );
 }
@@ -433,12 +547,25 @@ function NavPill({ href, children }: { href: string; children: React.ReactNode }
 
 function ThemeSwitcher() {
   const theme = useStore(themeStore);
-  const Icon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Monitor;
+  const isHomepageDefaultTheme = theme === 'light';
+  const Icon = isHomepageDefaultTheme ? Monitor : theme === 'dark' ? Moon : Sun;
+  const label = isHomepageDefaultTheme ? 'System' : 'Dark';
+
+  const handleThemeToggle = () => {
+    publicThemeWasManuallyChanged = true;
+    toggleTheme();
+  };
 
   return (
-    <Button variant="ghost" size="sm" className="h-8 gap-2" data-testid="button-theme-toggle" onClick={toggleTheme}>
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-8 gap-2"
+      data-testid="button-theme-toggle"
+      onClick={handleThemeToggle}
+    >
       <Icon className="h-4 w-4" />
-      <span className="hidden sm:inline text-[11px]">{theme === 'light' ? 'Light' : 'Dark'}</span>
+      <span className="hidden sm:inline text-[11px]">{label}</span>
     </Button>
   );
 }

@@ -28,6 +28,13 @@ body {
   letter-spacing: 0;
 }
 
+html[data-ecode-public-chrome='homepage'],
+html[data-ecode-public-chrome='homepage'] body,
+html:has([data-ecode-static-shell]),
+html:has([data-ecode-static-shell]) body {
+  font-size: 16px;
+}
+
 .bolt-route-loader {
   position: fixed;
   inset: 0 0 auto;

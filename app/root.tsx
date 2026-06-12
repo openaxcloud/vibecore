@@ -70,8 +70,65 @@ export const links: LinksFunction = () => [
 const inlineThemeCode = stripIndents`
   setTutorialKitTheme();
 
+  function isEcodePublicMarketingPath(pathname) {
+    const exactPaths = new Set([
+      '/',
+      '/about',
+      '/accessibility',
+      '/ai',
+      '/ai-agent',
+      '/ai-agent/studio',
+      '/ai-documentation',
+      '/ai-docs',
+      '/blog',
+      '/careers',
+      '/case-studies',
+      '/changelog',
+      '/collaboration',
+      '/commercial-agreement',
+      '/community',
+      '/contact',
+      '/contact-sales',
+      '/demo',
+      '/deployments',
+      '/desktop',
+      '/docs',
+      '/dpa',
+      '/features',
+      '/forum',
+      '/help-center',
+      '/languages',
+      '/marketing/bounties',
+      '/marketing/deployments',
+      '/marketing/teams',
+      '/mcp',
+      '/mobile',
+      '/newsletter',
+      '/newsletter-confirmed',
+      '/partners',
+      '/polyglot',
+      '/press',
+      '/pricing',
+      '/privacy',
+      '/product',
+      '/report-abuse',
+      '/security',
+      '/status',
+      '/student-dpa',
+      '/subprocessors',
+      '/team',
+      '/templates',
+      '/terms',
+      '/tutorials',
+    ]);
+    const prefixes = ['/blog/', '/case-studies/', '/compare/', '/newsletter/', '/solutions/', '/templates/'];
+
+    return exactPaths.has(pathname) || prefixes.some((prefix) => pathname.startsWith(prefix));
+  }
+
   function setTutorialKitTheme() {
-    let theme = localStorage.getItem('bolt_theme');
+    const publicMarketingRoute = isEcodePublicMarketingPath(window.location.pathname);
+    let theme = publicMarketingRoute ? 'light' : localStorage.getItem('bolt_theme');
 
     if (theme !== 'dark' && theme !== 'light') {
       theme = 'dark';
@@ -82,6 +139,10 @@ const inlineThemeCode = stripIndents`
     root?.setAttribute('data-theme', theme);
     root?.classList.toggle('dark', theme === 'dark');
     root && (root.style.colorScheme = theme);
+    if (publicMarketingRoute) {
+      root?.setAttribute('data-ecode-public-chrome', 'homepage');
+      root && (root.style.fontSize = '16px');
+    }
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0a0f1c' : '#f6f8fb');
     document
       .querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')

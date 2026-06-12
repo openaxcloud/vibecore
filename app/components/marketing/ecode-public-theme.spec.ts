@@ -23,4 +23,29 @@ describe('E-Code public theme wrappers', () => {
     expect(source).not.toContain('vc-surface-page');
     expect(source).not.toContain('vc-surface-hero');
   });
+
+  it('pins public marketing chrome to the homepage header theme and Tailwind scale', () => {
+    const source = readFileSync(new URL('./ecode-exact/EcodeExactShell.tsx', import.meta.url), 'utf8');
+    const styles = readFileSync(new URL('../../styles/index.scss', import.meta.url), 'utf8');
+    const root = readFileSync(new URL('../../root.tsx', import.meta.url), 'utf8');
+    const themeStore = readFileSync(new URL('../../lib/stores/theme.ts', import.meta.url), 'utf8');
+
+    expect(source).toContain('data-ecode-static-shell');
+    expect(source).toContain("const ECODE_PUBLIC_ROOT_FONT_SIZE = '16px'");
+    expect(source).toContain("applyThemeToDocument('light')");
+    expect(source).toContain("root.setAttribute('data-ecode-public-chrome', 'homepage')");
+    expect(source).toContain("const label = isHomepageDefaultTheme ? 'System' : 'Dark'");
+    expect(source).toContain('Mobile Navigation Menu');
+    expect(source).toContain('Navigate through E-Code platform sections');
+    expect(source).toContain('h-[calc(100vh-180px)]');
+    expect(source).toContain('@radix-ui/react-dialog');
+    expect(source).not.toContain('<aside');
+    expect(styles).toContain("html[data-ecode-public-chrome='homepage']");
+    expect(styles).toContain('html:has([data-ecode-static-shell])');
+    expect(styles).toContain('font-size: 16px');
+    expect(root).toContain('function isEcodePublicMarketingPath(pathname)');
+    expect(root).toContain("root?.setAttribute('data-ecode-public-chrome', 'homepage')");
+    expect(themeStore).toContain('export function isPublicMarketingPath(pathname: string)');
+    expect(themeStore).toContain("return 'light'");
+  });
 });

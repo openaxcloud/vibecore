@@ -5,6 +5,72 @@ export type Theme = 'dark' | 'light';
 
 export const kTheme = 'bolt_theme';
 
+const PUBLIC_MARKETING_PATHS = new Set([
+  '/',
+  '/about',
+  '/accessibility',
+  '/ai',
+  '/ai-agent',
+  '/ai-agent/studio',
+  '/ai-documentation',
+  '/ai-docs',
+  '/blog',
+  '/careers',
+  '/case-studies',
+  '/changelog',
+  '/collaboration',
+  '/commercial-agreement',
+  '/community',
+  '/contact',
+  '/contact-sales',
+  '/demo',
+  '/deployments',
+  '/desktop',
+  '/docs',
+  '/dpa',
+  '/features',
+  '/forum',
+  '/help-center',
+  '/languages',
+  '/marketing/bounties',
+  '/marketing/deployments',
+  '/marketing/teams',
+  '/mcp',
+  '/mobile',
+  '/newsletter',
+  '/newsletter-confirmed',
+  '/partners',
+  '/polyglot',
+  '/press',
+  '/pricing',
+  '/privacy',
+  '/product',
+  '/report-abuse',
+  '/security',
+  '/status',
+  '/student-dpa',
+  '/subprocessors',
+  '/team',
+  '/templates',
+  '/terms',
+  '/tutorials',
+]);
+
+const PUBLIC_MARKETING_PREFIXES = [
+  '/blog/',
+  '/case-studies/',
+  '/compare/',
+  '/newsletter/',
+  '/solutions/',
+  '/templates/',
+];
+
+export function isPublicMarketingPath(pathname: string) {
+  return (
+    PUBLIC_MARKETING_PATHS.has(pathname) || PUBLIC_MARKETING_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  );
+}
+
 export function themeIsDark() {
   return themeStore.get() === 'dark';
 }
@@ -21,7 +87,14 @@ function initStore() {
   if (!import.meta.env.SSR) {
     try {
       const persistedTheme = localStorage.getItem(kTheme);
-      const themeAttribute = document.querySelector('html')?.getAttribute('data-theme');
+      const root = document.querySelector('html');
+      const themeAttribute = root?.getAttribute('data-theme');
+      const publicChrome = root?.getAttribute('data-ecode-public-chrome') === 'homepage';
+      const publicMarketingRoute = typeof window !== 'undefined' && isPublicMarketingPath(window.location.pathname);
+
+      if (publicChrome || publicMarketingRoute) {
+        return 'light';
+      }
 
       return isTheme(persistedTheme) ? persistedTheme : isTheme(themeAttribute) ? themeAttribute : DEFAULT_THEME;
     } catch {
