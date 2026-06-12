@@ -48,6 +48,9 @@ ARG KUBECTL_VERSION=v1.35.3
 
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git openssh-client \
   && curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
+  && curl -fsSLo /tmp/kubectl.sha256 "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl.sha256" \
+  && echo "$(cat /tmp/kubectl.sha256)  /usr/local/bin/kubectl" | sha256sum -c - \
+  && rm -f /tmp/kubectl.sha256 \
   && chmod 0755 /usr/local/bin/kubectl \
   && rm -rf /var/lib/apt/lists/*
 
