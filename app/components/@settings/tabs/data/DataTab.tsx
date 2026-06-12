@@ -78,7 +78,7 @@ interface ChatItem {
 
 export function DataTab() {
   // Use our custom hook for the boltHistory database
-  const { db, isLoading: dbLoading } = useBoltHistoryDB();
+  const { db, isLoading: dbLoading, error: dbError } = useBoltHistoryDB();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const apiKeyFileInputRef = useRef<HTMLInputElement>(null);
   const chatFileInputRef = useRef<HTMLInputElement>(null);
@@ -294,7 +294,12 @@ export function DataTab() {
       {/* Chats Section */}
       <div>
         <h2 className="text-xl font-semibold mb-4 text-bolt-elements-textPrimary">Chats</h2>
-        {dbLoading ? (
+        {dbError ? (
+          <div role="alert" className="rounded-md border border-red-500/40 bg-red-500/5 p-4 text-sm text-red-400">
+            Chat history database failed to open: {dbError.message}. Chat export/import is unavailable until this is
+            resolved (try reloading the page).
+          </div>
+        ) : dbLoading ? (
           <div className="flex items-center justify-center p-4">
             <div className="i-ph-spinner-gap-bold animate-spin w-6 h-6 mr-2" />
             <span>Loading chats database...</span>

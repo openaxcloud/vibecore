@@ -22,6 +22,7 @@ const serviceLinks = [
 export default function ConnectionsTab() {
   const [providers, setProviders] = useState<ConfiguredProvider[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,11 +34,14 @@ export default function ConnectionsTab() {
 
         if (!cancelled) {
           setProviders(Array.isArray(responseData.providers) ? responseData.providers : []);
+          setError(null);
         }
       })
       .catch(() => {
         if (!cancelled) {
+          // Surface the failure instead of rendering a misleading "0/0 configured".
           setProviders([]);
+          setError('Could not load configured providers. Check your connection and try again.');
         }
       })
       .finally(() => {
@@ -59,10 +63,15 @@ export default function ConnectionsTab() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Provider Keys</h3>
-            <p className="text-sm text-bolt-elements-textSecondary">
+            <p
+              className={classNames('text-sm', error ? 'text-red-500' : 'text-bolt-elements-textSecondary')}
+              role={error ? 'alert' : undefined}
+            >
               {loading
                 ? 'Checking configured providers...'
-                : `${configuredCount}/${providers.length} providers configured`}
+                : error
+                  ? error
+                  : `${configuredCount}/${providers.length} providers configured`}
             </p>
           </div>
           <Link to="/settings/providers" className="text-sm text-purple-500 hover:text-purple-400">
