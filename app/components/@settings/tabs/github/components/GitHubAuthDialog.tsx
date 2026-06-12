@@ -40,9 +40,9 @@ export function GitHubAuthDialog({ isOpen, onClose, onSuccess }: GitHubAuthDialo
   return (
     <Dialog.Root open={isOpen}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-[200]" />
+        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-[10000]" />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[201] w-full max-w-md"
+          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[10000] w-full max-w-md"
           onEscapeKeyDown={handleClose}
           onPointerDownOutside={handleClose}
         >
@@ -56,10 +56,13 @@ export function GitHubAuthDialog({ isOpen, onClose, onSuccess }: GitHubAuthDialo
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-bolt-elements-textPrimary">Connect to GitHub</h2>
                 <button
+                  type="button"
+                  aria-label="Close"
+                  title="Close"
                   onClick={handleClose}
                   className="p-1 rounded-md hover:bg-bolt-elements-item-backgroundActive/10"
                 >
-                  <div className="i-ph:x w-4 h-4 text-bolt-elements-textSecondary" />
+                  <div className="i-ph:x w-4 h-4 text-bolt-elements-textSecondary" aria-hidden />
                 </button>
               </div>
 

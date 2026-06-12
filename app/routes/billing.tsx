@@ -1,5 +1,5 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useActionData, useLoaderData } from '@remix-run/react';
+import { Form, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
 import { CreditCard, FileText, TrendingUp } from 'lucide-react';
 import { ActivityList, AppShell, LinkButton, StatGrid } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
@@ -104,6 +104,16 @@ export default function BillingPage() {
   const { billing, billingAccessLimited } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
 
+  /*
+   * Disable every checkout/portal button while any submission is in flight so a
+   * slow redirect to Stripe can't be double-clicked into duplicate sessions, and
+   * surface a pending label on the specific button the user pressed.
+   */
+  const navigation = useNavigation();
+  const submitting = navigation.state !== 'idle';
+  const submittingPlanKey = submitting ? navigation.formData?.get('planKey') : null;
+  const submittingPortal = submitting && navigation.formData?.get('intent') === 'portal';
+
   return (
     <AppShell
       title="Billing overview"
@@ -156,13 +166,15 @@ export default function BillingPage() {
             {billing.upgradePrompts.map((plan) => (
               <Form key={plan.planKey} method="post">
                 <input type="hidden" name="planKey" value={plan.planKey} />
-                <Button type="submit">Upgrade to {plan.name}</Button>
+                <Button type="submit" disabled={submitting} aria-busy={submittingPlanKey === plan.planKey}>
+                  {submittingPlanKey === plan.planKey ? 'Redirecting…' : `Upgrade to ${plan.name}`}
+                </Button>
               </Form>
             ))}
             <Form method="post">
               <input type="hidden" name="intent" value="portal" />
-              <Button type="submit" variant="outline">
-                Open customer portal
+              <Button type="submit" variant="outline" disabled={submitting} aria-busy={submittingPortal}>
+                {submittingPortal ? 'Redirecting…' : 'Open customer portal'}
               </Button>
             </Form>
           </div>

@@ -3,6 +3,14 @@
 }
 
 .shiki {
+  /*
+   * Long code lines must scroll within their own box rather than be clipped by
+   * an ancestor's overflow-hidden (assistant chat messages). Without this, wide
+   * lines are silently truncated with no way to read them.
+   */
+  max-width: 100%;
+  overflow-x: auto;
+
   &:not(:has(.actions), .actions *, .mcp-tool-invocation-code *) {
     background-color: var(--bolt-elements-messages-code-background) !important;
   }

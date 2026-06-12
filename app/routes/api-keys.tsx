@@ -118,7 +118,7 @@ export default function ApiKeysPage() {
     <AppShell title="API keys" description="Create, scope, rotate and revoke API keys for automation.">
       <div className="space-y-6">
         {createdToken ? (
-          <div className="rounded-lg border border-green-500/40 bg-green-500/5 p-4">
+          <div role="status" aria-live="polite" className="rounded-lg border border-green-500/40 bg-green-500/5 p-4">
             <p className="text-sm font-semibold text-bolt-elements-textPrimary">Key created — copy it now</p>
             <p className="mt-1 text-sm text-bolt-elements-textSecondary">
               This is the only time the full key is shown. Store it securely; you won&apos;t be able to see it again.
@@ -130,7 +130,9 @@ export default function ApiKeysPage() {
         ) : null}
 
         {error ? (
-          <p className="rounded-md border border-red-500/40 bg-red-500/5 px-3 py-2 text-sm text-red-400">{error}</p>
+          <p role="alert" className="rounded-md border border-red-500/40 bg-red-500/5 px-3 py-2 text-sm text-red-400">
+            {error}
+          </p>
         ) : null}
 
         <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
@@ -195,7 +197,7 @@ export default function ApiKeysPage() {
               </select>
             </div>
 
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" disabled={busy} aria-busy={busy}>
               {busy ? 'Creating…' : 'Create key'}
             </Button>
           </Form>
@@ -248,7 +250,19 @@ export default function ApiKeysPage() {
                         {expires ? ` · Expires ${expires}` : ' · Never expires'}
                       </p>
                     </div>
-                    <Form method="post" className="sm:shrink-0">
+                    <Form
+                      method="post"
+                      className="sm:shrink-0"
+                      onSubmit={(e) => {
+                        if (
+                          !window.confirm(
+                            `Revoke key "${key.name}"? Any client using it will immediately lose access. This cannot be undone.`,
+                          )
+                        ) {
+                          e.preventDefault();
+                        }
+                      }}
+                    >
                       <input type="hidden" name="intent" value="revoke" />
                       <input type="hidden" name="keyId" value={key.id} />
                       <button

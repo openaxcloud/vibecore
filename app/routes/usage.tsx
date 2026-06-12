@@ -63,22 +63,24 @@ export default function UsagePage() {
           },
         ]}
       />
-      <div className="mt-6 overflow-hidden rounded-lg border border-bolt-elements-borderColor">
-        <div className="grid grid-cols-[1fr_120px_120px] border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-4 py-2 text-xs font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
-          <span>Quota</span>
-          <span className="text-right">Used</span>
-          <span className="text-right">Limit</span>
-        </div>
-        {Object.entries(data.quotas).map(([quota, limit]) => (
-          <div
-            key={quota}
-            className="grid grid-cols-[1fr_120px_120px] border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-3 text-sm last:border-b-0"
-          >
-            <span>{quota}</span>
-            <span className="text-right text-bolt-elements-textSecondary">{used(quota)}</span>
-            <span className="text-right text-bolt-elements-textSecondary">{limit}</span>
+      <div className="mt-6 overflow-x-auto rounded-lg border border-bolt-elements-borderColor">
+        <div className="min-w-[420px]">
+          <div className="grid grid-cols-[1fr_120px_120px] border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-4 py-2 text-xs font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
+            <span>Quota</span>
+            <span className="text-right">Used</span>
+            <span className="text-right">Limit</span>
           </div>
-        ))}
+          {Object.entries(data.quotas).map(([quota, limit]) => (
+            <div
+              key={quota}
+              className="grid grid-cols-[1fr_120px_120px] border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-3 text-sm last:border-b-0"
+            >
+              <span className="min-w-0 truncate">{quota}</span>
+              <span className="text-right text-bolt-elements-textSecondary">{used(quota)}</span>
+              <span className="text-right text-bolt-elements-textSecondary">{limit}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </AppShell>
   );

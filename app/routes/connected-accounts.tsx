@@ -243,6 +243,10 @@ function IntegrationDisconnectButton({ connectionId }: { connectionId: string })
   const [busy, setBusy] = useState(false);
 
   const disconnect = useCallback(async () => {
+    if (!window.confirm('Disconnect this integration? You will need to reconnect via OAuth to restore access.')) {
+      return;
+    }
+
     setError(null);
     setBusy(true);
 

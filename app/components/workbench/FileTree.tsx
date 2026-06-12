@@ -1320,18 +1320,25 @@ function NodeButton({
   children,
   ariaExpanded,
 }: ButtonProps) {
+  /*
+   * Depth indentation lives on the row (not the icon wrapper): the IDE shell pins
+   * .bolt-file-tree-icon-wrap to a fixed 16px width with padding-left:0 !important,
+   * which clobbered the old inline padding and flattened the whole tree. The row's
+   * base rule uses non-!important padding, so this inline value wins and the
+   * hierarchy renders again.
+   */
+  const rowIndent = { paddingLeft: `${NODE_BASE_PADDING_LEFT + depth * NODE_PADDING_LEFT}px` };
+
   return (
     <button
       className={classNames('bolt-file-tree-node flex items-center border-transparent text-faded', className)}
       title={title}
       aria-expanded={ariaExpanded}
+      style={rowIndent}
       onClick={() => onClick?.()}
       onDoubleClick={() => onDoubleClick?.()}
     >
-      <span
-        className="bolt-file-tree-icon-wrap"
-        style={{ paddingLeft: `${NODE_BASE_PADDING_LEFT + depth * NODE_PADDING_LEFT}px` }}
-      >
+      <span className="bolt-file-tree-icon-wrap">
         <span className={classNames('shrink-0', iconClasses)} style={iconStyle} aria-hidden />
       </span>
       <span className="min-w-0 flex-1 truncate text-left">{children}</span>

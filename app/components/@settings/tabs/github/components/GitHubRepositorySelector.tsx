@@ -157,6 +157,20 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
     );
   }
 
+  if (error && !repositories.length) {
+    return (
+      <div className="text-center p-8" role="alert">
+        <GitBranch className="w-12 h-12 text-bolt-elements-textTertiary mx-auto mb-4" />
+        <p className="text-bolt-elements-textPrimary font-medium mb-1">Couldn&apos;t load repositories</p>
+        <p className="text-sm text-bolt-elements-textSecondary mb-4">{error}</p>
+        <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+          <RefreshCw className={classNames('w-4 h-4 mr-2', { 'animate-spin': isRefreshing })} />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   if (!repositories.length) {
     return (
       <div className="text-center p-8">

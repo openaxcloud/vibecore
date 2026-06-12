@@ -16815,7 +16815,8 @@ button.bolt-project-statusbar-pill:focus-visible,
   min-width: 16px !important;
   max-width: 16px !important;
   flex-basis: 16px !important;
-  padding-left: 0 !important;
+  /* Depth indentation is carried by the node row, not this fixed-width wrapper. */
+  padding-left: 0;
 }
 
 .bolt-project-ide-shell .bolt-project-file-tree .bolt-file-tree-icon-wrap [class*='i-ph:'] {

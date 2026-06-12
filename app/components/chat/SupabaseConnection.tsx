@@ -119,8 +119,15 @@ export function SupabaseConnection() {
                 </DialogTitle>
 
                 <div>
-                  <label className="block text-sm text-bolt-elements-textSecondary mb-2">Access Token</label>
+                  <label
+                    htmlFor="supabase-access-token"
+                    className="block text-sm text-bolt-elements-textSecondary mb-2"
+                  >
+                    Access Token
+                  </label>
                   <input
+                    id="supabase-access-token"
+                    aria-label="Supabase access token"
                     type="password"
                     value={supabaseConn.token}
                     onChange={(e) => updateToken(e.target.value)}
