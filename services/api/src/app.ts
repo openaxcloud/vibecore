@@ -615,15 +615,16 @@ const collaborationShareLinkRedeemParams = z.object({
   token: z.string().min(1),
 });
 const chatShareInlineMessageSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().min(1).max(200),
   role: z.enum(['user', 'assistant', 'system']),
-  content: z.string(),
+  // Bound per-message content so a single share can't carry an unbounded payload.
+  content: z.string().max(200_000),
 });
 const chatShareCreateSchema = z.object({
   conversationId: z.string().min(1),
   projectId: z.string().min(1),
   title: z.string().max(500).optional(),
-  visibleMessageIds: z.array(z.string()).default([]),
+  visibleMessageIds: z.array(z.string().max(200)).max(10_000).default([]),
   inlineMessages: z.array(chatShareInlineMessageSchema).max(2000).optional(),
   allowFork: z.boolean().default(false),
   expiresInMinutes: z.coerce

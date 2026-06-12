@@ -10,7 +10,17 @@ export async function action({ request }: ActionFunctionArgs) {
       return json({ error: 'Project ID and token are required' }, { status: 400 });
     }
 
-    const response = await fetch(`https://api.supabase.com/v1/projects/${projectId}/api-keys`, {
+    /*
+     * Validate the project ref before interpolating it into the upstream URL. A
+     * value containing '/', '.', or query chars could otherwise redirect the
+     * call to a different Supabase API path. Supabase project refs are short
+     * alphanumeric strings.
+     */
+    if (!/^[a-zA-Z0-9]{1,40}$/.test(projectId)) {
+      return json({ error: 'Invalid project ID' }, { status: 400 });
+    }
+
+    const response = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(projectId)}/api-keys`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,

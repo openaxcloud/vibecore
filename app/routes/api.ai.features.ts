@@ -1,13 +1,6 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/cloudflare';
+import { json } from '@remix-run/cloudflare';
 
-function envValue(context: LoaderFunctionArgs['context'], key: string) {
-  const cloudflareEnv = (context as unknown as { cloudflare?: { env?: Record<string, string | undefined> } })
-    ?.cloudflare?.env;
-
-  return cloudflareEnv?.[key] || process.env[key];
-}
-
-export async function loader({ context }: LoaderFunctionArgs) {
+export async function loader() {
   return json({
     features: {
       autonomous: {
@@ -89,28 +82,27 @@ export async function loader({ context }: LoaderFunctionArgs) {
       { name: 'Memory Bank', icon: 'Database', description: 'Persistent project context across sessions' },
       { name: 'Checkpoint & Rollback', icon: 'History', description: 'Atomic snapshots at every AI step' },
     ],
+
+    /*
+     * Supported providers for the public marketing page. `available` must NOT be
+     * derived from platform API-key presence: this endpoint is unauthenticated,
+     * so doing so leaked which provider credentials are configured in prod (an
+     * infra-config oracle). List the platform-supported set instead.
+     */
     providers: [
-      {
-        name: 'OpenAI',
-        models: ['GPT-4o', 'GPT-4o Mini', 'o1', 'o3'],
-        available: Boolean(envValue(context, 'OPENAI_API_KEY')),
-      },
+      { name: 'OpenAI', models: ['GPT-4o', 'GPT-4o Mini', 'o1', 'o3'], available: true },
       {
         name: 'Anthropic',
         models: ['Claude 3 Opus', 'Claude 3.5 Sonnet', 'Claude 3.5 Haiku'],
-        available: Boolean(envValue(context, 'ANTHROPIC_API_KEY')),
+        available: true,
       },
       {
         name: 'Google Gemini',
         models: ['Gemini 2.5 Flash', 'Gemini 2.0 Flash', 'Gemini 1.5 Pro'],
-        available: Boolean(envValue(context, 'GEMINI_API_KEY')),
+        available: true,
       },
-      { name: 'xAI', models: ['Grok 2'], available: Boolean(envValue(context, 'XAI_API_KEY')) },
-      {
-        name: 'Moonshot (Kimi)',
-        models: ['Kimi K2 Thinking', 'Kimi K2 Turbo'],
-        available: Boolean(envValue(context, 'MOONSHOT_API_KEY')),
-      },
+      { name: 'xAI', models: ['Grok 2'], available: true },
+      { name: 'Moonshot (Kimi)', models: ['Kimi K2 Thinking', 'Kimi K2 Turbo'], available: true },
     ],
   });
 }

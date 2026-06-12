@@ -310,11 +310,21 @@ export async function runConnectorReconnectionNotifier(
 
   for (const alert of alerts) {
     if (!alert.userConnection) {
-      // Nothing to notify against — mark it handled so it isn't re-scanned.
-      await input.prisma.reconnectionAlert.update({
-        where: { id: alert.id },
-        data: { notifiedAt: now },
-      });
+      /*
+       * Nothing to notify against — mark it handled so it isn't re-scanned. Guard
+       * the write: an unhandled error here would abort the whole sweep and starve
+       * every remaining alert. Leaving notifiedAt null on failure just retries it
+       * next sweep.
+       */
+      try {
+        await input.prisma.reconnectionAlert.update({
+          where: { id: alert.id },
+          data: { notifiedAt: now },
+        });
+      } catch {
+        // Skip this orphan alert; the next sweep will retry it.
+      }
+
       continue;
     }
 
