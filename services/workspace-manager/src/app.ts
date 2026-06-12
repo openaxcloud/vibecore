@@ -9,7 +9,7 @@ const startSchema = z.object({
   projectId: z.string(),
   workspaceId: z.string(),
   image: z.string().default('vibecore/workspace-agent:2026.04.0'),
-  plan: z.enum(['free', 'pro', 'enterprise']).default('free'),
+  plan: z.enum(['free', 'pro', 'team', 'enterprise']).default('free'),
   storageClassName: z.string().min(1).optional(),
   env: z.record(z.string()).default({}),
   allowedSecretKeys: z.array(z.string()).default([]),

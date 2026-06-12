@@ -72,7 +72,7 @@ function resolveInClusterKubeconfigArgs(): string[] {
 const KUBECTL_TIMEOUT_MS = Number(process.env.KUBECTL_TIMEOUT_MS) || 30_000;
 const KUBECTL_REQUEST_TIMEOUT = process.env.KUBECTL_REQUEST_TIMEOUT || '25s';
 
-export type WorkspacePlan = 'free' | 'pro' | 'enterprise';
+export type WorkspacePlan = 'free' | 'pro' | 'team' | 'enterprise';
 
 // Platform-owned pod env names that user project env/secrets must never override.
 // Platform/agent-control env names user project env/secrets must never set. Beyond
@@ -198,6 +198,7 @@ const planResources: Record<
 > = {
   free: { cpuRequest: '250m', memoryRequest: '512Mi', cpuLimit: '1', memoryLimit: '1Gi', storageRequest: '10Gi' },
   pro: { cpuRequest: '500m', memoryRequest: '1Gi', cpuLimit: '2', memoryLimit: '4Gi', storageRequest: '20Gi' },
+  team: { cpuRequest: '750m', memoryRequest: '1.5Gi', cpuLimit: '4', memoryLimit: '8Gi', storageRequest: '50Gi' },
   enterprise: { cpuRequest: '1', memoryRequest: '2Gi', cpuLimit: '4', memoryLimit: '8Gi', storageRequest: '100Gi' },
 };
 

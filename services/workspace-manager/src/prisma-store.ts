@@ -3,7 +3,7 @@ import type { WorkspacePlan } from '@vibecore/k8s-client';
 
 import type { WorkspaceRecord, WorkspaceStatus, WorkspaceStore } from './manager.js';
 
-const KNOWN_PLANS: ReadonlySet<WorkspacePlan> = new Set(['free', 'pro', 'enterprise']);
+const KNOWN_PLANS: ReadonlySet<WorkspacePlan> = new Set(['free', 'pro', 'team', 'enterprise']);
 
 function toPlan(value: unknown): WorkspacePlan {
   if (typeof value === 'string' && KNOWN_PLANS.has(value as WorkspacePlan)) {

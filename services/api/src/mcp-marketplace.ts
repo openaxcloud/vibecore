@@ -254,6 +254,19 @@ function foldIpv4MappedIpv6(host: string): string | undefined {
     return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
   }
 
+  // IPv4-COMPATIBLE IPv6 (deprecated `::x.x.x.x`, no `ffff`). The URL parser
+  // compresses these to `::<hi>:<lo>` (e.g. ::127.0.0.1 → ::7f00:1,
+  // ::169.254.169.254 → ::a9fe:a9fe), which the ::ffff: branch above misses —
+  // a loopback/metadata SSRF bypass. Fold to dotted-quad so the blocklist catches it.
+  const compat = host.match(/^::([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+
+  if (compat) {
+    const hi = parseInt(compat[1], 16);
+    const lo = parseInt(compat[2], 16);
+
+    return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+  }
+
   return undefined;
 }
 
