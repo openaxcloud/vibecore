@@ -207,10 +207,13 @@ export function BranchSelector({
                 </div>
               </div>
               <button
+                type="button"
+                aria-label="Close"
+                title="Close"
                 onClick={onClose}
                 className="p-2 rounded-lg hover:bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-all"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" aria-hidden />
               </button>
             </div>
 

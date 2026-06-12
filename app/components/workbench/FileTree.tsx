@@ -1223,11 +1223,18 @@ function File({
             {locked && (
               <span
                 className={classNames('shrink-0', 'i-ph:lock-simple scale-80 text-red-500')}
+                role="img"
+                aria-label="File is locked"
                 title={'File is locked'}
               />
             )}
             {bookmarked && (
-              <span className="i-ph:bookmark-simple-fill scale-75 shrink-0 text-sky-500" title="Bookmarked" />
+              <span
+                className="i-ph:bookmark-simple-fill scale-75 shrink-0 text-sky-500"
+                role="img"
+                aria-label="Bookmarked"
+                title="Bookmarked"
+              />
             )}
             {gitStatus && <GitStatusPill status={gitStatus} />}
             {unsavedChanges && (

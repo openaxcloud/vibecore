@@ -230,8 +230,10 @@ export default function ApiKeysPage() {
                       index > 0 && 'border-t border-bolt-elements-borderColor',
                     )}
                   >
-                    <div>
-                      <p className="text-sm font-medium text-bolt-elements-textPrimary">{key.name}</p>
+                    <div className="min-w-0">
+                      <p className="break-words text-sm font-medium text-bolt-elements-textPrimary" title={key.name}>
+                        {key.name}
+                      </p>
                       <p className="mt-1 font-mono text-xs text-bolt-elements-textTertiary">
                         {key.keyPrefix ? `${key.keyPrefix}…` : 'vck_…'}
                       </p>

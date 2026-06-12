@@ -151,15 +151,20 @@ function ProjectList({ projects }: { projects: ProjectCard[] }) {
                   alt={`Latest homepage preview for ${project.name}`}
                   className="h-full w-full object-cover"
                   loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                  }}
                 />
               ) : null}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-semibold">{project.name}</h2>
+                <h2 className="min-w-0 truncate text-sm font-semibold" title={project.name}>
+                  {project.name}
+                </h2>
                 <StatusPill label={project.status ?? 'Ready'} />
               </div>
-              <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+              <p className="mt-1 truncate text-sm text-bolt-elements-textSecondary">
                 {project.stack ?? project.sourceType ?? 'Persistent Bolt project'}
               </p>
             </div>

@@ -134,8 +134,10 @@ export default function InvitationsPage() {
               key={invite.id}
               className="flex items-center justify-between gap-3 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm"
             >
-              <span>{invite.email}</span>
-              <Form method="post" className="flex gap-2">
+              <span className="min-w-0 truncate" title={invite.email}>
+                {invite.email}
+              </span>
+              <Form method="post" className="flex shrink-0 gap-2">
                 <input type="hidden" name="orgId" value={orgId} />
                 <input type="hidden" name="inviteId" value={invite.id} />
                 <button name="intent" value="resend" className="text-bolt-elements-textSecondary">

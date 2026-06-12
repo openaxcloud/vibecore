@@ -70,7 +70,11 @@ export default function ImportZipPage() {
         encType="multipart/form-data"
       >
         <FileArchive className="mb-4 h-6 w-6 text-bolt-elements-textTertiary" aria-hidden />
-        {actionData?.error ? <p className="mb-4 text-sm text-red-500">{actionData.error}</p> : null}
+        {actionData?.error ? (
+          <p role="alert" className="mb-4 text-sm text-red-500">
+            {actionData.error}
+          </p>
+        ) : null}
         <label className="grid gap-2 text-sm font-medium">
           Project archive
           <input

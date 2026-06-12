@@ -227,7 +227,11 @@ function IntegrationConnectButton({ provider }: { provider: string }) {
       >
         {busy ? 'Connecting…' : 'Connect'}
       </button>
-      {error ? <span className="max-w-[16rem] text-right text-xs text-red-500">{error}</span> : null}
+      {error ? (
+        <span role="alert" className="max-w-[16rem] text-right text-xs text-red-500">
+          {error}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -280,7 +284,11 @@ function IntegrationDisconnectButton({ connectionId }: { connectionId: string })
       >
         {busy ? 'Disconnecting…' : 'Disconnect'}
       </button>
-      {error ? <span className="max-w-[16rem] text-right text-xs text-red-500">{error}</span> : null}
+      {error ? (
+        <span role="alert" className="max-w-[16rem] text-right text-xs text-red-500">
+          {error}
+        </span>
+      ) : null}
     </div>
   );
 }

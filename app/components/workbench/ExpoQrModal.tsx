@@ -21,7 +21,7 @@ export const ExpoQrModal: React.FC<ExpoQrModalProps> = ({ open, onClose }) => {
       >
         <div className="border !border-bolt-elements-borderColor flex flex-col gap-5 justify-center items-center p-6 bg-bolt-elements-background-depth-2 rounded-md">
           <div className="i-bolt:expo-brand h-10 w-full invert dark:invert-none"></div>
-          <DialogTitle className="text-bolt-elements-textTertiary text-lg font-semibold leading-6">
+          <DialogTitle className="text-bolt-elements-textPrimary text-lg font-semibold leading-6">
             Preview on your own mobile device
           </DialogTitle>
           <DialogDescription className="bg-bolt-elements-background-depth-3 max-w-sm rounded-md p-1 border border-bolt-elements-borderColor">
@@ -45,7 +45,7 @@ export const ExpoQrModal: React.FC<ExpoQrModalProps> = ({ open, onClose }) => {
                 size={200}
               />
             ) : (
-              <div className="text-gray-500 text-center">No Expo URL detected.</div>
+              <div className="text-bolt-elements-textSecondary text-center">No Expo URL detected.</div>
             )}
           </div>
         </div>

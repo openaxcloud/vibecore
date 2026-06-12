@@ -26,8 +26,10 @@ const FilePreview: React.FC<FilePreviewProps> = ({ files, imageDataList, onRemov
               >
                 <div className="i-ph:x w-3 h-3 text-gray-200" aria-hidden="true" />
               </button>
-              <div className="absolute bottom-0 w-full h-5 flex items-center px-2 rounded-b-lg text-bolt-elements-textTertiary font-thin text-xs bg-bolt-elements-background-depth-2">
-                <span className="truncate">{file.name}</span>
+              <div className="absolute bottom-0 w-full h-5 flex items-center px-2 rounded-b-lg text-bolt-elements-textSecondary text-xs bg-bolt-elements-background-depth-2">
+                <span className="truncate" title={file.name}>
+                  {file.name}
+                </span>
               </div>
             </div>
           )}
