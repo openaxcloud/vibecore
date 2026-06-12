@@ -18,12 +18,17 @@ export function EnterpriseFormPage({ title, description, children, status, error
         </div>
         <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6 shadow-sm">
           {status ? (
-            <p className="mb-4 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm text-bolt-elements-textSecondary">
+            <p
+              role="status"
+              className="mb-4 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm text-bolt-elements-textSecondary"
+            >
               {status}
             </p>
           ) : null}
           {error ? (
-            <p className="mb-4 rounded-md border border-red-500/40 px-3 py-2 text-sm text-red-500">{error}</p>
+            <p role="alert" className="mb-4 rounded-md border border-red-500/40 px-3 py-2 text-sm text-red-500">
+              {error}
+            </p>
           ) : null}
           {children}
         </div>
