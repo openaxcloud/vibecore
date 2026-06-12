@@ -399,9 +399,11 @@ function CatalogCard({ entry, installed, onInstall }: CatalogCardProps) {
       )}
     >
       <header className="flex items-start justify-between gap-2 mb-2">
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <h4 className="text-sm font-medium text-bolt-elements-textPrimary">{entry.name}</h4>
+            <h4 className="truncate text-sm font-medium text-bolt-elements-textPrimary" title={entry.name}>
+              {entry.name}
+            </h4>
             {entry.featured && (
               <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
                 FEATURED
@@ -482,9 +484,11 @@ function InstalledCard({ install, onToggle, onUninstall }: InstalledCardProps) {
       )}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <div>
-          <h4 className="text-sm font-medium text-bolt-elements-textPrimary">{install.catalogEntry.name}</h4>
-          <p className="text-[11px] text-bolt-elements-textTertiary mt-0.5">
+        <div className="min-w-0">
+          <h4 className="truncate text-sm font-medium text-bolt-elements-textPrimary" title={install.catalogEntry.name}>
+            {install.catalogEntry.name}
+          </h4>
+          <p className="break-all text-[11px] text-bolt-elements-textTertiary mt-0.5">
             alias: <code className="font-mono">{install.alias}</code> · {DOMAIN_LABELS[install.catalogEntry.domain]} · v
             {install.catalogEntry.version}
           </p>

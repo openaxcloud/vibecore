@@ -22,9 +22,9 @@ const FilePreview: React.FC<FilePreviewProps> = ({ files, imageDataList, onRemov
                 type="button"
                 onClick={() => onRemove(index)}
                 aria-label={`Remove ${file.name}`}
-                className="absolute -top-1 -right-1 z-10 bg-black rounded-full w-5 h-5 shadow-md hover:bg-gray-900 transition-colors flex items-center justify-center"
+                className="absolute -top-2 -right-2 z-10 bg-black rounded-full w-7 h-7 shadow-md hover:bg-gray-900 transition-colors flex items-center justify-center"
               >
-                <div className="i-ph:x w-3 h-3 text-gray-200" aria-hidden="true" />
+                <div className="i-ph:x w-3.5 h-3.5 text-gray-200" aria-hidden="true" />
               </button>
               <div className="absolute bottom-0 w-full h-5 flex items-center px-2 rounded-b-lg text-bolt-elements-textSecondary text-xs bg-bolt-elements-background-depth-2">
                 <span className="truncate" title={file.name}>
