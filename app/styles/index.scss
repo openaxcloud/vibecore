@@ -8598,7 +8598,11 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-file-tree .bolt-file-tree-node {
   display: flex;
-  width: min(240px, calc(100% - 20px));
+  /* Fill the (possibly resized/wide) file panel instead of hard-capping at 240px,
+     which truncated long names even when there was room. min-w-0 + truncate on the
+     name span still handle overflow. */
+  width: calc(100% - 20px);
+  max-width: 100%;
   height: 28px;
   min-height: 28px;
   align-items: center;
@@ -9247,7 +9251,9 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-preview-logs-panel,
 .bolt-preview-devtools-panel {
   display: flex;
-  min-height: 180px;
+  /* Responsive floor so on short viewports the panel can't exceed its own 42%
+     cap and crush the preview above it. */
+  min-height: min(180px, 42%);
   max-height: 42%;
   flex-direction: column;
   border-top: 1px solid var(--vc-ide-border-subtle);
@@ -9256,7 +9262,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-preview-devtools-panel {
-  min-height: 220px;
+  min-height: min(220px, 42%);
 }
 
 .bolt-preview-logs-panel header,
