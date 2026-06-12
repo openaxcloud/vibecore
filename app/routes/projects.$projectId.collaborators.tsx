@@ -1,5 +1,5 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useLoaderData } from '@remix-run/react';
+import { Form, useLoaderData, useNavigation } from '@remix-run/react';
 import { Users } from 'lucide-react';
 import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
@@ -29,6 +29,8 @@ export const action = (args: EnterpriseActionArgs) =>
 
 export default function ProjectCollaboratorsPage() {
   const { project, data } = useLoaderData<typeof loader>();
+  const navigation = useNavigation();
+  const saving = navigation.state === 'submitting';
 
   return (
     <ProjectShell
@@ -71,7 +73,9 @@ export default function ProjectCollaboratorsPage() {
               <option value="viewer">Viewer</option>
             </select>
           </label>
-          <Button type="submit">Add collaborator</Button>
+          <Button type="submit" disabled={saving} aria-busy={saving}>
+            {saving ? 'Adding…' : 'Add collaborator'}
+          </Button>
         </Form>
       </div>
     </ProjectShell>
