@@ -5687,10 +5687,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.addHook('preParsing', async (request, _reply, payload) => {
     if (request.url.startsWith('/billing/stripe/webhook') || request.url.startsWith('/webhooks/')) {
+      /*
+       * This hook fully buffers the raw body so signature verification can read
+       * it, but it runs BEFORE Fastify's bodyLimit (which is enforced inside the
+       * content-type parser). Without an explicit cap here an unauthenticated
+       * caller could POST a multi-GB body (e.g. chunked, no Content-Length) and
+       * exhaust the pod heap before any signature check — a remote OOM DoS. Cap
+       * at 2 MB, far above any legitimate Stripe/GitHub/Resend webhook payload.
+       */
+      const WEBHOOK_BODY_LIMIT = 2 * 1024 * 1024;
       const chunks: Buffer[] = [];
+      let total = 0;
 
       for await (const chunk of payload as AsyncIterable<Buffer>) {
-        chunks.push(Buffer.from(chunk));
+        const buf = Buffer.from(chunk);
+        total += buf.length;
+
+        if (total > WEBHOOK_BODY_LIMIT) {
+          const tooLarge = new Error('Webhook payload exceeds the maximum allowed size') as Error & {
+            statusCode?: number;
+          };
+          tooLarge.statusCode = 413;
+          throw tooLarge;
+        }
+
+        chunks.push(buf);
       }
 
       const body = Buffer.concat(chunks);

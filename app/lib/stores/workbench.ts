@@ -2044,6 +2044,30 @@ export class WorkbenchStore {
         return;
       }
 
+      /*
+       * Enforce file locks on the authoritative (non-streaming) write too. The
+       * streaming branch above blocks the live preview, but the final on-disk
+       * write is dispatched a second time with isStreaming=false; without this
+       * guard a locked file would be silently overwritten on disk, destroying
+       * the user's protected content and defeating the lock feature entirely.
+       */
+      const nonStreamingLockState = this.isFileLocked(fullPath);
+
+      if (nonStreamingLockState.locked) {
+        const message = `${data.action.filePath} is locked; the assistant's change was not written.`;
+        this.actionAlert.set({
+          type: 'warning',
+          title: 'AI file write blocked',
+          description: message,
+          content: message,
+          source: 'preview',
+        });
+        this.appendWorkspaceLog(`AI file write blocked (locked): ${data.action.filePath}`);
+        artifact.runner.skipAction(data.actionId);
+
+        return;
+      }
+
       await artifact.runner.runAction(data);
 
       const completedAction = artifact.runner.actions.get()[data.actionId];
