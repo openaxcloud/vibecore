@@ -175,7 +175,7 @@ export function ConnectionRequestCard({ payload, projectId, onResolved, onFailed
             (event.target as HTMLImageElement).style.visibility = 'hidden';
           }}
         />
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-bolt-elements-textPrimary">Connect {payload.providerDisplayName}</p>
           <p className="text-xs text-bolt-elements-textSecondary mt-1">{payload.reason}</p>
 
@@ -186,8 +186,8 @@ export function ConnectionRequestCard({ payload, projectId, onResolved, onFailed
               </summary>
               <ul className="mt-2 space-y-1">
                 {payload.scopes.map((scope) => (
-                  <li key={scope.scope} className="text-xs text-bolt-elements-textSecondary">
-                    <span className="font-mono mr-2">{scope.scope}</span>
+                  <li key={scope.scope} className="text-xs text-bolt-elements-textSecondary break-words">
+                    <span className="font-mono mr-2 break-all">{scope.scope}</span>
                     <span className="text-bolt-elements-textTertiary">
                       {scope.label}
                       {scope.description ? ` — ${scope.description}` : ''}

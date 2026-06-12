@@ -1,5 +1,5 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useActionData, useLoaderData } from '@remix-run/react';
+import { Form, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
 import {
   Bell,
   CircleCheck,
@@ -144,6 +144,8 @@ export async function action({ request }: EnterpriseActionArgs) {
 
 export default function NotificationsPage() {
   const { preferences } = useLoaderData<typeof loader>();
+  const navigation = useNavigation();
+  const saving = navigation.state === 'submitting';
 
   const actionData = useActionData<typeof action>() as
     | { status?: string; preferences?: NotificationPreferences }
@@ -265,7 +267,9 @@ export default function NotificationsPage() {
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit">Save preferences</Button>
+          <Button type="submit" disabled={saving} aria-busy={saving}>
+            {saving ? 'Saving…' : 'Save preferences'}
+          </Button>
         </div>
       </Form>
     </AppShell>

@@ -70,7 +70,8 @@ export const ShareConversationButton = memo(
         }
       }, [allowFork, authorUserId, conversationId, messages, projectId, share, title]);
 
-      const disabled = messages.length === 0;
+      const building = share.state.kind === 'building';
+      const disabled = messages.length === 0 || building;
 
       return (
         <button
@@ -79,10 +80,11 @@ export const ShareConversationButton = memo(
           className={className}
           onClick={handleClick}
           disabled={disabled}
+          aria-busy={building}
           aria-label={t('shareButton.label')}
           title={disabled ? t('shareButton.disabled') : t('shareButton.enabled')}
         >
-          <span className="i-ph:share-network" aria-hidden />
+          <span className={building ? 'i-svg-spinners:90-ring-with-bg' : 'i-ph:share-network'} aria-hidden />
         </button>
       );
     },
