@@ -1,5 +1,5 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useLoaderData } from '@remix-run/react';
+import { Form, useLoaderData, useNavigation } from '@remix-run/react';
 import { KeyRound, Lock } from 'lucide-react';
 import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
@@ -29,6 +29,8 @@ export const action = (args: EnterpriseActionArgs) =>
 
 export default function ProjectSecretsPage() {
   const { project, data } = useLoaderData<typeof loader>();
+  const navigation = useNavigation();
+  const saving = navigation.state === 'submitting';
 
   return (
     <ProjectShell
@@ -62,7 +64,9 @@ export default function ProjectSecretsPage() {
         >
           <Field label="Secret name" name="key" placeholder="STRIPE_SECRET_KEY" required />
           <Field label="Secret value" name="value" type="password" required />
-          <Button type="submit">Save secret</Button>
+          <Button type="submit" disabled={saving} aria-busy={saving}>
+            {saving ? 'Saving…' : 'Save secret'}
+          </Button>
         </Form>
       </div>
     </ProjectShell>

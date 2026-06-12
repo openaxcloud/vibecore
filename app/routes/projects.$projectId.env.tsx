@@ -1,5 +1,5 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useLoaderData } from '@remix-run/react';
+import { Form, useLoaderData, useNavigation } from '@remix-run/react';
 import { Braces } from 'lucide-react';
 import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
@@ -29,6 +29,8 @@ export const action = (args: EnterpriseActionArgs) =>
 
 export default function ProjectEnvPage() {
   const { project, data } = useLoaderData<typeof loader>();
+  const navigation = useNavigation();
+  const saving = navigation.state === 'submitting';
 
   return (
     <ProjectShell
@@ -62,7 +64,9 @@ export default function ProjectEnvPage() {
         >
           <Field label="Variable name" name="key" placeholder="VITE_API_URL" required />
           <Field label="Value" name="value" placeholder="https://api.example.com" />
-          <Button type="submit">Save variable</Button>
+          <Button type="submit" disabled={saving} aria-busy={saving}>
+            {saving ? 'Saving…' : 'Save variable'}
+          </Button>
         </Form>
       </div>
     </ProjectShell>
