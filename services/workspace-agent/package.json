@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "tsx": "^4.21.0",
-    "vitest": "^2.1.7"
+    "vitest": "^3.2.6"
   },
   "optionalDependencies": {
     "node-pty": "^1.0.0"

@@ -11,6 +11,6 @@
     "lint": "echo \"connector-sdk lint covered by typecheck\""
   },
   "devDependencies": {
-    "vitest": "^2.1.9"
+    "vitest": "^3.2.6"
   }
 }

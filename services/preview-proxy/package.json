@@ -7,7 +7,7 @@
     "tsx": "^4.21.0"
   },
   "devDependencies": {
-    "vitest": "^2.1.9"
+    "vitest": "^3.2.6"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
