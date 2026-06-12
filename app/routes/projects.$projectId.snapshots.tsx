@@ -83,8 +83,13 @@ export default function ProjectSnapshotsPage() {
             >
               <input type="hidden" name="intent" value="restore" />
               <input type="hidden" name="snapshotId" value={snapshot.id} />
-              <Button type="submit" variant="outline">
-                Restore {snapshot.label ?? snapshot.id}
+              <Button type="submit" variant="outline" className="max-w-full">
+                <span className="inline-flex max-w-full items-center gap-1">
+                  Restore
+                  <span className="min-w-0 max-w-[12rem] truncate" title={snapshot.label ?? snapshot.id}>
+                    {snapshot.label ?? snapshot.id}
+                  </span>
+                </span>
               </Button>
             </Form>
           ))}

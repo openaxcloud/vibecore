@@ -187,10 +187,10 @@ export default function ProjectDeploymentsPage() {
             </p>
           </div>
 
-          <div className="grid gap-2">
-            <span className="text-xs font-medium uppercase tracking-[0.04em] text-bolt-elements-textTertiary">
+          <fieldset className="grid gap-2 border-0 p-0">
+            <legend className="text-xs font-medium uppercase tracking-[0.04em] text-bolt-elements-textTertiary">
               Provider
-            </span>
+            </legend>
             <div className="grid gap-2">
               {providers.map((provider, index) => {
                 const Icon = provider.icon;
@@ -215,7 +215,7 @@ export default function ProjectDeploymentsPage() {
                 );
               })}
             </div>
-          </div>
+          </fieldset>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <Field as="select" label="Environment" name="environment" defaultValue="preview">

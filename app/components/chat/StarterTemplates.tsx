@@ -11,11 +11,13 @@ const FrameworkLink: React.FC<FrameworkLinkProps> = ({ template }) => (
     href={`/git?url=https://github.com/${template.githubRepo}.git`}
     data-state="closed"
     data-discover="true"
-    className="items-center justify-center"
+    aria-label={`Start a ${template.label} app`}
+    title={template.label}
+    className="inline-flex items-center justify-center rounded-md p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
   >
     <div
       className={`inline-block ${template.icon} w-8 h-8 text-4xl transition-theme hover:text-purple-500 dark:text-white dark:opacity-50 dark:hover:opacity-100 dark:hover:text-purple-400 transition-all grayscale hover:grayscale-0 transition`}
-      title={template.label}
+      aria-hidden
     />
   </a>
 );

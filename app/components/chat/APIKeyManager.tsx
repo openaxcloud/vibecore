@@ -133,6 +133,14 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
               value={tempKey}
               placeholder="Enter API Key"
               onChange={(e) => setTempKey(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSave();
+                } else if (e.key === 'Escape') {
+                  setIsEditing(false);
+                }
+              }}
               aria-label={`${provider?.name ?? ''} API key`.trim()}
               name="apiKey"
               autoComplete="off"
