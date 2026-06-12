@@ -677,8 +677,24 @@ export class AiGateway {
        * and billing is conservative (never cheaper than the catalog).
        */
       const providerId = request.provider;
+
+      /*
+       * An uncatalogued model id is provider-specific and meaningless to the
+       * wrong upstream. With no explicit provider we can't know which one owns
+       * it: the old code picked the most-expensive plan model across ALL
+       * providers and sent the unknown id there, so the primary call always 4xx'd
+       * and a fallback silently swapped in a different (mis-billed) model. Require
+       * the caller to name the provider instead of guessing.
+       */
+      if (!providerId) {
+        throw Object.assign(new Error('A provider must be specified for models that are not in the catalog'), {
+          statusCode: 400,
+          code: 'AI_PROVIDER_REQUIRED',
+        });
+      }
+
       const candidates = modelCatalog.filter(
-        (model) => model.plans.includes(plan) && (!providerId || model.provider === providerId),
+        (model) => model.plans.includes(plan) && model.provider === providerId,
       );
 
       if (candidates.length === 0) {

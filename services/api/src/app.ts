@@ -9842,6 +9842,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (restartOrgId && !restartCountsAsActive) {
       await store.withSerializedMutation(`workspaces:${restartOrgId}`, async () => {
         await ensureQuota(request, restartOrgId, 'workspaces.active');
+
+        /*
+         * Claim the active slot INSIDE the lock by flipping the record to a
+         * counted state (STARTING). Without a state write here the lock is inert:
+         * concurrent restarts each pass the same count and all bypass the limit
+         * (countActiveWorkspaces counts PENDING/STARTING/RUNNING). The manager
+         * restart below reconciles to RUNNING/FAILED; the catch resets on error.
+         */
+        await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STARTING' });
       });
     }
 
@@ -9862,27 +9871,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
     const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId);
 
-    const managerWorkspace = await managerRequest<any>(`/workspaces/${authorized.workspaceId}/restart`, {
-      method: 'POST',
-      body: JSON.stringify({
-        namespace: runtimeNamespace(),
-        orgId: authorized.organizationId ?? 'unknown-org',
-        projectId: authorized.projectId,
-        workspaceId: authorized.workspaceId,
-        image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
-        plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
-        resourceLimits: state
-          ? {
-              cpuMillicores: state.limits['workspace.cpuMillicores'],
-              ramMb: state.limits['workspace.ramMb'],
-              storageGb: state.limits['storage.gb'],
-            }
-          : undefined,
-        env,
-        allowedSecretKeys,
-        allowedSecrets,
-      }),
-    });
+    let managerWorkspace: any;
+
+    try {
+      managerWorkspace = await managerRequest<any>(`/workspaces/${authorized.workspaceId}/restart`, {
+        method: 'POST',
+        body: JSON.stringify({
+          namespace: runtimeNamespace(),
+          orgId: authorized.organizationId ?? 'unknown-org',
+          projectId: authorized.projectId,
+          workspaceId: authorized.workspaceId,
+          image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
+          plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
+          resourceLimits: state
+            ? {
+                cpuMillicores: state.limits['workspace.cpuMillicores'],
+                ramMb: state.limits['workspace.ramMb'],
+                storageGb: state.limits['storage.gb'],
+              }
+            : undefined,
+          env,
+          allowedSecretKeys,
+          allowedSecrets,
+        }),
+      });
+    } catch (restartError) {
+      /*
+       * If we claimed an active slot above (flipped to STARTING) but the manager
+       * restart failed, reset to FAILED so the slot isn't leaked (stuck STARTING
+       * would count against workspaces.active forever).
+       */
+      if (restartOrgId && !restartCountsAsActive) {
+        await store
+          .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
+          .catch(() => undefined);
+      }
+
+      throw restartError;
+    }
+
     await audit(request, store, {
       organizationId: authorized.organizationId,
       action: 'runtime.workspace.restart',
