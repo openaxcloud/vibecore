@@ -89,6 +89,10 @@ vi.mock('./files', async () => {
         return this.files.get()[filePath];
       }
 
+      isFileLocked() {
+        return { locked: false as const };
+      }
+
       async saveFile(filePath: string, content: string) {
         this.files.setKey(filePath, { type: 'file', content, isBinary: false });
       }
