@@ -1352,6 +1352,13 @@ async function runCommand(
 
   child.stdout.on('data', (chunk) => append('stdout', chunk));
   child.stderr.on('data', (chunk) => append('stderr', chunk));
+  /*
+   * Guard the pipe Readables: an 'error' event on stdout/stderr with no listener
+   * becomes an uncaughtException that crashes the whole agent (and every other
+   * session). The ChildProcess 'error'/'exit' handlers don't cover stream errors.
+   */
+  child.stdout.on('error', () => {});
+  child.stderr.on('error', () => {});
 
   return new Promise((resolvePromise) => {
     /*
@@ -1520,6 +1527,9 @@ async function runCommandStream(
 
   child.stdout.on('data', (chunk) => send('stdout', chunk));
   child.stderr.on('data', (chunk) => send('stderr', chunk));
+  // See runCommand: swallow stream-level errors so a pipe read fault can't crash the agent.
+  child.stdout.on('error', () => {});
+  child.stderr.on('error', () => {});
   child.on('close', () => {
     if (drainTimer) {
       clearInterval(drainTimer);

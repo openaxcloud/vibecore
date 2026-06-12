@@ -5566,9 +5566,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       redact: ['req.headers.authorization', 'req.headers.cookie', 'password', '*.password', '*.token', '*.secret'],
       serializers: {
         req(request): any {
+          /*
+           * Mask capability tokens that travel in the URL path (chat-share links
+           * are GET /chat-shares/<token>, auth-allowlisted). Logging the raw path
+           * would persist a working, unexpirable share credential in cleartext.
+           */
+          const safeUrl = (request.url as string).replace(/\/chat-shares\/[^/?#]+/, '/chat-shares/[redacted]');
+
           return redactSecrets({
             method: request.method,
-            url: request.url,
+            url: safeUrl,
             hostname: request.hostname,
             remoteAddress: request.ip,
           });

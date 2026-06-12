@@ -755,6 +755,13 @@ export class FilesStore {
          */
         isBinary: currentFile?.type === 'file' ? currentFile.isBinary : false,
         isLocked: currentFile?.type === 'file' ? currentFile.isLocked : false,
+
+        /*
+         * Preserve the folder-lock association too. Dropping lockedByFolder on
+         * save severs the file from its parent folder's lock, so a later folder
+         * unlock no longer clears this file's lock (it stays stuck locked).
+         */
+        lockedByFolder: currentFile?.type === 'file' ? currentFile.lockedByFolder : undefined,
       });
 
       if (this.#runtime.mode === 'remote-kubernetes') {

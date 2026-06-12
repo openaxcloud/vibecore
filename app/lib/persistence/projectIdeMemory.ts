@@ -265,7 +265,13 @@ function mergeProjectIdeMemory(existing: ProjectIdeMemory, patch: ProjectIdeMemo
         ...existing.chat,
         ...patch.chat,
         messages: mergeMessages(existing.chat?.messages, patch.chat.messages, clearMessages),
-        archivedMessages: mergeMessages(existing.chat?.archivedMessages, patch.chat.archivedMessages),
+
+        /*
+         * Honor clearMessages for archived messages too. Without it archived is
+         * union-merged forever and can never shrink, so messages removed by a
+         * rewind resurface on the next reload.
+         */
+        archivedMessages: mergeMessages(existing.chat?.archivedMessages, patch.chat.archivedMessages, clearMessages),
         conversations: patch.chat.conversations ?? existing.chat?.conversations,
       }
     : existing.chat;

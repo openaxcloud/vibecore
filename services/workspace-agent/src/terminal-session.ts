@@ -220,6 +220,9 @@ function createPipeBackend(
 
   child.stdout?.on('data', emit);
   child.stderr?.on('data', emit);
+  // Guard pipe Readables: an unhandled 'error' on stdout/stderr crashes the agent and every session.
+  child.stdout?.on('error', () => {});
+  child.stderr?.on('error', () => {});
   child.on('exit', (code) => {
     for (const listener of exitListeners) {
       listener(code ?? 0);
