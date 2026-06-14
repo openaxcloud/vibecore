@@ -209,6 +209,17 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     return session;
   }
 
+  /*
+   * Keepalive: bump the workspace's lastActiveAt so the inactivity GC doesn't
+   * reap an open-but-idle session. Routed through #request so it uses the remote
+   * runtime base URL (api.e-code.ai) and bearer auth — a relative fetch would hit
+   * the web origin and 404. Fire-and-forget: swallow errors so a transient hiccup
+   * or an already-reclaimed workspace never surfaces to the caller.
+   */
+  async touch(workspaceId = this.#requireWorkspaceId()): Promise<void> {
+    await this.#request(`/workspaces/${workspaceId}/touch`, { method: 'POST' }).catch(() => undefined);
+  }
+
   async getWorkspaceStatus(workspaceId = this.#requireWorkspaceId()): Promise<WorkspaceSession> {
     const session = await this.#request<WorkspaceSession>(`/workspaces/${workspaceId}/status`);
     this.#session = session;

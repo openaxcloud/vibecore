@@ -156,13 +156,16 @@ export function ProjectWorkspaceProvider({
          * manager workspace exists in webcontainer mode); the server throttles
          * the underlying write to once / 30s; fire-and-forget.
          */
-        if (getRuntimeMode() === 'remote-kubernetes' && activeWorkspaceId) {
+        if (
+          getRuntimeMode() === 'remote-kubernetes' &&
+          activeWorkspaceId &&
+          'touch' in runtime &&
+          typeof (runtime as { touch?: unknown }).touch === 'function'
+        ) {
           const heartbeatWorkspaceId = activeWorkspaceId;
+          const touchRuntime = runtime as { touch: (workspaceId: string) => Promise<void> };
           heartbeat = setInterval(() => {
-            void fetch(`/api/runtime/workspaces/${encodeURIComponent(heartbeatWorkspaceId)}/touch`, {
-              method: 'POST',
-              credentials: 'include',
-            }).catch(() => undefined);
+            void touchRuntime.touch(heartbeatWorkspaceId).catch(() => undefined);
           }, 60_000);
         }
       } catch (error) {

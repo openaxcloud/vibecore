@@ -689,24 +689,68 @@ export class WorkbenchStore {
   ) {
     let exitCode = 0;
 
-    for await (const event of this.#runtime.streamCommand({
-      command: command.command,
-      args: command.args,
-      cwd: command.cwd,
-      env: command.env,
-    })) {
-      this.appendWorkspaceLog(event);
+    /*
+     * Throttle port refreshes. A dev server emits hundreds of output lines while
+     * installing/building; refreshing ports (a GET /ports round-trip) on EVERY
+     * line previously produced a request storm — and when the workspace agent is
+     * transiently unreachable (502/abort), each line fired another doomed request
+     * (observed: hundreds of aborted /ports calls flooding the API). Cap to at
+     * most one refresh per 1.5s with a trailing refresh, and never block the
+     * output stream on the network call (no await).
+     */
+    const PORT_REFRESH_THROTTLE_MS = 1500;
 
-      if (options.refreshPortsOnOutput && (event.type === 'stdout' || event.type === 'stderr')) {
-        await this.refreshRuntimePorts().catch(() => undefined);
+    let lastPortRefresh = 0;
+    let trailingPortRefresh: ReturnType<typeof setTimeout> | undefined;
+
+    const refreshPortsThrottled = () => {
+      const now = Date.now();
+      const since = now - lastPortRefresh;
+
+      if (since >= PORT_REFRESH_THROTTLE_MS) {
+        lastPortRefresh = now;
+        void this.refreshRuntimePorts().catch(() => undefined);
+      } else if (!trailingPortRefresh) {
+        trailingPortRefresh = setTimeout(() => {
+          trailingPortRefresh = undefined;
+          lastPortRefresh = Date.now();
+          void this.refreshRuntimePorts().catch(() => undefined);
+        }, PORT_REFRESH_THROTTLE_MS - since);
+      }
+    };
+
+    try {
+      for await (const event of this.#runtime.streamCommand({
+        command: command.command,
+        args: command.args,
+        cwd: command.cwd,
+        env: command.env,
+      })) {
+        this.appendWorkspaceLog(event);
+
+        if (options.refreshPortsOnOutput && (event.type === 'stdout' || event.type === 'stderr')) {
+          refreshPortsThrottled();
+        }
+
+        if (event.type === 'exit') {
+          exitCode = event.exitCode ?? 0;
+
+          if (exitCode !== 0) {
+            this.appendWorkspaceLog(`${options.exitMessage} ${exitCode}`);
+          }
+        }
+      }
+    } finally {
+      if (trailingPortRefresh) {
+        clearTimeout(trailingPortRefresh);
       }
 
-      if (event.type === 'exit') {
-        exitCode = event.exitCode ?? 0;
-
-        if (exitCode !== 0) {
-          this.appendWorkspaceLog(`${options.exitMessage} ${exitCode}`);
-        }
+      /*
+       * Always do one final refresh so a port opened by the last output line
+       * (or after the stream ends) is still detected despite the throttle.
+       */
+      if (options.refreshPortsOnOutput) {
+        void this.refreshRuntimePorts().catch(() => undefined);
       }
     }
 
