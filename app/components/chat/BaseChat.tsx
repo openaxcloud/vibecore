@@ -761,6 +761,55 @@ const PROJECT_AGENT_PUBLIC_MODES: Array<{
   },
 ];
 
+/*
+ * Shared ARIA "tabs" keyboard handler (roving tabindex, manual activation):
+ * Arrow/Home/End move focus between the role="tab" children of the tablist; the
+ * focused tab is then activated by Enter/Space (native for <button> tabs, handled
+ * explicitly for non-button tabs). Manual activation keeps it valid for tab
+ * elements that can't be a <button> (e.g. ones that contain their own buttons).
+ */
+function moveTabFocus(event: React.KeyboardEvent<HTMLElement>) {
+  const navKeys = ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+
+  if (!navKeys.includes(event.key)) {
+    return;
+  }
+
+  const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')).filter(
+    (el) => !el.hasAttribute('disabled'),
+  );
+
+  if (tabs.length === 0) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const current = tabs.indexOf(document.activeElement as HTMLElement);
+
+  let next = current;
+
+  switch (event.key) {
+    case 'ArrowRight':
+    case 'ArrowDown':
+      next = current < 0 ? 0 : (current + 1) % tabs.length;
+      break;
+    case 'ArrowLeft':
+    case 'ArrowUp':
+      next = current < 0 ? 0 : (current - 1 + tabs.length) % tabs.length;
+      break;
+    case 'Home':
+      next = 0;
+      break;
+    case 'End':
+      next = tabs.length - 1;
+      break;
+  }
+
+  const target = tabs[next];
+  target?.focus();
+}
+
 function publicModeForExecution(execution: ProjectAgentExecutionMode): ProjectAgentPublicMode {
   if (execution === 'agent' || execution === 'architect') {
     return 'agent';
@@ -6597,6 +6646,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           className="bolt-project-agent-mode bolt-project-agent-mode--segmented"
                           role="tablist"
                           aria-label="Agent mode"
+                          onKeyDown={moveTabFocus}
                         >
                           {PROJECT_AGENT_PUBLIC_MODES.map((mode) => {
                             const isActive = activePublicMode === mode.id;
@@ -6606,8 +6656,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                                 <button
                                   type="button"
                                   role="tab"
-                                  aria-pressed={isActive}
                                   aria-selected={isActive}
+                                  tabIndex={isActive ? 0 : -1}
                                   onClick={() => {
                                     const execution = PROJECT_AGENT_EXECUTION_MODES.find(
                                       (entry) => entry.id === mode.execution,
@@ -9757,6 +9807,7 @@ function IdeTabBar({
         <div
           className="bolt-project-tabs"
           role="tablist"
+          onKeyDown={moveTabFocus}
           onDragOver={(event) => {
             if (onSwapTab) {
               event.preventDefault();
@@ -9783,6 +9834,19 @@ function IdeTabBar({
               data-dirty={tab.dirty ? 'true' : undefined}
               aria-label={`${tab.pinned ? 'Pinned tab: ' : ''}${tab.label}${tab.dirty ? ', unsaved changes' : ''}`}
               aria-selected={activeTabId === tab.id}
+              tabIndex={activeTabId === tab.id ? 0 : -1}
+              onKeyDown={(event) => {
+                /*
+                 * Manual activation: the focused tab selects on Enter/Space (the
+                 * tab is a div — it contains pin/save/close buttons — so it can't
+                 * be a <button>). Arrow nav is handled by the tablist's onKeyDown.
+                 */
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  closeToolMenu();
+                  onSelect(tab.id, tab.panel);
+                }
+              }}
               className="bolt-project-tab"
               draggable
               onDragStart={(event) => {
@@ -9819,6 +9883,7 @@ function IdeTabBar({
                 type="button"
                 className="bolt-project-tab-main"
                 title={tab.label}
+                tabIndex={-1}
                 onClick={() => {
                   closeToolMenu();
                   onSelect(tab.id, tab.panel);

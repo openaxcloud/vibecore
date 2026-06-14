@@ -353,13 +353,19 @@ export const Menu = () => {
        * button the entire sidebar (chat history, settings, theme) was unreachable
        * on phones/tablets. Shown only while the drawer is closed.
        */}
+      {/*
+       * Mobile/touch entry point only (lg:hidden below). On desktop the classic
+       * header renders its brand logo at the same top-left spot, so a fixed
+       * floating button there overlapped the logo — and the desktop cursor-edge
+       * hover heuristic already opens the drawer.
+       */}
       {!open && (
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open menu"
           aria-expanded={open}
-          className="fixed top-3 left-3 z-sidebar flex items-center justify-center w-10 h-10 rounded-lg bg-white/90 dark:bg-gray-900/90 border border-bolt-elements-borderColor shadow-sm text-bolt-elements-textPrimary hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          className="fixed top-3 left-3 z-sidebar flex lg:hidden items-center justify-center w-10 h-10 rounded-lg bg-white/90 dark:bg-gray-900/90 border border-bolt-elements-borderColor shadow-sm text-bolt-elements-textPrimary hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
           <span className="i-ph:list text-xl" />
         </button>
