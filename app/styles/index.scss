@@ -1758,12 +1758,25 @@ body
 }
 
 @media (max-width: 640px) {
+  /*
+   * These palettes open UPWARD inside the composer, which on mobile has
+   * overflow:clip/auto — so position:absolute got them truncated/hidden, making
+   * slash commands and @file mentions unusable on phones. Use position:fixed so
+   * they escape the composer's overflow box and sit above the bottom nav, like
+   * the model-selector / tools-menu composer popovers already do.
+   */
   .bolt-composer-mentions-overlay,
   .bolt-composer-slash-overlay {
+    position: fixed;
+    top: auto;
     right: 12px;
+    bottom: calc(var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px));
     left: 12px;
     width: auto;
     max-width: none;
+    max-height: min(58dvh, 460px);
+    overflow-y: auto;
+    z-index: 12028;
   }
 }
 
