@@ -551,7 +551,14 @@ export class WorkspaceManager {
 
   private async waitForReadiness(namespace: string, podName: string) {
     const startedAt = Date.now();
-    const timeoutMs = Number(process.env.WORKSPACE_READINESS_TIMEOUT_MS ?? 180_000);
+
+    /*
+     * NaN-safe: `?? 180_000` only covers an undefined env var, so a misconfigured
+     * non-numeric WORKSPACE_READINESS_TIMEOUT_MS would make Number(...) NaN and the
+     * loop below (`< NaN` is always false) skip readiness polling entirely.
+     */
+    const parsedTimeout = Number(process.env.WORKSPACE_READINESS_TIMEOUT_MS);
+    const timeoutMs = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 180_000;
 
     while (Date.now() - startedAt < timeoutMs) {
       /*

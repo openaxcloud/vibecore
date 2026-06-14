@@ -42,12 +42,22 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
       return json({ error: 'Project ID is required' }, { status: 400 });
     }
 
+    /*
+     * projectId is either a numeric id or a "namespace/project" path. Reject
+     * anything outside valid path chars and URL-encode it before interpolation
+     * so a value like "1/repository/branches?private_token=..." or a traversal
+     * can't redirect the authenticated call to a different GitLab API path.
+     */
+    if (!/^[\w./-]+$/.test(projectId)) {
+      return json({ error: 'Invalid project ID' }, { status: 400 });
+    }
+
     if (!isSafeGitLabUrl(gitlabUrl)) {
       return json({ error: 'Invalid GitLab URL' }, { status: 400 });
     }
 
     // Fetch branches from GitLab API
-    const branchesUrl = `${gitlabUrl}/api/v4/projects/${projectId}/repository/branches?per_page=100`;
+    const branchesUrl = `${gitlabUrl}/api/v4/projects/${encodeURIComponent(projectId)}/repository/branches?per_page=100`;
 
     const response = await safeGitForgeFetch(branchesUrl, {
       headers: {

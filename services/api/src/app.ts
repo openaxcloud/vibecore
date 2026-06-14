@@ -7660,7 +7660,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     response: Response,
     fallbackCode: 'PROVIDER_API_FAILED',
   ) {
-    if (response.status === 401 || response.status === 403) {
+    /*
+     * Only a 401 (Bad credentials) means the stored token is actually
+     * dead/revoked. GitHub returns 403 for many transient/operation-specific
+     * reasons — rate limiting, insufficient scope, org SSO enforcement, repo-level
+     * permission — none of which warrant forcing the user to re-OAuth. Flipping
+     * the connection to needs_reconnect on any 403 caused spurious reconnect loops.
+     */
+    if (response.status === 401) {
       const connections = await store.listUserConnectionsByUser(request.currentUser?.id ?? '', { provider: 'github' });
       const active = connections.find((row) => row.status === 'active');
 
@@ -7677,6 +7684,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(401).send({
         error: 'GitHub rejected the stored access token',
         code: 'CONNECTOR_NEEDS_RECONNECT',
+        upstreamStatus: response.status,
+      });
+    }
+
+    if (response.status === 403) {
+      // Forbidden ≠ dead token: surface it without flipping the connection.
+      return reply.code(403).send({
+        error: 'GitHub forbade the request (rate limit, scope, or org policy)',
+        code: 'PROVIDER_FORBIDDEN',
         upstreamStatus: response.status,
       });
     }

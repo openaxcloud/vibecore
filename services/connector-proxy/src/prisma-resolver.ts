@@ -175,10 +175,19 @@ export function createPrismaConnectionResolver(deps: PrismaResolverDeps = {}) {
       };
     }
 
-    await prisma.userConnection.update({
-      where: { id: connection.id },
-      data: { lastUsedAt: new Date() },
-    });
+    /*
+     * lastUsedAt is best-effort telemetry — the connection is already fully
+     * resolved and authorized. A transient DB write failure here must not turn a
+     * successful resolution into an error, so swallow it.
+     */
+    try {
+      await prisma.userConnection.update({
+        where: { id: connection.id },
+        data: { lastUsedAt: new Date() },
+      });
+    } catch {
+      // ignore — telemetry only
+    }
 
     return {
       ok: true,

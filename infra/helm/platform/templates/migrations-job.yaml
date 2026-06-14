@@ -43,6 +43,9 @@ spec:
         app.kubernetes.io/part-of: vibecore
     spec:
       serviceAccountName: {{ include "vibecore-platform.fullname" . }}-api
+      # The migration job runs prisma against the DB only; it never calls the
+      # kube-apiserver, so don't mount a usable SA token (matches the Deployments).
+      automountServiceAccountToken: false
       restartPolicy: Never
       securityContext:
         runAsNonRoot: true

@@ -73,6 +73,10 @@ spec:
             app.kubernetes.io/part-of: vibecore
         spec:
           serviceAccountName: {{ include "vibecore-platform.fullname" $ }}-worker
+          # These jobs never call the kube-apiserver; don't mount a usable token
+          # (matches the automountServiceAccountToken: false hardening on the
+          # Deployments).
+          automountServiceAccountToken: false
           restartPolicy: OnFailure
           securityContext:
             runAsNonRoot: true
