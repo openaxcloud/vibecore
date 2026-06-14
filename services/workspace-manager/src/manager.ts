@@ -437,6 +437,27 @@ export class WorkspaceManager {
         // Pass the observed state as an optimistic guard so a reopen that races
         // between this decision and the actual k8s deletes aborts the reap.
         const guard = { status: workspace.status, lastActiveAt: workspace.lastActiveAt };
+
+        /*
+         * Reconcile a RUNNING row whose Pod no longer exists. Workspaces are bare
+         * Pods (no Deployment/ReplicaSet), so an evicted/preempted/externally
+         * deleted Pod is never recreated — the row stays RUNNING forever while
+         * preview/terminal 404 on the dead pod, and touch() (every file/port-watch
+         * tick of an open IDE) keeps lastActiveAt fresh so the inactivity branch
+         * below never reaps it either. Flip it to STOPPED (keeps the PVC) so the
+         * next open reprovisions. getPod returns undefined ONLY for a real NotFound
+         * — transient/RBAC errors throw and are caught below, so we never
+         * reconcile on a blip.
+         */
+        if (workspace.status === 'RUNNING') {
+          const pod = await this.k8s.getPod(namespace, workspace.podName);
+
+          if (!pod) {
+            await this.stopWorkspace(namespace, workspace.id, guard);
+            continue;
+          }
+        }
+
         if (workspace.status === 'RUNNING' && inactiveFor > inactiveMs) {
           await this.stopWorkspace(namespace, workspace.id, guard);
         } else if (workspace.status === 'STOPPED' && inactiveFor > deleteMs) {
