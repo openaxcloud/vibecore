@@ -32,6 +32,19 @@ html[data-ecode-public-chrome='homepage'],
 html[data-ecode-public-chrome='homepage'] body,
 html:has([data-ecode-static-shell]),
 html:has([data-ecode-static-shell]) body {
+  font-family:
+    Inter,
+    -apple-system,
+    'system-ui',
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Fira Sans',
+    'Droid Sans',
+    'Helvetica Neue',
+    sans-serif;
   font-size: 16px;
 }
 
@@ -2604,6 +2617,9 @@ body
   color: var(--vc-ide-text-secondary);
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 11px;
+  /* Long monospace error text must wrap instead of forcing horizontal overflow. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .bolt-file-action-diff-streaming-indicator,

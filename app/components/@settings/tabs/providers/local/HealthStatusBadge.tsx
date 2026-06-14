@@ -13,14 +13,14 @@ function HealthStatusBadge({ status, responseTime, className }: HealthStatusBadg
     switch (status) {
       case 'healthy':
         return {
-          color: 'text-green-500',
+          color: 'text-green-700 dark:text-green-300',
           bgColor: 'bg-green-500/10 border-green-500/20',
           Icon: CheckCircle,
           label: 'Healthy',
         };
       case 'unhealthy':
         return {
-          color: 'text-red-500',
+          color: 'text-red-700 dark:text-red-300',
           bgColor: 'bg-red-500/10 border-red-500/20',
           Icon: XCircle,
           label: 'Unhealthy',

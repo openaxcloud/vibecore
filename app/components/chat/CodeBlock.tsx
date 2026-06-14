@@ -71,10 +71,12 @@ export const CodeBlock = memo(
                   'before:opacity-100': copied,
                 },
               )}
+              type="button"
+              aria-label="Copy code"
               title="Copy Code"
               onClick={() => copyToClipboard()}
             >
-              <div className="i-ph:clipboard-text-duotone"></div>
+              <div className="i-ph:clipboard-text-duotone" aria-hidden></div>
             </button>
           )}
         </div>

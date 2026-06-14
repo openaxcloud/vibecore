@@ -27,11 +27,11 @@ export function ConnectionFailedNote({ payload }: ConnectionFailedNoteProps) {
   return (
     <div className="my-2 flex items-start gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-2 bg-bolt-elements-background-depth-1">
       <span className="i-ph:warning-circle-fill w-4 h-4 text-bolt-elements-icon-error mt-0.5" />
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         <p className="text-xs text-bolt-elements-textPrimary">
           {payload.providerDisplayName} connection could not be completed.
         </p>
-        <p className="text-xs text-bolt-elements-textSecondary mt-0.5">
+        <p className="text-xs text-bolt-elements-textSecondary mt-0.5 break-words">
           {REASON_LABEL[payload.reason]}
           {payload.detail ? ` ${payload.detail}` : ''}
         </p>

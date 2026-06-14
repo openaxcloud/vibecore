@@ -137,7 +137,20 @@ export default function InvitationsPage() {
               <span className="min-w-0 truncate" title={invite.email}>
                 {invite.email}
               </span>
-              <Form method="post" className="flex shrink-0 gap-2">
+              <Form
+                method="post"
+                className="flex shrink-0 gap-2"
+                onSubmit={(event) => {
+                  const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+
+                  if (
+                    submitter?.value === 'expire' &&
+                    !window.confirm('Expire this invitation? The recipient will no longer be able to use the link.')
+                  ) {
+                    event.preventDefault();
+                  }
+                }}
+              >
                 <input type="hidden" name="orgId" value={orgId} />
                 <input type="hidden" name="inviteId" value={invite.id} />
                 <button name="intent" value="resend" className="text-bolt-elements-textSecondary">

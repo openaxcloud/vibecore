@@ -139,7 +139,7 @@ export function VercelDeploymentLink() {
             href={deploymentUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-bolt-elements-item-backgroundActive text-bolt-elements-textSecondary hover:text-[#000000] z-50"
+            className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-bolt-elements-item-backgroundActive text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary z-50"
             onClick={(e) => {
               e.stopPropagation();
             }}
