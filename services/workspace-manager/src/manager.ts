@@ -638,7 +638,9 @@ export class WorkspaceManager {
     }
 
     const url = this.agentHealthUrl(workspaceId, namespace);
-    const timeoutMs = Number.isFinite(parsed) && parsed > 0 ? parsed : 20_000;
+    // 45s default: a gVisor agent can take 20-30s to start listening under node
+    // CPU contention, and RUNNING must not be reported before it is routable.
+    const timeoutMs = Number.isFinite(parsed) && parsed > 0 ? parsed : 45_000;
     const deadline = Date.now() + timeoutMs;
     let lastError: unknown;
 

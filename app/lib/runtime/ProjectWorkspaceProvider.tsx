@@ -2,6 +2,7 @@ import type { CommandEvent, RuntimeAdapter } from '@vibecore/runtime-contract';
 import { RuntimeError } from '@vibecore/runtime-contract';
 import { useEffect, useMemo, type PropsWithChildren } from 'react';
 import { createRuntimeAdapter, getRuntimeMode, RuntimeAdapterProvider } from '~/lib/runtime/RuntimeAdapterProvider';
+import { isTransientRuntimeError, withRuntimeRetry } from '~/lib/runtime/retry';
 import { workbenchStore } from '~/lib/stores/workbench';
 
 export interface ProjectWorkspaceProviderProps extends PropsWithChildren {
@@ -106,7 +107,18 @@ export function ProjectWorkspaceProvider({
 
         try {
           await persistedFilesHydration;
-          await seedRuntimeFromProjectStorage(projectId, runtime);
+
+          /*
+           * The agent can be briefly unreachable right after a (re)provision —
+           * slow gVisor startup under node CPU contention, or Service Endpoints
+           * lag — so the first seed call often hits a transient 502/agent-not-
+           * reachable. Retry through that window instead of failing on the first
+           * error (which previously tore the pod down).
+           */
+          await withRuntimeRetry(() => seedRuntimeFromProjectStorage(projectId, runtime), {
+            attempts: 5,
+            baseDelayMs: 1500,
+          });
         } catch (error) {
           if (cancelled) {
             return;
@@ -117,8 +129,16 @@ export function ProjectWorkspaceProvider({
           workbenchStore.workspaceError.set(message);
           workbenchStore.appendWorkspaceLog(message);
 
-          // Seeding failed — stop the pod we just started so it isn't orphaned.
-          if (activeWorkspaceId) {
+          /*
+           * Only tear the pod down on a NON-transient failure. A transient
+           * agent-unreachable that survived the retries is most likely a slow
+           * startup that will still come good; killing the pod turns it into a
+           * permanent "Crashed runtime" and forces a ~50s cold re-provision.
+           * Leave it RUNNING so the keepalive heartbeat holds it and the user can
+           * retry without a cold start — genuine orphans are still reaped by the
+           * inactivity GC.
+           */
+          if (activeWorkspaceId && !isTransientRuntimeError(error)) {
             await stopRemoteWorkspace(runtime, activeWorkspaceId).catch(() => undefined);
             activeWorkspaceId = undefined;
           }
