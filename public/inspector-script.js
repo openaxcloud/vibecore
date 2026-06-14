@@ -2,6 +2,8 @@
   let isInspectorActive = false;
   let inspectorStyle = null;
   let currentHighlight = null;
+  let pendingHoverTarget = null;
+  let hoverRafScheduled = false;
 
   // Function to get relevant styles
   function getRelevantStyles(element) {
@@ -185,17 +187,33 @@
       currentHighlight.classList.remove('inspector-highlight');
     }
     
-    // Add highlight to current element
+    // Add highlight to current element (cheap; keep it immediate for responsiveness)
     target.classList.add('inspector-highlight');
     currentHighlight = target;
 
-    const elementInfo = createElementInfo(target);
-    
-    // Send message to parent
-    window.parent.postMessage({
-      type: 'INSPECTOR_HOVER',
-      elementInfo: elementInfo
-    }, '*');
+    /*
+     * Coalesce the expensive layout read (getBoundingClientRect/getComputedStyle
+     * in createElementInfo) + postMessage to ONE per animation frame. Running it
+     * on every mousemove event thrashed layout and flooded the parent with
+     * messages, janking the preview while inspecting.
+     */
+    pendingHoverTarget = target;
+
+    if (hoverRafScheduled) return;
+
+    hoverRafScheduled = true;
+    requestAnimationFrame(function () {
+      hoverRafScheduled = false;
+
+      if (!isInspectorActive || !pendingHoverTarget) return;
+
+      const elementInfo = createElementInfo(pendingHoverTarget);
+
+      window.parent.postMessage({
+        type: 'INSPECTOR_HOVER',
+        elementInfo: elementInfo
+      }, '*');
+    });
   }
 
   function handleClick(e) {

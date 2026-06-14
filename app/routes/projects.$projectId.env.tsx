@@ -76,7 +76,14 @@ export default function ProjectEnvPage() {
 function Field(props: { label: string; name: string; placeholder?: string; required?: boolean }) {
   return (
     <label className="grid gap-2 text-sm font-medium">
-      {props.label}
+      <span>
+        {props.label}
+        {props.required ? (
+          <span className="ml-0.5 text-red-500" aria-hidden>
+            *
+          </span>
+        ) : null}
+      </span>
       <input
         className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
         name={props.name}

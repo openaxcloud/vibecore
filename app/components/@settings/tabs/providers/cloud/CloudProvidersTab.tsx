@@ -263,17 +263,19 @@ const CloudProvidersTab = () => {
                             autoFocus
                           />
                         ) : (
-                          <div
-                            className="flex-1 px-3 py-1.5 rounded-lg text-sm cursor-pointer group/url"
+                          <button
+                            type="button"
+                            aria-label={`Edit base URL for ${provider.name}`}
+                            className="flex-1 px-3 py-1.5 rounded-lg text-sm cursor-pointer group/url text-left"
                             onClick={() => setEditingProvider(provider.name)}
                           >
                             <div className="flex items-center gap-2 text-bolt-elements-textSecondary">
-                              <div className="i-ph:link text-sm" />
+                              <div className="i-ph:link text-sm" aria-hidden />
                               <span className="group-hover/url:text-purple-500 transition-colors">
                                 {provider.settings.baseUrl || 'Click to set base URL'}
                               </span>
                             </div>
-                          </div>
+                          </button>
                         )}
                       </div>
 

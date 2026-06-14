@@ -127,18 +127,21 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
             </div>
           ) : (
             <>
-              <div
-                className="flex items-center p-2 rounded-md bg-bolt-elements-background-depth-3 cursor-pointer"
+              <button
+                type="button"
+                aria-expanded={!isCollapsed}
+                className="flex w-full items-center p-2 rounded-md bg-bolt-elements-background-depth-3 cursor-pointer text-left"
                 onClick={() => setIsCollapsed(!isCollapsed)}
               >
-                <div className="i-ph:database text-bolt-elements-textPrimary mr-2"></div>
+                <div className="i-ph:database text-bolt-elements-textPrimary mr-2" aria-hidden></div>
                 <span className="text-sm text-bolt-elements-textPrimary flex-grow">
                   {description || 'Create table and setup auth'}
                 </span>
                 <div
                   className={`i-ph:caret-up text-bolt-elements-textPrimary transition-transform ${isCollapsed ? 'rotate-180' : ''}`}
+                  aria-hidden
                 ></div>
-              </div>
+              </button>
 
               {!isCollapsed && content && (
                 <div className="mt-2 p-3 bg-bolt-elements-background-depth-4 rounded-md overflow-auto max-h-60 font-mono text-xs text-bolt-elements-textSecondary">

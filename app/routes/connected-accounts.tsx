@@ -125,15 +125,15 @@ export default function ConnectedAccountsPage() {
                 index > 0 && 'border-t border-bolt-elements-borderColor',
               )}
             >
-              <div className="flex gap-3">
+              <div className="flex min-w-0 gap-3">
                 <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-bolt-elements-background-depth-3">
                   <Icon className="h-4 w-4" aria-hidden />
                 </span>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium">{provider.title}</p>
                   <p className="mt-1 text-sm text-bolt-elements-textSecondary">{provider.detail}</p>
                   {integration?.externalAccountLabel ? (
-                    <p className="mt-1 text-xs text-bolt-elements-textTertiary">
+                    <p className="mt-1 break-all text-xs text-bolt-elements-textTertiary">
                       Account {integration.externalAccountLabel}
                     </p>
                   ) : null}

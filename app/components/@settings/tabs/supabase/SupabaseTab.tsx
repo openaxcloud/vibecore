@@ -360,12 +360,12 @@ export default function SupabaseTab() {
                     onClick={() => handleProjectSelect(project.id)}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex-1">
+                      <div className="min-w-0 flex-1">
                         <h5 className="text-sm font-medium text-bolt-elements-textPrimary flex items-center gap-2">
-                          <div className="i-ph:database w-4 h-4 text-bolt-elements-borderColorActive" />
-                          {project.name}
+                          <div className="i-ph:database w-4 h-4 shrink-0 text-bolt-elements-borderColorActive" />
+                          <span className="min-w-0 truncate">{project.name}</span>
                         </h5>
-                        <div className="flex items-center gap-2 mt-2 text-xs text-bolt-elements-textSecondary">
+                        <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-bolt-elements-textSecondary">
                           <span className="flex items-center gap-1">
                             <div className="i-ph:globe w-3 h-3" />
                             {project.region}
