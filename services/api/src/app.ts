@@ -14257,6 +14257,51 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const presenceOwnerKey = `${project.id}:${sessionId}`;
     collaborationPresenceOwners.set(presenceOwnerKey, client);
+
+    /*
+     * Register cleanup BEFORE any further setup (ready-send, handlers, keepalive).
+     * Previously onClose was the LAST thing registered, so a throw during setup
+     * (e.g. client.send failing, or a store read) closed the socket with the
+     * broker-room membership, presence-owner entry, presence DB row and keepalive
+     * interval all leaked. keepAlive is forward-declared and assigned below.
+     */
+    let keepAlive: ReturnType<typeof setInterval> | undefined;
+
+    client.onClose(() => {
+      /*
+       * onClose fires on the raw socket 'close' and does NOT await the returned
+       * promise, so wrap the whole body — an unawaited rejection would be an
+       * unhandled rejection that crashes the process.
+       */
+      void (async () => {
+        try {
+          if (keepAlive) {
+            clearInterval(keepAlive);
+          }
+
+          collaborationBroker.leave(project.id, client);
+
+          /*
+           * Only retire the presence row if THIS socket still owns it. A reconnect
+           * under the same (stable) sessionId installs a new owner; letting this
+           * stale close delete the row would evict a user who is in fact connected.
+           */
+          if (collaborationPresenceOwners.get(presenceOwnerKey) !== client) {
+            return;
+          }
+
+          collaborationPresenceOwners.delete(presenceOwnerKey);
+          await store.removeCollaborationPresence(project.id, sessionId);
+          collaborationBroker.publish(project.id, { type: 'presence.leave', sessionId }, client);
+        } catch (error) {
+          request.log?.warn?.(
+            { err: error, projectId: project.id, sessionId },
+            'collaboration presence cleanup failed',
+          );
+        }
+      })();
+    });
+
     collaborationBroker.publish(project.id, { type: 'presence.join', presence }, client);
     client.send(
       JSON.stringify({
@@ -14388,43 +14433,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * runtime sockets solved with a keepalive. Ping every 15s; ping frames are
      * invisible to the client's JSON message stream.
      */
-    const keepAlive = setInterval(() => {
+    keepAlive = setInterval(() => {
       client.ping();
     }, 15_000);
     (keepAlive as unknown as { unref?: () => void }).unref?.();
-
-    client.onClose(() => {
-      /*
-       * onClose is registered on the raw socket's 'close' event, which does NOT
-       * await the returned promise. An unawaited rejection from
-       * removeCollaborationPresence (DB/transport error) would be an unhandled
-       * rejection and crash the process — wrap the whole body so it can't escape.
-       */
-      void (async () => {
-        try {
-          clearInterval(keepAlive);
-          collaborationBroker.leave(project.id, client);
-
-          /*
-           * Only retire the presence row if THIS socket still owns it. A reconnect
-           * under the same (stable) sessionId installs a new owner; letting this
-           * stale close delete the row would evict a user who is in fact connected.
-           */
-          if (collaborationPresenceOwners.get(presenceOwnerKey) !== client) {
-            return;
-          }
-
-          collaborationPresenceOwners.delete(presenceOwnerKey);
-          await store.removeCollaborationPresence(project.id, sessionId);
-          collaborationBroker.publish(project.id, { type: 'presence.leave', sessionId }, client);
-        } catch (error) {
-          request.log?.warn?.(
-            { err: error, projectId: project.id, sessionId },
-            'collaboration presence cleanup failed',
-          );
-        }
-      })();
-    });
   });
   app.get('/projects/:projectId/activity', async (request) => {
     const project = await requireProject(
