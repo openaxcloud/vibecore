@@ -528,8 +528,17 @@ export class PrismaApiStore implements ApiStore {
         },
         data: { unlinkedAt: new Date() },
       })
-      .catch(() => {
-        // Best-effort offboarding cleanup; never block membership removal on it.
+      .catch((error) => {
+        /*
+         * Don't block membership removal, but DON'T swallow silently: a failed
+         * credential-unlink leaves the ex-member's tokens usable, so it must be
+         * observable for ops to remediate.
+         */
+        console.error('removeMember: failed to unlink connector links during offboarding', {
+          organizationId,
+          userId,
+          error,
+        });
       });
 
     /*
@@ -539,9 +548,19 @@ export class PrismaApiStore implements ApiStore {
      * direct access to every project they were invited to. Scoped to this org's
      * projects via the relational filter.
      */
-    await this.prisma.projectCollaborator.deleteMany({ where: { userId, project: { organizationId } } }).catch(() => {
-      // Best-effort offboarding cleanup; never block membership removal on it.
-    });
+    await this.prisma.projectCollaborator
+      .deleteMany({ where: { userId, project: { organizationId } } })
+      .catch((error) => {
+        /*
+         * Don't block removal, but surface it: a failed collaborator-grant deletion
+         * leaves the ex-member with direct project access.
+         */
+        console.error('removeMember: failed to revoke collaborator grants during offboarding', {
+          organizationId,
+          userId,
+          error,
+        });
+      });
 
     return mapMembership(membership);
   }
@@ -784,8 +803,10 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async deleteProjectEnvVar(projectId: string, key: string) {
-    // find-then-delete raced a concurrent delete into an unhandled P2025; read
-    // the row, then deleteMany (count-gated) so a lost race is "already gone".
+    /*
+     * find-then-delete raced a concurrent delete into an unhandled P2025; read
+     * the row, then deleteMany (count-gated) so a lost race is "already gone".
+     */
     const existing = await this.prisma.projectEnvVar.findUnique({ where: { projectId_key: { projectId, key } } });
 
     if (!existing) {
@@ -822,8 +843,10 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async deleteProjectSecret(projectId: string, key: string) {
-    // find-then-delete raced a concurrent delete into an unhandled P2025; use a
-    // count-gated deleteMany so a lost race is reported as "already gone".
+    /*
+     * find-then-delete raced a concurrent delete into an unhandled P2025; use a
+     * count-gated deleteMany so a lost race is reported as "already gone".
+     */
     const existing = await this.prisma.projectSecret.findUnique({ where: { projectId_key: { projectId, key } } });
 
     if (!existing) {
@@ -908,6 +931,7 @@ export class PrismaApiStore implements ApiStore {
     const records = (
       await this.prisma.projectActivity.findMany({
         where,
+
         /*
          * When searching we scan a capped window rather than the whole table.
          * Always take the MOST RECENT rows (desc) in that case so a search can
@@ -1103,6 +1127,7 @@ export class PrismaApiStore implements ApiStore {
           mode: input.mode ?? 'editing',
           terminalAccess: input.terminalAccess ?? false,
         },
+
         /*
          * Field-selective update: only overwrite fields the caller actually
          * provided. A routine presence heartbeat omits terminalAccess/cursor/
@@ -1575,10 +1600,13 @@ export class PrismaApiStore implements ApiStore {
       await this.prisma.deployment.findMany({
         where: { projectId },
         orderBy: { createdAt: 'desc' },
-        // Cap the most-recent deployments. The /deployments endpoint fans out a
-        // provider-status reconcile per row, so an unbounded list turned a
-        // pollable endpoint into an unbounded burst of outbound calls on a
-        // project with a long deploy history.
+
+        /*
+         * Cap the most-recent deployments. The /deployments endpoint fans out a
+         * provider-status reconcile per row, so an unbounded list turned a
+         * pollable endpoint into an unbounded burst of outbound calls on a
+         * project with a long deploy history.
+         */
         take: options.take ?? 100,
       })
     ).map(mapDeployment);
@@ -1738,9 +1766,11 @@ export class PrismaApiStore implements ApiStore {
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `system-setting:${key}`);
 
       const existing = await tx.systemSetting.findUnique({ where: { key } });
+
       const current = Array.isArray(existing?.value)
         ? (existing!.value as unknown[]).filter((item): item is string => typeof item === 'string')
         : [];
+
       const set = new Set(current);
 
       if (change.add) {
@@ -2338,6 +2368,7 @@ export class PrismaApiStore implements ApiStore {
         data: {
           status: input.status,
           revokedAt: input.revokedAt,
+
           /*
            * On revoke, destroy the stored credentials — leaving the encrypted
            * access/refresh tokens in the DB after the user revokes is needless
@@ -2692,10 +2723,13 @@ export class PrismaApiStore implements ApiStore {
       await this.prisma.usageEvent.findMany({
         where: { organizationId },
         orderBy: { createdAt: 'desc' },
-        // Bounded for display/billing callers; the GDPR export passes no cap so
-        // it still enumerates the full ledger. The usageEvent table is one of
-        // the fastest-growing — an unbounded fetch on the dashboard hot path
-        // loads the whole ledger just to show a count.
+
+        /*
+         * Bounded for display/billing callers; the GDPR export passes no cap so
+         * it still enumerates the full ledger. The usageEvent table is one of
+         * the fastest-growing — an unbounded fetch on the dashboard hot path
+         * loads the whole ledger just to show a count.
+         */
         ...(options.take !== undefined ? { take: options.take } : {}),
       })
     ).map(mapUsageEvent);
@@ -2768,8 +2802,10 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async deleteStripeEvent(id: string): Promise<void> {
-    // Used to roll back the dedup row when a webhook side effect fails, so
-    // Stripe's retry re-runs the side effects instead of being deduped away.
+    /*
+     * Used to roll back the dedup row when a webhook side effect fails, so
+     * Stripe's retry re-runs the side effects instead of being deduped away.
+     */
     await this.prisma.stripeEvent.deleteMany({ where: { id } });
   }
 
@@ -2964,8 +3000,10 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async updateSupportTicket(input: { ticketId: string; status: SupportTicketRecord['status']; response?: string }) {
-    // Serialize the read-modify-write of the metadata JSON blob so two concurrent
-    // updates to the same ticket can't clobber each other's merged keys.
+    /*
+     * Serialize the read-modify-write of the metadata JSON blob so two concurrent
+     * updates to the same ticket can't clobber each other's merged keys.
+     */
     return this.withSerializedMutation(`support-ticket:${input.ticketId}`, async () => {
       const existing = await this.prisma.supportTicket.findUnique({ where: { id: input.ticketId } });
 

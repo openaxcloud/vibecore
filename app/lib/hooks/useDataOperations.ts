@@ -616,6 +616,18 @@ export function useDataOperations({
               name: msg.name,
               function_call: msg.function_call,
               timestamp: msg.timestamp || Date.now(),
+
+              /*
+               * Preserve structured message data on import so an exported chat
+               * round-trips losslessly (tool calls, reasoning/parts, attachments).
+               */
+              ...(msg.annotations !== undefined ? { annotations: msg.annotations } : {}),
+              ...(msg.parts !== undefined ? { parts: msg.parts } : {}),
+              ...(msg.experimental_attachments !== undefined
+                ? { experimental_attachments: msg.experimental_attachments }
+                : {}),
+              ...(msg.toolInvocations !== undefined ? { toolInvocations: msg.toolInvocations } : {}),
+              ...(msg.createdAt !== undefined ? { createdAt: msg.createdAt } : {}),
             };
           });
 

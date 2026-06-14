@@ -39,6 +39,19 @@ export class ImportExportService {
           name: msg.name,
           function_call: msg.function_call,
           timestamp: msg.timestamp,
+
+          /*
+           * Preserve structured message data so export → import round-trips
+           * losslessly. Dropping these stripped tool calls, reasoning/parts and
+           * attachments from exported chats on re-import.
+           */
+          ...(msg.annotations !== undefined ? { annotations: msg.annotations } : {}),
+          ...(msg.parts !== undefined ? { parts: msg.parts } : {}),
+          ...(msg.experimental_attachments !== undefined
+            ? { experimental_attachments: msg.experimental_attachments }
+            : {}),
+          ...(msg.toolInvocations !== undefined ? { toolInvocations: msg.toolInvocations } : {}),
+          ...(msg.createdAt !== undefined ? { createdAt: msg.createdAt } : {}),
         })),
         timestamp: chat.timestamp,
         urlId: chat.urlId || null,
