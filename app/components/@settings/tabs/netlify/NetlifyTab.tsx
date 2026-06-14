@@ -904,14 +904,17 @@ export default function NetlifyTab() {
                             setActiveSiteIndex(index);
                           }}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="i-ph:cloud w-5 h-5 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
-                              <span className="font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <div className="i-ph:cloud w-5 h-5 shrink-0 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                              <span
+                                className="min-w-0 truncate font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
+                                title={site.name}
+                              >
                                 {site.name}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex shrink-0 items-center gap-2">
                               <Badge
                                 variant={site.published_deploy?.state === 'ready' ? 'default' : 'destructive'}
                                 className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"

@@ -16,14 +16,17 @@ export function RepositoryCard({ repo, onClone }: RepositoryCardProps) {
       className="group block p-4 rounded-lg bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor hover:border-bolt-elements-borderColorActive transition-all duration-200"
     >
       <div className="space-y-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <div className="i-ph:git-branch w-4 h-4 text-bolt-elements-icon-info" />
-            <h5 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-bolt-elements-item-contentAccent transition-colors">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="i-ph:git-branch w-4 h-4 shrink-0 text-bolt-elements-icon-info" />
+            <h5
+              className="min-w-0 truncate text-sm font-medium text-bolt-elements-textPrimary group-hover:text-bolt-elements-item-contentAccent transition-colors"
+              title={repo.name}
+            >
               {repo.name}
             </h5>
           </div>
-          <div className="flex items-center gap-3 text-xs text-bolt-elements-textSecondary">
+          <div className="flex shrink-0 items-center gap-3 text-xs text-bolt-elements-textSecondary">
             <span className="flex items-center gap-1" title="Stars">
               <div className="i-ph:star w-3.5 h-3.5 text-bolt-elements-icon-warning" />
               {repo.star_count.toLocaleString()}

@@ -290,13 +290,13 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
               <div className="relative z-10 flex flex-col h-full">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center space-x-4">
+                  <div className="flex min-w-0 items-center space-x-4">
                     {(activeTab || showTabManagement) && (
                       <button
                         type="button"
                         onClick={handleBack}
                         aria-label="Back"
-                        className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-colors duration-150"
+                        className="flex shrink-0 items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-colors duration-150"
                       >
                         <div
                           className="i-ph:arrow-left w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors"
@@ -304,7 +304,7 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
                         />
                       </button>
                     )}
-                    <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+                    <DialogTitle className="min-w-0 truncate text-xl font-semibold text-gray-900 dark:text-white">
                       {showTabManagement ? 'Tab Management' : activeTab ? TAB_LABELS[activeTab] : 'Control Panel'}
                     </DialogTitle>
                   </div>
