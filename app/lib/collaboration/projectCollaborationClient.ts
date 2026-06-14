@@ -65,6 +65,7 @@ export type ProjectCollaborationClientOptions = {
   ticketEndpoint?: string;
   minReconnectDelayMs?: number;
   maxReconnectDelayMs?: number;
+  connectTimeoutMs?: number;
 };
 
 type SnapshotListener = (snapshot: CollaborationSnapshot) => void;
@@ -154,12 +155,15 @@ export class ProjectCollaborationClient {
   #ticketEndpoint: string;
   #minReconnectDelayMs: number;
   #maxReconnectDelayMs: number;
+  #connectTimeoutMs: number;
   #socket?: CollaborationWebSocketLike;
   #stopped = true;
   #connecting = false;
   #reconnectTimer?: ReturnType<typeof setTimeout>;
+  #connectTimer?: ReturnType<typeof setTimeout>;
   #reconnectAttempts = 0;
   #pendingPresence?: Partial<CollaborationPresence>;
+  #pendingComments: Array<{ filePath?: string; line?: number; selection?: unknown; body: string }> = [];
   #snapshotListeners = new Set<SnapshotListener>();
   #eventListeners = new Set<EventListener>();
   #snapshot: CollaborationSnapshot;
@@ -176,6 +180,7 @@ export class ProjectCollaborationClient {
       )}`;
     this.#minReconnectDelayMs = options.minReconnectDelayMs ?? 750;
     this.#maxReconnectDelayMs = options.maxReconnectDelayMs ?? 10_000;
+    this.#connectTimeoutMs = options.connectTimeoutMs ?? 15_000;
     this.#snapshot = {
       status: 'idle',
       sessionId: this.sessionId,
@@ -218,6 +223,8 @@ export class ProjectCollaborationClient {
       this.#reconnectTimer = undefined;
     }
 
+    this.#clearConnectTimer();
+
     this.#socket?.close(1000, 'client closed');
     this.#socket = undefined;
     this.#setSnapshot({ status: 'closed' });
@@ -229,6 +236,18 @@ export class ProjectCollaborationClient {
   }
 
   createComment(input: { filePath?: string; line?: number; selection?: unknown; body: string }) {
+    /*
+     * Buffer the comment if the socket isn't OPEN (connecting/reconnecting):
+     * #send silently drops non-presence messages when not OPEN, so a comment
+     * authored during a reconnect blip was lost. Flushed on the next 'open'.
+     */
+    if (this.#socket?.readyState !== OPEN) {
+      this.#pendingComments.push(input);
+      this.#send({ type: 'comment.create', payload: input });
+
+      return;
+    }
+
     this.#send({ type: 'comment.create', payload: input });
   }
 
@@ -307,6 +326,30 @@ export class ProjectCollaborationClient {
 
       const socket = new this.#WebSocket(websocketUrl);
       this.#socket = socket;
+
+      /*
+       * Bound the handshake: if neither 'open' nor 'error'/'close' ever fires
+       * (hung proxy/LB), #connecting would stay true forever and #send would never
+       * schedule a reconnect — wedging the client. Force a teardown + retry.
+       */
+      this.#clearConnectTimer();
+      this.#connectTimer = setTimeout(() => {
+        if (this.#socket !== socket || this.#stopped) {
+          return;
+        }
+
+        this.#connecting = false;
+
+        try {
+          socket.close();
+        } catch {
+          // already closing
+        }
+
+        this.#setSnapshot({ status: 'error', error: 'Collaboration socket connect timed out' });
+        this.#scheduleReconnect();
+      }, this.#connectTimeoutMs);
+
       socket.addEventListener('open', () => {
         if (this.#socket !== socket) {
           return;
@@ -314,6 +357,7 @@ export class ProjectCollaborationClient {
 
         this.#connecting = false;
         this.#reconnectAttempts = 0;
+        this.#clearConnectTimer();
 
         /*
          * Cancel any reconnect timer that was scheduled before this socket came
@@ -328,6 +372,16 @@ export class ProjectCollaborationClient {
 
         if (this.#pendingPresence) {
           this.updatePresence(this.#pendingPresence);
+        }
+
+        // Flush comments authored while the socket was down.
+        if (this.#pendingComments.length > 0) {
+          const queued = this.#pendingComments;
+          this.#pendingComments = [];
+
+          for (const comment of queued) {
+            this.#send({ type: 'comment.create', payload: comment });
+          }
         }
       });
       socket.addEventListener('message', (event: { data: string }) => {
@@ -350,6 +404,7 @@ export class ProjectCollaborationClient {
         }
 
         this.#connecting = false;
+        this.#clearConnectTimer();
         this.#setSnapshot({ status: 'error', error: 'Collaboration socket error' });
 
         /*
@@ -366,6 +421,7 @@ export class ProjectCollaborationClient {
         }
 
         this.#connecting = false;
+        this.#clearConnectTimer();
 
         if (!this.#stopped) {
           this.#setSnapshot({ status: 'reconnecting' });
@@ -374,6 +430,7 @@ export class ProjectCollaborationClient {
       });
     } catch (error) {
       this.#connecting = false;
+      this.#clearConnectTimer();
       this.#setSnapshot({
         status: 'error',
         error: error instanceof Error ? error.message : 'Unable to connect collaboration socket',
@@ -396,6 +453,13 @@ export class ProjectCollaborationClient {
      */
     if (!this.#stopped && !this.#connecting) {
       this.#scheduleReconnect();
+    }
+  }
+
+  #clearConnectTimer() {
+    if (this.#connectTimer) {
+      clearTimeout(this.#connectTimer);
+      this.#connectTimer = undefined;
     }
   }
 
