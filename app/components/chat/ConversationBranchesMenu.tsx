@@ -182,7 +182,15 @@ export const ConversationBranchesMenu = memo(
           return;
         }
 
-        await rename(conversationId, trimmed);
+        try {
+          await rename(conversationId, trimmed);
+        } catch (error) {
+          /*
+           * Surface the failure: the rename was optimistic, so without this the
+           * user thinks it saved when it didn't.
+           */
+          toast.error(error instanceof Error ? `Could not rename branch: ${error.message}` : 'Could not rename branch');
+        }
       },
       [rename],
     );
@@ -195,8 +203,16 @@ export const ConversationBranchesMenu = memo(
           return;
         }
 
-        await remove(conversationId);
-        toast.success('Branch deleted');
+        try {
+          await remove(conversationId);
+          toast.success('Branch deleted');
+        } catch (error) {
+          toast.error(
+            error instanceof Error
+              ? `Could not delete branch — changes were not saved: ${error.message}`
+              : 'Could not delete branch — changes were not saved',
+          );
+        }
       },
       [remove],
     );

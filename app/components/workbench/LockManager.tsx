@@ -141,6 +141,13 @@ export function LockManager() {
 
     if (unlockedCount > 0) {
       toast.success(`Unlocked ${unlockedCount} selected item(s).`);
+
+      /*
+       * Optimistically drop the unlocked paths from the list immediately. The
+       * list otherwise only refreshes on the 5s poll, leaving just-unlocked items
+       * visibly (and confusingly) still "locked" for up to 5 seconds.
+       */
+      setLockedItems((prev) => prev.filter((item) => !selectedItems.has(item.path)));
       setSelectedItems(new Set()); // Clear selection after unlocking
     }
   };

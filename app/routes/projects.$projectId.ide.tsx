@@ -418,12 +418,19 @@ function IdeProjectTopBar({
                 onKeyDown={handleRenameKeyDown}
                 className="bolt-project-rename-input"
                 aria-label="Project name"
+                aria-invalid={renameError ? true : undefined}
+                aria-describedby={renameError ? 'project-rename-error' : undefined}
                 title={renameError || 'Edit project name. Press Enter to save or Escape to cancel.'}
                 disabled={renameSaving}
               />
               <button type="submit" className="bolt-project-rename-save" disabled={renameSaving || !renameValue.trim()}>
                 {renameSaving ? 'Saving' : 'Save'}
               </button>
+              {renameError ? (
+                <p id="project-rename-error" role="alert" className="bolt-project-rename-error">
+                  {renameError}
+                </p>
+              ) : null}
             </form>
           ) : (
             <div className="bolt-project-name-shell">
