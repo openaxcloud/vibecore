@@ -720,8 +720,9 @@ export const Preview = memo(
         }
 
         const currentSrc = iframe.src;
+        const target = iframeUrl ?? (currentSrc && currentSrc !== 'about:blank' ? currentSrc : undefined);
 
-        if (!currentSrc) {
+        if (!target) {
           void refreshPorts();
           return;
         }
@@ -729,14 +730,27 @@ export const Preview = memo(
         try {
           iframe.contentWindow?.location.reload();
         } catch {
-          iframe.src = currentSrc;
+          /*
+           * Cross-origin previews block contentWindow.location.reload(). A bare
+           * `iframe.src = currentSrc` does NOT force a fresh navigation when the
+           * frame is parked on a chrome-error page (e.g. it loaded a transient
+           * 502 while the dev server was still starting) — the browser keeps the
+           * error. Bounce through about:blank so the next assignment is always a
+           * new navigation that picks up the now-healthy server.
+           */
+          iframe.src = 'about:blank';
+          window.setTimeout(() => {
+            if (iframeRef.current) {
+              iframeRef.current.src = target;
+            }
+          }, 50);
         }
 
         setPreviewNetworkEvents((events) =>
           [
             {
               method: 'GET',
-              url: currentSrc,
+              url: target,
               status: 'reloaded',
               source: reason,
             },
@@ -744,7 +758,7 @@ export const Preview = memo(
           ].slice(0, 80),
         );
       },
-      [refreshPorts],
+      [refreshPorts, iframeUrl],
     );
 
     useEffect(() => {
@@ -769,6 +783,27 @@ export const Preview = memo(
         }
       };
     }, [reloadPreview]);
+
+    /*
+     * Auto-reload when the dev server's port transitions not-ready → ready. The
+     * iframe is pointed at the preview URL as soon as a port is detected, so it
+     * frequently loads the upstream "dev server is starting / 502" page (or a
+     * transient error frame) before the server is actually serving. Without this
+     * the frame stays frozen on that error even after the server is healthy and
+     * the user must manually refresh. Watch activePreview.ready (mutated in place
+     * by the port watcher; activePreview?.ready in deps catches the flip) and
+     * reload once on the false → true edge.
+     */
+    const wasPreviewReadyRef = useRef<boolean | undefined>(undefined);
+    useEffect(() => {
+      const ready = activePreview?.ready;
+      const wasReady = wasPreviewReadyRef.current;
+      wasPreviewReadyRef.current = ready;
+
+      if (activePreview && ready === true && wasReady === false) {
+        reloadPreview('runtime:ready');
+      }
+    }, [activePreview, activePreview?.ready, reloadPreview]);
 
     const startPreviewServer = useCallback(async () => {
       setIsStartingPreview(true);
