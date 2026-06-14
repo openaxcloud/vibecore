@@ -168,6 +168,7 @@ chmod 600 "$TMP"
 declare -A MAP=(
   [ANTHROPIC_API_KEY]=vibecore-prod-anthropic-api-key
   [PREVIEW_PROXY_SHARED_SECRET]=vibecore-prod-preview-proxy-shared-secret
+  [WORKSPACE_MANAGER_SHARED_SECRET]=vibecore-prod-workspace-manager-shared-secret
   [REDIS_URL]=vibecore-prod-redis-url
   [STRIPE_FREE_PRODUCT_ID]=vibecore-prod-stripe-free-product-id
   [STRIPE_FREE_PRICE_ID]=vibecore-prod-stripe-free-price-id

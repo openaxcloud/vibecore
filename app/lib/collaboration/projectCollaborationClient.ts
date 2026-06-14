@@ -243,6 +243,15 @@ export class ProjectCollaborationClient {
      */
     if (this.#socket?.readyState !== OPEN) {
       this.#pendingComments.push(input);
+
+      /*
+       * Bound the buffer: a long outage shouldn't let it grow without limit.
+       * Keep the most recent ones (drop the oldest) if it overflows.
+       */
+      if (this.#pendingComments.length > 100) {
+        this.#pendingComments.splice(0, this.#pendingComments.length - 100);
+      }
+
       this.#send({ type: 'comment.create', payload: input });
 
       return;

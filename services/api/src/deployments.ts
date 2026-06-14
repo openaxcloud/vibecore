@@ -954,6 +954,13 @@ async function runProcess({
           sink(buffer);
         }
       });
+
+      /*
+       * Guard the pipe: an 'error' on stdout/stderr with no listener becomes an
+       * uncaughtException that crashes the api process. The child 'error'/'close'
+       * handlers below don't cover stream-level errors.
+       */
+      stream.on('error', () => {});
     };
 
     bind(child.stdout, onStdout);

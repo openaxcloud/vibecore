@@ -144,8 +144,16 @@ async function supabaseUserAction({ request }: { request: Request }) {
         return json({ error: 'Project ID is required' }, { status: 400 });
       }
 
+      /*
+       * Validate the project ref before interpolating it into the upstream URL
+       * (Supabase refs are alphanumeric) to prevent path injection.
+       */
+      if (typeof projectId !== 'string' || !/^[a-zA-Z0-9]{1,40}$/.test(projectId)) {
+        return json({ error: 'Invalid project ID' }, { status: 400 });
+      }
+
       // Fetch project API keys
-      const response = await fetch(`https://api.supabase.com/v1/projects/${projectId}/api-keys`, {
+      const response = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(projectId)}/api-keys`, {
         signal: AbortSignal.timeout(15000),
         headers: {
           Authorization: `Bearer ${supabaseToken}`,

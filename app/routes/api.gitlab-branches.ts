@@ -92,8 +92,11 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
 
     const branches: GitLabBranch[] = await response.json();
 
-    // Also fetch project info to get default branch name
-    const projectUrl = `${gitlabUrl}/api/v4/projects/${projectId}`;
+    /*
+     * Also fetch project info to get default branch name (projectId already
+     * validated above; encode it here too for the same path-injection guard).
+     */
+    const projectUrl = `${gitlabUrl}/api/v4/projects/${encodeURIComponent(projectId)}`;
 
     const projectResponse = await safeGitForgeFetch(projectUrl, {
       headers: {
