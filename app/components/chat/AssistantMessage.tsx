@@ -13,6 +13,7 @@ import { toast } from 'react-toastify';
 import { Markdown } from './Markdown';
 import { MessagePatchReview } from './MessagePatchReview';
 import { PlanChecklistView } from './PlanChecklist';
+import ThoughtBox from './ThoughtBox';
 import { ToolInvocations } from './ToolInvocations';
 import { ConnectionFailedNote } from './connector-cards/ConnectionFailedNote';
 import { ConnectionRequestCard } from './connector-cards/ConnectionRequestCard';
@@ -144,6 +145,32 @@ export const AssistantMessage = memo(
       : [];
 
     const toolInvocations = parts?.filter((part) => part.type === 'tool-invocation');
+
+    /*
+     * AI-SDK reasoning parts (extended thinking from reasoning-capable models)
+     * were parsed but never rendered — only the legacy `__boltThought__` HTML
+     * path showed thoughts. Surface them as collapsible "Reasoning" boxes so the
+     * agent's thinking is visible (Replit/Cursor parity). `reasoning` is the
+     * primary field; fall back to joining the structured `details` text parts.
+     */
+    const reasoningParts = (parts?.filter((part) => part.type === 'reasoning') ?? []) as ReasoningUIPart[];
+
+    const reasoningTexts = reasoningParts
+      .map((part) => {
+        if (typeof part.reasoning === 'string' && part.reasoning.trim()) {
+          return part.reasoning;
+        }
+
+        const details = (part as { details?: Array<{ type?: string; text?: string }> }).details;
+
+        return Array.isArray(details)
+          ? details
+              .map((d) => (d?.type === 'text' && typeof d.text === 'string' ? d.text : ''))
+              .join('')
+              .trim()
+          : '';
+      })
+      .filter((text) => text.length > 0);
 
     const toolCallAnnotations = filteredAnnotations.filter(
       (annotation) => annotation.type === 'toolCall',
@@ -462,6 +489,17 @@ export const AssistantMessage = memo(
                 {Math.round(agentExecution.consensus.agreementScore * 100)}% agreement
               </div>
             )}
+          </div>
+        )}
+        {reasoningTexts.length > 0 && (
+          <div className="bolt-assistant-reasoning my-2 space-y-2">
+            {reasoningTexts.map((text, i) => (
+              <ThoughtBox key={`reasoning-${i}`} title="Reasoning">
+                <div className="whitespace-pre-wrap text-sm leading-relaxed text-bolt-elements-textSecondary">
+                  {text}
+                </div>
+              </ThoughtBox>
+            ))}
           </div>
         )}
         {(() => {
