@@ -1662,7 +1662,9 @@ body
 
 .bolt-file-mentions-item {
   display: grid;
-  grid-template-columns: 18px 1fr auto;
+  /* icon | basename (sized to content) | path (flexible + shrinkable so its
+     ellipsis actually fires; an `auto` path track never shrinks below content). */
+  grid-template-columns: 18px auto minmax(0, 1fr);
   gap: 8px;
   align-items: center;
   padding: 6px 8px;
@@ -22536,7 +22538,10 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 @media (max-width: 640px) {
-  .vc-public-actions > a:first-child {
+  /* Hide the "Log in" link on mobile. `> a:first-child` failed when a
+     non-anchor (e.g. a theme toggle) is the first child; target the first
+     anchor regardless of sibling element types. */
+  .vc-public-actions a:first-of-type {
     display: none;
   }
 

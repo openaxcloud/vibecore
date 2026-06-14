@@ -418,7 +418,7 @@ export function SelectionDialog({
                   width="100%"
                   itemCount={items.length}
                   itemSize={60}
-                  className="scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-bolt-elements-bg-depth-3"
+                  className="scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-bolt-elements-background-depth-3"
                 >
                   {ItemRenderer}
                 </FixedSizeList>

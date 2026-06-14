@@ -278,7 +278,7 @@ const CloudProvidersTab = () => {
                       </div>
 
                       {providerBaseUrlEnvKeys[provider.name]?.baseUrlKey && (
-                        <div className="mt-2 text-xs text-green-500">
+                        <div className="mt-2 text-xs text-green-600 dark:text-green-400">
                           <div className="flex items-center gap-1">
                             <div className="i-ph:info" />
                             <span>Environment URL set in .env file</span>
