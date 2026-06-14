@@ -152,7 +152,10 @@ const FileModifiedDropdown = memo(
                 leaveFrom="transform scale-100 opacity-100"
                 leaveTo="transform scale-95 opacity-0"
               >
-                <Popover.Panel className="absolute right-0 z-20 mt-2 w-[min(20rem,calc(100vw-24px))] max-h-[min(70dvh,420px)] origin-top-right overflow-hidden rounded-xl bg-bolt-elements-background-depth-2 shadow-xl border border-bolt-elements-borderColor">
+                <Popover.Panel
+                  anchor={{ to: 'bottom end', gap: 8 }}
+                  className="z-[60] w-[min(20rem,calc(100vw-24px))] max-h-[min(70dvh,420px)] origin-top-right overflow-hidden rounded-xl bg-bolt-elements-background-depth-2 shadow-xl border border-bolt-elements-borderColor"
+                >
                   <div className="p-2">
                     <div className="relative mx-2 mb-2">
                       <input
