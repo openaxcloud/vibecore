@@ -245,9 +245,7 @@ export const EditorPanel = memo(
             />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-bolt-elements-textSecondary">
-              {editorDocument?.isBinary
-                ? 'Binary file preview is not available in the mobile editor.'
-                : 'No file selected.'}
+              {editorDocument?.isBinary ? 'Binary files can’t be previewed in the editor.' : 'No file selected.'}
             </div>
           )}
         </div>

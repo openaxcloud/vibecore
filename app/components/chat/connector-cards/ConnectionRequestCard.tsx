@@ -241,7 +241,11 @@ export function ConnectionRequestCard({ payload, projectId, onResolved, onFailed
             </Button>
           </div>
 
-          {networkError ? <p className="mt-2 text-xs text-bolt-elements-icon-error">{networkError}</p> : null}
+          {networkError ? (
+            <p role="alert" className="mt-2 text-xs text-bolt-elements-icon-error">
+              {networkError}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

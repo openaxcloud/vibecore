@@ -115,7 +115,11 @@ export function SecretRequestCard({ payload, projectId, onProvided }: SecretRequ
         ) : null}
       </div>
 
-      {error ? <p className="mt-2 text-xs text-bolt-elements-icon-error">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="mt-2 text-xs text-bolt-elements-icon-error">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
