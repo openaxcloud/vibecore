@@ -109,6 +109,11 @@ platformEnv:
     # In-cluster ai-gateway service (port 3030). Required: without it the api
     # defaults to localhost and every AI chat completion 500s.
     aiGatewayUrl: 'http://vibecore-vibecore-platform-ai-gateway.vibecore.svc:3030'
+    # Enable multi-agent orchestration (parallel specialist sub-agents +
+    # consensus) for build-mode chat. The engine, persistence and results UI
+    # already exist; this activates them in prod. Reuses the ai-gateway URL +
+    # AI_GATEWAY_SHARED_SECRET, so no extra secret/operator action is needed.
+    parallelSubagentsEnabled: true
     workspaceRuntimeNamespace: 'workspaces'
     workspaceStorageClass: 'workspace-standard-rwo'
     workspaceAgentImage: 'europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/workspace-agent:sha-7704c1dd6b'

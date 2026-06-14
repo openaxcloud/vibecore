@@ -256,7 +256,19 @@ export function getSubagentExecutorUrl(env?: AgentOrchestrationEnv): string | un
 }
 
 export function getSubagentExecutorToken(env?: AgentOrchestrationEnv): string | undefined {
-  return env?.ECODE_SUBAGENT_EXECUTOR_TOKEN ?? readRuntimeEnv('ECODE_SUBAGENT_EXECUTOR_TOKEN');
+  /*
+   * Fall back to AI_GATEWAY_SHARED_SECRET (the chart-owned secret already on
+   * every pod, used to authenticate /chat/completions) so parallel sub-agents
+   * can be enabled with just a flag + URL — no dedicated executor token / Secret
+   * Manager entry required. The ai-gateway applies the same fallback for the
+   * expected token, so both sides agree.
+   */
+  return (
+    env?.ECODE_SUBAGENT_EXECUTOR_TOKEN ??
+    readRuntimeEnv('ECODE_SUBAGENT_EXECUTOR_TOKEN') ??
+    env?.AI_GATEWAY_SHARED_SECRET ??
+    readRuntimeEnv('AI_GATEWAY_SHARED_SECRET')
+  );
 }
 
 function isAgentExecutionResponse(value: unknown): value is AgentExecutionResponse {

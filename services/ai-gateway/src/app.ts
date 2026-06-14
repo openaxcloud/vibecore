@@ -193,7 +193,15 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
     if (
       !authorizeAgentRun({
         authorizationHeader: request.headers.authorization,
-        expectedToken: env.ECODE_SUBAGENT_EXECUTOR_TOKEN,
+        /*
+         * Fall back to the chart-owned AI_GATEWAY_SHARED_SECRET (already
+         * provisioned to every pod and used for /chat/completions auth) when no
+         * dedicated executor token is configured. This lets parallel sub-agents
+         * be enabled with only a flag + URL — no new Secret Manager entry /
+         * operator action — while staying fail-closed (both still unset → 401 in
+         * prod via allowInsecure:false).
+         */
+        expectedToken: env.ECODE_SUBAGENT_EXECUTOR_TOKEN || env.AI_GATEWAY_SHARED_SECRET,
         // Only fail-open with no token outside production (local dev/test convenience).
         allowInsecure: (env.NODE_ENV ?? 'production') !== 'production',
       })

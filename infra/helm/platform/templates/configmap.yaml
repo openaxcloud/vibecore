@@ -70,6 +70,16 @@ data:
   # default), which does not exist in-pod, so every AI completion fails. The
   # ai-gateway binds 3030 (services/ai-gateway/src/server.ts).
   AI_GATEWAY_URL: {{ .Values.platformEnv.runtime.aiGatewayUrl | quote }}
+  {{- if .Values.platformEnv.runtime.parallelSubagentsEnabled }}
+  # Multi-agent orchestration: the web pod's build-mode chat fans a complex
+  # request out to specialist sub-agents (architect/frontend/backend/devops/qa)
+  # running in parallel on the ai-gateway, then runs consensus over their
+  # outputs. Reuses the ai-gateway service URL; the executor reuses
+  # AI_GATEWAY_SHARED_SECRET as its bearer (see getSubagentExecutorToken / the
+  # /v1/agent-runs expectedToken fallback), so no extra secret is required.
+  ECODE_PARALLEL_SUBAGENTS_ENABLED: "1"
+  ECODE_SUBAGENT_EXECUTOR_URL: {{ .Values.platformEnv.runtime.aiGatewayUrl | quote }}
+  {{- end }}
   {{- end }}
   WORKSPACE_RUNTIME_NAMESPACE: {{ .Values.platformEnv.runtime.workspaceRuntimeNamespace | quote }}
   WORKSPACE_STORAGE_CLASS: {{ .Values.platformEnv.runtime.workspaceStorageClass | quote }}
