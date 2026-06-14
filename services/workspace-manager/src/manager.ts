@@ -256,6 +256,20 @@ export class WorkspaceManager {
       await this.k8s.apply(workspacePod(runtimeInput));
       await this.k8s.apply(workspaceService(runtimeInput));
       await this.waitForReadiness(input.namespace, record.podName);
+
+      /*
+       * Pod-Ready is necessary but NOT sufficient: the manager, api and
+       * preview-proxy all reach the agent via the Service DNS the manager hands
+       * out (workspace-<id>.<ns>.svc:8080), and the Service Endpoints can lag a
+       * second or two before they route to the freshly (re)created pod IP. If we
+       * mark RUNNING the instant the pod is Ready, the client starts seeding and
+       * its first agent calls hit that window → connection refused → 502, which
+       * the IDE surfaces as a permanent "Crashed runtime". Confirm the agent
+       * actually answers THROUGH the Service before committing RUNNING so clients
+       * only ever see a workspace whose agent is routable.
+       */
+      await this.waitForAgentReachable(input.workspaceId, input.namespace);
+
       const running = await this.store.update(input.workspaceId, {
         status: 'RUNNING',
         lastActiveAt: new Date().toISOString(),
@@ -590,6 +604,70 @@ export class WorkspaceManager {
     }
 
     throw new Error(`Pod ${podName} was not ready before timeout`);
+  }
+
+  /*
+   * Agent health URL via the Service DNS — the SAME address the api/preview-proxy
+   * resolve (kept in sync with app.ts agentBaseUrl, including the optional
+   * WORKSPACE_AGENT_URL_TEMPLATE override) so this gate exercises the real client
+   * path, not pod-local networking.
+   */
+  private agentHealthUrl(workspaceId: string, namespace: string): string {
+    const template = process.env.WORKSPACE_AGENT_URL_TEMPLATE;
+    const base = template
+      ? template.replaceAll('{workspaceId}', workspaceId).replaceAll('{namespace}', namespace).replace(/\/+$/, '')
+      : `http://workspace-${workspaceId}.${namespace}.svc.cluster.local:8080`;
+
+    return `${base}/health`;
+  }
+
+  /*
+   * Poll the agent's /health THROUGH the Service until it answers, so RUNNING is
+   * only reported once the Endpoints route to the ready pod. Soft-bounded: the
+   * pod is already Ready, so if the Service is still not routable after the
+   * window we log and proceed rather than tear down a healthy pod over a
+   * transient Endpoints lag — the client's start-poll covers any residual gap.
+   */
+  private async waitForAgentReachable(workspaceId: string, namespace: string) {
+    const parsed = Number(process.env.WORKSPACE_AGENT_REACHABLE_TIMEOUT_MS);
+
+    // An explicit 0/negative disables the probe entirely (unit tests, where there
+    // is no real agent Service to reach).
+    if (Number.isFinite(parsed) && parsed <= 0) {
+      return;
+    }
+
+    const url = this.agentHealthUrl(workspaceId, namespace);
+    const timeoutMs = Number.isFinite(parsed) && parsed > 0 ? parsed : 20_000;
+    const deadline = Date.now() + timeoutMs;
+    let lastError: unknown;
+
+    while (Date.now() < deadline) {
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(3_000) });
+
+        if (res.ok) {
+          return;
+        }
+
+        lastError = new Error(`agent health responded ${res.status}`);
+      } catch (error) {
+        lastError = error;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 750));
+    }
+
+    console.warn(
+      JSON.stringify({
+        level: 'warn',
+        service: 'workspace-manager',
+        event: 'workspace.agent.unreachable_at_start',
+        workspaceId,
+        namespace,
+        error: lastError instanceof Error ? lastError.message : String(lastError),
+      }),
+    );
   }
 
   private async requireWorkspace(workspaceId: string) {
