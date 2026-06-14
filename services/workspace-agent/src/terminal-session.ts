@@ -469,6 +469,17 @@ export class TerminalSessionManager {
       attach: (listener) => {
         internal.listeners.add(listener);
 
+        /*
+         * A viewer (re)attached — cancel any pending dispose armed when the last
+         * viewer left (or by a concurrent getOrCreate). Without this the grace-window
+         * timer keeps running and disposes the shell out from under an actively
+         * attached client.
+         */
+        if (internal.disposeTimer) {
+          clearTimeout(internal.disposeTimer);
+          internal.disposeTimer = undefined;
+        }
+
         return () => {
           internal.listeners.delete(listener);
 

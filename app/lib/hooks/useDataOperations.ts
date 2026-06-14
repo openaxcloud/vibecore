@@ -2,6 +2,7 @@ import { generateId } from 'ai';
 import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { useIndexedDB } from '~/lib/hooks/useIndexedDB';
+import { getAllChats } from '~/lib/persistence/chats';
 import { ImportExportService } from '~/lib/services/importExportService';
 
 interface UseDataOperationsProps {
@@ -631,8 +632,13 @@ export function useDataOperations({
         // Step 4: Save current chats for potential undo
         showProgress('Preparing database transaction', 70);
 
-        const currentChats = await ImportExportService.exportAllChats(db);
-        setLastOperation({ type: 'import-chats', data: { previous: currentChats } });
+        /*
+         * Snapshot FULL chat records for a lossless undo. exportAllChats keeps
+         * only a handful of message fields, so undoing the import would strip
+         * annotations/parts/attachments from the user's pre-existing chats.
+         */
+        const previousChats = await getAllChats(db);
+        setLastOperation({ type: 'import-chats', data: { previous: { chats: previousChats } } });
 
         // Step 5: Import chats
         showProgress(`Importing ${validatedChats.length} chats`, 80);
@@ -911,8 +917,9 @@ export function useDataOperations({
       // Step 1: Save current chats for potential undo
       showProgress('Backing up current chats', 25);
 
-      const currentChats = await ImportExportService.exportAllChats(db);
-      setLastOperation({ type: 'reset-chats', data: { previous: currentChats } });
+      // Lossless undo snapshot (full records) — see import-chats above.
+      const previousChats = await getAllChats(db);
+      setLastOperation({ type: 'reset-chats', data: { previous: { chats: previousChats } } });
 
       // Step 2: Delete chats
       showProgress('Deleting chats from database', 50);
