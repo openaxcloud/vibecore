@@ -34,6 +34,7 @@ export function ProjectWorkspaceProvider({
     let cancelled = false;
     let stopLogs: (() => void) | undefined;
     let activeWorkspaceId: string | undefined;
+    let heartbeat: ReturnType<typeof setInterval> | undefined;
 
     async function startWorkspace() {
       workbenchStore.configureRuntime(runtime);
@@ -145,6 +146,25 @@ export function ProjectWorkspaceProvider({
         if ('watchLogs' in runtime && typeof runtime.watchLogs === 'function') {
           stopLogs = await runtime.watchLogs((event: CommandEvent) => workbenchStore.appendWorkspaceLog(event));
         }
+
+        /*
+         * Keepalive heartbeat. While this project is open, ping the workspace
+         * every 60s so the inactivity GC (RUNNING→STOPPED after ~30min idle)
+         * doesn't reap the pod out from under a user who is reading code or
+         * watching build output without generating file/preview traffic — the
+         * only other things that bump lastActiveAt. Remote runtime only (no
+         * manager workspace exists in webcontainer mode); the server throttles
+         * the underlying write to once / 30s; fire-and-forget.
+         */
+        if (getRuntimeMode() === 'remote-kubernetes' && activeWorkspaceId) {
+          const heartbeatWorkspaceId = activeWorkspaceId;
+          heartbeat = setInterval(() => {
+            void fetch(`/api/runtime/workspaces/${encodeURIComponent(heartbeatWorkspaceId)}/touch`, {
+              method: 'POST',
+              credentials: 'include',
+            }).catch(() => undefined);
+          }, 60_000);
+        }
       } catch (error) {
         if (cancelled) {
           return;
@@ -185,6 +205,11 @@ export function ProjectWorkspaceProvider({
     return () => {
       cancelled = true;
       stopLogs?.();
+
+      if (heartbeat) {
+        clearInterval(heartbeat);
+      }
+
       void workbenchStore.stopPreviewServer().catch(() => undefined);
 
       /*

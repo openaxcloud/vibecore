@@ -10085,6 +10085,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return runtimeSession(authorized.workspaceId, managerStatus, { managerWorkspace });
   });
+
+  /*
+   * Keepalive heartbeat. The IDE calls this periodically while a project is open
+   * so the inactivity GC (RUNNING→STOPPED after ~30min of no activity) does not
+   * reap a workspace out from under a user who is reading code / watching build
+   * output without triggering file/preview traffic. lastActiveAt is otherwise
+   * only bumped on agent-token mint or preview traffic, which can both go quiet
+   * for an open-but-idle session. The manager throttles the underlying write to
+   * once per 30s, so a frequent heartbeat is cheap. Fire-and-forget semantics:
+   * a missing/already-reclaimed workspace or a transient manager hiccup must not
+   * surface as a client error.
+   */
+  app.post('/api/runtime/workspaces/:workspaceId/touch', async (request, reply) => {
+    const { workspaceId } = parse(workspaceParams, request.params);
+    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
+    try {
+      await managerRequest(`/workspaces/${authorized.workspaceId}/touch`, { method: 'POST' });
+    } catch (error) {
+      if (!isRuntimeWorkspaceGone(error) && !isRuntimeManagerUnavailable(error)) {
+        throw error;
+      }
+    }
+
+    return reply.code(204).send();
+  });
   app.get('/api/runtime/workspaces/:workspaceId/files', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const { path = '.' } = parse(z.object({ path: z.string().default('.') }), request.query);
