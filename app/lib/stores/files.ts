@@ -1078,10 +1078,11 @@ export class FilesStore {
 
       /*
        * #size tracks file count (folders excluded, matching the loader). Increment
-       * only when this is a genuinely new file, so the count doesn't drift low
-       * (createFile previously never updated it).
+       * whenever the path wasn't ALREADY a file — i.e. brand-new, or a folder entry
+       * being overwritten by a file. Keying on mere existence under-counted when a
+       * folder previously occupied the path.
        */
-      const existedBefore = Boolean(this.files.get()[filePath]);
+      const wasFileBefore = this.files.get()[filePath]?.type === 'file';
 
       const isBinary = content instanceof Uint8Array;
 
@@ -1110,7 +1111,7 @@ export class FilesStore {
         this.#modifiedFiles.set(filePath, content as string);
       }
 
-      if (!existedBefore) {
+      if (!wasFileBefore) {
         this.#size++;
       }
 
@@ -1175,10 +1176,20 @@ export class FilesStore {
 
       await this.#runtime.deleteFile(relativePath);
 
+      /*
+       * #size counts FILES only (folders are excluded). Decrement only when the
+       * removed entry was actually a tracked file — decrementing for a folder (or
+       * a path not present in the map) corrupts filesCount.
+       */
+      const removed = this.files.get()[filePath];
+
       this.#deletedPaths.add(filePath);
 
       this.files.setKey(filePath, undefined);
-      this.#size--;
+
+      if (removed?.type === 'file') {
+        this.#size--;
+      }
 
       if (this.#modifiedFiles.has(filePath)) {
         this.#modifiedFiles.delete(filePath);

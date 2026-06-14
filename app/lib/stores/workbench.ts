@@ -2514,10 +2514,15 @@ export class WorkbenchStore {
       return;
     }
 
-    this.#snapshottedArtifacts.add(data.artifactId);
-
     try {
       await this.#runtime.createSnapshot(`Before AI changes ${data.artifactId}`);
+
+      /*
+       * Mark as snapshotted only AFTER success. Setting the dedup marker first
+       * meant a transient createSnapshot failure (exactly when a safety snapshot
+       * matters) permanently suppressed the retry for this artifact.
+       */
+      this.#snapshottedArtifacts.add(data.artifactId);
     } catch (error) {
       console.warn('Failed to create automatic pre-AI snapshot:', error);
     }
