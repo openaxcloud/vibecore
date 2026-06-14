@@ -17045,7 +17045,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
 
     const { subscription } = await billingState(project.organizationId);
-    assertDeploymentRequestAllowed(body, subscription?.planKey ?? 'free');
+
+    /*
+     * Status-gate the plan: a CANCELED/UNPAID subscription still carries its
+     * planKey, so gating on the raw key let a lapsed org keep paid deploy
+     * features. Only entitled statuses grant the plan (mirrors the runtime
+     * entitlement check elsewhere).
+     */
+    const deployPlanKey =
+      subscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status) ? subscription.planKey : 'free';
+    assertDeploymentRequestAllowed(body, deployPlanKey);
 
     /*
      * Reject non-static providers that have no deploy hook / credentials wired
@@ -17367,6 +17376,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * only (e.g. docker) deploy could keep redeploying it for free.
      */
     const { subscription: redeploySubscription } = await billingState(project.organizationId);
+    const redeployPlanKey =
+      redeploySubscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(redeploySubscription.status)
+        ? redeploySubscription.planKey
+        : 'free';
     assertDeploymentRequestAllowed(
       {
         provider: sourceProvider,
@@ -17374,7 +17387,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         outputDirectory: source.outputDirectory ?? 'dist',
         environment: source.environment,
       } as never,
-      redeploySubscription?.planKey ?? 'free',
+      redeployPlanKey,
     );
 
     /*

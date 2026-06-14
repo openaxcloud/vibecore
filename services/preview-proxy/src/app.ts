@@ -179,6 +179,15 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         ...({ duplex: 'half' } as Record<string, unknown>),
       });
 
+      /*
+       * The timeout bounds connection+headers only. Once the upstream response
+       * headers have arrived the connection succeeded, so clear it — otherwise it
+       * aborts long-lived/large streamed bodies (SSE, big downloads, slow clients)
+       * at 30s mid-transfer. The streamed-body paths below already bound their own
+       * lifecycle via stream end/close/error.
+       */
+      clearTimeout(timeout);
+
       reply.status(upstreamResponse.status);
 
       const contentType = upstreamResponse.headers.get('content-type') ?? '';

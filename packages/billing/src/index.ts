@@ -2,6 +2,14 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export * from './ai-pricing.js';
 
+/*
+ * Pinned Stripe API version. Sent on every request so the request/webhook
+ * payload shape is governed by this version (not the Stripe account's mutable
+ * dashboard default). The webhook handler reads top-level current_period_* /
+ * subscription fields, which later API versions relocate under items.data[].
+ */
+const STRIPE_API_VERSION = '2024-06-20';
+
 export type PlanKey = 'free' | 'pro' | 'team' | 'enterprise';
 
 export type QuotaKey =
@@ -341,6 +349,10 @@ export class StripeBillingClient {
       headers: {
         authorization: `Bearer ${this.input.apiKey}`,
         'content-type': 'application/x-www-form-urlencoded',
+        // Pin the API version so payload/webhook shape doesn't drift with the
+        // account's dashboard default (the webhook reads top-level
+        // current_period_* / subscription fields that newer versions relocate).
+        'stripe-version': STRIPE_API_VERSION,
       },
       body: new URLSearchParams(fields),
       signal: AbortSignal.timeout(20_000),
@@ -362,6 +374,7 @@ export class StripeBillingClient {
     const response = await fetch(`${this.input.baseUrl ?? 'https://api.stripe.com'}${path}`, {
       headers: {
         authorization: `Bearer ${this.input.apiKey}`,
+        'stripe-version': STRIPE_API_VERSION,
       },
       signal: AbortSignal.timeout(20_000),
     });
