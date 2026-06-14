@@ -137,7 +137,27 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
             break;
           }
 
-          reply.raw.write(`data: ${JSON.stringify(result.value)}\n\n`);
+          const flushed = reply.raw.write(`data: ${JSON.stringify(result.value)}\n\n`);
+
+          /*
+           * Respect backpressure: when the socket buffer is full write() returns
+           * false. Without waiting for 'drain', a fast provider + slow client
+           * buffers the entire stream in the pod's memory. Wait for drain (or a
+           * disconnect) before pulling the next delta.
+           */
+          if (!flushed) {
+            await new Promise<void>((resolve) => {
+              const finish = () => {
+                reply.raw.off('drain', finish);
+                reply.raw.off('close', finish);
+                resolve();
+              };
+
+              reply.raw.once('drain', finish);
+              reply.raw.once('close', finish);
+            });
+          }
+
           result = await iterator.next();
         }
       } finally {
