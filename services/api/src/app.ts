@@ -4198,6 +4198,44 @@ async function resolveGitWorkspaceId(
   return primary?.id === target.id ? undefined : target.id;
 }
 
+/*
+ * Find an in-flight (QUEUED/BUILDING) deployment that would build from the SAME
+ * on-disk CWD as `normalizedWorkspaceId`. The build CWD is keyed on the NORMALIZED
+ * workspace id (resolveGitWorkspaceId collapses the project's primary workspace —
+ * whether addressed by undefined or by its real id — to undefined), so the
+ * in-flight guard must compare normalized ids too. Comparing raw ids let a build
+ * for `undefined` and one for the primary's real id both pass and then clobber the
+ * shared project-root checkout.
+ */
+async function findInFlightDeploymentForCwd(
+  store: ApiStore,
+  projectId: string,
+  normalizedWorkspaceId: string | undefined,
+) {
+  const deployments = await store.listDeployments(projectId);
+
+  for (const deployment of deployments) {
+    if (deployment.status !== 'QUEUED' && deployment.status !== 'BUILDING') {
+      continue;
+    }
+
+    let deploymentCwdId: string | undefined;
+
+    try {
+      deploymentCwdId = await resolveGitWorkspaceId(store, projectId, deployment.workspaceId ?? undefined);
+    } catch {
+      // Workspace deleted since this deployment queued — it can't share our CWD.
+      continue;
+    }
+
+    if (deploymentCwdId === normalizedWorkspaceId) {
+      return deployment;
+    }
+  }
+
+  return undefined;
+}
+
 async function commitInitialScaffold(gitProvider: GitProvider, projectId: string) {
   const status = await gitProvider.status(projectId);
 
@@ -16973,11 +17011,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const createResult = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
       await ensureQuota(request, project.organizationId, 'deployments.count');
 
-      const inFlight = (await store.listDeployments(project.id)).find(
-        (deployment) =>
-          (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') &&
-          (deployment.workspaceId ?? undefined) === persistedWorkspaceId,
-      );
+      const inFlight = await findInFlightDeploymentForCwd(store, project.id, secondaryWorkspaceId);
 
       if (inFlight) {
         return { conflict: true as const, deploymentId: inFlight.id };
@@ -17275,8 +17309,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       redeploySubscription?.planKey ?? 'free',
     );
 
-    const redeployPersistedWorkspaceId = source.workspaceId ?? undefined;
-
     /*
      * Resolve the source workspace BEFORE creating the QUEUED row. resolveGitWorkspaceId
      * throws WORKSPACE_NOT_FOUND when the source workspace was deleted; doing it
@@ -17294,11 +17326,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const redeployResult = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
       await ensureQuota(request, project.organizationId, 'deployments.count');
 
-      const inFlight = (await store.listDeployments(project.id)).find(
-        (deployment) =>
-          (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') &&
-          (deployment.workspaceId ?? undefined) === redeployPersistedWorkspaceId,
-      );
+      const inFlight = await findInFlightDeploymentForCwd(store, project.id, secondaryWorkspaceId);
 
       if (inFlight) {
         return { conflict: true as const, deploymentId: inFlight.id };
