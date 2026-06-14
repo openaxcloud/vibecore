@@ -1,4 +1,4 @@
-import { Queue, Worker } from 'bullmq';
+import { Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { createHmac } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
@@ -250,13 +250,14 @@ export function startWorkers() {
     maxRetriesPerRequest: null,
   });
 
-  // Queues are created alongside the workers so importing this module never opens
-  // a Redis connection; producers (the enqueue-cli CronJob trigger) are standalone.
-  const workspaceQueue = new Queue('workspace-jobs', { connection });
-  const enterpriseQueue = new Queue('enterprise-jobs', { connection });
-  void workspaceQueue;
-  void enterpriseQueue;
-
+  /*
+   * No producer Queue instances here: enqueuing is done by the standalone
+   * enqueue-cli CronJob trigger, and the workers below consume by name. Two
+   * unused `new Queue(...)` objects used to be constructed and immediately
+   * discarded — but a BullMQ Queue opens its own Redis client, and with no
+   * 'error' listener a transient Redis fault (failover/AUTH rotation) threw an
+   * uncaught exception that crashed the worker. Don't create them at all.
+   */
   const worker = new Worker(
     'workspace-jobs',
     async (job) => {

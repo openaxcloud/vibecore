@@ -594,9 +594,17 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     });
   }
 
+  /*
+   * Whole-workspace zip transfers (seed/restore) move far more data than a normal
+   * control request, so they must not inherit the generic 30s #rawRequest cap —
+   * any non-trivial project would abort mid-transfer. Allow 5 minutes.
+   */
+  static readonly #ZIP_TRANSFER_TIMEOUT_MS = 300_000;
+
   async exportZip(path = '.'): Promise<Uint8Array> {
     const response = await this.#rawRequest(
       `/workspaces/${this.#requireWorkspaceId()}/export?path=${encodeURIComponent(path)}`,
+      { signal: AbortSignal.timeout(RemoteKubernetesRuntimeAdapter.#ZIP_TRANSFER_TIMEOUT_MS) },
     );
     return new Uint8Array(await response.arrayBuffer());
   }
@@ -608,6 +616,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         method: 'POST',
         body: data,
         headers: { 'content-type': 'application/zip' },
+        signal: AbortSignal.timeout(RemoteKubernetesRuntimeAdapter.#ZIP_TRANSFER_TIMEOUT_MS),
       },
     );
   }

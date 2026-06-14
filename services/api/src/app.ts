@@ -9691,7 +9691,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       orgIdForQuota && !countsAsActive
         ? await store.withSerializedMutation(`workspaces:${orgIdForQuota}`, async () => {
             await ensureQuota(request, orgIdForQuota, 'workspaces.active');
-            return ensureRuntimeWorkspaceRecord(workspaceId, project);
+
+            const record = await ensureRuntimeWorkspaceRecord(workspaceId, project);
+
+            /*
+             * Claim the active slot INSIDE the lock. A brand-new record is created
+             * as PENDING (a counted state), but reopening an existing STOPPED/FAILED
+             * workspace returns it unchanged — without flipping it to a counted
+             * state here, concurrent reopens all pass the same ensureQuota and
+             * exceed workspaces.active (the reconcile below moves it to RUNNING/FAILED).
+             */
+            if (!['PENDING', 'STARTING', 'RUNNING'].includes(record.status as string)) {
+              await store.updateWorkspaceStatus({ workspaceId: record.id, status: 'STARTING' });
+            }
+
+            return record;
           })
         : await ensureRuntimeWorkspaceRecord(workspaceId, project);
     authorized.workspaceId = workspaceRecord.id;
@@ -15663,6 +15677,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           : undefined;
         const isStaleByTimestamp = Boolean(
           eventCreatedAt &&
+            // Deletion is terminal and must ALWAYS be applied: a `deleted` event
+            // can legitimately carry an older event.created than a previously
+            // applied `updated`, and dropping it would strand a canceled org on
+            // its paid plan forever. Only non-deletion events are timestamp-gated.
+            event.type !== 'customer.subscription.deleted' &&
             existingSubscription?.lastStripeEventAt &&
             existingSubscription.externalId === eventExternalId &&
             eventCreatedAt.getTime() < new Date(existingSubscription.lastStripeEventAt).getTime(),
