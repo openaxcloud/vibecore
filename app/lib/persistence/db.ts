@@ -161,19 +161,44 @@ export async function deleteById(db: IDBDatabase, id: string): Promise<void> {
 
 export async function getNextId(db: IDBDatabase): Promise<string> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction('chats', 'readonly');
+    /*
+     * Allocate-and-reserve in a SINGLE readwrite transaction. The old version
+     * read the max key in a readonly txn and returned max+1, then the caller
+     * wrote in a SEPARATE txn — so two concurrent allocations both read the same
+     * max and produced the same id, the second silently overwriting the first
+     * (lost chat). IndexedDB serializes writes within an object store, so
+     * reserving the id here (a placeholder the caller's setMessages overwrites)
+     * means a concurrent getNextId sees the reserved key and picks the next id.
+     */
+    const transaction = db.transaction('chats', 'readwrite');
     const store = transaction.objectStore('chats');
     const request = store.getAllKeys();
+
+    let nextId = '';
 
     request.onsuccess = () => {
       const highestId = request.result.reduce<number>((highest, key) => {
         const numericKey = Number(key);
         return Number.isFinite(numericKey) ? Math.max(highest, numericKey) : highest;
       }, 0);
-      resolve(String(highestId + 1));
+      nextId = String(highestId + 1);
+
+      /*
+       * Reserve the id with a placeholder (overwritten by the caller's
+       * setMessages). The unique urlId index needs a non-colliding value.
+       */
+      store.put({
+        id: nextId,
+        urlId: `__pending-${nextId}`,
+        messages: [],
+        timestamp: new Date().toISOString(),
+      });
     };
 
     request.onerror = () => reject(request.error);
+    transaction.oncomplete = () => resolve(nextId);
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error ?? new Error('getNextId transaction aborted'));
   });
 }
 
