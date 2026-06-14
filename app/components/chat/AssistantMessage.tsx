@@ -160,6 +160,10 @@ export const AssistantMessage = memo(
     return (
       <div className="bolt-assistant-message overflow-hidden w-full">
         <>
+          <div className="bolt-assistant-message-mobile-head" aria-hidden>
+            <span className="i-ph:sparkle" />
+            <strong>Agent</strong>
+          </div>
           <div className="flex gap-1.5 items-center text-sm text-bolt-elements-textSecondary mb-1">
             {(codeContext || chatSummary || agentOrchestration || agentExecution || agentMemory) && (
               <Popover
@@ -403,6 +407,63 @@ export const AssistantMessage = memo(
             </div>
           </div>
         </>
+        {agentOrchestration?.mode === 'parallel-subagents' && agentOrchestration.roles.length > 0 && (
+          <div
+            className="bolt-agent-lanes my-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
+            data-testid="agent-lanes-panel"
+          >
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
+              <span className="i-ph:users-three text-bolt-elements-item-contentAccent" aria-hidden />
+              <span>Parallel agents</span>
+              <span className="ml-auto text-[11px] font-normal text-bolt-elements-textSecondary">
+                {agentExecution
+                  ? `consensus: ${(agentExecution.consensus?.outcome ?? agentExecution.status).toString().toLowerCase()}`
+                  : 'running in parallel…'}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {agentOrchestration.roles.map((role) => {
+                const result = agentExecution?.results.find((r) => r.roleId === role.id);
+
+                const state: 'running' | 'complete' | 'partial' | 'failed' = !agentExecution
+                  ? 'running'
+                  : (result?.status ?? 'failed');
+                const icon =
+                  state === 'running'
+                    ? 'i-ph:circle-notch animate-spin text-bolt-elements-item-contentAccent'
+                    : state === 'complete'
+                      ? 'i-ph:check-circle text-emerald-500'
+                      : state === 'partial'
+                        ? 'i-ph:warning-circle text-amber-500'
+                        : 'i-ph:x-circle text-red-500';
+
+                return (
+                  <div
+                    key={role.id}
+                    className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2"
+                    data-testid={`agent-lane-${role.id}`}
+                    data-state={state}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className={icon} aria-hidden />
+                      <span className="truncate text-xs font-medium text-bolt-elements-textPrimary">{role.title}</span>
+                    </div>
+                    <div className="mt-1 line-clamp-3 text-[11px] text-bolt-elements-textSecondary">
+                      {result?.summary ?? role.responsibility}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {agentExecution?.consensus && (
+              <div className="mt-2 text-[11px] text-bolt-elements-textSecondary">
+                Consensus · {agentExecution.consensus.algorithm.toLowerCase().replace(/_/g, ' ')} ·{' '}
+                <span className="font-medium text-bolt-elements-textPrimary">{agentExecution.consensus.outcome}</span> ·{' '}
+                {Math.round(agentExecution.consensus.agreementScore * 100)}% agreement
+              </div>
+            )}
+          </div>
+        )}
         {(() => {
           /*
            * Sprint 5 wiring — if the message contains a parseable plan
