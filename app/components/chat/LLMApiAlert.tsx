@@ -39,6 +39,9 @@ export default function LlmErrorAlert({ alert, clearAlert }: Props) {
   return (
     <AnimatePresence>
       <motion.div
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}

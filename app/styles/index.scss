@@ -19762,6 +19762,17 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   left: 0;
   display: grid;
   width: min(640px, calc(100vw - 32px));
+}
+
+/* Right-anchor the panels of the right-side menus so a ~640px panel doesn't
+   overflow the viewport edge (and clip its right column) on ~980-1100px laptops
+   / iPad-landscape, where these triggers sit in the right half of the nav. */
+.vc-marketing-menu:nth-last-of-type(-n + 3) .vc-marketing-menu-panel {
+  left: auto;
+  right: 0;
+}
+
+.vc-marketing-menu-panel {
   max-height: min(70vh, 720px);
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;

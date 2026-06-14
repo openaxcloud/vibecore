@@ -231,6 +231,18 @@ export function GitProviderConnectPanel({
           const providerSucceeded = succeeded?.provider === provider.id;
           const isOAuthProvider = provider.id !== 'custom';
 
+          /*
+           * pendingProvider is set synchronously on click (before the async
+           * launch), so gating on it directly closes the double-click window
+           * between the click and isLaunching flipping true.
+           */
+          const providerDisabled =
+            busy ||
+            providerLaunching ||
+            (isLaunching && isOAuthProvider) ||
+            pendingProvider === provider.id ||
+            (pendingProvider !== null && isOAuthProvider);
+
           return (
             <button
               key={provider.id}
@@ -239,7 +251,7 @@ export function GitProviderConnectPanel({
                 'group grid min-h-[132px] gap-2 rounded-md border border-amber-500/25 bg-bolt-elements-background-depth-1 p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus',
                 'hover:border-amber-500/50 hover:bg-bolt-elements-background-depth-2 disabled:cursor-not-allowed disabled:opacity-60',
               )}
-              disabled={busy || providerLaunching || (isLaunching && isOAuthProvider)}
+              disabled={providerDisabled}
               aria-label={`${provider.action} from Git panel`}
               onClick={() => {
                 if (provider.id === 'custom') {

@@ -67,9 +67,10 @@ export const PortDropdown = memo(
               Ports
             </div>
             {sortedPreviews.map((preview) => (
-              <div
+              <button
+                type="button"
                 key={preview.index}
-                className="flex items-center px-4 py-2 cursor-pointer hover:bg-bolt-elements-item-backgroundActive"
+                className="flex w-full items-center px-4 py-2 cursor-pointer text-left hover:bg-bolt-elements-item-backgroundActive"
                 onClick={() => {
                   setActivePreviewIndex(preview.index);
                   setIsDropdownOpen(false);
@@ -85,7 +86,7 @@ export const PortDropdown = memo(
                 >
                   {preview.port}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         )}

@@ -19,7 +19,18 @@ export default function RecoveryCodesPage() {
       status={actionData?.status}
       error={actionData?.error}
     >
-      <Form method="post">
+      <Form
+        method="post"
+        onSubmit={(event) => {
+          if (
+            !window.confirm(
+              'Generating new recovery codes permanently invalidates all of your existing codes. Continue?',
+            )
+          ) {
+            event.preventDefault();
+          }
+        }}
+      >
         <PrimaryButton>Generate recovery codes</PrimaryButton>
       </Form>
       {actionData?.codes ? (
