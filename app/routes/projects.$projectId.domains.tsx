@@ -1,5 +1,5 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useActionData, useLoaderData } from '@remix-run/react';
+import { Form, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
 import { Globe2, ShieldCheck } from 'lucide-react';
 import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
@@ -83,6 +83,8 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
 export default function ProjectDomainsPage() {
   const { project, domains } = useLoaderData<typeof loader>();
+  const navigation = useNavigation();
+  const busy = navigation.state !== 'idle';
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
 
   return (
@@ -114,7 +116,9 @@ export default function ProjectDomainsPage() {
               placeholder="app.example.com"
               required
             />
-            <Button type="submit">Add domain</Button>
+            <Button type="submit" disabled={busy} aria-busy={busy}>
+              {busy ? 'Adding…' : 'Add domain'}
+            </Button>
           </Form>
           {actionData?.error ? (
             <p
@@ -152,8 +156,8 @@ export default function ProjectDomainsPage() {
                 <Form method="post">
                   <input type="hidden" name="intent" value="verify" />
                   <input type="hidden" name="domain" value={item.domain} />
-                  <Button type="submit" variant="outline">
-                    Verify {item.domain}
+                  <Button type="submit" variant="outline" disabled={busy} aria-busy={busy}>
+                    {busy ? 'Verifying…' : `Verify ${item.domain}`}
                   </Button>
                 </Form>
               </div>

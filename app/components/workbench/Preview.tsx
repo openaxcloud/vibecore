@@ -2292,7 +2292,7 @@ function PreviewSplashSequence({
   const slide = previewSplashSlides[activeSlide];
 
   return (
-    <div className="bolt-preview-splash" data-testid="preview-splash-sequence">
+    <div className="bolt-preview-splash" data-testid="preview-splash-sequence" role="status" aria-live="polite">
       <div className="bolt-preview-splash-shell">
         <div className="bolt-preview-splash-chrome">
           <span />

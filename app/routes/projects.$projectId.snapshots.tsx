@@ -1,5 +1,5 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useLoaderData } from '@remix-run/react';
+import { Form, useLoaderData, useNavigation } from '@remix-run/react';
 import { Layers, RotateCcw } from 'lucide-react';
 import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
@@ -35,6 +35,8 @@ export const action = (args: EnterpriseActionArgs) =>
 
 export default function ProjectSnapshotsPage() {
   const { project, data } = useLoaderData<typeof loader>();
+  const navigation = useNavigation();
+  const busy = navigation.state !== 'idle';
 
   return (
     <ProjectShell
@@ -68,7 +70,9 @@ export default function ProjectSnapshotsPage() {
               name="label"
               placeholder="Manual checkpoint"
             />
-            <Button type="submit">Create snapshot</Button>
+            <Button type="submit" disabled={busy} aria-busy={busy}>
+              {busy ? 'Working…' : 'Create snapshot'}
+            </Button>
           </Form>
           {data.snapshots.map((snapshot) => (
             <Form
@@ -83,7 +87,7 @@ export default function ProjectSnapshotsPage() {
             >
               <input type="hidden" name="intent" value="restore" />
               <input type="hidden" name="snapshotId" value={snapshot.id} />
-              <Button type="submit" variant="outline" className="max-w-full">
+              <Button type="submit" variant="outline" className="max-w-full" disabled={busy} aria-busy={busy}>
                 <span className="inline-flex max-w-full items-center gap-1">
                   Restore
                   <span className="min-w-0 max-w-[12rem] truncate" title={snapshot.label ?? snapshot.id}>
