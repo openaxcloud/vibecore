@@ -15874,6 +15874,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
       }
 
+      /*
+       * Symmetric recovery: a successful invoice.paid promotes a PAST_DUE/UNPAID
+       * subscription back to ACTIVE directly, rather than relying on a separate
+       * customer.subscription.updated arriving — if that event drops, the org
+       * stays not-entitled despite having paid. Mirrors the payment_failed
+       * downgrade (same stale + subscription-match guards). CANCELED is terminal
+       * and intentionally not revived here.
+       */
+      if (organizationId && event.type === 'invoice.paid') {
+        const existing = await store.getSubscription(organizationId).catch(() => undefined);
+        const eventCreatedAt = Number.isFinite(Number(event.created))
+          ? new Date(Number(event.created) * 1000)
+          : undefined;
+        const isStaleByTimestamp = Boolean(
+          eventCreatedAt &&
+            existing?.lastStripeEventAt &&
+            eventCreatedAt.getTime() < new Date(existing.lastStripeEventAt).getTime(),
+        );
+        const invoiceSubscriptionId = typeof object.subscription === 'string' ? object.subscription : undefined;
+        const subscriptionMatches = !invoiceSubscriptionId || invoiceSubscriptionId === existing?.externalId;
+
+        if (
+          existing &&
+          !isStaleByTimestamp &&
+          subscriptionMatches &&
+          (existing.status === 'PAST_DUE' || existing.status === 'UNPAID')
+        ) {
+          await store.upsertSubscription({
+            organizationId,
+            planKey: existing.planKey,
+            externalId: existing.externalId,
+            status: 'ACTIVE',
+            cancelAtPeriodEnd: existing.cancelAtPeriodEnd,
+            currentPeriodStart: existing.currentPeriodStart ? new Date(existing.currentPeriodStart) : undefined,
+            currentPeriodEnd: existing.currentPeriodEnd ? new Date(existing.currentPeriodEnd) : undefined,
+            lastStripeEventAt: eventCreatedAt,
+          });
+        }
+      }
+
       if (organizationId && ['invoice.paid', 'invoice.payment_failed', 'invoice.finalized'].includes(event.type)) {
         await store.recordUsageEvent({
           organizationId,

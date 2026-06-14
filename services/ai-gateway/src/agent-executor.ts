@@ -536,11 +536,15 @@ export async function executeAgentRun(input: {
   const response: AgentRunResponse = { runId, status, results, consensus };
 
   /*
-   * Skip persistence when the client disconnected mid-run: every role threw
-   * 'aborted' (swallowed into status:'failed'), so this would write a junk
-   * all-failed AgentRun row for a run nobody is waiting on.
+   * Skip persistence only for a run that BOTH was aborted AND didn't complete:
+   * a client disconnect makes every role throw 'aborted' (status:'failed'), and
+   * persisting that writes a junk all-failed row. But a run that actually
+   * finished ('completed') the instant the client disconnected must still be
+   * recorded — gating on the abort signal alone silently dropped successful runs.
    */
-  if (input.persistence && !input.signal?.aborted) {
+  const hasUsefulResults = status !== 'failed';
+
+  if (input.persistence && (hasUsefulResults || !input.signal?.aborted)) {
     try {
       await input.persistence.recordRun({
         runId,
