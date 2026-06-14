@@ -211,6 +211,20 @@ describe('preview-proxy', () => {
     await app.close();
   });
 
+  it('sets Cross-Origin-Resource-Policy: cross-origin so the COEP-isolated IDE can embed the preview', async () => {
+    const { fn: fetchImpl } = recordingFetch(async () => new Response('preview', { status: 200 }));
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['cross-origin-resource-policy']).toBe('cross-origin');
+
+    // also on health, so probes/embeds are never blocked
+    const health = await app.inject({ method: 'GET', url: '/health' });
+    expect(health.headers['cross-origin-resource-policy']).toBe('cross-origin');
+    await app.close();
+  });
+
   describe('host-based preview routing', () => {
     const previewDomain = 'preview.e-code.ai';
     const host = (port: number, ws = 'ws-81ab929b9800a908') => `${ws}-${port}.${previewDomain}`;

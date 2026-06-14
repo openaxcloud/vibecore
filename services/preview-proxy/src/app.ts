@@ -111,6 +111,22 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    */
   app.addContentTypeParser('*', (_req, _payload, done) => done(null, undefined));
 
+  /*
+   * The IDE (app.e-code.ai) is cross-origin isolated — it sends
+   * `Cross-Origin-Embedder-Policy: credentialless`. Under COEP, a cross-origin
+   * iframe is blocked (ERR_BLOCKED_BY_RESPONSE → blank/error frame) unless the
+   * embedded document opts in with `Cross-Origin-Resource-Policy: cross-origin`.
+   * The preview is meant to be embedded from any origin, so assert CORP on every
+   * proxied response. Guarded so an upstream that already set CORP wins.
+   */
+  app.addHook('onSend', async (_request, reply, payload) => {
+    if (!reply.hasHeader('cross-origin-resource-policy')) {
+      reply.header('cross-origin-resource-policy', 'cross-origin');
+    }
+
+    return payload;
+  });
+
   app.get('/health', async () => ({ status: 'ok', service: 'preview-proxy' }));
 
   // Serve the inspect-to-code bridge from the proxy origin so injected pages
