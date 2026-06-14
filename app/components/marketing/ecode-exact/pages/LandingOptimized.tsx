@@ -24,7 +24,6 @@ import {
 import { useState, useEffect } from 'react';
 import {
   AIModelSelector,
-  apiRequest,
   BuildModeSelector,
   type BuildMode,
   useEcodeToast,
@@ -95,55 +94,33 @@ export default function LandingOptimized() {
 
     setIsBuilding(true);
 
-    try {
-      const result = (await apiRequest('POST', '/api/workspace/bootstrap', {
-        prompt: pendingBuildPrompt,
-        buildMode: mode,
-        options: { autoStart: true, language: 'typescript', framework: 'react' },
-      })) as any;
+    /*
+     * Route into the canonical project-creation flow at /projects/new instead of
+     * the legacy POST /api/workspace/bootstrap, which never existed (404) and
+     * navigated to the /ide/:id marketing shim rather than the real IDE. The
+     * /projects/new loader seeds its composer from ?prompt= and runs the real
+     * /orgs/:id/projects/from-ai generation + workspace provisioning, then
+     * redirects to the authenticated project IDE — the same path the dashboard
+     * "Create project" button uses. This gives the homepage and dashboard a
+     * single, working create flow.
+     */
+    const prompt = pendingBuildPrompt.trim();
+    sessionStorage.setItem('pendingAppDescription', prompt);
+    sessionStorage.setItem('pendingBuildMode', mode);
+    sessionStorage.removeItem('triggerBuildOnLanding');
+    setPendingBuildPrompt('');
 
-      if (result.success) {
-        sessionStorage.setItem(`agent-prompt-${result.projectId}`, pendingBuildPrompt);
-        sessionStorage.setItem(`agent-build-mode-${result.projectId}`, mode);
-        sessionStorage.removeItem('pendingAppDescription');
-        sessionStorage.removeItem('triggerBuildOnLanding');
-        setPendingBuildPrompt('');
+    toast({
+      title: 'Setting up your project…',
+      description:
+        mode === 'design-first'
+          ? 'Opening the builder to create your design prototype'
+          : 'Opening the builder to generate your full application',
+    });
 
-        toast({
-          title: 'Creating your workspace...',
-          description:
-            mode === 'design-first'
-              ? 'AI is creating your design prototype now'
-              : 'AI is generating your full application now',
-        });
-        navigate(`/ide/${result.projectId}?bootstrap=${result.bootstrapToken}&buildMode=${mode}`);
-      } else {
-        throw new Error(result.error || 'Bootstrap failed');
-      }
-    } catch (error: any) {
-      setIsBuilding(false);
-
-      // Handle auth errors silently - user is already being redirected to login by queryClient
-      if (
-        error?.status === 401 ||
-        error?.status === 403 ||
-        error?.message?.includes('Unauthorized') ||
-        error?.message?.includes('403')
-      ) {
-        // Store prompt so user can continue after login
-        sessionStorage.setItem('pendingAppDescription', pendingBuildPrompt);
-        sessionStorage.setItem('triggerBuildOnLanding', 'true');
-        navigate('/login');
-
-        return;
-      }
-
-      toast({
-        title: 'Error',
-        description: 'Failed to create workspace. Please try again.',
-        variant: 'destructive',
-      });
-    }
+    const params = new URLSearchParams({ prompt });
+    params.set('buildMode', mode);
+    navigate(`/projects/new?${params.toString()}`);
   };
 
   const examples = [
