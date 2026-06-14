@@ -1,5 +1,6 @@
 import type { LoaderFunction } from '@remix-run/cloudflare';
 import { json } from '@remix-run/cloudflare';
+import { readSessionToken } from '~/lib/enterprise-api.server';
 import { LLMManager } from '~/lib/modules/llm/manager';
 
 interface ConfiguredProvider {
@@ -16,7 +17,17 @@ interface ConfiguredProvidersResponse {
  * API endpoint that detects which providers are configured via environment variables
  * This helps auto-enable providers that have been set up by the user
  */
-export const loader: LoaderFunction = async ({ context }) => {
+export const loader: LoaderFunction = async ({ context, request }) => {
+  /*
+   * Require an authenticated session. This endpoint reports which platform LLM
+   * provider secrets are present in the server environment; exposing that to
+   * anonymous callers is an infra-config oracle. Only signed-in users (the only
+   * ones who reach the Connections settings that consume this) may read it.
+   */
+  if (!readSessionToken(request)) {
+    return json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const llmManager = LLMManager.getInstance(context?.cloudflare?.env as any);
     const configuredProviders: ConfiguredProvider[] = [];
