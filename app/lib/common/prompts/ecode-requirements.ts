@@ -10,6 +10,7 @@ export const ECODE_AGENT_REQUIREMENTS = `
     - Every generated feature must work immediately in the preview without manual setup unless the user explicitly requests external integration.
     - Use TypeScript everywhere. Prefer strict typing, explicit domain models, typed props, typed API payloads, and no implicit any.
     - Full-stack by default when the request is an app: frontend, backend/API boundary, persistence or typed local data adapter, auth/session model when relevant, styling, tests, and deployment config where feasible.
+    - SINGLE-COMMAND RUNNABILITY (non-negotiable): the app MUST start and render a browsable UI in the preview with ONE \`npm run dev\` from ONE root package.json, on a single port bound to host 0.0.0.0. The root package.json MUST define a \`dev\` script. Do NOT split the app into separate client/ and server/ packages that each need their own process for the preview to work — if a backend/API is required, serve it from the SAME dev server (e.g. a Vite dev-server middleware/plugin, framework API routes, or a single \`dev\` script that runs everything concurrently and exposes ONE browsable port). A backend-only server with no browsable UI on the dev port is a blank-preview failure.
     - Dark mode by default with a working light mode toggle when the app has a theme surface.
     - Mobile-first responsive design that works on phones, tablets, and desktop with stable dimensions and no overlapping text.
     - Loading skeletons or equivalent loading states for every async operation.
@@ -45,6 +46,7 @@ export const ECODE_PROJECT_REQUIREMENT_LINES = [
   '- Every generated feature must work immediately in preview; if preview would be blank, change the implementation before finishing.',
   '- Use TypeScript everywhere with strict, explicit types for components, data models, API payloads, and adapters.',
   '- For app requests, build full-stack by default: frontend, backend/API boundary, persistence or typed local adapter, auth/session model when relevant, styling, tests, and deployment config where feasible.',
+  '- Single-command runnability: the app MUST render a browsable UI in preview with ONE `npm run dev` from ONE root package.json (which MUST have a `dev` script) on a single port bound to 0.0.0.0. Do not split into separate client/server packages that each need their own process — serve any backend from the same dev server (Vite middleware/plugin, framework API routes, or one concurrent `dev` script). A backend-only server with no browsable UI on the dev port is a blank-preview failure.',
   '- Dark mode must be the default, with a working light mode toggle when the app exposes theming.',
   '- Build mobile-first responsive layouts that work on phones, tablets, and desktop without overlapping text or unstable dimensions.',
   '- Add skeletons or explicit loading states for every async operation.',

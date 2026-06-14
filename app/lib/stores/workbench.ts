@@ -839,9 +839,45 @@ export class WorkbenchStore {
   }
 
   #findPackageJsonEntry() {
-    return Object.entries(this.files.get()).find(([filePath, dirent]) => {
-      return dirent?.type === 'file' && this.#isPackageJsonPath(filePath);
-    });
+    const candidates = Object.entries(this.files.get()).filter(
+      ([filePath, dirent]) => dirent?.type === 'file' && this.#isPackageJsonPath(filePath),
+    );
+
+    if (candidates.length <= 1) {
+      return candidates[0];
+    }
+
+    /*
+     * Multiple package.json (full-stack/monorepo generations): the preview must
+     * run the BROWSABLE app, not e.g. a backend-only server picked by arbitrary
+     * file order. Rank by: (1) has a `dev` script (a runnable dev server),
+     * preferring one whose dev script looks like a frontend (vite/next/etc.);
+     * (2) shallowest path (root over nested client/ or server/). This keeps the
+     * preview pointed at the UI even when the model splits packages despite the
+     * single-root-package.json requirement.
+     */
+    const depth = (p: string) => p.replaceAll('\\', '/').replace(/^\/+/, '').split('/').length;
+
+    const scoreOf = ([filePath, dirent]: [string, (typeof candidates)[number][1]]) => {
+      let dev: string | undefined;
+
+      if (dirent?.type === 'file' && dirent.content) {
+        try {
+          dev = (JSON.parse(dirent.content) as { scripts?: Record<string, string> }).scripts?.dev;
+        } catch {
+          dev = undefined;
+        }
+      }
+
+      const frontend = dev
+        ? /\b(vite|next|astro|remix|react-scripts|nuxt|vue-cli-service|webpack)\b/i.test(dev)
+        : false;
+
+      // higher is better: frontend dev (3) > any dev (2) > none (0); shallower wins ties
+      return (frontend ? 3 : dev ? 2 : 0) * 1000 - depth(filePath);
+    };
+
+    return candidates.slice().sort((a, b) => scoreOf(b) - scoreOf(a))[0];
   }
 
   #findIndexHtmlEntry() {
