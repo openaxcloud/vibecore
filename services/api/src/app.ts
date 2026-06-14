@@ -325,6 +325,9 @@ const githubImportSchema = z.object({
     .min(1)
     .max(255)
     .regex(/^[^\s"'`\\]+$/, 'Invalid branch name.')
+    // Reject leading-dash refs (e.g. "--upload-pack=...") that could be parsed as
+    // a git CLI flag downstream — matches gitRefField used elsewhere.
+    .refine((value) => !value.startsWith('-'), 'Git ref must not start with "-".')
     .optional(),
   name: z.string().min(1).optional(),
   slug: z.string().min(2).optional(),

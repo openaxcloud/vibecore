@@ -321,6 +321,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         return sendStream(Readable.from(passthrough()));
       }
 
+      /*
+       * Non-overflow path: the body was fully read (done), so release the reader's
+       * lock on the upstream stream. Only the overflow path hands the reader off to
+       * the passthrough generator (which cancels it); here it would otherwise stay
+       * locked, leaking the upstream connection.
+       */
+      reader.releaseLock();
+
       const bodyBuffer = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
       const injected = injectInspectorScript(bodyBuffer.toString('utf8'));
       const outBuffer = Buffer.from(injected, 'utf8');
