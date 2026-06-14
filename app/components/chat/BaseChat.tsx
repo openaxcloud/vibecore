@@ -2748,6 +2748,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
     const [transcript, setTranscript] = useState('');
     const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
+    const [modelError, setModelError] = useState<string | null>(null);
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
@@ -4958,9 +4959,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           })
           .then((data) => {
             setModelList(modelListFromResponse(data));
+            setModelError(null);
           })
           .catch((error) => {
             console.warn('Error fetching model list:', error);
+
+            /*
+             * Surface the failure so the model picker shows an error instead of a
+             * permanently empty list with no explanation.
+             */
+            setModelError("Couldn't load the model list. Check your connection and reopen the picker.");
           })
           .finally(() => {
             setIsModelLoading(undefined);
@@ -5499,6 +5507,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 modelList={modelList}
                 apiKeys={apiKeys}
                 isModelLoading={isModelLoading}
+                modelError={modelError}
                 onApiKeysChange={onApiKeysChange}
                 uploadedFiles={uploadedFiles}
                 setUploadedFiles={setUploadedFiles}

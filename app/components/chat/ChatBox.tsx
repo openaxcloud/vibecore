@@ -33,6 +33,7 @@ interface ChatBoxProps {
   modelList?: any[] | null;
   apiKeys: Record<string, string>;
   isModelLoading: string | undefined;
+  modelError?: string | null;
   onApiKeysChange: (providerName: string, apiKey: string) => void;
   uploadedFiles: File[];
   imageDataList: string[];
@@ -209,6 +210,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 providerList={providerList}
                 apiKeys={props.apiKeys}
                 modelLoading={props.isModelLoading}
+                modelError={props.modelError}
               />
               {providerList.length > 0 && props.provider && !LOCAL_PROVIDERS.includes(props.provider.name) && (
                 <APIKeyManager

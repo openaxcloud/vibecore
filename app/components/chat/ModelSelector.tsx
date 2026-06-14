@@ -103,6 +103,7 @@ interface ModelSelectorProps {
   providerList: ProviderInfo[];
   apiKeys: Record<string, string>;
   modelLoading?: string;
+  modelError?: string | null;
 }
 
 // Helper function to determine if a model is likely free
@@ -128,6 +129,7 @@ export const ModelSelector = ({
   modelList,
   providerList,
   modelLoading,
+  modelError,
 }: ModelSelectorProps) => {
   const [modelSearchQuery, setModelSearchQuery] = useState('');
   const [debouncedModelSearchQuery, setDebouncedModelSearchQuery] = useState('');
@@ -807,6 +809,13 @@ export const ModelSelector = ({
                   <div className="flex items-center gap-2 text-bolt-elements-textTertiary">
                     <span className="i-ph:spinner animate-spin" />
                     Loading models...
+                  </div>
+                </div>
+              ) : modelError && filteredModels.length === 0 ? (
+                <div className="px-3 py-3 text-sm" role="alert">
+                  <div className="flex items-center gap-2 text-bolt-elements-icon-error">
+                    <span className="i-ph:warning-circle" />
+                    {modelError}
                   </div>
                 </div>
               ) : filteredModels.length === 0 ? (
