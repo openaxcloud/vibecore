@@ -11,6 +11,39 @@ const AUTH_ROUTES_KEPT_IN_VIBECORE = new Set([
   '/verify-email',
 ]);
 
+const STATIC_MOBILE_MENU_SCROLL_FIX = String.raw`
+<style id="vibecore-ecode-mobile-menu-scroll-fix">
+@media (max-width: 1023px) {
+  [role='dialog'][data-state][class*='slide-in-from-right'] {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
+  [role='dialog'][data-state][class*='slide-in-from-right'] > .sticky,
+  [role='dialog'][data-state][class*='slide-in-from-right'] > .border-b {
+    flex-shrink: 0 !important;
+  }
+
+  [role='dialog'][data-state][class*='slide-in-from-right'] > [dir='ltr'].relative.overflow-hidden {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  [role='dialog'][data-state][class*='slide-in-from-right'] [data-radix-scroll-area-viewport] {
+    height: 100% !important;
+    max-height: 100% !important;
+  }
+
+  [role='dialog'][data-state][class*='slide-in-from-right'] [data-radix-scroll-area-viewport] .p-4.space-y-1 {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+</style>`;
+
 const AUTH_NAVIGATION_GUARD = String.raw`
 <script>
 (() => {
@@ -80,7 +113,7 @@ const AUTH_NAVIGATION_GUARD = String.raw`
 
 const ECODE_MARKETING_SHELL_HTML = ecodeStaticHtml
   .replace('<body', '<body data-ecode-static-shell="true"')
-  .replace('</head>', `${AUTH_NAVIGATION_GUARD}</head>`);
+  .replace('</head>', `${STATIC_MOBILE_MENU_SCROLL_FIX}${AUTH_NAVIGATION_GUARD}</head>`);
 
 export function ecodeMarketingShellLoader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);

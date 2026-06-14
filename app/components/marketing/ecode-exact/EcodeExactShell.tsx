@@ -389,7 +389,7 @@ export function EcodeExactPublicNavbar() {
       <Dialog.Root open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 lg:hidden" />
-          <Dialog.Content className="fixed z-50 gap-4 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500 inset-y-0 right-0 h-full data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm w-full sm:w-[380px] p-0 border-l border-border bg-background lg:hidden">
+          <Dialog.Content className="fixed z-50 flex h-dvh max-h-dvh flex-col overflow-hidden shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500 inset-y-0 right-0 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm w-full sm:w-[380px] p-0 border-l border-border bg-background lg:hidden">
             <div className="sr-only flex flex-col space-y-2 text-center sm:text-left">
               <Dialog.Title className="text-lg font-semibold text-foreground">Mobile Navigation Menu</Dialog.Title>
               <Dialog.Description className="text-sm text-muted-foreground">
@@ -397,7 +397,7 @@ export function EcodeExactPublicNavbar() {
               </Dialog.Description>
             </div>
 
-            <div className="sticky top-0 z-10 border-b border-border bg-background px-4 py-3">
+            <div className="sticky top-0 z-10 shrink-0 border-b border-border bg-background px-4 py-3">
               <div className="flex items-center justify-between">
                 <EcodeLogo size="sm" />
                 <Button
@@ -412,7 +412,7 @@ export function EcodeExactPublicNavbar() {
               </div>
             </div>
 
-            <div className="p-4 border-b border-border">
+            <div className="shrink-0 p-4 border-b border-border">
               <Button
                 className="w-full bg-ecode-accent hover:bg-ecode-accent-hover text-white"
                 onClick={() => {
@@ -434,8 +434,8 @@ export function EcodeExactPublicNavbar() {
               </Button>
             </div>
 
-            <ScrollArea className="h-[calc(100vh-180px)]">
-              <div className="p-4 space-y-1">
+            <ScrollArea className="min-h-0 flex-1">
+              <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] space-y-1">
                 {mobileMenuSections.map((section) => {
                   const SectionIcon = section.icon;
 
@@ -496,40 +496,66 @@ function MegaMenu({
   icon: 'sparkles' | 'arrow' | 'search' | 'chevron';
   compact?: boolean;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
   const Icon = icon === 'sparkles' ? Sparkles : icon === 'search' ? Search : ChevronRight;
   const iconClass = icon === 'arrow' || icon === 'chevron' ? 'text-indigo-300' : 'text-sky-300';
 
   return (
-    <div className="ecode-nav-menu relative">
-      <button className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none">
+    <div
+      className="ecode-nav-menu relative"
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+      onFocus={() => setIsOpen(true)}
+      onBlur={(event) => {
+        const nextFocusedElement = event.relatedTarget instanceof Node ? event.relatedTarget : null;
+
+        if (!event.currentTarget.contains(nextFocusedElement)) {
+          setIsOpen(false);
+        }
+      }}
+    >
+      <button
+        className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            setIsOpen(false);
+            event.currentTarget.blur();
+          }
+        }}
+      >
         {title}
         <ChevronRight className="ml-1 h-3 w-3 transition-transform ecode-nav-menu-chevron" aria-hidden />
       </button>
-      <div className="ecode-nav-menu-panel absolute left-0 top-full hidden pt-2">
-        <ul
-          className={cn(
-            'grid gap-3 rounded-xl border border-border bg-background p-4 shadow-xl',
-            compact ? 'w-[360px]' : 'w-[calc(100vw-2rem)] sm:w-[480px] md:w-[520px] md:grid-cols-2 lg:w-[640px]',
-          )}
-        >
-          {items.map((item) => (
-            <li key={item.title}>
-              <Link
-                href={item.href}
-                className="block rounded-xl border border-border bg-surface-solid p-4 transition-all duration-200 hover:-translate-y-1 hover:bg-surface-hover-solid hover:shadow-lg hover:shadow-sky-500"
-              >
-                <div className="text-[13px] font-semibold text-[var(--ecode-text)] dark:text-white flex items-center gap-2">
-                  <Icon className={cn('h-4 w-4', iconClass)} />
-                  {item.title}
-                </div>
-                <p className="mt-2 text-[13px] text-[var(--ecode-text-secondary)] dark:text-slate-300 leading-relaxed">
-                  {item.description}
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
+      {isOpen ? (
+        <div className="ecode-nav-menu-panel absolute left-0 top-full block pt-2" role="menu">
+          <ul
+            className={cn(
+              'grid gap-3 rounded-xl border border-border bg-background p-4 shadow-xl',
+              compact ? 'w-[360px]' : 'w-[calc(100vw-2rem)] sm:w-[480px] md:w-[520px] md:grid-cols-2 lg:w-[640px]',
+            )}
+          >
+            {items.map((item) => (
+              <li key={item.title}>
+                <Link
+                  href={item.href}
+                  className="block rounded-xl border border-border bg-surface-solid p-4 transition-all duration-200 hover:-translate-y-1 hover:bg-surface-hover-solid hover:shadow-lg hover:shadow-sky-500"
+                  role="menuitem"
+                >
+                  <div className="text-[13px] font-semibold text-[var(--ecode-text)] dark:text-white flex items-center gap-2">
+                    <Icon className={cn('h-4 w-4', iconClass)} />
+                    {item.title}
+                  </div>
+                  <p className="mt-2 text-[13px] text-[var(--ecode-text-secondary)] dark:text-slate-300 leading-relaxed">
+                    {item.description}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -81,6 +81,7 @@ const inlineThemeCode = stripIndents`
       '/ai-documentation',
       '/ai-docs',
       '/blog',
+      '/bounties',
       '/careers',
       '/case-studies',
       '/changelog',
@@ -98,6 +99,7 @@ const inlineThemeCode = stripIndents`
       '/forum',
       '/help-center',
       '/languages',
+      '/legal',
       '/marketing/bounties',
       '/marketing/deployments',
       '/marketing/teams',
@@ -119,6 +121,7 @@ const inlineThemeCode = stripIndents`
       '/team',
       '/templates',
       '/terms',
+      '/theme-validation',
       '/tutorials',
     ]);
     const prefixes = ['/blog/', '/case-studies/', '/compare/', '/newsletter/', '/solutions/', '/templates/'];
