@@ -49,18 +49,26 @@ resource "google_container_cluster" "app" {
 }
 
 resource "google_container_node_pool" "system" {
-  name       = "system"
+  # Renamed system -> system-std when the boot disks were moved off pd-ssd. The
+  # regional SSD_TOTAL_GB quota counts pd-ssd AND pd-balanced; the platform
+  # services here are stateless (data lives on the RWX Filestore PVC), so their
+  # node boot disks do not need SSD. Using small pd-standard disks keeps the SSD
+  # quota free for the gVisor workspace pool's pd-balanced disks (otherwise the
+  # workspace autoscaler is blocked at the quota and workspaces go Pending).
+  name       = "system-std"
   location   = var.region
   cluster    = google_container_cluster.app.name
-  node_count = 3
+  node_count = 1 # per zone (regional) => 3 nodes total
 
   autoscaling {
-    min_node_count = 3
-    max_node_count = 10
+    min_node_count = 1
+    max_node_count = 3
   }
 
   node_config {
     machine_type    = "e2-standard-4"
+    disk_type       = "pd-standard"
+    disk_size_gb    = 50
     service_account = var.service_account_email
     oauth_scopes    = ["https://www.googleapis.com/auth/cloud-platform"]
     labels          = merge(var.labels, { "vibecore.ai/node-pool" = "app-system" })
