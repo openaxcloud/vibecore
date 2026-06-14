@@ -889,9 +889,18 @@ export const Preview = memo(
         }
 
         if (tick % 6 === 0) {
+          /*
+           * Force a real dependency (re)install, not just a dev-server restart.
+           * On a fresh generation the dev server can come up (port detected) but
+           * serve nothing because node_modules never finished installing — a plain
+           * restart re-runs the same dev command and stays broken. reinstall
+           * (forceInstall) actually runs `npm install` first. Gated by the
+           * isPreviewServerStarting() check above so it never overlaps an
+           * in-flight install.
+           */
           setIsStartingPreview(true);
-          setPreviewStatus('Restarting preview server and detecting runtime ports...');
-          void workbenchStore.restartPreviewServer().catch(() => undefined);
+          setPreviewStatus('Reinstalling dependencies and restarting the dev server...');
+          void workbenchStore.reinstallDependencies().catch(() => undefined);
         } else if (tick % 2 === 0) {
           setIsStartingPreview(true);
           setPreviewStatus('Starting dev server and detecting runtime ports...');
@@ -912,7 +921,7 @@ export const Preview = memo(
         setPreviewRunFailed(true);
         setIsStartingPreview(false);
         setIsRefreshingPorts(false);
-      }, 120000);
+      }, 300000); // 5min: a fresh complex app's npm install + dev start can exceed 2min under gVisor/CPU contention
 
       return () => window.clearTimeout(timeout);
     }, [autoStart, hasStaticPreview, previews.length, workspaceReady]);
