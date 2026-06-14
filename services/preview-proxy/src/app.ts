@@ -24,6 +24,17 @@ export interface PreviewProxyOptions {
    * Defaults to true.
    */
   injectInspector?: boolean;
+  /**
+   * Base preview domain (e.g. `preview.e-code.ai`). When set, requests whose
+   * Host is a per-preview subdomain `<workspaceId>-<port>.<previewDomain>` are
+   * served at the HOST ROOT — the workspace + port come from the host, not the
+   * URL path. This is what makes apps with root-relative asset URLs
+   * (`/main.js`, `/@vite/client`, the Vite/CRA default) load: the browser
+   * requests them at the origin root, which has no `/p/<ws>/<port>/` path
+   * prefix, so without host routing they 404 and the app renders blank. Unset
+   * (dev/tests) keeps pure path-based `/p/<ws>/<port>` routing.
+   */
+  previewDomain?: string;
 }
 
 // Same-origin path the injected <script src> points at, served below. Same
@@ -32,6 +43,52 @@ const INSPECTOR_SCRIPT_PATH = '/__vibecore/inspector-script.js';
 const INSPECTOR_MARKER = 'data-vibecore-inspector';
 
 type PreviewRouteParams = { workspaceId: string; port: string; '*'?: string };
+
+/*
+ * Derive the workspace id + port from a per-preview Host header
+ * (`<workspaceId>-<port>.<previewDomain>`). The workspace id itself contains
+ * hyphens (`ws-<hex>`), so we split on the LAST hyphen of the leftmost label:
+ * everything before it is the workspace id, the trailing numeric run is the
+ * port. Returns null for anything that is not a valid preview host (the proxy's
+ * own service host, health probes, malformed hosts) so those fall through to
+ * normal path-based routing.
+ */
+export function parsePreviewHost(
+  hostHeader: string | undefined,
+  previewDomain: string | undefined,
+): { workspaceId: string; port: string } | null {
+  if (!hostHeader || !previewDomain) {
+    return null;
+  }
+
+  const host = hostHeader.split(':')[0].trim().toLowerCase();
+  const suffix = `.${previewDomain.trim().toLowerCase().replace(/^\.+|\.+$/g, '')}`;
+
+  if (suffix === '.' || !host.endsWith(suffix)) {
+    return null;
+  }
+
+  const label = host.slice(0, host.length - suffix.length);
+
+  // Reject multi-level labels: a per-preview host is a single subdomain label.
+  if (!label || label.includes('.')) {
+    return null;
+  }
+
+  const match = /^(.+)-(\d{1,5})$/.exec(label);
+
+  if (!match) {
+    return null;
+  }
+
+  const port = Number(match[2]);
+
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    return null;
+  }
+
+  return { workspaceId: match[1], port: String(port) };
+}
 
 export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): Promise<FastifyInstance> {
   const isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
@@ -43,6 +100,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   const fetchImpl = options.fetchImpl ?? fetch;
   const requestTimeoutMs = options.requestTimeoutMs ?? 30_000;
   const injectInspector = options.injectInspector ?? true;
+  const previewDomain = options.previewDomain ?? process.env.PREVIEW_DOMAIN;
   const app = Fastify({ logger: options.logger ?? false });
 
   /*
@@ -353,6 +411,58 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
   app.all('/p/:workspaceId/:port', handlePreviewRequest);
   app.all('/p/:workspaceId/:port/*', handlePreviewRequest);
+
+  /*
+   * Host-based preview routing. Runs before route matching so that, on a
+   * per-preview host `<ws>-<port>.<previewDomain>`, EVERY path is proxied to the
+   * workspace dev server — the workspace + port come from the host, not the URL.
+   * This is what lets apps using root-relative asset URLs (the Vite/CRA default,
+   * `/main.js`, `/@vite/client`, `/assets/...`) load: the browser requests those
+   * at the origin root, which carries no `/p/<ws>/<port>/` path prefix, so pure
+   * path routing 404s them and the app renders blank.
+   *
+   * Exemptions (served by the proxy itself, never forwarded upstream):
+   *   - /health                         liveness/readiness
+   *   - INSPECTOR_SCRIPT_PATH           the injected inspect-to-code bridge
+   *
+   * Self-prefix stripping: when the iframe is still loaded via the path-based
+   * template (`.../p/<ws>/<port>/`), the document URL itself carries that prefix.
+   * If the leading path segment matches THIS host's own `/p/<ws>/<port>`, strip
+   * it so we don't forward it to the dev server as an app route. A DIFFERENT
+   * `/p/<a>/<b>` (an app's own route) is forwarded verbatim — no collision.
+   */
+  if (previewDomain) {
+    app.addHook('onRequest', async (request, reply) => {
+      const parsed = parsePreviewHost(request.headers.host, previewDomain);
+
+      if (!parsed) {
+        return; // not a preview host — fall through to path-based routing
+      }
+
+      const path = request.url.split('?')[0].split('#')[0];
+
+      if (path === '/health' || path === INSPECTOR_SCRIPT_PATH) {
+        return; // proxy-served endpoints take precedence over host proxying
+      }
+
+      let sub = path.replace(/^\/+/, '');
+      const selfPrefix = `p/${parsed.workspaceId}/${parsed.port}`;
+
+      if (sub === selfPrefix) {
+        sub = '';
+      } else if (sub.startsWith(`${selfPrefix}/`)) {
+        sub = sub.slice(selfPrefix.length + 1);
+      }
+
+      (request as FastifyRequest<{ Params: PreviewRouteParams }>).params = {
+        workspaceId: parsed.workspaceId,
+        port: parsed.port,
+        '*': sub,
+      };
+
+      await handlePreviewRequest(request as FastifyRequest<{ Params: PreviewRouteParams }>, reply);
+    });
+  }
 
   return app;
 }

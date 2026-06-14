@@ -5,6 +5,7 @@ const app = await buildPreviewProxyApp({
   logger: true,
   workspaceManagerUrl: process.env.WORKSPACE_MANAGER_URL,
   proxySharedSecret: process.env.PREVIEW_PROXY_SHARED_SECRET,
+  previewDomain: process.env.PREVIEW_DOMAIN,
 });
 
 const port = Number(process.env.PREVIEW_PROXY_PORT ?? 3020);

@@ -75,6 +75,12 @@ data:
   WORKSPACE_STORAGE_CLASS: {{ .Values.platformEnv.runtime.workspaceStorageClass | quote }}
   WORKSPACE_AGENT_IMAGE: {{ .Values.platformEnv.runtime.workspaceAgentImage | quote }}
   PREVIEW_URL_TEMPLATE: {{ .Values.platformEnv.runtime.previewUrlTemplate | quote }}
+  # Base preview domain (e.g. preview.e-code.ai). The preview-proxy uses it to
+  # recognize per-preview hosts `<workspaceId>-<port>.<PREVIEW_DOMAIN>` and serve
+  # the app at the host root, so apps whose HTML uses root-relative asset URLs
+  # (`/main.js`, `/@vite/client` — the Vite/CRA default) load correctly instead
+  # of 404ing because the path prefix `/p/<ws>/<port>/` is dropped.
+  PREVIEW_DOMAIN: {{ .Values.global.previewDomain | quote }}
 
   {{- if .Values.platformEnv.email.httpEndpoint }}
   EMAIL_HTTP_ENDPOINT: {{ .Values.platformEnv.email.httpEndpoint | quote }}

@@ -4796,11 +4796,24 @@ function previewUrlForWorkspacePort(workspaceId: string, port: number) {
   );
 
   if (template) {
-    return template
-      .replaceAll('{workspaceId}', workspaceId)
-      .replaceAll('{port}', String(port))
-      .replaceAll('{namespace}', runtimeNamespace())
-      .replace(/\/+$/, '');
+    /*
+     * Normalize to EXACTLY one trailing slash. The preview URL is loaded as the
+     * iframe document URL, so it must be directory-style: without a trailing
+     * slash the browser treats the last path segment (`<port>`) as a filename
+     * and resolves the app's relative asset URLs one level too high (e.g.
+     * `/p/<ws>/asset.js` instead of `/p/<ws>/<port>/asset.js`), so nothing
+     * loads and the preview renders blank. The prod template intentionally ends
+     * in '/'; collapsing-then-stripping every trailing slash (the old behavior)
+     * silently defeated that. Strip any number of trailing slashes, then add one
+     * back so we always emit a single canonical trailing slash.
+     */
+    return (
+      template
+        .replaceAll('{workspaceId}', workspaceId)
+        .replaceAll('{port}', String(port))
+        .replaceAll('{namespace}', runtimeNamespace())
+        .replace(/\/+$/, '') + '/'
+    );
   }
 
   return `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/preview/${encodeURIComponent(String(port))}/proxy/`;

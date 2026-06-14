@@ -210,4 +210,94 @@ describe('preview-proxy', () => {
     expect(response.body).not.toContain('inspector-script.js');
     await app.close();
   });
+
+  describe('host-based preview routing', () => {
+    const previewDomain = 'preview.e-code.ai';
+    const host = (port: number, ws = 'ws-81ab929b9800a908') => `${ws}-${port}.${previewDomain}`;
+
+    it('serves root-relative asset requests at the host root (workspace+port from the Host)', async () => {
+      const { fn: fetchImpl, calls } = recordingFetch(
+        async () => new Response('console.log(1)', { status: 200, headers: { 'content-type': 'application/javascript' } }),
+      );
+      const app = await buildPreviewProxyApp({ fetchImpl, previewDomain, resolveAgent: async () => fakeAgent });
+
+      const response = await app.inject({ method: 'GET', url: '/main.js', headers: { host: host(5173) } });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toBe('console.log(1)');
+      expect(calls[0].url.toString()).toBe('http://workspace-agent.test/preview/5173/main.js');
+      await app.close();
+    });
+
+    it('serves the host root itself (empty subpath) to the dev server root', async () => {
+      const { fn: fetchImpl, calls } = recordingFetch(async () => new Response('<html></html>', { status: 200 }));
+      const app = await buildPreviewProxyApp({ fetchImpl, previewDomain, resolveAgent: async () => fakeAgent });
+
+      const response = await app.inject({ method: 'GET', url: '/', headers: { host: host(3000) } });
+
+      expect(response.statusCode).toBe(200);
+      expect(calls[0].url.toString()).toBe('http://workspace-agent.test/preview/3000/');
+      await app.close();
+    });
+
+    it('strips a self-referential /p/<ws>/<port> prefix (path-based iframe URL on a preview host)', async () => {
+      const { fn: fetchImpl, calls } = recordingFetch(async () => new Response('ok', { status: 200 }));
+      const app = await buildPreviewProxyApp({ fetchImpl, previewDomain, resolveAgent: async () => fakeAgent });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/p/ws-81ab929b9800a908/5173/',
+        headers: { host: host(5173) },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(calls[0].url.toString()).toBe('http://workspace-agent.test/preview/5173/');
+      await app.close();
+    });
+
+    it('forwards a DIFFERENT /p/<a>/<b> path verbatim as an app route (no self-prefix collision)', async () => {
+      const { fn: fetchImpl, calls } = recordingFetch(async () => new Response('app route', { status: 200 }));
+      const app = await buildPreviewProxyApp({ fetchImpl, previewDomain, resolveAgent: async () => fakeAgent });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/p/products/8080',
+        headers: { host: host(5173) },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(calls[0].url.toString()).toBe('http://workspace-agent.test/preview/5173/p/products/8080');
+      await app.close();
+    });
+
+    it('exempts /health and the inspector script from host proxying', async () => {
+      const { fn: fetchImpl, calls } = recordingFetch(async () => new Response('SHOULD NOT FORWARD', { status: 200 }));
+      const app = await buildPreviewProxyApp({ fetchImpl, previewDomain, resolveAgent: async () => fakeAgent });
+
+      const health = await app.inject({ method: 'GET', url: '/health', headers: { host: host(5173) } });
+      expect(health.json()).toEqual({ status: 'ok', service: 'preview-proxy' });
+
+      const inspector = await app.inject({
+        method: 'GET',
+        url: '/__vibecore/inspector-script.js',
+        headers: { host: host(5173) },
+      });
+      expect(inspector.statusCode).toBe(200);
+      expect(inspector.headers['content-type']).toContain('application/javascript');
+
+      expect(calls).toHaveLength(0); // neither was forwarded upstream
+      await app.close();
+    });
+
+    it('ignores non-preview hosts (falls through to path-based routing)', async () => {
+      const { fn: fetchImpl, calls } = recordingFetch(async () => new Response('nope', { status: 200 }));
+      const app = await buildPreviewProxyApp({ fetchImpl, previewDomain, resolveAgent: async () => fakeAgent });
+
+      // A bare /main.js on a NON-preview host has no route → Fastify 404, no upstream call.
+      const response = await app.inject({ method: 'GET', url: '/main.js', headers: { host: 'app.e-code.ai' } });
+      expect(response.statusCode).toBe(404);
+      expect(calls).toHaveLength(0);
+      await app.close();
+    });
+  });
 });
