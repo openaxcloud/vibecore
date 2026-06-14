@@ -42,6 +42,37 @@ const STATIC_MOBILE_MENU_SCROLL_FIX = String.raw`
     padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
+
+@media (max-width: 639px) {
+  [data-ecode-static-shell] .flex.gap-4.justify-center {
+    flex-wrap: wrap !important;
+  }
+
+  [data-ecode-static-shell] .flex.gap-4.justify-center > a,
+  [data-ecode-static-shell] .flex.gap-4.justify-center > button {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  [data-ecode-static-shell] .flex.gap-4.justify-center > a > button,
+  [data-ecode-static-shell] .flex.gap-4.justify-center > button {
+    width: 100% !important;
+    white-space: normal !important;
+  }
+
+  [data-ecode-static-shell] .grid > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  [data-ecode-static-shell] h1,
+  [data-ecode-static-shell] h2,
+  [data-ecode-static-shell] h3,
+  [data-ecode-static-shell] p,
+  [data-ecode-static-shell] li {
+    overflow-wrap: anywhere !important;
+  }
+}
 </style>`;
 
 const AUTH_NAVIGATION_GUARD = String.raw`

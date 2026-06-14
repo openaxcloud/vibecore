@@ -81,67 +81,69 @@ export default function Legal() {
     <div className="min-h-screen bg-background" data-testid="page-legal">
       <PublicNavbar />
 
-      <section className="py-responsive">
-        <div className="container-responsive">
-          <div className="mx-auto max-w-4xl text-center">
-            <div className="mb-4 flex items-center justify-center gap-2">
-              <Scale className="h-5 w-5" />
-              <span className="text-[13px] text-muted-foreground">Legal Center</span>
+      <main>
+        <section className="py-responsive">
+          <div className="container-responsive">
+            <div className="mx-auto max-w-4xl text-center">
+              <div className="mb-4 flex items-center justify-center gap-2">
+                <Scale className="h-5 w-5" />
+                <span className="text-[13px] text-muted-foreground">Legal Center</span>
+              </div>
+              <h1 className="mb-4 text-responsive-2xl font-bold tracking-tight" data-testid="heading-legal">
+                Legal
+              </h1>
+              <p className="mx-auto max-w-2xl text-responsive-base text-muted-foreground">
+                Review the policies, agreements, and trust resources that govern E-Code services.
+              </p>
             </div>
-            <h1 className="mb-4 text-responsive-2xl font-bold tracking-tight" data-testid="heading-legal">
-              Legal
-            </h1>
-            <p className="mx-auto max-w-2xl text-responsive-base text-muted-foreground">
-              Review the policies, agreements, and trust resources that govern E-Code services.
-            </p>
-          </div>
 
-          <div className="mx-auto mt-12 grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2">
-            {legalDocuments.map((document) => {
-              const Icon = document.icon;
+            <div className="mx-auto mt-12 grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2">
+              {legalDocuments.map((document) => {
+                const Icon = document.icon;
 
-              return (
-                <Card key={document.href} className="group">
-                  <CardHeader>
-                    <div className="mb-3 flex items-center justify-between gap-4">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <Icon className="h-5 w-5" />
+                return (
+                  <Card key={document.href} className="group">
+                    <CardHeader>
+                      <div className="mb-3 flex items-center justify-between gap-4">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <Badge variant="secondary">{document.badge}</Badge>
                       </div>
-                      <Badge variant="secondary">{document.badge}</Badge>
-                    </div>
-                    <CardTitle>{document.title}</CardTitle>
-                    <CardDescription>{document.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button asChild variant="outline" className="w-full justify-between">
-                      <Link href={document.href}>
-                        View document
-                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                      <CardTitle>{document.title}</CardTitle>
+                      <CardDescription>{document.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button asChild variant="outline" className="w-full justify-between">
+                        <Link href={document.href}>
+                          View document
+                          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
 
-          <div className="mx-auto mt-12 max-w-4xl rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-6 text-center">
-            <h2 className="mb-2 text-xl font-semibold">Need legal help?</h2>
-            <p className="mx-auto mb-6 max-w-2xl text-[13px] text-muted-foreground">
-              Contact our legal team for contract questions, data processing requests, security reviews, or abuse
-              escalation.
-            </p>
-            <div className="flex flex-col justify-center gap-3 sm:flex-row">
-              <Button asChild>
-                <a href="mailto:legal@e-code.ai">Contact Legal</a>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/report-abuse">Report Abuse</Link>
-              </Button>
+            <div className="mx-auto mt-12 max-w-4xl rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-6 text-center">
+              <h2 className="mb-2 text-xl font-semibold">Need legal help?</h2>
+              <p className="mx-auto mb-6 max-w-2xl text-[13px] text-muted-foreground">
+                Contact our legal team for contract questions, data processing requests, security reviews, or abuse
+                escalation.
+              </p>
+              <div className="flex flex-col justify-center gap-3 sm:flex-row">
+                <Button asChild>
+                  <a href="mailto:legal@e-code.ai">Contact Legal</a>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href="/report-abuse">Report Abuse</Link>
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
       <PublicFooter />
     </div>

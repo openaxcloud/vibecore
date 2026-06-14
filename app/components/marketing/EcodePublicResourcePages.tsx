@@ -87,7 +87,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
             description="This is a public marketing gallery. It uses the same E-Code header and footer as the homepage, while the cards are powered by Vibecore's real template catalog."
           />
 
-          <div className="mt-8 flex gap-3 overflow-x-auto pb-2" aria-label="Template categories">
+          <div className="mt-8 flex flex-wrap gap-3 pb-2" aria-label="Template categories">
             {categories.map((category) => (
               <span
                 key={category.slug}

@@ -5101,7 +5101,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
           port: 5173,
           type: 'open',
           ready: true,
-          url: `https://${deterministicRuntimeWorkspaceId(projectId, auth.user.id)}-5173.preview.example.com`,
+          url: `https://${deterministicRuntimeWorkspaceId(projectId, auth.user.id)}-5173.preview.example.com/`,
         }),
       ]);
     } finally {
