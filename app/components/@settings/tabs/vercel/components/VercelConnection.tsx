@@ -134,8 +134,11 @@ export default function VercelConnection() {
         {!connection.user ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-bolt-elements-textSecondary mb-2">Personal Access Token</label>
+              <label htmlFor="vercel-access-token" className="block text-sm text-bolt-elements-textSecondary mb-2">
+                Personal Access Token
+              </label>
               <input
+                id="vercel-access-token"
                 type="password"
                 value={connection.token}
                 onChange={(e) => updateVercelConnection({ ...connection, token: e.target.value })}

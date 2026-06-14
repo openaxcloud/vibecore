@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { diffLines, type Change } from 'diff';
 import { memo, useMemo, useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { getHighlighter } from 'shiki';
 import type { EditorDocument } from '~/components/editor/codemirror/CodeMirrorEditor';
 import type { FileMap } from '~/lib/stores/files';
@@ -94,19 +95,53 @@ const FullscreenButton = memo(({ onClick, isFullscreen }: FullscreenButtonProps)
   </button>
 ));
 
-const FullscreenOverlay = memo(({ isFullscreen, children }: { isFullscreen: boolean; children: React.ReactNode }) => {
-  if (!isFullscreen) {
-    return <>{children}</>;
-  }
+const FullscreenOverlay = memo(
+  ({ isFullscreen, onClose, children }: { isFullscreen: boolean; onClose?: () => void; children: React.ReactNode }) => {
+    useEffect(() => {
+      if (!isFullscreen || !onClose) {
+        return undefined;
+      }
 
-  return (
-    <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-6">
-      <div className="w-full h-full max-w-[90vw] max-h-[90vh] bg-bolt-elements-background-depth-2 rounded-lg border border-bolt-elements-borderColor shadow-xl overflow-hidden">
-        {children}
-      </div>
-    </div>
-  );
-});
+      const onKey = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          onClose();
+        }
+      };
+
+      document.addEventListener('keydown', onKey);
+
+      return () => document.removeEventListener('keydown', onKey);
+    }, [isFullscreen, onClose]);
+
+    if (!isFullscreen) {
+      return <>{children}</>;
+    }
+
+    /*
+     * Portal to <body>: rendered inline, the fixed overlay is clamped to the
+     * nearest transformed/contained ancestor (the workbench panel) instead of
+     * the viewport. Backdrop click + Escape (above) close it.
+     */
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
+    return createPortal(
+      <div
+        className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-6"
+        onClick={() => onClose?.()}
+      >
+        <div
+          className="w-full h-full max-w-[90vw] max-h-[90vh] bg-bolt-elements-background-depth-2 rounded-lg border border-bolt-elements-borderColor shadow-xl overflow-hidden"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {children}
+        </div>
+      </div>,
+      document.body,
+    );
+  },
+);
 
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB
 const BINARY_REGEX = /[\x00-\x08\x0E-\x1F]/;
@@ -657,7 +692,7 @@ const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language }
   }
 
   return (
-    <FullscreenOverlay isFullscreen={isFullscreen}>
+    <FullscreenOverlay isFullscreen={isFullscreen} onClose={() => setIsFullscreen(false)}>
       <div className="w-full h-full flex flex-col">
         <FileInfo
           filename={filename}

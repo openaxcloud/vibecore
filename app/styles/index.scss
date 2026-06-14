@@ -14276,7 +14276,9 @@ button.bolt-project-statusbar-pill:focus-visible,
       .bolt-project-console-header button,
       .bolt-project-secret-row button,
       .bolt-project-statusbar button,
-      .bolt-project-statusbar-pill
+      .bolt-project-statusbar-pill,
+      .bolt-project-ide-icon-button,
+      .bolt-project-collaboration-button
     ),
   .bolt-responsive-ide
     :is(

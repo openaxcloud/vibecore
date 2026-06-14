@@ -891,10 +891,14 @@ export default function NetlifyConnection() {
 
         {!connection.user ? (
           <div className="mt-4">
-            <label className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-2">
+            <label
+              htmlFor="netlify-api-token"
+              className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-2"
+            >
               API Token
             </label>
             <input
+              id="netlify-api-token"
               type="password"
               value={tokenInput}
               onChange={(e) => setTokenInput(e.target.value)}

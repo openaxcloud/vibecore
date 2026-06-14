@@ -95,8 +95,11 @@ export default function GitLabConnection({ connectionTest, onTestConnection }: G
         <form onSubmit={handleConnect}>
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="block text-sm text-bolt-elements-textSecondary mb-2">GitLab URL</label>
+              <label htmlFor="gitlab-url" className="block text-sm text-bolt-elements-textSecondary mb-2">
+                GitLab URL
+              </label>
               <input
+                id="gitlab-url"
                 type="text"
                 value={gitlabUrl}
                 onChange={(e) => setGitlabUrl(e.target.value)}
@@ -114,8 +117,11 @@ export default function GitLabConnection({ connectionTest, onTestConnection }: G
             </div>
 
             <div>
-              <label className="block text-sm text-bolt-elements-textSecondary mb-2">Access Token</label>
+              <label htmlFor="gitlab-access-token" className="block text-sm text-bolt-elements-textSecondary mb-2">
+                Access Token
+              </label>
               <input
+                id="gitlab-access-token"
                 type="password"
                 value={token}
                 onChange={(e) => setToken(e.target.value)}

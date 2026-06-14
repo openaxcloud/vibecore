@@ -97,10 +97,14 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
         <form onSubmit={handleConnect} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-2">
+              <label
+                htmlFor="github-token-type"
+                className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-2"
+              >
                 Token Type
               </label>
               <select
+                id="github-token-type"
                 value={tokenType}
                 onChange={(e) => setTokenType(e.target.value as 'classic' | 'fine-grained')}
                 disabled={isConnecting || isConnected}
@@ -119,10 +123,14 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
             </div>
 
             <div>
-              <label className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-2">
+              <label
+                htmlFor="github-access-token"
+                className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-2"
+              >
                 {tokenType === 'classic' ? 'Personal Access Token' : 'Fine-grained Token'}
               </label>
               <input
+                id="github-access-token"
                 type="password"
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
