@@ -54,13 +54,17 @@ Provisioned resources:
 ```bash
 gcloud container clusters get-credentials vibecore-prod-app --region us-central1 --project vibecore-prod
 kubectl apply -f infra/kubernetes/podsecurity/namespaces.yaml
-kubectl apply -f infra/kubernetes/networkpolicies/platform-deny-default.yaml
 
 gcloud container clusters get-credentials vibecore-prod-workspaces --region us-central1 --project vibecore-prod
 kubectl apply -f infra/kubernetes/podsecurity/namespaces.yaml
-kubectl apply -f infra/kubernetes/networkpolicies/workspaces-deny-default.yaml
 kubectl apply -f infra/kubernetes/admission-policies/workspace-restricted-policies.yaml
 ```
+
+> **NetworkPolicies are managed by the Helm charts** (`infra/helm/platform` and
+> `infra/helm/workspaces-runtime`). Do NOT `kubectl apply` standalone
+> NetworkPolicy manifests — they previously shared identical names
+> (`deny-all-default`, `workspace-default-deny`, `workspace-controlled-egress`)
+> and, applied after Helm, overwrote the chart's stricter egress rules.
 
 ## Helm
 
