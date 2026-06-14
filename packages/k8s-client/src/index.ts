@@ -328,8 +328,33 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
             requests: { cpu: resources.cpuRequest, memory: resources.memoryRequest },
             limits: { cpu: resources.cpuLimit, memory: resources.memoryLimit },
           },
-          readinessProbe: { httpGet: { path: '/health', port: 8080 }, initialDelaySeconds: 2, periodSeconds: 5 },
-          livenessProbe: { httpGet: { path: '/health', port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 },
+          /*
+           * Readiness gates traffic (safe to flap); keep it responsive but allow
+           * a 3s timeout so a momentarily busy agent isn't marked NotReady.
+           */
+          readinessProbe: {
+            httpGet: { path: '/health', port: 8080 },
+            initialDelaySeconds: 2,
+            periodSeconds: 5,
+            timeoutSeconds: 3,
+            failureThreshold: 3,
+          },
+          /*
+           * Liveness RESTARTS the pod — and a restart kills the user's dev server
+           * (the agent's child process), surfacing as "Stopped runtime". The old
+           * defaults (timeout 1s, 3 fails / ~30s) killed a perfectly healthy agent
+           * whose event loop was briefly starved during a heavy `npm install`/build
+           * under sandbox-node CPU contention. Make it tolerant: 5s timeout and 6
+           * failures over 15s periods (~90s of unresponsiveness) before a restart,
+           * so only a genuinely hung agent is recycled.
+           */
+          livenessProbe: {
+            httpGet: { path: '/health', port: 8080 },
+            initialDelaySeconds: 10,
+            periodSeconds: 15,
+            timeoutSeconds: 5,
+            failureThreshold: 6,
+          },
           securityContext: {
             allowPrivilegeEscalation: false,
             privileged: false,
