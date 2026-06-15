@@ -4676,6 +4676,55 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     }
   });
 
+  it('lists only the current user project AI conversations with a bounded limit', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'ai-history@example.com', organizationName: 'AI History Org' });
+    const otherUser = await register(app, {
+      email: 'ai-history-other@example.com',
+      organizationName: 'AI History Other Org',
+    });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'AI History Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+    const first = await store.createAiConversation({ projectId, userId: auth.user.id, title: 'First chat' });
+    const second = await store.createAiConversation({ projectId, userId: auth.user.id, title: 'Second chat' });
+    const leaked = await store.createAiConversation({ projectId, userId: otherUser.user.id, title: 'Other user chat' });
+
+    try {
+      const limited = await app.inject({
+        method: 'GET',
+        url: `/projects/${projectId}/ai/conversations?limit=1`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+
+      expect(limited.statusCode).toBe(200);
+      expect(limited.json().conversations).toHaveLength(1);
+      expect([first.id, second.id]).toContain(limited.json().conversations[0].id);
+      expect(limited.json().conversations[0].id).not.toBe(leaked.id);
+
+      const all = await app.inject({
+        method: 'GET',
+        url: `/projects/${projectId}/ai/conversations?limit=10`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+
+      expect(all.statusCode).toBe(200);
+      expect(all.json().conversations.map((conversation: { id: string }) => conversation.id)).toEqual(
+        expect.arrayContaining([first.id, second.id]),
+      );
+      expect(all.json().conversations.map((conversation: { id: string }) => conversation.id)).not.toContain(leaked.id);
+    } finally {
+      await app.close();
+    }
+  });
+
   it('attaches AI tool calls to an active project AI conversation transcript', async () => {
     const runtime = await startRuntimeServices();
     const store = new TestApiStore();

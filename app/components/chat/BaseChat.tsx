@@ -5567,8 +5567,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [clearProjectConversation, closeMobileOverlays, textareaRef]);
 
     const openMobileAgentHistory = useCallback(() => {
-      activateMobileTool('activity');
-    }, [activateMobileTool]);
+      closeMobileOverlays();
+      setConversationHistoryOpen(true);
+    }, [closeMobileOverlays]);
 
     const openMobileAgentUsage = useCallback(() => {
       activateMobileTool('monitoring');
@@ -5617,6 +5618,92 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           hidden: useMobileIde && mobilePanel !== 'chat',
         })}
       >
+        {useMobileIde && conversationHistoryOpen && (
+          <div className="bolt-project-conversation-history" role="dialog" aria-label="Project agent history">
+            <div className="bolt-project-conversation-history-head">
+              <div>
+                <strong>Agent history</strong>
+                <span>
+                  {filteredProjectConversationCheckpoints.length} of {projectConversationCheckpoints.length} checkpoints
+                </span>
+              </div>
+              <button
+                type="button"
+                className="bolt-project-ide-icon-button"
+                aria-label="Close history"
+                onClick={() => setConversationHistoryOpen(false)}
+              >
+                <span className="i-ph:x" aria-hidden />
+              </button>
+            </div>
+            <label className="bolt-project-conversation-history-search">
+              <span className="i-ph:magnifying-glass" aria-hidden />
+              <input
+                type="search"
+                value={conversationHistoryQuery}
+                placeholder="Search checkpoints, commits, prompts, or agent replies"
+                aria-label="Search agent checkpoints"
+                onChange={(event) => setConversationHistoryQuery(event.currentTarget.value)}
+              />
+              {conversationHistoryQuery && (
+                <button type="button" aria-label="Clear history search" onClick={() => setConversationHistoryQuery('')}>
+                  <span className="i-ph:x" aria-hidden />
+                </button>
+              )}
+            </label>
+            <div className="bolt-project-conversation-history-list">
+              {filteredProjectConversationCheckpoints.map((checkpoint) => {
+                const rollbackAvailable = checkpoint.snapshot || checkpoint.messages.length;
+
+                return (
+                  <article key={checkpoint.id} className="bolt-project-history-checkpoint">
+                    <div className="bolt-project-history-checkpoint-main">
+                      <strong>{checkpoint.title}</strong>
+                      <span>{checkpoint.description}</span>
+                      <small>
+                        {checkpoint.ageLabel}
+                        {checkpoint.commitSha ? ` - ${checkpoint.commitSha}` : ''}
+                      </small>
+                    </div>
+                    <div className="bolt-project-history-checkpoint-actions">
+                      <button
+                        type="button"
+                        aria-label={`View chat at checkpoint ${checkpoint.title}`}
+                        onClick={() => viewProjectCheckpoint(checkpoint)}
+                      >
+                        View Chat
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!rollbackAvailable}
+                        aria-label={`Rollback to checkpoint ${checkpoint.title}`}
+                        onClick={() => {
+                          setRollbackDatabase(false);
+                          setRollbackTarget(checkpoint);
+                        }}
+                      >
+                        Rollback here
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Review diff for checkpoint ${checkpoint.title}`}
+                        onClick={() => openCheckpointChanges(checkpoint)}
+                      >
+                        Review diff
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+              {!projectConversationCheckpoints.length && (
+                <div className="bolt-project-history-empty">No project agent history yet.</div>
+              )}
+              {projectConversationCheckpoints.length > 0 && !filteredProjectConversationCheckpoints.length && (
+                <div className="bolt-project-history-empty">No checkpoints match this search.</div>
+              )}
+            </div>
+          </div>
+        )}
         {shouldShowMobileAgentStartState ? (
           <MobileAgentStartState
             fileCount={mobileAgentFileCount}
