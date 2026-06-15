@@ -1772,8 +1772,21 @@ export class TestApiStore implements ApiStore {
     return this.aiConversations.get(idValue);
   }
 
-  async createAiMessage(input: { conversationId: string; role: AiMessageRecord['role']; content: string }) {
-    const message: AiMessageRecord = { id: id('ai_msg'), ...input, createdAt: now() };
+  async createAiMessage(input: { id?: string; conversationId: string; role: AiMessageRecord['role']; content: string }) {
+    const existing = input.id ? this.aiMessages.get(input.id) : undefined;
+
+    if (existing) {
+      const message: AiMessageRecord = {
+        ...existing,
+        role: input.role,
+        content: input.content,
+      };
+      this.aiMessages.set(message.id, message);
+      return message;
+    }
+
+    const { id: requestedId, ...messageInput } = input;
+    const message: AiMessageRecord = { id: requestedId ?? id('ai_msg'), ...messageInput, createdAt: now() };
     this.aiMessages.set(message.id, message);
     return message;
   }

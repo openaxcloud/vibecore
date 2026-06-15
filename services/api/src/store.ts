@@ -1038,6 +1038,7 @@ export interface ApiStore {
   createAiConversation(input: { projectId?: string; userId: string; title?: string }): Promise<AiConversationRecord>;
   getAiConversation(id: string): Promise<AiConversationRecord | undefined>;
   createAiMessage(input: {
+    id?: string;
     conversationId: string;
     role: AiMessageRecord['role'];
     content: string;

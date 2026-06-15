@@ -4,9 +4,10 @@ import type { ChatHistoryItem } from './useChatHistory';
 import { createScopedLogger } from '~/utils/logger';
 
 export interface IChatMetadata {
-  gitUrl: string;
+  gitUrl?: string;
   gitBranch?: string;
   netlifySiteId?: string;
+  aiConversationId?: string;
 }
 
 const logger = createScopedLogger('ChatHistory');

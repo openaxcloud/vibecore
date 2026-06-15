@@ -12,7 +12,7 @@ import { BaseChat } from './BaseChat';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { useSettings } from '~/lib/hooks/useSettings';
-import { description, useChatHistory } from '~/lib/persistence';
+import { chatMetadata, description, useChatHistory } from '~/lib/persistence';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { chatStore } from '~/lib/stores/chat';
 import { logStore } from '~/lib/stores/logs';
@@ -108,6 +108,39 @@ function initialProjectModelSelection() {
   }
 
   return projectModelSelectionFromParams(new URLSearchParams(window.location.search));
+}
+
+type ProjectAiConversationResponse = {
+  conversation?: {
+    id?: string;
+  };
+};
+
+function projectAiTranscriptMessages(messages: Message[]) {
+  return messages
+    .filter((message) => !message.annotations?.includes('no-store'))
+    .map((message, index) => {
+      const role = String(message.role);
+
+      if (role !== 'system' && role !== 'user' && role !== 'assistant' && role !== 'tool') {
+        return undefined;
+      }
+
+      return {
+        clientId: message.id || `${role}:${index}:${message.content.slice(0, 80)}`,
+        role,
+        content: message.content ?? '',
+      };
+    })
+    .filter(
+      (
+        message,
+      ): message is {
+        clientId: string;
+        role: 'system' | 'user' | 'assistant' | 'tool';
+        content: string;
+      } => Boolean(message),
+    );
 }
 
 export function Chat({
@@ -261,6 +294,92 @@ export const ChatImpl = memo(
     const pendingPersistRef = useRef<Message[] | null>(null);
     const persistInFlightRef = useRef<Promise<void> | null>(null);
 
+    const backendAiConversationIdRef = useRef<string | undefined>(
+      projectIdeMode ? chatMetadata.get()?.aiConversationId : undefined,
+    );
+
+    const ensureProjectAiConversation = useCallback(async () => {
+      if (!projectIdeMode || !projectId) {
+        return undefined;
+      }
+
+      const existingConversationId = backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId;
+
+      if (existingConversationId) {
+        backendAiConversationIdRef.current = existingConversationId;
+        return existingConversationId;
+      }
+
+      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ai/conversations`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ title: description?.trim() || 'Project agent' }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`AI conversation create failed (${response.status})`);
+      }
+
+      const payload = (await response.json()) as ProjectAiConversationResponse;
+      const conversationId = payload.conversation?.id;
+
+      if (!conversationId) {
+        throw new Error('AI conversation create response did not include an id');
+      }
+
+      const nextMetadata = { ...(chatMetadata.get() ?? {}), aiConversationId: conversationId };
+      chatMetadata.set(nextMetadata);
+      backendAiConversationIdRef.current = conversationId;
+
+      await saveProjectIdeMemory(projectId, {
+        chat: {
+          metadata: nextMetadata,
+        },
+      });
+
+      return conversationId;
+    }, [description, projectId, projectIdeMode]);
+
+    const syncProjectAiTranscript = useCallback(
+      async (nextMessages: Message[]) => {
+        if (!projectIdeMode || !projectId || nextMessages.length === 0) {
+          return;
+        }
+
+        const transcript = projectAiTranscriptMessages(nextMessages);
+
+        if (transcript.length === 0) {
+          return;
+        }
+
+        try {
+          const conversationId = await ensureProjectAiConversation();
+
+          if (!conversationId) {
+            return;
+          }
+
+          const response = await fetch(
+            `/api/projects/${encodeURIComponent(projectId)}/ai/conversations/${encodeURIComponent(
+              conversationId,
+            )}/transcript`,
+            {
+              method: 'PUT',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ messages: transcript }),
+            },
+          );
+
+          if (!response.ok) {
+            throw new Error(`AI transcript sync failed (${response.status})`);
+          }
+        } catch (error) {
+          logStore.logError('Failed to sync project AI transcript', error);
+        }
+      },
+      [ensureProjectAiConversation, projectId, projectIdeMode],
+    );
+
     const persistMessageHistory = useCallback(
       (nextMessages: Message[]) => {
         pendingPersistRef.current = nextMessages;
@@ -274,6 +393,7 @@ export const ChatImpl = memo(
             const snapshot = pendingPersistRef.current;
             pendingPersistRef.current = null;
             await storeMessageHistory(snapshot);
+            void syncProjectAiTranscript(snapshot);
           }
         };
 
@@ -293,7 +413,7 @@ export const ChatImpl = memo(
 
         return savePromise;
       },
-      [storeMessageHistory],
+      [storeMessageHistory, syncProjectAiTranscript],
     );
 
     const {
@@ -1155,6 +1275,23 @@ export const ChatImpl = memo(
           }
 
           setMessages([]);
+          backendAiConversationIdRef.current = undefined;
+
+          if (projectIdeMode && projectId) {
+            const currentMetadata = chatMetadata.get();
+
+            if (currentMetadata?.aiConversationId) {
+              const nextMetadata = { ...currentMetadata };
+              delete nextMetadata.aiConversationId;
+              chatMetadata.set(nextMetadata);
+              void saveProjectIdeMemory(projectId, {
+                chat: {
+                  metadata: nextMetadata,
+                },
+              });
+            }
+          }
+
           pendingPersistRef.current = null;
           persistMessageHistory([]).catch((error) =>
             toast.error(error instanceof Error ? error.message : 'Failed to reset chat history'),

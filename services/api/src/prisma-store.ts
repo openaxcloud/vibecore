@@ -2448,10 +2448,24 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async createAiMessage(input: {
+    id?: string;
     conversationId: string;
     role: 'system' | 'user' | 'assistant' | 'tool';
     content: string;
   }) {
+    if (input.id) {
+      return mapAiMessage(
+        await this.prisma.aiMessage.upsert({
+          where: { id: input.id },
+          create: input,
+          update: {
+            role: input.role,
+            content: input.content,
+          },
+        }),
+      );
+    }
+
     return mapAiMessage(await this.prisma.aiMessage.create({ data: input }));
   }
 

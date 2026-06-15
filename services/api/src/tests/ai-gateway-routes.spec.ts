@@ -127,4 +127,57 @@ describe('AI conversation message routes', () => {
 
     await app.close();
   });
+
+  it('syncs a streamed IDE transcript without making a second gateway call', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const { token, organizationId } = await registerUser(app, 'transcript-sync@example.com');
+    const { projectId, conversationId } = await createConversation(app, token, organizationId);
+    const gatewayFetch = vi.fn();
+    vi.stubGlobal('fetch', gatewayFetch);
+
+    const payload = {
+      messages: [
+        { clientId: 'user-turn-1', role: 'user', content: 'Make the composer compact.' },
+        { clientId: 'assistant-turn-1', role: 'assistant', content: 'I reduced the composer height.' },
+      ],
+    };
+
+    const firstSync = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/ai/conversations/${conversationId}/transcript`,
+      headers: { authorization: `Bearer ${token}` },
+      payload,
+    });
+    expect(firstSync.statusCode).toBe(200);
+
+    const retrySync = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/ai/conversations/${conversationId}/transcript`,
+      headers: { authorization: `Bearer ${token}` },
+      payload,
+    });
+    expect(retrySync.statusCode).toBe(200);
+
+    const messages = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/ai/conversations/${conversationId}/messages`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(messages.statusCode).toBe(200);
+    const syncedMessages = (messages.json() as { messages: Array<{ role: string; content: string }> }).messages;
+
+    expect(syncedMessages).toHaveLength(2);
+    expect(syncedMessages).toMatchObject([
+      { role: 'user', content: 'Make the composer compact.' },
+      {
+        role: 'assistant',
+        content: 'I reduced the composer height.',
+      },
+    ]);
+    expect(gatewayFetch).not.toHaveBeenCalled();
+
+    await app.close();
+  });
 });

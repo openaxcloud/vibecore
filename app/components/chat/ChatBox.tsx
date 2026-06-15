@@ -371,25 +371,27 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               projectId={props.projectId}
             />
           ) : null}
-          <ClientOnly>
-            {() => (
-              <SendButton
-                show={showSendButton}
-                isStreaming={props.isStreaming}
-                disabled={isSendButtonDisabled}
-                onClick={(event) => {
-                  if (props.isStreaming) {
-                    props.handleStop?.();
-                    return;
-                  }
+          {!props.projectIdeMode ? (
+            <ClientOnly>
+              {() => (
+                <SendButton
+                  show={showSendButton}
+                  isStreaming={props.isStreaming}
+                  disabled={isSendButtonDisabled}
+                  onClick={(event) => {
+                    if (props.isStreaming) {
+                      props.handleStop?.();
+                      return;
+                    }
 
-                  if (props.input.length > 0 || props.uploadedFiles.length > 0) {
-                    props.handleSendMessage?.(event);
-                  }
-                }}
-              />
-            )}
-          </ClientOnly>
+                    if (props.input.length > 0 || props.uploadedFiles.length > 0) {
+                      props.handleSendMessage?.(event);
+                    }
+                  }}
+                />
+              )}
+            </ClientOnly>
+          ) : null}
         </div>
         <div className="bolt-chatbox-toolbar" data-vc-composer-toolbar>
           <div className="bolt-chatbox-toolbar-primary">
@@ -529,6 +531,28 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             <div className="bolt-chatbox-toolbar-supabase">
               <SupabaseConnection />
             </div>
+            {props.projectIdeMode ? (
+              <ClientOnly>
+                {() => (
+                  <SendButton
+                    show={showSendButton}
+                    isStreaming={props.isStreaming}
+                    disabled={isSendButtonDisabled}
+                    variant="toolbar"
+                    onClick={(event) => {
+                      if (props.isStreaming) {
+                        props.handleStop?.();
+                        return;
+                      }
+
+                      if (props.input.length > 0 || props.uploadedFiles.length > 0) {
+                        props.handleSendMessage?.(event);
+                      }
+                    }}
+                  />
+                )}
+              </ClientOnly>
+            ) : null}
           </div>
           <ExpoQrModal open={props.qrModalOpen} onClose={() => props.setQrModalOpen(false)} />
         </div>

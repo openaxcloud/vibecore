@@ -996,6 +996,14 @@ const aiMessageSchema = z.object({
   model: z.string().optional(),
   stream: z.boolean().default(false),
 });
+const aiTranscriptMessageSchema = z.object({
+  clientId: z.string().min(1).max(200),
+  role: z.enum(['system', 'user', 'assistant', 'tool']),
+  content: z.string().max(200_000),
+});
+const aiTranscriptSchema = z.object({
+  messages: z.array(aiTranscriptMessageSchema).min(1).max(200),
+});
 const aiRecordUsageSchema = z.object({
   conversationId: z.string().min(1).optional(),
   messageId: z.string().min(1).optional(),
@@ -1051,6 +1059,10 @@ const aiToolParams = projectParams.extend({ toolName: z.enum(aiToolNames) });
 
 function parse<T>(schema: ZodSchema<T>, value: unknown): T {
   return schema.parse(value);
+}
+
+function aiTranscriptMessageId(conversationId: string, clientId: string) {
+  return `aimsg_${createHash('sha256').update(`${conversationId}:${clientId}`).digest('hex').slice(0, 32)}`;
 }
 
 async function pathExistsAsync(targetPath: string) {
@@ -15104,6 +15116,52 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return { messages: await store.listAiMessages(conversationId) };
+  });
+
+  app.put('/projects/:projectId/ai/conversations/:conversationId/transcript', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    const conversationId = (request.params as { conversationId: string }).conversationId;
+    const conversation = await store.getAiConversation(conversationId);
+
+    if (!conversation || conversation.projectId !== project.id) {
+      throw Object.assign(new Error('AI conversation not found'), {
+        statusCode: 404,
+        code: 'AI_CONVERSATION_NOT_FOUND',
+      });
+    }
+
+    const body = parse(aiTranscriptSchema, request.body ?? {});
+    const messages: Awaited<ReturnType<typeof store.createAiMessage>>[] = [];
+
+    for (const message of body.messages) {
+      messages.push(
+        await store.createAiMessage({
+          id: aiTranscriptMessageId(conversationId, message.clientId),
+          conversationId,
+          role: message.role,
+          content: message.content,
+        }),
+      );
+    }
+
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'ai.conversation.transcript.sync',
+      resourceType: 'aiConversation',
+      resourceId: conversationId,
+      metadata: {
+        projectId: project.id,
+        messageCount: messages.length,
+      },
+    });
+
+    return { conversation, messages };
   });
 
   /*

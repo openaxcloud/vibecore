@@ -23205,3 +23205,301 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     padding: 20px;
   }
 }
+
+@media (max-width: 1024px) {
+  .bolt-mobile-ecode-header-title > span:last-child {
+    display: inline-flex !important;
+    min-width: 0;
+    align-items: baseline;
+    gap: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bolt-mobile-ecode-header-title strong,
+  .bolt-mobile-ecode-header-title small {
+    min-width: 0;
+    overflow: hidden;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bolt-mobile-ecode-header-title small {
+    color: var(--vc-ide-text-muted);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .bolt-mobile-agent-context-bar {
+    display: grid !important;
+    width: 100%;
+    min-height: 40px;
+    align-items: center;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    gap: 8px;
+    overflow: hidden;
+    border-bottom: 1px solid var(--mobile-nav-border);
+    background: var(--mobile-nav-bg);
+    padding: 5px 10px;
+  }
+
+  .bolt-mobile-agent-context-bar > span:first-child {
+    display: inline-flex !important;
+    width: 22px !important;
+    height: 22px !important;
+    align-items: center;
+    justify-content: center;
+    color: var(--ecode-accent);
+    font-size: 16px !important;
+  }
+
+  .bolt-mobile-agent-context-bar > span:nth-child(2),
+  .bolt-mobile-agent-start-card header > span:nth-child(2) {
+    display: grid !important;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .bolt-mobile-agent-context-bar strong,
+  .bolt-mobile-agent-context-bar small,
+  .bolt-mobile-agent-start-card strong,
+  .bolt-mobile-agent-start-card small {
+    min-width: 0;
+    overflow: hidden;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bolt-mobile-agent-context-bar strong {
+    color: var(--vc-ide-text-primary);
+    font-size: 12px;
+  }
+
+  .bolt-mobile-agent-context-bar small {
+    color: var(--vc-ide-text-muted);
+    font-size: 11px;
+  }
+
+  .bolt-mobile-agent-context-bar button {
+    display: inline-flex !important;
+    height: 30px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--mobile-nav-border);
+    border-radius: 8px;
+    background: var(--vc-ide-bg-card);
+    color: var(--vc-ide-text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 0 10px;
+  }
+
+  .bolt-mobile-agent-start-state {
+    display: grid !important;
+    width: min(100%, calc(100vw - 20px));
+    max-width: var(--chat-max-width);
+    gap: 10px;
+    margin: 55px auto 0;
+  }
+
+  .bolt-mobile-agent-start-card {
+    display: grid !important;
+    gap: 10px;
+    overflow: hidden;
+    border: 1px solid var(--vc-ide-border-visible);
+    border-radius: 12px;
+    background: var(--vc-ide-bg-card);
+    padding: 12px;
+  }
+
+  .bolt-mobile-agent-start-card header {
+    display: grid !important;
+    min-width: 0;
+    align-items: center;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .bolt-mobile-agent-start-icon {
+    display: inline-flex !important;
+    width: 28px !important;
+    height: 28px !important;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--ecode-accent) 14%, transparent);
+    color: var(--ecode-accent);
+  }
+
+  .bolt-mobile-agent-start-icon svg {
+    width: 17px !important;
+    height: 17px !important;
+    flex: 0 0 17px !important;
+    max-width: 17px !important;
+    max-height: 17px !important;
+  }
+
+  .bolt-mobile-agent-start-status {
+    display: inline-flex !important;
+    height: 24px;
+    align-items: center;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--vc-ide-success) 14%, transparent);
+    color: var(--vc-ide-success);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 0 8px;
+  }
+
+  .bolt-mobile-agent-start-steps {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .bolt-mobile-agent-start-steps > div {
+    display: grid !important;
+    min-width: 0;
+    justify-items: center;
+    gap: 3px;
+    border-radius: 8px;
+    background: var(--vc-ide-bg-hover);
+    padding: 7px 4px;
+  }
+
+  .bolt-mobile-agent-start-steps span:last-child {
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--vc-ide-text-muted);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bolt-mobile-agent-start-actions {
+    display: flex !important;
+    width: 100%;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0 1px 4px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .bolt-mobile-agent-start-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bolt-mobile-agent-start-actions button {
+    display: inline-flex !important;
+    width: 152px;
+    min-width: 152px;
+    height: 38px;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    scroll-snap-align: start;
+    border: 1px solid var(--vc-ide-border-visible);
+    border-radius: 10px;
+    background: var(--vc-ide-bg-card);
+    color: var(--vc-ide-text-primary);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 0 10px;
+  }
+
+  .bolt-mobile-agent-start-actions button span:last-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bolt-project-agent-composer {
+    bottom: calc(var(--vc-mobile-shell-bottom, 72px) + 4px) !important;
+    max-height: min(24dvh, 160px);
+    padding-bottom: 4px;
+  }
+
+  .bolt-project-chatbox {
+    width: min(100%, calc(100vw - 20px));
+    max-width: calc(100vw - 20px);
+    border-radius: 12px;
+    padding: 6px !important;
+  }
+
+  .bolt-project-chatbox .bolt-chatbox-input-frame {
+    min-height: 48px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-chatbox textarea,
+  .bolt-project-chatbox textarea {
+    box-sizing: border-box !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    padding: 10px 10px 8px !important;
+    overflow-y: auto !important;
+  }
+
+  .bolt-project-chatbox .bolt-chatbox-input-frame .bolt-composer-send-button {
+    display: none !important;
+  }
+
+  .bolt-project-chatbox .bolt-composer-send-button-toolbar {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    display: inline-flex !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    align-self: center;
+    justify-self: end;
+    flex: 0 0 36px;
+    border-radius: 10px !important;
+    transform: none !important;
+  }
+
+  .bolt-project-chatbox .bolt-chatbox-toolbar {
+    height: 36px;
+    min-height: 36px;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    padding: 0 4px;
+  }
+
+  .bolt-project-chatbox .bolt-chatbox-toolbar-primary,
+  .bolt-project-chatbox .bolt-chatbox-toolbar-secondary {
+    align-items: center;
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .bolt-project-chatbox .bolt-chatbox-toolbar-button {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    flex-basis: 30px;
+    border-radius: 8px;
+  }
+
+  .bolt-project-chatbox .bolt-chatbox-plan-button {
+    height: 30px;
+    min-height: 30px;
+    min-width: 72px;
+    border-radius: 8px;
+  }
+
+  .bolt-project-chatbox .bolt-chatbox-toolbar-info {
+    display: none !important;
+  }
+}
