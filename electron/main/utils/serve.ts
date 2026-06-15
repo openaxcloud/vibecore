@@ -1,10 +1,10 @@
-import { createReadableStreamFromReadable } from '@remix-run/node';
-import type { ServerBuild } from '@remix-run/node';
-import mime from 'mime';
 import { createReadStream, promises as fs } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import type { ServerBuild } from '@remix-run/node';
+import { createReadableStreamFromReadable } from '@remix-run/node';
 import { app } from 'electron';
+import mime from 'mime';
 import { isDev } from './constants';
 
 export async function loadServerBuild(): Promise<any> {
@@ -37,10 +37,17 @@ export async function loadServerBuild(): Promise<any> {
 // serve assets built by vite.
 export async function serveAsset(req: Request, assetsPath: string): Promise<Response | undefined> {
   const url = new URL(req.url);
-  const fullPath = path.join(assetsPath, decodeURIComponent(url.pathname));
+  const fullPath = path.normalize(path.join(assetsPath, decodeURIComponent(url.pathname)));
   console.log('Serving asset, path:', fullPath);
 
-  if (!fullPath.startsWith(assetsPath)) {
+  /*
+   * Require a true child path. A bare startsWith(assetsPath) with no trailing
+   * separator let a percent-encoded `..` climb into a SIBLING dir whose name
+   * merely starts with the basename (e.g. build/client -> build/client-secrets).
+   * Anchor on assetsPath + path.sep (and allow the dir itself) so only real
+   * descendants of the assets dir are served.
+   */
+  if (fullPath !== assetsPath && !fullPath.startsWith(assetsPath + path.sep)) {
     console.log('Path is outside assets directory:', fullPath);
     return;
   }
