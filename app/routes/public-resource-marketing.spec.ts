@@ -32,11 +32,23 @@ describe('public resource marketing routes', () => {
 
   it('serves /community as public marketing data without authenticated workspace chrome', async () => {
     const response = await communityLoader(loaderArgs('http://app.e-code.ai/community'));
-    const payload = (await response.json()) as { posts: unknown[]; templates: unknown[] };
+
+    const payload = (await response.json()) as {
+      posts: Array<{ authorName?: string; templateSlug?: string }>;
+      categories: unknown[];
+      challenges: unknown[];
+      contributors: unknown[];
+      events: unknown[];
+    };
 
     expect(response.headers.get('content-type')).toContain('application/json');
     expect(response.headers.get('x-vibecore-marketing-shell')).toBeNull();
     expect(payload.posts.length).toBeGreaterThan(0);
-    expect(payload.templates.length).toBeGreaterThan(0);
+    expect(payload.posts[0].authorName).toBeTruthy();
+    expect(payload.posts[0].templateSlug).toBeUndefined();
+    expect(payload.categories.length).toBeGreaterThan(0);
+    expect(payload.challenges.length).toBeGreaterThan(0);
+    expect(payload.contributors.length).toBeGreaterThan(0);
+    expect(payload.events.length).toBeGreaterThan(0);
   });
 });

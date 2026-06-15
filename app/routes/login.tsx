@@ -32,7 +32,15 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   const host = request.headers.get('host')?.toLowerCase() ?? '';
 
   if (host === 'e-code.ai' || host === 'www.e-code.ai') {
-    return redirect('https://app.e-code.ai/login', { status: 301 });
+    const requestUrl = new URL(request.url);
+    const loginUrl = new URL('https://app.e-code.ai/login');
+    const returnTo = safeReturnTo(requestUrl.searchParams.get('returnTo'));
+
+    if (returnTo) {
+      loginUrl.searchParams.set('returnTo', returnTo);
+    }
+
+    return redirect(loginUrl.toString(), { status: 301 });
   }
 
   const url = new URL(request.url);

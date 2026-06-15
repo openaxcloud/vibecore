@@ -41,6 +41,38 @@ describe('login route loader', () => {
     expect((response as Response).headers.get('location')).toBe('https://app.e-code.ai/login');
   });
 
+  it('preserves a safe returnTo when redirecting the marketing host to the app login', async () => {
+    const response = await loader({
+      request: new Request(`http://e-code.ai/login?returnTo=${encodeURIComponent('/community')}`, {
+        headers: { host: 'e-code.ai' },
+      }),
+      params: {},
+      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+        typeof loader
+      >[0]['context'],
+    });
+
+    expect((response as Response).status).toBe(301);
+    expect((response as Response).headers.get('location')).toBe(
+      `https://app.e-code.ai/login?returnTo=${encodeURIComponent('/community')}`,
+    );
+  });
+
+  it('does not preserve an unsafe returnTo when redirecting from the marketing host', async () => {
+    const response = await loader({
+      request: new Request(`http://e-code.ai/login?returnTo=${encodeURIComponent('https://evil.com/steal')}`, {
+        headers: { host: 'e-code.ai' },
+      }),
+      params: {},
+      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+        typeof loader
+      >[0]['context'],
+    });
+
+    expect((response as Response).status).toBe(301);
+    expect((response as Response).headers.get('location')).toBe('https://app.e-code.ai/login');
+  });
+
   it('treats the host case-insensitively', async () => {
     const response = await loader({
       request: buildRequest('E-Code.AI'),

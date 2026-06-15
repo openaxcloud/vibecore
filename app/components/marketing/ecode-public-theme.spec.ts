@@ -89,4 +89,27 @@ describe('E-Code public theme wrappers', () => {
     expect(staticShell).toContain('[data-ecode-static-shell] .grid > *');
     expect(staticShell).toContain('overflow-wrap: anywhere !important');
   });
+
+  it('keeps community and templates as public marketing pages with login-gated product actions', () => {
+    const resourcePages = readFileSync(new URL('./EcodePublicResourcePages.tsx', import.meta.url), 'utf8');
+    const communityRoute = readFileSync(new URL('../../routes/community.tsx', import.meta.url), 'utf8');
+    const loginRoute = readFileSync(new URL('../../routes/login.tsx', import.meta.url), 'utf8');
+
+    expect(resourcePages).toContain('data-public-resource-page="community"');
+    expect(resourcePages).toContain('Connect with builders shipping real E-Code projects');
+    expect(resourcePages).toContain('Community feed');
+    expect(resourcePages).toContain('Active challenges');
+    expect(resourcePages).toContain('Top contributors');
+    expect(resourcePages).toContain("loginReturnTo('/community')");
+    expect(resourcePages).toContain('templateProjectReturnTo(template.slug)');
+    expect(resourcePages).not.toContain('Open related template');
+    expect(resourcePages).not.toContain('My Apps');
+    expect(resourcePages).not.toContain('View Profile');
+    expect(resourcePages).not.toContain('Log out');
+    expect(communityRoute).toContain('communityPosts');
+    expect(communityRoute).toContain('communityChallenges');
+    expect(communityRoute).not.toContain('templateSlug');
+    expect(loginRoute).toContain("loginUrl.searchParams.set('returnTo', returnTo)");
+    expect(loginRoute).toContain("safeReturnTo(requestUrl.searchParams.get('returnTo'))");
+  });
 });

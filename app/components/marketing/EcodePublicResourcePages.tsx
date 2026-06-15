@@ -1,17 +1,28 @@
 import { Link } from '@remix-run/react';
 import {
   ArrowRight,
+  Award,
   BookOpen,
+  Bookmark,
+  Calendar,
   Code2,
+  Eye,
   Globe2,
+  Heart,
   Layers,
   MessageSquare,
+  Plus,
   Rocket,
+  Search,
   ShieldCheck,
   Sparkles,
+  Target,
+  Trophy,
+  TrendingUp,
   Users,
   Zap,
 } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type React from 'react';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 import { classNames } from '~/utils/classNames';
@@ -41,10 +52,50 @@ export type PublicCommunityPost = {
   id: string;
   title: string;
   summary: string;
+  content: string;
+  authorName: string;
+  authorHandle: string;
+  authorInitials: string;
+  authorReputation: number;
+  category: string;
   categoryName: string;
   tags: string[];
-  templateSlug: string;
+  likes: number;
+  comments: number;
+  views: number;
   updatedAt: string;
+};
+
+export type PublicCommunityCategory = {
+  id: string;
+  name: string;
+  postCount: number;
+};
+
+export type PublicCommunityChallenge = {
+  id: string;
+  title: string;
+  description: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  participants: number;
+  submissions: number;
+  deadline: string;
+};
+
+export type PublicCommunityContributor = {
+  id: string;
+  name: string;
+  handle: string;
+  rank: number;
+  score: number;
+  badge: string;
+};
+
+export type PublicCommunityEvent = {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
 };
 
 type TemplatesPageProps = {
@@ -54,8 +105,19 @@ type TemplatesPageProps = {
 
 type CommunityPageProps = {
   posts: PublicCommunityPost[];
-  templates: PublicTemplateCard[];
+  categories: PublicCommunityCategory[];
+  challenges: PublicCommunityChallenge[];
+  contributors: PublicCommunityContributor[];
+  events: PublicCommunityEvent[];
 };
+
+function loginReturnTo(returnTo: string) {
+  return `/login?returnTo=${encodeURIComponent(returnTo)}`;
+}
+
+function templateProjectReturnTo(templateSlug: string) {
+  return loginReturnTo(`/projects/new?template=${templateSlug}`);
+}
 
 export function TemplatesMarketingPage({ categories, templates }: TemplatesPageProps) {
   const featuredTemplates = templates.filter((template) => template.featured).slice(0, 6);
@@ -158,7 +220,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
         <ResourceCta
           title="Ready to turn a template into a real project?"
           description="Open a starter, keep the generated code reviewable, and continue in the preserved Bolt IDE."
-          primary={{ label: 'Start building', to: '/register' }}
+          primary={{ label: 'Start building', to: loginReturnTo('/templates') }}
           secondary={{ label: 'See pricing', to: '/pricing' }}
         />
       </main>
@@ -166,86 +228,217 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
   );
 }
 
-export function CommunityMarketingPage({ posts, templates }: CommunityPageProps) {
+export function CommunityMarketingPage({ posts, categories, challenges, contributors, events }: CommunityPageProps) {
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const lowerSearchQuery = searchQuery.trim().toLowerCase();
+
+  const visiblePosts = useMemo(() => {
+    return posts.filter((post) => {
+      const matchesCategory = activeCategory === 'all' || post.category === activeCategory;
+
+      const matchesSearch =
+        !lowerSearchQuery ||
+        post.title.toLowerCase().includes(lowerSearchQuery) ||
+        post.summary.toLowerCase().includes(lowerSearchQuery) ||
+        post.tags.some((tag) => tag.toLowerCase().includes(lowerSearchQuery)) ||
+        post.authorName.toLowerCase().includes(lowerSearchQuery);
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [activeCategory, lowerSearchQuery, posts]);
+
+  const totalMembers = contributors.length > 0 ? '12.5K' : 'Public';
+  const activeChallenges = challenges.length.toString();
+
   return (
     <PublicShell>
       <main className="bg-[var(--ecode-background)] text-[var(--ecode-text)]" data-public-resource-page="community">
         <ResourceHero
           eyebrow="Community"
-          title="A public builder community, not an account dashboard"
-          description="Explore public project patterns, template notes and implementation practices from the E-Code ecosystem with the same marketing header and footer as the homepage."
-          primaryAction={{ label: 'Open forum', to: '/forum' }}
-          secondaryAction={{ label: 'Browse templates', to: '/templates' }}
+          title="Connect with builders shipping real E-Code projects"
+          description="Read public discussions, join challenges, follow contributors and learn the implementation patterns teams use to move from prompt to production."
+          primaryAction={{ label: 'Start a discussion', to: loginReturnTo('/community') }}
+          secondaryAction={{ label: 'Explore posts', to: '#community-feed' }}
           metrics={[
-            { label: 'Template threads', value: posts.length.toString() },
-            { label: 'Starter paths', value: templates.length.toString() },
-            { label: 'Private data', value: '0' },
+            { label: 'Public discussions', value: posts.length.toString() },
+            { label: 'Active challenges', value: activeChallenges },
+            { label: 'Members', value: totalMembers },
           ]}
           icon={<Users className="h-5 w-5" aria-hidden />}
         />
 
-        <section className="container-responsive py-16 sm:py-24">
-          <SectionHeader
-            eyebrow="Builder notes"
-            title="Public discussions around real starter patterns"
-            description="Community cards are generated from the real template catalog so the page remains useful without exposing signed-in navigation, private projects or account menus."
-          />
-          <div className="mt-10 grid gap-5 lg:grid-cols-3">
-            {posts.map((post) => (
-              <CommunityPostCard key={post.id} post={post} />
-            ))}
+        <section className="border-b border-[var(--ecode-border)] bg-[var(--ecode-surface)]">
+          <div className="container-responsive grid gap-6 py-10 md:grid-cols-3">
+            {[
+              {
+                title: 'Launch help',
+                body: 'Ask for architecture review, deployment checks and template hardening advice.',
+                icon: Rocket,
+              },
+              {
+                title: 'Public showcases',
+                body: 'Read project breakdowns and implementation notes without opening private workspaces.',
+                icon: Sparkles,
+              },
+              {
+                title: 'Challenges',
+                body: 'Join guided builds for agents, mobile apps, dashboards and production backends.',
+                icon: Trophy,
+              },
+            ].map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <div
+                  key={item.title}
+                  className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-background)] p-5"
+                >
+                  <Icon className="h-5 w-5 text-[var(--ecode-accent)]" aria-hidden />
+                  <h2 className="mt-4 text-lg font-bold text-[var(--ecode-text)]">{item.title}</h2>
+                  <p className="mt-2 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">{item.body}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section id="community-feed" className="container-responsive py-16 sm:py-24">
+          <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_22rem]">
+            <div>
+              <SectionHeader
+                eyebrow="Community feed"
+                title="Discussions, showcases and implementation help"
+                description="Browse public posts with the E-Code marketing header and footer. Replying, liking, bookmarking or posting requires sign-in and returns you to the community flow."
+              />
+
+              <div className="mt-8 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+                <label className="relative block">
+                  <span className="sr-only">Search community</span>
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ecode-text-muted)]" />
+                  <input
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Search discussions, tags or builders..."
+                    className="min-h-[48px] w-full rounded-md border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-11 text-[15px] text-[var(--ecode-text)] outline-none transition placeholder:text-[var(--ecode-text-muted)] focus:border-[var(--ecode-accent)]"
+                    data-testid="input-search-community"
+                  />
+                </label>
+
+                <MarketingLinkButton to={loginReturnTo('/community')} variant="secondary">
+                  <Plus className="-ml-1 mr-2 h-4 w-4" aria-hidden />
+                  New post
+                </MarketingLinkButton>
+              </div>
+
+              <div className="mt-5 flex gap-2 overflow-x-auto pb-2" aria-label="Community categories">
+                {categories.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setActiveCategory(category.id)}
+                    className={classNames(
+                      'inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
+                      activeCategory === category.id
+                        ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)] text-white'
+                        : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',
+                    )}
+                  >
+                    {category.name}
+                    <span
+                      className={activeCategory === category.id ? 'text-white/75' : 'text-[var(--ecode-text-muted)]'}
+                    >
+                      {category.postCount}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-8 space-y-5">
+                {visiblePosts.length > 0 ? (
+                  visiblePosts.map((post) => <CommunityFeedCard key={post.id} post={post} />)
+                ) : (
+                  <div className="rounded-lg border border-dashed border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-8 text-center">
+                    <MessageSquare className="mx-auto h-8 w-8 text-[var(--ecode-text-muted)]" aria-hidden />
+                    <h3 className="mt-4 text-lg font-bold text-[var(--ecode-text)]">No public discussions found</h3>
+                    <p className="mx-auto mt-2 max-w-lg text-[13px] leading-6 text-[var(--ecode-text-secondary)]">
+                      Try a different search or open a new thread after signing in.
+                    </p>
+                    <div className="mt-5">
+                      <MarketingLinkButton to={loginReturnTo('/community')}>Start a discussion</MarketingLinkButton>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <aside className="space-y-5 xl:sticky xl:top-28 xl:self-start">
+              <CommunitySidebarPanel title="Active challenges" icon={<Trophy className="h-4 w-4" aria-hidden />}>
+                <div className="space-y-4">
+                  {challenges.map((challenge) => (
+                    <CommunityChallengeItem key={challenge.id} challenge={challenge} />
+                  ))}
+                </div>
+                <MarketingLinkButton to={loginReturnTo('/community')} variant="secondary" fullWidth>
+                  Join a challenge
+                </MarketingLinkButton>
+              </CommunitySidebarPanel>
+
+              <CommunitySidebarPanel title="Top contributors" icon={<TrendingUp className="h-4 w-4" aria-hidden />}>
+                <div className="space-y-3">
+                  {contributors.map((contributor) => (
+                    <CommunityContributorRow key={contributor.id} contributor={contributor} />
+                  ))}
+                </div>
+              </CommunitySidebarPanel>
+            </aside>
           </div>
         </section>
 
         <section className="border-y border-[var(--ecode-border)] bg-[var(--ecode-surface)]">
-          <div className="container-responsive grid gap-10 py-16 lg:grid-cols-[1fr_1.1fr] lg:items-start">
+          <div className="container-responsive grid gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <div>
               <p className="text-[13px] font-semibold uppercase tracking-[0.28em] text-[var(--ecode-accent)]">
-                Community principles
+                Events and programs
               </p>
               <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--ecode-text)] sm:text-5xl">
-                Share implementation context safely.
+                Join the public side of the builder network.
               </h2>
               <p className="mt-5 text-base leading-8 text-[var(--ecode-text-secondary)]">
-                Public community surfaces should guide builders to docs, templates and support without showing profile
-                menus or workspace controls.
+                Community content remains readable. Participation, private files and workspace controls stay behind the
+                authenticated product flow.
               </p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[
-                ['Sanitized examples', 'Share architecture decisions without secrets or private repository data.'],
-                ['Template feedback', 'Discuss starter gaps and production hardening paths.'],
-                ['Workflow notes', 'Document prompts, preview checks and deployment lessons.'],
-                ['Support escalation', 'Move private incidents to the right protected support channel.'],
-              ].map(([title, body]) => (
-                <div key={title} className="rounded-lg border border-[var(--ecode-border)] bg-background p-5">
-                  <MessageSquare className="h-5 w-5 text-[var(--ecode-accent)]" aria-hidden />
-                  <h3 className="mt-4 text-base font-semibold text-[var(--ecode-text)]">{title}</h3>
-                  <p className="mt-2 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">{body}</p>
+            <div className="grid gap-4 md:grid-cols-2">
+              {events.map((event) => (
+                <div
+                  key={event.id}
+                  className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-background)] p-5"
+                >
+                  <div className="flex items-center justify-between gap-3 text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--ecode-accent)]">
+                    <Calendar className="h-4 w-4" aria-hidden />
+                    <span>{event.date}</span>
+                  </div>
+                  <h3 className="mt-4 text-lg font-bold text-[var(--ecode-text)]">{event.title}</h3>
+                  <p className="mt-2 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">{event.description}</p>
+                  <Link
+                    to={loginReturnTo('/community')}
+                    className="mt-5 inline-flex items-center text-[13px] font-semibold text-[var(--ecode-accent)]"
+                  >
+                    Register interest
+                    <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+                  </Link>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="container-responsive py-16 sm:py-24">
-          <SectionHeader
-            eyebrow="Starter paths"
-            title="Continue from community into templates"
-            description="Use community context to choose the right starter, then continue into a real project workflow."
-          />
-          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {templates.slice(0, 4).map((template) => (
-              <TemplateCompactCard key={template.id} template={template} />
-            ))}
-          </div>
-        </section>
-
         <ResourceCta
-          title="Join from the public side, build from the product side."
-          description="Community remains public and readable. Project creation, private files and account controls stay behind the authenticated product flow."
-          primary={{ label: 'Browse templates', to: '/templates' }}
-          secondary={{ label: 'Read docs', to: '/docs' }}
+          title="Join the conversation without opening the app dashboard."
+          description="Sign in only when you want to post, reply, bookmark, join a challenge or create a project. Public browsing stays on the marketing site."
+          primary={{ label: 'Join community', to: loginReturnTo('/community') }}
+          secondary={{ label: 'Browse templates', to: '/templates' }}
         />
       </main>
     </PublicShell>
@@ -267,7 +460,7 @@ function ResourceHero({
   primaryAction: { label: string; to: string };
   secondaryAction: { label: string; to: string };
   metrics: { label: string; value: string }[];
-  icon: React.ReactNode;
+  icon: ReactNode;
 }) {
   return (
     <section className="relative overflow-hidden border-b border-[var(--ecode-border)]">
@@ -376,7 +569,7 @@ function TemplateMarketingCard({ template, featured = false }: { template: Publi
             IDE-ready
           </span>
         </div>
-        <MarketingLinkButton to={`/projects/new?template=${template.slug}`} fullWidth>
+        <MarketingLinkButton to={templateProjectReturnTo(template.slug)} fullWidth>
           Use template
         </MarketingLinkButton>
       </div>
@@ -384,56 +577,162 @@ function TemplateMarketingCard({ template, featured = false }: { template: Publi
   );
 }
 
-function TemplateCompactCard({ template }: { template: PublicTemplateCard }) {
+function CommunityFeedCard({ post }: { post: PublicCommunityPost }) {
+  return (
+    <article className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-5 transition hover:border-[var(--ecode-accent)]/60 hover:shadow-xl">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--ecode-surface-secondary)] text-[13px] font-bold text-[var(--ecode-accent)]">
+          {post.authorInitials}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to={`/community/post/${post.id}`}
+              className="text-xl font-bold tracking-tight text-[var(--ecode-text)] hover:text-[var(--ecode-accent)]"
+            >
+              {post.title}
+            </Link>
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[11px] font-semibold text-[var(--ecode-text-secondary)]">
+              <BookOpen className="h-3.5 w-3.5 text-[var(--ecode-accent)]" aria-hidden />
+              {post.categoryName}
+            </span>
+          </div>
+          <p className="mt-2 text-[13px] text-[var(--ecode-text-muted)]">
+            by <span className="font-semibold text-[var(--ecode-text-secondary)]">{post.authorName}</span> @
+            {post.authorHandle} · {post.authorReputation.toLocaleString()} rep ·{' '}
+            <time dateTime={post.updatedAt}>{post.updatedAt.slice(0, 10)}</time>
+          </p>
+          <p className="mt-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]">{post.summary}</p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {post.tags.slice(0, 5).map((tag) => (
+              <span key={tag} className="rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[12px]">
+                {tag}
+              </span>
+            ))}
+          </div>
+          <div className="mt-6 flex flex-col gap-4 border-t border-[var(--ecode-border)] pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-3 text-[12px] text-[var(--ecode-text-muted)]">
+              <ActionMetric
+                href={loginReturnTo(`/community/post/${post.id}`)}
+                icon={<Heart className="h-4 w-4" aria-hidden />}
+                label={post.likes.toString()}
+              />
+              <ActionMetric
+                href={`/community/post/${post.id}`}
+                icon={<MessageSquare className="h-4 w-4" aria-hidden />}
+                label={post.comments.toString()}
+              />
+              <ActionMetric
+                href={loginReturnTo(`/community/post/${post.id}`)}
+                icon={<Bookmark className="h-4 w-4" aria-hidden />}
+                label="Save"
+              />
+              <span className="inline-flex items-center gap-1">
+                <Eye className="h-4 w-4" aria-hidden />
+                {post.views.toLocaleString()} views
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                to={`/community/post/${post.id}`}
+                className="inline-flex items-center text-[13px] font-semibold text-[var(--ecode-accent)]"
+              >
+                Read discussion
+                <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+              </Link>
+              <Link
+                to={loginReturnTo(`/community/post/${post.id}`)}
+                className="inline-flex items-center text-[13px] font-semibold text-[var(--ecode-text-secondary)] hover:text-[var(--ecode-accent)]"
+              >
+                Reply
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function ActionMetric({ href, icon, label }: { href: string; icon: ReactNode; label: string }) {
   return (
     <Link
-      to={`/projects/new?template=${template.slug}`}
-      className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-5 transition hover:-translate-y-1 hover:border-[var(--ecode-accent)]"
+      to={href}
+      className="inline-flex min-h-8 items-center gap-1 rounded-full px-2 transition hover:bg-[var(--ecode-surface-secondary)] hover:text-[var(--ecode-accent)]"
     >
-      <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-[var(--ecode-text-muted)]">
-        {template.categoryName}
-      </p>
-      <h3 className="mt-3 text-lg font-bold text-[var(--ecode-text)]">{template.name}</h3>
-      <p className="mt-3 line-clamp-3 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">
-        {template.description}
-      </p>
-      <span className="mt-5 inline-flex items-center text-[13px] font-semibold text-[var(--ecode-accent)]">
-        Use starter
-        <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
-      </span>
+      {icon}
+      {label}
     </Link>
   );
 }
 
-function CommunityPostCard({ post }: { post: PublicCommunityPost }) {
+function CommunitySidebarPanel({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <article className="flex min-h-[21rem] flex-col rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-6">
-      <div className="flex items-center justify-between gap-4">
-        <span className="inline-flex items-center gap-2 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[12px] font-semibold text-[var(--ecode-text-secondary)]">
-          <BookOpen className="h-3.5 w-3.5 text-[var(--ecode-accent)]" aria-hidden />
-          {post.categoryName}
+    <section className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-5">
+      <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--ecode-text)]">
+        <span className="text-[var(--ecode-accent)]">{icon}</span>
+        {title}
+      </h2>
+      <div className="mt-5 space-y-5">{children}</div>
+    </section>
+  );
+}
+
+function CommunityChallengeItem({ challenge }: { challenge: PublicCommunityChallenge }) {
+  const difficultyClass =
+    challenge.difficulty === 'easy'
+      ? 'text-emerald-600'
+      : challenge.difficulty === 'medium'
+        ? 'text-amber-600'
+        : 'text-red-600';
+
+  return (
+    <div className="border-b border-[var(--ecode-border)] pb-4 last:border-b-0 last:pb-0">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-[15px] font-bold text-[var(--ecode-text)]">{challenge.title}</h3>
+        <span className={classNames('text-[11px] font-semibold uppercase tracking-[0.16em]', difficultyClass)}>
+          {challenge.difficulty}
         </span>
-        <time className="text-[12px] text-[var(--ecode-text-muted)]" dateTime={post.updatedAt}>
-          {post.updatedAt.slice(0, 10)}
-        </time>
       </div>
-      <h3 className="mt-6 text-2xl font-bold tracking-tight text-[var(--ecode-text)]">{post.title}</h3>
-      <p className="mt-4 line-clamp-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]">{post.summary}</p>
-      <div className="mt-6 flex flex-wrap gap-2">
-        {post.tags.slice(0, 3).map((tag) => (
-          <span key={tag} className="rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[12px]">
-            {tag}
-          </span>
-        ))}
+      <p className="mt-2 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">{challenge.description}</p>
+      <div className="mt-3 flex flex-wrap gap-3 text-[12px] text-[var(--ecode-text-muted)]">
+        <span className="inline-flex items-center gap-1">
+          <Users className="h-4 w-4" aria-hidden />
+          {challenge.participants} builders
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Target className="h-4 w-4" aria-hidden />
+          {challenge.submissions} submissions
+        </span>
       </div>
       <Link
-        to={`/projects/new?template=${post.templateSlug}`}
-        className="mt-auto inline-flex items-center pt-7 text-[13px] font-semibold text-[var(--ecode-accent)]"
+        to={loginReturnTo('/community')}
+        className="mt-3 inline-flex text-[13px] font-semibold text-[var(--ecode-accent)]"
       >
-        Open related template
+        Participate
         <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
       </Link>
-    </article>
+    </div>
+  );
+}
+
+function CommunityContributorRow({ contributor }: { contributor: PublicCommunityContributor }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--ecode-surface-secondary)] text-[12px] font-bold text-[var(--ecode-text)]">
+        {contributor.rank}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[13px] font-semibold text-[var(--ecode-text)]">{contributor.name}</p>
+        <p className="truncate text-[12px] text-[var(--ecode-text-muted)]">
+          @{contributor.handle} · {contributor.score.toLocaleString()} pts
+        </p>
+      </div>
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--ecode-surface-secondary)] px-2.5 py-1 text-[11px] text-[var(--ecode-text-secondary)]">
+        <Award className="h-3.5 w-3.5 text-[var(--ecode-accent)]" aria-hidden />
+        {contributor.badge}
+      </span>
+    </div>
   );
 }
 
