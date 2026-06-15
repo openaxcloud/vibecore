@@ -237,7 +237,7 @@ export function Search() {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search files"
             aria-label="Search files"
-            className="w-full px-2 py-1 rounded-md bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none transition-all"
+            className="w-full px-2 py-1 rounded-md bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
           />
           <button
             type="button"
@@ -267,7 +267,7 @@ export function Search() {
             onChange={(e) => setReplaceQuery(e.target.value)}
             placeholder="Replace"
             aria-label="Replace with"
-            className="w-full px-2 py-1 rounded-md bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none transition-all"
+            className="w-full px-2 py-1 rounded-md bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
           />
           <button
             type="button"

@@ -199,7 +199,7 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
                  * bg-[#503B26]/text-[#F79007] looked broken on the light theme.
                  */
                 'bg-bolt-elements-background-depth-3 hover:bg-bolt-elements-background-depth-4',
-                'focus:outline-none',
+                'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus',
                 'text-bolt-elements-textSecondary',
                 isExecuting ? 'opacity-70 cursor-not-allowed' : '',
               )}

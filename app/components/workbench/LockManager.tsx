@@ -173,7 +173,7 @@ export function LockManager() {
             type="text"
             placeholder="Search..."
             aria-label="Search locked items"
-            className="w-full text-xs pl-6 pr-2 py-0.5 h-6 bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary rounded border border-bolt-elements-borderColor focus:outline-none"
+            className="w-full text-xs pl-6 pr-2 py-0.5 h-6 bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary rounded border border-bolt-elements-borderColor focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ minWidth: 0 }}
@@ -182,7 +182,7 @@ export function LockManager() {
         {/* Filter Select */}
         <select
           aria-label="Filter locked items by type"
-          className="text-xs px-1 py-0.5 h-6 bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary rounded border border-bolt-elements-borderColor focus:outline-none"
+          className="text-xs px-1 py-0.5 h-6 bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary rounded border border-bolt-elements-borderColor focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
           value={filter}
           onChange={(e) => setFilter(e.target.value as any)}
         >

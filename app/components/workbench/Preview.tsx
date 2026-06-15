@@ -1653,7 +1653,11 @@ export const Preview = memo(
     return (
       <div ref={containerRef} className="bolt-project-webview-tool w-full h-full flex flex-col relative">
         {isPortDropdownOpen && (
-          <div className="z-iframe-overlay w-full h-full absolute" onClick={() => setIsPortDropdownOpen(false)} />
+          <div
+            className="z-iframe-overlay w-full h-full absolute"
+            aria-hidden="true"
+            onClick={() => setIsPortDropdownOpen(false)}
+          />
         )}
         <div className="bolt-project-webview-toolbar">
           <div className="flex items-center gap-1">
@@ -1810,7 +1814,11 @@ export const Preview = memo(
 
               {isWindowSizeDropdownOpen && (
                 <>
-                  <div className="fixed inset-0 z-50" onClick={() => setIsWindowSizeDropdownOpen(false)} />
+                  <div
+                    className="fixed inset-0 z-50"
+                    aria-hidden="true"
+                    onClick={() => setIsWindowSizeDropdownOpen(false)}
+                  />
                   <div className="bolt-preview-window-menu">
                     <div className="bolt-preview-window-menu-header">
                       <div>
