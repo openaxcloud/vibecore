@@ -578,6 +578,50 @@ export class WorkbenchStore {
       throw error;
     }
 
+    /*
+     * Bulletproof install guarantee. Whatever command detection chose (including
+     * a bare `npx vite`, or a path that ran before package.json content was
+     * hydrated), a project with runtime dependencies whose node_modules is still
+     * missing MUST install first — otherwise vite serves with the app's imports
+     * (react, etc.) unresolved and the preview 404s/blanks. Prepend the install
+     * setup command if it isn't already there. Best-effort: a runtime probe
+     * failure leaves the detected command untouched.
+     */
+    try {
+      const pkgEntry = this.#findPackageJsonEntry();
+
+      if (pkgEntry && pkgEntry[1]?.type === 'file') {
+        let pkg: PreviewPackageManifest = {};
+
+        if (pkgEntry[1].content) {
+          try {
+            pkg = JSON.parse(pkgEntry[1].content) as PreviewPackageManifest;
+          } catch {
+            pkg = {};
+          }
+        }
+
+        const hasRuntimeDeps = Object.keys({ ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) }).some(
+          (dep) => dep !== 'vite' && dep !== 'typescript',
+        );
+        const installed = await this.#packageDirectoryHasInstalledPreviewDependencies(pkgEntry[0], pkg).catch(
+          () => true,
+        );
+
+        const alreadyInstalling = (command.setupCommands ?? []).some((c) => /install/i.test(c.label));
+
+        if (hasRuntimeDeps && !installed && !alreadyInstalling) {
+          const installCmd = this.#installCommandForPackage(pkgEntry[0], {
+            packageManager: (pkg as { packageManager?: string }).packageManager,
+          });
+          command = { ...command, setupCommands: [installCmd, ...(command.setupCommands ?? [])] };
+          this.appendWorkspaceLog(`Dependencies not installed; running ${installCmd.label} before ${command.label}.`);
+        }
+      }
+    } catch {
+      // best-effort guarantee; fall through with the detected command as-is
+    }
+
     this.toggleTerminal(true);
 
     this.#previewStartPromise = Promise.resolve(command.label);
