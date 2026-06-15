@@ -39,6 +39,16 @@ describe('agent memory migration', () => {
     expect(sql).toContain('USING GIN ("tags")');
   });
 
+  it('idempotently guards the raw HNSW and GIN indexes against drift / DR rebuilds', () => {
+    const sql = readRepoFile('packages/database/prisma/migrations/0035_agent_memory_vector_index_guard/migration.sql');
+
+    expect(sql).toContain('CREATE EXTENSION IF NOT EXISTS vector');
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS "AgentMemory_embedding_hnsw"');
+    expect(sql).toContain('USING hnsw ("embedding" vector_cosine_ops)');
+    expect(sql).toContain('CREATE INDEX IF NOT EXISTS "AgentMemory_tags_idx"');
+    expect(sql).toContain('USING gin ("tags")');
+  });
+
   it('keeps the generated Prisma client schema aligned with agent memory metadata', () => {
     const generatedSchema = readRepoFile('packages/database/generated/client/schema.prisma');
     const generatedClient = readRepoFile('packages/database/generated/client/index-browser.js');
