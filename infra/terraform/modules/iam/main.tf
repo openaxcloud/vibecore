@@ -13,11 +13,6 @@ resource "google_service_account" "platform_workload" {
   display_name = "VibeCore platform workload identity"
 }
 
-resource "google_service_account" "workspace_manager_workload" {
-  account_id   = "${var.name_prefix}-workspace-manager"
-  display_name = "VibeCore workspace manager workload identity"
-}
-
 resource "google_project_iam_member" "node_logging" {
   for_each = toset([
     google_service_account.app_gke_nodes.email,
@@ -55,16 +50,14 @@ resource "google_project_iam_member" "node_artifact_registry_reader" {
 # workspace-manager talks to the kube-apiserver in-cluster using its mounted
 # ServiceAccount token, scoped by the namespaced RBAC Role
 # `workspace-manager-runtime` (infra/helm/workspaces-runtime/templates/rbac.yaml).
-# It does NOT call the GCP/GKE API, so the project-wide roles/container.developer
-# previously granted here was excessive — that GCP role confers read/write/delete
-# on Kubernetes objects across EVERY namespace of every cluster in the project.
-# `container.viewer` is enough for any cluster-discovery the Workload Identity
-# binding needs; all mutating access comes from the namespaced RBAC Role.
-resource "google_project_iam_member" "workspace_manager_container" {
-  project = var.project_id
-  role    = "roles/container.viewer"
-  member  = "serviceAccount:${google_service_account.workspace_manager_workload.email}"
-}
+# It does NOT call the GCP/GKE API and is NOT bound to a GCP service account via
+# Workload Identity (global.workloadIdentity.workspaceManager is '' in
+# values-prod.yaml). The previously-declared `vibecore-prod-workspace-manager`
+# GSA + its container.viewer grant were therefore dead config — never applied
+# (the 31-char account_id also exceeds GCP's 30-char limit) and never referenced
+# by any KSA annotation or workloadIdentityUser binding. Removed so a clean
+# `terraform apply` is unblocked and no unused privileged SA is created. All of
+# the manager's mutating access comes from the namespaced RBAC Role.
 
 resource "google_project_iam_member" "platform_secret_accessor" {
   project = var.project_id
