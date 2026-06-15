@@ -9288,6 +9288,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   /*
+   * Rolling window for the terminals.concurrent gauge (see computeUsageForQuota).
+   * Long enough that a genuinely-open terminal stays counted through a normal
+   * working session, short enough that a leaked +1 (lost socket-close) self-heals
+   * within a few hours instead of locking the org out forever.
+   */
+  const TERMINAL_CONCURRENCY_WINDOW_MS = Number(
+    process.env.TERMINAL_CONCURRENCY_WINDOW_MS ?? 6 * 60 * 60 * 1000,
+  );
+
+  /*
    * Start of the current usage period for metered (per-month) allowances. Uses
    * the Stripe subscription's currentPeriodStart when present, otherwise resets
    * at the start of the calendar month (UTC) for free/no-subscription orgs.
@@ -9365,6 +9375,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     ) {
       const periodStart = await resolveUsagePeriodStart(organizationId);
       return store.sumUsage(organizationId, key, periodStart);
+    }
+
+    if (key === 'terminals.concurrent') {
+      /*
+       * Live-concurrency gauge stored as a running SUM of +1 (open) / -1 (close)
+       * usageEvent rows. The -1 fires on socket close, but that close can be lost
+       * — an api pod restart on deploy or the LB dropping the WebSocket leaves the
+       * onClose handler unrun, so an orphan +1 lingers. Summed over all time, those
+       * orphans only climb and eventually 429 every terminal open for the org,
+       * permanently (observed live as used=1,limit=1 on an idle account + an
+       * endless terminal reconnect loop). Scope the sum to a rolling window so a
+       * leaked +1 ages out and the gauge self-heals. A terminal open beyond the
+       * window stops counting (a minor, safe over-allowance for unusually long
+       * sessions) — far better than a permanent lockout. matches the per-period
+       * scoping already used for ai.* / previews.public / deployments.
+       */
+      const windowStart = new Date(Date.now() - TERMINAL_CONCURRENCY_WINDOW_MS);
+      const windowed = await store.sumUsage(organizationId, key, windowStart);
+
+      // A -1 whose matching +1 predates the window can drive the windowed sum
+      // negative; clamp so a negative gauge never masks a real over-limit later.
+      return Math.max(0, windowed);
     }
 
     return store.sumUsage(organizationId, key);
