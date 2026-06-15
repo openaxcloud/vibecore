@@ -23503,3 +23503,42 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     display: none !important;
   }
 }
+
+@media (max-width: 480px) {
+  .bolt-mobile-agent-start-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+    padding: 0;
+    scroll-snap-type: none;
+  }
+
+  .bolt-mobile-agent-start-actions button {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+  }
+}
+
+@media (min-width: 1025px) {
+  .bolt-project-chatbox .bolt-composer-send-button-toolbar {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    display: inline-flex !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    align-self: center;
+    justify-self: end;
+    flex: 0 0 38px;
+    border-radius: 10px !important;
+    transform: none !important;
+  }
+
+  .bolt-project-chatbox .bolt-chatbox-toolbar {
+    align-items: center;
+  }
+}

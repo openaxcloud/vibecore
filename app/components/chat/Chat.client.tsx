@@ -31,6 +31,7 @@ import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { LlmErrorAlertType } from '~/types/actions';
+import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
 
 const logger = createScopedLogger('Chat');
 const MAX_PROJECT_ARCHIVED_CONVERSATIONS = 24;
@@ -298,6 +299,8 @@ export const ChatImpl = memo(
       projectIdeMode ? chatMetadata.get()?.aiConversationId : undefined,
     );
 
+    const backendTranscriptHydratedRef = useRef(false);
+
     const ensureProjectAiConversation = useCallback(async () => {
       if (!projectIdeMode || !projectId) {
         return undefined;
@@ -516,6 +519,61 @@ export const ChatImpl = memo(
     useEffect(() => {
       latestMessagesRef.current = messages;
     }, [messages]);
+
+    useEffect(() => {
+      if (
+        !projectIdeMode ||
+        !projectId ||
+        backendTranscriptHydratedRef.current ||
+        initialMessages.length > 0 ||
+        messages.length > 0
+      ) {
+        return undefined;
+      }
+
+      const conversationId = backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId;
+
+      if (!conversationId) {
+        return undefined;
+      }
+
+      let cancelled = false;
+      backendTranscriptHydratedRef.current = true;
+
+      const hydrateBackendTranscript = async () => {
+        const response = await fetch(
+          `/api/projects/${encodeURIComponent(projectId)}/ai/conversations/${encodeURIComponent(
+            conversationId,
+          )}/messages`,
+        );
+
+        if (!response.ok) {
+          throw new Error(`AI transcript load failed (${response.status})`);
+        }
+
+        const payload = (await response.json()) as ProjectAiMessagesResponse;
+        const backendMessages = projectAiMessagesToChatMessages(payload.messages);
+
+        if (cancelled || backendMessages.length === 0) {
+          return;
+        }
+
+        setMessages(backendMessages);
+        latestMessagesRef.current = backendMessages;
+        setChatStarted(true);
+        workbenchStore.setReloadedMessages(backendMessages.map((message) => message.id));
+        await storeMessageHistory(backendMessages);
+      };
+
+      void hydrateBackendTranscript().catch((error) => {
+        backendTranscriptHydratedRef.current = false;
+        logStore.logError('Failed to load project AI transcript', error);
+      });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [initialMessages.length, messages.length, projectId, projectIdeMode, setMessages, storeMessageHistory]);
 
     useEffect(() => {
       chatStore.setKey('started', initialMessages.length > 0);
