@@ -52,8 +52,18 @@ export function temperatureOptionsForModel(modelName: string, providerName?: str
   return {};
 }
 
-// limits the number of model responses that can be returned in a single request
-export const MAX_RESPONSE_SEGMENTS = 2;
+/*
+ * Caps how many times a `finishReason: 'length'` response is auto-continued
+ * within one request. Each segment is bounded by the model's per-response token
+ * limit (often 4k–8k), so the total output ceiling is roughly
+ * MAX_RESPONSE_SEGMENTS × that limit. At 2 a from-scratch multi-file app
+ * (15–25 files) routinely ran out of segments and the generation hard-stopped
+ * mid-file — leaving e.g. a truncated vite.config.ts that makes the dev server
+ * exit 127/1 and the preview blank. 8 gives a realistic full app room to finish
+ * while still bounding runaway 'length' loops. Per-tenant output is still capped
+ * independently by the plan's ai.outputTokens quota.
+ */
+export const MAX_RESPONSE_SEGMENTS = 8;
 
 export interface File {
   type: 'file';

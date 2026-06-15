@@ -54,7 +54,15 @@ export const billingPlans: BillingPlan[] = [
       'projects.count': 3,
       'workspaces.active': 1,
       'workspaces.runtimeMinutes': 300,
-      'workspace.cpuMillicores': 500,
+      /*
+       * 500m throttled vite's startup (esbuild dep optimization is a multi-second
+       * CPU burst): the workspace-agent on the same container got starved, missed
+       * its liveness probe, and the pod was SIGTERM-restarted (exit 143) mid dev
+       * server boot — so generated apps' previews never came up. 1500m gives vite
+       * + the agent enough headroom to start comfortably. Pod CPU REQUEST is
+       * limit/4 = 375m (see resolveWorkspaceResources), so scheduling stays light.
+       */
+      'workspace.cpuMillicores': 1500,
       'workspace.ramMb': 1024,
       'storage.gb': 1,
       'snapshots.count': 5,
