@@ -211,17 +211,24 @@ describe('preview-proxy', () => {
     await app.close();
   });
 
-  it('sets Cross-Origin-Resource-Policy: cross-origin so the COEP-isolated IDE can embed the preview', async () => {
+  it('sets CORP and COEP so the COEP-isolated IDE can embed the preview iframe', async () => {
     const { fn: fetchImpl } = recordingFetch(async () => new Response('preview', { status: 200 }));
     const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
 
     const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
     expect(response.statusCode).toBe(200);
     expect(response.headers['cross-origin-resource-policy']).toBe('cross-origin');
+    /*
+     * The embedder sends COEP: credentialless; a cross-origin iframe DOCUMENT is
+     * blocked (ERR_BLOCKED_BY_RESPONSE) unless it carries its own compatible
+     * COEP — CORP alone is not enough for the nested document.
+     */
+    expect(response.headers['cross-origin-embedder-policy']).toBe('credentialless');
 
     // also on health, so probes/embeds are never blocked
     const health = await app.inject({ method: 'GET', url: '/health' });
     expect(health.headers['cross-origin-resource-policy']).toBe('cross-origin');
+    expect(health.headers['cross-origin-embedder-policy']).toBe('credentialless');
     await app.close();
   });
 

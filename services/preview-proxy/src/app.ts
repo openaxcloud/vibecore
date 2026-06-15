@@ -113,15 +113,29 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
   /*
    * The IDE (app.e-code.ai) is cross-origin isolated — it sends
-   * `Cross-Origin-Embedder-Policy: credentialless`. Under COEP, a cross-origin
-   * iframe is blocked (ERR_BLOCKED_BY_RESPONSE → blank/error frame) unless the
-   * embedded document opts in with `Cross-Origin-Resource-Policy: cross-origin`.
-   * The preview is meant to be embedded from any origin, so assert CORP on every
-   * proxied response. Guarded so an upstream that already set CORP wins.
+   * `Cross-Origin-Embedder-Policy: credentialless` (entry.server.tsx). Two
+   * separate rules then govern embedding the preview as a cross-origin iframe,
+   * and BOTH must be satisfied or the frame fails with ERR_BLOCKED_BY_RESPONSE
+   * (blank/error frame):
+   *   1. CORP — the embedded RESOURCE must allow cross-origin embedding
+   *      (`Cross-Origin-Resource-Policy: cross-origin`).
+   *   2. COEP — a credentialless/require-corp embedder may only frame a
+   *      cross-origin DOCUMENT that itself carries a compatible COEP. A document
+   *      with the default (unsafe-none) is blocked outright. CORP alone is NOT
+   *      enough for the nested document; the earlier fix set only CORP, so the
+   *      preview iframe stayed blocked. Assert COEP `credentialless` too — it
+   *      matches the embedder and loads the dev server's own (public, no-cred)
+   *      subresources without requiring CORP on each of them.
+   * Both are set on every proxied response (harmless on non-document responses),
+   * guarded so an upstream that already set them wins.
    */
   app.addHook('onSend', async (_request, reply, payload) => {
     if (!reply.hasHeader('cross-origin-resource-policy')) {
       reply.header('cross-origin-resource-policy', 'cross-origin');
+    }
+
+    if (!reply.hasHeader('cross-origin-embedder-policy')) {
+      reply.header('cross-origin-embedder-policy', 'credentialless');
     }
 
     return payload;
