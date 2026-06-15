@@ -341,19 +341,23 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
           },
           /*
            * Liveness RESTARTS the pod — and a restart kills the user's dev server
-           * (the agent's child process), surfacing as "Stopped runtime". The old
-           * defaults (timeout 1s, 3 fails / ~30s) killed a perfectly healthy agent
-           * whose event loop was briefly starved during a heavy `npm install`/build
-           * under sandbox-node CPU contention. Make it tolerant: 5s timeout and 6
-           * failures over 15s periods (~90s of unresponsiveness) before a restart,
-           * so only a genuinely hung agent is recycled.
+           * AND any in-flight `npm install` (the agent's child processes),
+           * surfacing as "Stopped runtime" with a half-populated node_modules.
+           * Verified live: a heavy install of a full React/Vite app pegs CPU under
+           * sandbox-node overcommit and starves the agent's /health for longer
+           * than the previous ~90s window, so the kubelet recycled the pod
+           * mid-install (restarts climbing) and the install never finished. Make
+           * the window generous — 10s timeout, 15 failures over 20s periods
+           * (~300s) — so a multi-minute install completes; a genuinely hung agent
+           * is still recycled after 5min. Readiness (above) stays responsive so
+           * traffic is gated quickly without triggering a restart.
            */
           livenessProbe: {
             httpGet: { path: '/health', port: 8080 },
             initialDelaySeconds: 10,
-            periodSeconds: 15,
-            timeoutSeconds: 5,
-            failureThreshold: 6,
+            periodSeconds: 20,
+            timeoutSeconds: 10,
+            failureThreshold: 15,
           },
           securityContext: {
             allowPrivilegeEscalation: false,
