@@ -284,18 +284,23 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     });
 
     const events: Array<{ type: string; data?: string }> = [];
+
     const drained = (async () => {
       for await (const event of adapter.streamCommand({ command: 'echo', args: ['hi'] })) {
         events.push(event as { type: string; data?: string });
       }
     })();
 
-    // Let #openSocket resolve (open is emitted on a microtask) and the generator register
-    // its message listener before we push frames.
+    /*
+     * Let #openSocket resolve (open is emitted on a microtask) and the generator register
+     * its message listener before we push frames.
+     */
     for (let i = 0; i < 5 && FakeWebSocket.instances.length === 0; i += 1) {
       await Promise.resolve();
     }
+
     const socket = FakeWebSocket.instances.at(-1)!;
+
     for (let i = 0; i < 5; i += 1) {
       await Promise.resolve();
     }
@@ -306,8 +311,10 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     socket.emit('message', { data: 'not-json' }); // malformed frame must be ignored, not throw
     socket.emit('message', { data: JSON.stringify({ type: 'exit', exitCode: 0, timestamp: 'now' }) });
 
-    // Resolves because the `exit` event closes the queue — even though the socket is never
-    // closed by the server.
+    /*
+     * Resolves because the `exit` event closes the queue — even though the socket is never
+     * closed by the server.
+     */
     await drained;
 
     expect(events.map((event) => event.type)).toEqual(['stdout', 'stdout', 'exit']);
@@ -335,5 +342,66 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
       code: 'REMOTE_RUNTIME_REQUEST_FAILED',
       status: 402,
     });
+  });
+
+  it('retries an idempotent read through a transient agent 502 (cold-start / restart window)', async () => {
+    let readAttempts = 0;
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes('/files/read')) {
+        readAttempts += 1;
+
+        /*
+         * The agent pod is momentarily unreachable for the first two attempts
+         * (e.g. restarting after a liveness kill), then recovers.
+         */
+        if (readAttempts < 3) {
+          return new Response('bad gateway', { status: 502 });
+        }
+
+        return Response.json({ content: 'recovered' });
+      }
+
+      return Response.json([]);
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token-retry',
+      workspaceId: 'ws-1',
+      fetchImpl: fetchMock as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    await expect(adapter.readFile('src/App.tsx')).resolves.toBe('recovered');
+    expect(readAttempts).toBe(3);
+  });
+
+  it('does not retry a non-transient read failure (4xx surfaces immediately)', async () => {
+    let readAttempts = 0;
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes('/files/read')) {
+        readAttempts += 1;
+        return new Response('not found', { status: 404 });
+      }
+
+      return Response.json([]);
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token-retry',
+      workspaceId: 'ws-1',
+      fetchImpl: fetchMock as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    await expect(adapter.readFile('missing.tsx')).rejects.toMatchObject({ status: 404 });
+    expect(readAttempts).toBe(1);
   });
 });

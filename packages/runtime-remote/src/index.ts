@@ -64,6 +64,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   #terminalStops = new Map<string, () => void>();
   #eventStreams = new Map<string, AsyncQueue<CommandEvent>>();
   #socketConnectTimeoutMs = 30_000;
+
   /*
    * Provisioning a cold workspace (PVC + Pod + image pull + readiness) runs in
    * the manager for up to ~3min. The synchronous api->manager start aborts long
@@ -88,6 +89,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
   async startWorkspace(session: Partial<WorkspaceSession> = {}): Promise<WorkspaceSession> {
     const requestedId = session.id ?? this.#workspaceId;
+
     let payload: WorkspaceSession | undefined;
 
     try {
@@ -134,9 +136,11 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
   #isTransientStartError(error: unknown): boolean {
     if (error instanceof RuntimeError) {
-      // A 502/503/504 from the api runtime proxy, or a network/abort error with
-      // no HTTP status — the workspace may still be provisioning. 4xx (quota,
-      // auth, validation) are deterministic and must not be retried.
+      /*
+       * A 502/503/504 from the api runtime proxy, or a network/abort error with
+       * no HTTP status — the workspace may still be provisioning. 4xx (quota,
+       * auth, validation) are deterministic and must not be retried.
+       */
       return error.status === undefined || error.status === 502 || error.status === 503 || error.status === 504;
     }
 
@@ -146,6 +150,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
   async #waitForWorkspaceRunning(workspaceId: string): Promise<WorkspaceSession> {
     const deadline = Date.now() + this.#startReadinessTimeoutMs;
+
     let lastStatus: WorkspaceStatus | undefined;
 
     for (;;) {
@@ -154,8 +159,10 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       try {
         session = await this.getWorkspaceStatus(workspaceId);
       } catch (error) {
-        // Status itself can 502 transiently while the pod is coming up; keep
-        // polling. A deterministic error (auth, etc.) aborts the wait.
+        /*
+         * Status itself can 502 transiently while the pod is coming up; keep
+         * polling. A deterministic error (auth, etc.) aborts the wait.
+         */
         if (!this.#isTransientStartError(error)) {
           throw error;
         }
@@ -168,14 +175,12 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
           return session;
         }
 
-        // 'failed' is what the API actually emits for a failed start (the shared
-        // WorkspaceStatus type predates it); treat it as terminal alongside
-        // stopped/error so the wait fails fast instead of polling to timeout.
-        if (
-          session.status === 'stopped' ||
-          session.status === 'error' ||
-          (session.status as string) === 'failed'
-        ) {
+        /*
+         * 'failed' is what the API actually emits for a failed start (the shared
+         * WorkspaceStatus type predates it); treat it as terminal alongside
+         * stopped/error so the wait fails fast instead of polling to timeout.
+         */
+        if (session.status === 'stopped' || session.status === 'error' || (session.status as string) === 'failed') {
           throw new RuntimeError(`Workspace failed to start (status: ${session.status})`, {
             code: 'WORKSPACE_START_FAILED',
             status: 409,
@@ -206,6 +211,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   async restartWorkspace(workspaceId = this.#requireWorkspaceId()): Promise<WorkspaceSession> {
     const session = await this.#request<WorkspaceSession>(`/workspaces/${workspaceId}/restart`, { method: 'POST' });
     this.#session = session;
+
     return session;
   }
 
@@ -223,18 +229,23 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   async getWorkspaceStatus(workspaceId = this.#requireWorkspaceId()): Promise<WorkspaceSession> {
     const session = await this.#request<WorkspaceSession>(`/workspaces/${workspaceId}/status`);
     this.#session = session;
+
     return session;
   }
 
   async listFiles(path = '.'): Promise<FileNode[]> {
     return this.#request<FileNode[]>(
       `/workspaces/${this.#requireWorkspaceId()}/files?path=${encodeURIComponent(path)}`,
+      {},
+      { retryReads: true },
     );
   }
 
   async readFile(path: string): Promise<string> {
     const result = await this.#request<{ content: string }>(
       `/workspaces/${this.#requireWorkspaceId()}/files/read?path=${encodeURIComponent(path)}`,
+      {},
+      { retryReads: true },
     );
     return result.content;
   }
@@ -307,6 +318,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   async *streamCommand(request: CommandRequest): AsyncIterable<CommandEvent> {
     const socket = await this.#openSocket(`/workspaces/${this.#requireWorkspaceId()}/commands/stream`, request);
     const queue = new AsyncQueue<CommandEvent>();
+
     let sawTerminalEvent = false;
     socket.addEventListener('message', (event: { data: string }) => {
       let parsed: CommandEvent;
@@ -314,15 +326,19 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       try {
         parsed = JSON.parse(event.data) as CommandEvent;
       } catch {
-        // Ignore a malformed frame rather than throwing out of the WS message dispatch
-        // (which would otherwise leave the queue open and hang the consumer).
+        /*
+         * Ignore a malformed frame rather than throwing out of the WS message dispatch
+         * (which would otherwise leave the queue open and hang the consumer).
+         */
         return;
       }
 
       queue.push(parsed);
 
-      // The command is done once the agent reports exit/error. Close the queue so the
-      // consumer's `for await` terminates even if the agent keeps the socket open.
+      /*
+       * The command is done once the agent reports exit/error. Close the queue so the
+       * consumer's `for await` terminates even if the agent keeps the socket open.
+       */
       if (parsed.type === 'exit' || parsed.type === 'error') {
         sawTerminalEvent = true;
         queue.close();
@@ -352,8 +368,10 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       queue.close();
     });
 
-    // Always tear down the socket — including when the consumer breaks/throws out of the
-    // loop early — so we never leak a live WebSocket + listeners per cancelled command.
+    /*
+     * Always tear down the socket — including when the consumer breaks/throws out of the
+     * loop early — so we never leak a live WebSocket + listeners per cancelled command.
+     */
     try {
       for await (const event of queue) {
         yield event;
@@ -389,11 +407,14 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     let reconnectAttempts = 0;
     let stableTimer: ReturnType<typeof setTimeout> | undefined;
     let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+
     let socket = await this.#openSocket(terminalPath, {
       terminalId,
       ...request,
     });
+
     const queue = new AsyncQueue<CommandEvent>();
+
     const onMessage = (event: { data: string }) => {
       /*
        * The socket only ever carries JSON CommandEvents. Guard against a malformed or
@@ -478,6 +499,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
       try {
         unbindSocket(socket);
+
         const opened = await this.#openSocket(terminalPath, {
           terminalId,
           ...request,
@@ -521,8 +543,10 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         heartbeatTimer = undefined;
       }
 
-      // Close the live socket so stopping a terminal frees the connection instead
-      // of leaking it until the server or GC tears it down.
+      /*
+       * Close the live socket so stopping a terminal frees the connection instead
+       * of leaking it until the server or GC tears it down.
+       */
       unbindSocket(socket);
 
       try {
@@ -553,9 +577,11 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     const terminal = this.#terminals.get(processId);
 
     if (terminal) {
-      // Send the kill frame before the stop handler closes the socket, otherwise the
-      // agent never disposes the persistent shell (leaking the PTY) and the send throws
-      // on an already-closed socket.
+      /*
+       * Send the kill frame before the stop handler closes the socket, otherwise the
+       * agent never disposes the persistent shell (leaking the PTY) and the send throws
+       * on an already-closed socket.
+       */
       try {
         terminal.send(JSON.stringify({ type: 'kill' }));
       } catch {
@@ -568,6 +594,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       this.#terminals.delete(processId);
       this.#eventStreams.get(processId)?.close();
       this.#eventStreams.delete(processId);
+
       return;
     }
 
@@ -600,9 +627,12 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async restoreSnapshot(snapshotId: string): Promise<void> {
-    await this.#request(`/workspaces/${this.#requireWorkspaceId()}/snapshots/${encodeURIComponent(snapshotId)}/restore`, {
-      method: 'POST',
-    });
+    await this.#request(
+      `/workspaces/${this.#requireWorkspaceId()}/snapshots/${encodeURIComponent(snapshotId)}/restore`,
+      {
+        method: 'POST',
+      },
+    );
   }
 
   /*
@@ -638,14 +668,41 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     );
   }
 
-  async #request<T>(path: string, init: RequestInit = {}): Promise<T> {
-    const response = await this.#rawRequest(path, init);
+  async #request<T>(path: string, init: RequestInit = {}, options: { retryReads?: boolean } = {}): Promise<T> {
+    /*
+     * Idempotent reads (file/dir reads) opt into a short retry so a transient
+     * agent 502/503/504 — the agent pod momentarily unreachable while it is
+     * cold-starting or being restarted (e.g. after a liveness kill under CPU
+     * contention) — doesn't surface as a hard read failure / stale content.
+     * Writes are NOT retried here (a 502 can mean the write already applied);
+     * non-transient errors (4xx) and caller-aborts short-circuit immediately.
+     */
+    const maxAttempts = options.retryReads ? 4 : 1;
 
-    if (response.status === 204) {
-      return undefined as T;
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const response = await this.#rawRequest(path, init);
+
+        if (response.status === 204) {
+          return undefined as T;
+        }
+
+        return (await response.json()) as T;
+      } catch (error) {
+        lastError = error;
+
+        if (init.signal?.aborted || attempt >= maxAttempts || !this.#isTransientStartError(error)) {
+          throw error;
+        }
+
+        // Exponential-ish backoff (~250/500/750ms) to ride a brief restart window.
+        await new Promise<void>((resolve) => setTimeout(resolve, 250 * attempt));
+      }
     }
 
-    return response.json() as Promise<T>;
+    throw lastError;
   }
 
   async #rawRequest(path: string, init: RequestInit = {}): Promise<Response> {
@@ -691,7 +748,11 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      * base, `new URL("/api/runtime/...")` throws "Invalid URL" and silently breaks
      * the remote runtime whenever baseUrl isn't absolute.
      */
-    const origin = typeof globalThis !== 'undefined' ? (globalThis as { location?: { origin?: string } }).location?.origin : undefined;
+    const origin =
+      typeof globalThis !== 'undefined'
+        ? (globalThis as { location?: { origin?: string } }).location?.origin
+        : undefined;
+
     const url = new URL(`${this.#baseUrl}${path}`, origin);
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
 
@@ -728,8 +789,10 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         settled = true;
         cleanup();
 
-        // Close the half-open socket so a failed connect doesn't leak it (reconnect
-        // backoff loops would otherwise accumulate dead sockets + listeners).
+        /*
+         * Close the half-open socket so a failed connect doesn't leak it (reconnect
+         * backoff loops would otherwise accumulate dead sockets + listeners).
+         */
         try {
           socket.close();
         } catch {
@@ -748,8 +811,10 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         socket.removeEventListener?.('error', onError);
       };
 
-      // Guard against a socket that connects at the TCP/TLS layer but never receives the
-      // upgrade/open event (hung LB) — without this the awaiting caller hangs forever.
+      /*
+       * Guard against a socket that connects at the TCP/TLS layer but never receives the
+       * upgrade/open event (hung LB) — without this the awaiting caller hangs forever.
+       */
       timer = setTimeout(onError, this.#socketConnectTimeoutMs);
 
       socket.addEventListener('open', onOpen);
@@ -765,9 +830,11 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
 
-    // The per-caller onMessage callbacks JSON.parse the frame inline; a single malformed
-    // frame (or a throwing consumer callback) would otherwise throw out of the WS message
-    // dispatch and silently kill the watch without triggering reconnect. Swallow it.
+    /*
+     * The per-caller onMessage callbacks JSON.parse the frame inline; a single malformed
+     * frame (or a throwing consumer callback) would otherwise throw out of the WS message
+     * dispatch and silently kill the watch without triggering reconnect. Swallow it.
+     */
     const safeOnMessage = (event: { data: string }) => {
       try {
         onMessage(event);
@@ -888,8 +955,10 @@ class AsyncQueue<T> implements AsyncIterable<T> {
   [Symbol.asyncIterator](): AsyncIterator<T> {
     return {
       next: () => {
-        // Check length, not truthiness: a falsy-but-valid payload (0, '', false, null)
-        // must still be delivered, not silently dropped and the iterator desynchronized.
+        /*
+         * Check length, not truthiness: a falsy-but-valid payload (0, '', false, null)
+         * must still be delivered, not silently dropped and the iterator desynchronized.
+         */
         if (this.#values.length > 0) {
           return Promise.resolve({ value: this.#values.shift() as T, done: false });
         }
