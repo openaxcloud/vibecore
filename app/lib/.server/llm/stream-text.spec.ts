@@ -50,4 +50,19 @@ describe('getCompletionTokenLimit', () => {
       }),
     ).toBe(64_000);
   });
+
+  it('falls back to the provider default when the model omits a completion limit', () => {
+    /*
+     * Regression: the OpenAI/Github default was 4096, which truncated multi-file
+     * generations mid-file. It must now be a modern, non-truncating floor.
+     */
+    expect(getCompletionTokenLimit({ provider: 'OpenAI', maxTokenAllowed: 128_000 })).toBe(16384);
+    expect(getCompletionTokenLimit({ provider: 'Github', maxTokenAllowed: 128_000 })).toBe(16384);
+  });
+
+  it('never falls back below a generation-safe floor for known providers', () => {
+    for (const provider of ['OpenAI', 'Github', 'Anthropic', 'Google', 'Mistral', 'xAI']) {
+      expect(getCompletionTokenLimit({ provider, maxTokenAllowed: 128_000 })).toBeGreaterThanOrEqual(8192);
+    }
+  });
 });

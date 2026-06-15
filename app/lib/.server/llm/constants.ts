@@ -10,8 +10,17 @@ export const MAX_TOKENS = 128000;
  * Used as fallbacks when model doesn't specify maxCompletionTokens
  */
 export const PROVIDER_COMPLETION_LIMITS: Record<string, number> = {
-  OpenAI: 4096, // Standard GPT models (o1 models have much higher limits)
-  Github: 4096, // GitHub Models use OpenAI-compatible limits
+  /*
+   * Fallback ONLY for models that don't declare their own maxCompletionTokens
+   * (gpt-4.1/4o etc. already set 16k–32k explicitly). 4096 was far below what
+   * every current OpenAI chat model supports (>=16k) and silently truncated
+   * multi-file generations mid-file — the model stopped emitting at 4k, leaving
+   * the in-flight source file with an unterminated string / unbalanced brace.
+   * 16384 matches the gpt-4o floor; per-tenant output stays capped by the plan's
+   * ai.outputTokens quota and finishReason:'length' is still auto-continued.
+   */
+  OpenAI: 16384,
+  Github: 16384, // GitHub Models are OpenAI-compatible
   Anthropic: 64000, // Conservative limit for Claude 4 models (Opus: 32k, Sonnet: 64k)
   Google: 8192, // Gemini 1.5 Pro/Flash standard limit
   Cohere: 4000,
