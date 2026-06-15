@@ -1548,6 +1548,7 @@ function isBlockedGitHost(rawHost: string): boolean {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
+
     /*
      * ULA fc00::/7 + link-local fe80::/10, but only as IPv6 LITERALS (hextets +
      * ':'). The old startsWith('fc'/'fd'/'fe80') wrongly blocked public hosts like
@@ -2245,6 +2246,7 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     mfaPathname.startsWith('/auth/recovery-codes/') ||
     mfaPathname === '/auth/sessions' ||
     mfaPathname.startsWith('/auth/sessions/') ||
+
     /*
      * Re-auth is the gateway to enrolling MFA (mfa/setup now requires it); a
      * platform admin without MFA must be able to reach it or they'd be deadlocked.
@@ -2723,7 +2725,7 @@ function collaborationDocuments(state?: ProjectIdeStateRecord) {
 async function mutateProjectIdeState(
   store: ApiStore,
   projectId: string,
-  updatedByUserId: string,
+  updatedByUserId: string | undefined,
   build: (ctx: ReturnType<typeof collaborationDocuments>, existing?: ProjectIdeStateRecord) => unknown,
 ): Promise<ProjectIdeStateRecord> {
   for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -2896,15 +2898,21 @@ async function persistProjectFileManifest(
   updatedByUserId?: string,
   options: { clearRecoveredChatFiles?: boolean } = {},
 ) {
-  const existingState = await store.getProjectIdeState(projectId);
-  await store.upsertProjectIdeState({
-    projectId,
-    updatedByUserId,
-    state: mergeProjectIdeState(existingState?.state, {
+  /*
+   * Route through the version-guarded mutate loop instead of a bare read +
+   * unconditional upsert. This blob is shared with the collaboration document
+   * edits and terminal-permission grants/revokes; a plain read-modify-write here
+   * (fired automatically on every artifact close via /files/import/zip) would
+   * clobber a peer's edit or resurrect a just-revoked terminal grant
+   * (authz-affecting) that committed inside the read/write window. mutate
+   * re-reads + re-merges under the optimistic-concurrency version check.
+   */
+  await mutateProjectIdeState(store, projectId, updatedByUserId, (_ctx, existing) =>
+    mergeProjectIdeState(existing?.state, {
       files: projectFileManifestState(files),
       ...(options.clearRecoveredChatFiles ? { chat: { clearMessages: true, messages: [] } } : {}),
     }),
-  });
+  );
 }
 
 function persistedIdeMessageContent(message: unknown) {
@@ -6892,6 +6900,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
+
       /*
        * Public read of a shared conversation snapshot — the signed token is the
        * capability. Only the token-scoped GET path is exempt; POST /chat-shares
@@ -10833,6 +10842,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     let response: Response;
 
+    /*
+     * Bound only the CONNECT/headers phase, not the whole transfer. A plain
+     * AbortSignal.timeout(30s) covered the entire fetch lifetime including the
+     * streamed body below, so any legitimately long-lived preview response - Vite
+     * HMR / EventSource (SSE) channels, a big file download, a slow large bundle -
+     * was aborted at 30s mid-stream. Use a manual controller cleared the moment
+     * headers arrive, so a hung dev server still times out before first byte but
+     * an actively-streaming response runs to completion.
+     */
+    const previewController = new AbortController();
+    const previewHeadersTimeout = setTimeout(() => previewController.abort(), 30_000);
+
     try {
       response = await fetch(agentUrl, {
         method: request.method,
@@ -10849,14 +10870,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          */
         body: previewForwardBody(request),
         redirect: 'manual',
-        signal: AbortSignal.timeout(30_000),
+        signal: previewController.signal,
       });
+
+      // Headers received: stop the connect deadline so the body stream is uncapped.
+      clearTimeout(previewHeadersTimeout);
     } catch (error) {
+      clearTimeout(previewHeadersTimeout);
+
       /*
        * A hung user app (infinite loop / slow SSR in their dev server) must not
-       * hold the API handler open indefinitely — surface it as a gateway timeout.
+       * hold the API handler open indefinitely; surface it as a gateway timeout.
+       * Our own connect-deadline abort surfaces as AbortError, not TimeoutError.
        */
-      if (error instanceof Error && error.name === 'TimeoutError') {
+      if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
         return reply.code(504).send({ error: 'preview_timeout', code: 'RUNTIME_PREVIEW_TIMEOUT' });
       }
 
@@ -16218,6 +16245,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           : undefined;
         const isStaleByTimestamp = Boolean(
           eventCreatedAt &&
+
             /*
              * Deletion is terminal and must ALWAYS be applied: a `deleted` event
              * can legitimately carry an older event.created than a previously
@@ -16815,19 +16843,93 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireRecentAdminReauth(request);
 
     const { workspaceId } = parse(adminWorkspaceParams, request.params);
+
+    /*
+     * Actually stop the pod via the manager, not just flip the DB row. The old
+     * handler left the workload running (billable + still serving) while
+     * reporting STOPPED - DB/manager drift. Treat an already-gone workspace as a
+     * no-op; rethrow genuine manager faults.
+     */
+    try {
+      await managerRequest(`/workspaces/${workspaceId}/stop`, { method: 'POST' });
+    } catch (error) {
+      if (!isRuntimeWorkspaceGone(error)) {
+        throw error;
+      }
+    }
+
     const workspace = await store.updateWorkspaceStatus({ workspaceId, status: 'STOPPED' });
     await recordAdminAction(request, store, { action: 'admin.workspace.stop', metadata: { workspaceId } });
 
     return { workspace };
   });
 
-  app.post('/admin/workspaces/:workspaceId/restart', async (request) => {
+  app.post('/admin/workspaces/:workspaceId/restart', async (request, reply) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
 
     const { workspaceId } = parse(adminWorkspaceParams, request.params);
-    const workspace = await store.updateWorkspaceStatus({ workspaceId, status: 'RUNNING' });
-    await recordAdminAction(request, store, { action: 'admin.workspace.restart', metadata: { workspaceId } });
+
+    /*
+     * Actually restart the pod via the manager and reconcile the DB to the real
+     * result. The old handler set status=RUNNING without starting anything,
+     * leaving a phantom RUNNING record (no pod) that lied to the dashboard and
+     * consumed the org's active-workspace quota. Resolve the same plan / env /
+     * secrets the user restart sends so the pod is provisioned correctly.
+     */
+    const record = await store.getWorkspace(workspaceId);
+
+    if (!record) {
+      return reply.code(404).send({ error: 'Workspace not found', code: 'WORKSPACE_NOT_FOUND' });
+    }
+
+    const project = await store.getProject(record.projectId);
+    const orgId = project?.organizationId;
+    const state = orgId ? await billingState(orgId) : undefined;
+
+    const [projectEnvVars, projectSecrets] = await Promise.all([
+      store.listProjectEnvVars(record.projectId),
+      store.listProjectSecrets(record.projectId),
+    ]);
+
+    const env = Object.fromEntries(projectEnvVars.map((entry) => [entry.key, entry.value]));
+    const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
+    const allowedSecrets = await resolveProjectSecretValues(store, record.projectId);
+
+    let managerWorkspace: { status?: string } | undefined;
+
+    try {
+      managerWorkspace = await managerRequest<{ status?: string }>(`/workspaces/${workspaceId}/restart`, {
+        method: 'POST',
+        body: JSON.stringify({
+          namespace: runtimeNamespace(),
+          orgId: orgId ?? 'unknown-org',
+          projectId: record.projectId,
+          workspaceId,
+          image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
+          plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
+          resourceLimits: state
+            ? {
+                cpuMillicores: state.limits['workspace.cpuMillicores'],
+                ramMb: state.limits['workspace.ramMb'],
+                storageGb: state.limits['storage.gb'],
+              }
+            : undefined,
+          env,
+          allowedSecretKeys,
+          allowedSecrets,
+        }),
+      });
+    } catch (restartError) {
+      await store.updateWorkspaceStatus({ workspaceId, status: 'FAILED' }).catch(() => undefined);
+      throw restartError;
+    }
+
+    const status =
+      managerWorkspace?.status === 'FAILED' ? 'FAILED' : managerWorkspace?.status === 'STOPPED' ? 'STOPPED' : 'RUNNING';
+
+    const workspace = await store.updateWorkspaceStatus({ workspaceId, status });
+    await recordAdminAction(request, store, { action: 'admin.workspace.restart', metadata: { workspaceId, status } });
 
     return { workspace };
   });

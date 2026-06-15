@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   AgentExecutorError,
   ECODE_AGENT_ROLES,
@@ -198,6 +198,63 @@ describe('E-Code agent orchestration', () => {
     expect(calls[0].url).toBe('https://agents.example.com/v1/agent-runs/stream');
     expect(JSON.parse(String(calls[0].init.body))).toMatchObject({ rateLimitKey: 'project_123' });
     expect(receivedEvents).toEqual(events);
+  });
+
+  it('uses an idle timeout that does not abort a slow-but-steady stream', async () => {
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: 'Build a full-stack app with backend APIs, auth, deploy and tests.' }],
+      subagentsAvailable: true,
+    });
+
+    const encoder = new TextEncoder();
+
+    const frames = [
+      { type: 'lane-start', roleId: 'architect', title: 'Architect' },
+      { type: 'lane-delta', roleId: 'architect', content: 'a' },
+      { type: 'lane-delta', roleId: 'architect', content: 'b' },
+      { type: 'lane-delta', roleId: 'architect', content: 'c' },
+      { type: 'lane-delta', roleId: 'architect', content: 'd' },
+      {
+        type: 'run-done',
+        runId: 'run_idle',
+        status: 'complete',
+        results: [{ roleId: 'architect', status: 'complete', summary: 'ok' }],
+      },
+    ];
+
+    const gapMs = 20;
+
+    const fetchImpl = async () =>
+      new Response(
+        new ReadableStream({
+          async start(controller) {
+            for (const frame of frames) {
+              await new Promise((resolve) => setTimeout(resolve, gapMs));
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(frame)}\n\n`));
+            }
+
+            controller.close();
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'text/event-stream' } },
+      );
+
+    /*
+     * idle window (80ms) > per-frame gap (20ms), but the TOTAL stream (~120ms)
+     * exceeds it. A fixed total-lifetime deadline of 80ms would have aborted
+     * mid-stream; the idle timeout re-arms on each frame and must let it finish.
+     */
+    const response = await executeAgentOrchestrationStream({
+      env: { ECODE_SUBAGENT_EXECUTOR_URL: 'https://agents.example.com' },
+      plan,
+      messages: [{ role: 'user', content: 'Build it.' }],
+      timeoutMs: 80,
+      fetchImpl: fetchImpl as typeof fetch,
+      onEvent: vi.fn(),
+    });
+
+    expect(response.runId).toBe('run_idle');
   });
 
   it('fails closed when the sub-agent executor is not configured or returns invalid data', async () => {

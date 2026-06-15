@@ -318,7 +318,14 @@ export async function executeAgentOrchestration(input: {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), input.timeoutMs ?? 60_000);
+
+  /*
+   * One-shot POST that waits for the WHOLE parallel run (all lanes + consensus)
+   * to finish, so the deadline must cover a realistic multi-lane build. 60s was
+   * too short and failed slow-but-healthy runs (then downgrading to
+   * single-model-lanes); 180s aligns with the executor's own lane budgets.
+   */
+  const timeout = setTimeout(() => controller.abort(), input.timeoutMs ?? 180_000);
   const fetcher = input.fetchImpl ?? fetch;
   const token = getSubagentExecutorToken(input.env)?.trim();
 
@@ -412,7 +419,29 @@ export async function executeAgentOrchestrationStream(input: {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), input.timeoutMs ?? 90_000);
+
+  /*
+   * IDLE timeout, not a total-lifetime deadline. A fixed setTimeout over the
+   * whole stream aborted healthy long-running parallel runs - exactly the heavy
+   * case this feature targets (up to 5 specialist LLM lanes streaming real
+   * output, which can exceed 90s of wall-clock while tokens are actively
+   * flowing). Re-arm on every reader.read() that returns bytes so we only abort
+   * when the connection has genuinely stalled for `idleMs`.
+   */
+  const idleMs = input.timeoutMs ?? 90_000;
+
+  let idleTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const armIdle = () => {
+    if (idleTimer) {
+      clearTimeout(idleTimer);
+    }
+
+    idleTimer = setTimeout(() => controller.abort(), idleMs);
+  };
+
+  armIdle();
+
   const fetcher = input.fetchImpl ?? fetch;
   const token = getSubagentExecutorToken(input.env)?.trim();
 
@@ -449,6 +478,9 @@ export async function executeAgentOrchestrationStream(input: {
       if (done) {
         break;
       }
+
+      // Bytes received: the stream is alive, so reset the idle deadline.
+      armIdle();
 
       buffer += decoder.decode(value, { stream: true });
 
@@ -509,7 +541,9 @@ export async function executeAgentOrchestrationStream(input: {
       'network-error',
     );
   } finally {
-    clearTimeout(timeout);
+    if (idleTimer) {
+      clearTimeout(idleTimer);
+    }
   }
 }
 
