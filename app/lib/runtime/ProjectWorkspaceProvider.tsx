@@ -157,6 +157,20 @@ export function ProjectWorkspaceProvider({
 
         await workbenchStore.loadRuntimeFiles('.');
         await workbenchStore.refreshRuntimePorts().catch(() => undefined);
+
+        /*
+         * Re-check after the (network) awaits above: cleanup may have fired
+         * during them (rapid project switch / unmount / StrictMode remount).
+         * Without this, the watchLogs socket and the keepalive heartbeat below
+         * are created AFTER cleanup ran (when stopLogs/heartbeat were still
+         * undefined), so they leak for the life of the page and the heartbeat
+         * keeps the abandoned workspace billable.
+         */
+        if (cancelled) {
+          await stopRemoteWorkspace(runtime, activeWorkspaceId ?? session.id).catch(() => undefined);
+          return;
+        }
+
         void workbenchStore.startPreviewServer().catch((error) => {
           workbenchStore.appendWorkspaceLog(
             error instanceof Error ? `Preview auto-start skipped: ${error.message}` : 'Preview auto-start skipped',
@@ -165,6 +179,15 @@ export function ProjectWorkspaceProvider({
 
         if ('watchLogs' in runtime && typeof runtime.watchLogs === 'function') {
           stopLogs = await runtime.watchLogs((event: CommandEvent) => workbenchStore.appendWorkspaceLog(event));
+
+          // watchLogs opens a socket; if cleanup raced this await, tear it down now.
+          if (cancelled) {
+            stopLogs?.();
+            stopLogs = undefined;
+            await stopRemoteWorkspace(runtime, activeWorkspaceId ?? session.id).catch(() => undefined);
+
+            return;
+          }
         }
 
         /*

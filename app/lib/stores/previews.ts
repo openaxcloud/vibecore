@@ -31,6 +31,12 @@ export class PreviewsStore {
   #originalSetItem?: typeof localStorage.setItem;
   #reconnectTimer?: number;
   #reconnectAttempts = 0;
+
+  /*
+   * Bumped on every setRuntime/#init start so an in-flight watchPorts that
+   * resolves after a project switch can detect it is stale and tear itself down.
+   */
+  #initGeneration = 0;
   #disposed = false;
   #storageSyncTimer?: ReturnType<typeof setTimeout>;
 
@@ -227,11 +233,32 @@ export class PreviewsStore {
   }
 
   async #init() {
+    const generation = ++this.#initGeneration;
+
     try {
       this.#stopWatchingPorts?.();
-      this.#stopWatchingPorts = await this.#runtime.watchPorts((port) => this.#applyPortEvent(port));
+      this.#stopWatchingPorts = undefined;
+
+      const stop = await this.#runtime.watchPorts((port) => this.#applyPortEvent(port));
+
+      /*
+       * If a project switch (setRuntime) or another #init started while
+       * watchPorts was connecting, this socket is bound to the OLD runtime -
+       * tear it down instead of clobbering the current watcher (a leaked socket
+       * that keeps firing port events for the abandoned workspace).
+       */
+      if (generation !== this.#initGeneration || this.#disposed) {
+        stop();
+        return;
+      }
+
+      this.#stopWatchingPorts = stop;
       this.#reconnectAttempts = 0;
     } catch (error) {
+      if (generation !== this.#initGeneration || this.#disposed) {
+        return;
+      }
+
       console.warn('[Preview] Runtime port watch is not ready yet:', error);
       this.#scheduleReconnect();
     }
@@ -241,6 +268,17 @@ export class PreviewsStore {
     this.#runtime = runtime;
     this.#stopWatchingPorts?.();
     this.#stopWatchingPorts = undefined;
+
+    /*
+     * Cancel a pending reconnect bound to the previous runtime so it can't fire
+     * a stale #init after the switch.
+     */
+    if (this.#reconnectTimer) {
+      window.clearTimeout(this.#reconnectTimer);
+      this.#reconnectTimer = undefined;
+    }
+
+    this.#reconnectAttempts = 0;
     this.#availablePreviews.clear();
     this.previews.set([]);
     void this.#init();

@@ -66,8 +66,27 @@ export class TerminalStore {
   }
 
   async attachTerminal(terminal: ITerminal, command?: string) {
+    /*
+     * Capture the runtime at call entry. If a project switch (setRuntime) lands
+     * while the shell is spawning, the freshly-spawned process is bound to the
+     * OLD runtime; pushing it would track a shell against the wrong workspace and
+     * leak it. Kill it and bail if the runtime changed under us.
+     */
+    const runtimeAtStart = this.#runtime;
+
     try {
-      const shellProcess = await newShellProcess(this.#runtime, terminal, command);
+      const shellProcess = await newShellProcess(runtimeAtStart, terminal, command);
+
+      if (this.#runtime !== runtimeAtStart) {
+        try {
+          shellProcess.kill();
+        } catch {
+          // best-effort teardown of the now-orphaned shell
+        }
+
+        return;
+      }
+
       this.#terminals.push({ terminal, process: shellProcess });
     } catch (error: any) {
       terminal.write(coloredText.red('Failed to spawn shell\n\n') + error.message);

@@ -5813,7 +5813,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   });
 
-  await app.register(websocket);
+  /*
+   * Cap per-frame WebSocket payloads. Without options @fastify/websocket's ws
+   * server defaults to ~100 MiB/frame; the runtime terminal/commands/logs proxy
+   * sockets forward frames with no byte bound (only a 1000-frame pre-open count
+   * cap), so an authenticated client could buffer huge frames into API heap. 8
+   * MiB comfortably covers terminal pastes / large stdin while bounding abuse.
+   */
+  await app.register(websocket, { options: { maxPayload: 8 * 1024 * 1024 } });
   app.addContentTypeParser('application/zip', { parseAs: 'buffer' }, (_request, body, done) => done(null, body));
   app.addHook('onRequest', async (request, reply) => {
     const correlationHeader = request.headers['x-correlation-id'];
@@ -11879,7 +11886,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   app.post('/auth/refresh', async (request, reply) => {
-    const currentSession = request.currentSession!;
+    /*
+     * Session-management routes require a real login session. When the caller
+     * authenticated via an API-key token there is no currentSession, so the old
+     * non-null assertion threw a TypeError -> opaque 500. Return a clean 400.
+     */
+    const currentSession = request.currentSession;
+
+    if (!currentSession) {
+      return reply.code(400).send({ error: 'No active session to refresh', code: 'SESSION_REQUIRED' });
+    }
+
     const token = createOpaqueToken('session');
     await createLoginSession({
       store,
@@ -11914,7 +11931,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
   app.post('/auth/logout', async (request, reply) => {
-    const sessionId = request.currentSession!.id;
+    if (!request.currentSession) {
+      return reply.code(400).send({ error: 'No active session to log out', code: 'SESSION_REQUIRED' });
+    }
+
+    const sessionId = request.currentSession.id;
     const revoked = await store.revokeSession(request.currentUser!.id, sessionId);
 
     /*
@@ -11941,6 +11962,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { revoked };
   });
   app.post('/auth/reauth', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
+    if (!request.currentSession) {
+      return reply.code(400).send({ error: 'Re-auth requires an active session', code: 'SESSION_REQUIRED' });
+    }
+
     const body = parse(reauthSchema, request.body);
     const user = await store.findUserById(request.currentUser!.id);
 
@@ -11948,11 +11973,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(401).send({ error: 'Invalid credentials', code: 'AUTH_INVALID_CREDENTIALS' });
     }
 
-    await store.markSessionReauthenticated(request.currentSession!.id);
+    await store.markSessionReauthenticated(request.currentSession.id);
     await audit(request, store, {
       action: 'auth.reauth',
       resourceType: 'session',
-      resourceId: request.currentSession!.id,
+      resourceId: request.currentSession.id,
     });
 
     return { reauthenticated: true };

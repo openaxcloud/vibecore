@@ -405,6 +405,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             logger.warn('Portfolio template memory persistence skipped', error);
           });
 
+          /*
+           * Close the per-request MCPService before this fast-path return, same
+           * as the normal exit paths; otherwise its transports (stdio children /
+           * HTTP clients) leak for the life of the process on every template hit.
+           */
+          await mcpService.close();
+
           return;
         }
 
