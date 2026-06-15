@@ -323,4 +323,36 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
       expect.arrayContaining([expect.stringContaining('Preview restart blocked after artifact-1')]),
     );
   });
+
+  it('forces devDependencies in the auto-install so the dev server binary is present', async () => {
+    runtimeFiles.set(
+      'package.json',
+      JSON.stringify({
+        name: 'task-dashboard',
+        private: true,
+        type: 'module',
+        scripts: { dev: 'vite --host 0.0.0.0' },
+        dependencies: { react: '^18.3.1', 'react-dom': '^18.3.1' },
+        devDependencies: { vite: '^5.1.4', '@vitejs/plugin-react': '^4.2.1' },
+      }),
+    );
+    runtimeFiles.set('index.html', '<div id="root"></div><script type="module" src="/src/main.tsx"></script>');
+
+    const store = new WorkbenchStore();
+    await store.loadRuntimeFiles('.');
+    await store.reinstallDependencies();
+
+    const installCall = runtimeAdapterMock.streamCommand.mock.calls
+      .map((call) => call[0] as { command?: string; args?: string[] })
+      .find((req) => req.command === 'npm' && (req.args ?? []).includes('install'));
+
+    expect(installCall).toBeDefined();
+
+    /*
+     * Workspace pods run NODE_ENV=production, which makes npm omit devDependencies
+     * by default — but the dev server (vite) lives there. --include=dev guarantees
+     * it is installed, otherwise `npm run dev` dies with exit 127 and a blank preview.
+     */
+    expect(installCall?.args).toContain('--include=dev');
+  });
 });
