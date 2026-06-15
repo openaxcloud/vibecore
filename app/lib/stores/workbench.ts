@@ -758,7 +758,25 @@ export class WorkbenchStore {
   }
 
   async #detectPreviewCommand(forceInstall: boolean): Promise<PreviewCommand> {
-    const packageJsonEntry = this.#findPackageJsonEntry();
+    let packageJsonEntry = this.#findPackageJsonEntry();
+
+    /*
+     * Hydrate the package.json content if the files store only has the tree entry
+     * (content lazily unloaded). Without this the parse below is skipped and we
+     * fall through to the bare `npx vite` fallback — which fails (exit 1) for any
+     * app whose vite.config imports a devDep plugin (e.g. @vitejs/plugin-react),
+     * since `npx vite` installs no project dependencies. This is exactly what left
+     * complex generated apps stuck on "Stopped runtime" with node_modules empty.
+     */
+    if (packageJsonEntry && packageJsonEntry[1]?.type === 'file' && !packageJsonEntry[1].content) {
+      const cwd = this.#runtimeCwdForPackageJson(packageJsonEntry[0]);
+      const relPath = cwd ? `${cwd}/package.json` : 'package.json';
+      const content = await this.#runtime.readFile(relPath).catch(() => undefined);
+
+      if (content) {
+        packageJsonEntry = [packageJsonEntry[0], { ...packageJsonEntry[1], content } as (typeof packageJsonEntry)[1]];
+      }
+    }
 
     if (packageJsonEntry?.[1]?.type === 'file' && packageJsonEntry[1].content) {
       try {
@@ -829,6 +847,26 @@ export class WorkbenchStore {
       } catch (error) {
         console.warn('Failed to parse package.json for preview command:', error);
       }
+    }
+
+    /*
+     * Install-aware fallback: if a package.json FILE exists but we couldn't parse
+     * its content, it is still a real npm project — install then `npm run dev`
+     * rather than bare `npx vite` (which fails for any plugin-using vite.config).
+     * Only fall back to npx vite when there is genuinely no package.json.
+     */
+    const fallbackPkg = this.#findPackageJsonEntry();
+
+    if (fallbackPkg) {
+      const cwd = this.#runtimeCwdForPackageJson(fallbackPkg[0]);
+
+      return {
+        command: 'npm',
+        args: ['run', 'dev'],
+        label: 'npm run dev',
+        cwd,
+        setupCommands: [this.#installCommandForPackage(fallbackPkg[0], {})],
+      };
     }
 
     return {
