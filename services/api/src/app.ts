@@ -1022,6 +1022,7 @@ const aiCheckQuotaSchema = z.object({
 });
 
 const aiToolSchema = z.object({
+  conversationId: z.string().min(1).optional(),
   workspaceId: z.string().min(1).optional(),
   path: z.string().optional(),
   content: z.string().optional(),
@@ -15247,7 +15248,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    return { messages: await store.listAiMessages(conversationId) };
+    const messages = await store.listAiMessages(conversationId);
+    const toolCalls = await store.listAiToolCallsByMessageIds(messages.map((message) => message.id));
+    const toolCallsByMessageId = new Map<string, typeof toolCalls>();
+
+    for (const toolCall of toolCalls) {
+      const existing = toolCallsByMessageId.get(toolCall.messageId) ?? [];
+      existing.push(toolCall);
+      toolCallsByMessageId.set(toolCall.messageId, existing);
+    }
+
+    return {
+      messages: messages.map((message) => ({
+        ...message,
+        toolCalls: toolCallsByMessageId.get(message.id) ?? [],
+      })),
+    };
   });
 
   app.put('/projects/:projectId/ai/conversations/:conversationId/transcript', async (request) => {
@@ -15454,14 +15470,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await requireProject(request, store, projectId, 'workspaces:read');
     const body = parse(aiToolSchema, request.body ?? {});
 
-    const toolMessage = await store.createAiMessage({
-      conversationId: (
+    let conversationId = body.conversationId;
+
+    if (conversationId) {
+      const conversation = await store.getAiConversation(conversationId);
+
+      if (!conversation || conversation.projectId !== project.id) {
+        return reply.code(404).send({ error: 'AI conversation not found', code: 'AI_CONVERSATION_NOT_FOUND' });
+      }
+    } else {
+      conversationId = (
         await store.createAiConversation({
           projectId: project.id,
           userId: request.currentUser!.id,
           title: `Tool ${toolName}`,
         })
-      ).id,
+      ).id;
+    }
+
+    const toolMessage = await store.createAiMessage({
+      conversationId,
       role: 'tool',
       content: toolName,
     });
@@ -15482,7 +15510,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { projectId: project.id, snapshotId: result.snapshotId },
     });
 
-    return reply.code(201).send({ toolCall, output: result.output, snapshotId: result.snapshotId });
+    return reply.code(201).send({ toolMessage, toolCall, output: result.output, snapshotId: result.snapshotId });
   });
   app.get('/ai/usage', async (request) => {
     const organization = await requireAnyOrgPermission(request, store, 'usage:read');

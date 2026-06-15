@@ -32,83 +32,24 @@ import { supabaseConnection } from '~/lib/stores/supabase';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { LlmErrorAlertType } from '~/types/actions';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
+import {
+  projectModelSelectionFromMetadata,
+  projectModelSelectionFromParams,
+  projectModelSelectionFromValues,
+  providerForModel,
+} from './projectModelSelection';
 
 const logger = createScopedLogger('Chat');
 const MAX_PROJECT_ARCHIVED_CONVERSATIONS = 24;
 
-function providerByName(providerName?: string | null) {
-  if (!providerName) {
-    return undefined;
-  }
-
-  return PROVIDER_LIST.find((provider) => provider.name.toLowerCase() === providerName.toLowerCase());
-}
-
-function providerForModel(model: string) {
-  const exactProvider = PROVIDER_LIST.find((provider) =>
-    provider.staticModels?.some((staticModel) => staticModel.name === model),
-  );
-
-  if (exactProvider) {
-    return exactProvider;
-  }
-
-  if (model.startsWith('claude-')) {
-    return providerByName('Anthropic');
-  }
-
-  if (model.startsWith('gemini-')) {
-    return providerByName('Google');
-  }
-
-  if (model.startsWith('openai/')) {
-    return providerByName('Github');
-  }
-
-  if (model.startsWith('gpt-') || model.startsWith('o1')) {
-    return providerByName('OpenAI');
-  }
-
-  return undefined;
-}
-
-function fallbackProjectModelSelection() {
-  const provider = providerForModel(DEFAULT_MODEL) ?? DEFAULT_PROVIDER;
-
-  return {
-    model: DEFAULT_MODEL,
-    provider: provider as ProviderInfo,
-  };
-}
-
-function projectModelSelectionFromValues(requestedModelValue?: string | null, requestedProviderValue?: string | null) {
-  const requestedModel = requestedModelValue?.trim();
-
-  if (!requestedModel) {
-    return null;
-  }
-
-  const requestedProvider = providerByName(requestedProviderValue?.trim()) ?? providerForModel(requestedModel);
-  const fallbackSelection = fallbackProjectModelSelection();
-  const provider = (requestedProvider ?? fallbackSelection.provider) as ProviderInfo;
-  const modelKnownForProvider = provider.staticModels?.some((model) => model.name === requestedModel) ?? false;
-
-  return {
-    model: modelKnownForProvider ? requestedModel : fallbackSelection.model,
-    provider: modelKnownForProvider ? provider : fallbackSelection.provider,
-  };
-}
-
-function projectModelSelectionFromParams(searchParams: URLSearchParams) {
-  return projectModelSelectionFromValues(searchParams.get('model'), searchParams.get('provider'));
-}
-
 function initialProjectModelSelection() {
+  const metadataSelection = projectModelSelectionFromMetadata(chatMetadata.get());
+
   if (typeof window === 'undefined') {
-    return null;
+    return metadataSelection;
   }
 
-  return projectModelSelectionFromParams(new URLSearchParams(window.location.search));
+  return projectModelSelectionFromParams(new URLSearchParams(window.location.search)) ?? metadataSelection;
 }
 
 type ProjectAiConversationResponse = {
@@ -519,6 +460,36 @@ export const ChatImpl = memo(
     useEffect(() => {
       latestMessagesRef.current = messages;
     }, [messages]);
+
+    useEffect(() => {
+      Cookies.set('selectedModel', model, { expires: 30 });
+      Cookies.set('selectedProvider', provider.name, { expires: 30 });
+
+      if (!projectIdeMode || !projectId) {
+        return;
+      }
+
+      const currentMetadata = chatMetadata.get() ?? {};
+
+      if (currentMetadata.selectedModel === model && currentMetadata.selectedProvider === provider.name) {
+        return;
+      }
+
+      const nextMetadata = {
+        ...currentMetadata,
+        selectedModel: model,
+        selectedProvider: provider.name,
+      };
+
+      chatMetadata.set(nextMetadata);
+      void saveProjectIdeMemory(projectId, {
+        chat: {
+          metadata: nextMetadata,
+        },
+      }).catch((error) => {
+        logStore.logError('Failed to persist project AI model selection', error);
+      });
+    }, [model, projectId, projectIdeMode, provider.name]);
 
     useEffect(() => {
       if (

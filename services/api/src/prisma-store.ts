@@ -2499,6 +2499,19 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async listAiToolCallsByMessageIds(messageIds: string[]) {
+    if (messageIds.length === 0) {
+      return [];
+    }
+
+    return (
+      await this.prisma.aiToolCall.findMany({
+        where: { messageId: { in: messageIds } },
+        orderBy: { createdAt: 'asc' },
+      })
+    ).map(mapAiToolCall);
+  }
+
   async createAiTokenUsage(input: {
     messageId: string;
     provider: string;

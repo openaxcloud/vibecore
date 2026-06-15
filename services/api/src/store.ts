@@ -1050,6 +1050,7 @@ export interface ApiStore {
     input?: unknown;
     output?: unknown;
   }): Promise<AiToolCallRecord>;
+  listAiToolCallsByMessageIds(messageIds: string[]): Promise<AiToolCallRecord[]>;
   createAiTokenUsage(input: {
     messageId: string;
     provider: string;

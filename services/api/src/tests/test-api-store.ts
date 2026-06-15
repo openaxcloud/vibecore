@@ -1801,6 +1801,11 @@ export class TestApiStore implements ApiStore {
     return toolCall;
   }
 
+  async listAiToolCallsByMessageIds(messageIds: string[]) {
+    const ids = new Set(messageIds);
+    return [...this.aiToolCalls.values()].filter((toolCall) => ids.has(toolCall.messageId));
+  }
+
   async createAiTokenUsage(input: {
     messageId: string;
     provider: string;

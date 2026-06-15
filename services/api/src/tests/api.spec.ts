@@ -4676,6 +4676,73 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     }
   });
 
+  it('attaches AI tool calls to an active project AI conversation transcript', async () => {
+    const runtime = await startRuntimeServices();
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'ai-tool-transcript@example.com', organizationName: 'AI Tool Transcript Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'AI Tool Transcript Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    try {
+      const conversation = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/ai/conversations`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { title: 'Active mobile agent session' },
+      });
+      expect(conversation.statusCode).toBe(201);
+
+      const conversationId = conversation.json().conversation.id as string;
+      const tool = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/ai/tools/write_file`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {
+          conversationId,
+          path: 'src/AgentTrace.ts',
+          content: 'export const traced = true;',
+        },
+      });
+
+      expect(tool.statusCode).toBe(201);
+      expect(tool.json().toolMessage.conversationId).toBe(conversationId);
+      expect(tool.json().toolCall.name).toBe('write_file');
+      expect(runtime.files.get('src/AgentTrace.ts')).toContain('traced');
+
+      const transcript = await app.inject({
+        method: 'GET',
+        url: `/projects/${projectId}/ai/conversations/${conversationId}/messages`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+
+      expect(transcript.statusCode).toBe(200);
+      expect(transcript.json().messages).toMatchObject([
+        {
+          role: 'tool',
+          content: 'write_file',
+          toolCalls: [
+            {
+              name: 'write_file',
+              input: { conversationId, path: 'src/AgentTrace.ts', content: 'export const traced = true;' },
+              output: { path: 'src/AgentTrace.ts', written: true },
+            },
+          ],
+        },
+      ]);
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
   it('passes terminal output through the proxy as single, unwrapped CommandEvent frames', async () => {
     // Regression: the workspace-agent frames terminal output as JSON CommandEvents,
     // but the proxy still wrapped it again, double-encoding every frame so the IDE
