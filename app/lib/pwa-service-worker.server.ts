@@ -1,32 +1,44 @@
-const CACHE_NAME = 'vibecore-shell-v1';
+export const PWA_SERVICE_WORKER_CACHE_NAME = 'vibecore-shell-v2';
+
+export const pwaServiceWorkerScript =
+  String.raw`
+const CACHE_NAME = '${PWA_SERVICE_WORKER_CACHE_NAME}';
 const SHELL_ASSETS = ['/manifest.webmanifest', '/favicon.svg', '/apple-touch-icon.png'];
-const OFFLINE_HTML = `<!doctype html>
+const OFFLINE_HTML = ` +
+  '`' +
+  `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>VibeCore offline</title>
+    <title>E-Code offline</title>
   </head>
   <body>
     <main style="font-family: system-ui, sans-serif; padding: 2rem; line-height: 1.5">
       <h1>Connection interrupted</h1>
-      <p>The local VibeCore server did not respond. Restart the dev server or reload when it is available.</p>
+      <p>E-Code could not reach the network. Reload when the connection is available.</p>
     </main>
   </body>
-</html>`;
+</html>` +
+  '`' +
+  `;
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS)));
-  self.skipWaiting();
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(SHELL_ASSETS))
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))),
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then(() => self.clients.claim()),
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
@@ -44,20 +56,14 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(async () => {
-        const cachedRequest = await caches.match(request);
-        const cachedDashboard = await caches.match('/dashboard');
-
-        return (
-          cachedRequest ||
-          cachedDashboard ||
+      fetch(request, { cache: 'no-store' }).catch(
+        () =>
           new Response(OFFLINE_HTML, {
             status: 503,
             statusText: 'Service Unavailable',
-            headers: { 'content-type': 'text/html; charset=utf-8' },
-          })
-        );
-      }),
+            headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
+          }),
+      ),
     );
     return;
   }
@@ -68,7 +74,8 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.match(request).then((cached) => {
-      return cached || fetch(request).catch(() => Response.error());
+      return cached || fetch(request, { cache: 'no-store' }).catch(() => Response.error());
     }),
   );
 });
+`.trimStart();

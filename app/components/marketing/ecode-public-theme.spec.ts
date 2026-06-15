@@ -62,6 +62,10 @@ describe('E-Code public theme wrappers', () => {
     expect(root).toContain("'/community/'");
     expect(root).toContain("'/u/'");
     expect(root).toContain("root?.setAttribute('data-ecode-public-chrome', 'homepage')");
+    expect(root).toContain('clearMarketingPageServiceWorkerState()');
+    expect(root).toContain('.getRegistrations()');
+    expect(root).toContain('registration.unregister()');
+    expect(root).toContain('window.caches.delete(key)');
     expect(themeStore).toContain('export function isPublicMarketingPath(pathname: string)');
     expect(themeStore).toContain("'/acceptable-use'");
     expect(themeStore).toContain("'/customers'");

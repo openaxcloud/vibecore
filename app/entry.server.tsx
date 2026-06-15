@@ -3,7 +3,7 @@ import { RemixServer } from '@remix-run/react';
 import { renderToReadableStream } from 'react-dom/server.browser';
 import { renderHeadToString } from 'remix-island';
 import { Head } from './root';
-import { themeStore } from '~/lib/stores/theme';
+import { isPublicMarketingPath, themeStore } from '~/lib/stores/theme';
 
 export const SERVER_RENDER_READY_TIMEOUT_MS = 4_000;
 
@@ -43,6 +43,14 @@ export function applyDocumentIsolationHeaders(responseHeaders: Headers) {
 
   if (globalThis.process?.env?.NODE_ENV === 'production') {
     responseHeaders.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
+}
+
+export function applyDocumentCacheHeaders(request: Request, responseHeaders: Headers) {
+  const pathname = new URL(request.url).pathname;
+
+  if (isPublicMarketingPath(pathname)) {
+    responseHeaders.set('Cache-Control', 'no-store');
   }
 }
 
@@ -137,6 +145,7 @@ export default async function handleRequest(
 
   responseHeaders.set('Content-Type', 'text/html');
   applyDocumentIsolationHeaders(responseHeaders);
+  applyDocumentCacheHeaders(request, responseHeaders);
 
   return new Response(body, {
     headers: responseHeaders,

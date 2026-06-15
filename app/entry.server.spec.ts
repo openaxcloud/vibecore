@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { applyDocumentIsolationHeaders, waitForServerRenderReady } from './entry.server';
+import { applyDocumentCacheHeaders, applyDocumentIsolationHeaders, waitForServerRenderReady } from './entry.server';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -22,6 +22,17 @@ describe('entry server document isolation headers', () => {
 
     expect(headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+  });
+
+  it('marks public marketing documents as no-store so stale service workers cannot preserve old pages', () => {
+    const marketingHeaders = new Headers();
+    const appHeaders = new Headers();
+
+    applyDocumentCacheHeaders(new Request('https://e-code.ai/community'), marketingHeaders);
+    applyDocumentCacheHeaders(new Request('https://e-code.ai/projects/abc/ide'), appHeaders);
+
+    expect(marketingHeaders.get('Cache-Control')).toBe('no-store');
+    expect(appHeaders.has('Cache-Control')).toBe(false);
   });
 
   it('bounds allReady so a suspended route cannot block the document forever', async () => {

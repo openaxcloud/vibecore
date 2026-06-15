@@ -203,6 +203,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }, [theme]);
 
   useEffect(() => {
+    if (isPublicMarketingPath(window.location.pathname)) {
+      clearMarketingPageServiceWorkerState();
+      return;
+    }
+
     installEditorPwaServiceWorker();
   }, []);
 
@@ -340,8 +345,26 @@ function GlobalRouteLoader() {
 }
 
 import { logStore } from './lib/stores/logs';
-import { applyThemeToDocument, themeStore } from './lib/stores/theme';
+import { applyThemeToDocument, isPublicMarketingPath, themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
+
+function clearMarketingPageServiceWorkerState() {
+  if (!('serviceWorker' in navigator)) {
+    return;
+  }
+
+  navigator.serviceWorker
+    .getRegistrations()
+    .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+    .catch(() => undefined);
+
+  if ('caches' in window) {
+    window.caches
+      .keys()
+      .then((keys) => Promise.all(keys.map((key) => window.caches.delete(key))))
+      .catch(() => undefined);
+  }
+}
 
 export default function App() {
   const theme = useStore(themeStore);
