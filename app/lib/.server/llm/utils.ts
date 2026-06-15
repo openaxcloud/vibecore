@@ -63,8 +63,15 @@ export function createFilesContext(files: FileMap, useRelativePath?: boolean) {
 
   let filePaths = Object.keys(files);
   filePaths = filePaths.filter((x) => {
-    const relPath = x.replace('/home/project/', '');
-    return !ig.ignores(relPath);
+    /*
+     * Strip the workspace-root prefix with OR without the trailing slash (the
+     * bare `/home/project` root slips past a `'/home/project/'` replace) and any
+     * leading slash, so the `ignore` package never receives an absolute path —
+     * which it rejects with "path should be a `path.relative()`d string",
+     * crashing the chat stream (code=UNKNOWN).
+     */
+    const relPath = x.replace(/^\/home\/project\/?/, '').replace(/^\/+/, '');
+    return relPath.length > 0 && !ig.ignores(relPath);
   });
 
   const fileContexts = filePaths

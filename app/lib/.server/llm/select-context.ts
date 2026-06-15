@@ -14,6 +14,27 @@ import { createScopedLogger } from '~/utils/logger';
 const ig = ignore().add(IGNORE_PATTERNS);
 const logger = createScopedLogger('select-context');
 
+/**
+ * The `ignore` package throws ("path should be a `path.relative()`d string")
+ * when handed an absolute path. File maps are keyed by the workspace root
+ * `/home/project/<rel>`, but the bare root `/home/project` (no trailing slash)
+ * and a leading `/` both slip past a naive `.replace('/home/project/', '')`,
+ * leaving an absolute string that crashed the whole chat stream
+ * (code=UNKNOWN). Strip the prefix with or without the trailing slash and any
+ * remaining leading slash so `ig.ignores()` always receives a relative path.
+ */
+function toRelativeProjectPath(absoluteOrRelative: string): string {
+  return absoluteOrRelative.replace(/^\/home\/project\/?/, '').replace(/^\/+/, '');
+}
+
+/**
+ * `ig.ignores('')` (the workspace root itself) is meaningless and some `ignore`
+ * versions reject an empty string — treat an empty relative path as "keep".
+ */
+function isPathAllowed(relPath: string): boolean {
+  return relPath.length > 0 && !ig.ignores(relPath);
+}
+
 export async function selectContext(props: {
   messages: Message[];
   env?: Env;
@@ -107,10 +128,7 @@ export async function selectContext(props: {
   const { codeContext } = extractCurrentContext(processedMessages);
 
   let filePaths = getFilePaths(files || {});
-  filePaths = filePaths.filter((x) => {
-    const relPath = x.replace('/home/project/', '');
-    return !ig.ignores(relPath);
-  });
+  filePaths = filePaths.filter((x) => isPathAllowed(toRelativeProjectPath(x)));
 
   let context = '';
 
@@ -322,10 +340,7 @@ export async function selectContext(props: {
 
 export function getFilePaths(files: FileMap) {
   let filePaths = Object.keys(files);
-  filePaths = filePaths.filter((x) => {
-    const relPath = x.replace('/home/project/', '');
-    return !ig.ignores(relPath);
-  });
+  filePaths = filePaths.filter((x) => isPathAllowed(toRelativeProjectPath(x)));
 
   return filePaths;
 }
