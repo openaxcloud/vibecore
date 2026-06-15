@@ -35,6 +35,15 @@ export async function action({ request }: ActionFunctionArgs) {
    */
   await apiRequest(request, '/orgs', { redirectOn401: false });
 
+  /*
+   * Use a PER-REQUEST instance, never MCPService.getInstance(). The singleton's
+   * config / tools / credential-bearing clients are instance state on a shared
+   * multi-tenant web pod, so one tenant's POSTed config leaked into another
+   * tenant's concurrent request (and into /api/mcp-check). Construct + close()
+   * locally. URL SSRF is enforced centrally in MCPService._validateServerConfig.
+   */
+  const mcpService = new MCPService();
+
   try {
     const mcpConfig = (await request.json()) as MCPConfig;
 
@@ -42,12 +51,13 @@ export async function action({ request }: ActionFunctionArgs) {
       return Response.json({ error: 'Invalid MCP servers configuration' }, { status: 400 });
     }
 
-    const mcpService = MCPService.getInstance();
     const serverTools = await mcpService.updateConfig(mcpConfig);
 
     return Response.json(sanitizeServerTools(serverTools as Record<string, unknown>));
   } catch (error) {
     logger.error('Error updating MCP config:', error);
     return Response.json({ error: 'Failed to update MCP config' }, { status: 500 });
+  } finally {
+    await mcpService.close().catch(() => undefined);
   }
 }

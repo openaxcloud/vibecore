@@ -55,8 +55,10 @@ export function detectBinaryBuffer(buf: Buffer): boolean {
     }
   }
 
-  // Re-encoding a valid-UTF-8 buffer yields identical bytes; a mismatch means the
-  // original wasn't valid UTF-8 (i.e. it's binary) and would be corrupted as text.
+  /*
+   * Re-encoding a valid-UTF-8 buffer yields identical bytes; a mismatch means the
+   * original wasn't valid UTF-8 (i.e. it's binary) and would be corrupted as text.
+   */
   return !Buffer.from(buf.toString('utf8'), 'utf8').equals(buf);
 }
 
@@ -200,6 +202,7 @@ export interface ProjectStorage {
 }
 
 export const SECONDARY_WORKSPACES_DIR = '.vibecore-workspaces';
+
 const SAFE_WORKSPACE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 
 function workspaceSubpath(workspaceId: string, filePath = '') {
@@ -268,6 +271,7 @@ function safeProjectPath(projectId: string, filePath = '') {
  */
 const PROJECT_MUTATION_QUEUE = new Map<string, Promise<unknown>>();
 const PROJECT_LOCK_OWNER = `${hostname()}-${process.pid}`;
+
 /*
  * Must exceed the longest single locked operation, else a legitimately-running
  * git op gets its lock declared stale and stolen mid-flight (concurrent writers
@@ -294,9 +298,12 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
   await mkdir(root, { recursive: true });
 
   const lockPath = join(root, `${projectId}.lock`);
-  // Unique per-acquire fencing token, stored as the lock file's content (the
-  // sentinel is hardlinked to lockPath). Lets release verify the lock is still
-  // OURS before deleting it, and tags any stale-steal we perform.
+
+  /*
+   * Unique per-acquire fencing token, stored as the lock file's content (the
+   * sentinel is hardlinked to lockPath). Lets release verify the lock is still
+   * OURS before deleting it, and tags any stale-steal we perform.
+   */
   const lockToken = `${PROJECT_LOCK_OWNER}.${Date.now()}.${Math.random().toString(36).slice(2)}`;
   const sentinelPath = join(root, `${projectId}.${lockToken}.tmp`);
 
@@ -331,6 +338,7 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
       }
 
       const stats = await stat(lockPath).catch(() => undefined);
+
       if (stats && Date.now() - stats.mtimeMs > PROJECT_LOCK_STALE_MS) {
         /*
          * Atomic stale-steal: rename (not unlink) the stale lock to a unique
@@ -339,6 +347,7 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
          * two replicas can't both delete the lock and both proceed.
          */
         const stolenPath = `${lockPath}.stale.${lockToken}`;
+
         const reclaimed = await rename(lockPath, stolenPath)
           .then(() => true)
           .catch(() => false);
@@ -365,8 +374,10 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
 }
 
 export async function withProjectLock<T>(projectId: string, fn: () => Promise<T>): Promise<T> {
-  // Disable cross-replica file locking in unit tests, which run many parallel
-  // workers against tmp dirs. The in-memory queue still serializes per-process.
+  /*
+   * Disable cross-replica file locking in unit tests, which run many parallel
+   * workers against tmp dirs. The in-memory queue still serializes per-process.
+   */
   const enableFileLock = process.env.VIBECORE_PROJECT_LOCK !== 'disabled' && process.env.NODE_ENV !== 'test';
 
   const previous = PROJECT_MUTATION_QUEUE.get(projectId) ?? Promise.resolve();
@@ -375,6 +386,7 @@ export async function withProjectLock<T>(projectId: string, fn: () => Promise<T>
     .catch(() => undefined)
     .then(async () => {
       const release = enableFileLock ? await acquireFileLock(projectId) : async () => undefined;
+
       try {
         return await fn();
       } finally {
@@ -425,8 +437,11 @@ async function walkFiles(root: string, current = ''): Promise<ProjectFile[]> {
     if (entry.isFile()) {
       const fullPath = join(root, child);
       const metadata = await stat(fullPath);
-      // Read raw bytes and detect binary, so non-text assets (images, fonts, wasm)
-      // survive instead of being lossily decoded as UTF-8 (git-import corruption).
+
+      /*
+       * Read raw bytes and detect binary, so non-text assets (images, fonts, wasm)
+       * survive instead of being lossily decoded as UTF-8 (git-import corruption).
+       */
       const { content, encoding } = encodeFileBuffer(await readFile(fullPath));
       files.push({ path: child, content, encoding, updatedAt: metadata.mtime.toISOString() });
     }
@@ -439,17 +454,21 @@ export async function archiveFiles(files: Array<{ path: string; content: string;
   const zip = new JSZip();
 
   for (const file of files) {
-    // Pack the real bytes (base64-decoded for binary) so the zip preserves the
-    // file exactly rather than storing a UTF-8-mangled string.
+    /*
+     * Pack the real bytes (base64-decoded for binary) so the zip preserves the
+     * file exactly rather than storing a UTF-8-mangled string.
+     */
     zip.file(file.path, decodeFileContent(file.content, file.encoding));
   }
 
   return zip.generateAsync({ type: 'nodebuffer' });
 }
 
-// Bound decompression so a small, highly-compressed archive (a "zip bomb")
-// cannot expand to gigabytes and exhaust the API pod's memory/disk on import or
-// snapshot restore. A normal project is well under these limits.
+/*
+ * Bound decompression so a small, highly-compressed archive (a "zip bomb")
+ * cannot expand to gigabytes and exhaust the API pod's memory/disk on import or
+ * snapshot restore. A normal project is well under these limits.
+ */
 const MAX_ZIP_ENTRIES = 5_000;
 const MAX_ZIP_FILE_BYTES = 25 * 1024 * 1024; // 25 MB per file
 const MAX_ZIP_TOTAL_BYTES = 200 * 1024 * 1024; // 200 MB decompressed total
@@ -474,18 +493,24 @@ export async function filesFromZip(
   }
 
   const files: Array<{ path: string; content: string; encoding: FileEncoding }> = [];
+
   let totalBytes = 0;
 
   for (const [path, entry] of entries) {
-    // Reject an entry whose declared uncompressed size already exceeds the cap
-    // BEFORE decompressing it, so a malicious header can't force a huge inflate.
+    /*
+     * Reject an entry whose declared uncompressed size already exceeds the cap
+     * BEFORE decompressing it, so a malicious header can't force a huge inflate.
+     */
     const declaredSize = (entry as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize;
+
     if (typeof declaredSize === 'number' && declaredSize > MAX_ZIP_FILE_BYTES) {
       throw zipLimitError('ZIP_FILE_TOO_LARGE', `Archive entry ${path} exceeds the per-file size limit`);
     }
 
-    // Read raw bytes and classify, so a binary entry is preserved as base64
-    // rather than corrupted by a UTF-8 string decode.
+    /*
+     * Read raw bytes and classify, so a binary entry is preserved as base64
+     * rather than corrupted by a UTF-8 string decode.
+     */
     const bytes = Buffer.from(await entry.async('uint8array'));
     const byteLength = bytes.length;
 
@@ -494,6 +519,7 @@ export async function filesFromZip(
     }
 
     totalBytes += byteLength;
+
     if (totalBytes > MAX_ZIP_TOTAL_BYTES) {
       throw zipLimitError('ZIP_TOTAL_TOO_LARGE', 'Archive exceeds the total decompressed size limit');
     }
@@ -578,6 +604,7 @@ export class LocalProjectStorage implements ProjectStorage {
     const files = await filesFromZipBase64(
       (await readFile(safeProjectPath('_objects', storageKey))).toString('base64'),
     );
+
     const updatedAt = now();
 
     return files.map((file) => ({ ...file, updatedAt }));
@@ -590,8 +617,10 @@ export class LocalProjectStorage implements ProjectStorage {
       if (input.workspaceId) {
         await rm(target, { recursive: true, force: true });
       } else {
-        // Clearing the primary tree must preserve `.vibecore-workspaces/`, or every
-        // secondary workspace's `.git` and working tree would be destroyed.
+        /*
+         * Clearing the primary tree must preserve `.vibecore-workspaces/`, or every
+         * secondary workspace's `.git` and working tree would be destroyed.
+         */
         await clearTreePreservingSecondaryWorkspaces(target);
       }
 
@@ -616,7 +645,14 @@ async function clearTreePreservingSecondaryWorkspaces(target: string) {
   });
 
   for (const entry of entries) {
-    if (entry.isDirectory() && entry.name === SECONDARY_WORKSPACES_DIR) {
+    /*
+     * Preserve the secondary-workspaces dir AND the primary tree's `.git`. A
+     * snapshot restore / importZip(replaceExisting) clears the working tree, but
+     * wiping .git destroys the project's commit history, branches, stashes and
+     * configured origin remote — unrecoverable. Snapshots only capture working
+     * files, never git metadata, so .git must survive the clear.
+     */
+    if (entry.isDirectory() && (entry.name === SECONDARY_WORKSPACES_DIR || entry.name === '.git')) {
       continue;
     }
 
@@ -645,6 +681,7 @@ export class GitCliProvider implements GitProvider {
     return {
       ...process.env,
       GIT_CEILING_DIRECTORIES: storageRoot(),
+
       /*
        * Never let git block on an interactive credential/passphrase prompt — a
        * private remote (or a bad credential) would otherwise hang the child
@@ -728,6 +765,7 @@ export class GitCliProvider implements GitProvider {
       {
         cwd: this.workspacePath(projectId, workspaceId),
         env: this.gitEnv(),
+
         /*
          * 64MB output cap (vs execFile's 1MB default) so a large diff/log/blame
          * on a big repo/file doesn't throw ERR_CHILD_PROCESS_STDIO_MAXBUFFER and
@@ -751,8 +789,11 @@ export class GitCliProvider implements GitProvider {
       await execFile(
         'git',
         ['clone', '--depth=1', ...(input.branch ? ['--branch', input.branch] : []), input.repositoryUrl, target],
-        // Network clone: hard timeout + raised maxBuffer so a stalled or chatty
-        // remote can't hang the worker or overflow the 1MB default output buffer.
+
+        /*
+         * Network clone: hard timeout + raised maxBuffer so a stalled or chatty
+         * remote can't hang the worker or overflow the 1MB default output buffer.
+         */
         { env: this.gitEnv(), timeout: 120_000, maxBuffer: 64 * 1024 * 1024 },
       );
 
@@ -774,6 +815,7 @@ export class GitCliProvider implements GitProvider {
     const statusLines = porcelain.split('\n').filter(Boolean);
     const changedFiles = statusLines.map((line) => line.slice(3));
     const fileStatuses = statusLines.map((line) => ({ path: line.slice(3), status: line.slice(0, 2).trim() || 'M' }));
+
     const conflicts = statusLines
       .filter((line) => ['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU'].includes(line.slice(0, 2)))
       .map((line) => ({ path: line.slice(3), status: line.slice(0, 2) }));
@@ -798,14 +840,17 @@ export class GitCliProvider implements GitProvider {
   }) {
     return withProjectLock(input.projectId, async () => {
       await this.ensureRepository(input.projectId, input.workspaceId);
+
       const selectedFiles = input.selectedFiles?.map((filePath) => filePath.replace(/^\/+/, '')).filter(Boolean) ?? [];
       const addArgs = selectedFiles.length ? ['add', '--', ...selectedFiles] : ['add', '--all'];
 
       await this.git(input.projectId, addArgs, input.workspaceId);
 
-      // Nothing staged → `git commit` exits non-zero with "nothing to commit",
-      // which would surface as a raw 500. Detect it and raise a friendly,
-      // typed error the UI can render as "No changes to commit".
+      /*
+       * Nothing staged → `git commit` exits non-zero with "nothing to commit",
+       * which would surface as a raw 500. Detect it and raise a friendly,
+       * typed error the UI can render as "No changes to commit".
+       */
       const staged = await this.git(input.projectId, ['diff', '--cached', '--name-only'], input.workspaceId);
 
       if (!staged.trim()) {
@@ -883,6 +928,7 @@ export class GitCliProvider implements GitProvider {
   async configureRemote(input: { projectId: string; workspaceId?: string; remoteUrl: string }) {
     return withProjectLock(input.projectId, async () => {
       const remotes = await this.git(input.projectId, ['remote'], input.workspaceId).catch(() => '');
+
       const args = remotes.split('\n').includes('origin')
         ? ['remote', 'set-url', 'origin', input.remoteUrl]
         : ['remote', 'add', 'origin', input.remoteUrl];
@@ -901,8 +947,10 @@ export class GitCliProvider implements GitProvider {
         output
           .split('\n')
           .map((branch) => branch.replace(/^remotes\/origin\//, ''))
-          // Drop the symbolic `origin/HEAD` pointer (→ `HEAD` after stripping):
-          // it isn't a real branch and checking it out detaches HEAD.
+          /*
+           * Drop the symbolic `origin/HEAD` pointer (→ `HEAD` after stripping):
+           * it isn't a real branch and checking it out detaches HEAD.
+           */
           .filter((branch) => Boolean(branch) && branch !== 'HEAD' && !branch.endsWith('/HEAD')),
       ),
     ];
@@ -1060,7 +1108,9 @@ export class GitCliProvider implements GitProvider {
       ['blame', '--line-porcelain', ...range, '--', input.filePath.replace(/^\/+/, '')],
       input.workspaceId,
     );
+
     const lines: GitBlameLine[] = [];
+
     let current: Partial<GitBlameLine> = {};
 
     for (const line of output.split('\n')) {

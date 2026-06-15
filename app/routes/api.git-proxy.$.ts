@@ -92,6 +92,7 @@ function isSafeProxyTarget(rawUrl: string): boolean {
     host.endsWith('.internal') ||
     host.endsWith('.local') ||
     /^127\./.test(host) ||
+    /^0\./.test(host) ||
     /^10\./.test(host) ||
     /^192\.168\./.test(host) ||
     /^169\.254\./.test(host) ||

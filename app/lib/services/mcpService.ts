@@ -9,6 +9,7 @@ import {
 } from 'ai';
 import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
 import { z } from 'zod';
+import { isBlockedMcpUrl } from '~/lib/services/mcp-url-guard';
 import type { ToolCallAnnotation } from '~/types/context';
 import {
   TOOL_EXECUTION_APPROVAL,
@@ -185,6 +186,23 @@ export class MCPService {
 
     if (['sse', 'streamable-http'].includes(config.type) && !hasUrlField) {
       throw new Error(`missing "url" field.`);
+    }
+
+    /*
+     * SSRF guard: the web pod opens the SSE / streamable-http transport itself,
+     * so reject loopback / link-local / private / cloud-metadata URLs here too -
+     * not only at the API save path. Covers every web caller (the update-config
+     * route + api.chat) as defense-in-depth, mirroring how stdio is centrally
+     * blocked above.
+     */
+    if (
+      ['sse', 'streamable-http'].includes(config.type) &&
+      typeof config.url === 'string' &&
+      isBlockedMcpUrl(config.url)
+    ) {
+      throw new Error(
+        `MCP server URL "${config.url}" is not allowed (must be a public https endpoint, not a loopback/private/metadata address).`,
+      );
     }
 
     try {

@@ -1548,7 +1548,6 @@ function isBlockedGitHost(rawHost: string): boolean {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
-
     /*
      * ULA fc00::/7 + link-local fe80::/10, but only as IPv6 LITERALS (hextets +
      * ':'). The old startsWith('fc'/'fd'/'fe80') wrongly blocked public hosts like
@@ -2246,7 +2245,6 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     mfaPathname.startsWith('/auth/recovery-codes/') ||
     mfaPathname === '/auth/sessions' ||
     mfaPathname.startsWith('/auth/sessions/') ||
-
     /*
      * Re-auth is the gateway to enrolling MFA (mfa/setup now requires it); a
      * platform admin without MFA must be able to reach it or they'd be deadlocked.
@@ -6900,7 +6898,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
-
       /*
        * Public read of a shared conversation snapshot — the signed token is the
        * capability. Only the token-scoped GET path is exempt; POST /chat-shares
@@ -11028,7 +11025,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     for (const file of entries) {
       await agentRequest(authorized.workspaceId, '/files/write', {
         method: 'POST',
-        body: JSON.stringify({ path: `${prefix}${file.path}`, content: file.content }),
+
+        /*
+         * Forward the encoding. filesFromZip classifies binary entries and
+         * returns them as base64; dropping the encoding made the agent write the
+         * base64 STRING as utf8 text, corrupting every binary file (images,
+         * fonts, .ico, wasm) on import.
+         */
+        body: JSON.stringify({ path: `${prefix}${file.path}`, content: file.content, encoding: file.encoding }),
       });
     }
 
@@ -16245,7 +16249,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           : undefined;
         const isStaleByTimestamp = Boolean(
           eventCreatedAt &&
-
             /*
              * Deletion is terminal and must ALWAYS be applied: a `deleted` event
              * can legitimately carry an older event.created than a previously

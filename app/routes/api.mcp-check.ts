@@ -1,4 +1,5 @@
 import { type LoaderFunctionArgs } from '@remix-run/cloudflare';
+import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
 import { apiRequest } from '~/lib/enterprise-api.server';
 import { MCPService } from '~/lib/services/mcpService';
 import { createScopedLogger } from '~/utils/logger';
@@ -36,13 +37,22 @@ export async function loader({ request }: LoaderFunctionArgs) {
    */
   await apiRequest(request, '/orgs', { redirectOn401: false });
 
+  /*
+   * Per-request instance loaded with THIS caller's saved MCP config - never the
+   * process-wide singleton, whose connected clients/tools/config are shared
+   * instance state and leaked one tenant's connectors to another's request.
+   */
+  const mcpService = new MCPService();
+
   try {
-    const mcpService = MCPService.getInstance();
-    const serverTools = await mcpService.checkServersAvailabilities();
+    const { mcpConfig } = await loadUserMcpConfig(request);
+    const serverTools = await mcpService.updateConfig(mcpConfig);
 
     return Response.json(sanitizeServerTools(serverTools as Record<string, unknown>));
   } catch (error) {
     logger.error('Error checking MCP servers:', error);
     return Response.json({ error: 'Failed to check MCP servers' }, { status: 500 });
+  } finally {
+    await mcpService.close().catch(() => undefined);
   }
 }

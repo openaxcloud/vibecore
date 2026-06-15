@@ -44,7 +44,22 @@ const safePathString = z
   .refine((value) => !/[\u0000-\u001f\u007f]/.test(value), { message: 'Path contains control characters' });
 
 const filePathSchema = z.object({ path: safePathString });
-const writeSchema = z.object({ path: safePathString, content: z.string() });
+
+// `encoding` lets callers send binary files as base64; absent = utf8 text.
+const writeSchema = z.object({
+  path: safePathString,
+  content: z.string(),
+  encoding: z.enum(['utf8', 'base64']).optional(),
+});
+
+/**
+ * Decode a write payload to the bytes to persist. base64 content (binary files
+ * from zip import / snapshots) must be decoded, not written as a utf8 string,
+ * or every image/font/wasm lands corrupted.
+ */
+function decodeWriteContent(content: string, encoding?: 'utf8' | 'base64'): Buffer {
+  return Buffer.from(content, encoding === 'base64' ? 'base64' : 'utf8');
+}
 
 const createSchema = writeSchema
   .partial({ content: true })
@@ -100,9 +115,12 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   const maxFileBytes = options.maxFileBytes ?? numericEnv(process.env.WORKSPACE_MAX_FILE_BYTES, 2 * 1024 * 1024);
   const maxOutputBytes = options.maxOutputBytes ?? numericEnv(process.env.WORKSPACE_MAX_OUTPUT_BYTES, 1024 * 1024);
   const commandTimeoutMs = options.commandTimeoutMs ?? numericEnv(process.env.WORKSPACE_COMMAND_TIMEOUT_MS, 30_000);
-  // Streamed commands (dev servers etc.) legitimately run long, but must still
-  // be bounded so a never-exiting child can't pin a maxProcesses slot forever
-  // after the socket closes. Default 30 min; override via env.
+
+  /*
+   * Streamed commands (dev servers etc.) legitimately run long, but must still
+   * be bounded so a never-exiting child can't pin a maxProcesses slot forever
+   * after the socket closes. Default 30 min; override via env.
+   */
   const streamTimeoutMs = numericEnv(process.env.WORKSPACE_STREAM_TIMEOUT_MS, 30 * 60_000);
   const maxProcesses = options.maxProcesses ?? numericEnv(process.env.WORKSPACE_MAX_PROCESSES, 8);
   const processes = new Map<string, ProcessRecord>();
@@ -172,10 +190,13 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   app.get('/health', async () => ({ status: 'ok', workspaceRoot: root }));
 
   app.get('/files/tree', async (request) => {
-    // Honor an optional `path` to return just that subtree (was silently ignored,
-    // always returning the full root tree). resolveWorkspacePath enforces that the
-    // target stays inside the workspace root.
+    /*
+     * Honor an optional `path` to return just that subtree (was silently ignored,
+     * always returning the full root tree). resolveWorkspacePath enforces that the
+     * target stays inside the workspace root.
+     */
     const requestedPath = (request.query as { path?: unknown }).path;
+
     let start = root;
 
     if (typeof requestedPath === 'string' && requestedPath.trim()) {
@@ -236,6 +257,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     assertContentSize(body.content, maxFileBytes);
 
     const safePath = resolveWorkspacePath(root, body.path);
+
     /*
      * Check containment BEFORE mkdir. assertRealPathContained realpaths the
      * deepest existing ancestor, so a symlink inside the workspace pointing out of
@@ -245,9 +267,11 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     await assertRealPathContained(root, safePath);
     await mkdir(dirname(safePath), { recursive: true });
     await assertRealPathContained(root, safePath);
-    await writeFile(safePath, body.content, 'utf8').catch(rethrowFsError);
 
-    return { path: body.path, bytes: Buffer.byteLength(body.content) };
+    const writeBuffer = decodeWriteContent(body.content, body.encoding);
+    await writeFile(safePath, writeBuffer).catch(rethrowFsError);
+
+    return { path: body.path, bytes: writeBuffer.byteLength };
   });
 
   app.post('/files/create', async (request) => {
@@ -257,11 +281,13 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     if (body.directory) {
       await assertRealPathContained(root, safePath);
       await mkdir(safePath, { recursive: true });
+
       return { path: body.path, type: 'directory' };
     }
 
     const content = body.content ?? '';
     assertContentSize(content, maxFileBytes);
+
     // Check containment before mkdir so a symlink can't make mkdir create dirs outside root.
     await assertRealPathContained(root, safePath);
     await mkdir(dirname(safePath), { recursive: true });
@@ -284,8 +310,11 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const body = renameSchema.parse(request.body);
     const from = resolveWorkspacePath(root, body.from);
     const to = resolveWorkspacePath(root, body.to);
-    // Verify containment of the destination before mkdir (a symlink could
-    // otherwise make mkdir create dirs outside root).
+
+    /*
+     * Verify containment of the destination before mkdir (a symlink could
+     * otherwise make mkdir create dirs outside root).
+     */
     await assertRealPathContained(root, to);
     await mkdir(dirname(to), { recursive: true });
     await assertRealPathContained(root, dirname(from));
@@ -302,11 +331,12 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       assertContentSize(file.content, maxFileBytes);
 
       const safePath = resolveWorkspacePath(root, file.path);
+
       // Containment before mkdir — see /files/write.
       await assertRealPathContained(root, safePath);
       await mkdir(dirname(safePath), { recursive: true });
       await assertRealPathContained(root, safePath);
-      await writeFile(safePath, file.content, 'utf8').catch(rethrowFsError);
+      await writeFile(safePath, decodeWriteContent(file.content, file.encoding)).catch(rethrowFsError);
     }
 
     return { changedFiles: body.files.map((file) => file.path) };
@@ -391,6 +421,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      * (the dev server is starting / crashed) instead of an unhandled 500.
      */
     const candidateHosts = ['127.0.0.1', '[::1]'];
+
     let response: Response | undefined;
     let lastError: unknown;
 
@@ -477,11 +508,12 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       assertContentSize(file.content, maxFileBytes);
 
       const safePath = resolveWorkspacePath(root, file.path);
+
       // Containment before mkdir — see /files/write.
       await assertRealPathContained(root, safePath);
       await mkdir(dirname(safePath), { recursive: true });
       await assertRealPathContained(root, safePath);
-      await writeFile(safePath, file.content, 'utf8').catch(rethrowFsError);
+      await writeFile(safePath, decodeWriteContent(file.content, file.encoding)).catch(rethrowFsError);
     }
 
     return { restoredFiles: body.files.length };
@@ -545,8 +577,10 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
               }),
             );
           } catch {
-            // The socket can transition to CLOSING after the socketClosed check
-            // above; sending then throws synchronously. Drop the late error frame.
+            /*
+             * The socket can transition to CLOSING after the socketClosed check
+             * above; sending then throws synchronously. Drop the late error frame.
+             */
           }
         });
       });
@@ -634,7 +668,9 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
        */
       const earlyInput: string[] = [];
       const EARLY_INPUT_MAX_BYTES = 256 * 1024;
+
       let earlyInputBytes = 0;
+
       // Latest resize received before the shell session is ready (applied on attach).
       let earlyResize: { cols: number; rows: number } | undefined;
 
@@ -650,9 +686,11 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           return;
         }
 
-        // The PTY's attach() callback can fire after the client disconnects
-        // (scrollback flush, in-flight chunk). socket.send then throws on the
-        // closed socket; swallow it so the terminal teardown stays clean.
+        /*
+         * The PTY's attach() callback can fire after the client disconnects
+         * (scrollback flush, in-flight chunk). socket.send then throws on the
+         * closed socket; swallow it so the terminal teardown stays clean.
+         */
         try {
           socket.send(JSON.stringify({ type: 'stdout', data, timestamp: new Date().toISOString() }));
         } catch {
@@ -711,8 +749,10 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
           earlyInputBytes = 0;
 
-          // Apply the latest resize that arrived before the shell was ready, so
-          // the PTY starts at the client's actual viewport instead of the default.
+          /*
+           * Apply the latest resize that arrived before the shell was ready, so
+           * the PTY starts at the client's actual viewport instead of the default.
+           */
           if (earlyResize) {
             created.resize(earlyResize.cols, earlyResize.rows);
             earlyResize = undefined;
@@ -721,9 +761,11 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
         .catch((error) => {
           sendOutput(`\r\n[terminal error] ${error instanceof Error ? error.message : String(error)}\r\n`);
 
-          // Shell session creation failed: close the socket instead of leaving a
-          // zombie WS open with no backing shell (no output, no exit frame, no
-          // teardown — the client would just see a dead terminal forever).
+          /*
+           * Shell session creation failed: close the socket instead of leaving a
+           * zombie WS open with no backing shell (no output, no exit frame, no
+           * teardown — the client would just see a dead terminal forever).
+           */
           closed = true;
 
           try {
@@ -744,8 +786,10 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
             if (session) {
               session.resize(nextCols, nextRows);
             } else {
-              // Shell not ready yet — remember the latest dims to apply on attach
-              // (a dropped early resize left the PTY at the default size).
+              /*
+               * Shell not ready yet — remember the latest dims to apply on attach
+               * (a dropped early resize left the PTY at the default size).
+               */
               earlyResize = { cols: nextCols, rows: nextRows };
             }
 
@@ -870,9 +914,12 @@ function normalizeWebSocket(rawSocket: unknown) {
 
   return {
     send: candidate.send.bind(candidate),
-    // Expose the raw socket's send-buffer depth so streaming handlers can apply
-    // backpressure. The backpressure code previously read bufferedAmount off THIS
-    // wrapper object (always undefined), making it dead code.
+
+    /*
+     * Expose the raw socket's send-buffer depth so streaming handlers can apply
+     * backpressure. The backpressure code previously read bufferedAmount off THIS
+     * wrapper object (always undefined), making it dead code.
+     */
     bufferedAmount: () => (candidate as { bufferedAmount?: number }).bufferedAmount ?? 0,
     onMessage: (listener: (message: Buffer) => void) => {
       if (typeof candidate.on === 'function') {
@@ -1138,9 +1185,11 @@ function previewProxyHeaders(headers: FastifyRequest['headers']) {
   return forwarded;
 }
 
-// Bounds for the materialized tree so a workspace with a giant node_modules /
-// deeply-nested or symlink-looped tree can't exhaust memory/CPU building one
-// in-memory JSON blob. Mirrors listSnapshotFiles' ignore set.
+/*
+ * Bounds for the materialized tree so a workspace with a giant node_modules /
+ * deeply-nested or symlink-looped tree can't exhaust memory/CPU building one
+ * in-memory JSON blob. Mirrors listSnapshotFiles' ignore set.
+ */
 const TREE_MAX_DEPTH = 24;
 const TREE_MAX_ENTRIES = 20_000;
 
@@ -1162,8 +1211,10 @@ async function listTree(
   const nodes = [];
 
   for (const entry of entries) {
-    // Skip heavy/derived dirs (node_modules, .git, dist, …) — they balloon the
-    // tree and are never useful in the file explorer.
+    /*
+     * Skip heavy/derived dirs (node_modules, .git, dist, …) — they balloon the
+     * tree and are never useful in the file explorer.
+     */
     if (entry.isDirectory() && SNAPSHOT_IGNORED_DIRS.has(entry.name)) {
       continue;
     }
@@ -1180,8 +1231,11 @@ async function listTree(
     nodes.push({
       path,
       type,
-      // Only recurse into REAL directories (not symlinked ones) to avoid following
-      // a symlink loop off-tree or into an ignored target.
+
+      /*
+       * Only recurse into REAL directories (not symlinked ones) to avoid following
+       * a symlink loop off-tree or into an ignored target.
+       */
       children: entry.isDirectory() ? await listTree(root, fullPath, depth + 1, budget) : undefined,
     });
   }
@@ -1279,16 +1333,20 @@ async function runCommand(
   }
 
   const id = createHash('sha256')
-    // randomUUID() (not just Date.now()) so two identical commands started within
-    // the same millisecond can't collide and corrupt the process-map accounting.
+    /*
+     * randomUUID() (not just Date.now()) so two identical commands started within
+     * the same millisecond can't collide and corrupt the process-map accounting.
+     */
     .update(`${command}:${normalizedArgs.join('\0')}:${Date.now()}:${randomUUID()}`)
     .digest('hex')
     .slice(0, 12);
 
-  // detached: own process group, so timeout/output-cap termination can signal the
-  // WHOLE tree (process.kill(-pid)). Without it a bare child.kill() left a spawned
-  // child's grandchildren (e.g. a shell launching a server) orphaned, leaking
-  // processes that hold a maxProcesses slot. Mirrors runCommandStream.
+  /*
+   * detached: own process group, so timeout/output-cap termination can signal the
+   * WHOLE tree (process.kill(-pid)). Without it a bare child.kill() left a spawned
+   * child's grandchildren (e.g. a shell launching a server) orphaned, leaking
+   * processes that hold a maxProcesses slot. Mirrors runCommandStream.
+   */
   const child = spawn(command, normalizedArgs, { cwd, shell: false, env: sanitizedChildEnv(), detached: true });
 
   const killGroup = (sig: NodeJS.Signals) => {
@@ -1352,6 +1410,7 @@ async function runCommand(
 
   child.stdout.on('data', (chunk) => append('stdout', chunk));
   child.stderr.on('data', (chunk) => append('stderr', chunk));
+
   /*
    * Guard the pipe Readables: an 'error' event on stdout/stderr with no listener
    * becomes an uncaughtException that crashes the whole agent (and every other
@@ -1437,9 +1496,11 @@ async function runCommandStream(
     .digest('hex')
     .slice(0, 12);
 
-  // detached: own process group so we can SIGTERM/SIGKILL the WHOLE tree. Streamed
-  // commands are dev servers etc. that spawn children; killing only the direct
-  // child orphaned those grandchildren (leaked processes + held ports).
+  /*
+   * detached: own process group so we can SIGTERM/SIGKILL the WHOLE tree. Streamed
+   * commands are dev servers etc. that spawn children; killing only the direct
+   * child orphaned those grandchildren (leaked processes + held ports).
+   */
   const child = spawn(command, normalizedArgs, { cwd, shell: false, env: sanitizedChildEnv(), detached: true });
 
   /*
@@ -1480,6 +1541,7 @@ async function runCommandStream(
    * drains below half.
    */
   const SEND_BUFFER_HIGH_WATER = 8 * 1024 * 1024;
+
   let drainTimer: ReturnType<typeof setInterval> | undefined;
 
   const applyBackpressure = () => {
@@ -1520,13 +1582,16 @@ async function runCommandStream(
       options.socket.send(JSON.stringify({ type, data, timestamp: new Date().toISOString() }));
       applyBackpressure();
     } catch {
-      // Socket transitioned to CLOSING after the isOpen() check; drop the chunk
-      // instead of throwing out of the child's 'data' listener.
+      /*
+       * Socket transitioned to CLOSING after the isOpen() check; drop the chunk
+       * instead of throwing out of the child's 'data' listener.
+       */
     }
   };
 
   child.stdout.on('data', (chunk) => send('stdout', chunk));
   child.stderr.on('data', (chunk) => send('stderr', chunk));
+
   // See runCommand: swallow stream-level errors so a pipe read fault can't crash the agent.
   child.stdout.on('error', () => {});
   child.stderr.on('error', () => {});

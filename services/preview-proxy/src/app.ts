@@ -18,12 +18,14 @@ export interface PreviewProxyOptions {
   fetchImpl?: typeof fetch;
   resolveAgent?: (workspaceId: string) => Promise<{ baseUrl: string; token: string } | undefined>;
   requestTimeoutMs?: number;
+
   /**
    * Inject the inspect-to-code bridge into proxied HTML so "Inspect to code"
    * works on remote previews (the same capability WebContainer previews get).
    * Defaults to true.
    */
   injectInspector?: boolean;
+
   /**
    * Base preview domain (e.g. `preview.e-code.ai`). When set, requests whose
    * Host is a per-preview subdomain `<workspaceId>-<port>.<previewDomain>` are
@@ -37,8 +39,10 @@ export interface PreviewProxyOptions {
   previewDomain?: string;
 }
 
-// Same-origin path the injected <script src> points at, served below. Same
-// origin keeps it compatible with a `script-src 'self'` CSP on the preview app.
+/*
+ * Same-origin path the injected <script src> points at, served below. Same
+ * origin keeps it compatible with a `script-src 'self'` CSP on the preview app.
+ */
 const INSPECTOR_SCRIPT_PATH = '/__vibecore/inspector-script.js';
 const INSPECTOR_MARKER = 'data-vibecore-inspector';
 
@@ -62,7 +66,11 @@ export function parsePreviewHost(
   }
 
   const host = hostHeader.split(':')[0].trim().toLowerCase();
-  const suffix = `.${previewDomain.trim().toLowerCase().replace(/^\.+|\.+$/g, '')}`;
+
+  const suffix = `.${previewDomain
+    .trim()
+    .toLowerCase()
+    .replace(/^\.+|\.+$/g, '')}`;
 
   if (suffix === '.' || !host.endsWith(suffix)) {
     return null;
@@ -143,8 +151,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
   app.get('/health', async () => ({ status: 'ok', service: 'preview-proxy' }));
 
-  // Serve the inspect-to-code bridge from the proxy origin so injected pages
-  // can load it under a `script-src 'self'` policy.
+  /*
+   * Serve the inspect-to-code bridge from the proxy origin so injected pages
+   * can load it under a `script-src 'self'` policy.
+   */
   app.get(INSPECTOR_SCRIPT_PATH, async (_request, reply) => {
     reply.header('content-type', 'application/javascript; charset=utf-8');
     reply.header('cache-control', 'public, max-age=3600');
@@ -180,6 +190,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     const safeProxyPath = proxyPath.replace(/\?/g, '%3F').replace(/#/g, '%23');
     const upstreamPath = `/preview/${portNumber}/${safeProxyPath}`;
     const queryString = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
+
     let upstream: URL;
 
     try {
@@ -208,8 +219,12 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     };
 
     for (const [name, value] of Object.entries(request.headers)) {
-      if (typeof value !== 'string') continue;
+      if (typeof value !== 'string') {
+        continue;
+      }
+
       const lower = name.toLowerCase();
+
       if (
         lower === 'host' ||
         lower === 'authorization' ||
@@ -240,8 +255,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
      * end/close/error instead so the body transfer stays bounded.
      */
     let streamingHandoff = false;
+
     const sendStream = (readable: Readable) => {
       streamingHandoff = true;
+
       const clear = () => clearTimeout(timeout);
       readable.on('close', clear);
       readable.on('end', clear);
@@ -256,6 +273,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         headers,
         body: shouldStreamBody(request.method) ? (request.raw as unknown as ReadableStream<Uint8Array>) : undefined,
         signal: controller.signal,
+
         /*
          * Do NOT follow redirects. The path-traversal sandbox + agent resolution
          * validate the INITIAL upstream URL only; with the default redirect:'follow'
@@ -279,6 +297,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       reply.status(upstreamResponse.status);
 
       const contentType = upstreamResponse.headers.get('content-type') ?? '';
+
       /*
        * Only treat the body as injectable HTML when it is UTF-8 (or has no
        * declared charset, which we read as UTF-8). The inspector injection
@@ -302,6 +321,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
       upstreamResponse.headers.forEach((value, name) => {
         const lower = name.toLowerCase();
+
         if (
           lower === 'content-encoding' ||
           lower === 'transfer-encoding' ||
@@ -314,6 +334,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         ) {
           return;
         }
+
         reply.header(name, value);
       });
 
@@ -330,14 +351,18 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         return sendStream(Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>));
       }
 
-      // Inspector-injection path: bound the in-memory buffer. If the document is
-      // implausibly large for injection, stream it through unmodified instead.
+      /*
+       * Inspector-injection path: bound the in-memory buffer. If the document is
+       * implausibly large for injection, stream it through unmodified instead.
+       */
       const declaredLength = Number(upstreamResponse.headers.get('content-length') ?? '');
 
       if (Number.isFinite(declaredLength) && declaredLength > MAX_INJECT_BYTES) {
-        // Only re-assert content-length when the body is NOT decoded. If the
-        // upstream was content-encoded, undici hands us the DECODED stream while
-        // declaredLength is the compressed size — setting it truncates the body.
+        /*
+         * Only re-assert content-length when the body is NOT decoded. If the
+         * upstream was content-encoded, undici hands us the DECODED stream while
+         * declaredLength is the compressed size — setting it truncates the body.
+         */
         if (!upstreamWasEncoded) {
           reply.header('content-length', String(declaredLength));
         }
@@ -354,30 +379,54 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        */
       const reader = (upstreamResponse.body as ReadableStream<Uint8Array>).getReader();
       const chunks: Uint8Array[] = [];
+
       let total = 0;
       let overflow = false;
 
-      for (;;) {
-        const { done, value } = await reader.read();
+      /*
+       * Body-phase idle deadline. The connect timeout was cleared at line 277, so
+       * without this a slow-loris upstream (the user's dev server trickling a few
+       * bytes at a time) would hold this read loop — and the proxy handler — open
+       * indefinitely. Re-arm on every chunk; abort the upstream if a read stalls
+       * longer than requestTimeoutMs.
+       */
+      let bodyIdle: ReturnType<typeof setTimeout> | undefined;
 
-        if (done) {
-          break;
-        }
+      const armBodyIdle = () => {
+        clearTimeout(bodyIdle);
+        bodyIdle = setTimeout(() => controller.abort(), requestTimeoutMs);
+      };
 
-        if (value) {
-          chunks.push(value);
-          total += value.length;
+      try {
+        armBodyIdle();
 
-          if (total > MAX_INJECT_BYTES) {
-            overflow = true;
+        for (;;) {
+          const { done, value } = await reader.read();
+
+          if (done) {
             break;
           }
+
+          armBodyIdle();
+
+          if (value) {
+            chunks.push(value);
+            total += value.length;
+
+            if (total > MAX_INJECT_BYTES) {
+              overflow = true;
+              break;
+            }
+          }
         }
+      } finally {
+        clearTimeout(bodyIdle);
       }
 
       if (overflow) {
         // Too large to inject — stream the prefix already read, then the rest.
         const prefix = chunks;
+
         async function* passthrough() {
           try {
             for (const chunk of prefix) {
@@ -427,12 +476,15 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       if (error?.name === 'AbortError') {
         return reply.code(504).send({ error: 'Preview upstream timeout', code: 'PREVIEW_UPSTREAM_TIMEOUT' });
       }
+
       return reply
         .code(502)
         .send({ error: 'Preview upstream error', code: 'PREVIEW_UPSTREAM_ERROR', detail: error?.message });
     } finally {
-      // Streamed responses clear the timer on stream completion (see sendStream);
-      // only clear here for the fully-buffered/early-return paths.
+      /*
+       * Streamed responses clear the timer on stream completion (see sendStream);
+       * only clear here for the fully-buffered/early-return paths.
+       */
       if (!streamingHandoff) {
         clearTimeout(timeout);
       }
@@ -476,6 +528,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       }
 
       let sub = path.replace(/^\/+/, '');
+
       const selfPrefix = `p/${parsed.workspaceId}/${parsed.port}`;
 
       if (sub === selfPrefix) {
@@ -539,15 +592,22 @@ function defaultResolveAgent(options: PreviewProxyOptions, fetchImpl: typeof fet
       `${managerUrl.replace(/\/$/, '')}/internal/workspaces/${encodeURIComponent(workspaceId)}/agent`,
       {
         headers: { authorization: `Bearer ${secret}` },
+
         // Don't let a hung workspace-manager stall every preview request indefinitely.
         signal: AbortSignal.timeout(10_000),
       },
     );
 
-    if (!response.ok) return undefined;
+    if (!response.ok) {
+      return undefined;
+    }
 
     const body = (await response.json()) as { baseUrl?: string; token?: string };
-    if (!body.baseUrl || !body.token) return undefined;
+
+    if (!body.baseUrl || !body.token) {
+      return undefined;
+    }
+
     return { baseUrl: body.baseUrl, token: body.token };
   };
 }
@@ -574,6 +634,7 @@ function assertProductionDefaultResolverConfig(options: PreviewProxyOptions) {
 
   const isInternalKubernetesService =
     url.protocol === 'http:' && (url.hostname.endsWith('.svc') || url.hostname.endsWith('.svc.cluster.local'));
+
   const isHttps = url.protocol === 'https:';
 
   if (!isHttps && !isInternalKubernetesService) {

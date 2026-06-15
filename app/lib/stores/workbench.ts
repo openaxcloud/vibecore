@@ -311,6 +311,18 @@ export class WorkbenchStore {
     this.#agentPatchOriginals.clear();
     this.agentPatchSelfRepair.set({});
     this.unsavedFiles.set(new Set<string>());
+
+    /*
+     * Cancel pending autosave timers from the previous project/runtime. Left
+     * running, a stale timer fires after the workbench re-binds and writes the
+     * old project's buffered content into the NEW project's runtime (data
+     * corruption), and leaks a timer per switch.
+     */
+    for (const timer of this.#autosaveTimers.values()) {
+      clearTimeout(timer);
+    }
+
+    this.#autosaveTimers.clear();
   }
 
   async #hydrateAgentPatchProposals(projectId: string) {
