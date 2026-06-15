@@ -72,7 +72,11 @@ platformEnv:
     workspaceRuntimeNamespace: 'workspaces'
     workspaceStorageClass: 'workspace-standard-rwo'
     workspaceAgentImage: 'us-central1-docker.pkg.dev/PROJECT/vibecore/workspace-agent:sha-staging'
-    previewUrlTemplate: 'https://{workspaceId}-{port}.preview.staging.example.com/p/{workspaceId}/{port}/'
+    # Host-based preview must point at the host ROOT (no '/p/<ws>/<port>/' path
+    # prefix): the subdomain already identifies the workspace+port, the proxy
+    # host-routes every path, and a path prefix breaks client-side routers
+    # (BrowserRouter sees '/p/<ws>/<port>/' → no route match → blank app).
+    previewUrlTemplate: 'https://{workspaceId}-{port}.preview.staging.example.com/'
   email:
     httpEndpoint: ''
     from: ''

@@ -112,7 +112,14 @@ platformEnv:
     workspaceRuntimeNamespace: 'workspaces'
     workspaceStorageClass: 'workspace-standard-rwo'
     workspaceAgentImage: 'europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/workspace-agent:sha-7704c1dd6b'
-    previewUrlTemplate: 'https://{workspaceId}-{port}.preview.e-code.ai/p/{workspaceId}/{port}/'
+    # Host-based preview: the {workspaceId}-{port} subdomain already identifies
+    # the workspace+port and the preview-proxy host-routes EVERY path to the dev
+    # server, so the URL must be the host ROOT. A '/p/<ws>/<port>/' path prefix
+    # here is redundant for assets AND breaks any app that uses a client-side
+    # router (BrowserRouter reads window.location.pathname; '/p/<ws>/<port>/'
+    # matches no route, so the app renders blank). Host-root works for relative
+    # assets, root-relative assets, and client routing alike (verified live).
+    previewUrlTemplate: 'https://{workspaceId}-{port}.preview.e-code.ai/'
   email:
     httpEndpoint: 'https://api.resend.com/emails'
     from: 'no-reply@e-code.ai'

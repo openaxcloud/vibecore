@@ -191,7 +191,13 @@ jobs:
       # --reuse-values preserves every existing value (admin imageTag + all prod
       # config) and overrides only the tiers rebuilt above: web, api,
       # workspace-manager, preview-proxy, ai-gateway, worker, and the
-      # workspace-agent runtime image. --atomic auto-rolls-back on a failed
+      # workspace-agent runtime image. NOTE: because --reuse-values keeps the
+      # release's stored configmap values, a change to values-prod.yaml alone
+      # never reaches prod — values that must change here have to be re-asserted
+      # via --set. previewUrlTemplate is pinned to the host ROOT (no
+      # '/p/<ws>/<port>/' path prefix) so client-side routers in generated apps
+      # work; a path prefix makes BrowserRouter-style apps render blank.
+      # --atomic auto-rolls-back on a failed
       # upgrade (a bad ai-gateway/worker container fails readiness → rollback;
       # the agent image is a configmap value the api re-reads on its restart).
       - name: Helm upgrade (web + runtime image tags)
@@ -208,7 +214,8 @@ jobs:
             --set services.previewProxy.imageTag="${SHORT_SHA}" \
             --set services.aiGateway.imageTag="${SHORT_SHA}" \
             --set services.worker.imageTag="${SHORT_SHA}" \
-            --set platformEnv.runtime.workspaceAgentImage="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPO}/workspace-agent:sha-${SHORT_SHA}"
+            --set platformEnv.runtime.workspaceAgentImage="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPO}/workspace-agent:sha-${SHORT_SHA}" \
+            --set platformEnv.runtime.previewUrlTemplate='https://{workspaceId}-{port}.preview.e-code.ai/'
 
       - name: Verify rollout
         run: |
