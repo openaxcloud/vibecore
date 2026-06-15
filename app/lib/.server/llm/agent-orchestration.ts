@@ -371,6 +371,148 @@ export async function executeAgentOrchestration(input: {
   }
 }
 
+/** Per-lane streaming event emitted by the ai-gateway /v1/agent-runs/stream SSE. */
+export type AgentLaneStreamEvent =
+  | { type: 'lane-start'; roleId: AgentRoleId; title: string }
+  | { type: 'lane-delta'; roleId: AgentRoleId; content: string }
+  | { type: 'lane-done'; roleId: AgentRoleId; result: AgentExecutionResult }
+  | {
+      type: 'run-done';
+      runId: string;
+      status: AgentExecutionResponse['status'];
+      results: AgentExecutionResult[];
+      consensus?: AgentConsensusOutput;
+    }
+  | { type: 'error'; error: string };
+
+/**
+ * Streaming variant of {@link executeAgentOrchestration}: consumes the ai-gateway
+ * SSE so the IDE can render each specialist sub-agent token-by-token live, then
+ * returns the final aggregate. `onEvent` is called for every lane event as it
+ * arrives. Falls back semantics identical to the non-streaming call (throws
+ * AgentExecutorError so api.chat can fall back to single-model lanes).
+ */
+export async function executeAgentOrchestrationStream(input: {
+  env?: AgentOrchestrationEnv;
+  plan: AgentOrchestrationPlan;
+  messages: Array<Omit<Message, 'id'> | Message>;
+  timeoutMs?: number;
+  fetchImpl?: typeof fetch;
+  rateLimitKey?: string;
+  onEvent: (event: AgentLaneStreamEvent) => void;
+}): Promise<AgentExecutionResponse> {
+  if (!input.plan.enabled || input.plan.mode !== 'parallel-subagents') {
+    throw new AgentExecutorError('Parallel sub-agent execution is not enabled for this request.', 'not-configured');
+  }
+
+  const endpoint = getSubagentExecutorUrl(input.env);
+
+  if (!endpoint?.trim()) {
+    throw new AgentExecutorError('ECODE_SUBAGENT_EXECUTOR_URL is not configured.', 'not-configured');
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), input.timeoutMs ?? 90_000);
+  const fetcher = input.fetchImpl ?? fetch;
+  const token = getSubagentExecutorToken(input.env)?.trim();
+
+  try {
+    const response = await fetcher(new URL('/v1/agent-runs/stream', endpoint).toString(), {
+      method: 'POST',
+      headers: {
+        accept: 'text/event-stream',
+        'content-type': 'application/json',
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        mode: input.plan.mode,
+        roles: input.plan.roles,
+        messages: input.messages.map((message) => ({ role: message.role, content: getTextContent(message) })),
+        ...(input.rateLimitKey ? { rateLimitKey: input.rateLimitKey } : {}),
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok || !response.body) {
+      throw new AgentExecutorError(`Sub-agent executor returned HTTP ${response.status}.`, 'http-error');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    let buffer = '';
+    let final: AgentExecutionResponse | undefined;
+
+    for (;;) {
+      const { value, done } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE frames are separated by a blank line.
+      let boundary = buffer.indexOf('\n\n');
+
+      while (boundary !== -1) {
+        const frame = buffer.slice(0, boundary);
+        buffer = buffer.slice(boundary + 2);
+        boundary = buffer.indexOf('\n\n');
+
+        const dataLine = frame.split('\n').find((line) => line.startsWith('data:'));
+
+        if (!dataLine) {
+          continue;
+        }
+
+        let event: AgentLaneStreamEvent | undefined;
+
+        try {
+          event = JSON.parse(dataLine.slice(5).trim()) as AgentLaneStreamEvent;
+        } catch {
+          continue;
+        }
+
+        if (!event) {
+          continue;
+        }
+
+        if (event.type === 'error') {
+          throw new AgentExecutorError(event.error || 'Sub-agent stream error.', 'http-error');
+        }
+
+        input.onEvent(event);
+
+        if (event.type === 'run-done') {
+          final = { runId: event.runId, status: event.status, results: event.results, consensus: event.consensus };
+        }
+      }
+    }
+
+    if (!final || !isAgentExecutionResponse(final)) {
+      throw new AgentExecutorError('Sub-agent stream ended without a run-done event.', 'invalid-response');
+    }
+
+    return final;
+  } catch (error) {
+    if (error instanceof AgentExecutorError) {
+      throw error;
+    }
+
+    if ((error as { name?: string }).name === 'AbortError') {
+      throw new AgentExecutorError('Sub-agent executor timed out.', 'timeout');
+    }
+
+    throw new AgentExecutorError(
+      (error as { message?: string }).message ?? 'Sub-agent executor request failed.',
+      'network-error',
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export function createAgentExecutionContext(response: AgentExecutionResponse): string {
   const results = response.results
     .map((result) => {

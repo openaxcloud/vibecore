@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import { buildAiGatewayApp } from './app.js';
+import { describe, expect, it, vi } from 'vitest';
 import type { AgentRunRateLimiter } from './agent-executor.js';
+import { buildAiGatewayApp } from './app.js';
 import type { AiGateway } from './gateway.js';
 
 const validPayload = {
@@ -21,7 +21,7 @@ function fakeGateway() {
   return {
     health: async () => [],
     models: () => [],
-    stream: async function* () {},
+    async *stream() {},
     complete: async () => ({
       provider: 'openai',
       model: 'gpt-4.1-mini',
@@ -49,6 +49,7 @@ describe('AI gateway app', () => {
       env: { ECODE_SUBAGENT_EXECUTOR_TOKEN: 'secret' },
       agentRunPersistence: null,
     });
+
     const response = await app.inject({ method: 'POST', url: '/v1/agent-runs', payload: validPayload });
 
     expect(response.statusCode).toBe(401);
@@ -142,6 +143,44 @@ describe('AI gateway app', () => {
     await app.close();
   });
 
+  it('streams valid agent runs as SSE with rate-limit headers', async () => {
+    const stream = vi.fn(async function* () {
+      yield { type: 'delta' as const, content: '{"summary":"streamed architect complete"}' };
+      yield { type: 'done' as const };
+    });
+    const app = await buildAiGatewayApp({
+      gateway: { ...fakeGateway(), stream } as unknown as AiGateway,
+      logger: false,
+      env: { ECODE_SUBAGENT_EXECUTOR_TOKEN: 'secret', ECODE_SUBAGENT_EXECUTOR_RATE_LIMIT_PER_MINUTE: '7' },
+      agentRunPersistence: null,
+    });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/agent-runs/stream',
+      headers: { authorization: 'Bearer secret' },
+      payload: validPayload,
+    });
+
+    const events = response.payload
+      .trim()
+      .split('\n\n')
+      .map((line) => JSON.parse(line.replace(/^data: /, '')));
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toContain('text/event-stream');
+    expect(response.headers['x-ratelimit-limit']).toBe('7');
+    expect(response.headers['x-ratelimit-remaining']).toBe('6');
+    expect(response.headers['x-ratelimit-backend']).toBe('memory');
+    expect(events.map((event) => event.type)).toEqual(['lane-start', 'lane-delta', 'lane-done', 'run-done']);
+    expect(events.at(-1)).toMatchObject({
+      type: 'run-done',
+      status: 'complete',
+      results: [{ roleId: 'architect', summary: 'streamed architect complete' }],
+    });
+
+    await app.close();
+  });
+
   it('rate limits agent runs by organization id', async () => {
     const app = await buildAiGatewayApp({
       gateway: fakeGateway(),
@@ -172,6 +211,7 @@ describe('AI gateway app', () => {
       agentRunRateLimiter: limiter,
       agentRunPersistence: null,
     });
+
     const response = await app.inject({ method: 'POST', url: '/v1/agent-runs', payload: validPayload });
 
     expect(response.statusCode).toBe(200);

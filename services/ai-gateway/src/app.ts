@@ -5,6 +5,7 @@ import {
   createAgentRunRateLimiter,
   createRedisAgentRunRateLimiter,
   executeAgentRun,
+  executeAgentRunStream,
   parseAgentRunRequest,
   positiveIntegerOrDefault,
   type AgentRunRateLimiter,
@@ -27,6 +28,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
   const gateway = options.gateway ?? new AiGateway();
   const agentRunRateLimitPerMinute = Number(env.ECODE_SUBAGENT_EXECUTOR_RATE_LIMIT_PER_MINUTE ?? 30);
   const agentRunRateLimit = positiveIntegerOrDefault(agentRunRateLimitPerMinute, 30);
+
   const redis =
     !options.agentRunRateLimiter && env.REDIS_URL
       ? new Redis(env.REDIS_URL, {
@@ -107,6 +109,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
        * written).
        */
       const iterator = gateway.stream(body, abortController.signal)[Symbol.asyncIterator]();
+
       let firstResult: IteratorResult<unknown>;
 
       try {
@@ -193,6 +196,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
     if (
       !authorizeAgentRun({
         authorizationHeader: request.headers.authorization,
+
         /*
          * Fall back to the chart-owned AI_GATEWAY_SHARED_SECRET (already
          * provisioned to every pod and used for /chat/completions auth) when no
@@ -202,6 +206,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
          * prod via allowInsecure:false).
          */
         expectedToken: env.ECODE_SUBAGENT_EXECUTOR_TOKEN || env.AI_GATEWAY_SHARED_SECRET,
+
         // Only fail-open with no token outside production (local dev/test convenience).
         allowInsecure: (env.NODE_ENV ?? 'production') !== 'production',
       })
@@ -211,9 +216,12 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
 
     try {
       const body = parseAgentRunRequest(request.body);
-      // Prefer an explicit per-tenant key, then the org id, then the (pod) IP.
-      // Without rateLimitKey/organizationId the limiter collapsed to one global
-      // bucket keyed on the caller pod's IP → cross-tenant DoS.
+
+      /*
+       * Prefer an explicit per-tenant key, then the org id, then the (pod) IP.
+       * Without rateLimitKey/organizationId the limiter collapsed to one global
+       * bucket keyed on the caller pod's IP → cross-tenant DoS.
+       */
       const rateLimitKey = body.rateLimitKey ?? body.organizationId ?? request.ip;
       const rateLimit = await agentRunRateLimiter.check(rateLimitKey);
 
@@ -251,11 +259,122 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
        */
       const rawStatus = (error as { statusCode?: unknown }).statusCode;
       const statusCode = typeof rawStatus === 'number' ? rawStatus : 500;
+
       return reply.code(statusCode).send({
         error: error instanceof Error ? error.message : 'Agent run failed.',
         code: statusCode >= 400 && statusCode < 500 ? 'AGENT_RUN_BAD_REQUEST' : 'AGENT_RUN_FAILED',
       });
     }
+  });
+
+  /*
+   * SSE variant of /v1/agent-runs: streams each specialist lane token-by-token as
+   * it works so the IDE can render the parallel sub-agents live (Replit-style),
+   * instead of waiting for the whole run. Same auth + rate limit as the JSON route.
+   */
+  app.post('/v1/agent-runs/stream', async (request, reply) => {
+    if (
+      !authorizeAgentRun({
+        authorizationHeader: request.headers.authorization,
+        expectedToken: env.ECODE_SUBAGENT_EXECUTOR_TOKEN || env.AI_GATEWAY_SHARED_SECRET,
+        allowInsecure: (env.NODE_ENV ?? 'production') !== 'production',
+      })
+    ) {
+      return reply.code(401).send({ error: 'Unauthorized agent executor request.', code: 'AGENT_RUN_UNAUTHORIZED' });
+    }
+
+    let body;
+
+    try {
+      body = parseAgentRunRequest(request.body);
+    } catch (error) {
+      const rawStatus = (error as { statusCode?: unknown }).statusCode;
+      const statusCode = typeof rawStatus === 'number' ? rawStatus : 400;
+
+      return reply.code(statusCode).send({
+        error: error instanceof Error ? error.message : 'Agent run failed.',
+        code: 'AGENT_RUN_BAD_REQUEST',
+      });
+    }
+
+    const rateLimitKey = body.rateLimitKey ?? body.organizationId ?? request.ip;
+    const rateLimit = await agentRunRateLimiter.check(rateLimitKey);
+
+    const rateLimitHeaders = {
+      'x-ratelimit-limit': String(agentRunRateLimit),
+      'x-ratelimit-remaining': String(rateLimit.remaining),
+      'x-ratelimit-reset': String(Math.ceil(rateLimit.resetAt / 1000)),
+      'x-ratelimit-backend': agentRunRateLimiter.backend,
+    };
+
+    for (const [header, value] of Object.entries(rateLimitHeaders)) {
+      reply.header(header, value);
+    }
+
+    if (!rateLimit.allowed) {
+      return reply.code(429).send({
+        error: 'Agent executor rate limit exceeded.',
+        code: 'AGENT_RUN_RATE_LIMITED',
+        retryAfterSeconds: Math.max(1, Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+      });
+    }
+
+    const abortController = new AbortController();
+    const onClientClose = () => abortController.abort();
+    request.raw.on('close', onClientClose);
+
+    reply.raw.writeHead(200, {
+      'content-type': 'text/event-stream; charset=utf-8',
+      'cache-control': 'no-cache',
+      connection: 'keep-alive',
+      ...rateLimitHeaders,
+    });
+
+    try {
+      for await (const event of executeAgentRunStream({
+        gateway,
+        request: body,
+        persistence: agentRunPersistence,
+        signal: abortController.signal,
+      })) {
+        if (abortController.signal.aborted || reply.raw.writableEnded) {
+          break;
+        }
+
+        const flushed = reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+
+        /*
+         * Respect backpressure (see /chat/completions stream): wait for drain so a
+         * fast run + slow client can't buffer the whole stream in the pod's heap.
+         */
+        if (!flushed) {
+          await new Promise<void>((resolve) => {
+            const finish = () => {
+              reply.raw.off('drain', finish);
+              reply.raw.off('close', finish);
+              resolve();
+            };
+
+            reply.raw.once('drain', finish);
+            reply.raw.once('close', finish);
+          });
+        }
+      }
+    } catch (error) {
+      if (!reply.raw.writableEnded) {
+        reply.raw.write(
+          `data: ${JSON.stringify({ type: 'error', error: error instanceof Error ? error.message : 'Agent run failed.' })}\n\n`,
+        );
+      }
+    } finally {
+      request.raw.off('close', onClientClose);
+    }
+
+    if (!reply.raw.writableEnded) {
+      reply.raw.end();
+    }
+
+    return reply;
   });
 
   return app;

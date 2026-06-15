@@ -127,6 +127,58 @@ export const AssistantMessage = memo(
       | Extract<ContextAnnotation, { type: 'agentMemory' }>
       | undefined;
 
+    /*
+     * Live per-lane streaming: the executor emits agentLaneStream {kind} events —
+     * 'start', 'delta' (new text chunk), 'done'. Concatenate the deltas per role
+     * in annotation order so each specialist sub-agent renders token-by-token
+     * while it works, Replit-style, before the final agentExecution arrives.
+     */
+    const agentLaneStreams = (() => {
+      type AgentLaneStreamState = {
+        roleId: Extract<ContextAnnotation, { type: 'agentLaneStream' }>['roleId'];
+        title?: string;
+        text: string;
+        status: 'running' | 'complete' | 'partial' | 'failed';
+        summary?: string;
+      };
+
+      const lanes = new Map<string, AgentLaneStreamState>();
+
+      for (const annotation of filteredAnnotations) {
+        if (annotation.type !== 'agentLaneStream') {
+          continue;
+        }
+
+        const lane: AgentLaneStreamState = lanes.get(annotation.roleId) ?? {
+          roleId: annotation.roleId,
+          text: '',
+          status: 'running',
+        };
+
+        if (annotation.kind === 'start') {
+          lane.title = annotation.title ?? lane.title;
+          lane.status = 'running';
+        } else if (annotation.kind === 'delta') {
+          lane.text += typeof annotation.text === 'string' ? annotation.text : '';
+        } else if (annotation.kind === 'done') {
+          lane.status = annotation.status ?? 'complete';
+          lane.summary = annotation.summary;
+        }
+
+        lanes.set(annotation.roleId, lane);
+      }
+
+      return lanes.size > 0 ? [...lanes.values()] : undefined;
+    })();
+    const lanePanelRoles =
+      agentOrchestration?.roles ??
+      agentLaneStreams?.map((lane) => ({
+        id: lane.roleId,
+        title: lane.title ?? lane.roleId,
+        responsibility: 'Specialist lane is streaming live.',
+      })) ??
+      [];
+
     const usage: {
       completionTokens: number;
       cost?: string | number;
@@ -434,63 +486,70 @@ export const AssistantMessage = memo(
             </div>
           </div>
         </>
-        {agentOrchestration?.mode === 'parallel-subagents' && agentOrchestration.roles.length > 0 && (
-          <div
-            className="bolt-agent-lanes my-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
-            data-testid="agent-lanes-panel"
-          >
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
-              <span className="i-ph:users-three text-bolt-elements-item-contentAccent" aria-hidden />
-              <span>Parallel agents</span>
-              <span className="ml-auto text-[11px] font-normal text-bolt-elements-textSecondary">
-                {agentExecution
-                  ? `consensus: ${(agentExecution.consensus?.outcome ?? agentExecution.status).toString().toLowerCase()}`
-                  : 'running in parallel…'}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {agentOrchestration.roles.map((role) => {
-                const result = agentExecution?.results.find((r) => r.roleId === role.id);
-
-                const state: 'running' | 'complete' | 'partial' | 'failed' = !agentExecution
-                  ? 'running'
-                  : (result?.status ?? 'failed');
-                const icon =
-                  state === 'running'
-                    ? 'i-ph:circle-notch animate-spin text-bolt-elements-item-contentAccent'
-                    : state === 'complete'
-                      ? 'i-ph:check-circle text-emerald-500'
-                      : state === 'partial'
-                        ? 'i-ph:warning-circle text-amber-500'
-                        : 'i-ph:x-circle text-red-500';
-
-                return (
-                  <div
-                    key={role.id}
-                    className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2"
-                    data-testid={`agent-lane-${role.id}`}
-                    data-state={state}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span className={icon} aria-hidden />
-                      <span className="truncate text-xs font-medium text-bolt-elements-textPrimary">{role.title}</span>
-                    </div>
-                    <div className="mt-1 line-clamp-3 text-[11px] text-bolt-elements-textSecondary">
-                      {result?.summary ?? role.responsibility}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {agentExecution?.consensus && (
-              <div className="mt-2 text-[11px] text-bolt-elements-textSecondary">
-                Consensus · {agentExecution.consensus.algorithm.toLowerCase().replace(/_/g, ' ')} ·{' '}
-                <span className="font-medium text-bolt-elements-textPrimary">{agentExecution.consensus.outcome}</span> ·{' '}
-                {Math.round(agentExecution.consensus.agreementScore * 100)}% agreement
+        {((agentOrchestration?.mode === 'parallel-subagents' && agentOrchestration.roles.length > 0) ||
+          agentLaneStreams?.length) &&
+          lanePanelRoles.length > 0 && (
+            <div
+              className="bolt-agent-lanes my-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
+              data-testid="agent-lanes-panel"
+            >
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
+                <span className="i-ph:users-three text-bolt-elements-item-contentAccent" aria-hidden />
+                <span>Parallel agents</span>
+                <span className="ml-auto text-[11px] font-normal text-bolt-elements-textSecondary">
+                  {agentExecution
+                    ? `consensus: ${(agentExecution.consensus?.outcome ?? agentExecution.status).toString().toLowerCase()}`
+                    : agentLaneStreams?.some((lane) => lane.status === 'running')
+                      ? 'running in parallel...'
+                      : 'finalizing consensus...'}
+                </span>
               </div>
-            )}
-          </div>
-        )}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {lanePanelRoles.map((role) => {
+                  const result = agentExecution?.results.find((r) => r.roleId === role.id);
+                  const stream = agentLaneStreams?.find((lane) => lane.roleId === role.id);
+
+                  const state: 'running' | 'complete' | 'partial' | 'failed' = !agentExecution
+                    ? (stream?.status ?? 'running')
+                    : (result?.status ?? 'failed');
+                  const icon =
+                    state === 'running'
+                      ? 'i-ph:circle-notch animate-spin text-bolt-elements-item-contentAccent'
+                      : state === 'complete'
+                        ? 'i-ph:check-circle text-emerald-500'
+                        : state === 'partial'
+                          ? 'i-ph:warning-circle text-amber-500'
+                          : 'i-ph:x-circle text-red-500';
+
+                  return (
+                    <div
+                      key={role.id}
+                      className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2"
+                      data-testid={`agent-lane-${role.id}`}
+                      data-state={state}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className={icon} aria-hidden />
+                        <span className="truncate text-xs font-medium text-bolt-elements-textPrimary">
+                          {role.title}
+                        </span>
+                      </div>
+                      <div className="mt-1 line-clamp-3 text-[11px] text-bolt-elements-textSecondary">
+                        {result?.summary ?? stream?.summary ?? stream?.text.trim() ?? role.responsibility}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {agentExecution?.consensus && (
+                <div className="mt-2 text-[11px] text-bolt-elements-textSecondary">
+                  Consensus · {agentExecution.consensus.algorithm.toLowerCase().replace(/_/g, ' ')} ·{' '}
+                  <span className="font-medium text-bolt-elements-textPrimary">{agentExecution.consensus.outcome}</span>{' '}
+                  · {Math.round(agentExecution.consensus.agreementScore * 100)}% agreement
+                </div>
+              )}
+            </div>
+          )}
         {reasoningTexts.length > 0 && (
           <div className="bolt-assistant-reasoning my-2 space-y-2">
             {reasoningTexts.map((text, i) => (

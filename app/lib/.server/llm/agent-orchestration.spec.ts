@@ -7,6 +7,7 @@ import {
   createAgentExecutionContext,
   createAgentOrchestrationPrompt,
   executeAgentOrchestration,
+  executeAgentOrchestrationStream,
   getSubagentExecutorToken,
   shouldUseAgentOrchestration,
 } from './agent-orchestration';
@@ -137,6 +138,66 @@ describe('E-Code agent orchestration', () => {
 
     expect(getSubagentExecutorToken({ ECODE_SUBAGENT_EXECUTOR_TOKEN: 'secret-token' })).toBe('secret-token');
     expect((calls[0].init.headers as Record<string, string>).authorization).toBe('Bearer secret-token');
+  });
+
+  it('streams sub-agent lane events and returns the final streamed execution', async () => {
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: 'Build a full-stack app with backend APIs, auth, deploy and tests.' }],
+      subagentsAvailable: true,
+    });
+
+    const encoder = new TextEncoder();
+
+    const events = [
+      { type: 'lane-start', roleId: 'architect', title: 'Architect' },
+      { type: 'lane-delta', roleId: 'architect', content: 'Planning' },
+      {
+        type: 'lane-done',
+        roleId: 'architect',
+        result: { roleId: 'architect', status: 'complete', summary: 'Architecture complete.' },
+      },
+      {
+        type: 'run-done',
+        runId: 'run_stream',
+        status: 'complete',
+        results: [{ roleId: 'architect', status: 'complete', summary: 'Architecture complete.' }],
+      },
+    ];
+
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const receivedEvents: unknown[] = [];
+
+    const fetchImpl = async (url: string | URL | Request, init?: RequestInit) => {
+      calls.push({ url: String(url), init: init ?? {} });
+
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            for (const event of events) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+            }
+
+            controller.close();
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'text/event-stream' } },
+      );
+    };
+
+    const response = await executeAgentOrchestrationStream({
+      env: { ECODE_SUBAGENT_EXECUTOR_URL: 'https://agents.example.com' },
+      plan,
+      messages: [{ role: 'user', content: 'Build it.' }],
+      rateLimitKey: 'project_123',
+      fetchImpl: fetchImpl as typeof fetch,
+      onEvent: (event) => receivedEvents.push(event),
+    });
+
+    expect(response.runId).toBe('run_stream');
+    expect(calls[0].url).toBe('https://agents.example.com/v1/agent-runs/stream');
+    expect(JSON.parse(String(calls[0].init.body))).toMatchObject({ rateLimitKey: 'project_123' });
+    expect(receivedEvents).toEqual(events);
   });
 
   it('fails closed when the sub-agent executor is not configured or returns invalid data', async () => {

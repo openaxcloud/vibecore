@@ -4,8 +4,10 @@ import {
   createAgentRunRateLimiter,
   createRedisAgentRunRateLimiter,
   executeAgentRun,
+  executeAgentRunStream,
   parseAgentRunRequest,
   positiveIntegerOrDefault,
+  type AgentRunPersistence,
   type AgentRunRole,
   type RedisRateLimitClient,
 } from './agent-executor.js';
@@ -33,6 +35,7 @@ describe('agent executor', () => {
     expect(authorizeAgentRun({ expectedToken: 'secret', authorizationHeader: 'Bearer secret' })).toBe(true);
     expect(authorizeAgentRun({ expectedToken: 'secret', authorizationHeader: 'Bearer wrong' })).toBe(false);
     expect(authorizeAgentRun({ expectedToken: 'secret' })).toBe(false);
+
     // allowInsecure must NOT override a configured token.
     expect(authorizeAgentRun({ expectedToken: 'secret', allowInsecure: true })).toBe(false);
   });
@@ -101,6 +104,7 @@ describe('agent executor', () => {
 
   it('rate limits agent runs per key and resets after the window', () => {
     let now = 1_000;
+
     const limiter = createAgentRunRateLimiter({ limit: 2, windowMs: 10_000, now: () => now });
 
     expect(limiter.check('org_1')).toMatchObject({ allowed: true, remaining: 1, resetAt: 11_000 });
@@ -115,7 +119,9 @@ describe('agent executor', () => {
 
   it('rate limits agent runs atomically through Redis when configured', async () => {
     let now = 50_000;
+
     const buckets = new Map<string, { count: number; expiresAt: number }>();
+
     const redis: RedisRateLimitClient = {
       eval: vi.fn(async (_script, _numberOfKeys, key, _limit, windowMs): Promise<[number, number]> => {
         const window = Number(windowMs);
@@ -127,6 +133,7 @@ describe('agent executor', () => {
         }
 
         bucket.count += 1;
+
         return [bucket.count, bucket.expiresAt - now];
       }),
     };
@@ -170,6 +177,7 @@ describe('agent executor', () => {
         usage: { inputTokens: 1, outputTokens: 1, estimatedCostCents: 0 },
       };
     });
+
     const gateway = { complete } as unknown as AiGateway;
 
     const result = await executeAgentRun({
@@ -221,5 +229,49 @@ describe('agent executor', () => {
       status: 'failed',
       summary: 'provider unavailable',
     });
+  });
+
+  it('streams specialist lanes and persists the final consensus', async () => {
+    const stream = vi.fn(async function* (request) {
+      const roleId = request.messages[0].content.includes('Architect') ? 'architect' : 'frontend';
+
+      yield { type: 'delta' as const, content: '{"summary":"' };
+      yield { type: 'delta' as const, content: `${roleId} complete"}` };
+      yield { type: 'done' as const };
+    });
+    const persistence: AgentRunPersistence = {
+      recordRun: vi.fn(async () => undefined),
+    };
+
+    const events = [];
+
+    for await (const event of executeAgentRunStream({
+      gateway: { stream } as unknown as AiGateway,
+      request: {
+        mode: 'parallel-subagents',
+        roles: [architect, frontend],
+        messages: [{ role: 'user', content: 'Build a SaaS app.' }],
+      },
+      persistence,
+    })) {
+      events.push(event);
+    }
+
+    expect(events.filter((event) => event.type === 'lane-start')).toHaveLength(2);
+    expect(events.filter((event) => event.type === 'lane-delta')).toHaveLength(4);
+    expect(events.filter((event) => event.type === 'lane-done')).toHaveLength(2);
+
+    const runDone = events.find((event) => event.type === 'run-done');
+
+    expect(runDone).toMatchObject({
+      type: 'run-done',
+      status: 'complete',
+      results: [
+        { roleId: 'architect', summary: 'architect complete' },
+        { roleId: 'frontend', summary: 'frontend complete' },
+      ],
+    });
+    expect(stream).toHaveBeenCalledTimes(2);
+    expect(persistence.recordRun).toHaveBeenCalledTimes(1);
   });
 });

@@ -64,6 +64,25 @@ export type ContextAnnotation =
         summary: string;
         score?: number;
       }>;
+    }
+  | {
+      type: 'agentLaneStream';
+      kind: 'start';
+      roleId: 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
+      title: string;
+    }
+  | {
+      type: 'agentLaneStream';
+      kind: 'delta';
+      roleId: 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
+      text: string;
+    }
+  | {
+      type: 'agentLaneStream';
+      kind: 'done';
+      roleId: 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
+      status: 'complete' | 'partial' | 'failed';
+      summary: string;
     };
 
 export type ProgressAnnotation = {

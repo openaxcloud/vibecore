@@ -13,6 +13,7 @@ import {
   buildAgentOrchestrationPlan,
   createAgentExecutionContext,
   executeAgentOrchestration,
+  executeAgentOrchestrationStream,
 } from '~/lib/.server/llm/agent-orchestration';
 import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
 import { apiRequest } from '~/lib/enterprise-api.server';
@@ -459,17 +460,65 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             } satisfies ProgressAnnotation);
 
             try {
-              const execution = await executeAgentOrchestration({
-                env: context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
-                plan: orchestrationPlan,
-                messages: processedMessages,
+              let execution;
 
+              try {
                 /*
-                 * Per-tenant rate-limit bucket (projectId is the best tenant key
-                 * available here) so one project can't exhaust the global limit.
+                 * Stream each specialist lane token-by-token so the IDE renders the
+                 * parallel sub-agents live (Replit-style). The authoritative
+                 * aggregate is still emitted as the single agentExecution annotation
+                 * at the end.
                  */
-                rateLimitKey: projectId,
-              });
+                execution = await executeAgentOrchestrationStream({
+                  env: context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
+                  plan: orchestrationPlan,
+                  messages: processedMessages,
+
+                  /*
+                   * Per-tenant rate-limit bucket (projectId is the best tenant key
+                   * available here) so one project can't exhaust the global limit.
+                   */
+                  rateLimitKey: projectId,
+                  onEvent: (event) => {
+                    if (event.type === 'lane-start') {
+                      dataStream.writeMessageAnnotation({
+                        type: 'agentLaneStream',
+                        kind: 'start',
+                        roleId: event.roleId,
+                        title: event.title,
+                      } satisfies ContextAnnotation);
+                    } else if (event.type === 'lane-delta') {
+                      dataStream.writeMessageAnnotation({
+                        type: 'agentLaneStream',
+                        kind: 'delta',
+                        roleId: event.roleId,
+                        text: event.content,
+                      } satisfies ContextAnnotation);
+                    } else if (event.type === 'lane-done') {
+                      dataStream.writeMessageAnnotation({
+                        type: 'agentLaneStream',
+                        kind: 'done',
+                        roleId: event.roleId,
+                        status: event.result.status,
+                        summary: event.result.summary,
+                      } satisfies ContextAnnotation);
+                    }
+                  },
+                });
+              } catch (streamError) {
+                logger.warn(
+                  streamError instanceof AgentExecutorError
+                    ? `${streamError.message} Falling back to aggregate sub-agent execution.`
+                    : 'Streaming sub-agent executor failed. Falling back to aggregate sub-agent execution.',
+                );
+                execution = await executeAgentOrchestration({
+                  env: context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
+                  plan: orchestrationPlan,
+                  messages: processedMessages,
+                  rateLimitKey: projectId,
+                });
+              }
+
               agentOrchestrationContext = createAgentExecutionContext(execution);
               dataStream.writeMessageAnnotation(buildAgentExecutionAnnotation(execution) satisfies ContextAnnotation);
             } catch (error) {

@@ -1,14 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { createHash } from 'node:crypto';
 import { timingSafeEqual } from 'node:crypto';
-import { AiGateway, type AiChatRequest, type AiMessage } from './gateway.js';
+import type { AgentRunPersistence } from './agent-run-persistence.js';
 import {
   runConsensus,
   selectAlgorithmForRequest,
   type ConsensusAlgorithm,
   type ConsensusOutput,
 } from './consensus/index.js';
-import type { AgentRunPersistence } from './agent-run-persistence.js';
+import { AiGateway, type AiChatRequest, type AiMessage } from './gateway.js';
+
+export type { AgentRunPersistence } from './agent-run-persistence.js';
 
 export type AgentRoleId = 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
 
@@ -24,6 +26,7 @@ export interface AgentRunRequest {
   roles: AgentRunRole[];
   messages: AiMessage[];
   organizationId?: string;
+
   /*
    * Per-tenant rate-limit discriminator. The only caller (web) reaches the
    * gateway from a single pod IP and does not always have a real organizationId,
@@ -143,8 +146,10 @@ export function createAgentRunRateLimiter(input?: {
       buckets.clear();
     },
     close() {
-      // Clear the sweep interval so a replaced/reconfigured limiter doesn't leak a
-      // live timer (clear() only emptied the map, leaving the interval running).
+      /*
+       * Clear the sweep interval so a replaced/reconfigured limiter doesn't leak a
+       * live timer (clear() only emptied the map, leaving the interval running).
+       */
       clearInterval(sweep);
       buckets.clear();
     },
@@ -192,6 +197,7 @@ export function createRedisAgentRunRateLimiter(input: {
           String(limit),
           String(windowMs),
         );
+
         const resetAt = now() + Math.max(1, ttl);
 
         return {
@@ -260,6 +266,7 @@ export function authorizeAgentRun(input: {
   const authorizationHeader = Array.isArray(input.authorizationHeader)
     ? input.authorizationHeader[0]
     : input.authorizationHeader;
+
   const providedToken = authorizationHeader?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
 
   return Boolean(providedToken && safeTokenEqual(providedToken, expectedToken));
@@ -271,6 +278,7 @@ function stringArray(value: unknown): string[] | undefined {
   }
 
   const values = value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+
   return values.length ? values : undefined;
 }
 
@@ -378,6 +386,7 @@ export function parseAgentRunRequest(value: unknown): AgentRunRequest {
       : undefined;
 
   const allowedAlgorithms: readonly ConsensusAlgorithm[] = ['QUORUM', 'BYZANTINE_PBFT', 'WEIGHTED_PLURALITY'];
+
   const consensusAlgorithm =
     typeof value.consensusAlgorithm === 'string' &&
     (allowedAlgorithms as readonly string[]).includes(value.consensusAlgorithm)
@@ -491,6 +500,7 @@ export async function executeAgentRun(input: {
 }): Promise<AgentRunResponse> {
   const runId = randomUUID();
   const startedAt = new Date();
+
   const results = await Promise.all(
     input.request.roles.map(async (role): Promise<AgentRunResult> => {
       try {
@@ -519,6 +529,7 @@ export async function executeAgentRun(input: {
 
   const status = aggregateStatus(results);
   const hasFailedRoles = results.some((r) => r.status === 'failed');
+
   const algorithm =
     input.request.consensusAlgorithm ??
     selectAlgorithmForRequest({
@@ -565,4 +576,154 @@ export async function executeAgentRun(input: {
   }
 
   return response;
+}
+
+/**
+ * Per-lane streaming event for the multi-agent SSE endpoint. Lets the IDE render
+ * each specialist sub-agent token-by-token as it works (Replit-style), instead of
+ * waiting for the whole run to finish and showing all lanes at once.
+ */
+export type AgentRunStreamEvent =
+  | { type: 'lane-start'; roleId: AgentRoleId; title: string }
+  | { type: 'lane-delta'; roleId: AgentRoleId; content: string }
+  | { type: 'lane-done'; roleId: AgentRoleId; result: AgentRunResult }
+  | {
+      type: 'run-done';
+      runId: string;
+      status: AgentRunResponse['status'];
+      results: AgentRunResult[];
+      consensus: ConsensusOutput;
+    };
+
+/**
+ * Streaming variant of {@link executeAgentRun}. Runs every specialist lane
+ * concurrently via the gateway's token stream and yields events as they arrive,
+ * interleaved across lanes, then a final consensus. The non-streaming version is
+ * kept for callers that only need the aggregate.
+ */
+export async function* executeAgentRunStream(input: {
+  gateway: AiGateway;
+  request: AgentRunRequest;
+  persistence?: AgentRunPersistence;
+  signal?: AbortSignal;
+}): AsyncGenerator<AgentRunStreamEvent> {
+  const runId = randomUUID();
+  const startedAt = new Date();
+  const roles = input.request.roles;
+
+  for (const role of roles) {
+    yield { type: 'lane-start', roleId: role.id, title: role.title };
+  }
+
+  // Merge N concurrent lane streams into one ordered event queue.
+  const queue: AgentRunStreamEvent[] = [];
+
+  let wake: (() => void) | null = null;
+
+  const wakeUp = () => {
+    const w = wake;
+    wake = null;
+
+    if (w) {
+      w();
+    }
+  };
+  const emit = (event: AgentRunStreamEvent) => {
+    queue.push(event);
+    wakeUp();
+  };
+
+  const results: AgentRunResult[] = [];
+
+  let active = roles.length;
+
+  for (const role of roles) {
+    void (async () => {
+      let content = '';
+
+      try {
+        for await (const chunk of input.gateway.stream(
+          {
+            organizationId: input.request.organizationId,
+            plan: input.request.plan ?? 'free',
+            provider: input.request.provider,
+            model: input.request.model,
+            messages: buildRoleMessages(input.request, role),
+            maxTokens: input.request.maxTokens ?? defaultAgentMaxTokens,
+          },
+          input.signal,
+        )) {
+          if (chunk.type === 'delta' && chunk.content) {
+            content += chunk.content;
+            emit({ type: 'lane-delta', roleId: role.id, content: chunk.content });
+          } else if (chunk.type === 'error') {
+            throw new Error(chunk.error ?? 'Sub-agent stream error');
+          }
+        }
+
+        const result = normalizeAgentOutput(role.id, content);
+        results.push(result);
+        emit({ type: 'lane-done', roleId: role.id, result });
+      } catch (error) {
+        const result: AgentRunResult = {
+          roleId: role.id,
+          status: 'failed',
+          summary: error instanceof Error ? error.message : 'Agent execution failed.',
+        };
+        results.push(result);
+        emit({ type: 'lane-done', roleId: role.id, result });
+      } finally {
+        active -= 1;
+        wakeUp();
+      }
+    })();
+  }
+
+  while (active > 0 || queue.length > 0) {
+    if (queue.length === 0) {
+      await new Promise<void>((resolve) => {
+        wake = resolve;
+      });
+      continue;
+    }
+
+    yield queue.shift()!;
+  }
+
+  // Re-order results to the requested role order (lanes finish out of order).
+  const ordered = roles
+    .map((role) => results.find((result) => result.roleId === role.id))
+    .filter((result): result is AgentRunResult => Boolean(result));
+
+  const status = aggregateStatus(ordered);
+  const hasFailedRoles = ordered.some((result) => result.status === 'failed');
+
+  const algorithm =
+    input.request.consensusAlgorithm ??
+    selectAlgorithmForRequest({ highStakes: input.request.highStakes, hasFailedRoles, preferWeighted: false });
+
+  const consensus = runConsensus({ results: ordered, algorithm, threshold: input.request.consensusThreshold });
+  const response: AgentRunResponse = { runId, status, results: ordered, consensus };
+
+  if (input.persistence && (status !== 'failed' || !input.signal?.aborted)) {
+    try {
+      await input.persistence.recordRun({
+        runId,
+        request: input.request,
+        response,
+        consensus,
+        startedAt,
+        completedAt: new Date(),
+        metadata: {
+          plan: input.request.plan,
+          provider: input.request.provider,
+          model: input.request.model,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to persist agent run', { runId, error });
+    }
+  }
+
+  yield { type: 'run-done', runId, status, results: ordered, consensus };
 }
