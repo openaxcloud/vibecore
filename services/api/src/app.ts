@@ -8663,6 +8663,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return result.token;
   };
 
+  /*
+   * The api->agent hop flapped 200<->502: a fresh/rescheduled agent pod's Service
+   * endpoints lag a few seconds, and brief connection resets happen under load
+   * (vite-reload CPU spikes, keepalive idle drops). A single fetch surfaced those
+   * transient blips as a user-visible 502 (WORKSPACE_AGENT_REQUEST_FAILED). Retry
+   * with small jittered backoff so they are absorbed before reaching the UI.
+   */
+  const AGENT_REQUEST_ATTEMPTS = Math.max(1, Math.min(Number(process.env.AGENT_REQUEST_ATTEMPTS) || 3, 6));
+  const agentSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+  const agentRetryDelay = (attempt: number) => 120 * attempt + Math.floor(Math.random() * 80);
+
   const agentRequest = async <T = unknown>(workspaceId: string, path: string, init: RequestInit = {}) => {
     const token = await agentToken(workspaceId);
     const headers = new Headers(init.headers);
@@ -8673,37 +8684,93 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       headers.set('content-type', 'application/json');
     }
 
-    let response: Response;
+    const method = (init.method ?? 'GET').toUpperCase();
+    const idempotent = method === 'GET' || method === 'HEAD' || method === 'OPTIONS';
+    const url = `${agentBaseUrl(workspaceId)}${path}`;
 
-    const { init: timedInit, done } = withRequestTimeout({ ...init, headers });
+    let lastError: unknown;
 
-    try {
-      response = await fetch(`${agentBaseUrl(workspaceId)}${path}`, timedInit);
-    } catch (error) {
-      /*
-       * The agent pod may not be reachable yet (workspace still provisioning)
-       * or may have been reclaimed. A rejected fetch (including our timeout
-       * abort) would otherwise surface as an uncoded 500; return the same coded
-       * 502 as a non-ok agent response so callers (and the local-runtime
-       * fallback) treat it as agent-unavailable.
-       */
-      throw Object.assign(new Error('Workspace agent is unavailable'), {
-        statusCode: 502,
-        code: 'WORKSPACE_AGENT_REQUEST_FAILED',
-        cause: error,
-      });
-    } finally {
+    for (let attempt = 1; attempt <= AGENT_REQUEST_ATTEMPTS; attempt++) {
+      // Never retry once the caller (client) has disconnected.
+      if (init.signal?.aborted) {
+        throw Object.assign(new Error('Workspace agent request aborted'), {
+          statusCode: 499,
+          code: 'STREAM_ABORTED',
+        });
+      }
+
+      const { init: timedInit, done } = withRequestTimeout({ ...init, headers });
+
+      let response: Response;
+
+      try {
+        response = await fetch(url, timedInit);
+      } catch (error) {
+        done();
+        lastError = error;
+
+        /*
+         * A connection-level failure (reset, refused, ENOTFOUND, our timeout
+         * abort) means the request never reached the agent, so it is safe to
+         * retry for ANY method. But a caller-aborted signal is a client
+         * disconnect — propagate it, do not retry.
+         */
+        if (init.signal?.aborted) {
+          throw Object.assign(new Error('Workspace agent request aborted'), {
+            statusCode: 499,
+            code: 'STREAM_ABORTED',
+            cause: error,
+          });
+        }
+
+        if (attempt < AGENT_REQUEST_ATTEMPTS) {
+          await agentSleep(agentRetryDelay(attempt));
+          continue;
+        }
+
+        /*
+         * The agent pod may not be reachable yet (workspace still provisioning)
+         * or may have been reclaimed. Surface the same coded 502 as a non-ok
+         * agent response so callers (and the local-runtime fallback) treat it as
+         * agent-unavailable.
+         */
+        throw Object.assign(new Error('Workspace agent is unavailable'), {
+          statusCode: 502,
+          code: 'WORKSPACE_AGENT_REQUEST_FAILED',
+          cause: error,
+        });
+      }
+
       done();
+
+      if (!response.ok) {
+        /*
+         * A 502/503/504 FROM the agent (vs a connection failure) may mean a write
+         * already applied, so only retry idempotent reads. Drain the body first to
+         * release the socket back to the pool before the next attempt.
+         */
+        const retryableStatus = response.status === 502 || response.status === 503 || response.status === 504;
+
+        if (idempotent && retryableStatus && attempt < AGENT_REQUEST_ATTEMPTS) {
+          await response.body?.cancel().catch(() => undefined);
+          await agentSleep(agentRetryDelay(attempt));
+          continue;
+        }
+
+        throw Object.assign(new Error(`Workspace agent request failed: ${response.status}`), {
+          statusCode: 502,
+          code: 'WORKSPACE_AGENT_REQUEST_FAILED',
+        });
+      }
+
+      return (await readJsonBody(response)) as T;
     }
 
-    if (!response.ok) {
-      throw Object.assign(new Error(`Workspace agent request failed: ${response.status}`), {
-        statusCode: 502,
-        code: 'WORKSPACE_AGENT_REQUEST_FAILED',
-      });
-    }
-
-    return (await readJsonBody(response)) as T;
+    throw Object.assign(new Error('Workspace agent is unavailable'), {
+      statusCode: 502,
+      code: 'WORKSPACE_AGENT_REQUEST_FAILED',
+      cause: lastError,
+    });
   };
 
   const agentFileContent = async (workspaceId: string, path: string) => {
