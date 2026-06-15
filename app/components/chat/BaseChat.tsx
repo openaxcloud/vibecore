@@ -315,11 +315,11 @@ const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'search', 'locks', 'termin
 
 const ECODE_MOBILE_DEFAULT_TABS = ['editor', 'preview', 'agent', 'deployments'] as const;
 const MOBILE_OVERLAY_RESTORE_WINDOW_MS = 120_000;
-type MobileOverlayKind = 'tools' | 'tabs' | 'more';
+type MobileOverlayKind = 'tools' | 'tabs' | 'more' | 'agent';
 
 const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: string }> = {
   preview: { id: 'preview', name: 'Webview', icon: 'i-ph:monitor' },
-  agent: { id: 'agent', name: 'AI Agent', icon: 'agent' },
+  agent: { id: 'agent', name: 'Agent', icon: 'agent' },
   deploy: { id: 'deploy', name: 'Deployments', icon: 'i-ph:rocket-launch' },
   deployments: { id: 'deployments', name: 'Deployments', icon: 'i-ph:rocket-launch' },
   files: { id: 'files', name: 'Files', icon: 'i-ph:folder-open' },
@@ -327,8 +327,8 @@ const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: st
   search: { id: 'search', name: 'Search', icon: 'i-ph:magnifying-glass' },
   locks: { id: 'locks', name: 'Locks', icon: 'i-ph:lock' },
   terminal: { id: 'terminal', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  actions: { id: 'actions', name: 'AI Agent', icon: 'agent' },
-  assistant: { id: 'assistant', name: 'AI Agent', icon: 'agent' },
+  actions: { id: 'actions', name: 'Agent', icon: 'agent' },
+  assistant: { id: 'assistant', name: 'Agent', icon: 'agent' },
   publishing: { id: 'publishing', name: 'Deployments', icon: 'i-ph:rocket-launch' },
   'app-storage': { id: 'app-storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
   auth: { id: 'auth', name: 'Settings', icon: 'i-ph:gear' },
@@ -2518,6 +2518,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const [mobileTabSwitcherOpen, setMobileTabSwitcherOpen] = useState(false);
     const [mobileMoreMenuOpen, setMobileMoreMenuOpen] = useState(false);
+    const [mobileAgentMenuOpen, setMobileAgentMenuOpen] = useState(false);
 
     const mobileOverlayStorageKey = useMemo(
       () => (projectIdeMode && projectId ? `vibecore:mobile-overlay:${projectId}` : undefined),
@@ -2586,6 +2587,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setMobileToolsSheetOpen(false);
       setMobileTabSwitcherOpen(false);
       setMobileMoreMenuOpen(false);
+      setMobileAgentMenuOpen(false);
       setMobileToolsQuery('');
       setMobileTabSearchQuery('');
       persistMobileOverlay(null);
@@ -2614,6 +2616,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       blurActiveMobileControl();
       setMobileTabSwitcherOpen(false);
       setMobileMoreMenuOpen(false);
+      setMobileAgentMenuOpen(false);
       setMobileToolsQuery('');
       setMobileTabSearchQuery('');
       setMobileToolsSheetOpen(true);
@@ -2624,6 +2627,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       blurActiveMobileControl();
       setMobileToolsSheetOpen(false);
       setMobileMoreMenuOpen(false);
+      setMobileAgentMenuOpen(false);
       setMobileToolsQuery('');
       setMobileTabSearchQuery('');
       setMobileTabSwitcherOpen(true);
@@ -2634,10 +2638,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       blurActiveMobileControl();
       setMobileToolsSheetOpen(false);
       setMobileTabSwitcherOpen(false);
+      setMobileAgentMenuOpen(false);
       setMobileToolsQuery('');
       setMobileTabSearchQuery('');
       setMobileMoreMenuOpen(true);
       persistMobileOverlay('more');
+    }, [blurActiveMobileControl, persistMobileOverlay]);
+
+    const openMobileAgentMenu = useCallback(() => {
+      blurActiveMobileControl();
+      setMobileToolsSheetOpen(false);
+      setMobileTabSwitcherOpen(false);
+      setMobileMoreMenuOpen(false);
+      setMobileToolsQuery('');
+      setMobileTabSearchQuery('');
+      setMobileAgentMenuOpen(true);
+      persistMobileOverlay('agent');
     }, [blurActiveMobileControl, persistMobileOverlay]);
 
     useEffect(() => {
@@ -2665,15 +2681,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         if (parsedState.overlay === 'tools') {
           setMobileTabSwitcherOpen(false);
           setMobileMoreMenuOpen(false);
+          setMobileAgentMenuOpen(false);
           setMobileToolsSheetOpen(true);
         } else if (parsedState.overlay === 'tabs') {
           setMobileToolsSheetOpen(false);
           setMobileMoreMenuOpen(false);
+          setMobileAgentMenuOpen(false);
           setMobileTabSwitcherOpen(true);
         } else if (parsedState.overlay === 'more') {
           setMobileToolsSheetOpen(false);
           setMobileTabSwitcherOpen(false);
+          setMobileAgentMenuOpen(false);
           setMobileMoreMenuOpen(true);
+        } else if (parsedState.overlay === 'agent') {
+          setMobileToolsSheetOpen(false);
+          setMobileTabSwitcherOpen(false);
+          setMobileMoreMenuOpen(false);
+          setMobileAgentMenuOpen(true);
         }
       } catch {
         window.sessionStorage.removeItem(mobileOverlayStorageKey);
@@ -2772,7 +2796,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [closeMobileOverlays, useMobileIde]);
 
     useEffect(() => {
-      if (!useMobileIde || (!mobileToolsSheetOpen && !mobileTabSwitcherOpen && !mobileMoreMenuOpen)) {
+      if (
+        !useMobileIde ||
+        (!mobileToolsSheetOpen && !mobileTabSwitcherOpen && !mobileMoreMenuOpen && !mobileAgentMenuOpen)
+      ) {
         return undefined;
       }
 
@@ -2787,7 +2814,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.addEventListener('keydown', handleMobileOverlayEscape);
 
       return () => window.removeEventListener('keydown', handleMobileOverlayEscape);
-    }, [closeMobileOverlays, mobileMoreMenuOpen, mobileTabSwitcherOpen, mobileToolsSheetOpen, useMobileIde]);
+    }, [
+      closeMobileOverlays,
+      mobileAgentMenuOpen,
+      mobileMoreMenuOpen,
+      mobileTabSwitcherOpen,
+      mobileToolsSheetOpen,
+      useMobileIde,
+    ]);
 
     const [isOnline, setIsOnline] = useState(true);
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
@@ -3415,6 +3449,37 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         workspaceLogs,
       ],
     );
+
+    const mobileAgentFileCount = useMemo(() => Object.keys(projectFiles ?? {}).length, [projectFiles]);
+
+    const visibleProjectMessageCount = useMemo(
+      () =>
+        (messages ?? []).filter((message) => message.role !== 'system' && !message.annotations?.includes('hidden'))
+          .length,
+      [messages],
+    );
+
+    const mobileAgentSelectedFileLabel = useMemo(() => {
+      if (!selectedFile) {
+        return undefined;
+      }
+
+      return selectedFile.replace(`${WORK_DIR}/`, '').replace(/^\/+/, '');
+    }, [selectedFile]);
+
+    const mobileAgentStatusLabel = isAgentRunning
+      ? 'Working'
+      : chatStarted || visibleProjectMessageCount > 0
+        ? `${visibleProjectMessageCount} messages`
+        : 'Ready';
+
+    const shouldShowMobileAgentStartState = projectIdeMode && useMobileIde && visibleProjectMessageCount === 0;
+
+    const mobileAgentContextLabel = mobileAgentSelectedFileLabel
+      ? mobileAgentSelectedFileLabel
+      : mobileAgentFileCount > 0
+        ? `${mobileAgentFileCount} files loaded`
+        : 'Workspace ready';
     useEffect(() => {
       setProjectStateReady(!projectIdeMode || !projectId);
       restoredProjectId.current = undefined;
@@ -3595,9 +3660,54 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       };
     }, [projectIdeMode, projectId]);
 
+    /*
+     * Snapshots are project-scoped, so they must NOT re-fetch when the workspace
+     * id churns (PENDING→Starting→Running plus heartbeats during provisioning) —
+     * doing so fired the snapshots endpoint dozens of times during startup and
+     * tripped its rate limit (a 429 storm in the console). Keyed on projectId only.
+     */
     useEffect(() => {
       if (!projectIdeMode || !projectId) {
         setProjectSnapshots([]);
+
+        return undefined;
+      }
+
+      let cancelled = false;
+
+      const safeProjectId = projectId;
+
+      async function loadProjectSnapshots() {
+        try {
+          const response = await fetch(`/api/projects/${safeProjectId}/ide-panel/snapshots`, {
+            headers: { accept: 'application/json' },
+          });
+
+          if (!response.ok || cancelled) {
+            return;
+          }
+
+          const payload = (await response.json()) as {
+            data?: { snapshots?: ProjectSnapshot[] };
+          };
+
+          if (!cancelled) {
+            setProjectSnapshots([...(payload.data?.snapshots ?? [])].reverse());
+          }
+        } catch (reason) {
+          console.warn('Project snapshots unavailable for conversation history', reason);
+        }
+      }
+
+      void loadProjectSnapshots();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [projectIdeMode, projectId]);
+
+    useEffect(() => {
+      if (!projectIdeMode || !projectId) {
         setArchivedProjectConversations([]);
 
         return undefined;
@@ -3608,34 +3718,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       const safeProjectId = projectId;
       const safeWorkspaceId = currentWorkspaceId;
 
-      async function loadProjectHistory() {
+      async function loadProjectConversationMemory() {
         try {
-          const [response, memory] = await Promise.all([
-            fetch(`/api/projects/${safeProjectId}/ide-panel/snapshots`, {
-              headers: { accept: 'application/json' },
-            }),
-            getProjectIdeMemory(safeProjectId, safeWorkspaceId).catch(() => undefined),
-          ]);
-          const payload = (response.ok ? await response.json() : {}) as {
-            data?: { snapshots?: ProjectSnapshot[] };
-          };
+          const memory = await getProjectIdeMemory(safeProjectId, safeWorkspaceId);
 
           if (!cancelled) {
-            setProjectSnapshots([...(payload.data?.snapshots ?? [])].reverse());
             setArchivedProjectConversations(
               (memory?.chat?.conversations ?? []).filter(
                 (conversation) => conversation && Array.isArray(conversation.messages),
               ),
             );
           }
-        } catch (error) {
-          if (!cancelled) {
-            console.error('Failed to load project snapshots for conversation history', error);
-          }
+        } catch (reason) {
+          console.warn('Project conversation memory unavailable', reason);
         }
       }
 
-      void loadProjectHistory();
+      void loadProjectConversationMemory();
 
       return () => {
         cancelled = true;
@@ -5389,6 +5488,48 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       toast.success('Conversation exportée');
     }, [description, messages, projectId]);
 
+    const startMobileAgentChat = useCallback(() => {
+      closeMobileOverlays();
+      clearProjectConversation();
+      window.setTimeout(() => textareaRef?.current?.focus(), 0);
+    }, [clearProjectConversation, closeMobileOverlays, textareaRef]);
+
+    const openMobileAgentHistory = useCallback(() => {
+      activateMobileTool('activity');
+    }, [activateMobileTool]);
+
+    const openMobileAgentUsage = useCallback(() => {
+      activateMobileTool('monitoring');
+    }, [activateMobileTool]);
+
+    const openMobileAgentSettings = useCallback(() => {
+      activateMobileTool('settings');
+    }, [activateMobileTool]);
+
+    const copyMobileAgentConversation = useCallback(() => {
+      closeMobileOverlays();
+      void copyProjectConversation();
+    }, [closeMobileOverlays, copyProjectConversation]);
+
+    const exportMobileAgentConversation = useCallback(() => {
+      closeMobileOverlays();
+      exportProjectConversation();
+    }, [closeMobileOverlays, exportProjectConversation]);
+
+    const toggleMobileAgentTheme = useCallback(() => {
+      closeMobileOverlays();
+      toggleTheme();
+    }, [closeMobileOverlays]);
+
+    const openMobileAgentFeedback = useCallback(() => {
+      closeMobileOverlays();
+      window.location.assign('/support');
+    }, [closeMobileOverlays]);
+
+    const closeMobileAgentView = useCallback(() => {
+      activateMobileTool('editor');
+    }, [activateMobileTool]);
+
     const shouldRenderAgentPatchReviewQueue =
       projectIdeMode && !projectAutoApply && pendingAgentPatchProposals.length > 0;
 
@@ -5404,7 +5545,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           hidden: useMobileIde && mobilePanel !== 'chat',
         })}
       >
-        {!chatStarted && (
+        {shouldShowMobileAgentStartState ? (
+          <MobileAgentStartState
+            fileCount={mobileAgentFileCount}
+            selectedFileLabel={mobileAgentSelectedFileLabel}
+            isRunning={isAgentRunning}
+            suggestions={projectAgentSuggestions.slice(0, 3)}
+            onSuggestion={(prompt) => handleProjectAgentSendMessage({} as React.UIEvent, prompt)}
+          />
+        ) : !chatStarted ? (
           <div id="intro" className="mt-[16vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
             <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
               Where ideas begin
@@ -5413,7 +5562,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               Bring ideas to life in seconds or get help on existing projects.
             </p>
           </div>
-        )}
+        ) : null}
         <StickToBottom
           className={classNames('pt-6 px-2 sm:px-6 relative', {
             'h-full flex flex-col modern-scrollbar': chatStarted,
@@ -5467,6 +5616,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
                 'sticky bottom-2': chatStarted,
                 'bolt-project-agent-composer bolt-project-agent-composer-stack': projectIdeMode,
+                'bolt-project-agent-composer-has-messages':
+                  projectIdeMode && useMobileIde && visibleProjectMessageCount > 0,
               })}
             >
               <div className="flex flex-col gap-2 bolt-project-agent-notice-stack">
@@ -5528,23 +5679,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   Agent is thinking
                 </div>
               )}
-              {projectIdeMode && (
-                <div className="bolt-project-agent-suggestions" aria-label="Agent suggestions">
-                  {projectAgentSuggestions.map((suggestion) => (
-                    <button
-                      key={suggestion.id}
-                      type="button"
-                      title={`${suggestion.label}: ${suggestion.reason}`}
-                      aria-label={`${suggestion.label}. ${suggestion.reason}`}
-                      onClick={(event) => handleProjectAgentSendMessage(event, suggestion.prompt)}
-                      disabled={isStreaming}
-                    >
-                      <span className={suggestion.icon} aria-hidden />
-                      <span>{suggestion.label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
+              {projectIdeMode &&
+                !shouldShowMobileAgentStartState &&
+                (!useMobileIde || visibleProjectMessageCount === 0) && (
+                  <div className="bolt-project-agent-suggestions" aria-label="Agent suggestions">
+                    {projectAgentSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.id}
+                        type="button"
+                        title={`${suggestion.label}: ${suggestion.reason}`}
+                        aria-label={`${suggestion.label}. ${suggestion.reason}`}
+                        onClick={(event) => handleProjectAgentSendMessage(event, suggestion.prompt)}
+                        disabled={isStreaming}
+                      >
+                        <span className={suggestion.icon} aria-hidden />
+                        <span>{suggestion.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               <ChatBox
                 isModelSettingsCollapsed={isModelSettingsCollapsed}
                 setIsModelSettingsCollapsed={setIsModelSettingsCollapsed}
@@ -6952,6 +7105,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         name: panelTitle(activeMobileOpenTabId),
         icon: panelIcon(activeMobileOpenTabId),
       };
+    const isMobileAgentActive =
+      mobilePanel === 'chat' ||
+      activeMobileOpenTabId === 'agent' ||
+      activeMobileOpenTabId === 'assistant' ||
+      activeMobileOpenTabId === 'actions';
     const mobileServiceHeaderTab =
       useMobileIde && mobilePanel === 'deploy' && activeMobileOpenTabId ? mobileHeaderTab : undefined;
     const mobileMoreMenuItems = useMemo(
@@ -7038,7 +7196,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 ) : (
                   <span className={mobileHeaderTab.icon} aria-hidden />
                 )}
-                <span>{mobileHeaderTab.name}</span>
+                <span>
+                  <strong>{mobileHeaderTab.name}</strong>
+                  {isMobileAgentActive ? <small>{mobileAgentStatusLabel}</small> : null}
+                </span>
               </div>
 
               <div className="bolt-mobile-ecode-header-side bolt-mobile-ecode-header-side--right">
@@ -7054,16 +7215,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </button>
                 <button
                   type="button"
-                  aria-label="More options"
+                  aria-label={isMobileAgentActive ? 'Agent options' : 'More options'}
                   aria-haspopup="dialog"
-                  aria-expanded={mobileMoreMenuOpen}
-                  data-testid="button-more"
-                  onClick={openMobileMoreMenu}
+                  aria-expanded={isMobileAgentActive ? mobileAgentMenuOpen : mobileMoreMenuOpen}
+                  data-testid={isMobileAgentActive ? 'mobile-agent-menu-trigger' : 'button-more'}
+                  onClick={isMobileAgentActive ? openMobileAgentMenu : openMobileMoreMenu}
                 >
                   <span className="i-ph:dots-three-vertical-bold" aria-hidden />
                 </button>
               </div>
             </div>
+            {isMobileAgentActive ? (
+              <div className="bolt-mobile-agent-context-bar" data-running={isAgentRunning ? 'true' : 'false'}>
+                <span className={isAgentRunning ? 'i-svg-spinners:3-dots-fade' : 'i-ph:check-circle'} aria-hidden />
+                <span>
+                  <strong>{isAgentRunning ? 'Working on this workspace' : 'Ready for the next change'}</strong>
+                  <small>{mobileAgentContextLabel}</small>
+                </span>
+                <button type="button" aria-label="Focus Agent prompt" onClick={() => textareaRef?.current?.focus()}>
+                  Prompt
+                </button>
+              </div>
+            ) : null}
           </header>
         )}
         <div className="bolt-connection-status" role="status" aria-live="polite" data-online={isOnline}>
@@ -7338,6 +7511,94 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </button>
             </div>
           </nav>
+        )}
+        {showMobileChrome && mobileAgentMenuOpen && (
+          <>
+            <button
+              type="button"
+              className="bolt-mobile-agent-menu-backdrop"
+              aria-label="Close agent options"
+              data-testid="mobile-agent-menu-backdrop"
+              onClick={closeMobileOverlays}
+            />
+            <section
+              className="bolt-mobile-agent-menu-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Agent options"
+              data-testid="mobile-agent-menu-sheet"
+              onKeyDownCapture={handleMobileOverlayEscapeKey}
+            >
+              <div className="bolt-mobile-agent-menu-handle" aria-hidden />
+              <header className="bolt-mobile-agent-menu-header">
+                <div className="bolt-mobile-agent-menu-title">
+                  <MobileReplitAgentIcon />
+                  <h2>Agent</h2>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close agent options"
+                  data-testid="mobile-agent-menu-close"
+                  onClick={closeMobileOverlays}
+                >
+                  <span className="i-ph:x" aria-hidden />
+                </button>
+              </header>
+              <div className="bolt-mobile-agent-menu-list">
+                <button
+                  type="button"
+                  className="bolt-mobile-agent-menu-row--primary"
+                  data-testid="mobile-agent-new-chat"
+                  onClick={startMobileAgentChat}
+                >
+                  <span className="i-ph:chat-circle-text" aria-hidden />
+                  <span>New chat</span>
+                  <span className="i-ph:plus" aria-hidden />
+                </button>
+                <button type="button" data-testid="mobile-agent-history" onClick={openMobileAgentHistory}>
+                  <span className="i-ph:clock-counter-clockwise" aria-hidden />
+                  <span>History</span>
+                  <span className="i-ph:caret-right" aria-hidden />
+                </button>
+                <button type="button" data-testid="mobile-agent-usage" onClick={openMobileAgentUsage}>
+                  <span className="i-ph:gauge" aria-hidden />
+                  <span>Usage &amp; monitoring</span>
+                  <span className="i-ph:caret-right" aria-hidden />
+                </button>
+                <button type="button" data-testid="mobile-agent-settings" onClick={openMobileAgentSettings}>
+                  <span className="i-ph:sliders-horizontal" aria-hidden />
+                  <span>Agent settings</span>
+                  <span className="i-ph:caret-right" aria-hidden />
+                </button>
+                <button type="button" data-testid="mobile-agent-copy" onClick={copyMobileAgentConversation}>
+                  <span className="i-ph:copy" aria-hidden />
+                  <span>Copy conversation</span>
+                </button>
+                <button type="button" data-testid="mobile-agent-export" onClick={exportMobileAgentConversation}>
+                  <span className="i-ph:download-simple" aria-hidden />
+                  <span>Export conversation</span>
+                </button>
+                <button type="button" data-testid="mobile-agent-theme" onClick={toggleMobileAgentTheme}>
+                  <span className={theme === 'dark' ? 'i-ph:sun' : 'i-ph:moon'} aria-hidden />
+                  <span>{theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}</span>
+                </button>
+                <button type="button" data-testid="mobile-agent-feedback" onClick={openMobileAgentFeedback}>
+                  <span className="i-ph:megaphone" aria-hidden />
+                  <span>Share feedback</span>
+                  <span className="i-ph:arrow-square-out" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  className="bolt-mobile-agent-menu-row--danger"
+                  data-testid="mobile-agent-close-view"
+                  onClick={closeMobileAgentView}
+                >
+                  <span className="i-ph:x" aria-hidden />
+                  <span>Close Agent view</span>
+                </button>
+              </div>
+            </section>
+          </>
         )}
         {showMobileChrome && mobileMoreMenuOpen && (
           <>
@@ -16496,6 +16757,75 @@ function PanelButton({ children, variant, ...props }: any) {
     >
       {children}
     </button>
+  );
+}
+
+function MobileAgentStartState({
+  fileCount,
+  selectedFileLabel,
+  isRunning,
+  suggestions,
+  onSuggestion,
+}: {
+  fileCount: number;
+  selectedFileLabel?: string;
+  isRunning: boolean;
+  suggestions: ProjectAgentSuggestion[];
+  onSuggestion: (prompt: string) => void;
+}) {
+  const contextLabel = selectedFileLabel
+    ? `Focused on ${selectedFileLabel}`
+    : fileCount > 0
+      ? `${fileCount} project files indexed`
+      : 'Workspace context ready';
+
+  return (
+    <section className="bolt-mobile-agent-start-state" aria-label="Agent workspace context">
+      <div className="bolt-mobile-agent-start-card">
+        <header>
+          <span className="bolt-mobile-agent-start-icon">
+            <MobileReplitAgentIcon />
+          </span>
+          <span>
+            <strong>{isRunning ? 'Working' : 'Agent ready'}</strong>
+            <small>{contextLabel}</small>
+          </span>
+          <span className="bolt-mobile-agent-start-status" data-running={isRunning ? 'true' : 'false'}>
+            {isRunning ? 'Live' : 'Idle'}
+          </span>
+        </header>
+        <div className="bolt-mobile-agent-start-steps" aria-label="Workspace readiness">
+          <div>
+            <span className="i-ph:check-circle" aria-hidden />
+            <span>Context loaded</span>
+          </div>
+          <div>
+            <span className="i-ph:code" aria-hidden />
+            <span>{fileCount > 0 ? `${fileCount} files` : 'Files ready'}</span>
+          </div>
+          <div>
+            <span className="i-ph:monitor" aria-hidden />
+            <span>Preview available</span>
+          </div>
+        </div>
+      </div>
+
+      {suggestions.length > 0 ? (
+        <div className="bolt-mobile-agent-start-actions" aria-label="Agent quick actions">
+          {suggestions.map((suggestion) => (
+            <button
+              key={suggestion.id}
+              type="button"
+              title={`${suggestion.label}: ${suggestion.reason}`}
+              onClick={() => onSuggestion(suggestion.prompt)}
+            >
+              <span className={suggestion.icon} aria-hidden />
+              <span>{suggestion.label}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </section>
   );
 }
 
