@@ -94,7 +94,18 @@ function navigateFrame(route: string) {
     return;
   }
 
-  const url = new URL(route, config.webAppOrigin);
+  let url = new URL(route, config.webAppOrigin);
+
+  /*
+   * Defense-in-depth: never let a crafted deep-link route navigate the trusted
+   * in-app frame off webAppOrigin. A protocol-relative ('//evil.com/x') or
+   * absolute route resolves to a foreign origin in new URL(route, origin); if
+   * the resolved origin differs, fall back to the projects root on our origin.
+   */
+  if (url.origin !== new URL(config.webAppOrigin).origin) {
+    url = new URL('/projects', config.webAppOrigin);
+  }
+
   frame.src = url.toString();
 
   if (title) {

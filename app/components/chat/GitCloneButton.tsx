@@ -52,7 +52,7 @@ export default function GitCloneButton({ importChat, className }: GitCloneButton
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<'github' | 'gitlab' | null>(null);
 
-  const handleClone = async (repoUrl: string) => {
+  const handleClone = async (repoUrl: string, branch?: string) => {
     if (!ready) {
       return;
     }
@@ -62,7 +62,14 @@ export default function GitCloneButton({ importChat, className }: GitCloneButton
     setSelectedProvider(null);
 
     try {
-      const { workdir, data } = await gitClone(repoUrl);
+      /*
+       * Honor the branch chosen in the BranchSelector. The selectors pass it as
+       * a 2nd arg, but it was dropped — every clone silently used the default
+       * branch. gitClone derives the ref from a `url#branch` fragment
+       * (useGit.ts), so encode it there.
+       */
+      const cloneTarget = branch ? `${repoUrl}#${branch}` : repoUrl;
+      const { workdir, data } = await gitClone(cloneTarget);
 
       if (importChat) {
         const filePaths = Object.keys(data).filter((filePath) => !ig.ignores(filePath));

@@ -1,5 +1,6 @@
 import { App, type URLOpenListenerEvent } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
+import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Keyboard } from '@capacitor/keyboard';
@@ -7,7 +8,6 @@ import { PushNotifications, type Token } from '@capacitor/push-notifications';
 import { Share } from '@capacitor/share';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import { Capacitor } from '@capacitor/core';
 import { readMobileRuntimeConfig, type MobileRuntimeConfig } from './config';
 
 export interface MobileBootstrapOptions {
@@ -99,7 +99,16 @@ export function parseDeepLink(value: string): URL | undefined {
 }
 
 export function routeFromDeepLink(url: URL) {
-  const path = url.protocol === 'vibecore:' && url.host ? `/${url.host}${url.pathname}` : url.pathname;
+  const rawPath = url.protocol === 'vibecore:' && url.host ? `/${url.host}${url.pathname}` : url.pathname;
+
+  /*
+   * Collapse leading slashes to a single '/'. A protocol-relative route like
+   * '//evil.com/x' (from `vibecore:` with an empty host, or a crafted path)
+   * would otherwise resolve against the origin's PROTOCOL in
+   * `new URL(route, webAppOrigin)` and navigate the trusted in-app frame to a
+   * foreign origin — an open redirect into the webview.
+   */
+  const path = `/${rawPath.replace(/^\/+/, '')}`;
 
   return `${path}${url.search}${url.hash}`;
 }

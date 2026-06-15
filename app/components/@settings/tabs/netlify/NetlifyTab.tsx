@@ -900,8 +900,18 @@ export default function NetlifyTab() {
                               ? 'border-bolt-elements-item-contentAccent bg-bolt-elements-item-backgroundActive/10'
                               : 'border-bolt-elements-borderColor hover:border-bolt-elements-borderColorActive/70',
                           )}
+                          role="button"
+                          tabIndex={0}
+                          aria-pressed={activeSiteIndex === index}
+                          aria-label={`Select site ${site.name}`}
                           onClick={() => {
                             setActiveSiteIndex(index);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              setActiveSiteIndex(index);
+                            }
                           }}
                         >
                           <div className="flex items-center justify-between gap-2">

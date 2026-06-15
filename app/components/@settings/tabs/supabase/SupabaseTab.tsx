@@ -357,7 +357,17 @@ export default function SupabaseTab() {
                         ? 'border-bolt-elements-item-contentAccent bg-bolt-elements-item-backgroundActive/10'
                         : 'border-bolt-elements-borderColor hover:border-bolt-elements-borderColorActive/70',
                     )}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={selectedProjectId === project.id}
+                    aria-label={`Select project ${project.name}`}
                     onClick={() => handleProjectSelect(project.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        handleProjectSelect(project.id);
+                      }
+                    }}
                   >
                     <div className="flex items-center justify-between">
                       <div className="min-w-0 flex-1">

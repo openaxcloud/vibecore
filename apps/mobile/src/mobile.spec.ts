@@ -51,6 +51,14 @@ describe('mobile native adapters', () => {
     );
   });
 
+  it('collapses protocol-relative routes so a deep link cannot escape the web origin', () => {
+    // `new URL('//evil.com/x', origin)` would resolve to https://evil.com/x —
+    // these must stay single-slash paths anchored to our origin.
+    expect(routeFromDeepLink(new URL('vibecore:////evil.com/x'))).toBe('/evil.com/x');
+    expect(routeFromDeepLink(new URL('https://app.example.com//evil.com/pwn'))).toBe('/evil.com/pwn');
+    expect(routeFromDeepLink(new URL('vibecore://')).startsWith('//')).toBe(false);
+  });
+
   it('uses the mobile CodeMirror editor fallback on phones and tablets', () => {
     expect(editorKindForLayout(getResponsiveLayoutState(390, 844, { coarsePointer: true }))).toBe('codemirror');
     expect(editorKindForLayout(getResponsiveLayoutState(820, 1180, { coarsePointer: true }))).toBe('codemirror');

@@ -9967,21 +9967,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await Promise.all(
       stale.map(async (workspace) => {
-        let live = false;
+        let shouldStop = false;
 
         try {
           const managerWorkspace = await managerRequest<{ status?: string }>(
             `/workspaces/${encodeURIComponent(workspace.id)}`,
           );
-          live = managerWorkspace?.status
-            ? ['RUNNING', 'STARTING', 'PENDING'].includes(String(managerWorkspace.status))
-            : false;
-        } catch {
-          // A manager 404 / error means there is no live pod backing this record.
-          live = false;
+
+          /*
+           * Only a SUCCESSFUL response reporting a non-live status frees the
+           * slot. An absent status is ambiguous — leave the record untouched
+           * rather than guess it's dead.
+           */
+          if (managerWorkspace?.status) {
+            shouldStop = !['RUNNING', 'STARTING', 'PENDING'].includes(String(managerWorkspace.status));
+          }
+        } catch (error) {
+          /*
+           * Only a genuine "gone" (manager 404) frees the slot. A TRANSIENT
+           * manager fault (502/timeout — likely here since this runs inside the
+           * start lock while the manager is under load) must NOT flip a live
+           * workspace to STOPPED: that would mislabel a running pod and let the
+           * org under-count its active quota / exceed its concurrent limit.
+           */
+          shouldStop = isRuntimeWorkspaceGone(error);
         }
 
-        if (!live) {
+        if (shouldStop) {
           await store.updateWorkspaceStatus({ workspaceId: workspace.id, status: 'STOPPED' }).catch(() => undefined);
         }
       }),

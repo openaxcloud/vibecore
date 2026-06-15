@@ -2241,7 +2241,23 @@ export const Preview = memo(
                 ))}
               </div>
               <div>
-                <button type="button" onClick={() => setPreviewConsoleEvents([])}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    /*
+                     * Clear the ACTIVE tab's data. Previously this only cleared
+                     * the console list, so on the Network/Elements tabs the
+                     * button did nothing.
+                     */
+                    if (activeDevToolsTab === 'network') {
+                      setPreviewNetworkEvents([]);
+                    } else if (activeDevToolsTab === 'elements') {
+                      setSelectedPreviewElement(null);
+                    } else {
+                      setPreviewConsoleEvents([]);
+                    }
+                  }}
+                >
                   Clear
                 </button>
                 <button type="button" aria-label="Close Preview DevTools" onClick={() => setDevToolsOpen(false)}>
