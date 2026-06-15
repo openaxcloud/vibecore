@@ -1,7 +1,7 @@
-import { hashToken } from '@vibecore/auth';
-import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
+import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
+import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 
 export interface UserRecord {
   id: string;
@@ -12,18 +12,21 @@ export interface UserRecord {
   mfaEnabled?: boolean;
   mfaSecretEncrypted?: string;
   platformAdmin?: boolean;
+
   /**
    * BCP-47 primary language tag the user picked (e.g. `en`, `fr`). Optional:
    * existing users default to client-side detection until they touch the
    * account settings. Slice 2 of the Phase 0 #7 react-i18next migration.
    */
   language?: string;
+
   /**
    * IANA timezone name (e.g. `Europe/Paris`). Optional: unset until the user
    * picks one in account/IDE settings, where the client otherwise detects it
    * from `Intl.DateTimeFormat().resolvedOptions().timeZone`.
    */
   timezone?: string;
+
   /**
    * Free-form per-user preferences from the in-IDE settings panel
    * (notifications, event logs, feature toggles, profile fields). The DB is
@@ -82,12 +85,18 @@ export interface WorkspaceRecord {
   name: string;
   status: 'PENDING' | 'STARTING' | 'RUNNING' | 'STOPPED' | 'FAILED';
   runtimeMode: string;
-  // Filesystem path (relative to the project storage root) for this
-  // workspace's isolated git working tree. Allocated when the workspace
-  // is created so each branch / agent run has its own checkout.
+
+  /*
+   * Filesystem path (relative to the project storage root) for this
+   * workspace's isolated git working tree. Allocated when the workspace
+   * is created so each branch / agent run has its own checkout.
+   */
   gitPath?: string;
-  // Remote URL configured for this workspace specifically. Nullable: callers
-  // should fall back to Project.gitRepositoryUrl when this is undefined.
+
+  /*
+   * Remote URL configured for this workspace specifically. Nullable: callers
+   * should fall back to Project.gitRepositoryUrl when this is undefined.
+   */
   gitRepositoryUrl?: string;
   createdAt: string;
 }
@@ -210,6 +219,7 @@ export interface FeatureFlagRecord {
   organizationId?: string;
   key: string;
   enabled: boolean;
+
   /** 0–100 staged rollout. Undefined means 100 (fully on when enabled). */
   rolloutPercent?: number;
 }
@@ -352,6 +362,7 @@ export interface UserConnectionRecord {
   provider: string;
   externalAccountId: string;
   externalAccountLabel: string;
+
   /**
    * AES-256-GCM ciphertext produced by packages/security#encryptJson.
    * Internal callers (sidecar, github-user / github-stats routes, agent
@@ -497,6 +508,7 @@ export interface ChatShareRecord {
   projectId: string;
   authorUserId: string;
   title?: string;
+
   /** The stored ShareLinkPayload (messages + metadata). */
   payload: unknown;
   allowFork: boolean;
@@ -613,6 +625,7 @@ export interface ApiStore {
    * inferring it from environment-variable presence.
    */
   ping(): Promise<void>;
+
   /**
    * Serialize a read-modify-write critical section across all pods using a
    * Postgres transaction-scoped advisory lock keyed by `key`. Concurrent callers
@@ -729,10 +742,13 @@ export interface ApiStore {
     updatedByUserId?: string;
     expectedVersion?: number;
   }): Promise<ProjectIdeStateRecord>;
-  // Workspace-scoped IDE state. Callers that pass a workspaceId can read the
-  // working tree's own editor state; when nothing is persisted yet they should
-  // fall back to getProjectIdeState for backward compatibility with workspaces
-  // created before the per-workspace state existed.
+
+  /*
+   * Workspace-scoped IDE state. Callers that pass a workspaceId can read the
+   * working tree's own editor state; when nothing is persisted yet they should
+   * fall back to getProjectIdeState for backward compatibility with workspaces
+   * created before the per-workspace state existed.
+   */
   getWorkspaceIdeState(workspaceId: string): Promise<WorkspaceIdeStateRecord | undefined>;
   upsertWorkspaceIdeState(input: {
     workspaceId: string;
@@ -774,14 +790,17 @@ export interface ApiStore {
     createdByUserId?: string;
   }): Promise<ProjectShareLinkRecord>;
   listProjectShareLinks(projectId: string): Promise<ProjectShareLinkRecord[]>;
+
   /**
    * Resolve a project share link from its raw (unhashed) token. Returns the
    * record only when the link exists, is unrevoked, and is unexpired —
    * mirroring {@link findSessionByToken}. Used to redeem share links.
    */
   findProjectShareLinkByToken(token: string): Promise<ProjectShareLinkRecord | undefined>;
+
   /** Revoke a project share link (sets revokedAt). Returns false if not found / already revoked. */
   revokeProjectShareLink(input: { projectId: string; id: string }): Promise<boolean>;
+
   /**
    * Persist a shared conversation snapshot. The caller supplies the sha256
    * hash of the (random) share token so the raw token is never stored.
@@ -796,13 +815,16 @@ export interface ApiStore {
     allowFork?: boolean;
     expiresAt?: Date;
   }): Promise<ChatShareRecord>;
+
   /**
    * Resolve a chat share by the sha256 hash of its token. Returns the record
    * only when it exists, is unrevoked, and is unexpired.
    */
   findChatShareByTokenHash(tokenHash: string): Promise<ChatShareRecord | undefined>;
+
   /** List a project's chat shares (most recent first). */
   listChatShares(projectId: string): Promise<ChatShareRecord[]>;
+
   /** Revoke a chat share (sets revokedAt). Returns false if not found / already revoked. */
   revokeChatShare(input: { id: string; authorUserId?: string; projectId?: string }): Promise<boolean>;
   upsertAgentPatchProposal(input: {
@@ -829,9 +851,19 @@ export interface ApiStore {
   }): Promise<WorkspaceRecord>;
   getWorkspace(id: string): Promise<WorkspaceRecord | undefined>;
   listWorkspaces(projectId: string): Promise<WorkspaceRecord[]>;
-  // Organization-scoped aggregate counts for quota usage — single queries that
-  // avoid the per-project N+1 of listing every project then its children.
+
+  /*
+   * Organization-scoped aggregate counts for quota usage — single queries that
+   * avoid the per-project N+1 of listing every project then its children.
+   */
   countActiveWorkspaces(organizationId: string): Promise<number>;
+
+  /*
+   * Active (PENDING/STARTING/RUNNING) workspace records for an org, oldest first.
+   * Used to reconcile records orphaned by pod GC (which never wrote back to the
+   * api record) so they stop consuming the workspaces.active quota slot.
+   */
+  listActiveWorkspaces(organizationId: string): Promise<WorkspaceRecord[]>;
   countSnapshots(organizationId: string): Promise<number>;
   countDeployments(organizationId: string, since?: Date): Promise<number>;
   createSnapshot(input: {
@@ -895,11 +927,13 @@ export interface ApiStore {
     rolloutPercent?: number;
   }): Promise<FeatureFlagRecord>;
   listFeatureFlags(organizationId?: string): Promise<FeatureFlagRecord[]>;
+
   /**
    * Resolve the single effective flag for a key: the organization-specific
    * override when present, otherwise the global (organizationId = null) flag.
    */
   findFeatureFlag(key: string, organizationId?: string): Promise<FeatureFlagRecord | undefined>;
+
   /** Global flags merged with organization overrides (override wins per key). */
   listEffectiveFeatureFlags(organizationId?: string): Promise<FeatureFlagRecord[]>;
   createAbuseEvent(input: {
@@ -911,6 +945,7 @@ export interface ApiStore {
   listAbuseEvents(filter?: { organizationId?: string; type?: string; take?: number }): Promise<AbuseEventRecord[]>;
   setSystemSetting(input: { key: string; value?: unknown }): Promise<SystemSettingRecord>;
   listSystemSettings(): Promise<SystemSettingRecord[]>;
+
   /**
    * Atomically add/remove a string id from a SystemSetting whose value is a
    * string[] (e.g. admin.suspendedUserIds). Serializes concurrent mutations so a
@@ -1037,6 +1072,7 @@ export interface ApiStore {
   ): Promise<ProjectConnectionLinkRecord[]>;
   createAiConversation(input: { projectId?: string; userId: string; title?: string }): Promise<AiConversationRecord>;
   getAiConversation(id: string): Promise<AiConversationRecord | undefined>;
+  listAiConversations(input: { projectId: string; userId: string; limit?: number }): Promise<AiConversationRecord[]>;
   createAiMessage(input: {
     id?: string;
     conversationId: string;
@@ -1129,6 +1165,7 @@ export interface ApiStore {
     payload: unknown;
   }): Promise<{ event: StripeEventRecord; created: boolean }>;
   deleteStripeEvent(id: string): Promise<void>;
+
   /**
    * Record a consumed SAML assertion id for one-time-use replay protection.
    * Returns created:false when this (org, assertionId) was already consumed.

@@ -1,7 +1,7 @@
-import { hashToken } from '@vibecore/auth';
-import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
+import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
+import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import type {
   AbuseEventRecord,
   AgentPatchProposalRecord,
@@ -264,6 +264,7 @@ export class TestApiStore implements ApiStore {
     }
 
     session.revokedAt = now();
+
     return true;
   }
 
@@ -316,6 +317,7 @@ export class TestApiStore implements ApiStore {
     }
 
     record.usedAt = now();
+
     return this.updateUser({ userId: record.userId, emailVerifiedAt: now() });
   }
 
@@ -335,6 +337,7 @@ export class TestApiStore implements ApiStore {
     }
 
     record.usedAt = now();
+
     return this.updateUser({ userId: record.userId, passwordHash });
   }
 
@@ -364,6 +367,7 @@ export class TestApiStore implements ApiStore {
     }
 
     record.usedAt = now();
+
     return true;
   }
 
@@ -419,6 +423,7 @@ export class TestApiStore implements ApiStore {
     }
 
     this.memberships.delete(membership.id);
+
     return membership;
   }
 
@@ -433,6 +438,7 @@ export class TestApiStore implements ApiStore {
     gitDefaultBranch?: string;
   }) {
     const createdAt = now();
+
     const project: ProjectRecord = {
       id: id('project'),
       organizationId: input.organizationId,
@@ -565,6 +571,7 @@ export class TestApiStore implements ApiStore {
   async upsertProjectEnvVar(input: { projectId: string; key: string; value: string }) {
     const key = `${input.projectId}:${input.key}`;
     const existing = this.projectEnvVars.get(key);
+
     const envVar: ProjectEnvironmentRecord = {
       id: existing?.id ?? id('env'),
       ...input,
@@ -591,6 +598,7 @@ export class TestApiStore implements ApiStore {
   async upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }) {
     const key = `${input.projectId}:${input.key}`;
     const existing = this.projectSecrets.get(key);
+
     const secret: ProjectSecretRecord = {
       id: existing?.id ?? id('secret'),
       ...input,
@@ -622,6 +630,7 @@ export class TestApiStore implements ApiStore {
 
   async addProjectCollaborator(input: { projectId: string; userId: string; roleKey: string; expiresAt?: Date | null }) {
     const expiresAt = input.expiresAt ? input.expiresAt.toISOString() : undefined;
+
     const existing = [...this.projectCollaborators.values()].find(
       (collaborator) => collaborator.projectId === input.projectId && collaborator.userId === input.userId,
     );
@@ -629,6 +638,7 @@ export class TestApiStore implements ApiStore {
     if (existing) {
       existing.roleKey = input.roleKey;
       existing.expiresAt = expiresAt;
+
       return existing;
     }
 
@@ -708,6 +718,7 @@ export class TestApiStore implements ApiStore {
 
   async upsertProjectIdeState(input: { projectId: string; state: unknown; updatedByUserId?: string }) {
     const existing = this.projectIdeStates.get(input.projectId);
+
     const record: ProjectIdeStateRecord = {
       projectId: input.projectId,
       state: input.state,
@@ -717,6 +728,7 @@ export class TestApiStore implements ApiStore {
       createdAt: existing?.createdAt ?? now(),
     };
     this.projectIdeStates.set(input.projectId, record);
+
     return record;
   }
 
@@ -726,6 +738,7 @@ export class TestApiStore implements ApiStore {
 
   async upsertWorkspaceIdeState(input: { workspaceId: string; state: unknown; updatedByUserId?: string }) {
     const existing = this.workspaceIdeStates.get(input.workspaceId);
+
     const record: WorkspaceIdeStateRecord = {
       workspaceId: input.workspaceId,
       state: input.state,
@@ -793,6 +806,7 @@ export class TestApiStore implements ApiStore {
       updatedAt: now(),
     };
     this.collaborationPresence.set(record.id, record);
+
     return record;
   }
 
@@ -806,6 +820,7 @@ export class TestApiStore implements ApiStore {
     }
 
     this.collaborationPresence.delete(existing.id);
+
     return true;
   }
 
@@ -823,6 +838,7 @@ export class TestApiStore implements ApiStore {
   }) {
     const comment: CollaborationCommentRecord = { id: id('comment'), ...input, createdAt: now() };
     this.collaborationComments.set(comment.id, comment);
+
     return comment;
   }
 
@@ -847,6 +863,7 @@ export class TestApiStore implements ApiStore {
       createdAt: now(),
     };
     this.projectShareLinks.set(link.id, link);
+
     return link;
   }
 
@@ -873,6 +890,7 @@ export class TestApiStore implements ApiStore {
     }
 
     this.projectShareLinks.set(input.id, { ...link, revokedAt: now() });
+
     return true;
   }
 
@@ -899,6 +917,7 @@ export class TestApiStore implements ApiStore {
       createdAt: now(),
     };
     this.chatShares.set(share.tokenHash, share);
+
     return share;
   }
 
@@ -972,6 +991,7 @@ export class TestApiStore implements ApiStore {
       updatedAt: now(),
     };
     this.agentPatchProposals.set(input.id, proposal);
+
     return proposal;
   }
 
@@ -989,11 +1009,13 @@ export class TestApiStore implements ApiStore {
     }
 
     this.agentPatchProposals.delete(id);
+
     return true;
   }
 
   async createWorkspace(input: { id?: string; projectId: string; name: string; runtimeMode: string }) {
     const workspaceId = input.id ?? id('workspace');
+
     const workspace: WorkspaceRecord = {
       id: workspaceId,
       projectId: input.projectId,
@@ -1027,8 +1049,19 @@ export class TestApiStore implements ApiStore {
   async countActiveWorkspaces(organizationId: string) {
     const projectIds = this.#orgProjectIds(organizationId);
     return [...this.workspaces.values()].filter(
-      (workspace) => projectIds.has(workspace.projectId) && ['PENDING', 'STARTING', 'RUNNING'].includes(workspace.status),
+      (workspace) =>
+        projectIds.has(workspace.projectId) && ['PENDING', 'STARTING', 'RUNNING'].includes(workspace.status),
     ).length;
+  }
+
+  async listActiveWorkspaces(organizationId: string) {
+    const projectIds = this.#orgProjectIds(organizationId);
+    return [...this.workspaces.values()]
+      .filter(
+        (workspace) =>
+          projectIds.has(workspace.projectId) && ['PENDING', 'STARTING', 'RUNNING'].includes(workspace.status),
+      )
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
 
   async countSnapshots(organizationId: string) {
@@ -1073,6 +1106,7 @@ export class TestApiStore implements ApiStore {
     contentHash: string;
   }) {
     const existing = this.projectStorageObjects.get(input.key);
+
     const object: ProjectStorageObjectRecord = {
       id: existing?.id ?? id('storage_object'),
       ...input,
@@ -1190,6 +1224,7 @@ export class TestApiStore implements ApiStore {
 
   async setFeatureFlag(input: { organizationId?: string; key: string; enabled: boolean; rolloutPercent?: number }) {
     const flagId = `${input.organizationId ?? 'system'}:${input.key}`;
+
     const rolloutPercent =
       input.rolloutPercent === undefined ? undefined : Math.max(0, Math.min(100, Math.round(input.rolloutPercent)));
     const flag: FeatureFlagRecord = {
@@ -1262,9 +1297,11 @@ export class TestApiStore implements ApiStore {
 
   async mutateSystemSettingIds(key: string, change: { add?: string; remove?: string }): Promise<string[]> {
     const existing = this.systemSettings.get(key);
+
     const current = Array.isArray(existing?.value)
       ? (existing!.value as unknown[]).filter((item): item is string => typeof item === 'string')
       : [];
+
     const set = new Set(current);
 
     if (change.add) {
@@ -1385,6 +1422,7 @@ export class TestApiStore implements ApiStore {
   }) {
     const key = `${input.organizationId}:${input.type}`;
     const current = this.ssoConfigs.get(key);
+
     const record: SsoConfigRecord = {
       id: current?.id ?? id('sso'),
       organizationId: input.organizationId,
@@ -1435,8 +1473,13 @@ export class TestApiStore implements ApiStore {
 
   async revokeScimToken(tokenId: string) {
     const record = this.scimTokens.get(tokenId);
-    if (!record) return undefined;
+
+    if (!record) {
+      return undefined;
+    }
+
     this.scimTokens.delete(tokenId);
+
     return record;
   }
 
@@ -1524,10 +1567,7 @@ export class TestApiStore implements ApiStore {
   async deleteApiKey(input: { id: string; userId?: string; organizationId?: string }) {
     const key = this.apiKeys.get(input.id);
 
-    if (
-      !key ||
-      (input.organizationId ? key.organizationId !== input.organizationId : key.userId !== input.userId)
-    ) {
+    if (!key || (input.organizationId ? key.organizationId !== input.organizationId : key.userId !== input.userId)) {
       return false;
     }
 
@@ -1551,6 +1591,7 @@ export class TestApiStore implements ApiStore {
       createdAt: now(),
     };
     this.organizationInvites.set(record.id, record);
+
     return record;
   }
 
@@ -1598,6 +1639,7 @@ export class TestApiStore implements ApiStore {
 
     invite.tokenHash = hashToken(token);
     invite.expiresAt = expiresAt.toISOString();
+
     return invite;
   }
 
@@ -1609,6 +1651,7 @@ export class TestApiStore implements ApiStore {
     }
 
     invite.expiresAt = now();
+
     return invite;
   }
 
@@ -1621,6 +1664,7 @@ export class TestApiStore implements ApiStore {
   }) {
     const key = `${input.provider}:${input.externalId}`;
     const existing = this.oauthConnections.get(key);
+
     const record: OAuthConnectionRecord = {
       id: existing?.id ?? id('oauth'),
       userId: input.userId,
@@ -1661,6 +1705,7 @@ export class TestApiStore implements ApiStore {
     createdByUserId: string;
   }): Promise<UserConnectionRecord> {
     const key = this.userConnectionKey(input.userId, input.provider, input.externalAccountId);
+
     const existing = Array.from(this.userConnections.values()).find(
       (row) => this.userConnectionKey(row.userId, row.provider, row.externalAccountId) === key,
     );
@@ -1724,6 +1769,7 @@ export class TestApiStore implements ApiStore {
 
   async linkProjectToUserConnection(input: { projectId: string; userConnectionId: string; linkedByUserId: string }) {
     const key = this.projectConnectionLinkKey(input.projectId, input.userConnectionId);
+
     const existing = Array.from(this.projectConnectionLinks.values()).find(
       (row) => this.projectConnectionLinkKey(row.projectId, row.userConnectionId) === key,
     );
@@ -1742,6 +1788,7 @@ export class TestApiStore implements ApiStore {
 
   async unlinkProjectFromUserConnection(input: { projectId: string; userConnectionId: string }) {
     const key = this.projectConnectionLinkKey(input.projectId, input.userConnectionId);
+
     const existing = Array.from(this.projectConnectionLinks.values()).find(
       (row) => this.projectConnectionLinkKey(row.projectId, row.userConnectionId) === key,
     );
@@ -1765,6 +1812,7 @@ export class TestApiStore implements ApiStore {
   async createAiConversation(input: { projectId?: string; userId: string; title?: string }) {
     const conversation: AiConversationRecord = { id: id('ai_conv'), ...input, createdAt: now() };
     this.aiConversations.set(conversation.id, conversation);
+
     return conversation;
   }
 
@@ -1772,7 +1820,21 @@ export class TestApiStore implements ApiStore {
     return this.aiConversations.get(idValue);
   }
 
-  async createAiMessage(input: { id?: string; conversationId: string; role: AiMessageRecord['role']; content: string }) {
+  async listAiConversations(input: { projectId: string; userId: string; limit?: number }) {
+    const limit = Math.min(Math.max(input.limit ?? 25, 1), 100);
+
+    return Array.from(this.aiConversations.values())
+      .filter((conversation) => conversation.projectId === input.projectId && conversation.userId === input.userId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, limit);
+  }
+
+  async createAiMessage(input: {
+    id?: string;
+    conversationId: string;
+    role: AiMessageRecord['role'];
+    content: string;
+  }) {
     const existing = input.id ? this.aiMessages.get(input.id) : undefined;
 
     if (existing) {
@@ -1782,12 +1844,14 @@ export class TestApiStore implements ApiStore {
         content: input.content,
       };
       this.aiMessages.set(message.id, message);
+
       return message;
     }
 
     const { id: requestedId, ...messageInput } = input;
     const message: AiMessageRecord = { id: requestedId ?? id('ai_msg'), ...messageInput, createdAt: now() };
     this.aiMessages.set(message.id, message);
+
     return message;
   }
 
@@ -1798,6 +1862,7 @@ export class TestApiStore implements ApiStore {
   async createAiToolCall(input: { messageId: string; name: string; input?: unknown; output?: unknown }) {
     const toolCall: AiToolCallRecord = { id: id('ai_tool'), ...input, createdAt: now() };
     this.aiToolCalls.set(toolCall.id, toolCall);
+
     return toolCall;
   }
 
@@ -1816,6 +1881,7 @@ export class TestApiStore implements ApiStore {
   }) {
     const usage: AiTokenUsageRecord = { id: id('ai_usage'), ...input, createdAt: now() };
     this.aiTokenUsages.set(usage.id, usage);
+
     return usage;
   }
 
@@ -1833,6 +1899,7 @@ export class TestApiStore implements ApiStore {
   }) {
     const cost: AiCostLedgerRecord = { id: id('ai_cost'), ...input, createdAt: now() };
     this.aiCostLedger.set(cost.id, cost);
+
     return cost;
   }
 
@@ -1869,6 +1936,7 @@ export class TestApiStore implements ApiStore {
   }) {
     const plan: BillingPlanRecord = { id: this.billingPlans.get(input.key)?.id ?? id('plan'), ...input };
     this.billingPlans.set(input.key, plan);
+
     return plan;
   }
 
@@ -1882,12 +1950,14 @@ export class TestApiStore implements ApiStore {
 
   async upsertBillingCustomer(input: { organizationId: string; provider: string; externalId: string }) {
     const existing = this.billingCustomers.get(input.organizationId);
+
     const customer: BillingCustomerRecord = {
       id: existing?.id ?? id('customer'),
       ...input,
       createdAt: existing?.createdAt ?? now(),
     };
     this.billingCustomers.set(input.organizationId, customer);
+
     return customer;
   }
 
@@ -1948,6 +2018,7 @@ export class TestApiStore implements ApiStore {
       updatedAt: now(),
     };
     this.subscriptions.set(subscription.id, subscription);
+
     return subscription;
   }
 
@@ -1976,6 +2047,7 @@ export class TestApiStore implements ApiStore {
       createdAt: now(),
     };
     this.usageEvents.set(event.id, event);
+
     return event;
   }
 
@@ -2009,6 +2081,7 @@ export class TestApiStore implements ApiStore {
       createdAt: now(),
     };
     this.quotaOverrides.set(override.id, override);
+
     return override;
   }
 
@@ -2036,6 +2109,7 @@ export class TestApiStore implements ApiStore {
 
     const event: StripeEventRecord = { ...input, processedAt: now() };
     this.stripeEvents.set(event.id, event);
+
     return { event, created: true };
   }
 
@@ -2088,6 +2162,7 @@ export class TestApiStore implements ApiStore {
       receivedAt: now(),
     };
     this.emailDeliveryEvents.push(event);
+
     return { event, created: true };
   }
 
@@ -2096,9 +2171,18 @@ export class TestApiStore implements ApiStore {
 
     return this.emailDeliveryEvents
       .filter((event) => {
-        if (filter?.email && event.email !== filter.email) return false;
-        if (filter?.type && event.type !== filter.type) return false;
-        if (filter?.emailMessageId && event.emailMessageId !== filter.emailMessageId) return false;
+        if (filter?.email && event.email !== filter.email) {
+          return false;
+        }
+
+        if (filter?.type && event.type !== filter.type) {
+          return false;
+        }
+
+        if (filter?.emailMessageId && event.emailMessageId !== filter.emailMessageId) {
+          return false;
+        }
+
         return true;
       })
       .slice()
@@ -2154,6 +2238,7 @@ export class TestApiStore implements ApiStore {
     }
 
     workspace.status = input.status;
+
     return workspace;
   }
 
@@ -2165,6 +2250,7 @@ export class TestApiStore implements ApiStore {
     }
 
     ticket.status = input.status;
+
     return ticket;
   }
 

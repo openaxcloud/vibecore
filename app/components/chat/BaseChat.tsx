@@ -37,6 +37,7 @@ import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-ap
 import GitCloneButton from './GitCloneButton';
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
 import { Messages } from './Messages.client';
+import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { Menu } from '~/components/sidebar/Menu.client';
@@ -691,6 +692,7 @@ type ProjectConversationCheckpoint = {
   commitSha?: string;
   snapshot?: ProjectSnapshot;
   messages: Message[];
+  backendConversationId?: string;
 };
 type ProjectAgentSuggestion = {
   id: string;
@@ -3298,6 +3300,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           messages: conversation.messages,
           createdAt: conversation.createdAt,
           updatedAt: conversation.updatedAt,
+          backendConversationId: conversation.backendConversationId,
         })),
         {
           id: `project:${projectId}`,
@@ -3347,6 +3350,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             commitSha: snapshot?.id?.slice(0, 8),
             snapshot,
             messages: conversation.messages.slice(0, index + 1),
+            backendConversationId: conversation.backendConversationId,
           });
         });
 
@@ -3375,6 +3379,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             commitSha: snapshot?.id?.slice(0, 8),
             snapshot,
             messages: conversation.messages,
+            backendConversationId: conversation.backendConversationId,
           });
         }
       });
@@ -3718,16 +3723,76 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       const safeProjectId = projectId;
       const safeWorkspaceId = currentWorkspaceId;
 
+      async function loadBackendProjectConversations(activeConversationId?: string) {
+        const conversationsResponse = await fetch(
+          `/api/projects/${encodeURIComponent(safeProjectId)}/ai/conversations?limit=20`,
+          { headers: { accept: 'application/json' } },
+        );
+
+        if (!conversationsResponse.ok) {
+          return [];
+        }
+
+        const conversationsPayload = (await conversationsResponse.json()) as {
+          conversations?: Array<{ id?: string; title?: string; createdAt?: string }>;
+        };
+
+        const conversations = (conversationsPayload.conversations ?? []).filter(
+          (conversation) => conversation?.id && conversation.id !== activeConversationId,
+        );
+
+        const hydrated = await Promise.all(
+          conversations.map(async (conversation) => {
+            const messagesResponse = await fetch(
+              `/api/projects/${encodeURIComponent(safeProjectId)}/ai/conversations/${encodeURIComponent(
+                conversation.id!,
+              )}/messages`,
+              { headers: { accept: 'application/json' } },
+            );
+
+            if (!messagesResponse.ok) {
+              return undefined;
+            }
+
+            const messagesPayload = (await messagesResponse.json()) as ProjectAiMessagesResponse;
+            const hydratedMessages = projectAiMessagesToChatMessages(messagesPayload.messages);
+
+            if (!hydratedMessages.length) {
+              return undefined;
+            }
+
+            return {
+              id: conversation.id!,
+              title: conversation.title || 'Project conversation',
+              messages: hydratedMessages,
+              createdAt: conversation.createdAt,
+              updatedAt: conversation.createdAt,
+              backendConversationId: conversation.id!,
+            };
+          }),
+        );
+
+        return hydrated.filter(Boolean);
+      }
+
       async function loadProjectConversationMemory() {
         try {
           const memory = await getProjectIdeMemory(safeProjectId, safeWorkspaceId);
 
+          const memoryConversations = (memory?.chat?.conversations ?? []).filter(
+            (conversation) => conversation && Array.isArray(conversation.messages),
+          );
+
+          const backendConversations = await loadBackendProjectConversations(memory?.chat?.metadata?.aiConversationId);
+
+          const conversationsById = new Map<string, (typeof memoryConversations)[number]>();
+
           if (!cancelled) {
-            setArchivedProjectConversations(
-              (memory?.chat?.conversations ?? []).filter(
-                (conversation) => conversation && Array.isArray(conversation.messages),
-              ),
-            );
+            for (const conversation of [...backendConversations, ...memoryConversations]) {
+              conversationsById.set(conversation.id, conversation);
+            }
+
+            setArchivedProjectConversations(Array.from(conversationsById.values()));
           }
         } catch (reason) {
           console.warn('Project conversation memory unavailable', reason);
@@ -5296,12 +5361,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setConversationHistoryOpen(false);
 
         if (projectId && checkpoint.conversationId !== `project:${projectId}`) {
+          const currentMemory = await getProjectIdeMemory(projectId, currentWorkspaceId).catch(() => undefined);
           await saveProjectIdeMemory(
             projectId,
             {
               chat: {
                 id: `project:${projectId}`,
                 description: checkpoint.conversationTitle,
+                metadata: checkpoint.backendConversationId
+                  ? {
+                      ...(currentMemory?.chat?.metadata ?? {}),
+                      aiConversationId: checkpoint.backendConversationId,
+                    }
+                  : currentMemory?.chat?.metadata,
                 messages: checkpoint.messages,
                 archivedMessages: [],
               },

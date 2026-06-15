@@ -311,9 +311,11 @@ const createProjectFromAiSchema = z.object({
   model: z.string().min(1).max(120).optional(),
 });
 const githubImportSchema = z.object({
-  // z.string().url() accepts file:// and arbitrary internal hosts, which are
-  // then handed to `git clone` on the API host (local-file disclosure / SSRF).
-  // Constrain to the same HTTPS/SSH safe-URL check used by configure-remote.
+  /*
+   * z.string().url() accepts file:// and arbitrary internal hosts, which are
+   * then handed to `git clone` on the API host (local-file disclosure / SSRF).
+   * Constrain to the same HTTPS/SSH safe-URL check used by configure-remote.
+   */
   repositoryUrl: z
     .string()
     .trim()
@@ -325,8 +327,10 @@ const githubImportSchema = z.object({
     .min(1)
     .max(255)
     .regex(/^[^\s"'`\\]+$/, 'Invalid branch name.')
-    // Reject leading-dash refs (e.g. "--upload-pack=...") that could be parsed as
-    // a git CLI flag downstream — matches gitRefField used elsewhere.
+    /*
+     * Reject leading-dash refs (e.g. "--upload-pack=...") that could be parsed as
+     * a git CLI flag downstream — matches gitRefField used elsewhere.
+     */
     .refine((value) => !value.startsWith('-'), 'Git ref must not start with "-".')
     .optional(),
   name: z.string().min(1).optional(),
@@ -594,8 +598,11 @@ const collaborationCommentSchema = z.object({
 const collaborationEditSchema = z.object({
   filePath: z.string().min(1),
   baseVersion: z.coerce.number().int().min(0).optional(),
-  // Cap per-document content (10MB) so a single collaboration edit can't be
-  // used to balloon the persisted IDE-state blob and exhaust memory/storage.
+
+  /*
+   * Cap per-document content (10MB) so a single collaboration edit can't be
+   * used to balloon the persisted IDE-state blob and exhaust memory/storage.
+   */
   content: z.string().max(10_000_000),
   cursor: z.unknown().optional(),
   selection: z.unknown().optional(),
@@ -620,6 +627,7 @@ const collaborationShareLinkRedeemParams = z.object({
 const chatShareInlineMessageSchema = z.object({
   id: z.string().min(1).max(200),
   role: z.enum(['user', 'assistant', 'system']),
+
   // Bound per-message content so a single share can't carry an unbounded payload.
   content: z.string().max(200_000),
 });
@@ -677,11 +685,13 @@ const gitCommitSchema = z.object({
   workspaceId: workspaceIdField,
 });
 
-// Git refs (branches, refs, shas) are passed as positional args to the git CLI.
-// A value starting with "-" would be parsed by git as an option (e.g.
-// `--upload-pack=<cmd>`), enabling argument-injection RCE. git itself forbids
-// ref names beginning with "-" (see `git check-ref-format`), so rejecting them
-// loses no legitimate input.
+/*
+ * Git refs (branches, refs, shas) are passed as positional args to the git CLI.
+ * A value starting with "-" would be parsed by git as an option (e.g.
+ * `--upload-pack=<cmd>`), enabling argument-injection RCE. git itself forbids
+ * ref names beginning with "-" (see `git check-ref-format`), so rejecting them
+ * loses no legitimate input.
+ */
 const gitRefField = z
   .string()
   .min(1)
@@ -783,10 +793,12 @@ const runtimeFileCreateSchema = runtimeFileWriteSchema
 const runtimeFileMoveSchema = z.object({ path: z.string().min(1), newPath: z.string().min(1) });
 
 const runtimeSearchSchema = z.object({
-  // Cap the pattern length: with regex mode this string is compiled to a RegExp
-  // and run against file contents, so an unbounded user pattern is a ReDoS vector
-  // (catastrophic backtracking). A tight cap bounds worst-case blow-up until the
-  // engine is swapped for a linear-time one (re2).
+  /*
+   * Cap the pattern length: with regex mode this string is compiled to a RegExp
+   * and run against file contents, so an unbounded user pattern is a ReDoS vector
+   * (catastrophic backtracking). A tight cap bounds worst-case blow-up until the
+   * engine is swapped for a linear-time one (re2).
+   */
   query: z.string().max(1000),
 
   /*
@@ -880,9 +892,11 @@ const customRoleSchema = z.object({
     .min(1),
 });
 const siemWebhookSchema = z.object({
-  // SSRF guard: the stored URL is fetched server-side on every abuse event +
-  // SIEM delivery tick, so block internal/loopback/metadata/private hosts
-  // (reuses the git-remote host blocklist incl. IP-literal canonicalization).
+  /*
+   * SSRF guard: the stored URL is fetched server-side on every abuse event +
+   * SIEM delivery tick, so block internal/loopback/metadata/private hosts
+   * (reuses the git-remote host blocklist incl. IP-literal canonicalization).
+   */
   url: z
     .string()
     .url()
@@ -988,6 +1002,10 @@ const quotaOverrideSchema = z.object({
 
 const adminQuotaOverrideSchema = quotaOverrideSchema.extend({ organizationId: z.string().min(1) });
 const aiConversationSchema = z.object({ title: z.string().min(1).optional() });
+
+const aiConversationListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});
 
 const aiMessageSchema = z.object({
   // Cap content so an oversized body can't be buffered + forwarded upstream before any quota check resolves.
@@ -1475,10 +1493,13 @@ function canonicalizeHostForBlocklist(host: string): string {
     return [(value >>> 24) & 0xff, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff].join('.');
   }
 
-  // IPv6 transition forms embedding an IPv4: NAT64 (64:ff9b::a9fe:a9fe) and 6to4
-  // (2002:a9fe:a9fe::) — both → 169.254.169.254. Fold to dotted-quad so the
-  // private-range checks catch them (SIEM-webhook / git-remote SSRF bypass).
-  const transition = host.match(/^64:ff9b::([0-9a-f]{1,4}):([0-9a-f]{1,4})$/) || host.match(/^2002:([0-9a-f]{1,4}):([0-9a-f]{1,4})/);
+  /*
+   * IPv6 transition forms embedding an IPv4: NAT64 (64:ff9b::a9fe:a9fe) and 6to4
+   * (2002:a9fe:a9fe::) — both → 169.254.169.254. Fold to dotted-quad so the
+   * private-range checks catch them (SIEM-webhook / git-remote SSRF bypass).
+   */
+  const transition =
+    host.match(/^64:ff9b::([0-9a-f]{1,4}):([0-9a-f]{1,4})$/) || host.match(/^2002:([0-9a-f]{1,4}):([0-9a-f]{1,4})/);
 
   if (transition) {
     const value = (parseInt(transition[1], 16) << 16) | parseInt(transition[2], 16);
@@ -1527,9 +1548,11 @@ function isBlockedGitHost(rawHost: string): boolean {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
-    // ULA fc00::/7 + link-local fe80::/10, but only as IPv6 LITERALS (hextets +
-    // ':'). The old startsWith('fc'/'fd'/'fe80') wrongly blocked public hosts like
-    // fcbarcelona.com / fdic.gov / fe80.example.com.
+    /*
+     * ULA fc00::/7 + link-local fe80::/10, but only as IPv6 LITERALS (hextets +
+     * ':'). The old startsWith('fc'/'fd'/'fe80') wrongly blocked public hosts like
+     * fcbarcelona.com / fdic.gov / fe80.example.com.
+     */
     /^f[cd][0-9a-f]{0,2}:/.test(host) ||
     /^fe[89ab][0-9a-f]:/.test(host)
   );
@@ -2214,6 +2237,7 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
    * unintentionally exempted.
    */
   const mfaPathname = new URL(request.url, 'http://vibecore.local').pathname;
+
   const mfaExempt =
     mfaPathname === '/auth/mfa' ||
     mfaPathname.startsWith('/auth/mfa/') ||
@@ -2221,8 +2245,10 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     mfaPathname.startsWith('/auth/recovery-codes/') ||
     mfaPathname === '/auth/sessions' ||
     mfaPathname.startsWith('/auth/sessions/') ||
-    // Re-auth is the gateway to enrolling MFA (mfa/setup now requires it); a
-    // platform admin without MFA must be able to reach it or they'd be deadlocked.
+    /*
+     * Re-auth is the gateway to enrolling MFA (mfa/setup now requires it); a
+     * platform admin without MFA must be able to reach it or they'd be deadlocked.
+     */
     mfaPathname === '/auth/reauth';
 
   if (adminMfaRequired() && user.platformAdmin && !user.mfaEnabled && !mfaExempt) {
@@ -2384,6 +2410,7 @@ async function requireRoleAssignableByCaller(
     permissionsForOrganizationRole(store, organizationId, callerRoleKey),
     permissionsForOrganizationRole(store, organizationId, targetRoleKey),
   ]);
+
   const escalated = targetPermissions.filter((permission) => !callerPermissions.includes(permission));
 
   if (escalated.length > 0) {
@@ -2410,6 +2437,7 @@ async function requireCallerOutranksMember(
     permissionsForOrganizationRole(store, organizationId, callerRoleKey),
     permissionsForOrganizationRole(store, organizationId, targetCurrentRoleKey),
   ]);
+
   const outranks = targetPermissions.filter((permission) => !callerPermissions.includes(permission));
 
   if (outranks.length > 0) {
@@ -3280,6 +3308,7 @@ async function sessionExpiresAtForUser(store: ApiStore, userId: string) {
  * back to the capped JS RegExp so search still works.
  */
 const requireNative = createRequire(import.meta.url);
+
 let re2Engine:
   | (new (
       pattern: string,
@@ -3327,6 +3356,7 @@ async function createLoginSession(input: {
   organizationId?: string;
   token: string;
   request: FastifyRequest;
+
   /*
    * Mark the new session as freshly step-up-authenticated. Set for SSO logins
    * (OAuth/OIDC/SAML): those users have no password, so POST /auth/reauth (which
@@ -3676,8 +3706,10 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
   let idTokenClaims: JWTPayload | undefined;
 
   if (provider === 'oidc' && tokens.id_token) {
-    // Keep the verified claims — they are the cryptographically-trusted identity
-    // source for OIDC (the userinfo response below is unsigned and substitutable).
+    /*
+     * Keep the verified claims — they are the cryptographically-trusted identity
+     * source for OIDC (the userinfo response below is unsigned and substitutable).
+     */
     idTokenClaims = await assertOidcIdToken(tokens.id_token);
   }
 
@@ -3748,6 +3780,7 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
    *    so for them an omitted flag stays permissive as before.
    */
   const claimEmail = typeof idTokenClaims?.email === 'string' ? idTokenClaims.email : undefined;
+
   const claimEmailVerified =
     typeof idTokenClaims?.email_verified === 'boolean'
       ? idTokenClaims.email_verified
@@ -3770,8 +3803,10 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
   }
 
   if (provider === 'oidc' && effectiveEmail && claimEmailVerified !== true) {
-    // Generic OIDC IdP omitted email_verified — do not auto-link on an
-    // unproven email.
+    /*
+     * Generic OIDC IdP omitted email_verified — do not auto-link on an
+     * unproven email.
+     */
     throw Object.assign(new Error('OIDC email verification status is unknown'), {
       statusCode: 401,
       code: 'OAUTH_EMAIL_UNVERIFIED',
@@ -3792,6 +3827,7 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
      * address so accounts without an explicit primary still log in.
      */
     const emailsUrl = process.env.GITHUB_USERINFO_EMAILS_URL ?? `${userInfoUrl.replace(/\/$/, '')}/emails`;
+
     const emailResponse = await fetch(emailsUrl, {
       headers: userInfoHeaders,
       signal: AbortSignal.timeout(10_000),
@@ -3803,6 +3839,7 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
         primary?: boolean;
         verified?: boolean;
       }>;
+
       /*
        * Only accept a *verified* address — the previous `?? emails[0]` fallback
        * accepted the first (possibly unverified) email, enabling account-linking
@@ -3881,9 +3918,11 @@ function extractXmlCryptoSignedAssertion(xml: string, certificate: string): stri
       return null;
     }
 
-    // getSignedReferences() is the canonicalized content the signature actually
-    // covers. Extract the Assertion from within it (it may be the Assertion
-    // itself, or a signed Response wrapping it — both are integrity-protected).
+    /*
+     * getSignedReferences() is the canonicalized content the signature actually
+     * covers. Extract the Assertion from within it (it may be the Assertion
+     * itself, or a signed Response wrapping it — both are integrity-protected).
+     */
     for (const fragment of verifier.getSignedReferences()) {
       const match = /<(?:\w+:)?Assertion[\s\S]*?<\/(?:\w+:)?Assertion>/.exec(fragment);
 
@@ -3906,8 +3945,10 @@ function extractXmlCryptoSignedAssertion(xml: string, certificate: string): stri
  * captured SignatureValue and is rejected.
  */
 function extractFallbackVerifiedAssertion(xml: string, certificate: string): string | null {
-  // Namespace-agnostic: real IdPs use saml:/saml2:/no prefix. The signature
-  // verification below still enforces byte-identity, so XSW protection holds.
+  /*
+   * Namespace-agnostic: real IdPs use saml:/saml2:/no prefix. The signature
+   * verification below still enforces byte-identity, so XSW protection holds.
+   */
   const candidate = /<(?:\w+:)?Assertion[\s\S]*?<\/(?:\w+:)?Assertion>/.exec(xml)?.[0];
 
   if (!candidate) {
@@ -3976,6 +4017,7 @@ function parseSamlXmlAssertion(xml: string, certificate: string, expectedAudienc
     assertionXml,
     /<(?:\w+:)?Attribute[^>]+Name=["']roleKey["'][^>]*>\s*<(?:\w+:)?AttributeValue[^>]*>([\s\S]*?)<\/(?:\w+:)?AttributeValue>/,
   );
+
   /*
    * Never honor an asserted `owner` role from SAML. owner is the top privilege
    * (billing, delete-org, owner management); letting an IdP attribute grant it is
@@ -4003,24 +4045,31 @@ function parseSamlXmlAssertion(xml: string, certificate: string, expectedAudienc
    * IDs is a separate, persisted control — see follow-up task.)
    */
   const SAML_CLOCK_SKEW_MS = 60_000;
-  // Cap the acceptance window for assertions that declare no NotOnOrAfter. A real
-  // signed IdP assertion ALWAYS carries an Assertion @IssueInstant (required by the
-  // SAML spec), so bound such assertions to a few minutes from issuance — otherwise
-  // a captured no-expiry assertion is replayable forever (the ID-dedup row only
-  // covers a 10-min window). Only fully-minimal fixtures omit both, and stay lenient.
+
+  /*
+   * Cap the acceptance window for assertions that declare no NotOnOrAfter. A real
+   * signed IdP assertion ALWAYS carries an Assertion @IssueInstant (required by the
+   * SAML spec), so bound such assertions to a few minutes from issuance — otherwise
+   * a captured no-expiry assertion is replayable forever (the ID-dedup row only
+   * covers a 10-min window). Only fully-minimal fixtures omit both, and stay lenient.
+   */
   const SAML_MAX_ASSERTION_AGE_MS = 5 * 60_000;
   const notBefore = samlInstant(assertionXml, /<(?:\w+:)?Conditions\b[^>]*\bNotBefore=["']([^"']+)["']/);
+
   const notOnOrAfter =
     samlInstant(assertionXml, /<(?:\w+:)?Conditions\b[^>]*\bNotOnOrAfter=["']([^"']+)["']/) ??
     samlInstant(assertionXml, /<(?:\w+:)?SubjectConfirmationData\b[^>]*\bNotOnOrAfter=["']([^"']+)["']/);
+
   const issueInstant = samlInstant(assertionXml, /<(?:\w+:)?Assertion\b[^>]*\bIssueInstant=["']([^"']+)["']/);
   const nowMs = Date.now();
+
   const upperBoundValid =
     notOnOrAfter !== undefined
       ? nowMs < notOnOrAfter + SAML_CLOCK_SKEW_MS
       : issueInstant !== undefined
         ? nowMs < issueInstant + SAML_MAX_ASSERTION_AGE_MS
         : true;
+
   const timeValid = (notBefore === undefined || nowMs >= notBefore - SAML_CLOCK_SKEW_MS) && upperBoundValid;
 
   /*
@@ -4052,6 +4101,7 @@ function parseSamlXmlAssertion(xml: string, certificate: string, expectedAudienc
     externalId,
     roleKey,
     assertionId,
+
     /*
      * The replay-dedup row must outlive the ACCEPTANCE window, not just
      * NotOnOrAfter. timeValid accepts until `notOnOrAfter + SAML_CLOCK_SKEW_MS`,
@@ -4080,9 +4130,11 @@ function parseSamlAssertion(encoded: string, certificate?: string, expectedAudie
   try {
     const decoded = Buffer.from(encoded, 'base64url').toString('utf8');
 
-    // Recognize any XML namespace prefix (saml:, saml2:, none). The old check
-    // missed saml2:Assertion (Azure AD / ADFS / Shibboleth) and silently routed
-    // real, signed responses to the test-only JSON path — login was impossible.
+    /*
+     * Recognize any XML namespace prefix (saml:, saml2:, none). The old check
+     * missed saml2:Assertion (Azure AD / ADFS / Shibboleth) and silently routed
+     * real, signed responses to the test-only JSON path — login was impossible.
+     */
     if (/<(?:\w+:)?Assertion[\s>]/.test(decoded)) {
       if (!certificate) {
         throw Object.assign(new Error('SAML provider certificate is not configured'), {
@@ -5066,8 +5118,10 @@ function previewForwardBody(request: FastifyRequest): string | Buffer | undefine
     return body as string | Buffer;
   }
 
-  // Parsed JSON object/array — re-serialize so it forwards as real JSON rather
-  // than coercing to "[object Object]".
+  /*
+   * Parsed JSON object/array — re-serialize so it forwards as real JSON rather
+   * than coercing to "[object Object]".
+   */
   return JSON.stringify(body);
 }
 
@@ -5366,6 +5420,7 @@ async function deliverSiemAbuseSignal(
             'x-vibecore-event': 'abuse.signal',
           },
           body,
+
           /*
            * Do NOT follow redirects. SIEM webhook URLs are validated only at
            * config time; a customer endpoint that passed that check can 3xx-redirect
@@ -5800,6 +5855,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       const WEBHOOK_BODY_LIMIT = 2 * 1024 * 1024;
       const chunks: Buffer[] = [];
+
       let total = 0;
 
       for await (const chunk of payload as AsyncIterable<Buffer>) {
@@ -6660,8 +6716,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const samlConfig = decryptJson<{ x509Certificate: string }>(config.encryptedConfig);
         assertion = parseSamlAssertion(body.SAMLResponse, samlConfig.x509Certificate, `vibecore:${orgId}`);
       } catch {
-        // Attacker-controlled SAMLResponse that makes parsing throw must return a
-        // clean 401, not an unauthenticated 500 (+ Sentry amplification).
+        /*
+         * Attacker-controlled SAMLResponse that makes parsing throw must return a
+         * clean 401, not an unauthenticated 500 (+ Sentry amplification).
+         */
         return reply.code(401).send({ error: 'Invalid SAML assertion', code: 'SAML_INVALID_ASSERTION' });
       }
 
@@ -6699,6 +6757,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * Enterprise SSO must only assert identities on domains the org controls.
        */
       const emailDomain = assertion.email.split('@')[1]?.toLowerCase();
+
       const verifiedDomains = (await store.listDomainVerifications(orgId))
         .filter((d) => Boolean(d.verifiedAt))
         .map((d) => d.domain.toLowerCase());
@@ -6890,6 +6949,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     if (!orgId && request.body && typeof request.body === 'object') {
       const body = request.body as { organizationId?: unknown; orgId?: unknown; projectId?: unknown };
+
       const bodyOrgId =
         typeof body.organizationId === 'string'
           ? body.organizationId
@@ -7397,10 +7457,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         organizationId = orgs[0].id;
       }
 
-      // Bound the outbound provider call (see the OAuth callback) — a hung/slow
-      // provider must not hold this request and a worker open indefinitely.
+      /*
+       * Bound the outbound provider call (see the OAuth callback) — a hung/slow
+       * provider must not hold this request and a worker open indefinitely.
+       */
       const testApiKeyFetch: typeof fetch = (input, init) =>
         fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(15_000) });
+
       const testResult = await connector.testApiKey({ apiKey: body.apiKey, fetchImpl: testApiKeyFetch });
 
       if (!testResult.ok) {
@@ -7776,8 +7839,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         'user-agent': 'e-code-api',
         'x-github-api-version': '2022-11-28',
       },
-      // Bound the outbound call so a stalled GitHub response can't pin an api
-      // worker indefinitely (no global undici fetch timeout is configured).
+
+      /*
+       * Bound the outbound call so a stalled GitHub response can't pin an api
+       * worker indefinitely (no global undici fetch timeout is configured).
+       */
       signal: AbortSignal.timeout(15_000),
     });
 
@@ -7861,8 +7927,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const reposJson = await reposResponse.json();
 
-    // A non-array upstream payload (error envelope / rate-limit body with HTTP
-    // 200) would make `.reduce` throw a generic 500 for a 502-class condition.
+    /*
+     * A non-array upstream payload (error envelope / rate-limit body with HTTP
+     * 200) would make `.reduce` throw a generic 500 for a 502-class condition.
+     */
     if (!Array.isArray(reposJson)) {
       return reply
         .code(502)
@@ -7983,8 +8051,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (body.query) {
       for (const [key, value] of Object.entries(body.query)) {
-        // body.query is cast, not schema-validated; an object/array value would
-        // be coerced to "[object Object]"/comma-joined garbage. Require primitives.
+        /*
+         * body.query is cast, not schema-validated; an object/array value would
+         * be coerced to "[object Object]"/comma-joined garbage. Require primitives.
+         */
         if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
           return reply.code(400).send({ error: 'query values must be primitive', code: 'PROXY_BAD_REQUEST' });
         }
@@ -8016,8 +8086,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       try {
         return await response.json();
       } catch {
-        // A 2xx with a truncated/invalid JSON body is a 502-class upstream
-        // condition, not an opaque internal 500.
+        /*
+         * A 2xx with a truncated/invalid JSON body is a 502-class upstream
+         * condition, not an opaque internal 500.
+         */
         return reply
           .code(502)
           .send({ error: 'GitHub returned a malformed JSON response', code: 'PROVIDER_RESPONSE_MALFORMED' });
@@ -8998,6 +9070,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       process: child,
       output: '',
     };
+
     const processMap = localRuntimeProcessMap(authorized.workspaceId);
     processMap.set(id, record);
 
@@ -9010,6 +9083,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * port/dev-server detection from live output is preserved.
      */
     const MAX_LOCAL_RUNTIME_RECORDS = 200;
+
     if (processMap.size > MAX_LOCAL_RUNTIME_RECORDS) {
       for (const [existingId, existing] of processMap) {
         if (processMap.size <= MAX_LOCAL_RUNTIME_RECORDS) {
@@ -9026,8 +9100,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let stderr = '';
 
     const parsedMaxOutputBytes = Number(process.env.WORKSPACE_MAX_OUTPUT_BYTES ?? 1024 * 1024);
+
     const maxOutputBytes =
       Number.isFinite(parsedMaxOutputBytes) && parsedMaxOutputBytes > 0 ? parsedMaxOutputBytes : 1024 * 1024;
+
     const parsedTimeoutMs = Number(process.env.WORKSPACE_COMMAND_TIMEOUT_MS ?? 30_000);
     const configuredTimeoutMs = Number.isFinite(parsedTimeoutMs) && parsedTimeoutMs > 0 ? parsedTimeoutMs : 30_000;
     const timeoutMs = Math.min(body.timeoutMs ?? 30_000, configuredTimeoutMs);
@@ -9184,6 +9260,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * (same source used for workspace resource limits).
      */
     const entitledPlanKey = (await billingState(input.project.organizationId).catch(() => undefined))?.plan?.key;
+
     const gatewayPlan =
       entitledPlanKey === 'team'
         ? 'business'
@@ -9294,9 +9371,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * working session, short enough that a leaked +1 (lost socket-close) self-heals
    * within a few hours instead of locking the org out forever.
    */
-  const TERMINAL_CONCURRENCY_WINDOW_MS = Number(
-    process.env.TERMINAL_CONCURRENCY_WINDOW_MS ?? 6 * 60 * 60 * 1000,
-  );
+  const TERMINAL_CONCURRENCY_WINDOW_MS = Number(process.env.TERMINAL_CONCURRENCY_WINDOW_MS ?? 6 * 60 * 60 * 1000);
 
   /*
    * Start of the current usage period for metered (per-month) allowances. Uses
@@ -9395,8 +9470,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const windowStart = new Date(Date.now() - TERMINAL_CONCURRENCY_WINDOW_MS);
       const windowed = await store.sumUsage(organizationId, key, windowStart);
 
-      // A -1 whose matching +1 predates the window can drive the windowed sum
-      // negative; clamp so a negative gauge never masks a real over-limit later.
+      /*
+       * A -1 whose matching +1 predates the window can drive the windowed sum
+       * negative; clamp so a negative gauge never masks a real over-limit later.
+       */
       return Math.max(0, windowed);
     }
 
@@ -9490,8 +9567,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         store.sumUsage(organizationId, 'ai.messages').catch(() => 0),
         store.sumUsage(organizationId, 'previews.public').catch(() => 0),
         store.sumUsage(organizationId, 'workspaces.active').catch(() => 0),
-        // Scope to this org only — this runs on the usage hot path, so an
-        // unbounded all-org scan here is a per-request full-table read.
+
+        /*
+         * Scope to this org only — this runs on the usage hot path, so an
+         * unbounded all-org scan here is a per-request full-table read.
+         */
         store.listAbuseEvents({ organizationId }).catch(() => []),
       ]);
       const failedAuthAttempts = abuseEvents.filter(
@@ -9701,6 +9781,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'deploy_project',
     ]);
     await requireProject(request, store, project.id, writeTools.has(toolName) ? 'workspaces:write' : 'workspaces:read');
+
     /*
      * A suspended org must not keep consuming paid LLM/runtime/deploy spend
      * through AI tools. The sibling AI routes (conversations/messages,
@@ -9850,6 +9931,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { output: redactAiValue(output), snapshotId };
   };
 
+  /*
+   * Reconcile workspace records orphaned by pod garbage-collection. The
+   * workspace-manager's GC reaps idle pods and updates ITS own store, but never
+   * writes back to the api's Workspace record — so a GC'd workspace stays RUNNING
+   * here and keeps consuming the workspaces.active quota slot forever, locking a
+   * free-tier user (limit 1) out of opening any OTHER project even though no pod
+   * is actually running (a phantom slot). Before charging the quota, ask the
+   * manager for the live status of the org's other active records and flip any
+   * whose pod is gone to STOPPED, freeing the slot. Bounded: only the org's
+   * already-active records other than the one being (re)started are checked —
+   * for the free tier that is at most one extra manager call, and only on the
+   * paths that would otherwise 429.
+   */
+  const reconcileOrphanedActiveWorkspaces = async (organizationId: string, skipWorkspaceId: string): Promise<void> => {
+    const active = await store.listActiveWorkspaces(organizationId).catch(() => []);
+    const stale = active.filter((workspace) => workspace.id !== skipWorkspaceId);
+
+    if (stale.length === 0) {
+      return;
+    }
+
+    await Promise.all(
+      stale.map(async (workspace) => {
+        let live = false;
+
+        try {
+          const managerWorkspace = await managerRequest<{ status?: string }>(
+            `/workspaces/${encodeURIComponent(workspace.id)}`,
+          );
+          live = managerWorkspace?.status
+            ? ['RUNNING', 'STARTING', 'PENDING'].includes(String(managerWorkspace.status))
+            : false;
+        } catch {
+          // A manager 404 / error means there is no live pod backing this record.
+          live = false;
+        }
+
+        if (!live) {
+          await store.updateWorkspaceStatus({ workspaceId: workspace.id, status: 'STOPPED' }).catch(() => undefined);
+        }
+      }),
+    );
+  };
+
   app.post('/api/runtime/runtime/boot', async () => ({ ok: true, mode: 'remote-kubernetes' }));
   app.post('/api/runtime/workspaces', async (request, reply) => {
     const body = parse(runtimeWorkspaceSchema, request.body ?? {});
@@ -9902,9 +10027,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * the record.
      */
     const orgIdForQuota = authorized.organizationId;
+
     const workspaceRecord =
       orgIdForQuota && !countsAsActive
         ? await store.withSerializedMutation(`workspaces:${orgIdForQuota}`, async () => {
+            /*
+             * Free any slot held by a record whose pod the GC already reaped
+             * (see reconcileOrphanedActiveWorkspaces) so the quota reflects what
+             * is actually running, not stale RUNNING rows. Runs inside the lock
+             * so the freed slot is visible to this same ensureQuota.
+             */
+            await reconcileOrphanedActiveWorkspaces(orgIdForQuota, workspaceId);
             await ensureQuota(request, orgIdForQuota, 'workspaces.active');
 
             const record = await ensureRuntimeWorkspaceRecord(workspaceId, project);
@@ -10053,8 +10186,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
 
-    // Restart must honor the same suspended-org gate as start; otherwise a
-    // suspended org could keep cycling workspaces via restart.
+    /*
+     * Restart must honor the same suspended-org gate as start; otherwise a
+     * suspended org could keep cycling workspaces via restart.
+     */
     await requireOrganizationNotSuspended(store, authorized.organizationId);
 
     /*
@@ -10065,8 +10200,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * the lock. A restart of an already-active workspace consumes nothing.
      */
     const existingForRestart = await store.getWorkspace(authorized.workspaceId);
+
     const restartCountsAsActive =
       !!existingForRestart && ['PENDING', 'STARTING', 'RUNNING'].includes(existingForRestart.status as string);
+
     const restartOrgId = authorized.organizationId;
 
     if (restartOrgId && !restartCountsAsActive) {
@@ -10378,6 +10515,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * can still target them explicitly via `includes`.
      */
     const DEFAULT_SEARCH_IGNORES = /(^|\/)(node_modules|\.git|dist|build|\.next|\.cache|coverage|out)(\/|$)/;
+
     const isPathSearchable = (path: string) => {
       if (excludeMatchers.some((matcher) => matcher.test(path))) {
         return false;
@@ -10401,6 +10539,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const MAX_SEARCH_FILES = 5000;
     const MAX_FILE_BYTES = 2 * 1024 * 1024;
     const MAX_LINE_LENGTH = 20000;
+
     let filesScanned = 0;
 
     const matches = [];
@@ -10701,6 +10840,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ...previewProxyHeaders(request.headers),
           authorization: `Bearer ${token}`,
         },
+
         /*
          * Reconstruct the forwarded body. Fastify's default parser turns a JSON
          * POST from the previewed app into a parsed object; passing that object
@@ -10712,8 +10852,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         signal: AbortSignal.timeout(30_000),
       });
     } catch (error) {
-      // A hung user app (infinite loop / slow SSR in their dev server) must not
-      // hold the API handler open indefinitely — surface it as a gateway timeout.
+      /*
+       * A hung user app (infinite loop / slow SSR in their dev server) must not
+       * hold the API handler open indefinitely — surface it as a gateway timeout.
+       */
       if (error instanceof Error && error.name === 'TimeoutError') {
         return reply.code(504).send({ error: 'preview_timeout', code: 'RUNTIME_PREVIEW_TIMEOUT' });
       }
@@ -10795,6 +10937,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const EXPORT_IGNORES = /(^|\/)(node_modules|\.git|dist|build|\.next|\.cache|coverage|out)(\/|$)/;
     const MAX_EXPORT_BYTES = 200 * 1024 * 1024;
     const MAX_EXPORT_FILES = 20000;
+
     let exportBytes = 0;
     let exportFiles = 0;
 
@@ -10930,8 +11073,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         // Downstream already gone — nothing to deliver.
       }
     });
-    // Bound the pre-open buffer: if the upstream never opens, an active client
-    // could otherwise push unbounded input into memory. Drop oldest past the cap.
+
+    /*
+     * Bound the pre-open buffer: if the upstream never opens, an active client
+     * could otherwise push unbounded input into memory. Drop oldest past the cap.
+     */
     const MAX_PENDING_MESSAGES = 1000;
     client.onMessage((message) => {
       const text = message.toString();
@@ -11063,6 +11209,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (authorized.organizationId) {
       const organizationId = authorized.organizationId;
+
       /*
        * Serialize the concurrency check + the +1 so two concurrent terminal opens
        * can't both pass ensureQuota via TOCTOU and exceed terminals.concurrent.
@@ -11274,8 +11421,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }, 2000);
 
-    // Native WS ping so an idle (no structural changes) socket survives the LB
-    // idle timeout — the 2s poll only emits frames on create/delete transitions.
+    /*
+     * Native WS ping so an idle (no structural changes) socket survives the LB
+     * idle timeout — the 2s poll only emits frames on create/delete transitions.
+     */
     const keepAlive = setInterval(() => client.ping(), 15_000);
     (keepAlive as unknown as { unref?: () => void }).unref?.();
 
@@ -12005,9 +12154,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const existing = await store.getMembership(body.userId, orgId);
 
-    // Re-POSTing an existing member is an upsert (role update). Apply the same
-    // guards as PATCH: caller must outrank the member, and the last owner can't
-    // be demoted (lockout).
+    /*
+     * Re-POSTing an existing member is an upsert (role update). Apply the same
+     * guards as PATCH: caller must outrank the member, and the last owner can't
+     * be demoted (lockout).
+     */
     if (existing) {
       await requireCallerOutranksMember(store, orgId, member.roleKey, existing.roleKey);
     }
@@ -12075,9 +12226,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Membership not found', code: 'MEMBERSHIP_NOT_FOUND' });
     }
 
-    // Caller must outrank the member being modified (else an admin could demote
-    // an owner — the granted role passes requireRoleAssignableByCaller, but the
-    // target's existing higher role was never checked).
+    /*
+     * Caller must outrank the member being modified (else an admin could demote
+     * an owner — the granted role passes requireRoleAssignableByCaller, but the
+     * target's existing higher role was never checked).
+     */
     await requireCallerOutranksMember(store, orgId, member.roleKey, existing.roleKey);
 
     /*
@@ -12127,8 +12280,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Membership not found', code: 'MEMBERSHIP_NOT_FOUND' });
     }
 
-    // Caller must outrank the member being removed (else an admin could remove an
-    // owner).
+    /*
+     * Caller must outrank the member being removed (else an admin could remove an
+     * owner).
+     */
     await requireCallerOutranksMember(store, orgId, member.roleKey, existing.roleKey);
 
     /*
@@ -12467,6 +12622,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * owner↔admin permission boundary.
      */
     const callerPermissions = await permissionsForOrganizationRole(store, orgId, member.roleKey);
+
     const escalated = (body.permissions as PermissionKey[]).filter(
       (permission) => !callerPermissions.includes(permission),
     );
@@ -12683,8 +12839,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
 
-    // Serialize quota + create so concurrent creates can't both pass the
-    // projects.count check via TOCTOU.
+    /*
+     * Serialize quota + create so concurrent creates can't both pass the
+     * projects.count check via TOCTOU.
+     */
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
       await ensureQuota(request, orgId, 'projects.count');
 
@@ -12812,8 +12970,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(githubImportSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
-    // Cheap pre-check to reject an over-quota org before the (slow) clone; the
-    // authoritative atomic check is inside the serialized block below.
+
+    /*
+     * Cheap pre-check to reject an over-quota org before the (slow) clone; the
+     * authoritative atomic check is inside the serialized block below.
+     */
     await ensureQuota(request, orgId, 'projects.count');
 
     const imported = await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch });
@@ -12825,8 +12986,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .pop()
         ?.replace(/\.git$/, '') ??
       'Imported project';
-    // Re-check quota + create atomically (the slow clone is intentionally OUTSIDE
-    // the advisory-lock transaction).
+
+    /*
+     * Re-check quota + create atomically (the slow clone is intentionally OUTSIDE
+     * the advisory-lock transaction).
+     */
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
       await ensureQuota(request, orgId, 'projects.count');
 
@@ -13189,8 +13353,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const state = mergeProjectIdeState(existingState?.state, body.state);
 
-    // Conditional on the validated version so concurrent writers can't both
-    // pass the non-atomic check above and clobber each other.
+    /*
+     * Conditional on the validated version so concurrent writers can't both
+     * pass the non-atomic check above and clobber each other.
+     */
     const expectedVersion = ifMatch && existingState ? existingState.version : undefined;
 
     let ideState;
@@ -13908,6 +14074,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       cursor: typeof body.cursor;
       selection: typeof body.selection;
     };
+
     let conflictDocument: unknown;
     let ideState;
 
@@ -14052,8 +14219,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { userId: body.userId, allowed: body.allowed },
     });
     collaborationBroker.publish(project.id, {
-      // Client's event union expects `terminal_permission.update`; the old
-      // `terminal.permission` fell through applyEvent's catch-all and was dropped.
+      /*
+       * Client's event union expects `terminal_permission.update`; the old
+       * `terminal.permission` fell through applyEvent's catch-all and was dropped.
+       */
       type: 'terminal_permission.update',
       userId: body.userId,
       allowed: body.allowed,
@@ -14112,6 +14281,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const { id } = parse(z.object({ id: z.string().min(1) }), request.params);
     const revoked = await store.revokeProjectShareLink({ projectId: project.id, id });
 
@@ -14172,10 +14342,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * expired grant as absent so addProjectCollaborator upserts a fresh expiry.
      */
     const now = Date.now();
+
     const alreadyCollaborator = collaborators.some(
       (collaborator) =>
-        collaborator.userId === userId &&
-        (!collaborator.expiresAt || new Date(collaborator.expiresAt).getTime() > now),
+        collaborator.userId === userId && (!collaborator.expiresAt || new Date(collaborator.expiresAt).getTime() > now),
     );
 
     let redeemed = false;
@@ -14281,6 +14451,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const { id } = parse(z.object({ id: z.string().min(1) }), request.params);
     const revoked = await store.revokeChatShare({ id, projectId: project.id });
 
@@ -14344,6 +14515,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * it); otherwise it stays internal.
      */
     const fullPayload = (share.payload ?? {}) as Record<string, unknown>;
+
     const {
       authorUserId: _authorUserId,
       conversationId: _conversationId,
@@ -14378,6 +14550,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       updatedByUserId: request.currentUser!.id,
       updatedAt: new Date().toISOString(),
     };
+
     // Atomic RMW so this flag flip doesn't replay a stale blob over peers' edits.
     const ideState = await mutateProjectIdeState(
       store,
@@ -14499,6 +14672,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         timestamp: new Date().toISOString(),
       }),
     );
+
     /*
      * Per-connection token bucket: bound the inbound message rate so one
      * authenticated peer cannot flood presence/comment frames (each of which
@@ -14544,7 +14718,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             ...(event.payload as Record<string, unknown>),
             sessionId,
           });
+
           const role = await projectCollaborationRole(store, project.id, request.currentUser!.id);
+
           const updated = await store.upsertCollaborationPresence({
             projectId: project.id,
             userId: request.currentUser!.id,
@@ -14572,8 +14748,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             selection: body.selection,
             body: body.body,
           });
-          // Mirror the HTTP comment path's activity + audit trail — the WS path
-          // previously created comments with no project-activity or audit record.
+
+          /*
+           * Mirror the HTTP comment path's activity + audit trail — the WS path
+           * previously created comments with no project-activity or audit record.
+           */
           await store.recordProjectActivity({
             projectId: project.id,
             actorUserId: request.currentUser!.id,
@@ -14769,8 +14948,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
 
-    // Creating a new project in the org consumes its quota — require real org
-    // membership, not the collaborator fallback.
+    /*
+     * Creating a new project in the org consumes its quota — require real org
+     * membership, not the collaborator fallback.
+     */
     await requireOrg(request, store, project.organizationId, 'projects:write');
 
     const body = parse(duplicateProjectSchema, request.body);
@@ -14814,8 +14995,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    // Creating an org-scoped template is a write to the org — require real
-    // membership, not a read-only/collaborator pass.
+    /*
+     * Creating an org-scoped template is a write to the org — require real
+     * membership, not a read-only/collaborator pass.
+     */
     await requireOrg(request, store, project.organizationId, 'projects:write');
 
     const body = parse(templateFromProjectSchema, request.body);
@@ -14940,6 +15123,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     // A suspended org must not keep consuming snapshot storage/quota.
     await requireOrganizationNotSuspended(store, project.organizationId);
 
@@ -15012,6 +15196,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
 
     const archive = await projectStorage.createSnapshot({
@@ -15113,6 +15298,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { snapshots: await store.listSnapshots(project.id) };
   });
 
+  app.get('/projects/:projectId/ai/conversations', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    const query = parse(aiConversationListQuerySchema, request.query ?? {});
+
+    return {
+      conversations: await store.listAiConversations({
+        projectId: project.id,
+        userId: request.currentUser!.id,
+        limit: query.limit,
+      }),
+    };
+  });
   app.post('/projects/:projectId/ai/conversations', async (request, reply) => {
     const project = await requireProject(
       request,
@@ -15144,6 +15347,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     // A suspended org must not keep consuming paid LLM completions.
     await requireOrganizationNotSuspended(store, project.organizationId);
 
@@ -15156,6 +15360,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(aiMessageSchema, request.body);
     const inputTokens = await estimateAiTokens(body.content);
+
     // Enforce the per-message rate cap (not just the token cap) before the expensive gateway call.
     await ensureQuota(request, project.organizationId, 'ai.messages', 1);
     await ensureAiQuota(request, project.organizationId, inputTokens);
@@ -15172,6 +15377,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * doesn't leave an orphaned user message that gets re-sent/re-billed on retry.
      */
     const userMessage = await store.createAiMessage({ conversationId, role: 'user', content: body.content });
+
     const assistantMessage = await store.createAiMessage({
       conversationId,
       role: 'assistant',
@@ -15409,9 +15615,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { projectId } = parse(projectParams, request.params);
     const project = await requireProject(request, store, projectId, 'workspaces:read');
 
-    // This endpoint writes billing rows + usage counters, so a suspended org must
-    // not be able to keep recording AI spend (the 'workspaces:read' permission
-    // does not trigger the suspension gate that write permissions do).
+    /*
+     * This endpoint writes billing rows + usage counters, so a suspended org must
+     * not be able to keep recording AI spend (the 'workspaces:read' permission
+     * does not trigger the suspension gate that write permissions do).
+     */
     await requireOrganizationNotSuspended(store, project.organizationId);
 
     const body = parse(aiRecordUsageSchema, request.body ?? {});
@@ -15621,10 +15829,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       subscription: state.subscription,
       plan: state.plan,
       limits: state.limits,
-      // Live count (PENDING/STARTING/RUNNING). The workspaces.active usage
-      // events are an append-only ledger that is never decremented, so summing
-      // them (as the dashboard used to) grows without bound and never reflects
-      // the real active count.
+
+      /*
+       * Live count (PENDING/STARTING/RUNNING). The workspaces.active usage
+       * events are an append-only ledger that is never decremented, so summing
+       * them (as the dashboard used to) grows without bound and never reflects
+       * the real active count.
+       */
       activeWorkspaces: await store.countActiveWorkspaces(orgId),
       usage: await store.listUsageEvents(orgId, { take: 500 }),
       overrides: (await store.listQuotaOverrides(orgId)).filter((o) => isQuotaOverrideActive(o)),
@@ -15707,6 +15918,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           })
         ).id,
       }));
+
     /*
      * Trial length is server-side billing policy, NOT a customer choice. The
      * client-supplied trialDays was forwarded verbatim to Stripe, so any
@@ -15718,6 +15930,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const MAX_TRIAL_DAYS = 14;
     const trialEligible = !currentSubscription;
     const requestedTrialDays = body.trialDays ?? 0;
+
     const trialDays =
       trialEligible && requestedTrialDays > 0 ? Math.min(requestedTrialDays, MAX_TRIAL_DAYS) : undefined;
 
@@ -15970,6 +16183,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             plan = await store.getBillingPlan('free');
           }
         }
+
         const status =
           event.type === 'customer.subscription.deleted' ? 'CANCELED' : String(object.status ?? 'active').toUpperCase();
 
@@ -15985,6 +16199,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          */
         const eventExternalId = object.subscription ?? object.id;
         const existingSubscription = await store.getSubscription(organizationId).catch(() => undefined);
+
         const isStaleReactivation =
           event.type !== 'customer.subscription.deleted' &&
           existingSubscription?.status === 'CANCELED' &&
@@ -16003,10 +16218,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           : undefined;
         const isStaleByTimestamp = Boolean(
           eventCreatedAt &&
-            // Deletion is terminal and must ALWAYS be applied: a `deleted` event
-            // can legitimately carry an older event.created than a previously
-            // applied `updated`, and dropping it would strand a canceled org on
-            // its paid plan forever. Only non-deletion events are timestamp-gated.
+            /*
+             * Deletion is terminal and must ALWAYS be applied: a `deleted` event
+             * can legitimately carry an older event.created than a previously
+             * applied `updated`, and dropping it would strand a canceled org on
+             * its paid plan forever. Only non-deletion events are timestamp-gated.
+             */
             event.type !== 'customer.subscription.deleted' &&
             existingSubscription?.lastStripeEventAt &&
             existingSubscription.externalId === eventExternalId &&
@@ -16078,9 +16295,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               : undefined,
             lastStripeEventAt: eventCreatedAt,
           });
-          // Non-critical: a failed audit write must NOT trigger the dedup rollback
-          // (which would re-run the non-idempotent revenue recordUsageEvent above and
-          // double-count). Swallow audit errors.
+
+          /*
+           * Non-critical: a failed audit write must NOT trigger the dedup rollback
+           * (which would re-run the non-idempotent revenue recordUsageEvent above and
+           * double-count). Swallow audit errors.
+           */
           await audit(request, store, {
             organizationId,
             action: `billing.stripe.${event.type}`,
@@ -16125,8 +16345,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const invoiceSubscriptionId = typeof object.subscription === 'string' ? object.subscription : undefined;
         const subscriptionMatches = !invoiceSubscriptionId || invoiceSubscriptionId === existing?.externalId;
 
-        // Also downgrade TRIALING: a failed trial-conversion payment must not leave
-        // the org on paid entitlements if the follow-up subscription.updated drops.
+        /*
+         * Also downgrade TRIALING: a failed trial-conversion payment must not leave
+         * the org on paid entitlements if the follow-up subscription.updated drops.
+         */
         if (
           existing &&
           !isStaleByTimestamp &&
@@ -16156,6 +16378,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       if (organizationId && event.type === 'invoice.paid') {
         const existing = await store.getSubscription(organizationId).catch(() => undefined);
+
         const eventCreatedAt = Number.isFinite(Number(event.created))
           ? new Date(Number(event.created) * 1000)
           : undefined;
@@ -16164,6 +16387,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             existing?.lastStripeEventAt &&
             eventCreatedAt.getTime() < new Date(existing.lastStripeEventAt).getTime(),
         );
+
         const invoiceSubscriptionId = typeof object.subscription === 'string' ? object.subscription : undefined;
         const subscriptionMatches = !invoiceSubscriptionId || invoiceSubscriptionId === existing?.externalId;
 
@@ -16191,6 +16415,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           organizationId,
           type: `billing.${event.type}`,
           quantity: 1,
+
           /*
            * Record both amounts (in cents). For invoice.paid the relevant figure
            * is amount_paid — amount_due on a paid invoice is typically 0 (or
@@ -16203,8 +16428,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             amountDueCents: object.amount_due,
           },
         });
-        // Non-critical (see above): never let an audit failure roll back + re-run
-        // the non-idempotent revenue recordUsageEvent.
+
+        /*
+         * Non-critical (see above): never let an audit failure roll back + re-run
+         * the non-idempotent revenue recordUsageEvent.
+         */
         await audit(request, store, {
           organizationId,
           action: `billing.stripe.${event.type}`,
@@ -16526,6 +16754,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireRecentAdminReauth(request);
 
     const { userId } = parse(adminUserParams, request.params);
+
     // Don't let an admin suspend the last remaining administrator (incl. self).
     await assertNotLastPlatformAdmin(store, userId);
     await store.mutateSystemSettingIds('admin.suspendedUserIds', { add: userId });
@@ -17288,9 +17517,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
-    // A suspended org must not queue new builds (resource consumption) — matches
-    // the workspace create/start routes.
+
+    /*
+     * A suspended org must not queue new builds (resource consumption) — matches
+     * the workspace create/start routes.
+     */
     await requireOrganizationNotSuspended(store, project.organizationId);
+
     const body = {
       provider: 'static' as const,
       environment: 'preview' as const,
@@ -17636,6 +17869,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * only (e.g. docker) deploy could keep redeploying it for free.
      */
     const { subscription: redeploySubscription } = await billingState(project.organizationId);
+
     const redeployPlanKey =
       redeploySubscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(redeploySubscription.status)
         ? redeploySubscription.planKey
@@ -17704,6 +17938,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const redeploy = redeployResult.queued;
 
     const sourceMetadata = (source.metadata ?? {}) as Record<string, unknown>;
+
     /*
      * Stored env values matching the secret pattern were persisted as the literal
      * '[REDACTED]' (the raw value is never stored). Feeding '[REDACTED]' back into
@@ -17929,6 +18164,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       finalDeployment = await store.updateDeployment(project.id, rollback.id, {
         // QUEUED → READY on success / FAILED on failure (allowed by the monotonic guard).
         status: rollbackFailed ? 'FAILED' : 'READY',
+
         /*
          * On a FAILED provider rollback, clear the live URLs copied from the target
          * deployment up-front — the provider never actually switched traffic, so a
@@ -18069,6 +18305,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * that user's address as userName (account-grafting / cross-org access).
      */
     const emailDomain = body.userName.split('@')[1]?.toLowerCase();
+
     const verifiedDomains = (await store.listDomainVerifications(orgId))
       .filter((d) => Boolean(d.verifiedAt))
       .map((d) => d.domain.toLowerCase());
@@ -18185,6 +18422,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         await store.removeMember(orgId, userId).catch(() => undefined);
+
         return false as const;
       });
 
@@ -18233,14 +18471,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'User is not a member of this organization', code: 'SCIM_USER_NOT_FOUND' });
     }
 
-    // Serialize check+removal so concurrent SCIM deletes can't both pass the
-    // last-owner guard and zero out the org's owners (TOCTOU).
+    /*
+     * Serialize check+removal so concurrent SCIM deletes can't both pass the
+     * last-owner guard and zero out the org's owners (TOCTOU).
+     */
     const deleteConflict = await store.withSerializedMutation(`org-members:${orgId}`, async () => {
       if (await isLastOwnerRemoval(store, orgId, membership)) {
         return true as const;
       }
 
       await store.removeMember(orgId, userId);
+
       return false as const;
     });
 

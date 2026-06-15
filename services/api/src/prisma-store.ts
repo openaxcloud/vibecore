@@ -1382,6 +1382,18 @@ export class PrismaApiStore implements ApiStore {
     });
   }
 
+  async listActiveWorkspaces(organizationId: string) {
+    return (
+      await this.prisma.workspace.findMany({
+        where: {
+          project: { organizationId, deletedAt: null },
+          status: { in: ['PENDING', 'STARTING', 'RUNNING'] },
+        },
+        orderBy: { updatedAt: 'asc' },
+      })
+    ).map(mapWorkspace);
+  }
+
   async countSnapshots(organizationId: string) {
     /*
      * Exclude system-generated 'before-ai-change' snapshots from the user's
@@ -2445,6 +2457,21 @@ export class PrismaApiStore implements ApiStore {
   async getAiConversation(id: string) {
     const conversation = await this.prisma.aiConversation.findUnique({ where: { id } });
     return conversation ? mapAiConversation(conversation) : undefined;
+  }
+
+  async listAiConversations(input: { projectId: string; userId: string; limit?: number }) {
+    const limit = Math.min(Math.max(input.limit ?? 25, 1), 100);
+
+    return (
+      await this.prisma.aiConversation.findMany({
+        where: {
+          projectId: input.projectId,
+          userId: input.userId,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      })
+    ).map(mapAiConversation);
   }
 
   async createAiMessage(input: {
