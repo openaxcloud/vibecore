@@ -340,24 +340,24 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
             failureThreshold: 3,
           },
           /*
-           * Liveness RESTARTS the pod — and a restart kills the user's dev server
-           * AND any in-flight `npm install` (the agent's child processes),
-           * surfacing as "Stopped runtime" with a half-populated node_modules.
-           * Verified live: a heavy install of a full React/Vite app pegs CPU under
-           * sandbox-node overcommit and starves the agent's /health for longer
-           * than the previous ~90s window, so the kubelet recycled the pod
-           * mid-install (restarts climbing) and the install never finished. Make
-           * the window generous — 10s timeout, 15 failures over 20s periods
-           * (~300s) — so a multi-minute install completes; a genuinely hung agent
-           * is still recycled after 5min. Readiness (above) stays responsive so
-           * traffic is gated quickly without triggering a restart.
+           * Liveness uses a TCP socket check, NOT httpGet /health. Verified live:
+           * a heavy `npm install` (full React/Vite app) pegs the pod's CPU, and
+           * under gVisor the agent's HTTP /health handler gets starved of CPU
+           * scheduling for minutes — so an httpGet liveness failed even with a
+           * 300s window, and the kubelet SIGTERM-restarted the pod mid-install
+           * (node_modules left half-populated, dev server never started). A TCP
+           * check only verifies the agent's port is still bound (kernel-level
+           * accept), which the listening HTTP server satisfies throughout a busy
+           * install — so a healthy-but-busy agent is no longer recycled, while a
+           * genuinely dead agent (port closed) is still caught (~150s). Readiness
+           * stays httpGet so traffic is only routed once /health truly answers.
            */
           livenessProbe: {
-            httpGet: { path: '/health', port: 8080 },
+            tcpSocket: { port: 8080 },
             initialDelaySeconds: 10,
-            periodSeconds: 20,
-            timeoutSeconds: 10,
-            failureThreshold: 15,
+            periodSeconds: 15,
+            timeoutSeconds: 5,
+            failureThreshold: 10,
           },
           securityContext: {
             allowPrivilegeEscalation: false,
