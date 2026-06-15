@@ -355,4 +355,43 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
      */
     expect(installCall?.args).toContain('--include=dev');
   });
+
+  it('clears the in-flight start guard on stop so the dev server can be relaunched', async () => {
+    runtimeFiles.set(
+      'package.json',
+      JSON.stringify({
+        name: 'app',
+        type: 'module',
+        scripts: { dev: 'vite --host 0.0.0.0' },
+        dependencies: { react: '^18.3.1' },
+        devDependencies: { vite: '^5.1.4' },
+      }),
+    );
+
+    const store = new WorkbenchStore();
+    await store.loadRuntimeFiles('.');
+
+    /*
+     * Keep the streamed command in-flight so the start promise stays set, the way a
+     * live dev server keeps running (the finally that would clear it never fires).
+     * Before the fix, stopPreviewServer left that promise stale and the next start
+     * short-circuited — stranding the dev server on "starting".
+     */
+    let release: () => void = () => {};
+    runtimeAdapterMock.streamCommand.mockImplementation(async function* () {
+      yield { type: 'stdout', data: 'Local: http://localhost:5173/' };
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      yield { type: 'exit', exitCode: 0 };
+    });
+
+    void store.startPreviewServer();
+    await vi.waitFor(() => expect(store.isPreviewServerStarting()).toBe(true));
+
+    await store.stopPreviewServer();
+    expect(store.isPreviewServerStarting()).toBe(false);
+
+    release();
+  });
 });

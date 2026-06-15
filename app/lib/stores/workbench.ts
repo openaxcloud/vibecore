@@ -701,6 +701,19 @@ export class WorkbenchStore {
     }
 
     await this.refreshRuntimePorts().catch(() => undefined);
+
+    /*
+     * Clear the in-flight start guard. startPreviewServer() early-returns when
+     * #previewStartPromise is set (it is a resolved promise once the dev command
+     * is streaming), so if a stop leaves it stale the NEXT start — the Run button,
+     * or reopening the project — returns the dead promise and never relaunches the
+     * dev server, stranding it on "starting". The streaming finally normally
+     * clears it, but a kill (or a stop racing an in-flight start) can beat that.
+     * restartPreviewServer/reinstallDependencies already cleared it manually; do
+     * it here so EVERY stop→start path relaunches.
+     */
+    this.#previewStartPromise = undefined;
+    this.#previewCommandRunning = false;
     this.previewServerState.set({ status: 'idle' });
 
     return previewProcesses.length;
@@ -708,7 +721,6 @@ export class WorkbenchStore {
 
   async restartPreviewServer() {
     await this.stopPreviewServer();
-    this.#previewStartPromise = undefined;
 
     return this.startPreviewServer();
   }
@@ -722,7 +734,6 @@ export class WorkbenchStore {
   async reinstallDependencies() {
     this.appendWorkspaceLog('Reinstalling dependencies…');
     await this.stopPreviewServer();
-    this.#previewStartPromise = undefined;
 
     return this.startPreviewServer({ forceInstall: true });
   }
