@@ -61,8 +61,13 @@ export default function UpdateTab() {
             continue;
           }
 
-          lastProgress = JSON.parse(line);
-          setResult(lastProgress);
+          // Skip a malformed line instead of aborting the whole update check.
+          try {
+            lastProgress = JSON.parse(line);
+            setResult(lastProgress);
+          } catch (error) {
+            console.warn('Skipping malformed update-stream line:', error);
+          }
         }
       }
 

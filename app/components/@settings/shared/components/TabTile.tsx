@@ -45,6 +45,7 @@ export const TabTile: React.FC<TabTileProps> = ({
               />
               <div
                 role="button"
+                aria-label={TAB_LABELS[tab.id]}
                 tabIndex={isLoading ? -1 : 0}
                 aria-pressed={isActive}
                 onClick={onClick}

@@ -55,7 +55,7 @@ export function SearchResultItem({
       onClick={onClick}
     >
       <div className="flex items-start justify-between mb-3 gap-3">
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 min-w-0">
           {icon && (
             <div
               className={classNames(
