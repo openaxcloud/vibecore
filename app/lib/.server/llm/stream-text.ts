@@ -28,6 +28,25 @@ import { allowedHTMLElements } from '~/utils/markdown';
 
 export type Messages = Message[];
 
+export const DEFAULT_STREAM_MAX_RETRIES = 4;
+
+/**
+ * How many times the AI SDK should retry a RETRYABLE transient provider failure
+ * (throttling, 5xx, connection reset, Bedrock "[UNKNOWN]" stream errors) with
+ * exponential backoff before surfacing an error. Bounded to [0, 8] and defaults
+ * to {@link DEFAULT_STREAM_MAX_RETRIES}; override with STREAM_MAX_RETRIES.
+ */
+export function resolveStreamMaxRetries(env?: Record<string, string | undefined>): number {
+  const raw = env?.STREAM_MAX_RETRIES ?? (typeof process !== 'undefined' ? process.env?.STREAM_MAX_RETRIES : undefined);
+  const parsed = Number(raw);
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return DEFAULT_STREAM_MAX_RETRIES;
+  }
+
+  return Math.min(Math.floor(parsed), 8);
+}
+
 export interface StreamingOptions extends Omit<Parameters<typeof _streamText>[0], 'model'> {
   supabaseConnection?: {
     isConnected: boolean;
@@ -389,6 +408,17 @@ ${agentMemoryContext}`;
   const streamParams = {
     model: removeUnsupportedModelSettings(modelInstance, modelDetails.name, modelDetails.provider),
     system: chatMode === 'build' ? systemPrompt : discussPrompt(),
+
+    /*
+     * Auto-retry transient provider failures (Bedrock "[UNKNOWN]" stream errors,
+     * throttling, 5xx, connection resets) at the request layer. The AI SDK only
+     * retries RETRYABLE errors and applies exponential backoff between attempts,
+     * so a pre-stream transient failure is recovered server-side and the first
+     * generation succeeds without the user clicking Regenerate. Idempotent: the
+     * retry re-issues the request before any output is committed to the stream,
+     * so already-written files are never duplicated. Default 4, env-overridable.
+     */
+    maxRetries: resolveStreamMaxRetries(serverEnv as Record<string, string | undefined> | undefined),
     ...tokenParams,
     messages: convertToCoreMessages(processedMessages as any),
     ...filteredOptions,
