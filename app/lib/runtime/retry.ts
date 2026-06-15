@@ -16,6 +16,29 @@ const TRANSIENT_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
  */
 const TRANSIENT_CODES = new Set(['WORKSPACE_NOT_STARTED', 'WORKSPACE_AGENT_REQUEST_FAILED']);
 
+/**
+ * A 429 is normally transient (a rate-limit that clears with backoff), but a
+ * 429 carrying a quota signal is a HARD limit (e.g. the org is at its
+ * workspaces.active / terminals.concurrent ceiling). Retrying that is futile and
+ * produces a request storm — observed in prod as 100+ file-write retries and an
+ * endless terminal reconnect loop after a workspace start was quota-blocked.
+ * The quota code rides in the proxied response body, surfaced on RuntimeError
+ * `details` (a JSON string) rather than `code`, so we scan both plus the message.
+ */
+const HARD_LIMIT_HINTS = ['quota_exceeded', 'quota exceeded'];
+
+function isHardQuota429(error: RuntimeError): boolean {
+  if (error.status !== 429) {
+    return false;
+  }
+
+  const haystacks = [error.code, typeof error.details === 'string' ? error.details : '', error.message]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase());
+
+  return haystacks.some((value) => HARD_LIMIT_HINTS.some((hint) => value.includes(hint)));
+}
+
 const TRANSIENT_MESSAGE_HINTS = [
   'failed to fetch',
   'network',
@@ -41,6 +64,11 @@ export function isTransientRuntimeError(error: unknown): boolean {
      * be retried even though it shares the generic proxy error code.
      */
     if (typeof error.status === 'number') {
+      // A quota-driven 429 is a hard ceiling — never retry it (avoids storms).
+      if (isHardQuota429(error)) {
+        return false;
+      }
+
       return TRANSIENT_STATUSES.has(error.status);
     }
 

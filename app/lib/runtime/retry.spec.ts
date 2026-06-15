@@ -41,6 +41,30 @@ describe('isTransientRuntimeError', () => {
   it('does not retry arbitrary logic errors', () => {
     expect(isTransientRuntimeError(new Error('Unexpected end of JSON input'))).toBe(false);
   });
+
+  it('does not retry a quota-driven 429 (hard ceiling, not a transient rate-limit)', () => {
+    // The proxied quota body is surfaced on RuntimeError.details as a JSON string.
+    const quotaInDetails = new RuntimeError('Remote runtime request failed: 429', {
+      code: 'REMOTE_RUNTIME_REQUEST_FAILED',
+      status: 429,
+      details: JSON.stringify({ code: 'QUOTA_EXCEEDED', quotaKey: 'workspaces.active', used: 1, limit: 1 }),
+    });
+    expect(isTransientRuntimeError(quotaInDetails)).toBe(false);
+
+    const quotaInMessage = new RuntimeError('Quota exceeded for terminals.concurrent', {
+      code: 'REMOTE_RUNTIME_REQUEST_FAILED',
+      status: 429,
+    });
+    expect(isTransientRuntimeError(quotaInMessage)).toBe(false);
+  });
+
+  it('still retries a plain rate-limit 429 (no quota signal)', () => {
+    const rateLimited = new RuntimeError('Remote runtime request failed: 429', {
+      code: 'REMOTE_RUNTIME_REQUEST_FAILED',
+      status: 429,
+    });
+    expect(isTransientRuntimeError(rateLimited)).toBe(true);
+  });
 });
 
 describe('withRuntimeRetry', () => {
