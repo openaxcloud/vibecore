@@ -7,7 +7,14 @@ metadata:
     policies.kyverno.io/category: Security
     policies.kyverno.io/severity: high
 spec:
-  validationFailureAction: Enforce
+  # Audit-first: when this policy is first installed it must NEVER block workspace
+  # creation. Start in Audit (admission is allowed; violations are only reported)
+  # so an operator can confirm zero legitimate workspace pods are flagged, then
+  # flip to Enforce. The security rules below also cover initContainers (a prior
+  # gap let an initContainer bypass non-root/cap-drop/limits/pinned-image), but
+  # the readiness/liveness rule deliberately does NOT — initContainers run to
+  # completion and have no probes, so requiring them there would reject every pod.
+  validationFailureAction: Audit
   background: true
   rules:
     - name: require-workspace-labels
@@ -98,6 +105,16 @@ spec:
                     - ALL
                 seccompProfile:
                   type: RuntimeDefault
+          - list: request.object.spec.initContainers
+            pattern:
+              securityContext:
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
 
     - name: require-resource-limits
       match:
@@ -120,6 +137,15 @@ spec:
                 limits:
                   cpu: "?*"
                   memory: "?*"
+          - list: request.object.spec.initContainers
+            pattern:
+              resources:
+                requests:
+                  cpu: "?*"
+                  memory: "?*"
+                limits:
+                  cpu: "?*"
+                  memory: "?*"
 
     - name: block-latest-tags
       match:
@@ -134,6 +160,13 @@ spec:
         message: Production workspace images must be pinned and cannot use the latest tag.
         foreach:
           - list: request.object.spec.containers
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.image }}"
+                    operator: Matches
+                    value: ".*:latest$"
+          - list: request.object.spec.initContainers
             deny:
               conditions:
                 any:
