@@ -1029,17 +1029,25 @@ export class WorkbenchStore {
     const hasPnpmLock = this.#packageDirectoryHasFile(packageJsonPath, 'pnpm-lock.yaml');
     const hasYarnLock = this.#packageDirectoryHasFile(packageJsonPath, 'yarn.lock');
 
+    /*
+     * Workspace pods run with NODE_ENV=production (the agent needs it for its own
+     * security checks), which makes every package manager default to omitting
+     * devDependencies. But the dev server itself (vite, @vitejs/plugin-react, the
+     * framework CLI, …) lives in devDependencies, so a production install leaves
+     * `npm run dev` failing with exit 127 ("vite: command not found") and a
+     * permanently blank preview. Force dev dependencies in regardless of NODE_ENV.
+     */
     if (packageManager.startsWith('pnpm') || hasPnpmLock) {
-      return { command: 'pnpm', args: ['install'], label: 'pnpm install', cwd };
+      return { command: 'pnpm', args: ['install', '--prod=false'], label: 'pnpm install', cwd };
     }
 
     if (packageManager.startsWith('yarn') || hasYarnLock) {
-      return { command: 'yarn', args: ['install'], label: 'yarn install', cwd };
+      return { command: 'yarn', args: ['install', '--production=false'], label: 'yarn install', cwd };
     }
 
     return {
       command: 'npm',
-      args: ['install', '--prefer-offline', '--no-audit', '--no-fund'],
+      args: ['install', '--include=dev', '--prefer-offline', '--no-audit', '--no-fund'],
       label: 'npm install',
       cwd,
     };
