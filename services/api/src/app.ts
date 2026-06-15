@@ -5523,6 +5523,34 @@ async function seedBillingPlans(store: ApiStore) {
   );
 }
 
+/**
+ * Decides whether a failed api->agent hop attempt should be retried. Pure so the
+ * policy is unit-testable. A `connection` failure means the request never reached
+ * the agent (reset/refused/timeout) and is safe to retry for ANY method; an
+ * `http` 502/503/504 came FROM the agent, so a write may have applied — only
+ * retry idempotent reads. Never retry once the attempt budget is exhausted.
+ */
+export function shouldRetryAgentHop(opts: {
+  kind: 'connection' | 'http';
+  status?: number;
+  method: string;
+  attempt: number;
+  maxAttempts: number;
+}): boolean {
+  if (opts.attempt >= opts.maxAttempts) {
+    return false;
+  }
+
+  if (opts.kind === 'connection') {
+    return true;
+  }
+
+  const idempotent = ['GET', 'HEAD', 'OPTIONS'].includes(opts.method.toUpperCase());
+  const transient = opts.status === 502 || opts.status === 503 || opts.status === 504;
+
+  return idempotent && transient;
+}
+
 export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyInstance> {
   const store = options.store ?? createDefaultStore();
   const agentMemory = options.agentMemory ?? createDefaultAgentMemory(store);
@@ -8685,7 +8713,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const method = (init.method ?? 'GET').toUpperCase();
-    const idempotent = method === 'GET' || method === 'HEAD' || method === 'OPTIONS';
     const url = `${agentBaseUrl(workspaceId)}${path}`;
 
     let lastError: unknown;
@@ -8723,7 +8750,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           });
         }
 
-        if (attempt < AGENT_REQUEST_ATTEMPTS) {
+        if (shouldRetryAgentHop({ kind: 'connection', method, attempt, maxAttempts: AGENT_REQUEST_ATTEMPTS })) {
           await agentSleep(agentRetryDelay(attempt));
           continue;
         }
@@ -8749,9 +8776,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * already applied, so only retry idempotent reads. Drain the body first to
          * release the socket back to the pool before the next attempt.
          */
-        const retryableStatus = response.status === 502 || response.status === 503 || response.status === 504;
-
-        if (idempotent && retryableStatus && attempt < AGENT_REQUEST_ATTEMPTS) {
+        if (
+          shouldRetryAgentHop({
+            kind: 'http',
+            status: response.status,
+            method,
+            attempt,
+            maxAttempts: AGENT_REQUEST_ATTEMPTS,
+          })
+        ) {
           await response.body?.cancel().catch(() => undefined);
           await agentSleep(agentRetryDelay(attempt));
           continue;
