@@ -13,9 +13,12 @@
  */
 import {
   computeCreditCostCents,
+  creditRolloverMonths,
   estimateCheckpointCostCents,
   evaluateCreditGate,
+  planCreditConfig,
   planPackConsumption,
+  toCreditPlanKey,
   type AgentBuildTier,
   type CreditGateDecision,
 } from '@vibecore/billing';
@@ -150,4 +153,67 @@ export function estimateRequestCents(input: {
   margin?: number;
 } & CheckpointPowerControls): number {
   return estimateCheckpointCostCents(input);
+}
+
+export interface GrantResult {
+  granted: number;
+  expired: number;
+  period: 'monthly' | 'daily';
+}
+
+/**
+ * Apply a plan's recurring credit grant. Starter grants its daily amount (call
+ * daily); Core/Pro grant their monthly amount (call at period rollover).
+ *
+ * Rollover policy (Replit): non-rollover plans (Starter daily, Core monthly)
+ * expire the prior unused balance before granting; Pro rolls over one extra
+ * period, so the balance is capped at one period's worth before the new grant.
+ */
+export async function applyPlanGrant(
+  store: ApiStore,
+  input: { organizationId: string; planKey: string | undefined; nowMs: number },
+): Promise<GrantResult> {
+  const creditPlan = toCreditPlanKey(input.planKey);
+  const config = planCreditConfig[creditPlan];
+  const period: 'monthly' | 'daily' = config.monthlyCreditCents > 0 ? 'monthly' : 'daily';
+  const grantCents = period === 'monthly' ? config.monthlyCreditCents : config.dailyCreditCents;
+
+  if (grantCents <= 0) {
+    return { granted: 0, expired: 0, period };
+  }
+
+  const wallet = await store.ensureCreditWallet(input.organizationId);
+  let expired = 0;
+
+  if (config.rollover) {
+    // Pro: keep at most one period of unused balance before topping up.
+    const rolloverCap = config.monthlyCreditCents * creditRolloverMonths(input.planKey);
+    if (wallet.balanceCents > rolloverCap) {
+      expired = wallet.balanceCents - rolloverCap;
+      await store.recordCreditEntry({
+        organizationId: input.organizationId,
+        deltaCents: -expired,
+        kind: 'EXPIRY',
+        reason: 'rollover cap exceeded',
+      });
+    }
+  } else if (wallet.balanceCents > 0) {
+    // Non-rollover: prior unused grant expires.
+    expired = wallet.balanceCents;
+    await store.recordCreditEntry({
+      organizationId: input.organizationId,
+      deltaCents: -expired,
+      kind: 'EXPIRY',
+      reason: 'prior grant expired (no rollover)',
+    });
+  }
+
+  await store.recordCreditEntry({
+    organizationId: input.organizationId,
+    deltaCents: grantCents,
+    kind: 'GRANT',
+    reason: `${creditPlan} ${period} grant`,
+  });
+
+  return { granted: grantCents, expired, period };
 }
