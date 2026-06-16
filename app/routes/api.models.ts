@@ -4,10 +4,36 @@ import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { ProviderInfo } from '~/types/model';
 
+/**
+ * Shape consumed by the public marketing landing's AI model selector widget
+ * (the prebuilt `ecode-static` SPA). It reads `models[].{id,name,provider,...}`
+ * and renders a "No AI providers configured" warning when the array is empty.
+ * The IDE/app consumers read `modelList`/`providers`/`defaultProvider` instead,
+ * so this field is purely additive and backward-compatible.
+ */
+interface PublicModelSummary {
+  id: string;
+  name: string;
+  provider: string;
+  description: string;
+  supportsStreaming: boolean;
+}
+
 interface ModelsResponse {
   modelList: ModelInfo[];
+  models: PublicModelSummary[];
   providers: ProviderInfo[];
   defaultProvider: ProviderInfo;
+}
+
+function toPublicModelSummaries(modelList: ModelInfo[]): PublicModelSummary[] {
+  return modelList.map((model) => ({
+    id: model.name,
+    name: model.label ?? model.name,
+    provider: model.provider ?? 'Unknown',
+    description: model.label ?? model.name,
+    supportsStreaming: true,
+  }));
 }
 
 let cachedProviders: ProviderInfo[] | null = null;
@@ -84,6 +110,7 @@ export async function loader({
 
   return json<ModelsResponse>({
     modelList,
+    models: toPublicModelSummaries(modelList),
     providers,
     defaultProvider,
   });
