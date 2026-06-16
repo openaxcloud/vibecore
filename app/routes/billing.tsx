@@ -67,10 +67,12 @@ export async function action({ request }: EnterpriseActionArgs) {
       return redirect(result.portalUrl);
     } catch (error) {
       if (isApiResponse(error)) {
-        return json(
-          { error: await apiErrorMessage(error, 'You cannot manage billing for this organization.') },
-          { status: error.status },
-        );
+        const message =
+          error.status >= 500
+            ? 'The billing portal is temporarily unavailable. Please try again in a moment.'
+            : await apiErrorMessage(error, 'You cannot manage billing for this organization.');
+
+        return json({ error: message }, { status: error.status });
       }
 
       /*
@@ -101,10 +103,18 @@ export async function action({ request }: EnterpriseActionArgs) {
     return redirect(result.checkoutUrl);
   } catch (error) {
     if (isApiResponse(error)) {
-      return json(
-        { error: await apiErrorMessage(error, 'Billing checkout is unavailable. Please try again later.') },
-        { status: error.status },
-      );
+      /*
+       * 4xx carries an actionable client message (already subscribed, free plan
+       * has no checkout, …) so surface it. 5xx is an upstream/Stripe failure
+       * whose raw text ("Internal server error") is noise to the user — show a
+       * clean, honest fallback instead.
+       */
+      const message =
+        error.status >= 500
+          ? 'Billing checkout is temporarily unavailable. Please try again in a moment.'
+          : await apiErrorMessage(error, 'Billing checkout is unavailable. Please try again later.');
+
+      return json({ error: message }, { status: error.status });
     }
 
     /*
