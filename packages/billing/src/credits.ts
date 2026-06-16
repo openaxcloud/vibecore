@@ -48,7 +48,13 @@ export const planCreditConfig: Record<CreditPlanKey, PlanCreditConfig> = {
   enterprise: { monthlyCreditCents: 0, dailyCreditCents: 0, rollover: true },
 };
 
-/** Normalize an arbitrary plan key (incl. legacy free/pro/team) to a credit plan. */
+/**
+ * Normalize a plan key in the **new** (post-cutover) world. Target keys pass
+ * through; the unambiguously-legacy keys `free`/`team` (which have no new-world
+ * meaning) are folded to their target. NOTE: `pro` resolves to the NEW pro
+ * ($100) here — a legacy `pro` ($29) row must go through `migrateLegacyPlanKey`
+ * during the one-time backfill, not this function.
+ */
 export function toCreditPlanKey(key: string | undefined): CreditPlanKey {
   switch (key) {
     case 'starter':
@@ -56,13 +62,34 @@ export function toCreditPlanKey(key: string | undefined): CreditPlanKey {
     case 'pro':
     case 'enterprise':
       return key;
-    // Legacy → target migration (see spec §2.A): free→starter, pro→core, team→pro.
     case 'free':
       return 'starter';
     case 'team':
       return 'pro';
     default:
       return 'starter';
+  }
+}
+
+/**
+ * One-time legacy → Replit-parity migration mapping, used by the P7 backfill
+ * that renames existing subscriptions. Distinct from `toCreditPlanKey` because
+ * the legacy `pro` ($29) maps to the new `core` ($25), whereas in the new world
+ * `pro` means $100. See docs/REPLIT_PARITY_SPEC.md §2.A.
+ */
+export function migrateLegacyPlanKey(legacyKey: string | undefined): CreditPlanKey {
+  switch (legacyKey) {
+    case 'free':
+      return 'starter';
+    case 'pro':
+      return 'core';
+    case 'team':
+      return 'pro';
+    case 'enterprise':
+      return 'enterprise';
+    // Already a new-world key (or unknown) → normalize.
+    default:
+      return toCreditPlanKey(legacyKey);
   }
 }
 

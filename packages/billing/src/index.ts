@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { toCreditPlanKey, type CreditPlanKey } from './credits.js';
 
 export * from './ai-pricing.js';
 export * from './credits.js';
@@ -11,7 +12,12 @@ export * from './credits.js';
  */
 const STRIPE_API_VERSION = '2024-06-20';
 
-export type PlanKey = 'free' | 'pro' | 'team' | 'enterprise';
+// Legacy keys (free/pro/team) drive the CURRENT live flat-rate billing and must
+// keep working. The Replit-parity keys (starter/core) are added to the union so
+// the new catalog + migration can reference them; the two catalogs are kept
+// separate (see `creditPlanCatalog`) because the `pro` key is reused with a new
+// price/meaning (legacy team → new pro). See docs/REPLIT_PARITY_SPEC.md §2.A/§4.
+export type PlanKey = 'free' | 'starter' | 'pro' | 'core' | 'team' | 'enterprise';
 
 export type QuotaKey =
   | 'projects.count'
@@ -179,6 +185,175 @@ export function findPlanByKey(key: string | undefined): BillingPlan | undefined 
 
 export function planByKey(key: string | undefined): BillingPlan {
   return findPlanByKey(key) ?? billingPlans[0];
+}
+
+// ===========================================================================
+// Replit-parity plan catalog (starter/core/pro/enterprise, monthly + annual,
+// included credits). Separate from `billingPlans` (legacy) during migration —
+// not seeded into the Plan table until the P7 cutover. Drives the new pricing
+// page and credit grants. See docs/REPLIT_PARITY_SPEC.md.
+// ===========================================================================
+
+export type PublishRegions = 'single' | 'all' | 'custom';
+
+export interface CreditBillingPlan {
+  key: CreditPlanKey; // 'starter' | 'core' | 'pro' | 'enterprise'
+  name: string;
+  /** Monthly price in cents (0 = free / custom). */
+  monthlyCents: number;
+  /** Total annual price in cents billed once (0 = free / custom). */
+  annualCents: number;
+  /** Effective monthly price when paying annually, in cents (display helper). */
+  annualMonthlyCents: number;
+  /** Monthly credit grant in cents (0 for Starter, which grants daily). */
+  includedCreditCents: number;
+  /** Daily credit grant in cents (Starter only). */
+  dailyCreditCents: number;
+  collaborators: number;
+  /** Read-only viewers (Pro+). 0 = none. */
+  viewers: number;
+  /** Concurrent agents allowed per request fan-out. */
+  parallelAgents: number;
+  /** Database point-in-time rollback window in days (0 = none). */
+  dbRollbackDays: number;
+  /** Can remove the "Made with VibeCore" badge. */
+  badgeRemovable: boolean;
+  publishRegions: PublishRegions;
+  /** Access to the most powerful models (Pro/Enterprise). */
+  topModels: boolean;
+  features: string[];
+  /** Compute/storage guard-rails (reused quota dimensions). */
+  limits: PlanLimits;
+  stripeProductEnv: string;
+  stripePriceMonthlyEnv: string;
+  stripePriceAnnualEnv: string;
+}
+
+// Sentinel for "effectively unlimited" guard-rail dimensions on paid plans.
+const UNLIMITED = 1_000_000;
+
+export const creditPlanCatalog: CreditBillingPlan[] = [
+  {
+    key: 'starter',
+    name: 'Starter',
+    monthlyCents: 0,
+    annualCents: 0,
+    annualMonthlyCents: 0,
+    includedCreditCents: 0,
+    dailyCreditCents: 25,
+    collaborators: 1,
+    viewers: 0,
+    parallelAgents: 1,
+    dbRollbackDays: 0,
+    badgeRemovable: false,
+    publishRegions: 'single',
+    topModels: false,
+    features: ['Daily free Agent credits', 'Built-in database', 'Publish 1 project', 'Private / password deploys'],
+    limits: planByKey('free').limits,
+    stripeProductEnv: 'STRIPE_STARTER_PRODUCT_ID',
+    stripePriceMonthlyEnv: 'STRIPE_STARTER_PRICE_MONTHLY_ID',
+    stripePriceAnnualEnv: 'STRIPE_STARTER_PRICE_ANNUAL_ID',
+  },
+  {
+    key: 'core',
+    name: 'Core',
+    monthlyCents: 2500,
+    annualCents: 24_000, // $240/yr → $20/mo effective (~20% off)
+    annualMonthlyCents: 2000,
+    includedCreditCents: 2500,
+    dailyCreditCents: 0,
+    collaborators: 5,
+    viewers: 0,
+    parallelAgents: 2,
+    dbRollbackDays: 0,
+    badgeRemovable: true,
+    publishRegions: 'all',
+    topModels: false,
+    features: [
+      '$25/mo of credits',
+      '5 collaborators',
+      '2 parallel agents',
+      'Unlimited workspaces',
+      'Publish to any region',
+      'Remove "Made with" badge',
+      'AI integrations',
+    ],
+    limits: { ...planByKey('pro').limits, 'workspaces.active': UNLIMITED, 'projects.count': UNLIMITED },
+    stripeProductEnv: 'STRIPE_CORE_PRODUCT_ID',
+    stripePriceMonthlyEnv: 'STRIPE_CORE_PRICE_MONTHLY_ID',
+    stripePriceAnnualEnv: 'STRIPE_CORE_PRICE_ANNUAL_ID',
+  },
+  {
+    key: 'pro',
+    name: 'Pro',
+    monthlyCents: 10_000,
+    annualCents: 114_000, // $1140/yr → $95/mo effective (~5% off)
+    annualMonthlyCents: 9500,
+    includedCreditCents: 10_000,
+    dailyCreditCents: 0,
+    collaborators: 15,
+    viewers: 50,
+    parallelAgents: 10,
+    dbRollbackDays: 28,
+    badgeRemovable: true,
+    publishRegions: 'all',
+    topModels: true,
+    features: [
+      '$100/mo of credits',
+      '15 collaborators',
+      '50 viewers',
+      '10 parallel agents',
+      'Most powerful models',
+      '28-day database rollbacks',
+      'Premium support',
+    ],
+    limits: { ...planByKey('team').limits, 'workspaces.active': UNLIMITED, 'projects.count': UNLIMITED },
+    stripeProductEnv: 'STRIPE_PRO_PRODUCT_ID',
+    stripePriceMonthlyEnv: 'STRIPE_PRO_PRICE_MONTHLY_ID',
+    stripePriceAnnualEnv: 'STRIPE_PRO_PRICE_ANNUAL_ID',
+  },
+  {
+    key: 'enterprise',
+    name: 'Enterprise',
+    monthlyCents: 0, // custom / sales-led
+    annualCents: 0,
+    annualMonthlyCents: 0,
+    includedCreditCents: 0, // granted per-contract
+    dailyCreditCents: 0,
+    collaborators: UNLIMITED,
+    viewers: UNLIMITED,
+    parallelAgents: 50,
+    dbRollbackDays: 28,
+    badgeRemovable: true,
+    publishRegions: 'custom',
+    topModels: true,
+    features: [
+      'Custom seats',
+      'SSO / SAML',
+      'Privacy controls',
+      'Design system',
+      'Data warehouse',
+      'Groups',
+      'Dedicated support',
+      'Single-tenant',
+      'Region selection',
+      'Static outbound IPs',
+      'VPC peering',
+    ],
+    limits: planByKey('enterprise').limits,
+    stripeProductEnv: 'STRIPE_ENTERPRISE_PRODUCT_ID',
+    stripePriceMonthlyEnv: 'STRIPE_ENTERPRISE_PRICE_MONTHLY_ID',
+    stripePriceAnnualEnv: 'STRIPE_ENTERPRISE_PRICE_ANNUAL_ID',
+  },
+];
+
+export function findCreditPlan(key: string | undefined): CreditBillingPlan | undefined {
+  return creditPlanCatalog.find((plan) => plan.key === key);
+}
+
+/** Resolve any plan key (incl. legacy free/pro/team) to a Replit-parity plan. */
+export function creditPlanByKey(key: string | undefined): CreditBillingPlan {
+  return findCreditPlan(toCreditPlanKey(key)) ?? creditPlanCatalog[0];
 }
 
 export function assertQuota(input: { key: QuotaKey; used: number; limit: number; increment?: number }) {
