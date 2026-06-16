@@ -707,6 +707,7 @@ model Plan {
   key             String         @unique
   name            String
   monthlyCents    Int
+  limits          Json
   // Replit-parity additions (nullable → no behaviour change until populated):
   // annual price (effective discount) and the per-plan monthly credit grant in
   // USD cents. `stripePriceId` stays = the monthly price for backward compat;

@@ -525,6 +525,7 @@ exports.Prisma.PlanScalarFieldEnum = {
   key: 'key',
   name: 'name',
   monthlyCents: 'monthlyCents',
+  limits: 'limits',
   annualCents: 'annualCents',
   includedCreditCents: 'includedCreditCents',
   stripeProductId: 'stripeProductId',

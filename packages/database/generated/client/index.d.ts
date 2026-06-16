@@ -52453,6 +52453,7 @@ export namespace Prisma {
     key: number
     name: number
     monthlyCents: number
+    limits: number
     annualCents: number
     includedCreditCents: number
     stripeProductId: number
@@ -52506,6 +52507,7 @@ export namespace Prisma {
     key?: true
     name?: true
     monthlyCents?: true
+    limits?: true
     annualCents?: true
     includedCreditCents?: true
     stripeProductId?: true
@@ -52606,6 +52608,7 @@ export namespace Prisma {
     key: string
     name: string
     monthlyCents: number
+    limits: JsonValue
     annualCents: number | null
     includedCreditCents: number | null
     stripeProductId: string | null
@@ -52638,6 +52641,7 @@ export namespace Prisma {
     key?: boolean
     name?: boolean
     monthlyCents?: boolean
+    limits?: boolean
     annualCents?: boolean
     includedCreditCents?: boolean
     stripeProductId?: boolean
@@ -52653,6 +52657,7 @@ export namespace Prisma {
     key?: boolean
     name?: boolean
     monthlyCents?: boolean
+    limits?: boolean
     annualCents?: boolean
     includedCreditCents?: boolean
     stripeProductId?: boolean
@@ -52666,6 +52671,7 @@ export namespace Prisma {
     key?: boolean
     name?: boolean
     monthlyCents?: boolean
+    limits?: boolean
     annualCents?: boolean
     includedCreditCents?: boolean
     stripeProductId?: boolean
@@ -52679,6 +52685,7 @@ export namespace Prisma {
     key?: boolean
     name?: boolean
     monthlyCents?: boolean
+    limits?: boolean
     annualCents?: boolean
     includedCreditCents?: boolean
     stripeProductId?: boolean
@@ -52687,7 +52694,7 @@ export namespace Prisma {
     stripePriceAnnualId?: boolean
   }
 
-  export type PlanOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "key" | "name" | "monthlyCents" | "annualCents" | "includedCreditCents" | "stripeProductId" | "stripePriceId" | "stripePriceMonthlyId" | "stripePriceAnnualId", ExtArgs["result"]["plan"]>
+  export type PlanOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "key" | "name" | "monthlyCents" | "limits" | "annualCents" | "includedCreditCents" | "stripeProductId" | "stripePriceId" | "stripePriceMonthlyId" | "stripePriceAnnualId", ExtArgs["result"]["plan"]>
   export type PlanInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     subscriptions?: boolean | Plan$subscriptionsArgs<ExtArgs>
     _count?: boolean | PlanCountOutputTypeDefaultArgs<ExtArgs>
@@ -52705,6 +52712,7 @@ export namespace Prisma {
       key: string
       name: string
       monthlyCents: number
+      limits: Prisma.JsonValue
       annualCents: number | null
       includedCreditCents: number | null
       stripeProductId: string | null
@@ -53139,6 +53147,7 @@ export namespace Prisma {
     readonly key: FieldRef<"Plan", 'String'>
     readonly name: FieldRef<"Plan", 'String'>
     readonly monthlyCents: FieldRef<"Plan", 'Int'>
+    readonly limits: FieldRef<"Plan", 'Json'>
     readonly annualCents: FieldRef<"Plan", 'Int'>
     readonly includedCreditCents: FieldRef<"Plan", 'Int'>
     readonly stripeProductId: FieldRef<"Plan", 'String'>
@@ -107353,6 +107362,7 @@ export namespace Prisma {
     key: 'key',
     name: 'name',
     monthlyCents: 'monthlyCents',
+    limits: 'limits',
     annualCents: 'annualCents',
     includedCreditCents: 'includedCreditCents',
     stripeProductId: 'stripeProductId',
@@ -111270,6 +111280,7 @@ export namespace Prisma {
     key?: StringFilter<"Plan"> | string
     name?: StringFilter<"Plan"> | string
     monthlyCents?: IntFilter<"Plan"> | number
+    limits?: JsonFilter<"Plan">
     annualCents?: IntNullableFilter<"Plan"> | number | null
     includedCreditCents?: IntNullableFilter<"Plan"> | number | null
     stripeProductId?: StringNullableFilter<"Plan"> | string | null
@@ -111284,6 +111295,7 @@ export namespace Prisma {
     key?: SortOrder
     name?: SortOrder
     monthlyCents?: SortOrder
+    limits?: SortOrder
     annualCents?: SortOrderInput | SortOrder
     includedCreditCents?: SortOrderInput | SortOrder
     stripeProductId?: SortOrderInput | SortOrder
@@ -111301,6 +111313,7 @@ export namespace Prisma {
     NOT?: PlanWhereInput | PlanWhereInput[]
     name?: StringFilter<"Plan"> | string
     monthlyCents?: IntFilter<"Plan"> | number
+    limits?: JsonFilter<"Plan">
     annualCents?: IntNullableFilter<"Plan"> | number | null
     includedCreditCents?: IntNullableFilter<"Plan"> | number | null
     stripeProductId?: StringNullableFilter<"Plan"> | string | null
@@ -111315,6 +111328,7 @@ export namespace Prisma {
     key?: SortOrder
     name?: SortOrder
     monthlyCents?: SortOrder
+    limits?: SortOrder
     annualCents?: SortOrderInput | SortOrder
     includedCreditCents?: SortOrderInput | SortOrder
     stripeProductId?: SortOrderInput | SortOrder
@@ -111336,6 +111350,7 @@ export namespace Prisma {
     key?: StringWithAggregatesFilter<"Plan"> | string
     name?: StringWithAggregatesFilter<"Plan"> | string
     monthlyCents?: IntWithAggregatesFilter<"Plan"> | number
+    limits?: JsonWithAggregatesFilter<"Plan">
     annualCents?: IntNullableWithAggregatesFilter<"Plan"> | number | null
     includedCreditCents?: IntNullableWithAggregatesFilter<"Plan"> | number | null
     stripeProductId?: StringNullableWithAggregatesFilter<"Plan"> | string | null
@@ -118051,6 +118066,7 @@ export namespace Prisma {
     key: string
     name: string
     monthlyCents: number
+    limits: JsonNullValueInput | InputJsonValue
     annualCents?: number | null
     includedCreditCents?: number | null
     stripeProductId?: string | null
@@ -118065,6 +118081,7 @@ export namespace Prisma {
     key: string
     name: string
     monthlyCents: number
+    limits: JsonNullValueInput | InputJsonValue
     annualCents?: number | null
     includedCreditCents?: number | null
     stripeProductId?: string | null
@@ -118079,6 +118096,7 @@ export namespace Prisma {
     key?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     monthlyCents?: IntFieldUpdateOperationsInput | number
+    limits?: JsonNullValueInput | InputJsonValue
     annualCents?: NullableIntFieldUpdateOperationsInput | number | null
     includedCreditCents?: NullableIntFieldUpdateOperationsInput | number | null
     stripeProductId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -118093,6 +118111,7 @@ export namespace Prisma {
     key?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     monthlyCents?: IntFieldUpdateOperationsInput | number
+    limits?: JsonNullValueInput | InputJsonValue
     annualCents?: NullableIntFieldUpdateOperationsInput | number | null
     includedCreditCents?: NullableIntFieldUpdateOperationsInput | number | null
     stripeProductId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -118107,6 +118126,7 @@ export namespace Prisma {
     key: string
     name: string
     monthlyCents: number
+    limits: JsonNullValueInput | InputJsonValue
     annualCents?: number | null
     includedCreditCents?: number | null
     stripeProductId?: string | null
@@ -118120,6 +118140,7 @@ export namespace Prisma {
     key?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     monthlyCents?: IntFieldUpdateOperationsInput | number
+    limits?: JsonNullValueInput | InputJsonValue
     annualCents?: NullableIntFieldUpdateOperationsInput | number | null
     includedCreditCents?: NullableIntFieldUpdateOperationsInput | number | null
     stripeProductId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -118133,6 +118154,7 @@ export namespace Prisma {
     key?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     monthlyCents?: IntFieldUpdateOperationsInput | number
+    limits?: JsonNullValueInput | InputJsonValue
     annualCents?: NullableIntFieldUpdateOperationsInput | number | null
     includedCreditCents?: NullableIntFieldUpdateOperationsInput | number | null
     stripeProductId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -124488,6 +124510,7 @@ export namespace Prisma {
     key?: SortOrder
     name?: SortOrder
     monthlyCents?: SortOrder
+    limits?: SortOrder
     annualCents?: SortOrder
     includedCreditCents?: SortOrder
     stripeProductId?: SortOrder
@@ -145476,6 +145499,7 @@ export namespace Prisma {
     key: string
     name: string
     monthlyCents: number
+    limits: JsonNullValueInput | InputJsonValue
     annualCents?: number | null
     includedCreditCents?: number | null
     stripeProductId?: string | null
@@ -145489,6 +145513,7 @@ export namespace Prisma {
     key: string
     name: string
     monthlyCents: number
+    limits: JsonNullValueInput | InputJsonValue
     annualCents?: number | null
     includedCreditCents?: number | null
     stripeProductId?: string | null
@@ -145609,6 +145634,7 @@ export namespace Prisma {
     key?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     monthlyCents?: IntFieldUpdateOperationsInput | number
+    limits?: JsonNullValueInput | InputJsonValue
     annualCents?: NullableIntFieldUpdateOperationsInput | number | null
     includedCreditCents?: NullableIntFieldUpdateOperationsInput | number | null
     stripeProductId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -145622,6 +145648,7 @@ export namespace Prisma {
     key?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     monthlyCents?: IntFieldUpdateOperationsInput | number
+    limits?: JsonNullValueInput | InputJsonValue
     annualCents?: NullableIntFieldUpdateOperationsInput | number | null
     includedCreditCents?: NullableIntFieldUpdateOperationsInput | number | null
     stripeProductId?: NullableStringFieldUpdateOperationsInput | string | null
