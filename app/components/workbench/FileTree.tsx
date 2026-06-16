@@ -748,6 +748,18 @@ function FileContextMenu({
 
   const handleDelete = async () => {
     try {
+      /*
+       * Respect file/folder locks, same as the editor / AI writes / Search.
+       * Without this a right-click → Delete permanently wipes a file the user
+       * explicitly locked to protect — defeating the lock feature.
+       */
+      const deleteLock = isFolder ? workbenchStore.isFolderLocked(fullPath) : workbenchStore.isFileLocked(fullPath);
+
+      if ('locked' in deleteLock ? deleteLock.locked : deleteLock.isLocked) {
+        toast.error(`This ${isFolder ? 'folder' : 'file'} is locked and cannot be deleted. Unlock it first.`);
+        return;
+      }
+
       if (!confirm(`Are you sure you want to delete ${isFolder ? 'folder' : 'file'}: ${fileName}?`)) {
         return;
       }
@@ -782,6 +794,19 @@ function FileContextMenu({
      */
     if (nextPath === fullPath) {
       setIsRenaming(false);
+      return;
+    }
+
+    /*
+     * Rename is a create-then-DELETE of the source, so a locked file/folder must
+     * be blocked here too (same lock enforcement as delete / editor / AI writes).
+     */
+    const renameLock = isFolder ? workbenchStore.isFolderLocked(fullPath) : workbenchStore.isFileLocked(fullPath);
+
+    if ('locked' in renameLock ? renameLock.locked : renameLock.isLocked) {
+      toast.error(`This ${isFolder ? 'folder' : 'file'} is locked and cannot be renamed. Unlock it first.`);
+      setIsRenaming(false);
+
       return;
     }
 

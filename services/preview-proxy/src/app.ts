@@ -264,6 +264,20 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       readable.on('end', clear);
       readable.on('error', clear);
 
+      /*
+       * Abort the upstream agent fetch if the client disconnects mid-stream. The
+       * connect timeout is cleared once headers arrive (so long-lived SSE/HMR
+       * bodies aren't truncated), which left the stream-through path — unlike the
+       * inject path's body-idle re-arm — with no way to reclaim a still-running
+       * upstream when the client goes away. Disconnect-only, so active long-lived
+       * streams are unaffected.
+       */
+      reply.raw.on('close', () => {
+        if (!reply.raw.writableFinished) {
+          controller.abort();
+        }
+      });
+
       return reply.send(readable);
     };
 

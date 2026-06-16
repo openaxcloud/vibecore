@@ -692,6 +692,12 @@ export function useDataOperations({
         await new Promise((resolve, reject) => {
           transaction.oncomplete = resolve;
           transaction.onerror = reject;
+
+          /*
+           * A transaction can ABORT (quota exceeded, constraint) without firing
+           * onerror; without onabort the promise hangs forever, freezing import.
+           */
+          transaction.onabort = () => reject(transaction.error ?? new Error('Import transaction aborted'));
         });
 
         // Step 6: Complete
@@ -1180,6 +1186,9 @@ export function useDataOperations({
           await new Promise((resolve, reject) => {
             transaction.oncomplete = resolve;
             transaction.onerror = reject;
+
+            // See import above: handle abort so the undo-restore promise can't hang.
+            transaction.onabort = () => reject(transaction.error ?? new Error('Undo-restore transaction aborted'));
           });
 
           if (undoSkipped > 0) {
