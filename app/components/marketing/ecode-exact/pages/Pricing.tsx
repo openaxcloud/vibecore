@@ -93,20 +93,20 @@ export default function Pricing() {
     free: {
       icon: <Rocket className="h-6 w-6" />,
       gradient: 'from-gray-600 to-gray-700',
-      description: 'Perfect for learning and personal projects',
+      description: 'Free daily Agent credits to learn and build',
       ctaVariant: 'outline',
     },
     core: {
       icon: <Star className="h-6 w-6" />,
       gradient: 'from-[var(--ecode-accent)] to-[var(--ecode-accent)]/80',
-      description: 'Essential tools for productive development',
+      description: '$25/mo of credits, collaborators and any-region publishing',
       popular: true,
       ctaVariant: 'default',
     },
     teams: {
       icon: <Users className="h-6 w-6" />,
       gradient: 'from-blue-600 to-cyan-600',
-      description: 'For professional developers and growing teams',
+      description: 'The most powerful models, more agents, premium support',
       ctaVariant: 'outline',
     },
     enterprise: {
@@ -120,80 +120,62 @@ export default function Pricing() {
 
   // Default features for fallback when API is unavailable
   const defaultFeatures: Record<string, PricingTier['features']> = {
+    // Replit-parity inclusions (replit.com/pricing).
     free: [
-      { text: '1 vCPU + 1 GB RAM', included: true },
-      { text: '10 GB storage', included: true },
-      { text: '50 GB bandwidth/month', included: true },
-      { text: '5 Active projects', included: true },
-      { text: 'Public projects only', included: true },
-      { text: 'Community support', included: true },
-      { text: 'Basic templates', included: true },
-      { text: 'GitHub integration', included: true },
-      { text: 'SSL certificates', included: true },
-      {
-        text: '$0 monthly AI credits',
-        included: true,
-        tooltip: '100 AI requests/month included - Pay only for what you use beyond that',
-      },
-      { text: 'Pay-as-you-go AI pricing', included: true, highlight: true },
-      { text: 'Private projects', included: false },
-      { text: 'Custom domains', included: false },
-      { text: 'Team collaboration', included: false },
-      { text: 'Priority support', included: false },
+      { text: 'Free daily Agent credits', included: true, highlight: true },
+      { text: 'Built-in database for full-stack apps', included: true },
+      { text: 'Publish up to 1 project', included: true },
+      { text: 'Private / password-protected deployments', included: true },
+      { text: '1 collaborator', included: true },
+      { text: '1 agent at a time', included: true },
+      { text: '"Made with" badge', included: true },
+      { text: 'Remove "Made with" badge', included: false },
+      { text: 'Publish to any region', included: false },
+      { text: 'Parallel agents', included: false },
     ],
     core: [
-      { text: '4 vCPUs + 8 GB RAM', included: true, highlight: true },
-      { text: '100 GB storage', included: true },
-      { text: '1 TB bandwidth/month', included: true },
-      { text: 'Unlimited active projects', included: true },
-      { text: 'Private projects', included: true, highlight: true },
-      { text: 'Custom domains (5)', included: true },
-      { text: 'Email support', included: true },
-      { text: 'Advanced templates', included: true },
-      { text: 'GitHub + GitLab integration', included: true },
-      {
-        text: '$25 monthly AI credits',
-        included: true,
-        tooltip: 'Unlimited AI requests - $25 credits included monthly',
-        highlight: true,
-      },
+      { text: '$25/mo of credits', included: true, highlight: true },
+      { text: 'Invite up to 5 collaborators', included: true },
+      { text: 'Work in parallel with up to 2 agents', included: true, highlight: true },
+      { text: 'Unlimited workspaces', included: true },
+      { text: 'Publish to any region', included: true },
+      { text: 'Remove "Made with" badge', included: true },
+      { text: 'AI integrations', included: true },
+      { text: 'Pay-as-you-go beyond credits', included: true },
     ],
     teams: [
-      { text: '8 vCPUs + 16 GB RAM', included: true, highlight: true },
-      { text: '500 GB storage', included: true },
-      { text: 'Unlimited bandwidth', included: true },
-      { text: 'Unlimited projects', included: true },
-      { text: 'Team collaboration', included: true, highlight: true },
-      { text: 'Unlimited custom domains', included: true },
-      { text: 'Priority support + Chat', included: true },
-      { text: 'SSO/SAML integration', included: true },
-      { text: 'Audit logs', included: true },
-      {
-        text: '$100 monthly AI credits',
-        included: true,
-        tooltip: 'Unlimited AI - $100 credits per team member',
-        highlight: true,
-      },
+      { text: '$100/mo of credits', included: true, highlight: true },
+      { text: 'Invite up to 15 collaborators', included: true },
+      { text: 'Invite up to 50 viewers', included: true },
+      { text: 'Work in parallel with up to 10 agents', included: true, highlight: true },
+      { text: 'Access to the most powerful models', included: true, highlight: true },
+      { text: '28-day database rollbacks', included: true },
+      { text: 'Premium support', included: true },
+      { text: 'Everything in Core', included: true },
     ],
     enterprise: [
-      { text: 'Custom infrastructure sizing', included: true, highlight: true },
-      { text: 'Unlimited storage', included: true },
-      { text: 'Dedicated account manager', included: true },
-      { text: '99.99% SLA', included: true, highlight: true },
-      { text: 'SOC 2 Type II Certified', included: true },
-      { text: 'HIPAA Compliant', included: true },
-      { text: '24/7 Phone support', included: true },
-      { text: 'Custom integrations', included: true },
-      { text: 'Air-gapped deployment', included: true },
-      { text: 'Custom AI credits', included: true, tooltip: 'Custom AI training and unlimited credits' },
+      { text: 'Custom seat limits', included: true, highlight: true },
+      { text: 'SSO / SAML with SCIM', included: true },
+      { text: 'Advanced privacy controls', included: true },
+      { text: 'Single-tenant environments', included: true },
+      { text: 'Region selection + static outbound IPs', included: true },
+      { text: 'VPC peering', included: true },
+      { text: 'Data warehouse connections', included: true },
+      { text: 'Design system support', included: true },
+      { text: 'Dedicated support', included: true },
     ],
   };
 
   // Default prices (fallback when API unavailable)
   const defaultPrices: Record<string, { monthly: number; yearly: number }> = {
     free: { monthly: 0, yearly: 0 },
-    core: { monthly: 20, yearly: 15 },
-    teams: { monthly: 40, yearly: 33 },
+
+    /*
+     * Replit parity: Core $25/mo ($20/mo billed annually, 20% off);
+     * Pro $100/mo ($95/mo billed annually, ~5% off).
+     */
+    core: { monthly: 25, yearly: 20 },
+    teams: { monthly: 100, yearly: 95 },
     enterprise: { monthly: 0, yearly: 0 },
   };
 
@@ -225,8 +207,19 @@ export default function Pricing() {
       });
     }
 
-    // Build tiers using API prices when available, fallback to defaults
+    /*
+     * Build tiers using API prices when available, fallback to defaults.
+     * Internal keys stay free/core/teams/enterprise (used by the comparison
+     * table + API mapping); display names follow the Replit-parity model.
+     */
     const tierOrder = ['free', 'core', 'teams', 'enterprise'];
+
+    const tierDisplayNames: Record<string, string> = {
+      free: 'Starter',
+      core: 'Core',
+      teams: 'Pro',
+      enterprise: 'Enterprise',
+    };
 
     return tierOrder.map((tierKey): PricingTier => {
       const ui = tierUIMetadata[tierKey];
@@ -250,8 +243,10 @@ export default function Pricing() {
           }))
         : fallbackFeatures;
 
+      const displayName = tierDisplayNames[tierKey] ?? tierKey;
+
       return {
-        name: tierKey.charAt(0).toUpperCase() + tierKey.slice(1),
+        name: displayName,
         description: ui.description,
         monthlyPrice,
         yearlyPrice,
@@ -260,7 +255,7 @@ export default function Pricing() {
         icon: ui.icon,
         gradient: ui.gradient,
         features,
-        cta: ui.enterprise ? 'Contact Sales' : `Start ${tierKey.charAt(0).toUpperCase() + tierKey.slice(1)}`,
+        cta: ui.enterprise ? 'Contact Sales' : tierKey === 'free' ? 'Start free' : `Get ${displayName}`,
         ctaVariant: ui.ctaVariant,
       };
     });
