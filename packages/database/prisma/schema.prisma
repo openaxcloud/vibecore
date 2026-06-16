@@ -158,6 +158,9 @@ model Organization {
   oauthAppOverrides          OrganizationOAuthAppOverride[]
   connectorPolicies          OrganizationConnectorPolicy[]
   integrationFeatureRequests IntegrationFeatureRequest[]
+  creditWallet               CreditWallet?
+  creditLedger               CreditLedger[]
+  agentCheckpoints           AgentCheckpoint[]
 }
 
 model OrganizationMember {
@@ -703,10 +706,17 @@ model Plan {
   key             String         @unique
   name            String
   monthlyCents    Int
-  limits          Json
-  stripeProductId String?
-  stripePriceId   String?
-  subscriptions   Subscription[]
+  // Replit-parity additions (nullable → no behaviour change until populated):
+  // annual price (effective discount) and the per-plan monthly credit grant in
+  // USD cents. `stripePriceId` stays = the monthly price for backward compat;
+  // the new *MonthlyId/*AnnualId columns are populated once annual products exist.
+  annualCents          Int?
+  includedCreditCents  Int?
+  stripeProductId      String?
+  stripePriceId        String?
+  stripePriceMonthlyId String?
+  stripePriceAnnualId  String?
+  subscriptions        Subscription[]
 }
 
 model UsageEvent {
@@ -1456,4 +1466,134 @@ model EmailDeliveryEvent {
   @@index([email])
   @@index([type])
   @@index([emailMessageId])
+}
+
+// ===========================================================================
+// Replit-parity billing: credit wallet, effort-based checkpoints, and the
+// admin-owned provider/model registry. All additive and dormant until the
+// `BILLING_CREDITS_ENABLED` / `MODEL_REGISTRY_DB` flags are turned on, so the
+// existing flat-rate Stripe billing path is unaffected. See
+// docs/REPLIT_PARITY_SPEC.md.
+// ===========================================================================
+
+/// One USD-cent credit balance per organization. `balanceCents` is a
+/// materialized cache of the sum of `CreditLedger.deltaCents`; the ledger is
+/// the source of truth. `budgetCapCents` null = pay-as-you-go disabled.
+model CreditWallet {
+  id             String         @id @default(cuid())
+  organizationId String         @unique
+  balanceCents   Int            @default(0)
+  currency       String         @default("usd")
+  budgetCapCents Int?
+  autoTopupCents Int?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  entries        CreditLedger[]
+}
+
+enum CreditEntryKind {
+  GRANT
+  CONSUMPTION
+  PAYG_CHARGE
+  REFUND
+  ADJUSTMENT
+  EXPIRY
+}
+
+/// Append-only credit movements. Positive deltas are grants/refunds, negative
+/// are consumption/charges. `checkpointId` links a CONSUMPTION to the agent
+/// request that produced it. `expiresAt` supports daily/monthly grants that do
+/// not roll over (Starter plan).
+model CreditLedger {
+  id             String          @id @default(cuid())
+  walletId       String
+  organizationId String
+  deltaCents     Int
+  kind           CreditEntryKind
+  reason         String
+  checkpointId   String?
+  expiresAt      DateTime?
+  metadata       Json?
+  createdAt      DateTime        @default(now())
+  wallet         CreditWallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([walletId, createdAt])
+  @@index([checkpointId])
+  @@index([kind, expiresAt])
+}
+
+enum CheckpointStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+/// Effort-based checkpoint: exactly one per agent request. Bundles the real
+/// effort (tokens + wall-time + attributed compute) into a single user-visible
+/// credit charge (proof-of-work). `creditCents` is always >= the real provider
+/// cost (`rawProviderCents`) by the configured margin.
+model AgentCheckpoint {
+  id               String           @id @default(cuid())
+  organizationId   String
+  userId           String?
+  projectId        String?
+  conversationId   String?
+  runId            String?
+  status           CheckpointStatus @default(PENDING)
+  highPowerModel   Boolean          @default(false)
+  extendedThinking Boolean          @default(false)
+  inputTokens      Int              @default(0)
+  outputTokens     Int              @default(0)
+  wallMs           Int              @default(0)
+  computeCents     Int              @default(0)
+  rawProviderCents Int              @default(0)
+  creditCents      Int              @default(0)
+  startedAt        DateTime         @default(now())
+  completedAt      DateTime?
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, startedAt])
+  @@index([projectId])
+  @@index([runId])
+}
+
+/// Admin-owned AI provider registry. `apiKeySecret` is the *name* of a secret
+/// in the platform secret manager — never the key material itself.
+model ProviderConfig {
+  id           String         @id @default(cuid())
+  provider     String         @unique
+  displayName  String
+  enabled      Boolean        @default(false)
+  apiKeySecret String?
+  baseUrl      String?
+  byokAllowed  Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  models       ModelConfig[]
+}
+
+/// Admin-owned model registry. Users may only see/use models with
+/// `enabled = true` whose `enabledPlans` include their plan. Pricing here drives
+/// effort-based credit cost.
+model ModelConfig {
+  id               String         @id @default(cuid())
+  providerConfigId String
+  modelId          String
+  displayName      String
+  enabled          Boolean        @default(false)
+  enabledPlans     Json
+  isHighPower      Boolean        @default(false)
+  supportsThinking Boolean        @default(false)
+  inputCentsPerM   Int
+  outputCentsPerM  Int
+  contextWindow    Int
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  providerConfig   ProviderConfig @relation(fields: [providerConfigId], references: [id], onDelete: Cascade)
+
+  @@unique([providerConfigId, modelId])
+  @@index([enabled])
 }

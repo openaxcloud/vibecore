@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export * from './ai-pricing.js';
+export * from './credits.js';
 
 /*
  * Pinned Stripe API version. Sent on every request so the request/webhook

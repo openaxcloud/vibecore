@@ -1,0 +1,149 @@
+import { describe, expect, it } from 'vitest';
+import {
+  DEFAULT_AI_MARGIN,
+  computeCreditCostCents,
+  estimateCheckpointCostCents,
+  evaluateCreditGate,
+  paygAlertThresholdCrossed,
+  planCreditConfig,
+  sumLedgerCents,
+  toCreditPlanKey,
+  HIGH_POWER_ESTIMATE_MULTIPLIER,
+  EXTENDED_THINKING_ESTIMATE_MULTIPLIER,
+} from './credits.js';
+
+describe('computeCreditCostCents', () => {
+  it('applies the default margin and rounds up', () => {
+    // 100¢ provider cost + 30% margin = 130¢
+    expect(computeCreditCostCents({ rawProviderCents: 100 })).toBe(130);
+  });
+
+  it('adds compute cost without margin', () => {
+    expect(computeCreditCostCents({ rawProviderCents: 100, computeCents: 50 })).toBe(180);
+  });
+
+  it('respects a custom margin', () => {
+    expect(computeCreditCostCents({ rawProviderCents: 200, margin: 0.5 })).toBe(300);
+  });
+
+  it('never charges below the raw provider cost even at zero margin', () => {
+    expect(computeCreditCostCents({ rawProviderCents: 17, margin: 0 })).toBe(17);
+  });
+
+  it('clamps non-finite / negative inputs to zero', () => {
+    expect(computeCreditCostCents({ rawProviderCents: Number.NaN })).toBe(0);
+    expect(computeCreditCostCents({ rawProviderCents: -50 })).toBe(0);
+    expect(computeCreditCostCents({ rawProviderCents: 100, computeCents: -10 })).toBe(130);
+  });
+
+  it('uses DEFAULT_AI_MARGIN when margin is non-finite', () => {
+    expect(computeCreditCostCents({ rawProviderCents: 100, margin: Number.NaN })).toBe(
+      Math.ceil(100 * (1 + DEFAULT_AI_MARGIN)),
+    );
+  });
+});
+
+describe('estimateCheckpointCostCents', () => {
+  it('inflates by the high-power multiplier', () => {
+    const base = estimateCheckpointCostCents({ baseProviderCents: 100 });
+    const high = estimateCheckpointCostCents({ baseProviderCents: 100, highPowerModel: true });
+    expect(high).toBe(computeCreditCostCents({ rawProviderCents: 100 * HIGH_POWER_ESTIMATE_MULTIPLIER }));
+    expect(high).toBeGreaterThan(base);
+  });
+
+  it('stacks high-power and extended-thinking multipliers', () => {
+    const both = estimateCheckpointCostCents({
+      baseProviderCents: 100,
+      highPowerModel: true,
+      extendedThinking: true,
+    });
+    const expectedProvider = 100 * HIGH_POWER_ESTIMATE_MULTIPLIER * EXTENDED_THINKING_ESTIMATE_MULTIPLIER;
+    expect(both).toBe(computeCreditCostCents({ rawProviderCents: expectedProvider }));
+  });
+});
+
+describe('toCreditPlanKey', () => {
+  it('passes through target keys', () => {
+    expect(toCreditPlanKey('core')).toBe('core');
+    expect(toCreditPlanKey('pro')).toBe('pro');
+  });
+
+  it('maps legacy keys to the migration target', () => {
+    expect(toCreditPlanKey('free')).toBe('starter');
+    expect(toCreditPlanKey('team')).toBe('pro');
+  });
+
+  it('defaults unknown/undefined to starter', () => {
+    expect(toCreditPlanKey(undefined)).toBe('starter');
+    expect(toCreditPlanKey('mystery')).toBe('starter');
+  });
+});
+
+describe('planCreditConfig', () => {
+  it('grants Starter daily and Core/Pro monthly', () => {
+    expect(planCreditConfig.starter.dailyCreditCents).toBeGreaterThan(0);
+    expect(planCreditConfig.starter.monthlyCreditCents).toBe(0);
+    expect(planCreditConfig.starter.rollover).toBe(false);
+    expect(planCreditConfig.core.monthlyCreditCents).toBe(2500);
+    expect(planCreditConfig.pro.monthlyCreditCents).toBe(10_000);
+  });
+});
+
+describe('sumLedgerCents', () => {
+  it('sums signed deltas', () => {
+    expect(sumLedgerCents([{ deltaCents: 2500 }, { deltaCents: -130 }, { deltaCents: -70 }])).toBe(2300);
+  });
+
+  it('ignores non-finite deltas', () => {
+    expect(sumLedgerCents([{ deltaCents: 100 }, { deltaCents: Number.NaN }])).toBe(100);
+  });
+});
+
+describe('evaluateCreditGate', () => {
+  it('allows when balance covers the estimate', () => {
+    expect(evaluateCreditGate({ balanceCents: 500, estimatedCents: 130 })).toEqual({
+      ok: true,
+      mode: 'credits',
+    });
+  });
+
+  it('blocks when balance is short and PAYG is disabled', () => {
+    expect(evaluateCreditGate({ balanceCents: 50, estimatedCents: 130 })).toEqual({
+      ok: false,
+      mode: 'blocked',
+      reason: 'insufficient_credits',
+    });
+  });
+
+  it('allows PAYG overage under the cap', () => {
+    expect(
+      evaluateCreditGate({ balanceCents: 0, estimatedCents: 130, budgetCapCents: 1000, paygSpentCents: 100 }),
+    ).toEqual({ ok: true, mode: 'payg' });
+  });
+
+  it('blocks PAYG once the cap would be exceeded', () => {
+    expect(
+      evaluateCreditGate({ balanceCents: 0, estimatedCents: 500, budgetCapCents: 1000, paygSpentCents: 800 }),
+    ).toEqual({ ok: false, mode: 'blocked', reason: 'budget_cap_reached' });
+  });
+
+  it('charges PAYG only for the portion not covered by remaining balance', () => {
+    // balance 100, estimate 130 → overage 30; cap 1000, spent 980 → 980+30=1010 > cap → blocked
+    expect(
+      evaluateCreditGate({ balanceCents: 100, estimatedCents: 130, budgetCapCents: 1000, paygSpentCents: 980 }),
+    ).toEqual({ ok: false, mode: 'blocked', reason: 'budget_cap_reached' });
+  });
+});
+
+describe('paygAlertThresholdCrossed', () => {
+  it('returns the highest crossed threshold', () => {
+    expect(paygAlertThresholdCrossed(850, 1000)).toBe(0.8);
+    expect(paygAlertThresholdCrossed(1000, 1000)).toBe(1.0);
+    expect(paygAlertThresholdCrossed(500, 1000)).toBe(0.5);
+  });
+
+  it('returns null below 50% or for invalid caps', () => {
+    expect(paygAlertThresholdCrossed(100, 1000)).toBeNull();
+    expect(paygAlertThresholdCrossed(100, 0)).toBeNull();
+  });
+});

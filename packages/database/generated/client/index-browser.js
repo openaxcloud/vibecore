@@ -525,9 +525,12 @@ exports.Prisma.PlanScalarFieldEnum = {
   key: 'key',
   name: 'name',
   monthlyCents: 'monthlyCents',
-  limits: 'limits',
+  annualCents: 'annualCents',
+  includedCreditCents: 'includedCreditCents',
   stripeProductId: 'stripeProductId',
-  stripePriceId: 'stripePriceId'
+  stripePriceId: 'stripePriceId',
+  stripePriceMonthlyId: 'stripePriceMonthlyId',
+  stripePriceAnnualId: 'stripePriceAnnualId'
 };
 
 exports.Prisma.UsageEventScalarFieldEnum = {
@@ -1019,6 +1022,78 @@ exports.Prisma.EmailDeliveryEventScalarFieldEnum = {
   receivedAt: 'receivedAt'
 };
 
+exports.Prisma.CreditWalletScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  balanceCents: 'balanceCents',
+  currency: 'currency',
+  budgetCapCents: 'budgetCapCents',
+  autoTopupCents: 'autoTopupCents',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CreditLedgerScalarFieldEnum = {
+  id: 'id',
+  walletId: 'walletId',
+  organizationId: 'organizationId',
+  deltaCents: 'deltaCents',
+  kind: 'kind',
+  reason: 'reason',
+  checkpointId: 'checkpointId',
+  expiresAt: 'expiresAt',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.AgentCheckpointScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  projectId: 'projectId',
+  conversationId: 'conversationId',
+  runId: 'runId',
+  status: 'status',
+  highPowerModel: 'highPowerModel',
+  extendedThinking: 'extendedThinking',
+  inputTokens: 'inputTokens',
+  outputTokens: 'outputTokens',
+  wallMs: 'wallMs',
+  computeCents: 'computeCents',
+  rawProviderCents: 'rawProviderCents',
+  creditCents: 'creditCents',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt'
+};
+
+exports.Prisma.ProviderConfigScalarFieldEnum = {
+  id: 'id',
+  provider: 'provider',
+  displayName: 'displayName',
+  enabled: 'enabled',
+  apiKeySecret: 'apiKeySecret',
+  baseUrl: 'baseUrl',
+  byokAllowed: 'byokAllowed',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ModelConfigScalarFieldEnum = {
+  id: 'id',
+  providerConfigId: 'providerConfigId',
+  modelId: 'modelId',
+  displayName: 'displayName',
+  enabled: 'enabled',
+  enabledPlans: 'enabledPlans',
+  isHighPower: 'isHighPower',
+  supportsThinking: 'supportsThinking',
+  inputCentsPerM: 'inputCentsPerM',
+  outputCentsPerM: 'outputCentsPerM',
+  contextWindow: 'contextWindow',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1131,6 +1206,21 @@ exports.ConsensusOutcome = exports.$Enums.ConsensusOutcome = {
   ABSTAINED: 'ABSTAINED'
 };
 
+exports.CreditEntryKind = exports.$Enums.CreditEntryKind = {
+  GRANT: 'GRANT',
+  CONSUMPTION: 'CONSUMPTION',
+  PAYG_CHARGE: 'PAYG_CHARGE',
+  REFUND: 'REFUND',
+  ADJUSTMENT: 'ADJUSTMENT',
+  EXPIRY: 'EXPIRY'
+};
+
+exports.CheckpointStatus = exports.$Enums.CheckpointStatus = {
+  PENDING: 'PENDING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Account: 'Account',
@@ -1209,7 +1299,12 @@ exports.Prisma.ModelName = {
   OrganizationConnectorPolicy: 'OrganizationConnectorPolicy',
   ReconnectionAlert: 'ReconnectionAlert',
   IntegrationFeatureRequest: 'IntegrationFeatureRequest',
-  EmailDeliveryEvent: 'EmailDeliveryEvent'
+  EmailDeliveryEvent: 'EmailDeliveryEvent',
+  CreditWallet: 'CreditWallet',
+  CreditLedger: 'CreditLedger',
+  AgentCheckpoint: 'AgentCheckpoint',
+  ProviderConfig: 'ProviderConfig',
+  ModelConfig: 'ModelConfig'
 };
 
 /**
