@@ -27,10 +27,13 @@ import {
 import {
   StripeBillingClient,
   assertQuota,
+  aiModelCatalog,
   billingPlans,
   computeAiCostCents,
   planByKey,
   verifyStripeSignature,
+  type AiPlanKey,
+  type CreditPlanKey,
   type PlanKey,
   type QuotaKey,
 } from '@vibecore/billing';
@@ -5607,6 +5610,86 @@ async function seedBillingPlans(store: ApiStore) {
   );
 }
 
+const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
+  openai: 'OpenAI',
+  anthropic: 'Anthropic',
+  'google-gemini': 'Google Gemini',
+  openrouter: 'OpenRouter',
+  mistral: 'Mistral',
+  groq: 'Groq',
+  xai: 'xAI',
+  ollama: 'Ollama',
+};
+
+/** Map the ai-pricing plan key onto the Replit-parity credit plan key. */
+function aiPlanToCreditPlan(plan: AiPlanKey): CreditPlanKey {
+  switch (plan) {
+    case 'free':
+      return 'starter';
+    case 'pro':
+      return 'core';
+    case 'business':
+      return 'pro';
+    case 'enterprise':
+    case 'self-host':
+      return 'enterprise';
+    default:
+      return 'starter';
+  }
+}
+
+/**
+ * Seed the admin-owned provider/model registry from the canonical ai-pricing
+ * catalog. Idempotent and **non-destructive**: it only inserts rows that don't
+ * exist yet, so an admin's manual enable/disable/pricing edits are never
+ * clobbered on the next boot. Dormant until `MODEL_REGISTRY_DB` is read-through.
+ */
+export async function seedProviderRegistry(store: ApiStore) {
+  try {
+    const [existingProviders, existingModels] = await Promise.all([
+      store.listProviderConfigs(),
+      store.listModelConfigs(),
+    ]);
+    const haveProvider = new Set(existingProviders.map((p) => p.provider));
+    const haveModel = new Set(existingModels.map((m) => `${m.provider ?? ''}:${m.modelId}`));
+
+    const providers = [...new Set(aiModelCatalog.map((m) => m.provider))];
+    for (const provider of providers) {
+      if (!haveProvider.has(provider)) {
+        await store.upsertProviderConfig({
+          provider,
+          displayName: PROVIDER_DISPLAY_NAMES[provider] ?? provider,
+          enabled: true,
+        });
+      }
+    }
+
+    for (const model of aiModelCatalog) {
+      if (haveModel.has(`${model.provider}:${model.id}`)) {
+        continue;
+      }
+      const enabledPlans = [...new Set(model.plans.map(aiPlanToCreditPlan))];
+      await store.upsertModelConfig({
+        provider: model.provider,
+        modelId: model.id,
+        displayName: model.displayName,
+        enabled: true,
+        enabledPlans,
+        // "Most powerful models" (Pro+): models not offered on the Core tier.
+        isHighPower: !enabledPlans.includes('core'),
+        supportsThinking: model.provider === 'anthropic' || /^(o1|o3|gpt-5)/i.test(model.id),
+        inputCentsPerM: model.inputCentsPerMillion,
+        outputCentsPerM: model.outputCentsPerMillion,
+        contextWindow: model.contextWindow,
+      });
+    }
+  } catch (error) {
+    // Registry is dormant (nothing reads it until MODEL_REGISTRY_DB flips), so a
+    // seed failure must never block API boot.
+    console.error('seedProviderRegistry failed (non-fatal)', error);
+  }
+}
+
 /**
  * Decides whether a failed api->agent hop attempt should be retried. Pure so the
  * policy is unit-testable. A `connection` failure means the request never reached
@@ -5768,6 +5851,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   await seedBillingPlans(store);
+  await seedProviderRegistry(store);
 
   await app.register(helmet, {
     contentSecurityPolicy: {
