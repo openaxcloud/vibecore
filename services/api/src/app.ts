@@ -1548,7 +1548,6 @@ function isBlockedGitHost(rawHost: string): boolean {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
-
     /*
      * ULA fc00::/7 + link-local fe80::/10, but only as IPv6 LITERALS (hextets +
      * ':'). The old startsWith('fc'/'fd'/'fe80') wrongly blocked public hosts like
@@ -2246,7 +2245,6 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     mfaPathname.startsWith('/auth/recovery-codes/') ||
     mfaPathname === '/auth/sessions' ||
     mfaPathname.startsWith('/auth/sessions/') ||
-
     /*
      * Re-auth is the gateway to enrolling MFA (mfa/setup now requires it); a
      * platform admin without MFA must be able to reach it or they'd be deadlocked.
@@ -6907,7 +6905,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
-
       /*
        * Public read of a shared conversation snapshot — the signed token is the
        * capability. Only the token-scoped GET path is exempt; POST /chat-shares
@@ -10944,6 +10941,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(502).send({ error: 'preview_unreachable', code: 'RUNTIME_PREVIEW_UNREACHABLE' });
     }
 
+    /*
+     * undici transparently DECODES gzip/deflate/br bodies, so the upstream's
+     * content-length (the COMPRESSED size) no longer matches the decoded stream.
+     */
+    const upstreamWasEncoded = response.headers.has('content-encoding');
+
     for (const [key, value] of response.headers.entries()) {
       if (!['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) {
         reply.header(key, value);
@@ -10955,17 +10958,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * arrayBuffer()-buffering it. A previewed dev server returning a large body
      * (file download, HLS, big SPA bundle) would otherwise be buffered whole into
      * the shared multi-tenant api pod's heap — a cross-tenant OOM vector. Pass
-     * content-length through so the client still gets it.
+     * content-length through so the client still gets it — but NOT when the
+     * upstream was content-encoded: that length is the compressed byte count and
+     * the body we stream is the larger decoded payload, so re-adding it makes the
+     * browser truncate the asset (broken/blank preview).
      */
     const contentLength = response.headers.get('content-length');
 
-    if (contentLength) {
+    if (contentLength && !upstreamWasEncoded) {
       reply.header('content-length', contentLength);
     }
 
     if (!response.body) {
       return reply.code(response.status).send();
     }
+
+    /*
+     * Abort the upstream agent fetch if the client disconnects mid-stream.
+     * Otherwise the undici fetch (carrying the agent Bearer token) keeps draining
+     * the agent socket + CPU to completion with no consumer. Only fires on a real
+     * disconnect, so long-lived HMR/SSE streams are unaffected.
+     */
+    reply.raw.on('close', () => {
+      if (!reply.raw.writableFinished) {
+        previewController.abort();
+      }
+    });
 
     return reply.code(response.status).send(readableFromWebStream(response.body as ReadableStream<Uint8Array>));
   };
@@ -16324,7 +16342,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           : undefined;
         const isStaleByTimestamp = Boolean(
           eventCreatedAt &&
-
             /*
              * Deletion is terminal and must ALWAYS be applied: a `deleted` event
              * can legitimately carry an older event.created than a previously
