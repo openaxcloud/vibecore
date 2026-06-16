@@ -2158,6 +2158,16 @@ export class TestApiStore implements ApiStore {
     return config;
   }
 
+  async listAdminCreditWallets() {
+    return [...this.creditWallets.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+
+  async listAdminAgentCheckpoints(options?: { take?: number }) {
+    return [...this.agentCheckpoints.values()]
+      .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+      .slice(0, options?.take ?? 200);
+  }
+
   async listModelConfigs(options?: { enabledOnly?: boolean }) {
     let configs = [...this.modelConfigs.values()];
     if (options?.enabledOnly) {

@@ -2829,6 +2829,16 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async listAdminCreditWallets() {
+    return (await this.prisma.creditWallet.findMany({ orderBy: { updatedAt: 'desc' }, take: 500 })).map(mapCreditWallet);
+  }
+
+  async listAdminAgentCheckpoints(options?: { take?: number }) {
+    return (
+      await this.prisma.agentCheckpoint.findMany({ orderBy: { startedAt: 'desc' }, take: options?.take ?? 200 })
+    ).map(mapAgentCheckpoint);
+  }
+
   async listModelConfigs(options?: { enabledOnly?: boolean }) {
     return (
       await this.prisma.modelConfig.findMany({

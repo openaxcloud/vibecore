@@ -1272,6 +1272,9 @@ export interface ApiStore {
     byokAllowed?: boolean;
   }): Promise<ProviderConfigRecord>;
   listModelConfigs(options?: { enabledOnly?: boolean }): Promise<ModelConfigRecord[]>;
+  // Admin-wide listings for the supervision console.
+  listAdminCreditWallets(): Promise<CreditWalletRecord[]>;
+  listAdminAgentCheckpoints(options?: { take?: number }): Promise<AgentCheckpointRecord[]>;
   upsertModelConfig(input: {
     provider: string;
     modelId: string;

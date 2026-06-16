@@ -16947,6 +16947,70 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { providers: await providerHealth(aiGatewayUrl) };
   });
 
+  // --- Replit-parity admin supervision: registry, wallets, checkpoints --------
+  app.get('/admin/providers', async (request) => {
+    await requirePlatformAdmin(request);
+    return { providers: await store.listProviderConfigs() };
+  });
+
+  app.get('/admin/models', async (request) => {
+    await requirePlatformAdmin(request);
+    return { models: await store.listModelConfigs() };
+  });
+
+  app.post('/admin/models/toggle', async (request) => {
+    await requirePlatformAdmin(request);
+    const body = parse(
+      z.object({ provider: z.string().min(1), modelId: z.string().min(1), enabled: z.boolean() }),
+      request.body ?? {},
+    );
+    const existing = (await store.listModelConfigs()).find(
+      (m) => m.provider === body.provider && m.modelId === body.modelId,
+    );
+    if (!existing) {
+      throw Object.assign(new Error('Model not found in registry'), { statusCode: 404, code: 'MODEL_NOT_FOUND' });
+    }
+    const updated = await store.upsertModelConfig({
+      provider: body.provider,
+      modelId: body.modelId,
+      displayName: existing.displayName,
+      enabled: body.enabled,
+      enabledPlans: existing.enabledPlans,
+      isHighPower: existing.isHighPower,
+      supportsThinking: existing.supportsThinking,
+      inputCentsPerM: existing.inputCentsPerM,
+      outputCentsPerM: existing.outputCentsPerM,
+      contextWindow: existing.contextWindow,
+    });
+    await audit(request, store, { action: 'admin.model.toggle', resourceType: 'model', resourceId: body.modelId, metadata: { enabled: body.enabled } });
+    return { model: updated };
+  });
+
+  app.post('/admin/providers/toggle', async (request) => {
+    await requirePlatformAdmin(request);
+    const body = parse(
+      z.object({ provider: z.string().min(1), displayName: z.string().min(1), enabled: z.boolean() }),
+      request.body ?? {},
+    );
+    const updated = await store.upsertProviderConfig({
+      provider: body.provider,
+      displayName: body.displayName,
+      enabled: body.enabled,
+    });
+    await audit(request, store, { action: 'admin.provider.toggle', resourceType: 'provider', resourceId: body.provider, metadata: { enabled: body.enabled } });
+    return { provider: updated };
+  });
+
+  app.get('/admin/wallets', async (request) => {
+    await requirePlatformAdmin(request);
+    return { wallets: await store.listAdminCreditWallets() };
+  });
+
+  app.get('/admin/checkpoints', async (request) => {
+    await requirePlatformAdmin(request);
+    return { checkpoints: await store.listAdminAgentCheckpoints({ take: 200 }) };
+  });
+
   app.get('/admin/quotas', async (request) => {
     await requirePlatformAdmin(request);
 

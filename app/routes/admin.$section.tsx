@@ -140,6 +140,30 @@ const adminSections: Record<string, AdminSectionConfig> = {
     endpoint: '/admin/costs',
     primaryKey: 'aiCosts',
   },
+  providers: {
+    title: 'AI providers',
+    description: 'Platform-owned AI provider registry — admin enables providers and supplies keys.',
+    endpoint: '/admin/providers',
+    primaryKey: 'providers',
+  },
+  models: {
+    title: 'AI models',
+    description: 'Platform model registry — users may only use models enabled here, gated by plan.',
+    endpoint: '/admin/models',
+    primaryKey: 'models',
+  },
+  wallets: {
+    title: 'Credit wallets',
+    description: 'Per-organization credit balances, budget caps and service-shutdown limits.',
+    endpoint: '/admin/wallets',
+    primaryKey: 'wallets',
+  },
+  checkpoints: {
+    title: 'Agent checkpoints',
+    description: 'Effort-based checkpoints (one per Agent request) with cost and power-control flags.',
+    endpoint: '/admin/checkpoints',
+    primaryKey: 'checkpoints',
+  },
 };
 
 const navItems = [
@@ -162,6 +186,10 @@ const navItems = [
   'feature-flags',
   'system-settings',
   'costs',
+  'providers',
+  'models',
+  'wallets',
+  'checkpoints',
 ];
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [

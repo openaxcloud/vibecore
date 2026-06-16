@@ -94,6 +94,21 @@ describe('agent checkpoint store', () => {
   });
 });
 
+describe('admin supervision listings', () => {
+  it('lists wallets and checkpoints across orgs', async () => {
+    const store = new TestApiStore();
+    await store.recordCreditEntry({ organizationId: 'org_a', deltaCents: 100, kind: 'GRANT', reason: 'g' });
+    await store.recordCreditEntry({ organizationId: 'org_b', deltaCents: 200, kind: 'GRANT', reason: 'g' });
+    await store.createAgentCheckpoint({ organizationId: 'org_a' });
+
+    const wallets = await store.listAdminCreditWallets();
+    expect(wallets.map((w) => w.organizationId).sort()).toEqual(['org_a', 'org_b']);
+
+    const checkpoints = await store.listAdminAgentCheckpoints();
+    expect(checkpoints).toHaveLength(1);
+  });
+});
+
 describe('provider/model registry store', () => {
   it('upserts a model, auto-creating its provider shell', async () => {
     const store = new TestApiStore();
