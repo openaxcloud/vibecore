@@ -7,6 +7,7 @@ import {
   firstOrganization,
   isApiResponse,
   json,
+  redirect,
   type EnterpriseActionArgs,
 } from '~/lib/enterprise-api.server';
 
@@ -21,7 +22,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       body: JSON.stringify({ returnUrl: new URL('/payment-method', request.url).toString() }),
     });
 
-    return Response.redirect(result.portalUrl);
+    return redirect(result.portalUrl);
   } catch (error) {
     if (isApiResponse(error)) {
       return json(

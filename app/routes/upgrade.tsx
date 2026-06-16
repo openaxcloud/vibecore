@@ -7,6 +7,7 @@ import {
   firstOrganization,
   isApiResponse,
   json,
+  redirect,
   type EnterpriseActionArgs,
 } from '~/lib/enterprise-api.server';
 
@@ -26,7 +27,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       }),
     });
 
-    return Response.redirect(result.checkoutUrl);
+    return redirect(result.checkoutUrl);
   } catch (error) {
     if (isApiResponse(error)) {
       return json(

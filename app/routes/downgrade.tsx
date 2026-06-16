@@ -7,6 +7,7 @@ import {
   firstOrganization,
   isApiResponse,
   json,
+  redirect,
   type EnterpriseActionArgs,
 } from '~/lib/enterprise-api.server';
 
@@ -29,7 +30,7 @@ export async function action({ request }: EnterpriseActionArgs) {
         body: JSON.stringify({ returnUrl: new URL('/billing', request.url).toString() }),
       });
 
-      return Response.redirect(portal.portalUrl);
+      return redirect(portal.portalUrl);
     }
 
     const checkout = await apiRequest<{ checkoutUrl: string }>(request, `/orgs/${organization.id}/billing/checkout`, {
@@ -41,7 +42,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       }),
     });
 
-    return Response.redirect(checkout.checkoutUrl);
+    return redirect(checkout.checkoutUrl);
   } catch (error) {
     if (isApiResponse(error)) {
       return json(

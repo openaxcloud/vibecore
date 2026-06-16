@@ -64,7 +64,7 @@ export async function action({ request }: EnterpriseActionArgs) {
         method: 'POST',
         body: JSON.stringify({ returnUrl: new URL('/billing', request.url).toString() }),
       });
-      return Response.redirect(result.portalUrl);
+      return redirect(result.portalUrl);
     } catch (error) {
       if (isApiResponse(error)) {
         return json(
@@ -73,7 +73,18 @@ export async function action({ request }: EnterpriseActionArgs) {
         );
       }
 
-      throw error;
+      /*
+       * Non-Response error: the upstream fetch timed out (apiRequest's 30s
+       * AbortSignal) or the billing service was unreachable. Re-throwing here
+       * surfaced a raw 502 "Internal server error" on the portal button. Degrade
+       * to a friendly message so the control always has a visible effect.
+       */
+      console.error('billing portal request failed:', error);
+
+      return json(
+        { error: 'The billing portal is temporarily unavailable. Please try again in a moment.' },
+        { status: 503 },
+      );
     }
   }
 
@@ -87,7 +98,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       }),
     });
 
-    return Response.redirect(result.checkoutUrl);
+    return redirect(result.checkoutUrl);
   } catch (error) {
     if (isApiResponse(error)) {
       return json(
@@ -96,7 +107,19 @@ export async function action({ request }: EnterpriseActionArgs) {
       );
     }
 
-    throw error;
+    /*
+     * Non-Response error: the upstream fetch timed out (apiRequest's 30s
+     * AbortSignal) or the billing service was unreachable — e.g. the api hangs
+     * creating the Stripe checkout session. Re-throwing here surfaced a raw 502
+     * "Internal server error" on the Upgrade button. Degrade to a friendly
+     * message so the button always has a visible effect instead of breaking.
+     */
+    console.error('billing checkout request failed:', error);
+
+    return json(
+      { error: 'Billing checkout is temporarily unavailable. Please try again in a moment.' },
+      { status: 503 },
+    );
   }
 }
 
