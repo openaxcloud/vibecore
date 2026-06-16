@@ -1548,6 +1548,7 @@ function isBlockedGitHost(rawHost: string): boolean {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
+
     /*
      * ULA fc00::/7 + link-local fe80::/10, but only as IPv6 LITERALS (hextets +
      * ':'). The old startsWith('fc'/'fd'/'fe80') wrongly blocked public hosts like
@@ -2245,6 +2246,7 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     mfaPathname.startsWith('/auth/recovery-codes/') ||
     mfaPathname === '/auth/sessions' ||
     mfaPathname.startsWith('/auth/sessions/') ||
+
     /*
      * Re-auth is the gateway to enrolling MFA (mfa/setup now requires it); a
      * platform admin without MFA must be able to reach it or they'd be deadlocked.
@@ -6905,6 +6907,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
+
       /*
        * Public read of a shared conversation snapshot — the signed token is the
        * capability. Only the token-scoped GET path is exempt; POST /chat-shares
@@ -7660,12 +7663,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * staged rollout) so the client can gate UI. The same evaluation backs the
    * server-side requireFeatureFlag() guard.
    */
+  /*
+   * Resolve the request's org scope ONLY when the caller is a verified member.
+   * orgIdFromRequest trusts the x-org-id header, so any route that reads
+   * org-scoped data off it without a membership check leaks cross-tenant state.
+   * Returns undefined (global scope) for no org or a non-member.
+   */
+  const resolveMemberOrgScope = async (request: any): Promise<string | undefined> => {
+    const requestedOrgId = orgIdFromRequest(request) ?? undefined;
+
+    if (!requestedOrgId) {
+      return undefined;
+    }
+
+    try {
+      await requireOrg(request, store, requestedOrgId, 'org:read');
+      return requestedOrgId;
+    } catch {
+      return undefined;
+    }
+  };
+
   app.get('/feature-flags', async (request, reply) => {
     if (!request.currentUser) {
       return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
     }
 
-    const organizationId = orgIdFromRequest(request) ?? undefined;
+    /*
+     * orgIdFromRequest falls back to the caller-supplied x-org-id header, so an
+     * attacker could otherwise read ANOTHER tenant's effective flag state. Only
+     * honor the org scope when the caller is actually a member; fall back to
+     * global-only flags (not 403) so legitimate global reads still work.
+     */
+    const organizationId = await resolveMemberOrgScope(request);
     const flags = await store.listEffectiveFeatureFlags(organizationId);
 
     const evaluated: Record<string, boolean> = {};
@@ -7686,7 +7716,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const enabled = await evaluateFeatureFlag(store, key, {
       userId: request.currentUser.id,
-      organizationId: orgIdFromRequest(request) ?? undefined,
+
+      // Membership-checked org scope — see GET /feature-flags.
+      organizationId: await resolveMemberOrgScope(request),
     });
 
     return { key, enabled };
@@ -10233,6 +10265,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (restartOrgId && !restartCountsAsActive) {
       await store.withSerializedMutation(`workspaces:${restartOrgId}`, async () => {
+        /*
+         * Free any phantom (GC'd-but-RUNNING) slot before counting, identical to
+         * the start handler — otherwise a stale RUNNING row 429s a legitimate
+         * restart of another workspace for a quota-limited org.
+         */
+        await reconcileOrphanedActiveWorkspaces(restartOrgId, authorized.workspaceId);
         await ensureQuota(request, restartOrgId, 'workspaces.active');
 
         /*
@@ -16286,6 +16324,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           : undefined;
         const isStaleByTimestamp = Boolean(
           eventCreatedAt &&
+
             /*
              * Deletion is terminal and must ALWAYS be applied: a `deleted` event
              * can legitimately carry an older event.created than a previously

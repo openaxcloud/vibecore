@@ -86,6 +86,7 @@ export class PrometheusRegistry {
 
   increment(name: string, labels: MetricLabels = {}, value = 1) {
     this.#assertType(name, 'counter');
+
     const key = this.#key(name, labels);
     const sample = this.#samples.get(key) ?? { value: 0, labels: normalizeLabels(labels) };
     sample.value += value;
@@ -101,6 +102,7 @@ export class PrometheusRegistry {
     const definition = this.#assertType(name, 'histogram');
     const key = this.#key(name, labels);
     const buckets = definition.buckets ?? defaultBuckets;
+
     const histogram =
       this.#histograms.get(key) ??
       ({
@@ -122,16 +124,21 @@ export class PrometheusRegistry {
 
   render() {
     const lines: string[] = [];
+
     for (const definition of this.#definitions.values()) {
       lines.push(`# HELP ${definition.name} ${definition.help}`);
       lines.push(`# TYPE ${definition.name} ${definition.type}`);
 
       if (definition.type === 'histogram') {
-        const entries = [...this.#histograms.entries()].filter(([key]) => key.startsWith(`${definition.name}{`));
+        const entries = [...this.#histograms.entries()].filter(
+          ([key]) => key === definition.name || key.startsWith(`${definition.name}{`),
+        );
+
         if (entries.length === 0) {
           lines.push(...renderEmptyHistogram(definition));
           continue;
         }
+
         for (const [, histogram] of entries) {
           for (const [bucket, count] of histogram.buckets) {
             lines.push(`${definition.name}_bucket${labelString({ ...histogram.labels, le: bucket })} ${count}`);
@@ -143,11 +150,21 @@ export class PrometheusRegistry {
         continue;
       }
 
-      const entries = [...this.#samples.entries()].filter(([key]) => key.startsWith(`${definition.name}{`));
+      const entries = [...this.#samples.entries()].filter(
+
+        /*
+         * Match the bare name too: a sample recorded with NO labels keys to the
+         * plain metric name (labelString({})===''), and `name{`-only filtering
+         * silently dropped those samples from the exposition.
+         */
+        ([key]) => key === definition.name || key.startsWith(`${definition.name}{`),
+      );
+
       if (entries.length === 0) {
         lines.push(`${definition.name} 0`);
         continue;
       }
+
       for (const [, sample] of entries) {
         lines.push(`${definition.name}${labelString(sample.labels)} ${sample.value}`);
       }
@@ -158,12 +175,15 @@ export class PrometheusRegistry {
 
   #assertType(name: string, type: MetricDefinition['type']) {
     const definition = this.#definitions.get(name);
+
     if (!definition) {
       throw new Error(`Unknown metric: ${name}`);
     }
+
     if (definition.type !== type) {
       throw new Error(`Metric ${name} is ${definition.type}, not ${type}`);
     }
+
     return definition;
   }
 
@@ -192,6 +212,7 @@ export function createSentryReporter(input: { dsn?: string; environment?: string
       if (!dsn) {
         return;
       }
+
       const payload = {
         event_id: randomEventId(),
         level: 'error',
@@ -209,6 +230,7 @@ export function createSentryReporter(input: { dsn?: string; environment?: string
         contexts: context,
         timestamp: new Date().toISOString(),
       };
+
       /*
        * Bound the report so a slow/unreachable Sentry endpoint can't leak a
        * socket per error during an error storm (no default fetch timeout).
@@ -235,19 +257,23 @@ function renderEmptyHistogram(definition: MetricDefinition) {
 
 function normalizeLabels(labels: MetricLabels) {
   const normalized: Record<string, string> = {};
+
   for (const [key, value] of Object.entries(labels).sort(([left], [right]) => left.localeCompare(right))) {
     if (value !== undefined) {
       normalized[key] = String(value);
     }
   }
+
   return normalized;
 }
 
 function labelString(labels: Record<string, string | number>) {
   const entries = Object.entries(labels);
+
   if (entries.length === 0) {
     return '';
   }
+
   return `{${entries.map(([key, value]) => `${key}="${String(value).replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`).join(',')}}`;
 }
 

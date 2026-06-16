@@ -76,11 +76,17 @@ class GitLabConnectionStore {
         gitlabUrl,
       });
 
-      // Set cookies for client-side access
-      Cookies.set('gitlabUsername', user.username);
-      Cookies.set('gitlabToken', token);
-      Cookies.set('git:gitlab.com', JSON.stringify({ username: user.username, password: token }));
-      Cookies.set('gitlabUrl', gitlabUrl);
+      /*
+       * Token-bearing cookies must be Secure + SameSite=strict + expiring, same
+       * as the GitHub connection (wave 20). Bare Cookies.set() defaults to no
+       * Secure flag + SameSite=Lax + session-less, exposing the GitLab PAT over
+       * plain HTTP and to broader cross-site contexts.
+       */
+      const secureCookieOptions = { secure: true, sameSite: 'strict' as const, expires: 7 };
+      Cookies.set('gitlabUsername', user.username, secureCookieOptions);
+      Cookies.set('gitlabToken', token, secureCookieOptions);
+      Cookies.set('git:gitlab.com', JSON.stringify({ username: user.username, password: token }), secureCookieOptions);
+      Cookies.set('gitlabUrl', gitlabUrl, secureCookieOptions);
 
       // Store connection details in localStorage
       localStorage.setItem(
@@ -241,11 +247,16 @@ class GitLabConnectionStore {
         gitlabUrl: 'https://gitlab.com',
       });
 
-      // Set cookies for client-side access
-      Cookies.set('gitlabUsername', user.username);
-      Cookies.set('gitlabToken', envToken);
-      Cookies.set('git:gitlab.com', JSON.stringify({ username: user.username, password: envToken }));
-      Cookies.set('gitlabUrl', 'https://gitlab.com');
+      // Token-bearing cookies — Secure + SameSite=strict + expiring (see connect()).
+      const secureCookieOptions = { secure: true, sameSite: 'strict' as const, expires: 7 };
+      Cookies.set('gitlabUsername', user.username, secureCookieOptions);
+      Cookies.set('gitlabToken', envToken, secureCookieOptions);
+      Cookies.set(
+        'git:gitlab.com',
+        JSON.stringify({ username: user.username, password: envToken }),
+        secureCookieOptions,
+      );
+      Cookies.set('gitlabUrl', 'https://gitlab.com', secureCookieOptions);
 
       // Store connection details in localStorage
       localStorage.setItem(
