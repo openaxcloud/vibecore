@@ -189,11 +189,23 @@ export function Search() {
       ] as string[];
 
       let replacementCount = 0;
+      let lockedSkipped = 0;
 
       for (const filePath of targetPaths) {
         const entry = files[filePath];
 
         if (entry?.type !== 'file' || entry.isBinary) {
+          continue;
+        }
+
+        /*
+         * Respect file/folder locks. Replace All is a content-modifying op in the
+         * same workbench surface as the editor (read-only for locked files) and AI
+         * writes (blocked for locked files); without this guard a bulk replace
+         * silently overwrote a file the user explicitly locked to protect it.
+         */
+        if (workbenchStore.isFileLocked(filePath).locked) {
+          lockedSkipped += 1;
           continue;
         }
 
@@ -207,7 +219,10 @@ export function Search() {
         }
       }
 
-      toast.success(`Replaced ${replacementCount} match${replacementCount === 1 ? '' : 'es'}`);
+      toast.success(
+        `Replaced ${replacementCount} match${replacementCount === 1 ? '' : 'es'}` +
+          (lockedSkipped > 0 ? ` (${lockedSkipped} locked file${lockedSkipped === 1 ? '' : 's'} skipped)` : ''),
+      );
       await handleSearch(searchQuery);
     } catch (error) {
       console.error('Failed to replace results:', error);
