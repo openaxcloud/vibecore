@@ -1,8 +1,18 @@
 import type { LoaderFunction } from '@remix-run/cloudflare';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
+import { readSessionToken } from '~/lib/enterprise-api.server';
 import { LLMManager } from '~/lib/modules/llm/manager';
 
 export const loader: LoaderFunction = async ({ context, request }) => {
+  /*
+   * Require a session: unauthenticated, this route is an infra-config oracle that
+   * leaks which platform provider secrets are set (via the env fallback below).
+   * Gated like the sibling /api/configured-providers.
+   */
+  if (!readSessionToken(request)) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const url = new URL(request.url);
   const provider = url.searchParams.get('provider');
 

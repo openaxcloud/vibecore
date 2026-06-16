@@ -562,7 +562,19 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       processId: terminalId,
       cols,
       rows,
-      write: (data) => socket.send(JSON.stringify({ type: 'stdin', data })),
+      write: (data) => {
+        /*
+         * Guard like the heartbeat / killProcess sends: the socket may be in
+         * CLOSING/CLOSED during the auto-reconnect flap (LB idle-kill), and a
+         * keystroke arriving in that window would otherwise throw synchronously
+         * into the xterm onData handler. reconnect() re-establishes the socket.
+         */
+        try {
+          socket.send(JSON.stringify({ type: 'stdin', data }));
+        } catch {
+          // socket not open; dropped input is acceptable across a reconnect.
+        }
+      },
       resize: (nextCols, nextRows) => this.resizeTerminal(terminalId, nextCols, nextRows),
       kill: () => this.killProcess(terminalId),
       events: queue,

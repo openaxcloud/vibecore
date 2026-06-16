@@ -22,7 +22,7 @@ import type { FileMap } from '~/lib/stores/files';
 import { logStore } from '~/lib/stores/logs'; // Import logStore
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { ContextAnnotation } from '~/types/context';
-import { detectProjectCommands, createCommandActionsString } from '~/utils/projectCommands';
+import { detectProjectCommands, createCommandActionsString, escapeBoltActionAttribute } from '~/utils/projectCommands';
 
 export interface ChatHistoryItem {
   id: string;
@@ -236,7 +236,7 @@ export function useChatHistory() {
                     .map(([key, value]) => {
                       if (value?.type === 'file') {
                         return `
-                      <boltAction type="file" filePath="${key}">
+                      <boltAction type="file" filePath="${escapeBoltActionAttribute(key)}">
 ${value.content}
                       </boltAction>
                       `;

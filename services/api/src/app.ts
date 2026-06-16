@@ -15810,7 +15810,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (conversationId) {
       const conversation = await store.getAiConversation(conversationId);
 
-      if (!conversation || conversation.projectId !== project.id) {
+      if (!conversation || conversation.projectId !== project.id || conversation.userId !== request.currentUser!.id) {
         return reply.code(404).send({ error: 'AI conversation not found', code: 'AI_CONVERSATION_NOT_FOUND' });
       }
     } else {

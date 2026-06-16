@@ -1,6 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import type { LanguageModelV1 } from 'ai';
 import { LLMManager } from './manager';
+import { isBlockedProviderBaseUrl } from './provider-url-guard';
 import { readRuntimeEnv } from './runtime-env';
 import type { ProviderInfo, ProviderConfig, ModelInfo } from './types';
 import type { IProviderSetting } from '~/types/model';
@@ -92,8 +93,22 @@ export abstract class BaseProvider implements ProviderInfo {
 
     const baseUrlKey = this.config.baseUrlKey || defaultBaseUrlKey;
 
+    /*
+     * SSRF guard: settingsBaseUrl is USER-supplied (providerSettings cookie) and
+     * is fetched server-side. Drop it if it targets metadata/internal hosts so a
+     * tenant can't redirect server requests into the cluster — falling back to the
+     * trusted server/default base URL. Loopback stays allowed (Ollama/LM Studio);
+     * private hosts can be allowed for self-host via ALLOW_PRIVATE_PROVIDER_BASE_URLS.
+     */
+    const allowPrivateBaseUrls =
+      (readRuntimeEnv('ALLOW_PRIVATE_PROVIDER_BASE_URLS') ?? manager.env?.ALLOW_PRIVATE_PROVIDER_BASE_URLS) === 'true';
+    const safeSettingsBaseUrl =
+      settingsBaseUrl && !isBlockedProviderBaseUrl(settingsBaseUrl, allowPrivateBaseUrls) ? settingsBaseUrl : undefined;
+
+    const baseUrlIsUserSupplied = Boolean(safeSettingsBaseUrl);
+
     let baseUrl =
-      settingsBaseUrl ||
+      safeSettingsBaseUrl ||
       serverEnv?.[baseUrlKey] ||
       readRuntimeEnv(baseUrlKey) ||
       manager.env?.[baseUrlKey] ||
@@ -105,8 +120,16 @@ export abstract class BaseProvider implements ProviderInfo {
 
     const apiTokenKey = this.config.apiTokenKey || defaultApiTokenKey;
 
-    const apiKeyValue =
-      apiKeys?.[this.name] || serverEnv?.[apiTokenKey] || readRuntimeEnv(apiTokenKey) || manager.env?.[apiTokenKey];
+    /*
+     * Never forward a MANAGED (server-env) key to a user-supplied base URL — that
+     * would exfiltrate the platform's provider credential to a tenant-controlled
+     * endpoint. Only the user's OWN key (apiKeys) may accompany their own baseUrl.
+     */
+    const managedApiKey = baseUrlIsUserSupplied
+      ? undefined
+      : serverEnv?.[apiTokenKey] || readRuntimeEnv(apiTokenKey) || manager.env?.[apiTokenKey];
+
+    const apiKeyValue = apiKeys?.[this.name] || managedApiKey;
 
     const apiKey = typeof apiKeyValue === 'string' ? apiKeyValue.replace(/\s+/g, '') : apiKeyValue;
 
