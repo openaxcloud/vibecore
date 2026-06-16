@@ -415,6 +415,18 @@ export default function App() {
 function RootErrorView({ status }: { status: number }) {
   const isNotFound = status === 404;
 
+  /*
+   * This boundary catches errors (incl. 404 Responses) thrown by the 151 routes
+   * without their own ErrorBoundary — e.g. a not-found project at
+   * /@org/<missing-slug>. Remix v2 doesn't run route `meta` on a thrown Response
+   * and React 18 won't hoist a <title>, so the document title would stay at the
+   * remix-island shell default ("Loading..."). Set it client-side here so the
+   * tab reads correctly instead of looking stuck-loading. Mirrors routes/$.tsx.
+   */
+  useEffect(() => {
+    document.title = isNotFound ? 'Page not found · E-Code' : `Error ${status} · E-Code`;
+  }, [isNotFound, status]);
+
   return (
     <PublicShell>
       <section
