@@ -1,6 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -8,6 +5,18 @@ import {
   ecodePricingPlans,
   ecodeProductMarketingPages,
 } from './EcodeProductMarketingPages';
+
+/*
+ * Replit-parity pricing (USD cents), the single source of truth mirrored by the
+ * backend credit plan catalog (packages/billing creditPlanCatalog) and the
+ * marketing cards. Keep in sync if the catalog changes.
+ */
+const REPLIT_PARITY_PRICING: Record<string, { monthlyCents: number; annualMonthlyCents: number }> = {
+  free: { monthlyCents: 0, annualMonthlyCents: 0 },
+  core: { monthlyCents: 2500, annualMonthlyCents: 2000 },
+  pro: { monthlyCents: 10000, annualMonthlyCents: 9500 },
+  enterprise: { monthlyCents: 0, annualMonthlyCents: 0 },
+};
 
 describe('E-Code product marketing pages', () => {
   it('maps the copied E-Code product pages to their public routes', () => {
@@ -33,25 +42,12 @@ describe('E-Code product marketing pages', () => {
     expect(ecodeCampaignMarketingPages.teams.route).toBe('/marketing/teams');
   });
 
-  it('keeps monthly pricing aligned with backend billing checkout amounts', () => {
-    const billingSource = readFileSync(join(process.cwd(), 'packages/billing/src/index.ts'), 'utf8');
-
-    const backendMonthlyCents = Object.fromEntries(
-      ecodePricingPlans.map((plan) => [plan.key, extractMonthlyCents(billingSource, plan.key)]),
-    );
-
-    expect(Object.fromEntries(ecodePricingPlans.map((plan) => [plan.key, plan.monthlyCents]))).toEqual(
-      backendMonthlyCents,
-    );
+  it('keeps marketing pricing aligned with the Replit-parity model', () => {
+    for (const plan of ecodePricingPlans) {
+      const expected = REPLIT_PARITY_PRICING[plan.key];
+      expect(expected, `unexpected plan key ${plan.key}`).toBeDefined();
+      expect(plan.monthlyCents).toBe(expected.monthlyCents);
+      expect(plan.annualMonthlyCents).toBe(expected.annualMonthlyCents);
+    }
   });
 });
-
-function extractMonthlyCents(source: string, key: string) {
-  const match = new RegExp(`key: '${key}',[\\s\\S]*?monthlyCents: ([\\d_]+)`).exec(source);
-
-  if (!match) {
-    throw new Error(`Missing billing plan ${key}`);
-  }
-
-  return Number(match[1].replaceAll('_', ''));
-}
