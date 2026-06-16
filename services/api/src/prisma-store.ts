@@ -17,8 +17,15 @@ import type {
   AiMessageRecord,
   AiTokenUsageRecord,
   AiToolCallRecord,
+  AgentCheckpointRecord,
   BillingCustomerRecord,
   BillingPlanRecord,
+  CheckpointStatus,
+  CreditEntryKind,
+  CreditLedgerRecord,
+  CreditWalletRecord,
+  ModelConfigRecord,
+  ProviderConfigRecord,
   CollaborationCommentRecord,
   CollaborationPresenceRecord,
   CustomRoleRecord,
@@ -2584,6 +2591,242 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.aiCostLedger.findMany({ where, orderBy: { createdAt: 'desc' } })).map(mapAiCostLedger);
   }
 
+  // --- Replit-parity: credit wallet ------------------------------------------
+
+  async getCreditWallet(organizationId: string) {
+    const wallet = await this.prisma.creditWallet.findUnique({ where: { organizationId } });
+    return wallet ? mapCreditWallet(wallet) : undefined;
+  }
+
+  async ensureCreditWallet(organizationId: string) {
+    return mapCreditWallet(
+      await this.prisma.creditWallet.upsert({
+        where: { organizationId },
+        update: {},
+        create: { organizationId },
+      }),
+    );
+  }
+
+  async updateCreditWalletSettings(input: {
+    organizationId: string;
+    budgetCapCents?: number | null;
+    autoTopupCents?: number | null;
+  }) {
+    const data: Record<string, unknown> = {};
+    if (input.budgetCapCents !== undefined) {
+      data.budgetCapCents = input.budgetCapCents;
+    }
+    if (input.autoTopupCents !== undefined) {
+      data.autoTopupCents = input.autoTopupCents;
+    }
+    return mapCreditWallet(
+      await this.prisma.creditWallet.upsert({
+        where: { organizationId: input.organizationId },
+        update: data,
+        create: { organizationId: input.organizationId, ...data },
+      }),
+    );
+  }
+
+  async recordCreditEntry(input: {
+    organizationId: string;
+    deltaCents: number;
+    kind: CreditEntryKind;
+    reason: string;
+    checkpointId?: string;
+    expiresAt?: Date;
+    metadata?: unknown;
+  }) {
+    /*
+     * The ledger insert and the materialized-balance bump must be one atomic unit
+     * or concurrent debits could over-spend (read-modify-write race). Prisma's
+     * interactive transaction + an atomic `increment` keeps the balance exact
+     * without an app-level lock.
+     */
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const wallet = await tx.creditWallet.upsert({
+        where: { organizationId: input.organizationId },
+        update: {},
+        create: { organizationId: input.organizationId },
+      });
+      const entry = await tx.creditLedger.create({
+        data: {
+          walletId: wallet.id,
+          organizationId: input.organizationId,
+          deltaCents: input.deltaCents,
+          kind: input.kind,
+          reason: input.reason,
+          checkpointId: input.checkpointId,
+          expiresAt: input.expiresAt,
+          metadata: (input.metadata ?? null) as any,
+        },
+      });
+      const updated = await tx.creditWallet.update({
+        where: { id: wallet.id },
+        data: { balanceCents: { increment: input.deltaCents } },
+      });
+      return { entry: mapCreditLedger(entry), balanceCents: updated.balanceCents };
+    });
+  }
+
+  async listCreditLedger(organizationId: string, options?: { take?: number }) {
+    return (
+      await this.prisma.creditLedger.findMany({
+        where: { organizationId },
+        orderBy: { createdAt: 'desc' },
+        take: options?.take ?? 100,
+      })
+    ).map(mapCreditLedger);
+  }
+
+  // --- Replit-parity: effort-based checkpoints -------------------------------
+
+  async createAgentCheckpoint(input: {
+    organizationId: string;
+    userId?: string;
+    projectId?: string;
+    conversationId?: string;
+    runId?: string;
+    highPowerModel?: boolean;
+    extendedThinking?: boolean;
+  }) {
+    return mapAgentCheckpoint(
+      await this.prisma.agentCheckpoint.create({
+        data: {
+          organizationId: input.organizationId,
+          userId: input.userId,
+          projectId: input.projectId,
+          conversationId: input.conversationId,
+          runId: input.runId,
+          highPowerModel: input.highPowerModel ?? false,
+          extendedThinking: input.extendedThinking ?? false,
+        },
+      }),
+    );
+  }
+
+  async completeAgentCheckpoint(input: {
+    id: string;
+    status: CheckpointStatus;
+    inputTokens?: number;
+    outputTokens?: number;
+    wallMs?: number;
+    computeCents?: number;
+    rawProviderCents?: number;
+    creditCents?: number;
+  }) {
+    return mapAgentCheckpoint(
+      await this.prisma.agentCheckpoint.update({
+        where: { id: input.id },
+        data: {
+          status: input.status,
+          inputTokens: input.inputTokens,
+          outputTokens: input.outputTokens,
+          wallMs: input.wallMs,
+          computeCents: input.computeCents,
+          rawProviderCents: input.rawProviderCents,
+          creditCents: input.creditCents,
+          completedAt: new Date(),
+        },
+      }),
+    );
+  }
+
+  async getAgentCheckpoint(id: string) {
+    const checkpoint = await this.prisma.agentCheckpoint.findUnique({ where: { id } });
+    return checkpoint ? mapAgentCheckpoint(checkpoint) : undefined;
+  }
+
+  async listAgentCheckpoints(organizationId: string, options?: { take?: number }) {
+    return (
+      await this.prisma.agentCheckpoint.findMany({
+        where: { organizationId },
+        orderBy: { startedAt: 'desc' },
+        take: options?.take ?? 100,
+      })
+    ).map(mapAgentCheckpoint);
+  }
+
+  // --- Replit-parity: admin-owned provider/model registry -------------------
+
+  async listProviderConfigs() {
+    return (await this.prisma.providerConfig.findMany({ orderBy: { provider: 'asc' } })).map(mapProviderConfig);
+  }
+
+  async upsertProviderConfig(input: {
+    provider: string;
+    displayName: string;
+    enabled?: boolean;
+    apiKeySecret?: string;
+    baseUrl?: string;
+    byokAllowed?: boolean;
+  }) {
+    const data = {
+      displayName: input.displayName,
+      ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
+      ...(input.apiKeySecret !== undefined ? { apiKeySecret: input.apiKeySecret } : {}),
+      ...(input.baseUrl !== undefined ? { baseUrl: input.baseUrl } : {}),
+      ...(input.byokAllowed !== undefined ? { byokAllowed: input.byokAllowed } : {}),
+    };
+    return mapProviderConfig(
+      await this.prisma.providerConfig.upsert({
+        where: { provider: input.provider },
+        update: data,
+        create: { provider: input.provider, ...data },
+      }),
+    );
+  }
+
+  async listModelConfigs(options?: { enabledOnly?: boolean }) {
+    return (
+      await this.prisma.modelConfig.findMany({
+        where: options?.enabledOnly ? { enabled: true, providerConfig: { enabled: true } } : {},
+        orderBy: { modelId: 'asc' },
+        include: { providerConfig: true },
+      })
+    ).map(mapModelConfig);
+  }
+
+  async upsertModelConfig(input: {
+    provider: string;
+    modelId: string;
+    displayName: string;
+    enabled?: boolean;
+    enabledPlans: string[];
+    isHighPower?: boolean;
+    supportsThinking?: boolean;
+    inputCentsPerM: number;
+    outputCentsPerM: number;
+    contextWindow: number;
+  }) {
+    // The parent provider must exist; create a disabled shell if the admin is
+    // registering a model before configuring its provider.
+    const provider = await this.prisma.providerConfig.upsert({
+      where: { provider: input.provider },
+      update: {},
+      create: { provider: input.provider, displayName: input.provider },
+    });
+    const data = {
+      displayName: input.displayName,
+      enabledPlans: input.enabledPlans as any,
+      inputCentsPerM: input.inputCentsPerM,
+      outputCentsPerM: input.outputCentsPerM,
+      contextWindow: input.contextWindow,
+      ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
+      ...(input.isHighPower !== undefined ? { isHighPower: input.isHighPower } : {}),
+      ...(input.supportsThinking !== undefined ? { supportsThinking: input.supportsThinking } : {}),
+    };
+    return mapModelConfig(
+      await this.prisma.modelConfig.upsert({
+        where: { providerConfigId_modelId: { providerConfigId: provider.id, modelId: input.modelId } },
+        update: data,
+        create: { providerConfigId: provider.id, modelId: input.modelId, ...data },
+        include: { providerConfig: true },
+      }),
+    );
+  }
+
   async upsertBillingPlan(input: {
     key: PlanKey;
     name: string;
@@ -3683,6 +3926,89 @@ function mapAiCostLedger(cost: any): AiCostLedgerRecord {
     costCents: cost.costCents,
     reason: cost.reason,
     createdAt: toIso(cost.createdAt)!,
+  };
+}
+
+function mapCreditWallet(wallet: any): CreditWalletRecord {
+  return {
+    id: wallet.id,
+    organizationId: wallet.organizationId,
+    balanceCents: wallet.balanceCents,
+    currency: wallet.currency,
+    budgetCapCents: wallet.budgetCapCents ?? undefined,
+    autoTopupCents: wallet.autoTopupCents ?? undefined,
+    createdAt: toIso(wallet.createdAt)!,
+    updatedAt: toIso(wallet.updatedAt)!,
+  };
+}
+
+function mapCreditLedger(entry: any): CreditLedgerRecord {
+  return {
+    id: entry.id,
+    walletId: entry.walletId,
+    organizationId: entry.organizationId,
+    deltaCents: entry.deltaCents,
+    kind: entry.kind,
+    reason: entry.reason,
+    checkpointId: entry.checkpointId ?? undefined,
+    expiresAt: toIso(entry.expiresAt) ?? undefined,
+    metadata: entry.metadata ?? undefined,
+    createdAt: toIso(entry.createdAt)!,
+  };
+}
+
+function mapAgentCheckpoint(checkpoint: any): AgentCheckpointRecord {
+  return {
+    id: checkpoint.id,
+    organizationId: checkpoint.organizationId,
+    userId: checkpoint.userId ?? undefined,
+    projectId: checkpoint.projectId ?? undefined,
+    conversationId: checkpoint.conversationId ?? undefined,
+    runId: checkpoint.runId ?? undefined,
+    status: checkpoint.status,
+    highPowerModel: checkpoint.highPowerModel,
+    extendedThinking: checkpoint.extendedThinking,
+    inputTokens: checkpoint.inputTokens,
+    outputTokens: checkpoint.outputTokens,
+    wallMs: checkpoint.wallMs,
+    computeCents: checkpoint.computeCents,
+    rawProviderCents: checkpoint.rawProviderCents,
+    creditCents: checkpoint.creditCents,
+    startedAt: toIso(checkpoint.startedAt)!,
+    completedAt: toIso(checkpoint.completedAt) ?? undefined,
+  };
+}
+
+function mapProviderConfig(config: any): ProviderConfigRecord {
+  return {
+    id: config.id,
+    provider: config.provider,
+    displayName: config.displayName,
+    enabled: config.enabled,
+    apiKeySecret: config.apiKeySecret ?? undefined,
+    baseUrl: config.baseUrl ?? undefined,
+    byokAllowed: config.byokAllowed,
+    createdAt: toIso(config.createdAt)!,
+    updatedAt: toIso(config.updatedAt)!,
+  };
+}
+
+function mapModelConfig(config: any): ModelConfigRecord {
+  return {
+    id: config.id,
+    providerConfigId: config.providerConfigId,
+    provider: config.providerConfig?.provider ?? undefined,
+    modelId: config.modelId,
+    displayName: config.displayName,
+    enabled: config.enabled,
+    enabledPlans: Array.isArray(config.enabledPlans) ? config.enabledPlans : [],
+    isHighPower: config.isHighPower,
+    supportsThinking: config.supportsThinking,
+    inputCentsPerM: config.inputCentsPerM,
+    outputCentsPerM: config.outputCentsPerM,
+    contextWindow: config.contextWindow,
+    createdAt: toIso(config.createdAt)!,
+    updatedAt: toIso(config.updatedAt)!,
   };
 }
 

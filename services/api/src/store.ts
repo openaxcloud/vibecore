@@ -445,6 +445,86 @@ export interface AiCostLedgerRecord {
   createdAt: string;
 }
 
+// --- Replit-parity billing: credit wallet, checkpoints, model registry -------
+
+export type CreditEntryKind = 'GRANT' | 'CONSUMPTION' | 'PAYG_CHARGE' | 'REFUND' | 'ADJUSTMENT' | 'EXPIRY';
+
+export interface CreditWalletRecord {
+  id: string;
+  organizationId: string;
+  balanceCents: number;
+  currency: string;
+  budgetCapCents?: number;
+  autoTopupCents?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreditLedgerRecord {
+  id: string;
+  walletId: string;
+  organizationId: string;
+  deltaCents: number;
+  kind: CreditEntryKind;
+  reason: string;
+  checkpointId?: string;
+  expiresAt?: string;
+  metadata?: unknown;
+  createdAt: string;
+}
+
+export type CheckpointStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
+
+export interface AgentCheckpointRecord {
+  id: string;
+  organizationId: string;
+  userId?: string;
+  projectId?: string;
+  conversationId?: string;
+  runId?: string;
+  status: CheckpointStatus;
+  highPowerModel: boolean;
+  extendedThinking: boolean;
+  inputTokens: number;
+  outputTokens: number;
+  wallMs: number;
+  computeCents: number;
+  rawProviderCents: number;
+  creditCents: number;
+  startedAt: string;
+  completedAt?: string;
+}
+
+export interface ProviderConfigRecord {
+  id: string;
+  provider: string;
+  displayName: string;
+  enabled: boolean;
+  apiKeySecret?: string;
+  baseUrl?: string;
+  byokAllowed: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ModelConfigRecord {
+  id: string;
+  providerConfigId: string;
+  /** Denormalized provider key for convenience (from the parent ProviderConfig). */
+  provider?: string;
+  modelId: string;
+  displayName: string;
+  enabled: boolean;
+  enabledPlans: string[];
+  isHighPower: boolean;
+  supportsThinking: boolean;
+  inputCentsPerM: number;
+  outputCentsPerM: number;
+  contextWindow: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProjectIdeStateRecord {
   projectId: string;
   state: unknown;
@@ -1108,6 +1188,77 @@ export interface ApiStore {
     reason: string;
   }): Promise<AiCostLedgerRecord>;
   listAiCosts(organizationId: string, range?: { from?: string; to?: string }): Promise<AiCostLedgerRecord[]>;
+
+  // --- Replit-parity: credit wallet (dormant until BILLING_CREDITS_ENABLED) ---
+  getCreditWallet(organizationId: string): Promise<CreditWalletRecord | undefined>;
+  ensureCreditWallet(organizationId: string): Promise<CreditWalletRecord>;
+  updateCreditWalletSettings(input: {
+    organizationId: string;
+    budgetCapCents?: number | null;
+    autoTopupCents?: number | null;
+  }): Promise<CreditWalletRecord>;
+  /**
+   * Atomically append a ledger entry and move the materialized wallet balance by
+   * the same delta. Returns the new entry and the post-mutation balance.
+   */
+  recordCreditEntry(input: {
+    organizationId: string;
+    deltaCents: number;
+    kind: CreditEntryKind;
+    reason: string;
+    checkpointId?: string;
+    expiresAt?: Date;
+    metadata?: unknown;
+  }): Promise<{ entry: CreditLedgerRecord; balanceCents: number }>;
+  listCreditLedger(organizationId: string, options?: { take?: number }): Promise<CreditLedgerRecord[]>;
+
+  // --- Replit-parity: effort-based checkpoints --------------------------------
+  createAgentCheckpoint(input: {
+    organizationId: string;
+    userId?: string;
+    projectId?: string;
+    conversationId?: string;
+    runId?: string;
+    highPowerModel?: boolean;
+    extendedThinking?: boolean;
+  }): Promise<AgentCheckpointRecord>;
+  completeAgentCheckpoint(input: {
+    id: string;
+    status: CheckpointStatus;
+    inputTokens?: number;
+    outputTokens?: number;
+    wallMs?: number;
+    computeCents?: number;
+    rawProviderCents?: number;
+    creditCents?: number;
+  }): Promise<AgentCheckpointRecord>;
+  getAgentCheckpoint(id: string): Promise<AgentCheckpointRecord | undefined>;
+  listAgentCheckpoints(organizationId: string, options?: { take?: number }): Promise<AgentCheckpointRecord[]>;
+
+  // --- Replit-parity: admin-owned provider/model registry ---------------------
+  listProviderConfigs(): Promise<ProviderConfigRecord[]>;
+  upsertProviderConfig(input: {
+    provider: string;
+    displayName: string;
+    enabled?: boolean;
+    apiKeySecret?: string;
+    baseUrl?: string;
+    byokAllowed?: boolean;
+  }): Promise<ProviderConfigRecord>;
+  listModelConfigs(options?: { enabledOnly?: boolean }): Promise<ModelConfigRecord[]>;
+  upsertModelConfig(input: {
+    provider: string;
+    modelId: string;
+    displayName: string;
+    enabled?: boolean;
+    enabledPlans: string[];
+    isHighPower?: boolean;
+    supportsThinking?: boolean;
+    inputCentsPerM: number;
+    outputCentsPerM: number;
+    contextWindow: number;
+  }): Promise<ModelConfigRecord>;
+
   upsertBillingPlan(input: {
     key: PlanKey;
     name: string;

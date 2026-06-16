@@ -14,8 +14,15 @@ import type {
   AiMessageRecord,
   AiTokenUsageRecord,
   AiToolCallRecord,
+  AgentCheckpointRecord,
   BillingCustomerRecord,
   BillingPlanRecord,
+  CheckpointStatus,
+  CreditEntryKind,
+  CreditLedgerRecord,
+  CreditWalletRecord,
+  ModelConfigRecord,
+  ProviderConfigRecord,
   CollaborationCommentRecord,
   CollaborationPresenceRecord,
   CustomRoleRecord,
@@ -127,6 +134,11 @@ export class TestApiStore implements ApiStore {
   readonly aiToolCalls = new Map<string, AiToolCallRecord>();
   readonly aiTokenUsages = new Map<string, AiTokenUsageRecord>();
   readonly aiCostLedger = new Map<string, AiCostLedgerRecord>();
+  readonly creditWallets = new Map<string, CreditWalletRecord>();
+  readonly creditLedger = new Map<string, CreditLedgerRecord>();
+  readonly agentCheckpoints = new Map<string, AgentCheckpointRecord>();
+  readonly providerConfigs = new Map<string, ProviderConfigRecord>();
+  readonly modelConfigs = new Map<string, ModelConfigRecord>();
   readonly billingCustomers = new Map<string, BillingCustomerRecord>();
   readonly billingPlans = new Map<PlanKey, BillingPlanRecord>();
   readonly subscriptions = new Map<string, SubscriptionRecord>();
@@ -1924,6 +1936,229 @@ export class TestApiStore implements ApiStore {
 
       return true;
     });
+  }
+
+  // --- Replit-parity: credit wallet ------------------------------------------
+
+  async getCreditWallet(organizationId: string) {
+    return this.creditWallets.get(organizationId);
+  }
+
+  async ensureCreditWallet(organizationId: string) {
+    let wallet = this.creditWallets.get(organizationId);
+    if (!wallet) {
+      const ts = now();
+      wallet = {
+        id: id('wallet'),
+        organizationId,
+        balanceCents: 0,
+        currency: 'usd',
+        createdAt: ts,
+        updatedAt: ts,
+      };
+      this.creditWallets.set(organizationId, wallet);
+    }
+    return wallet;
+  }
+
+  async updateCreditWalletSettings(input: {
+    organizationId: string;
+    budgetCapCents?: number | null;
+    autoTopupCents?: number | null;
+  }) {
+    const wallet = await this.ensureCreditWallet(input.organizationId);
+    if (input.budgetCapCents !== undefined) {
+      wallet.budgetCapCents = input.budgetCapCents ?? undefined;
+    }
+    if (input.autoTopupCents !== undefined) {
+      wallet.autoTopupCents = input.autoTopupCents ?? undefined;
+    }
+    wallet.updatedAt = now();
+    return wallet;
+  }
+
+  async recordCreditEntry(input: {
+    organizationId: string;
+    deltaCents: number;
+    kind: CreditEntryKind;
+    reason: string;
+    checkpointId?: string;
+    expiresAt?: Date;
+    metadata?: unknown;
+  }) {
+    const wallet = await this.ensureCreditWallet(input.organizationId);
+    const entry: CreditLedgerRecord = {
+      id: id('credit'),
+      walletId: wallet.id,
+      organizationId: input.organizationId,
+      deltaCents: input.deltaCents,
+      kind: input.kind,
+      reason: input.reason,
+      checkpointId: input.checkpointId,
+      expiresAt: input.expiresAt ? input.expiresAt.toISOString() : undefined,
+      metadata: input.metadata,
+      createdAt: now(),
+    };
+    this.creditLedger.set(entry.id, entry);
+    wallet.balanceCents += input.deltaCents;
+    wallet.updatedAt = now();
+    return { entry, balanceCents: wallet.balanceCents };
+  }
+
+  async listCreditLedger(organizationId: string, options?: { take?: number }) {
+    return [...this.creditLedger.values()]
+      .filter((e) => e.organizationId === organizationId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, options?.take ?? 100);
+  }
+
+  // --- Replit-parity: effort-based checkpoints -------------------------------
+
+  async createAgentCheckpoint(input: {
+    organizationId: string;
+    userId?: string;
+    projectId?: string;
+    conversationId?: string;
+    runId?: string;
+    highPowerModel?: boolean;
+    extendedThinking?: boolean;
+  }) {
+    const checkpoint: AgentCheckpointRecord = {
+      id: id('checkpoint'),
+      organizationId: input.organizationId,
+      userId: input.userId,
+      projectId: input.projectId,
+      conversationId: input.conversationId,
+      runId: input.runId,
+      status: 'PENDING',
+      highPowerModel: input.highPowerModel ?? false,
+      extendedThinking: input.extendedThinking ?? false,
+      inputTokens: 0,
+      outputTokens: 0,
+      wallMs: 0,
+      computeCents: 0,
+      rawProviderCents: 0,
+      creditCents: 0,
+      startedAt: now(),
+    };
+    this.agentCheckpoints.set(checkpoint.id, checkpoint);
+    return checkpoint;
+  }
+
+  async completeAgentCheckpoint(input: {
+    id: string;
+    status: CheckpointStatus;
+    inputTokens?: number;
+    outputTokens?: number;
+    wallMs?: number;
+    computeCents?: number;
+    rawProviderCents?: number;
+    creditCents?: number;
+  }) {
+    const checkpoint = this.agentCheckpoints.get(input.id);
+    if (!checkpoint) {
+      throw new Error(`checkpoint ${input.id} not found`);
+    }
+    checkpoint.status = input.status;
+    if (input.inputTokens !== undefined) checkpoint.inputTokens = input.inputTokens;
+    if (input.outputTokens !== undefined) checkpoint.outputTokens = input.outputTokens;
+    if (input.wallMs !== undefined) checkpoint.wallMs = input.wallMs;
+    if (input.computeCents !== undefined) checkpoint.computeCents = input.computeCents;
+    if (input.rawProviderCents !== undefined) checkpoint.rawProviderCents = input.rawProviderCents;
+    if (input.creditCents !== undefined) checkpoint.creditCents = input.creditCents;
+    checkpoint.completedAt = now();
+    return checkpoint;
+  }
+
+  async getAgentCheckpoint(checkpointId: string) {
+    return this.agentCheckpoints.get(checkpointId);
+  }
+
+  async listAgentCheckpoints(organizationId: string, options?: { take?: number }) {
+    return [...this.agentCheckpoints.values()]
+      .filter((c) => c.organizationId === organizationId)
+      .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+      .slice(0, options?.take ?? 100);
+  }
+
+  // --- Replit-parity: admin-owned provider/model registry -------------------
+
+  async listProviderConfigs() {
+    return [...this.providerConfigs.values()].sort((a, b) => a.provider.localeCompare(b.provider));
+  }
+
+  async upsertProviderConfig(input: {
+    provider: string;
+    displayName: string;
+    enabled?: boolean;
+    apiKeySecret?: string;
+    baseUrl?: string;
+    byokAllowed?: boolean;
+  }) {
+    const existing = this.providerConfigs.get(input.provider);
+    const ts = now();
+    const config: ProviderConfigRecord = {
+      id: existing?.id ?? id('provider'),
+      provider: input.provider,
+      displayName: input.displayName,
+      enabled: input.enabled ?? existing?.enabled ?? false,
+      apiKeySecret: input.apiKeySecret ?? existing?.apiKeySecret,
+      baseUrl: input.baseUrl ?? existing?.baseUrl,
+      byokAllowed: input.byokAllowed ?? existing?.byokAllowed ?? false,
+      createdAt: existing?.createdAt ?? ts,
+      updatedAt: ts,
+    };
+    this.providerConfigs.set(input.provider, config);
+    return config;
+  }
+
+  async listModelConfigs(options?: { enabledOnly?: boolean }) {
+    let configs = [...this.modelConfigs.values()];
+    if (options?.enabledOnly) {
+      const enabledProviders = new Set(
+        [...this.providerConfigs.values()].filter((p) => p.enabled).map((p) => p.provider),
+      );
+      configs = configs.filter((m) => m.enabled && m.provider && enabledProviders.has(m.provider));
+    }
+    return configs.sort((a, b) => a.modelId.localeCompare(b.modelId));
+  }
+
+  async upsertModelConfig(input: {
+    provider: string;
+    modelId: string;
+    displayName: string;
+    enabled?: boolean;
+    enabledPlans: string[];
+    isHighPower?: boolean;
+    supportsThinking?: boolean;
+    inputCentsPerM: number;
+    outputCentsPerM: number;
+    contextWindow: number;
+  }) {
+    const provider =
+      this.providerConfigs.get(input.provider) ??
+      (await this.upsertProviderConfig({ provider: input.provider, displayName: input.provider }));
+    const key = `${provider.id}:${input.modelId}`;
+    const existing = this.modelConfigs.get(key);
+    const ts = now();
+    const config: ModelConfigRecord = {
+      id: existing?.id ?? id('model'),
+      providerConfigId: provider.id,
+      provider: input.provider,
+      modelId: input.modelId,
+      displayName: input.displayName,
+      enabled: input.enabled ?? existing?.enabled ?? false,
+      enabledPlans: input.enabledPlans,
+      isHighPower: input.isHighPower ?? existing?.isHighPower ?? false,
+      supportsThinking: input.supportsThinking ?? existing?.supportsThinking ?? false,
+      inputCentsPerM: input.inputCentsPerM,
+      outputCentsPerM: input.outputCentsPerM,
+      contextWindow: input.contextWindow,
+      createdAt: existing?.createdAt ?? ts,
+      updatedAt: ts,
+    };
+    this.modelConfigs.set(key, config);
+    return config;
   }
 
   async upsertBillingPlan(input: {
