@@ -1263,7 +1263,7 @@ export function EcodePricingPage() {
                       </div>
                       {billingPeriod === 'yearly' && plan.monthlyCents > 0 ? (
                         <p className="mt-1 text-sm font-medium text-[var(--ecode-accent)]">
-                          Annual equivalent, billed by quote
+                          billed annually (${(plan.annualMonthlyCents * 12) / 100}/yr)
                         </p>
                       ) : null}
                     </>
@@ -1292,26 +1292,29 @@ export function EcodePricingPage() {
               <thead className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
                 <tr>
                   <th className="p-5 text-left font-semibold text-bolt-elements-textPrimary">Features</th>
-                  <th className="p-5 text-center font-semibold text-bolt-elements-textPrimary">Free</th>
-                  <th className="p-5 text-center font-semibold text-[var(--ecode-accent)]">Pro</th>
-                  <th className="p-5 text-center font-semibold text-bolt-elements-textPrimary">Team</th>
+                  <th className="p-5 text-center font-semibold text-bolt-elements-textPrimary">Starter</th>
+                  <th className="p-5 text-center font-semibold text-[var(--ecode-accent)]">Core</th>
+                  <th className="p-5 text-center font-semibold text-bolt-elements-textPrimary">Pro</th>
                   <th className="p-5 text-center font-semibold text-bolt-elements-textPrimary">Enterprise</th>
                 </tr>
               </thead>
               <tbody>
                 {[
-                  ['Projects', '3', '25', '100', 'Custom'],
-                  ['AI messages', '50', '1,000', '10,000', 'Custom'],
-                  ['Deployments', '-', '50', '500', 'Custom'],
-                  ['Storage', '1 GB', '25 GB', '250 GB', 'Custom'],
-                  ['Members', '1', '1', '25', 'Custom'],
-                  ['Audit logs', '-', '-', 'Included', 'Exportable'],
-                  ['SSO', '-', '-', '-', 'SAML/OIDC'],
+                  ['Monthly price', 'Free', '$25', '$100', 'Custom'],
+                  ['Monthly credits', 'Daily', '$25', '$100', 'Custom'],
+                  ['Collaborators', '1', '5', '15', 'Custom'],
+                  ['Viewers', '-', '-', '50', 'Custom'],
+                  ['Parallel agents', '1', '2', '10', 'Custom'],
+                  ['Publish regions', '1 region', 'Any', 'Any', 'Selectable'],
+                  ['Remove badge', '-', 'Yes', 'Yes', 'Yes'],
+                  ['DB rollbacks', '-', '-', '28 days', 'Custom'],
+                  ['Most powerful models', '-', '-', 'Yes', 'Yes'],
+                  ['SSO / SAML', '-', '-', '-', 'SAML/OIDC + SCIM'],
                 ].map((row) => (
                   <tr key={row[0]} className="border-b border-bolt-elements-borderColor last:border-b-0">
                     {row.map((cell, index) => (
                       <td
-                        key={`${row[0]}-${cell}`}
+                        key={`${row[0]}-col${index}`}
                         className={classNames(
                           'p-5',
                           index === 0
@@ -1800,7 +1803,7 @@ function Badge({ children, icon }: { children: ReactNode; icon: LucideIcon }) {
   const IconComponent = icon;
 
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-accent)]/30 bg-[var(--ecode-accent)]/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ecode-accent)]">
+    <span className="inline-flex items-center gap-2 rounded-full bg-[var(--ecode-accent)] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-white">
       <IconComponent className="h-4 w-4" aria-hidden />
       {children}
     </span>
