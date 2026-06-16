@@ -810,6 +810,19 @@ function FileContextMenu({
       return;
     }
 
+    /*
+     * Block silent overwrite of an existing target. Rename is a create-then-delete
+     * and createFile only refuses LOCKED targets, so renaming onto an existing
+     * UNLOCKED file/folder would clobber its content with no confirm — permanent
+     * data loss. Refuse the collision instead.
+     */
+    if (files[nextPath]) {
+      toast.error(`A file or folder named "${nextName}" already exists`);
+      setIsRenaming(false);
+
+      return;
+    }
+
     try {
       if (isFolder) {
         const folderEntries = Object.entries(files).filter(
@@ -853,12 +866,20 @@ function FileContextMenu({
     const files = workbenchStore.files.get();
     const extensionIndex = fileName.lastIndexOf('.');
 
-    const duplicateName =
-      !isFolder && extensionIndex > 0
-        ? `${fileName.slice(0, extensionIndex)} copy${fileName.slice(extensionIndex)}`
-        : `${fileName} copy`;
+    const baseName = !isFolder && extensionIndex > 0 ? fileName.slice(0, extensionIndex) : fileName;
+    const ext = !isFolder && extensionIndex > 0 ? fileName.slice(extensionIndex) : '';
+    const dir = path.dirname(fullPath);
 
-    const duplicatePath = path.join(path.dirname(fullPath), duplicateName);
+    /*
+     * Auto-increment ("… copy", "… copy 2", …) so a repeat duplicate never
+     * silently overwrites a pre-existing derived file (createFile only refuses
+     * LOCKED targets, so an unlocked "foo copy.ts" would otherwise be clobbered).
+     */
+    let duplicatePath = path.join(dir, `${baseName} copy${ext}`);
+
+    for (let counter = 2; files[duplicatePath]; counter += 1) {
+      duplicatePath = path.join(dir, `${baseName} copy ${counter}${ext}`);
+    }
 
     try {
       if (isFolder) {

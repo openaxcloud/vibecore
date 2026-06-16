@@ -274,7 +274,17 @@ function labelString(labels: Record<string, string | number>) {
     return '';
   }
 
-  return `{${entries.map(([key, value]) => `${key}="${String(value).replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`).join(',')}}`;
+  /*
+   * Escape per the Prometheus text exposition format: backslash, double-quote AND
+   * newline. Omitting \n let a user-controlled label value (e.g. provider/model
+   * from /ai/record-usage, validated only as a non-empty string) embed a literal
+   * newline that terminates the metric line and injects arbitrary fake series
+   * into the /metrics scrape output.
+   */
+  const escapeLabelValue = (value: string | number) =>
+    String(value).replaceAll('\\', '\\\\').replaceAll('\n', '\\n').replaceAll('"', '\\"');
+
+  return `{${entries.map(([key, value]) => `${key}="${escapeLabelValue(value)}"`).join(',')}}`;
 }
 
 function randomEventId() {
