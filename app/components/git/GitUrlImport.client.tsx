@@ -9,7 +9,12 @@ import { Chat } from '~/components/chat/Chat.client';
 import { LoadingOverlay } from '~/components/ui/LoadingOverlay';
 import { useGit } from '~/lib/hooks/useGit';
 import { useChatHistory } from '~/lib/persistence';
-import { createCommandsMessage, detectProjectCommands, escapeBoltTags } from '~/utils/projectCommands';
+import {
+  createCommandsMessage,
+  detectProjectCommands,
+  escapeBoltTags,
+  escapeBoltActionAttribute,
+} from '~/utils/projectCommands';
 
 const IGNORE_PATTERNS = [
   'node_modules/**',
@@ -79,7 +84,7 @@ export function GitUrlImport() {
 ${fileContents
   .map(
     (file) =>
-      `<boltAction type="file" filePath="${file.path}">
+      `<boltAction type="file" filePath="${escapeBoltActionAttribute(file.path)}">
 ${escapeBoltTags(file.content)}
 </boltAction>`,
   )

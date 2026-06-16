@@ -13,7 +13,12 @@ import { useGit } from '~/lib/hooks/useGit';
 import type { IChatMetadata } from '~/lib/persistence/db';
 import { classNames } from '~/utils/classNames';
 import { generateId } from '~/utils/fileUtils';
-import { detectProjectCommands, createCommandsMessage, escapeBoltTags } from '~/utils/projectCommands';
+import {
+  detectProjectCommands,
+  createCommandsMessage,
+  escapeBoltTags,
+  escapeBoltActionAttribute,
+} from '~/utils/projectCommands';
 
 const IGNORE_PATTERNS = [
   'node_modules/**',
@@ -141,7 +146,7 @@ ${skippedFiles.map((f) => `- ${f}`).join('\n')}`
 ${fileContents
   .map(
     (file) =>
-      `<boltAction type="file" filePath="${file.path}">
+      `<boltAction type="file" filePath="${escapeBoltActionAttribute(file.path)}">
 ${escapeBoltTags(file.content)}
 </boltAction>`,
   )

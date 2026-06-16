@@ -174,6 +174,16 @@ export function escapeBoltTags(input: string) {
   return escapeBoltArtifactTags(escapeBoltAActionTags(input));
 }
 
+/**
+ * Escape a value being interpolated into a boltAction ATTRIBUTE (e.g.
+ * `filePath="..."`). A hostile/imported repo file path containing `"`, `<` or
+ * `>` could otherwise break out of the attribute and inject a tag into the
+ * synthesized artifact. Neutralizes the attribute-significant characters.
+ */
+export function escapeBoltActionAttribute(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 // We have this seperate function to simplify the restore snapshot process in to one single artifact.
 export function createCommandActionsString(commands: ProjectCommands): string {
   if (!commands.setupCommand && !commands.startCommand) {

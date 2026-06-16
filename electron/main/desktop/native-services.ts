@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, Notification, shell, Tray } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, Notification, session, shell, Tray } from 'electron';
 import path from 'node:path';
 import log from 'electron-log';
 import { store } from '../utils/store';
@@ -69,8 +69,22 @@ export function setupNativeDesktopServices(getWindow: () => BrowserWindow | unde
   ipcMain.handle('desktop:settings:set', async (_event, settings: any) => {
     if (settings.proxy) {
       store.set('desktop.proxy', settings.proxy);
+
+      /*
+       * Actually APPLY the chosen proxy to the session — the old handler only
+       * persisted it and unconditionally forced DNS to 'automatic', so the
+       * user's System/Direct/Manual choice never took effect.
+       */
       try {
-        app.configureHostResolver({ secureDnsMode: 'automatic' });
+        const mode = settings.proxy.mode ?? 'system';
+
+        if (mode === 'manual' && typeof settings.proxy.server === 'string' && settings.proxy.server.trim()) {
+          await session.defaultSession.setProxy({ proxyRules: settings.proxy.server.trim() });
+        } else if (mode === 'direct') {
+          await session.defaultSession.setProxy({ mode: 'direct' });
+        } else {
+          await session.defaultSession.setProxy({ mode: 'system' });
+        }
       } catch (error) {
         log.warn(error);
       }

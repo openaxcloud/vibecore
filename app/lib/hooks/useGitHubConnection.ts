@@ -138,15 +138,22 @@ export function useGitHubConnection(): UseGitHubConnectionReturn {
         tokenType,
       };
 
-      // Set cookies for API requests
-      Cookies.set('githubToken', token);
-      Cookies.set('githubUsername', userData.login);
+      /*
+       * Token-bearing cookies must carry the same hardening saveGitAuth applies
+       * (Secure + SameSite=strict + expiry). js-cookie overwrites wholesale, so
+       * bare set() here silently DOWNGRADED the hardened git:github.com cookie
+       * back to an insecure session cookie on every connect.
+       */
+      const secureCookieOptions = { secure: true, sameSite: 'strict' as const, expires: 7 };
+      Cookies.set('githubToken', token, secureCookieOptions);
+      Cookies.set('githubUsername', userData.login, secureCookieOptions);
       Cookies.set(
         'git:github.com',
         JSON.stringify({
           username: token,
           password: 'x-oauth-basic',
         }),
+        secureCookieOptions,
       );
 
       // Update the store

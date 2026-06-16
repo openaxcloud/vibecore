@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { createRequestHandler } from '@remix-run/node';
-import electron, { app, BrowserWindow, ipcMain, protocol, session } from 'electron';
+import electron, { app, BrowserWindow, protocol, session } from 'electron';
 import log from 'electron-log';
 import path from 'node:path';
 import * as pkg from '../../package.json';
@@ -198,14 +198,12 @@ setupCrashReporting();
 
   return win;
 })()
-  .then((win) => {
-    // IPC samples : send and recieve.
-    let count = 0;
-    setInterval(() => win.webContents.send('ping', `hello from main! ${count++}`), 60 * 1000);
-    ipcMain.handle('ipcTest', (event, ...args) => console.log('ipc: renderer -> main', { event, ...args }));
-
-    return win;
-  })
+  /*
+   * Removed leftover IPC sample scaffolding: an uncleared setInterval that sent a
+   * 'ping' to win.webContents every 60s forever — firing into a possibly-destroyed
+   * webContents after window close (errors / wasted work) — plus a no-op ipcTest
+   * handler. Neither served any product purpose.
+   */
   .then((win) => setupMenu(win));
 
 app.on('window-all-closed', () => {

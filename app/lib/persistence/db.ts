@@ -44,7 +44,16 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
     };
 
     request.onsuccess = (event: Event) => {
-      resolve((event.target as IDBOpenDBRequest).result);
+      const database = (event.target as IDBOpenDBRequest).result;
+      resolve(database);
+
+      /*
+       * Best-effort, fire-and-forget reclaim of orphaned id-reservation
+       * placeholders (urlId `__pending-N`, empty messages) left behind when a
+       * new-chat flow aborted between getNextId and setMessages. They are
+       * invisible in the sidebar (no description) so they'd otherwise accumulate.
+       */
+      sweepPendingPlaceholders(database);
     };
 
     request.onerror = (event: Event) => {
@@ -62,6 +71,47 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
       logger.error('Database upgrade blocked by another open connection');
     };
   });
+}
+
+/**
+ * Delete orphaned id-reservation placeholders: rows whose urlId starts with
+ * `__pending-` and whose messages array is empty. getNextId() durably commits
+ * such a placeholder to avoid concurrent-allocation id collisions, expecting the
+ * subsequent setMessages() to overwrite it; if that flow aborts (quota, stream
+ * exception, navigate-away) the empty row persists invisibly forever. Best-effort.
+ */
+function sweepPendingPlaceholders(db: IDBDatabase) {
+  try {
+    if (!db.objectStoreNames.contains('chats')) {
+      return;
+    }
+
+    const transaction = db.transaction('chats', 'readwrite');
+    const cursorRequest = transaction.objectStore('chats').openCursor();
+
+    cursorRequest.onsuccess = (event: Event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+
+      if (!cursor) {
+        return;
+      }
+
+      const value = cursor.value as ChatHistoryItem | undefined;
+
+      if (
+        typeof value?.urlId === 'string' &&
+        value.urlId.startsWith('__pending-') &&
+        Array.isArray(value.messages) &&
+        value.messages.length === 0
+      ) {
+        cursor.delete();
+      }
+
+      cursor.continue();
+    };
+  } catch (error) {
+    logger.error('Failed to sweep pending chat placeholders', error);
+  }
 }
 
 export async function getAll(db: IDBDatabase): Promise<ChatHistoryItem[]> {
