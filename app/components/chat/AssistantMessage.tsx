@@ -535,7 +535,10 @@ export const AssistantMessage = memo(
                         </span>
                       </div>
                       <div className="mt-1 line-clamp-3 text-[11px] text-bolt-elements-textSecondary">
-                        {result?.summary ?? stream?.summary ?? stream?.text.trim() ?? role.responsibility}
+                        {result?.summary ??
+                          stream?.summary ??
+                          (stream?.text.trim() || undefined) ??
+                          role.responsibility}
                       </div>
                     </div>
                   );

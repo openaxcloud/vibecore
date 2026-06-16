@@ -476,8 +476,16 @@ export function ecodeCommunityCategoriesLoader() {
 
 export function ecodeCommunityPostsLoader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
-  const page = Math.max(Number(url.searchParams.get('page') ?? '1'), 1);
-  const pageSize = Math.min(Math.max(Number(url.searchParams.get('pageSize') ?? '20'), 1), 50);
+
+  /*
+   * Number.isFinite guard before clamping — Math.max(NaN, 1) === NaN, so a
+   * non-numeric ?page=abc would otherwise yield NaN pagination (page/totalPages
+   * serialize to null + empty list). Mirrors paginateTemplates' established guard.
+   */
+  const pageRaw = Number(url.searchParams.get('page') ?? '1');
+  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1;
+  const pageSizeRaw = Number(url.searchParams.get('pageSize') ?? '20');
+  const pageSize = Number.isFinite(pageSizeRaw) && pageSizeRaw > 0 ? Math.min(Math.floor(pageSizeRaw), 50) : 20;
   const category = url.searchParams.get('category');
   const search = (url.searchParams.get('search') ?? '').toLowerCase();
 
