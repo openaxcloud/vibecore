@@ -509,6 +509,68 @@ live secret key** when going live.
 
 ---
 
+## 16. Replit parity checklist (point‑by‑point)
+
+Verified against **replit.com/pricing** and **replit.com/blog/effort-based-pricing**
+(fetched 2026‑06‑16). Legend: ✅ done · 🔶 partial/dormant · ⬜ todo.
+
+### 16.1 Pricing page — plans & entitlements
+
+| Replit element | Target value | Status | Where |
+|---|---|---|---|
+| Starter (Free) | $0, free daily Agent credits | ✅ catalog · 🔶 grant wiring | `creditPlanCatalog.starter`, `planCreditConfig.starter` (daily 25¢, **amount not published by Replit — confirm with Avi**) |
+| Starter: built‑in DB | yes | ⬜ | no per‑project DB yet (spec §8) |
+| Starter: publish 1 project | 1 | 🔶 | entitlement encoded; enforcement P5 |
+| Starter: private/password deploys | yes | 🔶 | exists in deploy flow; gate P5 |
+| Core monthly | $25/mo | ✅ | `monthlyCents: 2500` |
+| Core annual | $20/mo ($240/yr, 20% off) | ✅ | `annualCents: 24000`, `annualMonthlyCents: 2000` |
+| Core: $25 monthly credits | $25 | ✅ | `includedCreditCents: 2500` |
+| Core: up to 5 collaborators | 5 | ✅ | `collaborators: 5` |
+| Core: up to 2 parallel agents | 2 | ✅ catalog · ⬜ enforce | `parallelAgents: 2`; gate in agent fan‑out P3/P5 |
+| Core: unlimited workspaces | ∞ | ✅ | `limits.workspaces.active = 1_000_000` |
+| Core: remove "Made with" badge | yes | ✅ catalog · ⬜ UI | `badgeRemovable: true`; badge component P5/P6 |
+| Core: publish any region | all | ✅ catalog · ⬜ enforce | `publishRegions: 'all'` |
+| Core: AI integrations | yes | ✅ | feature bullet |
+| Pro monthly | $100/mo | ✅ | `monthlyCents: 10000` |
+| Pro annual | $95/mo ($1140/yr, 5% off) | ✅ | `annualCents: 114000`, `annualMonthlyCents: 9500` |
+| Pro: $100 monthly credits | $100 | ✅ | `includedCreditCents: 10000` |
+| Pro: up to 15 collaborators | 15 | ✅ | `collaborators: 15` |
+| Pro: up to 50 viewers | 50 | ✅ catalog · ⬜ enforce | `viewers: 50` |
+| Pro: up to 10 parallel agents | 10 | ✅ catalog · ⬜ enforce | `parallelAgents: 10` |
+| Pro: most powerful models | yes | ✅ catalog · 🔶 registry | `topModels: true`; gated via `ModelConfig.enabledPlans` |
+| Pro: 28‑day DB rollbacks | 28 | ✅ catalog · ⬜ feature | `dbRollbackDays: 28`; DB rollback feature P‑later |
+| Pro: premium support | yes | ✅ | feature bullet |
+| Enterprise: custom seats, SSO/SAML | yes | ✅ catalog · 🔶 SSO exists | `enterprise` features; SSO/SAML already in code |
+| Enterprise: single‑tenant, region select, static egress IPs, VPC peering, data warehouse, design system, groups, dedicated support | yes | ✅ catalog · ⬜ infra | feature bullets; infra items operator‑side |
+| **Monthly AND annual** billing, distinct price IDs | both | ✅ schema · ⬜ checkout/proration | `Plan.stripePrice{Monthly,Annual}Id`, `stripePrice{Monthly,Annual}Env`; checkout interval + proration P6/P7 |
+| Annual/monthly toggle on pricing page | yes | ⬜ | pricing page rebuild P6 |
+
+### 16.2 Effort‑based pricing (blog)
+
+| Replit element | Target | Status | Where |
+|---|---|---|---|
+| Exactly **1 checkpoint per Agent request** | 1 | ✅ model · 🔶 wiring | `AgentCheckpoint` (one row/request); settle wiring P3 |
+| **No intermediate checkpoints** | bundled | ✅ | one create→complete per request, costs bundled at settle |
+| Cost = real effort (time + compute) | dynamic | ✅ math · 🔶 wiring | `AgentCheckpoint.{wallMs,computeCents,rawProviderCents}` → `computeCreditCostCents` |
+| Simple < $0.25, complex more (no flat fee) | dynamic | ✅ | no flat per‑checkpoint price; derived from tokens+compute |
+| **High power model** per‑request control | toggle | ✅ math/schema · ⬜ UI+routing | `AgentCheckpoint.highPowerModel`, `estimateCheckpointCostCents` ×4; route to `isHighPower` model P3 |
+| **Extended thinking** per‑request control | toggle | ✅ math/schema · ⬜ UI+plumb | `AgentCheckpoint.extendedThinking`, ×2.5; reasoning‑budget plumb P3 |
+| These controls cost more credits | yes | ✅ | estimate multipliers in `credits.ts` |
+| **Proof‑of‑work** cost shown in Agent UI | display | ⬜ | settle returns `creditCents` + breakdown; agent panel UI P3 |
+| Credits consumed from balance | yes | ✅ store · 🔶 wiring | `recordCreditEntry(CONSUMPTION)`; chat‑flow settle P3 |
+
+### 16.3 Beyond the two pages (supporting parity)
+
+| Element | Status | Where |
+|---|---|---|
+| Pay‑as‑you‑go overage past included credits | 🔶 | `evaluateCreditGate` PAYG mode; Stripe metered P7 |
+| Spend/budget cap + alerts (Replit "Usage Limit") | ✅ math · ⬜ UI | `CreditWallet.budgetCapCents`, `paygAlertThresholdCrossed`; admin/user UI P5 |
+| Compute billing (runtime/deploys) at Replit CU rates | ⬜ | metering P4 (1 CPU‑s=18 CU, 1 GB‑s=2 CU; Autoscale $1+$3.20/M CU+$1.20/M req) |
+| Admin‑owned keys + global model registry | ✅ store · ⬜ read‑through | `ProviderConfig`/`ModelConfig`; ai‑gateway + api.models P2b |
+| BYOK Enterprise‑only | ⬜ | hide key entry; `byokAllowed` P5 |
+
+---
+
 ## Appendix — key file references
 - Plans/quotas: `packages/billing/src/index.ts`
 - AI pricing: `packages/billing/src/ai-pricing.ts`
