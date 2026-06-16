@@ -122,6 +122,7 @@ import {
   createDefaultMcpMarketplaceService,
 } from './mcp-marketplace.js';
 import { PrismaApiStore } from './prisma-store.js';
+import { openCheckpoint, settleCheckpoint } from './credits-service.js';
 import {
   filesFromZip,
   filesFromZipBase64,
@@ -1035,6 +1036,11 @@ const aiRecordUsageSchema = z.object({
   outputTokens: z.number().int().nonnegative(),
   finishReason: z.string().optional(),
   source: z.string().min(1).default('remix-chat'),
+  // Replit-parity per-request power controls (effort-based checkpoint).
+  highPowerModel: z.boolean().optional(),
+  extendedThinking: z.boolean().optional(),
+  buildTier: z.enum(['lite', 'economy', 'power']).optional(),
+  turboMode: z.boolean().optional(),
 });
 
 const aiCheckQuotaSchema = z.object({
@@ -15898,9 +15904,47 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
     metrics.setGauge('cost_estimate_cents', { organizationId: project.organizationId, source: 'ai' }, costCents);
 
+    /*
+     * Replit-parity effort-based checkpoint. Records one checkpoint per request
+     * and (when credits are fully enabled) debits the wallet. Off by default;
+     * with BILLING_CREDITS_SHADOW it computes + records cost but debits nothing
+     * (validation), with BILLING_CREDITS_ENABLED it debits packs-then-balance.
+     * Wrapped so it can never break usage recording.
+     */
+    let checkpointCreditCents: number | undefined;
+    if (process.env.BILLING_CREDITS_ENABLED === 'true' || process.env.BILLING_CREDITS_SHADOW === 'true') {
+      try {
+        const shadow = process.env.BILLING_CREDITS_ENABLED !== 'true';
+        const checkpoint = await openCheckpoint(store, {
+          organizationId: project.organizationId,
+          userId: request.currentUser?.id,
+          projectId: project.id,
+          conversationId: body.conversationId,
+          highPowerModel: body.highPowerModel,
+          extendedThinking: body.extendedThinking,
+          buildTier: body.buildTier,
+          turboMode: body.turboMode,
+        });
+        const settled = await settleCheckpoint(store, {
+          checkpointId: checkpoint.id,
+          organizationId: project.organizationId,
+          inputTokens: body.inputTokens,
+          outputTokens: body.outputTokens,
+          rawProviderCents: costCents,
+          margin: Number(process.env.AI_MARGIN),
+          shadow,
+          nowMs: Date.now(),
+        });
+        checkpointCreditCents = settled.creditCents;
+      } catch (error) {
+        request.log?.warn?.({ err: error }, 'effort-based checkpoint settle failed (non-fatal)');
+      }
+    }
+
     return {
       recorded: true,
       costCents,
+      creditCents: checkpointCreditCents,
       modelMatched: matched,
       finishReason: body.finishReason ?? null,
     };
@@ -16114,6 +16158,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }));
 
     return { registryEnabled: true, plan: creditPlan, models };
+  });
+
+  /*
+   * Credit wallet summary: balance, active packs, recent ledger + checkpoints.
+   * Powers the Dashboard credits panel and the agent proof-of-work view. Dormant
+   * values (zeros) until grants/settle run, so safe to expose now.
+   */
+  app.get('/orgs/:orgId/credits', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'projects:read');
+
+    const wallet = await store.getCreditWallet(orgId);
+    const packs = await store.listCreditPacks(orgId, { activeOnly: true });
+    const packTotal = packs.reduce((acc, p) => acc + Math.max(0, p.remainingCents), 0);
+
+    return {
+      creditsEnabled: process.env.BILLING_CREDITS_ENABLED === 'true',
+      shadow: process.env.BILLING_CREDITS_SHADOW === 'true',
+      balanceCents: wallet?.balanceCents ?? 0,
+      packBalanceCents: packTotal,
+      totalAvailableCents: (wallet?.balanceCents ?? 0) + packTotal,
+      budgetCapCents: wallet?.budgetCapCents ?? null,
+      serviceShutdownCents: wallet?.serviceShutdownCents ?? null,
+      activePacks: packs,
+      ledger: await store.listCreditLedger(orgId, { take: 50 }),
+      checkpoints: await store.listAgentCheckpoints(orgId, { take: 50 }),
+    };
   });
 
   app.post('/orgs/:orgId/billing/checkout', async (request) => {
