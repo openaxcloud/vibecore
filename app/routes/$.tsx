@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs, MetaFunction } from '@remix-run/cloudflare';
 import { isRouteErrorResponse, Link, useRouteError } from '@remix-run/react';
+import { useEffect } from 'react';
 
 import { LinkButton, PublicShell } from '~/components/dashboard/SaaSLayout';
 
@@ -30,6 +31,16 @@ export const loader = ({ request }: LoaderFunctionArgs) => {
 export const meta: MetaFunction = () => [{ title: 'Page not found · E-Code' }, { name: 'robots', content: 'noindex' }];
 
 function NotFoundView({ status = 404 }: { status?: number }) {
+  /*
+   * The loader throws a 404 Response, so Remix renders this ErrorBoundary and the
+   * route `meta` (with the proper title) never runs — leaving the document title at
+   * the root default ("Loading..."). meta-on-error isn't supported in Remix v2, and
+   * React 18 doesn't hoist a <title> element, so set it client-side here.
+   */
+  useEffect(() => {
+    document.title = status === 404 ? 'Page not found · E-Code' : `Error ${status} · E-Code`;
+  }, [status]);
+
   return (
     <PublicShell>
       <section
