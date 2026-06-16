@@ -73,6 +73,47 @@ export async function gateCheckpoint(
   });
 }
 
+export interface DebitResult {
+  fromPacks: number;
+  fromBalance: number;
+}
+
+/**
+ * Debit a credit amount, consuming active credit packs earliest-expiry-first
+ * then the wallet balance. Shared by checkpoint settle and compute/storage/DB/
+ * deployment metering so all credit consumption uses one accounting path.
+ */
+export async function debitCredits(
+  store: ApiStore,
+  input: { organizationId: string; amountCents: number; reason: string; checkpointId?: string; nowMs: number },
+): Promise<DebitResult> {
+  const amount = Number.isFinite(input.amountCents) ? Math.max(0, Math.ceil(input.amountCents)) : 0;
+  if (amount <= 0) {
+    return { fromPacks: 0, fromBalance: 0 };
+  }
+
+  const packs = await store.listCreditPacks(input.organizationId, { activeOnly: true });
+  const plan = planPackConsumption({ amountCents: amount, packs, nowMs: input.nowMs });
+
+  for (const debit of plan.packDebits) {
+    await store.decrementCreditPack({ id: debit.packId, cents: debit.cents });
+  }
+
+  let fromBalance = 0;
+  if (plan.remainingFromBalance > 0) {
+    await store.recordCreditEntry({
+      organizationId: input.organizationId,
+      deltaCents: -plan.remainingFromBalance,
+      kind: 'CONSUMPTION',
+      reason: input.reason,
+      checkpointId: input.checkpointId,
+    });
+    fromBalance = plan.remainingFromBalance;
+  }
+
+  return { fromPacks: plan.packDebits.reduce((acc, d) => acc + d.cents, 0), fromBalance };
+}
+
 export interface SettleResult {
   creditCents: number;
   fromPacks: number;
@@ -123,26 +164,14 @@ export async function settleCheckpoint(
     return { creditCents, fromPacks: 0, fromBalance: 0, shadow: true };
   }
 
-  const packs = await store.listCreditPacks(input.organizationId, { activeOnly: true });
-  const plan = planPackConsumption({ amountCents: creditCents, packs, nowMs: input.nowMs });
+  const { fromPacks, fromBalance } = await debitCredits(store, {
+    organizationId: input.organizationId,
+    amountCents: creditCents,
+    reason: 'agent checkpoint',
+    checkpointId: input.checkpointId,
+    nowMs: input.nowMs,
+  });
 
-  for (const debit of plan.packDebits) {
-    await store.decrementCreditPack({ id: debit.packId, cents: debit.cents });
-  }
-
-  let fromBalance = 0;
-  if (plan.remainingFromBalance > 0) {
-    await store.recordCreditEntry({
-      organizationId: input.organizationId,
-      deltaCents: -plan.remainingFromBalance,
-      kind: 'CONSUMPTION',
-      reason: 'agent checkpoint',
-      checkpointId: input.checkpointId,
-    });
-    fromBalance = plan.remainingFromBalance;
-  }
-
-  const fromPacks = plan.packDebits.reduce((acc, d) => acc + d.cents, 0);
   return { creditCents, fromPacks, fromBalance, shadow: false };
 }
 
