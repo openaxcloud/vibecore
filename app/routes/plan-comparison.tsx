@@ -85,7 +85,7 @@ export default function PlanComparisonPage() {
                 Talk to sales
               </Link>
             ) : (
-              <Form method="post" className="shrink-0">
+              <Form method="post" reloadDocument className="shrink-0">
                 <input type="hidden" name="planKey" value={plan.key} />
                 <PrimaryButton type="submit">Choose {plan.name}</PrimaryButton>
               </Form>

@@ -187,14 +187,14 @@ export default function BillingPage() {
         {!billingAccessLimited ? (
           <div className="flex flex-wrap gap-3">
             {billing.upgradePrompts.map((plan) => (
-              <Form key={plan.planKey} method="post">
+              <Form key={plan.planKey} method="post" reloadDocument>
                 <input type="hidden" name="planKey" value={plan.planKey} />
                 <Button type="submit" disabled={submitting} aria-busy={submittingPlanKey === plan.planKey}>
                   {submittingPlanKey === plan.planKey ? 'Redirecting…' : `Upgrade to ${plan.name}`}
                 </Button>
               </Form>
             ))}
-            <Form method="post">
+            <Form method="post" reloadDocument>
               <input type="hidden" name="intent" value="portal" />
               <Button type="submit" variant="outline" disabled={submitting} aria-busy={submittingPortal}>
                 {submittingPortal ? 'Redirecting…' : 'Open customer portal'}

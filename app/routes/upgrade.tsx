@@ -49,7 +49,7 @@ export default function UpgradePage() {
       description="Move an organization to a higher plan before quota-restricted actions are retried."
       error={actionData?.error}
     >
-      <Form method="post" className="space-y-4">
+      <Form method="post" reloadDocument className="space-y-4">
         <SelectField
           label="Plan"
           name="planKey"

@@ -44,7 +44,7 @@ export default function PaymentMethodPage() {
       description="Update billing details through the Stripe customer portal."
       error={actionData?.error}
     >
-      <Form method="post">
+      <Form method="post" reloadDocument>
         <PrimaryButton type="submit">Manage payment method</PrimaryButton>
       </Form>
     </EnterpriseFormPage>

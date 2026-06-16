@@ -64,7 +64,7 @@ export default function DowngradePage() {
       description="Preview lower-plan limits before scheduling a subscription change."
       error={actionData?.error}
     >
-      <Form method="post" className="space-y-4">
+      <Form method="post" reloadDocument className="space-y-4">
         <SelectField
           label="Plan"
           name="planKey"
