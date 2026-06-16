@@ -139,6 +139,34 @@ export function ecodeRagStatsLoader() {
   );
 }
 
+/**
+ * Per-session RAG config for the public marketing model-selector widget.
+ * The prebuilt SPA GETs this (reading `config.enabled`) and POSTs toggles.
+ * The public site has no RAG backend, so this is a stateless contract shim:
+ * it returns a stable default and echoes POSTed config. Without it the SPA
+ * fetch 404s and logs a console error on every landing visit.
+ */
+export function ecodeRagSessionConfigLoader({ request }: LoaderFunctionArgs) {
+  const sessionId = new URL(request.url).searchParams.get('sessionId') ?? null;
+
+  return json({ sessionId, config: { enabled: false } }, { headers: noStoreHeaders });
+}
+
+export async function ecodeRagSessionConfigAction({ request }: LoaderFunctionArgs) {
+  let sessionId: string | null = null;
+  let enabled = false;
+
+  try {
+    const body = (await request.json()) as { sessionId?: string; config?: { enabled?: boolean } };
+    sessionId = body?.sessionId ?? null;
+    enabled = Boolean(body?.config?.enabled);
+  } catch {
+    // Malformed body: fall back to defaults rather than 500ing the widget.
+  }
+
+  return json({ sessionId, config: { enabled } }, { headers: noStoreHeaders });
+}
+
 export function ecodeAboutLoader() {
   return json(
     {
