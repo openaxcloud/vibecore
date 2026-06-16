@@ -31,6 +31,7 @@ import {
   billingPlans,
   computeAiCostCents,
   planByKey,
+  toCreditPlanKey,
   verifyStripeSignature,
   type AiPlanKey,
   type CreditPlanKey,
@@ -16083,6 +16084,38 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .map((plan) => ({ planKey: plan.key, name: plan.name })),
     };
   });
+  /*
+   * Admin-owned model registry read-through. Returns the models the platform
+   * admin has enabled for this org's plan tier. Behind MODEL_REGISTRY_DB: while
+   * off, `registryEnabled:false` signals callers to keep their legacy catalog/
+   * BYOK behaviour, so flipping the flag is the only switch needed to make the
+   * registry authoritative. See docs/REPLIT_PARITY_SPEC.md §9.
+   */
+  app.get('/orgs/:orgId/ai/models', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'projects:read');
+
+    if (process.env.MODEL_REGISTRY_DB !== 'true') {
+      return { registryEnabled: false, plan: undefined, models: [] };
+    }
+
+    const state = await billingState(orgId);
+    const creditPlan = toCreditPlanKey(state.plan.key);
+    const enabled = await store.listModelConfigs({ enabledOnly: true });
+    const models = enabled
+      .filter((model) => model.enabledPlans.includes(creditPlan))
+      .map((model) => ({
+        id: model.modelId,
+        provider: model.provider,
+        displayName: model.displayName,
+        isHighPower: model.isHighPower,
+        supportsThinking: model.supportsThinking,
+        contextWindow: model.contextWindow,
+      }));
+
+    return { registryEnabled: true, plan: creditPlan, models };
+  });
+
   app.post('/orgs/:orgId/billing/checkout', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(billingCheckoutSchema, request.body);
