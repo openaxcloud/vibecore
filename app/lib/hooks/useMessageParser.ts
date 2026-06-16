@@ -91,7 +91,14 @@ export function useMessageParser() {
            * continue rather than freezing the whole file/preview pipeline.
            */
           logger.error('Failed to parse assistant message; skipping', error);
-          messageParser.reset();
+
+          /*
+           * Reset ONLY this message's parser state — a global reset() wipes the
+           * accumulated stream position of every OTHER in-flight message in the
+           * batch (the comment above always intended per-message scoping; the
+           * code was using the global reset).
+           */
+          messageParser.resetMessage(message.id);
         }
 
         setParsedMessages((prevParsed) => ({

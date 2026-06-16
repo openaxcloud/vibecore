@@ -614,15 +614,14 @@ export class LocalProjectStorage implements ProjectStorage {
     return withProjectLock(input.projectId, async () => {
       const target = safeWorkspacePath(input.projectId, input.workspaceId);
 
-      if (input.workspaceId) {
-        await rm(target, { recursive: true, force: true });
-      } else {
-        /*
-         * Clearing the primary tree must preserve `.vibecore-workspaces/`, or every
-         * secondary workspace's `.git` and working tree would be destroyed.
-         */
-        await clearTreePreservingSecondaryWorkspaces(target);
-      }
+      /*
+       * Clear the working tree but PRESERVE `.git` (and, for the primary tree,
+       * the nested secondary-workspaces dir). The secondary-workspace branch
+       * previously rm'd the whole dir including its `.git`, so a routine
+       * snapshot/manifest restore wiped that workspace's commit history, branches
+       * and stashes — clearTreePreservingSecondaryWorkspaces skips .git, fixing it.
+       */
+      await clearTreePreservingSecondaryWorkspaces(target);
 
       for (const file of input.files) {
         const writeTarget = safeWorkspacePath(input.projectId, input.workspaceId, file.path);

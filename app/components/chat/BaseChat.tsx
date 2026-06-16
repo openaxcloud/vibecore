@@ -9836,6 +9836,16 @@ function ProjectFilesTool({
 
     const target = normalized.startsWith(WORK_DIR) ? normalized : `${WORK_DIR}/${normalized.replace(/^\/+/, '')}`;
 
+    /*
+     * Don't let "New file/folder" silently overwrite an existing entry. createFile
+     * only refuses LOCKED targets, so an existing unlocked file at this path would
+     * be truncated to empty content with no confirm — data loss.
+     */
+    if (workbenchStore.files.get()[target]) {
+      toast.error(`A file or folder already exists at "${target}"`);
+      return;
+    }
+
     if (kind === 'file') {
       onFileOpen(target);
       await workbenchStore.createFile(target, '');

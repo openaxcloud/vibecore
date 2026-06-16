@@ -722,6 +722,19 @@ function FileContextMenu({
 
   const handleCreateFile = async (fileName: string) => {
     const newFilePath = path.join(targetPath, fileName);
+
+    /*
+     * Don't let "New File" clobber an existing file. createFile only refuses
+     * LOCKED targets, so without this an existing unlocked file at the typed name
+     * is silently truncated to empty — data loss with no confirm.
+     */
+    if (workbenchStore.files.get()[newFilePath]) {
+      toast.error(`A file or folder named "${fileName}" already exists`);
+      setIsCreatingFile(false);
+
+      return;
+    }
+
     const success = await workbenchStore.createFile(newFilePath, '');
 
     if (success) {
@@ -735,6 +748,15 @@ function FileContextMenu({
 
   const handleCreateFolder = async (folderName: string) => {
     const newFolderPath = path.join(targetPath, folderName);
+
+    // Same collision guard as New File — don't clobber an existing entry.
+    if (workbenchStore.files.get()[newFolderPath]) {
+      toast.error(`A file or folder named "${folderName}" already exists`);
+      setIsCreatingFolder(false);
+
+      return;
+    }
+
     const success = await workbenchStore.createFolder(newFolderPath);
 
     if (success) {
@@ -818,6 +840,18 @@ function FileContextMenu({
      */
     if (files[nextPath]) {
       toast.error(`A file or folder named "${nextName}" already exists`);
+      setIsRenaming(false);
+
+      return;
+    }
+
+    /*
+     * Reject renaming a folder into a path nested UNDER itself (e.g. foo -> foo/bar):
+     * the create-then-delete would create the copy under foo, then deleteFolder(foo)
+     * removes everything under foo/ — destroying the freshly-renamed copy too.
+     */
+    if (isFolder && nextPath.startsWith(`${fullPath}/`)) {
+      toast.error('Cannot rename a folder into a path inside itself');
       setIsRenaming(false);
 
       return;

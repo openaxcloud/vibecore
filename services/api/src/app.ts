@@ -1548,7 +1548,6 @@ function isBlockedGitHost(rawHost: string): boolean {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
-
     /*
      * ULA fc00::/7 + link-local fe80::/10, but only as IPv6 LITERALS (hextets +
      * ':'). The old startsWith('fc'/'fd'/'fe80') wrongly blocked public hosts like
@@ -1923,6 +1922,7 @@ async function inspectMongoSchema(connectionString: string) {
 
 async function inspectRedisSchema(connectionString: string) {
   const redis = new Redis(connectionString, { lazyConnect: true, maxRetriesPerRequest: 1 });
+  redis.on('error', () => undefined); // swallow so a connect fault doesn't emit an unhandled 'error' (pod crash)
 
   await redis.connect();
 
@@ -2010,6 +2010,7 @@ async function runDatabaseQuery(
     assertReadOnlyRedis(query);
 
     const redis = new Redis(connection.value, { lazyConnect: true, maxRetriesPerRequest: 1 });
+    redis.on('error', () => undefined); // swallow so a connect fault doesn't emit an unhandled 'error' (pod crash)
 
     await redis.connect();
 
@@ -2246,7 +2247,6 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     mfaPathname.startsWith('/auth/recovery-codes/') ||
     mfaPathname === '/auth/sessions' ||
     mfaPathname.startsWith('/auth/sessions/') ||
-
     /*
      * Re-auth is the gateway to enrolling MFA (mfa/setup now requires it); a
      * platform admin without MFA must be able to reach it or they'd be deadlocked.
@@ -3470,6 +3470,8 @@ async function adminHealthSummary(store: ApiStore) {
     }
 
     const client = new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 });
+    client.on('error', () => undefined); // swallow so a connect fault doesn't emit an unhandled 'error' (pod crash)
+
     const startedAt = Date.now();
 
     try {
@@ -5192,6 +5194,24 @@ function createCollaborationBroker() {
   const publisher = redisUrl ? new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 }) : undefined;
   const subscriber = redisUrl ? new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 }) : undefined;
 
+  /*
+   * These are LONG-LIVED clients (the subscriber stays connected for fan-out).
+   * ioredis emits a process-level 'error' on any connection fault; with no
+   * listener that becomes an unhandled 'error' and CRASHES the api pod on a
+   * transient Redis blip. Log+swallow so the collaboration broker degrades to
+   * local-only delivery instead of taking the whole pod down.
+   */
+  publisher?.on('error', (error) =>
+    console.error(
+      JSON.stringify({ level: 'error', service: 'api', component: 'collaboration-redis-pub', error: String(error) }),
+    ),
+  );
+  subscriber?.on('error', (error) =>
+    console.error(
+      JSON.stringify({ level: 'error', service: 'api', component: 'collaboration-redis-sub', error: String(error) }),
+    ),
+  );
+
   if (publisher && subscriber) {
     publisher.connect().catch(() => undefined);
     subscriber.connect().catch(() => undefined);
@@ -6119,6 +6139,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         maxRetriesPerRequest: 1,
         connectTimeout: 1500,
       });
+      probe.on('error', () => undefined); // swallow so a connect fault doesn't emit an unhandled 'error' (pod crash)
 
       try {
         await probe.connect();
@@ -6907,7 +6928,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
-
       /*
        * Public read of a shared conversation snapshot — the signed token is the
        * capability. Only the token-scoped GET path is exempt; POST /chat-shares
@@ -16353,7 +16373,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           : undefined;
         const isStaleByTimestamp = Boolean(
           eventCreatedAt &&
-
             /*
              * Deletion is terminal and must ALWAYS be applied: a `deleted` event
              * can legitimately carry an older event.created than a previously
