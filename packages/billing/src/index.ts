@@ -3,6 +3,7 @@ import { toCreditPlanKey, type CreditPlanKey } from './credits.js';
 
 export * from './ai-pricing.js';
 export * from './credits.js';
+export * from './compute-pricing.js';
 
 /*
  * Pinned Stripe API version. Sent on every request so the request/webhook

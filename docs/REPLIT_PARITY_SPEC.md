@@ -464,10 +464,23 @@ flip new pricing page live. Each step = its own batch, tests, green CI, deploy, 
   + `api.models.ts` read DB behind `MODEL_REGISTRY_DB`.
 - **P3 — Wallet + checkpoint (shadow):** grants, pre‑flight reserve, settle, proof‑of‑work UI;
   shadow mode validates cost vs `AiCostLedger`.
-- **P4 — Compute metering (shadow):** runtime minutes in GC + stop/delete, idempotent.
+- **P3b — Credit packs + Pro extras:** `CreditPack` (6‑mo expiry, earliest‑first consumption,
+  no post‑expiry rollover), monthly‑credit rollover (Pro, 1 month), agent build tiers
+  (Lite/Economy/Power) + Turbo mode (2.5×/≤6×) on the checkpoint.
+- **P4 — Compute metering (shadow):** runtime minutes in GC + stop/delete, idempotent, at Replit
+  CU rates (`compute-pricing.ts`).
+- **P4b — Object‑storage metering (NEW):** storage GiB‑month ($0.03), transfer ($0.10/GiB),
+  ops (Class A $0.0006/1k, Class B $0.0075/1k).
+- **P4c — DB metering (NEW):** active‑hours compute + max‑GiB/month storage.
+- **P4d — Deployment metering (NEW):** Autoscale/Scheduled/Static/Reserved‑VM tiers + the
+  Starter 30‑day published‑link expiry job; egress allowances (Core 100 GiB).
 - **P5 — Admin console:** providers/models/wallets/checkpoints sections + tab re‑mapping (§11).
-- **P6 — Pricing page + checkout intervals.**
-- **P7 — Enforce + PAYG + Stripe products + migrate subs (real money).**
+- **P5b — Spend guard‑rails:** Usage Limit + Service Shutdown Limit + org $500‑increment budgets +
+  per‑user limits (Enterprise) + alert delivery.
+- **P6 — Pricing page + checkout intervals (monthly/annual toggle + proration).**
+- **P7 — Enforce + PAYG + Stripe products (monthly+annual+metered) + migrate subs (real money).**
+- **P8 — Legal/security parity (§16.5):** strike system, account‑inactivity GC, data‑deletion
+  self‑serve, acceptable‑use/licensing/security policy pages, abuse‑report wiring, public‑app MIT default.
 
 ---
 
@@ -568,6 +581,82 @@ Verified against **replit.com/pricing** and **replit.com/blog/effort-based-prici
 | Compute billing (runtime/deploys) at Replit CU rates | ⬜ | metering P4 (1 CPU‑s=18 CU, 1 GB‑s=2 CU; Autoscale $1+$3.20/M CU+$1.20/M req) |
 | Admin‑owned keys + global model registry | ✅ store · ⬜ read‑through | `ProviderConfig`/`ModelConfig`; ai‑gateway + api.models P2b |
 | BYOK Enterprise‑only | ⬜ | hide key entry; `byokAllowed` P5 |
+
+### 16.4 Billing docs (deep) — exact rules to reproduce
+
+Sources: docs.replit.com/billing/{ai-billing, deployment-pricing, object-storage-billing,
+about-usage-based-billing, managing-spend, plans/*} (fetched 2026‑06‑16).
+
+**AI billing (ai-billing):**
+| Rule | Status | Note |
+|---|---|---|
+| **Every** Agent interaction is billable — even text‑only / Plan‑Mode answers with no code change | ⬜ | settle a checkpoint even when no diff is produced (P3) |
+| One checkpoint/request, no intermediate | ✅ | `AgentCheckpoint` |
+| Credits cover Agent **and** published apps, storage, databases | 🔶 | wallet debits must span AI + compute + storage + DB (P3/P4) |
+
+**Deployment pricing (deployment-pricing) — exact, reproduce in P4 metering:**
+| Tier | Rate | Status |
+|---|---|---|
+| Autoscale | base **$1.00/mo** + **$3.20 / M compute units** + **$1.20 / M requests** | ⬜ |
+| Scheduled | base **$1.00/mo** + **$3.20 / M compute units** + scheduler $0 | ⬜ |
+| Static | hosting free + **$0.10 / GiB** egress | ⬜ |
+| Reserved VM 0.5 vCPU/2 GB (shared) | **$20.00/mo** | ⬜ |
+| Reserved VM 1 vCPU/4 GB | **$40.00/mo** | ⬜ |
+| Reserved VM 2 vCPU/8 GB | **$80.00/mo** | ⬜ |
+| Reserved VM 4 vCPU/16 GB | **$160.00/mo** | ⬜ |
+| Compute‑unit conversion | **1 CPU‑s = 18 CU**, **1 GB‑s = 2 CU** | ✅ constants (`compute-pricing.ts`) |
+
+**Object storage (object-storage-billing) — NEW metering (P4b):**
+| Item | Rate | Status |
+|---|---|---|
+| Storage | **$0.03 / GiB‑month** (min 7‑day billing per object) | ✅ constants · ⬜ metering |
+| Data transfer (up+down) | **$0.10 / GiB** | ✅ constants · ⬜ metering |
+| Basic ops (Class A) | **$0.0006 / 1k requests** | ✅ constants · ⬜ metering |
+| Advanced ops (Class B) | **$0.0075 / 1k requests** | ✅ constants · ⬜ metering |
+
+**Usage‑based billing (about-usage-based-billing):**
+| Rule | Status | Note |
+|---|---|---|
+| Monthly allowances: egress (**Core 100 GiB**), compute units, requests | ⬜ | per‑plan allowances (P1b catalog + P4 metering) |
+| Only **egress** counts toward data allowance | ⬜ | metering rule |
+| Overage → pay‑as‑you‑go after allowance | 🔶 | `evaluateCreditGate` + Stripe metered P7 |
+| **Credit packs** purchasable, **expire 6 months**, **earliest‑expiring used first**, no rollover after expiry | ⬜ | new `CreditPack` model + consumption ordering (P3b) |
+| DB compute billed by **active hours**; DB storage by **max GiB/month** | ⬜ | DB metering (P4c) |
+
+**Managing spend (managing-spend) — spend guard‑rails (P5b):**
+| Rule | Status | Note |
+|---|---|---|
+| **Usage Limit** (caps spend past credits) | ✅ schema (`budgetCapCents`) · ⬜ UI/enforce | block usage‑based services at next cycle or until raised |
+| **Service Shutdown Limit** (suspend services) | ⬜ | new wallet field `serviceShutdownCents` |
+| Org budgets in **$500 increments**, admin/owner only | ⬜ | validation + admin UI |
+| **Per‑user spend limits** (Enterprise), override group/workspace defaults | ⬜ | new model (P5b) |
+| "$0.01 to restrict to credits" | ✅ | falls out of `evaluateCreditGate` |
+| Alerts on threshold crossing | ✅ math (`paygAlertThresholdCrossed`) · ⬜ delivery | notifications P5b |
+
+**Plans (deep, plans/*):**
+| Rule | Status | Note |
+|---|---|---|
+| Starter: **daily** Agent credits up to monthly cap, reset daily; monthly cloud credits | ✅ daily · 🔶 monthly‑cap | `planCreditConfig.starter` + cap (P1b) |
+| Starter: **2 GB** workspace storage, **1** free published app, **published links expire after 30 days** | ⬜ | catalog + publish expiry job (P4d) |
+| Starter: Lite build only; Full build/Plan Mode/connectors/AI integrations gated to Core | ⬜ | feature gating (P5) |
+| Core: **1 active task at a time**; Full build (Economy/Power); unlimited apps | 🔶 | `parallelAgents:2`; build tiers (P3) |
+| Pro: 15 builders **pooled credits + budget controls**; **10** parallel; **Turbo mode 2.5× faster / up to 6× cost**; credits **roll over 1 month**; 28‑day DB restore; support <24 h | 🔶 | add Turbo + agent modes + rollover (P3b) |
+| Enterprise: SSO/SAML+**SCIM**, RBAC↔IdP groups, **SIEM** audit, **Security Center (CVE)**, **SBOM**, admin controls (require private/ban public/mandate scans/pin geos), unlimited seats, **first‑party Databricks/BigQuery/MS Fabric/Hex/Snowflake**, credit‑commitment OR PAYG | 🔶 | many exist (SSO/SCIM/SIEM); data‑warehouse/SBOM new |
+
+**Agent power controls (full set) — extend `AgentCheckpoint` (P3):**
+`highPowerModel` ✅, `extendedThinking` ✅, **build tier Lite/Economy/Power** ⬜, **Turbo mode (Pro, 2.5×/≤6×)** ⬜.
+
+### 16.5 Legal / security / usage parity (P8 — pages + mechanisms)
+
+| Replit doc | Requirement | Status | Plan |
+|---|---|---|---|
+| strike-system-faq | Warnings → **Community Ban** (no post/share, keeps IDE) → **Account Ban** (no login, apps deleted); appeals@ email | ⬜ | strike model + enforcement ladder + appeal route (P8) |
+| account-inactivity | Free account inactive **1 year** (no login) → apps deleted/account terminated; **paid exempt** | ⬜ | inactivity GC job + notifications (P8) |
+| deleting-your-data | Self‑serve: Settings→Account→Billing→Request deletion→confirm; removes all content + PII, irreversible | ⬜ | data‑deletion self‑serve flow + purge job (P8) |
+| security | Vuln disclosure security@; "your code/data protected" | 🔶 | security policy page + disclosure route |
+| abuse-report | In‑product report button + abuse@ (phishing); team review | 🔶 (abuse events exist) | wire report button → existing AbuseEvent (P8) |
+| usage (acceptable use) | No crypto‑mining; hard limits (CPU/RAM/app, **max 20 concurrent apps**, storage); soft limits (bandwidth); GraphQL/connection caps | 🔶 | acceptable‑use page + enforce concurrent‑app cap |
+| licensing-info | Public apps **MIT** default; private apps licensed to platform per ToS; custom license via file | ⬜ | licensing page + public‑app MIT default |
 
 ---
 
