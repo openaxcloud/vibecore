@@ -422,6 +422,13 @@ export type EmailDeliveryEvent = $Result.DefaultSelection<Prisma.$EmailDeliveryE
  */
 export type CreditWallet = $Result.DefaultSelection<Prisma.$CreditWalletPayload>
 /**
+ * Model CreditPack
+ * Purchased credit pack (Replit). Credits expire 6 months after purchase, are
+ * consumed earliest-expiring-first, and do NOT roll over after expiry.
+ * `remainingCents` is decremented as the pack is drawn down.
+ */
+export type CreditPack = $Result.DefaultSelection<Prisma.$CreditPackPayload>
+/**
  * Model CreditLedger
  * Append-only credit movements. Positive deltas are grants/refunds, negative
  * are consumption/charges. `checkpointId` links a CONSUMPTION to the agent
@@ -1550,6 +1557,16 @@ export class PrismaClient<
   get creditWallet(): Prisma.CreditWalletDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.creditPack`: Exposes CRUD operations for the **CreditPack** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CreditPacks
+    * const creditPacks = await prisma.creditPack.findMany()
+    * ```
+    */
+  get creditPack(): Prisma.CreditPackDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.creditLedger`: Exposes CRUD operations for the **CreditLedger** model.
     * Example usage:
     * ```ts
@@ -2101,6 +2118,7 @@ export namespace Prisma {
     IntegrationFeatureRequest: 'IntegrationFeatureRequest',
     EmailDeliveryEvent: 'EmailDeliveryEvent',
     CreditWallet: 'CreditWallet',
+    CreditPack: 'CreditPack',
     CreditLedger: 'CreditLedger',
     AgentCheckpoint: 'AgentCheckpoint',
     ProviderConfig: 'ProviderConfig',
@@ -2120,7 +2138,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditLedger" | "agentCheckpoint" | "providerConfig" | "modelConfig"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "providerConfig" | "modelConfig"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -7954,6 +7972,80 @@ export namespace Prisma {
           }
         }
       }
+      CreditPack: {
+        payload: Prisma.$CreditPackPayload<ExtArgs>
+        fields: Prisma.CreditPackFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CreditPackFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditPackPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CreditPackFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditPackPayload>
+          }
+          findFirst: {
+            args: Prisma.CreditPackFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditPackPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CreditPackFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditPackPayload>
+          }
+          findMany: {
+            args: Prisma.CreditPackFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditPackPayload>[]
+          }
+          create: {
+            args: Prisma.CreditPackCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditPackPayload>
+          }
+          createMany: {
+            args: Prisma.CreditPackCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CreditPackCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditPackPayload>[]
+          }
+          delete: {
+            args: Prisma.CreditPackDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditPackPayload>
+          }
+          update: {
+            args: Prisma.CreditPackUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditPackPayload>
+          }
+          deleteMany: {
+            args: Prisma.CreditPackDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CreditPackUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.CreditPackUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditPackPayload>[]
+          }
+          upsert: {
+            args: Prisma.CreditPackUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditPackPayload>
+          }
+          aggregate: {
+            args: Prisma.CreditPackAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCreditPack>
+          }
+          groupBy: {
+            args: Prisma.CreditPackGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CreditPackGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CreditPackCountArgs<ExtArgs>
+            result: $Utils.Optional<CreditPackCountAggregateOutputType> | number
+          }
+        }
+      }
       CreditLedger: {
         payload: Prisma.$CreditLedgerPayload<ExtArgs>
         fields: Prisma.CreditLedgerFieldRefs
@@ -8437,6 +8529,7 @@ export namespace Prisma {
     integrationFeatureRequest?: IntegrationFeatureRequestOmit
     emailDeliveryEvent?: EmailDeliveryEventOmit
     creditWallet?: CreditWalletOmit
+    creditPack?: CreditPackOmit
     creditLedger?: CreditLedgerOmit
     agentCheckpoint?: AgentCheckpointOmit
     providerConfig?: ProviderConfigOmit
@@ -8814,6 +8907,7 @@ export namespace Prisma {
     connectorPolicies: number
     integrationFeatureRequests: number
     creditLedger: number
+    creditPacks: number
     agentCheckpoints: number
   }
 
@@ -8846,6 +8940,7 @@ export namespace Prisma {
     connectorPolicies?: boolean | OrganizationCountOutputTypeCountConnectorPoliciesArgs
     integrationFeatureRequests?: boolean | OrganizationCountOutputTypeCountIntegrationFeatureRequestsArgs
     creditLedger?: boolean | OrganizationCountOutputTypeCountCreditLedgerArgs
+    creditPacks?: boolean | OrganizationCountOutputTypeCountCreditPacksArgs
     agentCheckpoints?: boolean | OrganizationCountOutputTypeCountAgentCheckpointsArgs
   }
 
@@ -9054,6 +9149,13 @@ export namespace Prisma {
    */
   export type OrganizationCountOutputTypeCountCreditLedgerArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: CreditLedgerWhereInput
+  }
+
+  /**
+   * OrganizationCountOutputType without action
+   */
+  export type OrganizationCountOutputTypeCountCreditPacksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CreditPackWhereInput
   }
 
   /**
@@ -14034,6 +14136,7 @@ export namespace Prisma {
     integrationFeatureRequests?: boolean | Organization$integrationFeatureRequestsArgs<ExtArgs>
     creditWallet?: boolean | Organization$creditWalletArgs<ExtArgs>
     creditLedger?: boolean | Organization$creditLedgerArgs<ExtArgs>
+    creditPacks?: boolean | Organization$creditPacksArgs<ExtArgs>
     agentCheckpoints?: boolean | Organization$agentCheckpointsArgs<ExtArgs>
     _count?: boolean | OrganizationCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["organization"]>
@@ -14095,6 +14198,7 @@ export namespace Prisma {
     integrationFeatureRequests?: boolean | Organization$integrationFeatureRequestsArgs<ExtArgs>
     creditWallet?: boolean | Organization$creditWalletArgs<ExtArgs>
     creditLedger?: boolean | Organization$creditLedgerArgs<ExtArgs>
+    creditPacks?: boolean | Organization$creditPacksArgs<ExtArgs>
     agentCheckpoints?: boolean | Organization$agentCheckpointsArgs<ExtArgs>
     _count?: boolean | OrganizationCountOutputTypeDefaultArgs<ExtArgs>
   }
@@ -14135,6 +14239,7 @@ export namespace Prisma {
       integrationFeatureRequests: Prisma.$IntegrationFeatureRequestPayload<ExtArgs>[]
       creditWallet: Prisma.$CreditWalletPayload<ExtArgs> | null
       creditLedger: Prisma.$CreditLedgerPayload<ExtArgs>[]
+      creditPacks: Prisma.$CreditPackPayload<ExtArgs>[]
       agentCheckpoints: Prisma.$AgentCheckpointPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -14568,6 +14673,7 @@ export namespace Prisma {
     integrationFeatureRequests<T extends Organization$integrationFeatureRequestsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$integrationFeatureRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     creditWallet<T extends Organization$creditWalletArgs<ExtArgs> = {}>(args?: Subset<T, Organization$creditWalletArgs<ExtArgs>>): Prisma__CreditWalletClient<$Result.GetResult<Prisma.$CreditWalletPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     creditLedger<T extends Organization$creditLedgerArgs<ExtArgs> = {}>(args?: Subset<T, Organization$creditLedgerArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CreditLedgerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    creditPacks<T extends Organization$creditPacksArgs<ExtArgs> = {}>(args?: Subset<T, Organization$creditPacksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CreditPackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentCheckpoints<T extends Organization$agentCheckpointsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$agentCheckpointsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentCheckpointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -15722,6 +15828,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: CreditLedgerScalarFieldEnum | CreditLedgerScalarFieldEnum[]
+  }
+
+  /**
+   * Organization.creditPacks
+   */
+  export type Organization$creditPacksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditPack
+     */
+    select?: CreditPackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditPack
+     */
+    omit?: CreditPackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CreditPackInclude<ExtArgs> | null
+    where?: CreditPackWhereInput
+    orderBy?: CreditPackOrderByWithRelationInput | CreditPackOrderByWithRelationInput[]
+    cursor?: CreditPackWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CreditPackScalarFieldEnum | CreditPackScalarFieldEnum[]
   }
 
   /**
@@ -99596,12 +99726,14 @@ export namespace Prisma {
   export type CreditWalletAvgAggregateOutputType = {
     balanceCents: number | null
     budgetCapCents: number | null
+    serviceShutdownCents: number | null
     autoTopupCents: number | null
   }
 
   export type CreditWalletSumAggregateOutputType = {
     balanceCents: number | null
     budgetCapCents: number | null
+    serviceShutdownCents: number | null
     autoTopupCents: number | null
   }
 
@@ -99611,6 +99743,7 @@ export namespace Prisma {
     balanceCents: number | null
     currency: string | null
     budgetCapCents: number | null
+    serviceShutdownCents: number | null
     autoTopupCents: number | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -99622,6 +99755,7 @@ export namespace Prisma {
     balanceCents: number | null
     currency: string | null
     budgetCapCents: number | null
+    serviceShutdownCents: number | null
     autoTopupCents: number | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -99633,6 +99767,7 @@ export namespace Prisma {
     balanceCents: number
     currency: number
     budgetCapCents: number
+    serviceShutdownCents: number
     autoTopupCents: number
     createdAt: number
     updatedAt: number
@@ -99643,12 +99778,14 @@ export namespace Prisma {
   export type CreditWalletAvgAggregateInputType = {
     balanceCents?: true
     budgetCapCents?: true
+    serviceShutdownCents?: true
     autoTopupCents?: true
   }
 
   export type CreditWalletSumAggregateInputType = {
     balanceCents?: true
     budgetCapCents?: true
+    serviceShutdownCents?: true
     autoTopupCents?: true
   }
 
@@ -99658,6 +99795,7 @@ export namespace Prisma {
     balanceCents?: true
     currency?: true
     budgetCapCents?: true
+    serviceShutdownCents?: true
     autoTopupCents?: true
     createdAt?: true
     updatedAt?: true
@@ -99669,6 +99807,7 @@ export namespace Prisma {
     balanceCents?: true
     currency?: true
     budgetCapCents?: true
+    serviceShutdownCents?: true
     autoTopupCents?: true
     createdAt?: true
     updatedAt?: true
@@ -99680,6 +99819,7 @@ export namespace Prisma {
     balanceCents?: true
     currency?: true
     budgetCapCents?: true
+    serviceShutdownCents?: true
     autoTopupCents?: true
     createdAt?: true
     updatedAt?: true
@@ -99778,6 +99918,7 @@ export namespace Prisma {
     balanceCents: number
     currency: string
     budgetCapCents: number | null
+    serviceShutdownCents: number | null
     autoTopupCents: number | null
     createdAt: Date
     updatedAt: Date
@@ -99808,6 +99949,7 @@ export namespace Prisma {
     balanceCents?: boolean
     currency?: boolean
     budgetCapCents?: boolean
+    serviceShutdownCents?: boolean
     autoTopupCents?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -99822,6 +99964,7 @@ export namespace Prisma {
     balanceCents?: boolean
     currency?: boolean
     budgetCapCents?: boolean
+    serviceShutdownCents?: boolean
     autoTopupCents?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -99834,6 +99977,7 @@ export namespace Prisma {
     balanceCents?: boolean
     currency?: boolean
     budgetCapCents?: boolean
+    serviceShutdownCents?: boolean
     autoTopupCents?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -99846,12 +99990,13 @@ export namespace Prisma {
     balanceCents?: boolean
     currency?: boolean
     budgetCapCents?: boolean
+    serviceShutdownCents?: boolean
     autoTopupCents?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type CreditWalletOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "balanceCents" | "currency" | "budgetCapCents" | "autoTopupCents" | "createdAt" | "updatedAt", ExtArgs["result"]["creditWallet"]>
+  export type CreditWalletOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "balanceCents" | "currency" | "budgetCapCents" | "serviceShutdownCents" | "autoTopupCents" | "createdAt" | "updatedAt", ExtArgs["result"]["creditWallet"]>
   export type CreditWalletInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     entries?: boolean | CreditWallet$entriesArgs<ExtArgs>
@@ -99876,6 +100021,7 @@ export namespace Prisma {
       balanceCents: number
       currency: string
       budgetCapCents: number | null
+      serviceShutdownCents: number | null
       autoTopupCents: number | null
       createdAt: Date
       updatedAt: Date
@@ -100309,6 +100455,7 @@ export namespace Prisma {
     readonly balanceCents: FieldRef<"CreditWallet", 'Int'>
     readonly currency: FieldRef<"CreditWallet", 'String'>
     readonly budgetCapCents: FieldRef<"CreditWallet", 'Int'>
+    readonly serviceShutdownCents: FieldRef<"CreditWallet", 'Int'>
     readonly autoTopupCents: FieldRef<"CreditWallet", 'Int'>
     readonly createdAt: FieldRef<"CreditWallet", 'DateTime'>
     readonly updatedAt: FieldRef<"CreditWallet", 'DateTime'>
@@ -100752,6 +100899,1133 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: CreditWalletInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model CreditPack
+   */
+
+  export type AggregateCreditPack = {
+    _count: CreditPackCountAggregateOutputType | null
+    _avg: CreditPackAvgAggregateOutputType | null
+    _sum: CreditPackSumAggregateOutputType | null
+    _min: CreditPackMinAggregateOutputType | null
+    _max: CreditPackMaxAggregateOutputType | null
+  }
+
+  export type CreditPackAvgAggregateOutputType = {
+    purchasedCents: number | null
+    remainingCents: number | null
+  }
+
+  export type CreditPackSumAggregateOutputType = {
+    purchasedCents: number | null
+    remainingCents: number | null
+  }
+
+  export type CreditPackMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    purchasedCents: number | null
+    remainingCents: number | null
+    expiresAt: Date | null
+    stripePaymentIntentId: string | null
+    createdAt: Date | null
+  }
+
+  export type CreditPackMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    purchasedCents: number | null
+    remainingCents: number | null
+    expiresAt: Date | null
+    stripePaymentIntentId: string | null
+    createdAt: Date | null
+  }
+
+  export type CreditPackCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    purchasedCents: number
+    remainingCents: number
+    expiresAt: number
+    stripePaymentIntentId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type CreditPackAvgAggregateInputType = {
+    purchasedCents?: true
+    remainingCents?: true
+  }
+
+  export type CreditPackSumAggregateInputType = {
+    purchasedCents?: true
+    remainingCents?: true
+  }
+
+  export type CreditPackMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    purchasedCents?: true
+    remainingCents?: true
+    expiresAt?: true
+    stripePaymentIntentId?: true
+    createdAt?: true
+  }
+
+  export type CreditPackMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    purchasedCents?: true
+    remainingCents?: true
+    expiresAt?: true
+    stripePaymentIntentId?: true
+    createdAt?: true
+  }
+
+  export type CreditPackCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    purchasedCents?: true
+    remainingCents?: true
+    expiresAt?: true
+    stripePaymentIntentId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type CreditPackAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CreditPack to aggregate.
+     */
+    where?: CreditPackWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CreditPacks to fetch.
+     */
+    orderBy?: CreditPackOrderByWithRelationInput | CreditPackOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CreditPackWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CreditPacks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CreditPacks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CreditPacks
+    **/
+    _count?: true | CreditPackCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: CreditPackAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: CreditPackSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CreditPackMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CreditPackMaxAggregateInputType
+  }
+
+  export type GetCreditPackAggregateType<T extends CreditPackAggregateArgs> = {
+        [P in keyof T & keyof AggregateCreditPack]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCreditPack[P]>
+      : GetScalarType<T[P], AggregateCreditPack[P]>
+  }
+
+
+
+
+  export type CreditPackGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CreditPackWhereInput
+    orderBy?: CreditPackOrderByWithAggregationInput | CreditPackOrderByWithAggregationInput[]
+    by: CreditPackScalarFieldEnum[] | CreditPackScalarFieldEnum
+    having?: CreditPackScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CreditPackCountAggregateInputType | true
+    _avg?: CreditPackAvgAggregateInputType
+    _sum?: CreditPackSumAggregateInputType
+    _min?: CreditPackMinAggregateInputType
+    _max?: CreditPackMaxAggregateInputType
+  }
+
+  export type CreditPackGroupByOutputType = {
+    id: string
+    organizationId: string
+    purchasedCents: number
+    remainingCents: number
+    expiresAt: Date
+    stripePaymentIntentId: string | null
+    createdAt: Date
+    _count: CreditPackCountAggregateOutputType | null
+    _avg: CreditPackAvgAggregateOutputType | null
+    _sum: CreditPackSumAggregateOutputType | null
+    _min: CreditPackMinAggregateOutputType | null
+    _max: CreditPackMaxAggregateOutputType | null
+  }
+
+  type GetCreditPackGroupByPayload<T extends CreditPackGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CreditPackGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CreditPackGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CreditPackGroupByOutputType[P]>
+            : GetScalarType<T[P], CreditPackGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CreditPackSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    purchasedCents?: boolean
+    remainingCents?: boolean
+    expiresAt?: boolean
+    stripePaymentIntentId?: boolean
+    createdAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["creditPack"]>
+
+  export type CreditPackSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    purchasedCents?: boolean
+    remainingCents?: boolean
+    expiresAt?: boolean
+    stripePaymentIntentId?: boolean
+    createdAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["creditPack"]>
+
+  export type CreditPackSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    purchasedCents?: boolean
+    remainingCents?: boolean
+    expiresAt?: boolean
+    stripePaymentIntentId?: boolean
+    createdAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["creditPack"]>
+
+  export type CreditPackSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    purchasedCents?: boolean
+    remainingCents?: boolean
+    expiresAt?: boolean
+    stripePaymentIntentId?: boolean
+    createdAt?: boolean
+  }
+
+  export type CreditPackOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "purchasedCents" | "remainingCents" | "expiresAt" | "stripePaymentIntentId" | "createdAt", ExtArgs["result"]["creditPack"]>
+  export type CreditPackInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }
+  export type CreditPackIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }
+  export type CreditPackIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }
+
+  export type $CreditPackPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CreditPack"
+    objects: {
+      organization: Prisma.$OrganizationPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      purchasedCents: number
+      remainingCents: number
+      expiresAt: Date
+      stripePaymentIntentId: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["creditPack"]>
+    composites: {}
+  }
+
+  type CreditPackGetPayload<S extends boolean | null | undefined | CreditPackDefaultArgs> = $Result.GetResult<Prisma.$CreditPackPayload, S>
+
+  type CreditPackCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<CreditPackFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: CreditPackCountAggregateInputType | true
+    }
+
+  export interface CreditPackDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CreditPack'], meta: { name: 'CreditPack' } }
+    /**
+     * Find zero or one CreditPack that matches the filter.
+     * @param {CreditPackFindUniqueArgs} args - Arguments to find a CreditPack
+     * @example
+     * // Get one CreditPack
+     * const creditPack = await prisma.creditPack.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CreditPackFindUniqueArgs>(args: SelectSubset<T, CreditPackFindUniqueArgs<ExtArgs>>): Prisma__CreditPackClient<$Result.GetResult<Prisma.$CreditPackPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one CreditPack that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {CreditPackFindUniqueOrThrowArgs} args - Arguments to find a CreditPack
+     * @example
+     * // Get one CreditPack
+     * const creditPack = await prisma.creditPack.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CreditPackFindUniqueOrThrowArgs>(args: SelectSubset<T, CreditPackFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CreditPackClient<$Result.GetResult<Prisma.$CreditPackPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CreditPack that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CreditPackFindFirstArgs} args - Arguments to find a CreditPack
+     * @example
+     * // Get one CreditPack
+     * const creditPack = await prisma.creditPack.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CreditPackFindFirstArgs>(args?: SelectSubset<T, CreditPackFindFirstArgs<ExtArgs>>): Prisma__CreditPackClient<$Result.GetResult<Prisma.$CreditPackPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CreditPack that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CreditPackFindFirstOrThrowArgs} args - Arguments to find a CreditPack
+     * @example
+     * // Get one CreditPack
+     * const creditPack = await prisma.creditPack.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CreditPackFindFirstOrThrowArgs>(args?: SelectSubset<T, CreditPackFindFirstOrThrowArgs<ExtArgs>>): Prisma__CreditPackClient<$Result.GetResult<Prisma.$CreditPackPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more CreditPacks that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CreditPackFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CreditPacks
+     * const creditPacks = await prisma.creditPack.findMany()
+     * 
+     * // Get first 10 CreditPacks
+     * const creditPacks = await prisma.creditPack.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const creditPackWithIdOnly = await prisma.creditPack.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CreditPackFindManyArgs>(args?: SelectSubset<T, CreditPackFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CreditPackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a CreditPack.
+     * @param {CreditPackCreateArgs} args - Arguments to create a CreditPack.
+     * @example
+     * // Create one CreditPack
+     * const CreditPack = await prisma.creditPack.create({
+     *   data: {
+     *     // ... data to create a CreditPack
+     *   }
+     * })
+     * 
+     */
+    create<T extends CreditPackCreateArgs>(args: SelectSubset<T, CreditPackCreateArgs<ExtArgs>>): Prisma__CreditPackClient<$Result.GetResult<Prisma.$CreditPackPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many CreditPacks.
+     * @param {CreditPackCreateManyArgs} args - Arguments to create many CreditPacks.
+     * @example
+     * // Create many CreditPacks
+     * const creditPack = await prisma.creditPack.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CreditPackCreateManyArgs>(args?: SelectSubset<T, CreditPackCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CreditPacks and returns the data saved in the database.
+     * @param {CreditPackCreateManyAndReturnArgs} args - Arguments to create many CreditPacks.
+     * @example
+     * // Create many CreditPacks
+     * const creditPack = await prisma.creditPack.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CreditPacks and only return the `id`
+     * const creditPackWithIdOnly = await prisma.creditPack.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CreditPackCreateManyAndReturnArgs>(args?: SelectSubset<T, CreditPackCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CreditPackPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a CreditPack.
+     * @param {CreditPackDeleteArgs} args - Arguments to delete one CreditPack.
+     * @example
+     * // Delete one CreditPack
+     * const CreditPack = await prisma.creditPack.delete({
+     *   where: {
+     *     // ... filter to delete one CreditPack
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CreditPackDeleteArgs>(args: SelectSubset<T, CreditPackDeleteArgs<ExtArgs>>): Prisma__CreditPackClient<$Result.GetResult<Prisma.$CreditPackPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one CreditPack.
+     * @param {CreditPackUpdateArgs} args - Arguments to update one CreditPack.
+     * @example
+     * // Update one CreditPack
+     * const creditPack = await prisma.creditPack.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CreditPackUpdateArgs>(args: SelectSubset<T, CreditPackUpdateArgs<ExtArgs>>): Prisma__CreditPackClient<$Result.GetResult<Prisma.$CreditPackPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more CreditPacks.
+     * @param {CreditPackDeleteManyArgs} args - Arguments to filter CreditPacks to delete.
+     * @example
+     * // Delete a few CreditPacks
+     * const { count } = await prisma.creditPack.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CreditPackDeleteManyArgs>(args?: SelectSubset<T, CreditPackDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CreditPacks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CreditPackUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CreditPacks
+     * const creditPack = await prisma.creditPack.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CreditPackUpdateManyArgs>(args: SelectSubset<T, CreditPackUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CreditPacks and returns the data updated in the database.
+     * @param {CreditPackUpdateManyAndReturnArgs} args - Arguments to update many CreditPacks.
+     * @example
+     * // Update many CreditPacks
+     * const creditPack = await prisma.creditPack.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more CreditPacks and only return the `id`
+     * const creditPackWithIdOnly = await prisma.creditPack.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends CreditPackUpdateManyAndReturnArgs>(args: SelectSubset<T, CreditPackUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CreditPackPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one CreditPack.
+     * @param {CreditPackUpsertArgs} args - Arguments to update or create a CreditPack.
+     * @example
+     * // Update or create a CreditPack
+     * const creditPack = await prisma.creditPack.upsert({
+     *   create: {
+     *     // ... data to create a CreditPack
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CreditPack we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CreditPackUpsertArgs>(args: SelectSubset<T, CreditPackUpsertArgs<ExtArgs>>): Prisma__CreditPackClient<$Result.GetResult<Prisma.$CreditPackPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of CreditPacks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CreditPackCountArgs} args - Arguments to filter CreditPacks to count.
+     * @example
+     * // Count the number of CreditPacks
+     * const count = await prisma.creditPack.count({
+     *   where: {
+     *     // ... the filter for the CreditPacks we want to count
+     *   }
+     * })
+    **/
+    count<T extends CreditPackCountArgs>(
+      args?: Subset<T, CreditPackCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CreditPackCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CreditPack.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CreditPackAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CreditPackAggregateArgs>(args: Subset<T, CreditPackAggregateArgs>): Prisma.PrismaPromise<GetCreditPackAggregateType<T>>
+
+    /**
+     * Group by CreditPack.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CreditPackGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CreditPackGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CreditPackGroupByArgs['orderBy'] }
+        : { orderBy?: CreditPackGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CreditPackGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCreditPackGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CreditPack model
+   */
+  readonly fields: CreditPackFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CreditPack.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CreditPackClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    organization<T extends OrganizationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, OrganizationDefaultArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CreditPack model
+   */
+  interface CreditPackFieldRefs {
+    readonly id: FieldRef<"CreditPack", 'String'>
+    readonly organizationId: FieldRef<"CreditPack", 'String'>
+    readonly purchasedCents: FieldRef<"CreditPack", 'Int'>
+    readonly remainingCents: FieldRef<"CreditPack", 'Int'>
+    readonly expiresAt: FieldRef<"CreditPack", 'DateTime'>
+    readonly stripePaymentIntentId: FieldRef<"CreditPack", 'String'>
+    readonly createdAt: FieldRef<"CreditPack", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CreditPack findUnique
+   */
+  export type CreditPackFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditPack
+     */
+    select?: CreditPackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditPack
+     */
+    omit?: CreditPackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CreditPackInclude<ExtArgs> | null
+    /**
+     * Filter, which CreditPack to fetch.
+     */
+    where: CreditPackWhereUniqueInput
+  }
+
+  /**
+   * CreditPack findUniqueOrThrow
+   */
+  export type CreditPackFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditPack
+     */
+    select?: CreditPackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditPack
+     */
+    omit?: CreditPackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CreditPackInclude<ExtArgs> | null
+    /**
+     * Filter, which CreditPack to fetch.
+     */
+    where: CreditPackWhereUniqueInput
+  }
+
+  /**
+   * CreditPack findFirst
+   */
+  export type CreditPackFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditPack
+     */
+    select?: CreditPackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditPack
+     */
+    omit?: CreditPackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CreditPackInclude<ExtArgs> | null
+    /**
+     * Filter, which CreditPack to fetch.
+     */
+    where?: CreditPackWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CreditPacks to fetch.
+     */
+    orderBy?: CreditPackOrderByWithRelationInput | CreditPackOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CreditPacks.
+     */
+    cursor?: CreditPackWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CreditPacks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CreditPacks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CreditPacks.
+     */
+    distinct?: CreditPackScalarFieldEnum | CreditPackScalarFieldEnum[]
+  }
+
+  /**
+   * CreditPack findFirstOrThrow
+   */
+  export type CreditPackFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditPack
+     */
+    select?: CreditPackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditPack
+     */
+    omit?: CreditPackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CreditPackInclude<ExtArgs> | null
+    /**
+     * Filter, which CreditPack to fetch.
+     */
+    where?: CreditPackWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CreditPacks to fetch.
+     */
+    orderBy?: CreditPackOrderByWithRelationInput | CreditPackOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CreditPacks.
+     */
+    cursor?: CreditPackWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CreditPacks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CreditPacks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CreditPacks.
+     */
+    distinct?: CreditPackScalarFieldEnum | CreditPackScalarFieldEnum[]
+  }
+
+  /**
+   * CreditPack findMany
+   */
+  export type CreditPackFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditPack
+     */
+    select?: CreditPackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditPack
+     */
+    omit?: CreditPackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CreditPackInclude<ExtArgs> | null
+    /**
+     * Filter, which CreditPacks to fetch.
+     */
+    where?: CreditPackWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CreditPacks to fetch.
+     */
+    orderBy?: CreditPackOrderByWithRelationInput | CreditPackOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CreditPacks.
+     */
+    cursor?: CreditPackWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CreditPacks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CreditPacks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CreditPacks.
+     */
+    distinct?: CreditPackScalarFieldEnum | CreditPackScalarFieldEnum[]
+  }
+
+  /**
+   * CreditPack create
+   */
+  export type CreditPackCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditPack
+     */
+    select?: CreditPackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditPack
+     */
+    omit?: CreditPackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CreditPackInclude<ExtArgs> | null
+    /**
+     * The data needed to create a CreditPack.
+     */
+    data: XOR<CreditPackCreateInput, CreditPackUncheckedCreateInput>
+  }
+
+  /**
+   * CreditPack createMany
+   */
+  export type CreditPackCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CreditPacks.
+     */
+    data: CreditPackCreateManyInput | CreditPackCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CreditPack createManyAndReturn
+   */
+  export type CreditPackCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditPack
+     */
+    select?: CreditPackSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditPack
+     */
+    omit?: CreditPackOmit<ExtArgs> | null
+    /**
+     * The data used to create many CreditPacks.
+     */
+    data: CreditPackCreateManyInput | CreditPackCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CreditPackIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CreditPack update
+   */
+  export type CreditPackUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditPack
+     */
+    select?: CreditPackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditPack
+     */
+    omit?: CreditPackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CreditPackInclude<ExtArgs> | null
+    /**
+     * The data needed to update a CreditPack.
+     */
+    data: XOR<CreditPackUpdateInput, CreditPackUncheckedUpdateInput>
+    /**
+     * Choose, which CreditPack to update.
+     */
+    where: CreditPackWhereUniqueInput
+  }
+
+  /**
+   * CreditPack updateMany
+   */
+  export type CreditPackUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CreditPacks.
+     */
+    data: XOR<CreditPackUpdateManyMutationInput, CreditPackUncheckedUpdateManyInput>
+    /**
+     * Filter which CreditPacks to update
+     */
+    where?: CreditPackWhereInput
+    /**
+     * Limit how many CreditPacks to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * CreditPack updateManyAndReturn
+   */
+  export type CreditPackUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditPack
+     */
+    select?: CreditPackSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditPack
+     */
+    omit?: CreditPackOmit<ExtArgs> | null
+    /**
+     * The data used to update CreditPacks.
+     */
+    data: XOR<CreditPackUpdateManyMutationInput, CreditPackUncheckedUpdateManyInput>
+    /**
+     * Filter which CreditPacks to update
+     */
+    where?: CreditPackWhereInput
+    /**
+     * Limit how many CreditPacks to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CreditPackIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CreditPack upsert
+   */
+  export type CreditPackUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditPack
+     */
+    select?: CreditPackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditPack
+     */
+    omit?: CreditPackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CreditPackInclude<ExtArgs> | null
+    /**
+     * The filter to search for the CreditPack to update in case it exists.
+     */
+    where: CreditPackWhereUniqueInput
+    /**
+     * In case the CreditPack found by the `where` argument doesn't exist, create a new CreditPack with this data.
+     */
+    create: XOR<CreditPackCreateInput, CreditPackUncheckedCreateInput>
+    /**
+     * In case the CreditPack was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CreditPackUpdateInput, CreditPackUncheckedUpdateInput>
+  }
+
+  /**
+   * CreditPack delete
+   */
+  export type CreditPackDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditPack
+     */
+    select?: CreditPackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditPack
+     */
+    omit?: CreditPackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CreditPackInclude<ExtArgs> | null
+    /**
+     * Filter which CreditPack to delete.
+     */
+    where: CreditPackWhereUniqueInput
+  }
+
+  /**
+   * CreditPack deleteMany
+   */
+  export type CreditPackDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CreditPacks to delete
+     */
+    where?: CreditPackWhereInput
+    /**
+     * Limit how many CreditPacks to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * CreditPack without action
+   */
+  export type CreditPackDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditPack
+     */
+    select?: CreditPackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditPack
+     */
+    omit?: CreditPackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CreditPackInclude<ExtArgs> | null
   }
 
 
@@ -101961,6 +103235,8 @@ export namespace Prisma {
     status: $Enums.CheckpointStatus | null
     highPowerModel: boolean | null
     extendedThinking: boolean | null
+    buildTier: string | null
+    turboMode: boolean | null
     inputTokens: number | null
     outputTokens: number | null
     wallMs: number | null
@@ -101981,6 +103257,8 @@ export namespace Prisma {
     status: $Enums.CheckpointStatus | null
     highPowerModel: boolean | null
     extendedThinking: boolean | null
+    buildTier: string | null
+    turboMode: boolean | null
     inputTokens: number | null
     outputTokens: number | null
     wallMs: number | null
@@ -102001,6 +103279,8 @@ export namespace Prisma {
     status: number
     highPowerModel: number
     extendedThinking: number
+    buildTier: number
+    turboMode: number
     inputTokens: number
     outputTokens: number
     wallMs: number
@@ -102041,6 +103321,8 @@ export namespace Prisma {
     status?: true
     highPowerModel?: true
     extendedThinking?: true
+    buildTier?: true
+    turboMode?: true
     inputTokens?: true
     outputTokens?: true
     wallMs?: true
@@ -102061,6 +103343,8 @@ export namespace Prisma {
     status?: true
     highPowerModel?: true
     extendedThinking?: true
+    buildTier?: true
+    turboMode?: true
     inputTokens?: true
     outputTokens?: true
     wallMs?: true
@@ -102081,6 +103365,8 @@ export namespace Prisma {
     status?: true
     highPowerModel?: true
     extendedThinking?: true
+    buildTier?: true
+    turboMode?: true
     inputTokens?: true
     outputTokens?: true
     wallMs?: true
@@ -102188,6 +103474,8 @@ export namespace Prisma {
     status: $Enums.CheckpointStatus
     highPowerModel: boolean
     extendedThinking: boolean
+    buildTier: string
+    turboMode: boolean
     inputTokens: number
     outputTokens: number
     wallMs: number
@@ -102227,6 +103515,8 @@ export namespace Prisma {
     status?: boolean
     highPowerModel?: boolean
     extendedThinking?: boolean
+    buildTier?: boolean
+    turboMode?: boolean
     inputTokens?: boolean
     outputTokens?: boolean
     wallMs?: boolean
@@ -102248,6 +103538,8 @@ export namespace Prisma {
     status?: boolean
     highPowerModel?: boolean
     extendedThinking?: boolean
+    buildTier?: boolean
+    turboMode?: boolean
     inputTokens?: boolean
     outputTokens?: boolean
     wallMs?: boolean
@@ -102269,6 +103561,8 @@ export namespace Prisma {
     status?: boolean
     highPowerModel?: boolean
     extendedThinking?: boolean
+    buildTier?: boolean
+    turboMode?: boolean
     inputTokens?: boolean
     outputTokens?: boolean
     wallMs?: boolean
@@ -102290,6 +103584,8 @@ export namespace Prisma {
     status?: boolean
     highPowerModel?: boolean
     extendedThinking?: boolean
+    buildTier?: boolean
+    turboMode?: boolean
     inputTokens?: boolean
     outputTokens?: boolean
     wallMs?: boolean
@@ -102300,7 +103596,7 @@ export namespace Prisma {
     completedAt?: boolean
   }
 
-  export type AgentCheckpointOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "userId" | "projectId" | "conversationId" | "runId" | "status" | "highPowerModel" | "extendedThinking" | "inputTokens" | "outputTokens" | "wallMs" | "computeCents" | "rawProviderCents" | "creditCents" | "startedAt" | "completedAt", ExtArgs["result"]["agentCheckpoint"]>
+  export type AgentCheckpointOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "userId" | "projectId" | "conversationId" | "runId" | "status" | "highPowerModel" | "extendedThinking" | "buildTier" | "turboMode" | "inputTokens" | "outputTokens" | "wallMs" | "computeCents" | "rawProviderCents" | "creditCents" | "startedAt" | "completedAt", ExtArgs["result"]["agentCheckpoint"]>
   export type AgentCheckpointInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }
@@ -102326,6 +103622,8 @@ export namespace Prisma {
       status: $Enums.CheckpointStatus
       highPowerModel: boolean
       extendedThinking: boolean
+      buildTier: string
+      turboMode: boolean
       inputTokens: number
       outputTokens: number
       wallMs: number
@@ -102767,6 +104065,8 @@ export namespace Prisma {
     readonly status: FieldRef<"AgentCheckpoint", 'CheckpointStatus'>
     readonly highPowerModel: FieldRef<"AgentCheckpoint", 'Boolean'>
     readonly extendedThinking: FieldRef<"AgentCheckpoint", 'Boolean'>
+    readonly buildTier: FieldRef<"AgentCheckpoint", 'String'>
+    readonly turboMode: FieldRef<"AgentCheckpoint", 'Boolean'>
     readonly inputTokens: FieldRef<"AgentCheckpoint", 'Int'>
     readonly outputTokens: FieldRef<"AgentCheckpoint", 'Int'>
     readonly wallMs: FieldRef<"AgentCheckpoint", 'Int'>
@@ -106682,12 +107982,26 @@ export namespace Prisma {
     balanceCents: 'balanceCents',
     currency: 'currency',
     budgetCapCents: 'budgetCapCents',
+    serviceShutdownCents: 'serviceShutdownCents',
     autoTopupCents: 'autoTopupCents',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
 
   export type CreditWalletScalarFieldEnum = (typeof CreditWalletScalarFieldEnum)[keyof typeof CreditWalletScalarFieldEnum]
+
+
+  export const CreditPackScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    purchasedCents: 'purchasedCents',
+    remainingCents: 'remainingCents',
+    expiresAt: 'expiresAt',
+    stripePaymentIntentId: 'stripePaymentIntentId',
+    createdAt: 'createdAt'
+  };
+
+  export type CreditPackScalarFieldEnum = (typeof CreditPackScalarFieldEnum)[keyof typeof CreditPackScalarFieldEnum]
 
 
   export const CreditLedgerScalarFieldEnum: {
@@ -106716,6 +108030,8 @@ export namespace Prisma {
     status: 'status',
     highPowerModel: 'highPowerModel',
     extendedThinking: 'extendedThinking',
+    buildTier: 'buildTier',
+    turboMode: 'turboMode',
     inputTokens: 'inputTokens',
     outputTokens: 'outputTokens',
     wallMs: 'wallMs',
@@ -107421,6 +108737,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestListRelationFilter
     creditWallet?: XOR<CreditWalletNullableScalarRelationFilter, CreditWalletWhereInput> | null
     creditLedger?: CreditLedgerListRelationFilter
+    creditPacks?: CreditPackListRelationFilter
     agentCheckpoints?: AgentCheckpointListRelationFilter
   }
 
@@ -107461,6 +108778,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestOrderByRelationAggregateInput
     creditWallet?: CreditWalletOrderByWithRelationInput
     creditLedger?: CreditLedgerOrderByRelationAggregateInput
+    creditPacks?: CreditPackOrderByRelationAggregateInput
     agentCheckpoints?: AgentCheckpointOrderByRelationAggregateInput
   }
 
@@ -107504,6 +108822,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestListRelationFilter
     creditWallet?: XOR<CreditWalletNullableScalarRelationFilter, CreditWalletWhereInput> | null
     creditLedger?: CreditLedgerListRelationFilter
+    creditPacks?: CreditPackListRelationFilter
     agentCheckpoints?: AgentCheckpointListRelationFilter
   }, "id" | "slug">
 
@@ -113169,6 +114488,7 @@ export namespace Prisma {
     balanceCents?: IntFilter<"CreditWallet"> | number
     currency?: StringFilter<"CreditWallet"> | string
     budgetCapCents?: IntNullableFilter<"CreditWallet"> | number | null
+    serviceShutdownCents?: IntNullableFilter<"CreditWallet"> | number | null
     autoTopupCents?: IntNullableFilter<"CreditWallet"> | number | null
     createdAt?: DateTimeFilter<"CreditWallet"> | Date | string
     updatedAt?: DateTimeFilter<"CreditWallet"> | Date | string
@@ -113182,6 +114502,7 @@ export namespace Prisma {
     balanceCents?: SortOrder
     currency?: SortOrder
     budgetCapCents?: SortOrderInput | SortOrder
+    serviceShutdownCents?: SortOrderInput | SortOrder
     autoTopupCents?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -113198,6 +114519,7 @@ export namespace Prisma {
     balanceCents?: IntFilter<"CreditWallet"> | number
     currency?: StringFilter<"CreditWallet"> | string
     budgetCapCents?: IntNullableFilter<"CreditWallet"> | number | null
+    serviceShutdownCents?: IntNullableFilter<"CreditWallet"> | number | null
     autoTopupCents?: IntNullableFilter<"CreditWallet"> | number | null
     createdAt?: DateTimeFilter<"CreditWallet"> | Date | string
     updatedAt?: DateTimeFilter<"CreditWallet"> | Date | string
@@ -113211,6 +114533,7 @@ export namespace Prisma {
     balanceCents?: SortOrder
     currency?: SortOrder
     budgetCapCents?: SortOrderInput | SortOrder
+    serviceShutdownCents?: SortOrderInput | SortOrder
     autoTopupCents?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -113230,9 +114553,77 @@ export namespace Prisma {
     balanceCents?: IntWithAggregatesFilter<"CreditWallet"> | number
     currency?: StringWithAggregatesFilter<"CreditWallet"> | string
     budgetCapCents?: IntNullableWithAggregatesFilter<"CreditWallet"> | number | null
+    serviceShutdownCents?: IntNullableWithAggregatesFilter<"CreditWallet"> | number | null
     autoTopupCents?: IntNullableWithAggregatesFilter<"CreditWallet"> | number | null
     createdAt?: DateTimeWithAggregatesFilter<"CreditWallet"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"CreditWallet"> | Date | string
+  }
+
+  export type CreditPackWhereInput = {
+    AND?: CreditPackWhereInput | CreditPackWhereInput[]
+    OR?: CreditPackWhereInput[]
+    NOT?: CreditPackWhereInput | CreditPackWhereInput[]
+    id?: StringFilter<"CreditPack"> | string
+    organizationId?: StringFilter<"CreditPack"> | string
+    purchasedCents?: IntFilter<"CreditPack"> | number
+    remainingCents?: IntFilter<"CreditPack"> | number
+    expiresAt?: DateTimeFilter<"CreditPack"> | Date | string
+    stripePaymentIntentId?: StringNullableFilter<"CreditPack"> | string | null
+    createdAt?: DateTimeFilter<"CreditPack"> | Date | string
+    organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+  }
+
+  export type CreditPackOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    purchasedCents?: SortOrder
+    remainingCents?: SortOrder
+    expiresAt?: SortOrder
+    stripePaymentIntentId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    organization?: OrganizationOrderByWithRelationInput
+  }
+
+  export type CreditPackWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: CreditPackWhereInput | CreditPackWhereInput[]
+    OR?: CreditPackWhereInput[]
+    NOT?: CreditPackWhereInput | CreditPackWhereInput[]
+    organizationId?: StringFilter<"CreditPack"> | string
+    purchasedCents?: IntFilter<"CreditPack"> | number
+    remainingCents?: IntFilter<"CreditPack"> | number
+    expiresAt?: DateTimeFilter<"CreditPack"> | Date | string
+    stripePaymentIntentId?: StringNullableFilter<"CreditPack"> | string | null
+    createdAt?: DateTimeFilter<"CreditPack"> | Date | string
+    organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+  }, "id">
+
+  export type CreditPackOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    purchasedCents?: SortOrder
+    remainingCents?: SortOrder
+    expiresAt?: SortOrder
+    stripePaymentIntentId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: CreditPackCountOrderByAggregateInput
+    _avg?: CreditPackAvgOrderByAggregateInput
+    _max?: CreditPackMaxOrderByAggregateInput
+    _min?: CreditPackMinOrderByAggregateInput
+    _sum?: CreditPackSumOrderByAggregateInput
+  }
+
+  export type CreditPackScalarWhereWithAggregatesInput = {
+    AND?: CreditPackScalarWhereWithAggregatesInput | CreditPackScalarWhereWithAggregatesInput[]
+    OR?: CreditPackScalarWhereWithAggregatesInput[]
+    NOT?: CreditPackScalarWhereWithAggregatesInput | CreditPackScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"CreditPack"> | string
+    organizationId?: StringWithAggregatesFilter<"CreditPack"> | string
+    purchasedCents?: IntWithAggregatesFilter<"CreditPack"> | number
+    remainingCents?: IntWithAggregatesFilter<"CreditPack"> | number
+    expiresAt?: DateTimeWithAggregatesFilter<"CreditPack"> | Date | string
+    stripePaymentIntentId?: StringNullableWithAggregatesFilter<"CreditPack"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"CreditPack"> | Date | string
   }
 
   export type CreditLedgerWhereInput = {
@@ -113333,6 +114724,8 @@ export namespace Prisma {
     status?: EnumCheckpointStatusFilter<"AgentCheckpoint"> | $Enums.CheckpointStatus
     highPowerModel?: BoolFilter<"AgentCheckpoint"> | boolean
     extendedThinking?: BoolFilter<"AgentCheckpoint"> | boolean
+    buildTier?: StringFilter<"AgentCheckpoint"> | string
+    turboMode?: BoolFilter<"AgentCheckpoint"> | boolean
     inputTokens?: IntFilter<"AgentCheckpoint"> | number
     outputTokens?: IntFilter<"AgentCheckpoint"> | number
     wallMs?: IntFilter<"AgentCheckpoint"> | number
@@ -113354,6 +114747,8 @@ export namespace Prisma {
     status?: SortOrder
     highPowerModel?: SortOrder
     extendedThinking?: SortOrder
+    buildTier?: SortOrder
+    turboMode?: SortOrder
     inputTokens?: SortOrder
     outputTokens?: SortOrder
     wallMs?: SortOrder
@@ -113378,6 +114773,8 @@ export namespace Prisma {
     status?: EnumCheckpointStatusFilter<"AgentCheckpoint"> | $Enums.CheckpointStatus
     highPowerModel?: BoolFilter<"AgentCheckpoint"> | boolean
     extendedThinking?: BoolFilter<"AgentCheckpoint"> | boolean
+    buildTier?: StringFilter<"AgentCheckpoint"> | string
+    turboMode?: BoolFilter<"AgentCheckpoint"> | boolean
     inputTokens?: IntFilter<"AgentCheckpoint"> | number
     outputTokens?: IntFilter<"AgentCheckpoint"> | number
     wallMs?: IntFilter<"AgentCheckpoint"> | number
@@ -113399,6 +114796,8 @@ export namespace Prisma {
     status?: SortOrder
     highPowerModel?: SortOrder
     extendedThinking?: SortOrder
+    buildTier?: SortOrder
+    turboMode?: SortOrder
     inputTokens?: SortOrder
     outputTokens?: SortOrder
     wallMs?: SortOrder
@@ -113427,6 +114826,8 @@ export namespace Prisma {
     status?: EnumCheckpointStatusWithAggregatesFilter<"AgentCheckpoint"> | $Enums.CheckpointStatus
     highPowerModel?: BoolWithAggregatesFilter<"AgentCheckpoint"> | boolean
     extendedThinking?: BoolWithAggregatesFilter<"AgentCheckpoint"> | boolean
+    buildTier?: StringWithAggregatesFilter<"AgentCheckpoint"> | string
+    turboMode?: BoolWithAggregatesFilter<"AgentCheckpoint"> | boolean
     inputTokens?: IntWithAggregatesFilter<"AgentCheckpoint"> | number
     outputTokens?: IntWithAggregatesFilter<"AgentCheckpoint"> | number
     wallMs?: IntWithAggregatesFilter<"AgentCheckpoint"> | number
@@ -114023,6 +115424,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -114063,6 +115465,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -114103,6 +115506,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -114143,6 +115547,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -120155,6 +121560,7 @@ export namespace Prisma {
     balanceCents?: number
     currency?: string
     budgetCapCents?: number | null
+    serviceShutdownCents?: number | null
     autoTopupCents?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -120168,6 +121574,7 @@ export namespace Prisma {
     balanceCents?: number
     currency?: string
     budgetCapCents?: number | null
+    serviceShutdownCents?: number | null
     autoTopupCents?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -120179,6 +121586,7 @@ export namespace Prisma {
     balanceCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
+    serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -120192,6 +121600,7 @@ export namespace Prisma {
     balanceCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
+    serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -120204,6 +121613,7 @@ export namespace Prisma {
     balanceCents?: number
     currency?: string
     budgetCapCents?: number | null
+    serviceShutdownCents?: number | null
     autoTopupCents?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -120214,6 +121624,7 @@ export namespace Prisma {
     balanceCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
+    serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -120225,9 +121636,79 @@ export namespace Prisma {
     balanceCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
+    serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CreditPackCreateInput = {
+    id?: string
+    purchasedCents: number
+    remainingCents: number
+    expiresAt: Date | string
+    stripePaymentIntentId?: string | null
+    createdAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutCreditPacksInput
+  }
+
+  export type CreditPackUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    purchasedCents: number
+    remainingCents: number
+    expiresAt: Date | string
+    stripePaymentIntentId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type CreditPackUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    purchasedCents?: IntFieldUpdateOperationsInput | number
+    remainingCents?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    stripePaymentIntentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutCreditPacksNestedInput
+  }
+
+  export type CreditPackUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    purchasedCents?: IntFieldUpdateOperationsInput | number
+    remainingCents?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    stripePaymentIntentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CreditPackCreateManyInput = {
+    id?: string
+    organizationId: string
+    purchasedCents: number
+    remainingCents: number
+    expiresAt: Date | string
+    stripePaymentIntentId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type CreditPackUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    purchasedCents?: IntFieldUpdateOperationsInput | number
+    remainingCents?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    stripePaymentIntentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CreditPackUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    purchasedCents?: IntFieldUpdateOperationsInput | number
+    remainingCents?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    stripePaymentIntentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CreditLedgerCreateInput = {
@@ -120328,6 +121809,8 @@ export namespace Prisma {
     status?: $Enums.CheckpointStatus
     highPowerModel?: boolean
     extendedThinking?: boolean
+    buildTier?: string
+    turboMode?: boolean
     inputTokens?: number
     outputTokens?: number
     wallMs?: number
@@ -120349,6 +121832,8 @@ export namespace Prisma {
     status?: $Enums.CheckpointStatus
     highPowerModel?: boolean
     extendedThinking?: boolean
+    buildTier?: string
+    turboMode?: boolean
     inputTokens?: number
     outputTokens?: number
     wallMs?: number
@@ -120368,6 +121853,8 @@ export namespace Prisma {
     status?: EnumCheckpointStatusFieldUpdateOperationsInput | $Enums.CheckpointStatus
     highPowerModel?: BoolFieldUpdateOperationsInput | boolean
     extendedThinking?: BoolFieldUpdateOperationsInput | boolean
+    buildTier?: StringFieldUpdateOperationsInput | string
+    turboMode?: BoolFieldUpdateOperationsInput | boolean
     inputTokens?: IntFieldUpdateOperationsInput | number
     outputTokens?: IntFieldUpdateOperationsInput | number
     wallMs?: IntFieldUpdateOperationsInput | number
@@ -120389,6 +121876,8 @@ export namespace Prisma {
     status?: EnumCheckpointStatusFieldUpdateOperationsInput | $Enums.CheckpointStatus
     highPowerModel?: BoolFieldUpdateOperationsInput | boolean
     extendedThinking?: BoolFieldUpdateOperationsInput | boolean
+    buildTier?: StringFieldUpdateOperationsInput | string
+    turboMode?: BoolFieldUpdateOperationsInput | boolean
     inputTokens?: IntFieldUpdateOperationsInput | number
     outputTokens?: IntFieldUpdateOperationsInput | number
     wallMs?: IntFieldUpdateOperationsInput | number
@@ -120409,6 +121898,8 @@ export namespace Prisma {
     status?: $Enums.CheckpointStatus
     highPowerModel?: boolean
     extendedThinking?: boolean
+    buildTier?: string
+    turboMode?: boolean
     inputTokens?: number
     outputTokens?: number
     wallMs?: number
@@ -120428,6 +121919,8 @@ export namespace Prisma {
     status?: EnumCheckpointStatusFieldUpdateOperationsInput | $Enums.CheckpointStatus
     highPowerModel?: BoolFieldUpdateOperationsInput | boolean
     extendedThinking?: BoolFieldUpdateOperationsInput | boolean
+    buildTier?: StringFieldUpdateOperationsInput | string
+    turboMode?: BoolFieldUpdateOperationsInput | boolean
     inputTokens?: IntFieldUpdateOperationsInput | number
     outputTokens?: IntFieldUpdateOperationsInput | number
     wallMs?: IntFieldUpdateOperationsInput | number
@@ -120448,6 +121941,8 @@ export namespace Prisma {
     status?: EnumCheckpointStatusFieldUpdateOperationsInput | $Enums.CheckpointStatus
     highPowerModel?: BoolFieldUpdateOperationsInput | boolean
     extendedThinking?: BoolFieldUpdateOperationsInput | boolean
+    buildTier?: StringFieldUpdateOperationsInput | string
+    turboMode?: BoolFieldUpdateOperationsInput | boolean
     inputTokens?: IntFieldUpdateOperationsInput | number
     outputTokens?: IntFieldUpdateOperationsInput | number
     wallMs?: IntFieldUpdateOperationsInput | number
@@ -121360,6 +122855,12 @@ export namespace Prisma {
     none?: CreditLedgerWhereInput
   }
 
+  export type CreditPackListRelationFilter = {
+    every?: CreditPackWhereInput
+    some?: CreditPackWhereInput
+    none?: CreditPackWhereInput
+  }
+
   export type AgentCheckpointListRelationFilter = {
     every?: AgentCheckpointWhereInput
     some?: AgentCheckpointWhereInput
@@ -121435,6 +122936,10 @@ export namespace Prisma {
   }
 
   export type CreditLedgerOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type CreditPackOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -124804,6 +126309,7 @@ export namespace Prisma {
     balanceCents?: SortOrder
     currency?: SortOrder
     budgetCapCents?: SortOrder
+    serviceShutdownCents?: SortOrder
     autoTopupCents?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -124812,6 +126318,7 @@ export namespace Prisma {
   export type CreditWalletAvgOrderByAggregateInput = {
     balanceCents?: SortOrder
     budgetCapCents?: SortOrder
+    serviceShutdownCents?: SortOrder
     autoTopupCents?: SortOrder
   }
 
@@ -124821,6 +126328,7 @@ export namespace Prisma {
     balanceCents?: SortOrder
     currency?: SortOrder
     budgetCapCents?: SortOrder
+    serviceShutdownCents?: SortOrder
     autoTopupCents?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -124832,6 +126340,7 @@ export namespace Prisma {
     balanceCents?: SortOrder
     currency?: SortOrder
     budgetCapCents?: SortOrder
+    serviceShutdownCents?: SortOrder
     autoTopupCents?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -124840,7 +126349,48 @@ export namespace Prisma {
   export type CreditWalletSumOrderByAggregateInput = {
     balanceCents?: SortOrder
     budgetCapCents?: SortOrder
+    serviceShutdownCents?: SortOrder
     autoTopupCents?: SortOrder
+  }
+
+  export type CreditPackCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    purchasedCents?: SortOrder
+    remainingCents?: SortOrder
+    expiresAt?: SortOrder
+    stripePaymentIntentId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CreditPackAvgOrderByAggregateInput = {
+    purchasedCents?: SortOrder
+    remainingCents?: SortOrder
+  }
+
+  export type CreditPackMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    purchasedCents?: SortOrder
+    remainingCents?: SortOrder
+    expiresAt?: SortOrder
+    stripePaymentIntentId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CreditPackMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    purchasedCents?: SortOrder
+    remainingCents?: SortOrder
+    expiresAt?: SortOrder
+    stripePaymentIntentId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CreditPackSumOrderByAggregateInput = {
+    purchasedCents?: SortOrder
+    remainingCents?: SortOrder
   }
 
   export type EnumCreditEntryKindFilter<$PrismaModel = never> = {
@@ -124927,6 +126477,8 @@ export namespace Prisma {
     status?: SortOrder
     highPowerModel?: SortOrder
     extendedThinking?: SortOrder
+    buildTier?: SortOrder
+    turboMode?: SortOrder
     inputTokens?: SortOrder
     outputTokens?: SortOrder
     wallMs?: SortOrder
@@ -124956,6 +126508,8 @@ export namespace Prisma {
     status?: SortOrder
     highPowerModel?: SortOrder
     extendedThinking?: SortOrder
+    buildTier?: SortOrder
+    turboMode?: SortOrder
     inputTokens?: SortOrder
     outputTokens?: SortOrder
     wallMs?: SortOrder
@@ -124976,6 +126530,8 @@ export namespace Prisma {
     status?: SortOrder
     highPowerModel?: SortOrder
     extendedThinking?: SortOrder
+    buildTier?: SortOrder
+    turboMode?: SortOrder
     inputTokens?: SortOrder
     outputTokens?: SortOrder
     wallMs?: SortOrder
@@ -126530,6 +128086,13 @@ export namespace Prisma {
     connect?: CreditLedgerWhereUniqueInput | CreditLedgerWhereUniqueInput[]
   }
 
+  export type CreditPackCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<CreditPackCreateWithoutOrganizationInput, CreditPackUncheckedCreateWithoutOrganizationInput> | CreditPackCreateWithoutOrganizationInput[] | CreditPackUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: CreditPackCreateOrConnectWithoutOrganizationInput | CreditPackCreateOrConnectWithoutOrganizationInput[]
+    createMany?: CreditPackCreateManyOrganizationInputEnvelope
+    connect?: CreditPackWhereUniqueInput | CreditPackWhereUniqueInput[]
+  }
+
   export type AgentCheckpointCreateNestedManyWithoutOrganizationInput = {
     create?: XOR<AgentCheckpointCreateWithoutOrganizationInput, AgentCheckpointUncheckedCreateWithoutOrganizationInput> | AgentCheckpointCreateWithoutOrganizationInput[] | AgentCheckpointUncheckedCreateWithoutOrganizationInput[]
     connectOrCreate?: AgentCheckpointCreateOrConnectWithoutOrganizationInput | AgentCheckpointCreateOrConnectWithoutOrganizationInput[]
@@ -126746,6 +128309,13 @@ export namespace Prisma {
     connectOrCreate?: CreditLedgerCreateOrConnectWithoutOrganizationInput | CreditLedgerCreateOrConnectWithoutOrganizationInput[]
     createMany?: CreditLedgerCreateManyOrganizationInputEnvelope
     connect?: CreditLedgerWhereUniqueInput | CreditLedgerWhereUniqueInput[]
+  }
+
+  export type CreditPackUncheckedCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<CreditPackCreateWithoutOrganizationInput, CreditPackUncheckedCreateWithoutOrganizationInput> | CreditPackCreateWithoutOrganizationInput[] | CreditPackUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: CreditPackCreateOrConnectWithoutOrganizationInput | CreditPackCreateOrConnectWithoutOrganizationInput[]
+    createMany?: CreditPackCreateManyOrganizationInputEnvelope
+    connect?: CreditPackWhereUniqueInput | CreditPackWhereUniqueInput[]
   }
 
   export type AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput = {
@@ -127171,6 +128741,20 @@ export namespace Prisma {
     update?: CreditLedgerUpdateWithWhereUniqueWithoutOrganizationInput | CreditLedgerUpdateWithWhereUniqueWithoutOrganizationInput[]
     updateMany?: CreditLedgerUpdateManyWithWhereWithoutOrganizationInput | CreditLedgerUpdateManyWithWhereWithoutOrganizationInput[]
     deleteMany?: CreditLedgerScalarWhereInput | CreditLedgerScalarWhereInput[]
+  }
+
+  export type CreditPackUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<CreditPackCreateWithoutOrganizationInput, CreditPackUncheckedCreateWithoutOrganizationInput> | CreditPackCreateWithoutOrganizationInput[] | CreditPackUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: CreditPackCreateOrConnectWithoutOrganizationInput | CreditPackCreateOrConnectWithoutOrganizationInput[]
+    upsert?: CreditPackUpsertWithWhereUniqueWithoutOrganizationInput | CreditPackUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: CreditPackCreateManyOrganizationInputEnvelope
+    set?: CreditPackWhereUniqueInput | CreditPackWhereUniqueInput[]
+    disconnect?: CreditPackWhereUniqueInput | CreditPackWhereUniqueInput[]
+    delete?: CreditPackWhereUniqueInput | CreditPackWhereUniqueInput[]
+    connect?: CreditPackWhereUniqueInput | CreditPackWhereUniqueInput[]
+    update?: CreditPackUpdateWithWhereUniqueWithoutOrganizationInput | CreditPackUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: CreditPackUpdateManyWithWhereWithoutOrganizationInput | CreditPackUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: CreditPackScalarWhereInput | CreditPackScalarWhereInput[]
   }
 
   export type AgentCheckpointUpdateManyWithoutOrganizationNestedInput = {
@@ -127603,6 +129187,20 @@ export namespace Prisma {
     update?: CreditLedgerUpdateWithWhereUniqueWithoutOrganizationInput | CreditLedgerUpdateWithWhereUniqueWithoutOrganizationInput[]
     updateMany?: CreditLedgerUpdateManyWithWhereWithoutOrganizationInput | CreditLedgerUpdateManyWithWhereWithoutOrganizationInput[]
     deleteMany?: CreditLedgerScalarWhereInput | CreditLedgerScalarWhereInput[]
+  }
+
+  export type CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<CreditPackCreateWithoutOrganizationInput, CreditPackUncheckedCreateWithoutOrganizationInput> | CreditPackCreateWithoutOrganizationInput[] | CreditPackUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: CreditPackCreateOrConnectWithoutOrganizationInput | CreditPackCreateOrConnectWithoutOrganizationInput[]
+    upsert?: CreditPackUpsertWithWhereUniqueWithoutOrganizationInput | CreditPackUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: CreditPackCreateManyOrganizationInputEnvelope
+    set?: CreditPackWhereUniqueInput | CreditPackWhereUniqueInput[]
+    disconnect?: CreditPackWhereUniqueInput | CreditPackWhereUniqueInput[]
+    delete?: CreditPackWhereUniqueInput | CreditPackWhereUniqueInput[]
+    connect?: CreditPackWhereUniqueInput | CreditPackWhereUniqueInput[]
+    update?: CreditPackUpdateWithWhereUniqueWithoutOrganizationInput | CreditPackUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: CreditPackUpdateManyWithWhereWithoutOrganizationInput | CreditPackUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: CreditPackScalarWhereInput | CreditPackScalarWhereInput[]
   }
 
   export type AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput = {
@@ -130773,6 +132371,20 @@ export namespace Prisma {
     update?: CreditLedgerUpdateWithWhereUniqueWithoutWalletInput | CreditLedgerUpdateWithWhereUniqueWithoutWalletInput[]
     updateMany?: CreditLedgerUpdateManyWithWhereWithoutWalletInput | CreditLedgerUpdateManyWithWhereWithoutWalletInput[]
     deleteMany?: CreditLedgerScalarWhereInput | CreditLedgerScalarWhereInput[]
+  }
+
+  export type OrganizationCreateNestedOneWithoutCreditPacksInput = {
+    create?: XOR<OrganizationCreateWithoutCreditPacksInput, OrganizationUncheckedCreateWithoutCreditPacksInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutCreditPacksInput
+    connect?: OrganizationWhereUniqueInput
+  }
+
+  export type OrganizationUpdateOneRequiredWithoutCreditPacksNestedInput = {
+    create?: XOR<OrganizationCreateWithoutCreditPacksInput, OrganizationUncheckedCreateWithoutCreditPacksInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutCreditPacksInput
+    upsert?: OrganizationUpsertWithoutCreditPacksInput
+    connect?: OrganizationWhereUniqueInput
+    update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutCreditPacksInput, OrganizationUpdateWithoutCreditPacksInput>, OrganizationUncheckedUpdateWithoutCreditPacksInput>
   }
 
   export type CreditWalletCreateNestedOneWithoutEntriesInput = {
@@ -134286,6 +135898,7 @@ export namespace Prisma {
     balanceCents?: number
     currency?: string
     budgetCapCents?: number | null
+    serviceShutdownCents?: number | null
     autoTopupCents?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -134297,6 +135910,7 @@ export namespace Prisma {
     balanceCents?: number
     currency?: string
     budgetCapCents?: number | null
+    serviceShutdownCents?: number | null
     autoTopupCents?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -134342,6 +135956,34 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type CreditPackCreateWithoutOrganizationInput = {
+    id?: string
+    purchasedCents: number
+    remainingCents: number
+    expiresAt: Date | string
+    stripePaymentIntentId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type CreditPackUncheckedCreateWithoutOrganizationInput = {
+    id?: string
+    purchasedCents: number
+    remainingCents: number
+    expiresAt: Date | string
+    stripePaymentIntentId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type CreditPackCreateOrConnectWithoutOrganizationInput = {
+    where: CreditPackWhereUniqueInput
+    create: XOR<CreditPackCreateWithoutOrganizationInput, CreditPackUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type CreditPackCreateManyOrganizationInputEnvelope = {
+    data: CreditPackCreateManyOrganizationInput | CreditPackCreateManyOrganizationInput[]
+    skipDuplicates?: boolean
+  }
+
   export type AgentCheckpointCreateWithoutOrganizationInput = {
     id?: string
     userId?: string | null
@@ -134351,6 +135993,8 @@ export namespace Prisma {
     status?: $Enums.CheckpointStatus
     highPowerModel?: boolean
     extendedThinking?: boolean
+    buildTier?: string
+    turboMode?: boolean
     inputTokens?: number
     outputTokens?: number
     wallMs?: number
@@ -134370,6 +136014,8 @@ export namespace Prisma {
     status?: $Enums.CheckpointStatus
     highPowerModel?: boolean
     extendedThinking?: boolean
+    buildTier?: string
+    turboMode?: boolean
     inputTokens?: number
     outputTokens?: number
     wallMs?: number
@@ -135125,6 +136771,7 @@ export namespace Prisma {
     balanceCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
+    serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -135136,6 +136783,7 @@ export namespace Prisma {
     balanceCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
+    serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -135174,6 +136822,35 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"CreditLedger"> | Date | string
   }
 
+  export type CreditPackUpsertWithWhereUniqueWithoutOrganizationInput = {
+    where: CreditPackWhereUniqueInput
+    update: XOR<CreditPackUpdateWithoutOrganizationInput, CreditPackUncheckedUpdateWithoutOrganizationInput>
+    create: XOR<CreditPackCreateWithoutOrganizationInput, CreditPackUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type CreditPackUpdateWithWhereUniqueWithoutOrganizationInput = {
+    where: CreditPackWhereUniqueInput
+    data: XOR<CreditPackUpdateWithoutOrganizationInput, CreditPackUncheckedUpdateWithoutOrganizationInput>
+  }
+
+  export type CreditPackUpdateManyWithWhereWithoutOrganizationInput = {
+    where: CreditPackScalarWhereInput
+    data: XOR<CreditPackUpdateManyMutationInput, CreditPackUncheckedUpdateManyWithoutOrganizationInput>
+  }
+
+  export type CreditPackScalarWhereInput = {
+    AND?: CreditPackScalarWhereInput | CreditPackScalarWhereInput[]
+    OR?: CreditPackScalarWhereInput[]
+    NOT?: CreditPackScalarWhereInput | CreditPackScalarWhereInput[]
+    id?: StringFilter<"CreditPack"> | string
+    organizationId?: StringFilter<"CreditPack"> | string
+    purchasedCents?: IntFilter<"CreditPack"> | number
+    remainingCents?: IntFilter<"CreditPack"> | number
+    expiresAt?: DateTimeFilter<"CreditPack"> | Date | string
+    stripePaymentIntentId?: StringNullableFilter<"CreditPack"> | string | null
+    createdAt?: DateTimeFilter<"CreditPack"> | Date | string
+  }
+
   export type AgentCheckpointUpsertWithWhereUniqueWithoutOrganizationInput = {
     where: AgentCheckpointWhereUniqueInput
     update: XOR<AgentCheckpointUpdateWithoutOrganizationInput, AgentCheckpointUncheckedUpdateWithoutOrganizationInput>
@@ -135203,6 +136880,8 @@ export namespace Prisma {
     status?: EnumCheckpointStatusFilter<"AgentCheckpoint"> | $Enums.CheckpointStatus
     highPowerModel?: BoolFilter<"AgentCheckpoint"> | boolean
     extendedThinking?: BoolFilter<"AgentCheckpoint"> | boolean
+    buildTier?: StringFilter<"AgentCheckpoint"> | string
+    turboMode?: BoolFilter<"AgentCheckpoint"> | boolean
     inputTokens?: IntFilter<"AgentCheckpoint"> | number
     outputTokens?: IntFilter<"AgentCheckpoint"> | number
     wallMs?: IntFilter<"AgentCheckpoint"> | number
@@ -135249,6 +136928,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -135288,6 +136968,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -135457,6 +137138,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -135496,6 +137178,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -135661,6 +137344,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -135700,6 +137384,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -135778,6 +137463,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -135817,6 +137503,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -136139,6 +137826,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -136178,6 +137866,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -136824,6 +138513,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -136863,6 +138553,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -137543,6 +139234,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -137582,6 +139274,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -137637,6 +139330,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -137676,6 +139370,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -137962,6 +139657,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -138001,6 +139697,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -138228,6 +139925,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -138267,6 +139965,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -141150,6 +142849,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -141189,6 +142889,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -141325,6 +143026,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -141364,6 +143066,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -142991,6 +144694,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -143030,6 +144734,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -143176,6 +144881,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -143215,6 +144921,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -143539,6 +145246,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -143578,6 +145286,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -143633,6 +145342,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -143672,6 +145382,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -143711,6 +145422,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -143750,6 +145462,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -143836,6 +145549,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -143875,6 +145589,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -144005,6 +145720,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -144044,6 +145760,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -144099,6 +145816,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -144138,6 +145856,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -144177,6 +145896,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -144216,6 +145936,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -144271,6 +145992,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -144310,6 +146032,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -144349,6 +146072,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -144388,6 +146112,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -144443,6 +146168,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -144482,6 +146208,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -144521,6 +146248,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -144560,6 +146288,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -144615,6 +146344,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -144654,6 +146384,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -145354,6 +147085,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -145393,6 +147125,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -145448,6 +147181,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -145487,6 +147221,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -145526,6 +147261,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -145565,6 +147301,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -145620,6 +147357,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -145659,6 +147397,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -145698,6 +147437,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -145737,6 +147477,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -145883,6 +147624,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -145922,6 +147664,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -146058,6 +147801,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -146097,6 +147841,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -146152,6 +147897,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -146191,6 +147937,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -146794,6 +148541,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -146833,6 +148581,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -146888,6 +148637,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -146927,6 +148677,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -146966,6 +148717,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -147005,6 +148757,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -147060,6 +148813,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -147099,6 +148853,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -147138,6 +148893,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -147177,6 +148933,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -147232,6 +148989,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -147271,6 +149029,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -147310,6 +149069,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -147349,6 +149109,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -147404,6 +149165,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -147443,6 +149205,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -147482,6 +149245,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -147521,6 +149285,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -147576,6 +149341,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -147615,6 +149381,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -147654,6 +149421,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -147693,6 +149461,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -147748,6 +149517,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -147787,6 +149557,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -147826,6 +149597,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -147865,6 +149637,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -148011,6 +149784,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -148050,6 +149824,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -148562,6 +150337,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -148601,6 +150377,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -148808,6 +150585,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -148847,6 +150625,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -149236,6 +151015,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -149275,6 +151055,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -149500,6 +151281,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -149539,6 +151321,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -150554,6 +152337,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -150593,6 +152377,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -150797,6 +152582,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -150836,6 +152622,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -150988,6 +152775,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -151027,6 +152815,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -151082,6 +152871,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -151121,6 +152911,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -151363,6 +153154,7 @@ export namespace Prisma {
     connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -151402,6 +153194,7 @@ export namespace Prisma {
     connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -151554,6 +153347,7 @@ export namespace Prisma {
     connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -151593,6 +153387,7 @@ export namespace Prisma {
     connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -151632,6 +153427,7 @@ export namespace Prisma {
     connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -151671,6 +153467,7 @@ export namespace Prisma {
     connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -151760,6 +153557,7 @@ export namespace Prisma {
     connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -151799,6 +153597,7 @@ export namespace Prisma {
     connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -151818,11 +153617,188 @@ export namespace Prisma {
     data: XOR<CreditLedgerUpdateManyMutationInput, CreditLedgerUncheckedUpdateManyWithoutWalletInput>
   }
 
+  export type OrganizationCreateWithoutCreditPacksInput = {
+    id?: string
+    slug: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
+    creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
+    creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationUncheckedCreateWithoutCreditPacksInput = {
+    id?: string
+    slug: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteUncheckedCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectUncheckedCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerUncheckedCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventUncheckedCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventUncheckedCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagUncheckedCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
+    creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
+    creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationCreateOrConnectWithoutCreditPacksInput = {
+    where: OrganizationWhereUniqueInput
+    create: XOR<OrganizationCreateWithoutCreditPacksInput, OrganizationUncheckedCreateWithoutCreditPacksInput>
+  }
+
+  export type OrganizationUpsertWithoutCreditPacksInput = {
+    update: XOR<OrganizationUpdateWithoutCreditPacksInput, OrganizationUncheckedUpdateWithoutCreditPacksInput>
+    create: XOR<OrganizationCreateWithoutCreditPacksInput, OrganizationUncheckedCreateWithoutCreditPacksInput>
+    where?: OrganizationWhereInput
+  }
+
+  export type OrganizationUpdateToOneWithWhereWithoutCreditPacksInput = {
+    where?: OrganizationWhereInput
+    data: XOR<OrganizationUpdateWithoutCreditPacksInput, OrganizationUncheckedUpdateWithoutCreditPacksInput>
+  }
+
+  export type OrganizationUpdateWithoutCreditPacksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
+    creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
+    creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationUncheckedUpdateWithoutCreditPacksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUncheckedUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUncheckedUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUncheckedUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
+    creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
   export type CreditWalletCreateWithoutEntriesInput = {
     id?: string
     balanceCents?: number
     currency?: string
     budgetCapCents?: number | null
+    serviceShutdownCents?: number | null
     autoTopupCents?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -151835,6 +153811,7 @@ export namespace Prisma {
     balanceCents?: number
     currency?: string
     budgetCapCents?: number | null
+    serviceShutdownCents?: number | null
     autoTopupCents?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -151881,6 +153858,7 @@ export namespace Prisma {
     connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
   }
 
@@ -151920,6 +153898,7 @@ export namespace Prisma {
     connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -151944,6 +153923,7 @@ export namespace Prisma {
     balanceCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
+    serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -151956,6 +153936,7 @@ export namespace Prisma {
     balanceCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
+    serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -152008,6 +153989,7 @@ export namespace Prisma {
     connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -152047,6 +154029,7 @@ export namespace Prisma {
     connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -152087,6 +154070,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAgentCheckpointsInput = {
@@ -152126,6 +154110,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAgentCheckpointsInput = {
@@ -152181,6 +154166,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAgentCheckpointsInput = {
@@ -152220,6 +154206,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ModelConfigCreateWithoutProviderConfigInput = {
@@ -153785,6 +155772,15 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type CreditPackCreateManyOrganizationInput = {
+    id?: string
+    purchasedCents: number
+    remainingCents: number
+    expiresAt: Date | string
+    stripePaymentIntentId?: string | null
+    createdAt?: Date | string
+  }
+
   export type AgentCheckpointCreateManyOrganizationInput = {
     id?: string
     userId?: string | null
@@ -153794,6 +155790,8 @@ export namespace Prisma {
     status?: $Enums.CheckpointStatus
     highPowerModel?: boolean
     extendedThinking?: boolean
+    buildTier?: string
+    turboMode?: boolean
     inputTokens?: number
     outputTokens?: number
     wallMs?: number
@@ -154762,6 +156760,33 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type CreditPackUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    purchasedCents?: IntFieldUpdateOperationsInput | number
+    remainingCents?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    stripePaymentIntentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CreditPackUncheckedUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    purchasedCents?: IntFieldUpdateOperationsInput | number
+    remainingCents?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    stripePaymentIntentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CreditPackUncheckedUpdateManyWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    purchasedCents?: IntFieldUpdateOperationsInput | number
+    remainingCents?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    stripePaymentIntentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type AgentCheckpointUpdateWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -154771,6 +156796,8 @@ export namespace Prisma {
     status?: EnumCheckpointStatusFieldUpdateOperationsInput | $Enums.CheckpointStatus
     highPowerModel?: BoolFieldUpdateOperationsInput | boolean
     extendedThinking?: BoolFieldUpdateOperationsInput | boolean
+    buildTier?: StringFieldUpdateOperationsInput | string
+    turboMode?: BoolFieldUpdateOperationsInput | boolean
     inputTokens?: IntFieldUpdateOperationsInput | number
     outputTokens?: IntFieldUpdateOperationsInput | number
     wallMs?: IntFieldUpdateOperationsInput | number
@@ -154790,6 +156817,8 @@ export namespace Prisma {
     status?: EnumCheckpointStatusFieldUpdateOperationsInput | $Enums.CheckpointStatus
     highPowerModel?: BoolFieldUpdateOperationsInput | boolean
     extendedThinking?: BoolFieldUpdateOperationsInput | boolean
+    buildTier?: StringFieldUpdateOperationsInput | string
+    turboMode?: BoolFieldUpdateOperationsInput | boolean
     inputTokens?: IntFieldUpdateOperationsInput | number
     outputTokens?: IntFieldUpdateOperationsInput | number
     wallMs?: IntFieldUpdateOperationsInput | number
@@ -154809,6 +156838,8 @@ export namespace Prisma {
     status?: EnumCheckpointStatusFieldUpdateOperationsInput | $Enums.CheckpointStatus
     highPowerModel?: BoolFieldUpdateOperationsInput | boolean
     extendedThinking?: BoolFieldUpdateOperationsInput | boolean
+    buildTier?: StringFieldUpdateOperationsInput | string
+    turboMode?: BoolFieldUpdateOperationsInput | boolean
     inputTokens?: IntFieldUpdateOperationsInput | number
     outputTokens?: IntFieldUpdateOperationsInput | number
     wallMs?: IntFieldUpdateOperationsInput | number

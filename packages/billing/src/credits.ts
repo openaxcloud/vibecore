@@ -116,6 +116,19 @@ export function computeCreditCostCents(input: CreditCostInput): number {
   return Math.max(credits, raw);
 }
 
+/** Replit Agent build tiers: Lite (cheap, targeted) → Economy → Power (thorough). */
+export type AgentBuildTier = 'lite' | 'economy' | 'power';
+
+/** Per-tier effort estimate multipliers (reservation only; reconciled on settle). */
+export const BUILD_TIER_ESTIMATE_MULTIPLIER: Record<AgentBuildTier, number> = {
+  lite: 0.4,
+  economy: 1,
+  power: 1.8,
+};
+
+/** Turbo mode (Pro): ~2.5× faster, up to ~6× cost — reserve at the ceiling. */
+export const TURBO_ESTIMATE_MULTIPLIER = 6;
+
 export interface EstimateInput {
   /** Estimated provider token cost in cents for this request. */
   baseProviderCents: number;
@@ -123,6 +136,8 @@ export interface EstimateInput {
   margin?: number;
   highPowerModel?: boolean;
   extendedThinking?: boolean;
+  buildTier?: AgentBuildTier;
+  turboMode?: boolean;
 }
 
 /**
@@ -132,17 +147,90 @@ export interface EstimateInput {
  */
 export function estimateCheckpointCostCents(input: EstimateInput): number {
   let provider = Number.isFinite(input.baseProviderCents) ? Math.max(0, input.baseProviderCents) : 0;
+  // Neutral baseline when the caller doesn't specify a tier (economy = ×1); the
+  // request normally passes the actual selected tier.
+  provider *= BUILD_TIER_ESTIMATE_MULTIPLIER[input.buildTier ?? 'economy'] ?? 1;
   if (input.highPowerModel) {
     provider *= HIGH_POWER_ESTIMATE_MULTIPLIER;
   }
   if (input.extendedThinking) {
     provider *= EXTENDED_THINKING_ESTIMATE_MULTIPLIER;
   }
+  if (input.turboMode) {
+    provider *= TURBO_ESTIMATE_MULTIPLIER;
+  }
   return computeCreditCostCents({
     rawProviderCents: provider,
     computeCents: input.computeCents,
     margin: input.margin,
   });
+}
+
+// --- Credit packs (Replit: 6-month expiry, earliest-first, no post-expiry rollover) ---
+
+/** Credit-pack validity from purchase. Replit: 6 months. */
+export const CREDIT_PACK_VALIDITY_DAYS = 182;
+
+/** Number of months unused monthly credits roll over, by plan (Pro: 1). */
+export function creditRolloverMonths(planKey: string | undefined): number {
+  return toCreditPlanKey(planKey) === 'pro' ? 1 : 0;
+}
+
+export interface CreditPackLike {
+  id: string;
+  remainingCents: number;
+  expiresAt: string | Date;
+}
+
+export interface PackConsumptionPlan {
+  packDebits: Array<{ packId: string; cents: number }>;
+  /** Amount left to draw from the wallet balance after packs are exhausted. */
+  remainingFromBalance: number;
+}
+
+/**
+ * Allocate a debit across non-expired credit packs earliest-expiry-first, then
+ * the wallet balance. Pure: the caller persists the resulting debits. Expired or
+ * empty packs are skipped (their credits do not roll over).
+ */
+export function planPackConsumption(input: {
+  amountCents: number;
+  packs: ReadonlyArray<CreditPackLike>;
+  nowMs: number;
+}): PackConsumptionPlan {
+  let remaining = Number.isFinite(input.amountCents) ? Math.max(0, input.amountCents) : 0;
+  const usable = input.packs
+    .filter((pack) => pack.remainingCents > 0 && new Date(pack.expiresAt).getTime() > input.nowMs)
+    .sort((a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime());
+
+  const packDebits: Array<{ packId: string; cents: number }> = [];
+  for (const pack of usable) {
+    if (remaining <= 0) {
+      break;
+    }
+    const take = Math.min(pack.remainingCents, remaining);
+    packDebits.push({ packId: pack.id, cents: take });
+    remaining -= take;
+  }
+  return { packDebits, remainingFromBalance: remaining };
+}
+
+/**
+ * Service Shutdown vs Usage Limit gate. Replit exposes two independent caps:
+ * `budgetCapCents` (Usage Limit — block new usage-based spend) and
+ * `serviceShutdownCents` (suspend running services). Returns which, if any, is
+ * breached by the projected pay-as-you-go spend.
+ */
+export function evaluateSpendLimits(input: {
+  paygSpentCents: number;
+  budgetCapCents?: number | null;
+  serviceShutdownCents?: number | null;
+}): { usageLimitReached: boolean; serviceShutdownReached: boolean } {
+  const spent = Number.isFinite(input.paygSpentCents) ? Math.max(0, input.paygSpentCents) : 0;
+  return {
+    usageLimitReached: input.budgetCapCents != null && spent >= input.budgetCapCents,
+    serviceShutdownReached: input.serviceShutdownCents != null && spent >= input.serviceShutdownCents,
+  };
 }
 
 /** Sum an append-only ledger to a materialized balance. */

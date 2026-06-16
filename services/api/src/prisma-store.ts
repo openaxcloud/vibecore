@@ -23,6 +23,7 @@ import type {
   CheckpointStatus,
   CreditEntryKind,
   CreditLedgerRecord,
+  CreditPackRecord,
   CreditWalletRecord,
   ModelConfigRecord,
   ProviderConfigRecord,
@@ -2611,11 +2612,15 @@ export class PrismaApiStore implements ApiStore {
   async updateCreditWalletSettings(input: {
     organizationId: string;
     budgetCapCents?: number | null;
+    serviceShutdownCents?: number | null;
     autoTopupCents?: number | null;
   }) {
     const data: Record<string, unknown> = {};
     if (input.budgetCapCents !== undefined) {
       data.budgetCapCents = input.budgetCapCents;
+    }
+    if (input.serviceShutdownCents !== undefined) {
+      data.serviceShutdownCents = input.serviceShutdownCents;
     }
     if (input.autoTopupCents !== undefined) {
       data.autoTopupCents = input.autoTopupCents;
@@ -2680,6 +2685,48 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapCreditLedger);
   }
 
+  // --- Replit-parity: credit packs -------------------------------------------
+
+  async createCreditPack(input: {
+    organizationId: string;
+    purchasedCents: number;
+    expiresAt: Date;
+    stripePaymentIntentId?: string;
+  }) {
+    return mapCreditPack(
+      await this.prisma.creditPack.create({
+        data: {
+          organizationId: input.organizationId,
+          purchasedCents: input.purchasedCents,
+          remainingCents: input.purchasedCents,
+          expiresAt: input.expiresAt,
+          stripePaymentIntentId: input.stripePaymentIntentId,
+        },
+      }),
+    );
+  }
+
+  async listCreditPacks(organizationId: string, options?: { activeOnly?: boolean }) {
+    return (
+      await this.prisma.creditPack.findMany({
+        where: {
+          organizationId,
+          ...(options?.activeOnly ? { remainingCents: { gt: 0 }, expiresAt: { gt: new Date() } } : {}),
+        },
+        orderBy: { expiresAt: 'asc' },
+      })
+    ).map(mapCreditPack);
+  }
+
+  async decrementCreditPack(input: { id: string; cents: number }) {
+    return mapCreditPack(
+      await this.prisma.creditPack.update({
+        where: { id: input.id },
+        data: { remainingCents: { decrement: input.cents } },
+      }),
+    );
+  }
+
   // --- Replit-parity: effort-based checkpoints -------------------------------
 
   async createAgentCheckpoint(input: {
@@ -2690,6 +2737,8 @@ export class PrismaApiStore implements ApiStore {
     runId?: string;
     highPowerModel?: boolean;
     extendedThinking?: boolean;
+    buildTier?: string;
+    turboMode?: boolean;
   }) {
     return mapAgentCheckpoint(
       await this.prisma.agentCheckpoint.create({
@@ -2701,6 +2750,8 @@ export class PrismaApiStore implements ApiStore {
           runId: input.runId,
           highPowerModel: input.highPowerModel ?? false,
           extendedThinking: input.extendedThinking ?? false,
+          buildTier: input.buildTier ?? 'power',
+          turboMode: input.turboMode ?? false,
         },
       }),
     );
@@ -3936,9 +3987,22 @@ function mapCreditWallet(wallet: any): CreditWalletRecord {
     balanceCents: wallet.balanceCents,
     currency: wallet.currency,
     budgetCapCents: wallet.budgetCapCents ?? undefined,
+    serviceShutdownCents: wallet.serviceShutdownCents ?? undefined,
     autoTopupCents: wallet.autoTopupCents ?? undefined,
     createdAt: toIso(wallet.createdAt)!,
     updatedAt: toIso(wallet.updatedAt)!,
+  };
+}
+
+function mapCreditPack(pack: any): CreditPackRecord {
+  return {
+    id: pack.id,
+    organizationId: pack.organizationId,
+    purchasedCents: pack.purchasedCents,
+    remainingCents: pack.remainingCents,
+    expiresAt: toIso(pack.expiresAt)!,
+    stripePaymentIntentId: pack.stripePaymentIntentId ?? undefined,
+    createdAt: toIso(pack.createdAt)!,
   };
 }
 
@@ -3968,6 +4032,8 @@ function mapAgentCheckpoint(checkpoint: any): AgentCheckpointRecord {
     status: checkpoint.status,
     highPowerModel: checkpoint.highPowerModel,
     extendedThinking: checkpoint.extendedThinking,
+    buildTier: checkpoint.buildTier,
+    turboMode: checkpoint.turboMode,
     inputTokens: checkpoint.inputTokens,
     outputTokens: checkpoint.outputTokens,
     wallMs: checkpoint.wallMs,

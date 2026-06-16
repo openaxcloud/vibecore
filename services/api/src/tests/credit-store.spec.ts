@@ -43,6 +43,29 @@ describe('credit wallet store', () => {
   });
 });
 
+describe('credit pack store', () => {
+  it('creates a pack, lists active-only, and decrements remaining', async () => {
+    const store = new TestApiStore();
+    const future = new Date(Date.now() + 90 * 24 * 3600 * 1000);
+    const past = new Date(Date.now() - 1000);
+
+    const pack = await store.createCreditPack({ organizationId: 'org_1', purchasedCents: 1000, expiresAt: future });
+    expect(pack.remainingCents).toBe(1000);
+
+    await store.createCreditPack({ organizationId: 'org_1', purchasedCents: 500, expiresAt: past });
+
+    const active = await store.listCreditPacks('org_1', { activeOnly: true });
+    expect(active).toHaveLength(1);
+    expect(active[0].id).toBe(pack.id);
+
+    const all = await store.listCreditPacks('org_1');
+    expect(all).toHaveLength(2);
+
+    const decremented = await store.decrementCreditPack({ id: pack.id, cents: 300 });
+    expect(decremented.remainingCents).toBe(700);
+  });
+});
+
 describe('agent checkpoint store', () => {
   it('opens a PENDING checkpoint and settles it', async () => {
     const store = new TestApiStore();

@@ -455,9 +455,20 @@ export interface CreditWalletRecord {
   balanceCents: number;
   currency: string;
   budgetCapCents?: number;
+  serviceShutdownCents?: number;
   autoTopupCents?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CreditPackRecord {
+  id: string;
+  organizationId: string;
+  purchasedCents: number;
+  remainingCents: number;
+  expiresAt: string;
+  stripePaymentIntentId?: string;
+  createdAt: string;
 }
 
 export interface CreditLedgerRecord {
@@ -485,6 +496,8 @@ export interface AgentCheckpointRecord {
   status: CheckpointStatus;
   highPowerModel: boolean;
   extendedThinking: boolean;
+  buildTier: string;
+  turboMode: boolean;
   inputTokens: number;
   outputTokens: number;
   wallMs: number;
@@ -1195,6 +1208,7 @@ export interface ApiStore {
   updateCreditWalletSettings(input: {
     organizationId: string;
     budgetCapCents?: number | null;
+    serviceShutdownCents?: number | null;
     autoTopupCents?: number | null;
   }): Promise<CreditWalletRecord>;
   /**
@@ -1212,6 +1226,16 @@ export interface ApiStore {
   }): Promise<{ entry: CreditLedgerRecord; balanceCents: number }>;
   listCreditLedger(organizationId: string, options?: { take?: number }): Promise<CreditLedgerRecord[]>;
 
+  // --- Replit-parity: credit packs (6-mo expiry, earliest-first) ---------------
+  createCreditPack(input: {
+    organizationId: string;
+    purchasedCents: number;
+    expiresAt: Date;
+    stripePaymentIntentId?: string;
+  }): Promise<CreditPackRecord>;
+  listCreditPacks(organizationId: string, options?: { activeOnly?: boolean }): Promise<CreditPackRecord[]>;
+  decrementCreditPack(input: { id: string; cents: number }): Promise<CreditPackRecord>;
+
   // --- Replit-parity: effort-based checkpoints --------------------------------
   createAgentCheckpoint(input: {
     organizationId: string;
@@ -1221,6 +1245,8 @@ export interface ApiStore {
     runId?: string;
     highPowerModel?: boolean;
     extendedThinking?: boolean;
+    buildTier?: string;
+    turboMode?: boolean;
   }): Promise<AgentCheckpointRecord>;
   completeAgentCheckpoint(input: {
     id: string;

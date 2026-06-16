@@ -20,6 +20,7 @@ import type {
   CheckpointStatus,
   CreditEntryKind,
   CreditLedgerRecord,
+  CreditPackRecord,
   CreditWalletRecord,
   ModelConfigRecord,
   ProviderConfigRecord,
@@ -136,6 +137,7 @@ export class TestApiStore implements ApiStore {
   readonly aiCostLedger = new Map<string, AiCostLedgerRecord>();
   readonly creditWallets = new Map<string, CreditWalletRecord>();
   readonly creditLedger = new Map<string, CreditLedgerRecord>();
+  readonly creditPacks = new Map<string, CreditPackRecord>();
   readonly agentCheckpoints = new Map<string, AgentCheckpointRecord>();
   readonly providerConfigs = new Map<string, ProviderConfigRecord>();
   readonly modelConfigs = new Map<string, ModelConfigRecord>();
@@ -1964,17 +1966,57 @@ export class TestApiStore implements ApiStore {
   async updateCreditWalletSettings(input: {
     organizationId: string;
     budgetCapCents?: number | null;
+    serviceShutdownCents?: number | null;
     autoTopupCents?: number | null;
   }) {
     const wallet = await this.ensureCreditWallet(input.organizationId);
     if (input.budgetCapCents !== undefined) {
       wallet.budgetCapCents = input.budgetCapCents ?? undefined;
     }
+    if (input.serviceShutdownCents !== undefined) {
+      wallet.serviceShutdownCents = input.serviceShutdownCents ?? undefined;
+    }
     if (input.autoTopupCents !== undefined) {
       wallet.autoTopupCents = input.autoTopupCents ?? undefined;
     }
     wallet.updatedAt = now();
     return wallet;
+  }
+
+  async createCreditPack(input: {
+    organizationId: string;
+    purchasedCents: number;
+    expiresAt: Date;
+    stripePaymentIntentId?: string;
+  }) {
+    const pack: CreditPackRecord = {
+      id: id('pack'),
+      organizationId: input.organizationId,
+      purchasedCents: input.purchasedCents,
+      remainingCents: input.purchasedCents,
+      expiresAt: input.expiresAt.toISOString(),
+      stripePaymentIntentId: input.stripePaymentIntentId,
+      createdAt: now(),
+    };
+    this.creditPacks.set(pack.id, pack);
+    return pack;
+  }
+
+  async listCreditPacks(organizationId: string, options?: { activeOnly?: boolean }) {
+    const nowMs = Date.now();
+    return [...this.creditPacks.values()]
+      .filter((p) => p.organizationId === organizationId)
+      .filter((p) => !options?.activeOnly || (p.remainingCents > 0 && new Date(p.expiresAt).getTime() > nowMs))
+      .sort((a, b) => a.expiresAt.localeCompare(b.expiresAt));
+  }
+
+  async decrementCreditPack(input: { id: string; cents: number }) {
+    const pack = this.creditPacks.get(input.id);
+    if (!pack) {
+      throw new Error(`credit pack ${input.id} not found`);
+    }
+    pack.remainingCents -= input.cents;
+    return pack;
   }
 
   async recordCreditEntry(input: {
@@ -2022,6 +2064,8 @@ export class TestApiStore implements ApiStore {
     runId?: string;
     highPowerModel?: boolean;
     extendedThinking?: boolean;
+    buildTier?: string;
+    turboMode?: boolean;
   }) {
     const checkpoint: AgentCheckpointRecord = {
       id: id('checkpoint'),
@@ -2033,6 +2077,8 @@ export class TestApiStore implements ApiStore {
       status: 'PENDING',
       highPowerModel: input.highPowerModel ?? false,
       extendedThinking: input.extendedThinking ?? false,
+      buildTier: input.buildTier ?? 'power',
+      turboMode: input.turboMode ?? false,
       inputTokens: 0,
       outputTokens: 0,
       wallMs: 0,

@@ -160,6 +160,7 @@ model Organization {
   integrationFeatureRequests IntegrationFeatureRequest[]
   creditWallet               CreditWallet?
   creditLedger               CreditLedger[]
+  creditPacks                CreditPack[]
   agentCheckpoints           AgentCheckpoint[]
 }
 
@@ -1484,12 +1485,31 @@ model CreditWallet {
   organizationId String         @unique
   balanceCents   Int            @default(0)
   currency       String         @default("usd")
+  // Replit "Usage Limit": cap on usage-based spend past included credits.
   budgetCapCents Int?
+  // Replit "Service Shutdown Limit": suspend usage-based services when reached.
+  serviceShutdownCents Int?
   autoTopupCents Int?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   entries        CreditLedger[]
+}
+
+/// Purchased credit pack (Replit). Credits expire 6 months after purchase, are
+/// consumed earliest-expiring-first, and do NOT roll over after expiry.
+/// `remainingCents` is decremented as the pack is drawn down.
+model CreditPack {
+  id             String       @id @default(cuid())
+  organizationId String
+  purchasedCents Int
+  remainingCents Int
+  expiresAt      DateTime
+  stripePaymentIntentId String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, expiresAt])
 }
 
 enum CreditEntryKind {
@@ -1545,6 +1565,10 @@ model AgentCheckpoint {
   status           CheckpointStatus @default(PENDING)
   highPowerModel   Boolean          @default(false)
   extendedThinking Boolean          @default(false)
+  // Replit Agent build tier (lite | economy | power) and Turbo mode (Pro:
+  // ~2.5x faster, up to ~6x cost). Both feed the effort-based estimate.
+  buildTier        String           @default("power")
+  turboMode        Boolean          @default(false)
   inputTokens      Int              @default(0)
   outputTokens     Int              @default(0)
   wallMs           Int              @default(0)

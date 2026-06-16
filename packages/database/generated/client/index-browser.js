@@ -1028,9 +1028,20 @@ exports.Prisma.CreditWalletScalarFieldEnum = {
   balanceCents: 'balanceCents',
   currency: 'currency',
   budgetCapCents: 'budgetCapCents',
+  serviceShutdownCents: 'serviceShutdownCents',
   autoTopupCents: 'autoTopupCents',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CreditPackScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  purchasedCents: 'purchasedCents',
+  remainingCents: 'remainingCents',
+  expiresAt: 'expiresAt',
+  stripePaymentIntentId: 'stripePaymentIntentId',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.CreditLedgerScalarFieldEnum = {
@@ -1056,6 +1067,8 @@ exports.Prisma.AgentCheckpointScalarFieldEnum = {
   status: 'status',
   highPowerModel: 'highPowerModel',
   extendedThinking: 'extendedThinking',
+  buildTier: 'buildTier',
+  turboMode: 'turboMode',
   inputTokens: 'inputTokens',
   outputTokens: 'outputTokens',
   wallMs: 'wallMs',
@@ -1301,6 +1314,7 @@ exports.Prisma.ModelName = {
   IntegrationFeatureRequest: 'IntegrationFeatureRequest',
   EmailDeliveryEvent: 'EmailDeliveryEvent',
   CreditWallet: 'CreditWallet',
+  CreditPack: 'CreditPack',
   CreditLedger: 'CreditLedger',
   AgentCheckpoint: 'AgentCheckpoint',
   ProviderConfig: 'ProviderConfig',
