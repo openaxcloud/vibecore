@@ -1548,6 +1548,7 @@ function isBlockedGitHost(rawHost: string): boolean {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
+
     /*
      * ULA fc00::/7 + link-local fe80::/10, but only as IPv6 LITERALS (hextets +
      * ':'). The old startsWith('fc'/'fd'/'fe80') wrongly blocked public hosts like
@@ -2245,6 +2246,7 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     mfaPathname.startsWith('/auth/recovery-codes/') ||
     mfaPathname === '/auth/sessions' ||
     mfaPathname.startsWith('/auth/sessions/') ||
+
     /*
      * Re-auth is the gateway to enrolling MFA (mfa/setup now requires it); a
      * platform admin without MFA must be able to reach it or they'd be deadlocked.
@@ -6905,6 +6907,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
+
       /*
        * Public read of a shared conversation snapshot — the signed token is the
        * capability. Only the token-scoped GET path is exempt; POST /chat-shares
@@ -15852,7 +15855,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * it can't load the org's entire — fastest-growing — AI cost ledger into
      * memory. The full-ledger read stays reserved for the explicit data export.
      */
-    const query = parse(z.object({ from: z.string().optional(), to: z.string().optional() }), request.query ?? {});
+    /*
+     * .datetime() so a malformed from/to is a clean 400, not a Prisma 500 on
+     * `new Date('garbage')` — matching the sibling /orgs/:orgId/ai/cost-summary.
+     */
+    const query = parse(
+      z.object({ from: z.string().datetime().optional(), to: z.string().datetime().optional() }),
+      request.query ?? {},
+    );
+
     const from = query.from ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
     return { usage: await store.listAiCosts(organization.id, { from, to: query.to }) };
@@ -16342,6 +16353,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           : undefined;
         const isStaleByTimestamp = Boolean(
           eventCreatedAt &&
+
             /*
              * Deletion is terminal and must ALWAYS be applied: a `deleted` event
              * can legitimately carry an older event.created than a previously

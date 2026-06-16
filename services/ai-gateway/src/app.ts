@@ -37,6 +37,17 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
           enableOfflineQueue: false,
         })
       : undefined;
+
+  /*
+   * ioredis emits a process-level 'error' event on any connection fault; with no
+   * listener that becomes an unhandled 'error' and CRASHES the pod on a transient
+   * Redis blip. The per-command eval() catch already fails open for rate-limiting,
+   * so just log+swallow connection errors here (mirrors the worker's guard).
+   */
+  redis?.on('error', (error) => {
+    console.error('ai-gateway redis client error', error);
+  });
+
   const agentRunRateLimiter =
     options.agentRunRateLimiter ??
     (redis

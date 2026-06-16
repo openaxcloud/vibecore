@@ -1588,6 +1588,23 @@ export class WorkbenchStore {
     }
 
     const { filePath, value } = currentDocument;
+
+    /*
+     * Don't rewrite a locked file's content via format — same lock enforcement as
+     * the editor (read-only), AI writes, Search, and the file-tree ops.
+     */
+    if (this.isFileLocked(filePath).locked) {
+      this.actionAlert.set({
+        type: 'warning',
+        title: 'File locked',
+        description: `${filePath} is locked and cannot be formatted. Unlock it first.`,
+        content: '',
+        source: 'preview',
+      });
+
+      return;
+    }
+
     const { formatDocument } = await import('~/utils/formatDocument');
     const formatted = await formatDocument(value, filePath);
 

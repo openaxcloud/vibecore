@@ -425,6 +425,12 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     let response: Response | undefined;
     let lastError: unknown;
 
+    /*
+     * Hoisted to handler scope so the streaming send below can abort the upstream
+     * dev-server fetch when the client disconnects mid-stream.
+     */
+    let previewController: AbortController | undefined;
+
     for (const host of candidateHosts) {
       const target = new URL(`http://${host}:${port}/${targetPath}`);
       target.search = search;
@@ -436,8 +442,10 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
        * mid-stream at 30s. A manual controller lets the body stream unbounded once
        * headers have arrived.
        */
-      const previewController = new AbortController();
-      const previewConnectTimeout = setTimeout(() => previewController.abort(), 30_000);
+      previewController = new AbortController();
+
+      const activeController = previewController;
+      const previewConnectTimeout = setTimeout(() => activeController.abort(), 30_000);
 
       try {
         response = await fetch(target, {
@@ -491,6 +499,19 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     if (!response.body) {
       return reply.code(response.status).send();
     }
+
+    /*
+     * Abort the upstream dev-server fetch if the client disconnects mid-stream.
+     * Otherwise the fetch keeps draining the dev server's socket + CPU to
+     * completion with no consumer. Disconnect-only, so long-lived SSE/HMR streams
+     * are unaffected.
+     */
+    const streamController = previewController;
+    reply.raw.on('close', () => {
+      if (streamController && !reply.raw.writableFinished) {
+        streamController.abort();
+      }
+    });
 
     return reply.code(response.status).send(Readable.fromWeb(response.body as ReadableStream<Uint8Array>));
   });

@@ -150,14 +150,39 @@ export function useProjectChatBranches(projectId: string | undefined): UseProjec
       }
 
       /*
-       * Archive the current active messages as a conversation entry so
-       * the user can switch back. We attach the last message id as
-       * `archivedFromMessageId` so future replays know where to pick up.
+       * Archive the OUTGOING active thread as a conversation entry before we
+       * overwrite chat.messages with the target's, so the user can switch back.
+       * The previous code computed these locals but never actually appended the
+       * active thread to conversations[] — so switching away DISCARDED the active
+       * messages (data loss) whenever the active thread wasn't already archived.
        */
       const activeMessages = memory?.chat?.messages ?? [];
       const lastActiveId = activeMessages.length > 0 ? activeMessages[activeMessages.length - 1]?.id : undefined;
+      const activeId = memory?.chat?.id;
+      const activeAlreadyArchived = activeId ? current.some((conversation) => conversation.id === activeId) : false;
 
-      const nextConversations: BranchedConversation[] = current.map((conversation) => {
+      const deriveTitle = (messages: typeof activeMessages): string | undefined => {
+        const firstUser = messages.find((message) => message.role === 'user');
+        const text = typeof firstUser?.content === 'string' ? firstUser.content.trim() : '';
+
+        return text ? text.slice(0, 80) : undefined;
+      };
+
+      const archiveEntry: BranchedConversation | undefined =
+        activeMessages.length > 0 && !activeAlreadyArchived
+          ? {
+              id: activeId ?? makeId(),
+              title: deriveTitle(activeMessages),
+              messages: activeMessages,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              ...(lastActiveId ? { archivedFromMessageId: lastActiveId } : {}),
+            }
+          : undefined;
+
+      const baseConversations = archiveEntry ? [...current, archiveEntry] : current;
+
+      const nextConversations: BranchedConversation[] = baseConversations.map((conversation) => {
         if (conversation.id !== conversationId) {
           return conversation;
         }

@@ -1077,6 +1077,21 @@ export class FilesStore {
       }
 
       /*
+       * Central lock chokepoint. createFile is the shared write path for new-file,
+       * drag-drop upload, duplicate, rename-target, format, and chat createEntry —
+       * none of which checked locks, so a path collision with a LOCKED file (or a
+       * file inside a locked folder) silently overwrote protected content and reset
+       * the lock flag. Mirror the AI-write guard: refuse to overwrite an existing
+       * locked file. (Brand-new / unlocked paths are unaffected; isFileLocked also
+       * covers locked-folder containment.) Returns false so callers surface a
+       * "failed to create/upload" result instead of destroying protected content.
+       */
+      if (this.files.get()[filePath]?.type === 'file' && this.isFileLocked(filePath).locked) {
+        logger.warn(`Refusing to overwrite locked file via createFile: ${filePath}`);
+        return false;
+      }
+
+      /*
        * #size tracks file count (folders excluded, matching the loader). Increment
        * whenever the path wasn't ALREADY a file — i.e. brand-new, or a folder entry
        * being overwritten by a file. Keying on mere existence under-counted when a
