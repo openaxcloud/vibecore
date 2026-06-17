@@ -34,6 +34,8 @@ export interface UserRecord {
    * on update so partial saves never clobber unrelated keys.
    */
   preferences?: Record<string, unknown>;
+  /** Last activity timestamp (throttled). Drives inactivity GC (P8). */
+  lastActiveAt?: string;
   createdAt: string;
 }
 
@@ -47,6 +49,8 @@ export interface SessionRecord {
   userAgent?: string;
   revokedAt?: string;
   lastReauthAt?: string;
+  /** Set when an admin is impersonating another user; value = admin's user id. */
+  impersonatedBy?: string;
 }
 
 export interface OrganizationRecord {
@@ -752,12 +756,19 @@ export interface ApiStore {
   deleteUser(userId: string): Promise<boolean>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;
   findUserById(id: string): Promise<UserRecord | undefined>;
+  /**
+   * Stamp a user's lastActiveAt (P8 inactivity GC). Caller throttles; the write
+   * is best-effort. Returns the new timestamp (ISO) or null if the user is gone.
+   */
+  touchUserActivity(userId: string, nowMs?: number): Promise<string | null>;
   createSession(input: {
     userId: string;
     token: string;
     expiresAt: Date;
     ipAddress?: string;
     userAgent?: string;
+    /** Admin user id when this is an impersonation session (P8). */
+    impersonatedBy?: string;
   }): Promise<SessionRecord>;
   findSessionByToken(token: string): Promise<SessionRecord | undefined>;
   listSessions(userId: string): Promise<SessionRecord[]>;

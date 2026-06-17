@@ -132,6 +132,7 @@ exports.Prisma.UserScalarFieldEnum = {
   language: 'language',
   timezone: 'timezone',
   preferences: 'preferences',
+  lastActiveAt: 'lastActiveAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -153,6 +154,7 @@ exports.Prisma.SessionScalarFieldEnum = {
   rotatedAt: 'rotatedAt',
   revokedAt: 'revokedAt',
   lastReauthAt: 'lastReauthAt',
+  impersonatedBy: 'impersonatedBy',
   ipAddress: 'ipAddress',
   userAgent: 'userAgent',
   createdAt: 'createdAt'

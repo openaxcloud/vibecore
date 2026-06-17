@@ -254,12 +254,24 @@ export class PrismaApiStore implements ApiStore {
     return user ? mapUser(user) : undefined;
   }
 
+  async touchUserActivity(userId: string, nowMs?: number) {
+    const at = new Date(Number.isFinite(nowMs) ? (nowMs as number) : Date.now());
+    try {
+      // updateMany so a deleted user is a no-op (count 0) rather than a P2025 throw.
+      const result = await this.prisma.user.updateMany({ where: { id: userId }, data: { lastActiveAt: at } });
+      return result.count > 0 ? at.toISOString() : null;
+    } catch {
+      return null;
+    }
+  }
+
   async createSession(input: {
     userId: string;
     token: string;
     expiresAt: Date;
     ipAddress?: string;
     userAgent?: string;
+    impersonatedBy?: string;
   }) {
     return mapSession(
       await this.prisma.session.create({
@@ -269,6 +281,7 @@ export class PrismaApiStore implements ApiStore {
           expiresAt: input.expiresAt,
           ipAddress: input.ipAddress,
           userAgent: input.userAgent,
+          impersonatedBy: input.impersonatedBy,
         },
       }),
     );
@@ -3457,6 +3470,7 @@ function mapUser(user: any): UserRecord {
       user.preferences && typeof user.preferences === 'object' && !Array.isArray(user.preferences)
         ? (user.preferences as Record<string, unknown>)
         : undefined,
+    lastActiveAt: toIso(user.lastActiveAt),
     createdAt: toIso(user.createdAt)!,
   };
 }
@@ -3472,6 +3486,7 @@ function mapSession(session: any): SessionRecord {
     userAgent: session.userAgent ?? undefined,
     revokedAt: toIso(session.revokedAt),
     lastReauthAt: toIso(session.lastReauthAt),
+    impersonatedBy: session.impersonatedBy ?? undefined,
   };
 }
 

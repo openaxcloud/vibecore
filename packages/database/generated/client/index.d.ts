@@ -9832,6 +9832,7 @@ export namespace Prisma {
     platformAdmin: boolean | null
     language: string | null
     timezone: string | null
+    lastActiveAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -9847,6 +9848,7 @@ export namespace Prisma {
     platformAdmin: boolean | null
     language: string | null
     timezone: string | null
+    lastActiveAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -9863,6 +9865,7 @@ export namespace Prisma {
     language: number
     timezone: number
     preferences: number
+    lastActiveAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -9880,6 +9883,7 @@ export namespace Prisma {
     platformAdmin?: true
     language?: true
     timezone?: true
+    lastActiveAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -9895,6 +9899,7 @@ export namespace Prisma {
     platformAdmin?: true
     language?: true
     timezone?: true
+    lastActiveAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -9911,6 +9916,7 @@ export namespace Prisma {
     language?: true
     timezone?: true
     preferences?: true
+    lastActiveAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -10000,6 +10006,7 @@ export namespace Prisma {
     language: string | null
     timezone: string | null
     preferences: JsonValue | null
+    lastActiveAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: UserCountAggregateOutputType | null
@@ -10033,6 +10040,7 @@ export namespace Prisma {
     language?: boolean
     timezone?: boolean
     preferences?: boolean
+    lastActiveAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     accounts?: boolean | User$accountsArgs<ExtArgs>
@@ -10078,6 +10086,7 @@ export namespace Prisma {
     language?: boolean
     timezone?: boolean
     preferences?: boolean
+    lastActiveAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["user"]>
@@ -10094,6 +10103,7 @@ export namespace Prisma {
     language?: boolean
     timezone?: boolean
     preferences?: boolean
+    lastActiveAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["user"]>
@@ -10110,11 +10120,12 @@ export namespace Prisma {
     language?: boolean
     timezone?: boolean
     preferences?: boolean
+    lastActiveAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "name" | "passwordHash" | "emailVerifiedAt" | "mfaEnabled" | "mfaSecretCiphertext" | "platformAdmin" | "language" | "timezone" | "preferences" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "name" | "passwordHash" | "emailVerifiedAt" | "mfaEnabled" | "mfaSecretCiphertext" | "platformAdmin" | "language" | "timezone" | "preferences" | "lastActiveAt" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     accounts?: boolean | User$accountsArgs<ExtArgs>
     sessions?: boolean | User$sessionsArgs<ExtArgs>
@@ -10193,6 +10204,7 @@ export namespace Prisma {
       language: string | null
       timezone: string | null
       preferences: Prisma.JsonValue | null
+      lastActiveAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["user"]>
@@ -10657,6 +10669,7 @@ export namespace Prisma {
     readonly language: FieldRef<"User", 'String'>
     readonly timezone: FieldRef<"User", 'String'>
     readonly preferences: FieldRef<"User", 'Json'>
+    readonly lastActiveAt: FieldRef<"User", 'DateTime'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
     readonly updatedAt: FieldRef<"User", 'DateTime'>
   }
@@ -12819,6 +12832,7 @@ export namespace Prisma {
     rotatedAt: Date | null
     revokedAt: Date | null
     lastReauthAt: Date | null
+    impersonatedBy: string | null
     ipAddress: string | null
     userAgent: string | null
     createdAt: Date | null
@@ -12833,6 +12847,7 @@ export namespace Prisma {
     rotatedAt: Date | null
     revokedAt: Date | null
     lastReauthAt: Date | null
+    impersonatedBy: string | null
     ipAddress: string | null
     userAgent: string | null
     createdAt: Date | null
@@ -12847,6 +12862,7 @@ export namespace Prisma {
     rotatedAt: number
     revokedAt: number
     lastReauthAt: number
+    impersonatedBy: number
     ipAddress: number
     userAgent: number
     createdAt: number
@@ -12863,6 +12879,7 @@ export namespace Prisma {
     rotatedAt?: true
     revokedAt?: true
     lastReauthAt?: true
+    impersonatedBy?: true
     ipAddress?: true
     userAgent?: true
     createdAt?: true
@@ -12877,6 +12894,7 @@ export namespace Prisma {
     rotatedAt?: true
     revokedAt?: true
     lastReauthAt?: true
+    impersonatedBy?: true
     ipAddress?: true
     userAgent?: true
     createdAt?: true
@@ -12891,6 +12909,7 @@ export namespace Prisma {
     rotatedAt?: true
     revokedAt?: true
     lastReauthAt?: true
+    impersonatedBy?: true
     ipAddress?: true
     userAgent?: true
     createdAt?: true
@@ -12978,6 +12997,7 @@ export namespace Prisma {
     rotatedAt: Date | null
     revokedAt: Date | null
     lastReauthAt: Date | null
+    impersonatedBy: string | null
     ipAddress: string | null
     userAgent: string | null
     createdAt: Date
@@ -13009,6 +13029,7 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
     createdAt?: boolean
@@ -13024,6 +13045,7 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
     createdAt?: boolean
@@ -13039,6 +13061,7 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
     createdAt?: boolean
@@ -13054,12 +13077,13 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
     createdAt?: boolean
   }
 
-  export type SessionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "tokenHash" | "refreshHash" | "expiresAt" | "rotatedAt" | "revokedAt" | "lastReauthAt" | "ipAddress" | "userAgent" | "createdAt", ExtArgs["result"]["session"]>
+  export type SessionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "tokenHash" | "refreshHash" | "expiresAt" | "rotatedAt" | "revokedAt" | "lastReauthAt" | "impersonatedBy" | "ipAddress" | "userAgent" | "createdAt", ExtArgs["result"]["session"]>
   export type SessionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
@@ -13084,6 +13108,7 @@ export namespace Prisma {
       rotatedAt: Date | null
       revokedAt: Date | null
       lastReauthAt: Date | null
+      impersonatedBy: string | null
       ipAddress: string | null
       userAgent: string | null
       createdAt: Date
@@ -13519,6 +13544,7 @@ export namespace Prisma {
     readonly rotatedAt: FieldRef<"Session", 'DateTime'>
     readonly revokedAt: FieldRef<"Session", 'DateTime'>
     readonly lastReauthAt: FieldRef<"Session", 'DateTime'>
+    readonly impersonatedBy: FieldRef<"Session", 'String'>
     readonly ipAddress: FieldRef<"Session", 'String'>
     readonly userAgent: FieldRef<"Session", 'String'>
     readonly createdAt: FieldRef<"Session", 'DateTime'>
@@ -106861,6 +106887,7 @@ export namespace Prisma {
     language: 'language',
     timezone: 'timezone',
     preferences: 'preferences',
+    lastActiveAt: 'lastActiveAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -106888,6 +106915,7 @@ export namespace Prisma {
     rotatedAt: 'rotatedAt',
     revokedAt: 'revokedAt',
     lastReauthAt: 'lastReauthAt',
+    impersonatedBy: 'impersonatedBy',
     ipAddress: 'ipAddress',
     userAgent: 'userAgent',
     createdAt: 'createdAt'
@@ -108405,6 +108433,7 @@ export namespace Prisma {
     language?: StringNullableFilter<"User"> | string | null
     timezone?: StringNullableFilter<"User"> | string | null
     preferences?: JsonNullableFilter<"User">
+    lastActiveAt?: DateTimeNullableFilter<"User"> | Date | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     accounts?: AccountListRelationFilter
@@ -108449,6 +108478,7 @@ export namespace Prisma {
     language?: SortOrderInput | SortOrder
     timezone?: SortOrderInput | SortOrder
     preferences?: SortOrderInput | SortOrder
+    lastActiveAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     accounts?: AccountOrderByRelationAggregateInput
@@ -108496,6 +108526,7 @@ export namespace Prisma {
     language?: StringNullableFilter<"User"> | string | null
     timezone?: StringNullableFilter<"User"> | string | null
     preferences?: JsonNullableFilter<"User">
+    lastActiveAt?: DateTimeNullableFilter<"User"> | Date | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     accounts?: AccountListRelationFilter
@@ -108540,6 +108571,7 @@ export namespace Prisma {
     language?: SortOrderInput | SortOrder
     timezone?: SortOrderInput | SortOrder
     preferences?: SortOrderInput | SortOrder
+    lastActiveAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserCountOrderByAggregateInput
@@ -108562,6 +108594,7 @@ export namespace Prisma {
     language?: StringNullableWithAggregatesFilter<"User"> | string | null
     timezone?: StringNullableWithAggregatesFilter<"User"> | string | null
     preferences?: JsonNullableWithAggregatesFilter<"User">
+    lastActiveAt?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
   }
@@ -108634,6 +108667,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    impersonatedBy?: StringNullableFilter<"Session"> | string | null
     ipAddress?: StringNullableFilter<"Session"> | string | null
     userAgent?: StringNullableFilter<"Session"> | string | null
     createdAt?: DateTimeFilter<"Session"> | Date | string
@@ -108649,6 +108683,7 @@ export namespace Prisma {
     rotatedAt?: SortOrderInput | SortOrder
     revokedAt?: SortOrderInput | SortOrder
     lastReauthAt?: SortOrderInput | SortOrder
+    impersonatedBy?: SortOrderInput | SortOrder
     ipAddress?: SortOrderInput | SortOrder
     userAgent?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -108667,6 +108702,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    impersonatedBy?: StringNullableFilter<"Session"> | string | null
     ipAddress?: StringNullableFilter<"Session"> | string | null
     userAgent?: StringNullableFilter<"Session"> | string | null
     createdAt?: DateTimeFilter<"Session"> | Date | string
@@ -108682,6 +108718,7 @@ export namespace Prisma {
     rotatedAt?: SortOrderInput | SortOrder
     revokedAt?: SortOrderInput | SortOrder
     lastReauthAt?: SortOrderInput | SortOrder
+    impersonatedBy?: SortOrderInput | SortOrder
     ipAddress?: SortOrderInput | SortOrder
     userAgent?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -108702,6 +108739,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
+    impersonatedBy?: StringNullableWithAggregatesFilter<"Session"> | string | null
     ipAddress?: StringNullableWithAggregatesFilter<"Session"> | string | null
     userAgent?: StringNullableWithAggregatesFilter<"Session"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Session"> | Date | string
@@ -115038,6 +115076,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -115082,6 +115121,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -115126,6 +115166,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -115170,6 +115211,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -115214,6 +115256,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -115230,6 +115273,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -115246,6 +115290,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -115313,6 +115358,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
     createdAt?: Date | string
@@ -115328,6 +115374,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
     createdAt?: Date | string
@@ -115341,6 +115388,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -115356,6 +115404,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -115370,6 +115419,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
     createdAt?: Date | string
@@ -115383,6 +115433,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -115397,6 +115448,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -122546,6 +122598,7 @@ export namespace Prisma {
     language?: SortOrder
     timezone?: SortOrder
     preferences?: SortOrder
+    lastActiveAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -122561,6 +122614,7 @@ export namespace Prisma {
     platformAdmin?: SortOrder
     language?: SortOrder
     timezone?: SortOrder
+    lastActiveAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -122576,6 +122630,7 @@ export namespace Prisma {
     platformAdmin?: SortOrder
     language?: SortOrder
     timezone?: SortOrder
+    lastActiveAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -122721,6 +122776,7 @@ export namespace Prisma {
     rotatedAt?: SortOrder
     revokedAt?: SortOrder
     lastReauthAt?: SortOrder
+    impersonatedBy?: SortOrder
     ipAddress?: SortOrder
     userAgent?: SortOrder
     createdAt?: SortOrder
@@ -122735,6 +122791,7 @@ export namespace Prisma {
     rotatedAt?: SortOrder
     revokedAt?: SortOrder
     lastReauthAt?: SortOrder
+    impersonatedBy?: SortOrder
     ipAddress?: SortOrder
     userAgent?: SortOrder
     createdAt?: SortOrder
@@ -122749,6 +122806,7 @@ export namespace Prisma {
     rotatedAt?: SortOrder
     revokedAt?: SortOrder
     lastReauthAt?: SortOrder
+    impersonatedBy?: SortOrder
     ipAddress?: SortOrder
     userAgent?: SortOrder
     createdAt?: SortOrder
@@ -133015,6 +133073,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
     createdAt?: Date | string
@@ -133028,6 +133087,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
     createdAt?: Date | string
@@ -133861,6 +133921,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    impersonatedBy?: StringNullableFilter<"Session"> | string | null
     ipAddress?: StringNullableFilter<"Session"> | string | null
     userAgent?: StringNullableFilter<"Session"> | string | null
     createdAt?: DateTimeFilter<"Session"> | Date | string
@@ -134668,6 +134729,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutUserInput
@@ -134711,6 +134773,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
@@ -134770,6 +134833,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutUserNestedInput
@@ -134813,6 +134877,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -134856,6 +134921,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -134899,6 +134965,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -134958,6 +135025,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -135001,6 +135069,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -137012,6 +137081,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -137055,6 +137125,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -137228,6 +137299,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -137271,6 +137343,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -139045,6 +139118,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -139088,6 +139162,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -139147,6 +139222,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -139190,6 +139266,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -139565,6 +139642,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -139608,6 +139686,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -139827,6 +139906,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -139870,6 +139950,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -140160,6 +140241,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -140203,6 +140285,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -140343,6 +140426,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -140386,6 +140470,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -141128,6 +141213,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -141171,6 +141257,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -141311,6 +141398,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -141354,6 +141442,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -141472,6 +141561,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -141515,6 +141605,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -141655,6 +141746,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -141698,6 +141790,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -141816,6 +141909,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -141859,6 +141953,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -141999,6 +142094,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -142042,6 +142138,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -142160,6 +142257,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -142203,6 +142301,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -142343,6 +142442,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -142386,6 +142486,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -142504,6 +142605,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -142547,6 +142649,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -142687,6 +142790,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -142730,6 +142834,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -143998,6 +144103,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -144041,6 +144147,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -144181,6 +144288,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -144224,6 +144332,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -144778,6 +144887,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -144821,6 +144931,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -144971,6 +145082,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -145014,6 +145126,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -145057,6 +145170,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -145100,6 +145214,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -145159,6 +145274,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -145202,6 +145318,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -146502,6 +146619,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -146545,6 +146663,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -146713,6 +146832,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -146756,6 +146876,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -147525,6 +147646,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -147568,6 +147690,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -147718,6 +147841,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -147761,6 +147885,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -147980,6 +148105,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -148023,6 +148149,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -148082,6 +148209,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -148125,6 +148253,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -148168,6 +148297,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -148211,6 +148341,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -148270,6 +148401,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -148313,6 +148445,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -148356,6 +148489,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -148399,6 +148533,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -148458,6 +148593,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -148501,6 +148637,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -149685,6 +149822,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -149728,6 +149866,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -149878,6 +150017,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -149921,6 +150061,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -149964,6 +150105,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -150007,6 +150149,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -150066,6 +150209,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -150109,6 +150253,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -150249,6 +150394,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -150292,6 +150438,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -150491,6 +150638,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -150534,6 +150682,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -150668,6 +150817,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -150711,6 +150861,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -150770,6 +150921,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -150813,6 +150965,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -150927,6 +151080,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -150970,6 +151124,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -151187,6 +151342,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -151230,6 +151386,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -151524,6 +151681,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -151567,6 +151725,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -151713,6 +151872,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -151756,6 +151916,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -152012,6 +152173,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -152055,6 +152217,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -152254,6 +152417,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -152297,6 +152461,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -152425,6 +152590,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -152468,6 +152634,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -152676,6 +152843,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -152719,6 +152887,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -153066,6 +153235,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -153109,6 +153279,7 @@ export namespace Prisma {
     language?: string | null
     timezone?: string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -153253,6 +153424,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -153296,6 +153468,7 @@ export namespace Prisma {
     language?: NullableStringFieldUpdateOperationsInput | string | null
     timezone?: NullableStringFieldUpdateOperationsInput | string | null
     preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -154390,6 +154563,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
     createdAt?: Date | string
@@ -154669,6 +154843,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -154682,6 +154857,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -154695,6 +154871,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string

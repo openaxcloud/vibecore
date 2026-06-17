@@ -62,6 +62,10 @@ model User {
   // language/timezone stay first-class columns above because SSR + the SaaS
   // account-settings route read them directly.
   preferences                 Json?
+  // Last time the user was active (throttled touch on authenticated requests +
+  // session create). Drives Replit-parity inactivity GC (free accounts inactive
+  // >= 1 year are eligible for deletion; paid exempt). Null until first touch. P8.
+  lastActiveAt                DateTime?
   createdAt                   DateTime                       @default(now())
   updatedAt                   DateTime                       @updatedAt
   accounts                    Account[]
@@ -115,6 +119,9 @@ model Session {
   rotatedAt    DateTime?
   revokedAt    DateTime?
   lastReauthAt DateTime?
+  // When set, this session is an admin impersonating another user; value = the
+  // impersonating admin's user id (for audit / UI banner / traceability). P8.
+  impersonatedBy String?
   ipAddress    String?
   userAgent    String?
   createdAt    DateTime  @default(now())

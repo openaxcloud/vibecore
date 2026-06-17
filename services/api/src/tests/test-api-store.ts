@@ -235,12 +235,23 @@ export class TestApiStore implements ApiStore {
     return this.users.get(userId);
   }
 
+  async touchUserActivity(userId: string, nowMs?: number) {
+    const user = this.users.get(userId);
+    if (!user) {
+      return null;
+    }
+    const at = new Date(Number.isFinite(nowMs) ? (nowMs as number) : Date.now()).toISOString();
+    user.lastActiveAt = at;
+    return at;
+  }
+
   async createSession(input: {
     userId: string;
     token: string;
     expiresAt: Date;
     ipAddress?: string;
     userAgent?: string;
+    impersonatedBy?: string;
   }) {
     const session = {
       id: id('session'),
@@ -250,6 +261,7 @@ export class TestApiStore implements ApiStore {
       createdAt: now(),
       ipAddress: input.ipAddress,
       userAgent: input.userAgent,
+      impersonatedBy: input.impersonatedBy,
     };
     this.sessions.set(session.tokenHash, session);
 
