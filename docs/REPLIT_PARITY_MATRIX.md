@@ -110,7 +110,7 @@ intentionally gated). §B is the doc-by-doc verdict you can quote to Avi.**
 | Service shutdown limit | ✅ `serviceShutdownCents` + **enforced** `4aaa3747` (gates workspace-start + deploy → 402) | ✅ set via form | ✅ | 🟡 SHADOW (enforces when `BILLING_CREDITS_ENABLED`) | 🟡 |
 | Org budgets in $500 increments | ✅ validation `app.ts:16390` | ✅ form | ✅ | 🟡 SHADOW | 🟡 |
 | Per-user spend caps (Enterprise) | ✅ quota overrides | 🟡 admin-only | n/a | 🟡 | 🟡 |
-| Spend alerts (note: Replit lists limits, not 50/80/100%) | ✅ computed + **email delivery wired** `ceb67f6a` (settle hook, per-rung/period de-dup) | 🟡 email only (no in-app UI) | n/a | 🟡 SHADOW (activates at go-live) | 🟡 |
+| Spend alerts (note: Replit lists limits, not 50/80/100%) | ✅ email delivery `ceb67f6a` + `paygSpentCents` on `/credits` | ✅ **in-app spend-vs-cap bar** on `/billing` `daae3775` (50/80/100 ladder, color-coded) | ✅ | 🟡 SHADOW (real spend at go-live) | 🟡 |
 
 ## 8–11. `plans/{starter,core,pro,enterprise}` — entitlements
 
@@ -121,7 +121,7 @@ intentionally gated). §B is the doc-by-doc verdict you can quote to Avi.**
 | Pro: $100/mo, 15 collab, 50 viewers, 28-day DB rollback, top models | ✅ catalog `dbRollbackDays`, `viewers`, `topModels` | ✅ pricing | ✅ | ✅ live (entitlements enforced where wired) | 🟡 |
 | Enterprise: SSO/SAML/SCIM, custom | ✅ SAML/SCIM impl | ✅ enterprise-sso settings | ✅ | ✅ live | ✅ |
 | Parallel agents per plan (1/2/10) | ✅ catalog `parallelAgents` | 🟡 enforced server-side | n/a | 🟡 | 🟡 |
-| DB point-in-time rollback (Pro 28d) | 🟡 **Phase-1**: schema (mig 0040) + entitlement service + dormant endpoints `1bb78d8a`/`4a230be9` | 🟡 **dormant UI shell** `aba62dc4` (self-hides until flag on) | n/a | 🟠 dormant behind `DB_ROLLBACK_ENABLED`; Phase-2 = provision + WAL-restore (real) | 🟡 |
+| DB point-in-time rollback (Pro 28d) | 🟡 **Phase-1**: schema (mig 0040) + entitlement service + dormant endpoints `1bb78d8a`/`4a230be9` | 🟡 **UI shell mounted** in IDE Database→Backups tab `aba62dc4`/`728c1509` (self-hides until flag) | n/a | 🟠 dormant behind `DB_ROLLBACK_ENABLED`; Phase-2 = provision + WAL-restore (real) | 🟡 |
 
 ## 12. `legal-and-security` (category) — hub
 
