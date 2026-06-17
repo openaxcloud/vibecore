@@ -44,6 +44,7 @@ const { runtimeAdapterMock, runtimeFiles } = vi.hoisted(() => {
 
 vi.mock('~/lib/runtime/RuntimeAdapterProvider', () => ({
   runtimeAdapter: runtimeAdapterMock,
+  getRuntimeAdapter: () => runtimeAdapterMock,
 }));
 
 vi.mock('./previews', async () => {

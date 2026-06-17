@@ -335,7 +335,12 @@ function routeFileToPatterns(file: string): string[] {
         return `:${segment.slice(1)}`;
       }
 
-      return segment.replace(/_/g, '-');
+      /*
+       * A TRAILING underscore is the Remix flat-route "opt out of parent layout"
+       * marker (e.g. `templates_.languages` → /templates/languages); it is not a
+       * literal hyphen, so strip it before mapping the rest.
+       */
+      return segment.replace(/_$/, '').replace(/_/g, '-');
     });
 
   return [`/${routeSegments.join('/')}`];

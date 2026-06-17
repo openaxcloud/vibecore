@@ -123,7 +123,7 @@ describe('imported E-Code public dynamic routes serve the static shell', () => {
 
       expect(result.threw).toBe(false);
       expect(result.response?.status).toBe(200);
-      expect(result.response?.headers.get('x-vibecore-marketing-shell')).toBe('ecode-static');
+      expect(result.response?.headers.get('x-e-code-marketing-shell')).toBe('ecode-static');
     });
   }
 });
