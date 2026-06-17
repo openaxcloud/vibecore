@@ -1495,19 +1495,25 @@ model EmailDeliveryEvent {
 /// materialized cache of the sum of `CreditLedger.deltaCents`; the ledger is
 /// the source of truth. `budgetCapCents` null = pay-as-you-go disabled.
 model CreditWallet {
-  id                   String         @id @default(cuid())
-  organizationId       String         @unique
-  balanceCents         Int            @default(0)
-  currency             String         @default("usd")
+  id                        String         @id @default(cuid())
+  organizationId            String         @unique
+  balanceCents              Int            @default(0)
+  currency                  String         @default("usd")
   // Replit "Usage Limit": cap on usage-based spend past included credits.
-  budgetCapCents       Int?
+  budgetCapCents            Int?
   // Replit "Service Shutdown Limit": suspend usage-based services when reached.
-  serviceShutdownCents Int?
-  autoTopupCents       Int?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-  organization         Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  entries              CreditLedger[]
+  serviceShutdownCents      Int?
+  autoTopupCents            Int?
+  // Replit usage-based spend alerts (50/80/100%). De-dup marker: the highest
+  // alert rung sent in the current billing period, and that period's start, so
+  // each rung fires once and the ladder resets every period. Dormant until
+  // BILLING_CREDITS_ENABLED. See spend-alerts.ts.
+  lastSpendAlertPct         Int?
+  lastSpendAlertPeriodStart DateTime?
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+  organization              Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  entries                   CreditLedger[]
 }
 
 /// Purchased credit pack (Replit). Credits expire 6 months after purchase, are

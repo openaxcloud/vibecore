@@ -2147,6 +2147,29 @@ export class TestApiStore implements ApiStore {
       .slice(0, options?.take ?? 100);
   }
 
+  async sumPaygSpendSince(organizationId: string, sinceMs: number): Promise<number> {
+    let total = 0;
+
+    for (const entry of this.creditLedger.values()) {
+      if (
+        entry.organizationId === organizationId &&
+        entry.kind === 'PAYG_CHARGE' &&
+        new Date(entry.createdAt).getTime() >= sinceMs
+      ) {
+        total += Math.abs(entry.deltaCents);
+      }
+    }
+
+    return total;
+  }
+
+  async markSpendAlert(input: { organizationId: string; pct: number; periodStartMs: number }): Promise<void> {
+    const wallet = await this.ensureCreditWallet(input.organizationId);
+    wallet.lastSpendAlertPct = input.pct;
+    wallet.lastSpendAlertPeriodStart = new Date(input.periodStartMs).toISOString();
+    wallet.updatedAt = now();
+  }
+
   // --- Replit-parity: effort-based checkpoints -------------------------------
 
   async createAgentCheckpoint(input: {

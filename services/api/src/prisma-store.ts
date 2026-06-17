@@ -2871,6 +2871,23 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapCreditLedger);
   }
 
+  async sumPaygSpendSince(organizationId: string, sinceMs: number): Promise<number> {
+    const result = await this.prisma.creditLedger.aggregate({
+      where: { organizationId, kind: 'PAYG_CHARGE', createdAt: { gte: new Date(sinceMs) } },
+      _sum: { deltaCents: true },
+    });
+
+    // PAYG_CHARGE deltas are negative (debits); spend is their absolute value.
+    return Math.abs(result._sum.deltaCents ?? 0);
+  }
+
+  async markSpendAlert(input: { organizationId: string; pct: number; periodStartMs: number }): Promise<void> {
+    await this.prisma.creditWallet.update({
+      where: { organizationId: input.organizationId },
+      data: { lastSpendAlertPct: input.pct, lastSpendAlertPeriodStart: new Date(input.periodStartMs) },
+    });
+  }
+
   // --- Replit-parity: credit packs -------------------------------------------
 
   async createCreditPack(input: {
@@ -4185,6 +4202,8 @@ function mapCreditWallet(wallet: any): CreditWalletRecord {
     budgetCapCents: wallet.budgetCapCents ?? undefined,
     serviceShutdownCents: wallet.serviceShutdownCents ?? undefined,
     autoTopupCents: wallet.autoTopupCents ?? undefined,
+    lastSpendAlertPct: wallet.lastSpendAlertPct ?? undefined,
+    lastSpendAlertPeriodStart: toIso(wallet.lastSpendAlertPeriodStart),
     createdAt: toIso(wallet.createdAt)!,
     updatedAt: toIso(wallet.updatedAt)!,
   };

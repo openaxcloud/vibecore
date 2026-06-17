@@ -505,6 +505,10 @@ export interface CreditWalletRecord {
   budgetCapCents?: number;
   serviceShutdownCents?: number;
   autoTopupCents?: number;
+  /** Usage-based spend-alert de-dup: highest rung (50/80/100) sent this period. */
+  lastSpendAlertPct?: number;
+  /** Start of the period the last spend alert was sent for (ISO). */
+  lastSpendAlertPeriodStart?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -1313,6 +1317,14 @@ export interface ApiStore {
     metadata?: unknown;
   }): Promise<{ entry: CreditLedgerRecord; balanceCents: number }>;
   listCreditLedger(organizationId: string, options?: { take?: number }): Promise<CreditLedgerRecord[]>;
+  /**
+   * Total usage-based (PAYG) spend in cents since `sinceMs` — sums the absolute
+   * value of PAYG_CHARGE ledger entries. Drives the 50/80/100% spend alerts
+   * (dormant until BILLING_CREDITS_ENABLED).
+   */
+  sumPaygSpendSince(organizationId: string, sinceMs: number): Promise<number>;
+  /** Persist the spend-alert de-dup marker (highest rung sent this period). */
+  markSpendAlert(input: { organizationId: string; pct: number; periodStartMs: number }): Promise<void>;
 
   // --- Replit-parity: credit packs (6-mo expiry, earliest-first) ---------------
   createCreditPack(input: {

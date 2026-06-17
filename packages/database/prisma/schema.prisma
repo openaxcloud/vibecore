@@ -1504,6 +1504,12 @@ model CreditWallet {
   // Replit "Service Shutdown Limit": suspend usage-based services when reached.
   serviceShutdownCents Int?
   autoTopupCents Int?
+  // Replit usage-based spend alerts (50/80/100%). De-dup marker: the highest
+  // alert rung sent in the current billing period, and that period's start, so
+  // each rung fires once and the ladder resets every period. Dormant until
+  // BILLING_CREDITS_ENABLED. See spend-alerts.ts.
+  lastSpendAlertPct         Int?
+  lastSpendAlertPeriodStart DateTime?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)

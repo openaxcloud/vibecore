@@ -161,6 +161,7 @@ import {
   isDatabaseRollbackEnabled,
   validateRestoreTarget,
 } from './database-rollback-service.js';
+import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
   filesFromZip,
   filesFromZipBase64,
@@ -16154,6 +16155,47 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           checkpointId: checkpoint.id,
           paygChargeCents,
         }).catch((error) => request.log?.warn?.({ err: error }, 'PAYG usage report failed (non-fatal)'));
+
+        // Usage-based spend alerts (50/80/100% of the budget cap). Only live when
+        // billing is enabled (skip in SHADOW); fires once per rung per billing
+        // period, de-duped via the wallet marker. Best-effort: never breaks the
+        // record path. See spend-alerts.ts.
+        if (!shadow && paygChargeCents > 0) {
+          try {
+            const wallet = await store.getCreditWallet(project.organizationId);
+
+            if (wallet?.budgetCapCents && wallet.budgetCapCents > 0) {
+              const periodStartMs = (await resolveUsagePeriodStart(project.organizationId)).getTime();
+              const paygSpentCents = await store.sumPaygSpendSince(project.organizationId, periodStartMs);
+              const pct = nextSpendAlertPct({
+                paygSpentCents,
+                budgetCapCents: wallet.budgetCapCents,
+                lastAlertPct: wallet.lastSpendAlertPct,
+                periodStartMs,
+                lastAlertPeriodStartMs: wallet.lastSpendAlertPeriodStart
+                  ? Date.parse(wallet.lastSpendAlertPeriodStart)
+                  : null,
+              });
+
+              if (pct != null) {
+                const email = request.currentUser?.email;
+
+                if (email) {
+                  const content = spendAlertEmailContent({
+                    pct,
+                    paygSpentCents,
+                    budgetCapCents: wallet.budgetCapCents,
+                  });
+                  await emailProvider.send({ to: email, subject: content.subject, text: content.text, html: content.html });
+                }
+
+                await store.markSpendAlert({ organizationId: project.organizationId, pct, periodStartMs });
+              }
+            }
+          } catch (error) {
+            request.log?.warn?.({ err: error }, 'spend alert email failed (non-fatal)');
+          }
+        }
       } catch (error) {
         request.log?.warn?.({ err: error }, 'effort-based checkpoint settle failed (non-fatal)');
       }

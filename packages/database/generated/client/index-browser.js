@@ -1034,6 +1034,8 @@ exports.Prisma.CreditWalletScalarFieldEnum = {
   budgetCapCents: 'budgetCapCents',
   serviceShutdownCents: 'serviceShutdownCents',
   autoTopupCents: 'autoTopupCents',
+  lastSpendAlertPct: 'lastSpendAlertPct',
+  lastSpendAlertPeriodStart: 'lastSpendAlertPeriodStart',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

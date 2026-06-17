@@ -100150,6 +100150,7 @@ export namespace Prisma {
     budgetCapCents: number | null
     serviceShutdownCents: number | null
     autoTopupCents: number | null
+    lastSpendAlertPct: number | null
   }
 
   export type CreditWalletSumAggregateOutputType = {
@@ -100157,6 +100158,7 @@ export namespace Prisma {
     budgetCapCents: number | null
     serviceShutdownCents: number | null
     autoTopupCents: number | null
+    lastSpendAlertPct: number | null
   }
 
   export type CreditWalletMinAggregateOutputType = {
@@ -100167,6 +100169,8 @@ export namespace Prisma {
     budgetCapCents: number | null
     serviceShutdownCents: number | null
     autoTopupCents: number | null
+    lastSpendAlertPct: number | null
+    lastSpendAlertPeriodStart: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -100179,6 +100183,8 @@ export namespace Prisma {
     budgetCapCents: number | null
     serviceShutdownCents: number | null
     autoTopupCents: number | null
+    lastSpendAlertPct: number | null
+    lastSpendAlertPeriodStart: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -100191,6 +100197,8 @@ export namespace Prisma {
     budgetCapCents: number
     serviceShutdownCents: number
     autoTopupCents: number
+    lastSpendAlertPct: number
+    lastSpendAlertPeriodStart: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -100202,6 +100210,7 @@ export namespace Prisma {
     budgetCapCents?: true
     serviceShutdownCents?: true
     autoTopupCents?: true
+    lastSpendAlertPct?: true
   }
 
   export type CreditWalletSumAggregateInputType = {
@@ -100209,6 +100218,7 @@ export namespace Prisma {
     budgetCapCents?: true
     serviceShutdownCents?: true
     autoTopupCents?: true
+    lastSpendAlertPct?: true
   }
 
   export type CreditWalletMinAggregateInputType = {
@@ -100219,6 +100229,8 @@ export namespace Prisma {
     budgetCapCents?: true
     serviceShutdownCents?: true
     autoTopupCents?: true
+    lastSpendAlertPct?: true
+    lastSpendAlertPeriodStart?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -100231,6 +100243,8 @@ export namespace Prisma {
     budgetCapCents?: true
     serviceShutdownCents?: true
     autoTopupCents?: true
+    lastSpendAlertPct?: true
+    lastSpendAlertPeriodStart?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -100243,6 +100257,8 @@ export namespace Prisma {
     budgetCapCents?: true
     serviceShutdownCents?: true
     autoTopupCents?: true
+    lastSpendAlertPct?: true
+    lastSpendAlertPeriodStart?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -100342,6 +100358,8 @@ export namespace Prisma {
     budgetCapCents: number | null
     serviceShutdownCents: number | null
     autoTopupCents: number | null
+    lastSpendAlertPct: number | null
+    lastSpendAlertPeriodStart: Date | null
     createdAt: Date
     updatedAt: Date
     _count: CreditWalletCountAggregateOutputType | null
@@ -100373,6 +100391,8 @@ export namespace Prisma {
     budgetCapCents?: boolean
     serviceShutdownCents?: boolean
     autoTopupCents?: boolean
+    lastSpendAlertPct?: boolean
+    lastSpendAlertPeriodStart?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
@@ -100388,6 +100408,8 @@ export namespace Prisma {
     budgetCapCents?: boolean
     serviceShutdownCents?: boolean
     autoTopupCents?: boolean
+    lastSpendAlertPct?: boolean
+    lastSpendAlertPeriodStart?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
@@ -100401,6 +100423,8 @@ export namespace Prisma {
     budgetCapCents?: boolean
     serviceShutdownCents?: boolean
     autoTopupCents?: boolean
+    lastSpendAlertPct?: boolean
+    lastSpendAlertPeriodStart?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
@@ -100414,11 +100438,13 @@ export namespace Prisma {
     budgetCapCents?: boolean
     serviceShutdownCents?: boolean
     autoTopupCents?: boolean
+    lastSpendAlertPct?: boolean
+    lastSpendAlertPeriodStart?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type CreditWalletOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "balanceCents" | "currency" | "budgetCapCents" | "serviceShutdownCents" | "autoTopupCents" | "createdAt" | "updatedAt", ExtArgs["result"]["creditWallet"]>
+  export type CreditWalletOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "balanceCents" | "currency" | "budgetCapCents" | "serviceShutdownCents" | "autoTopupCents" | "lastSpendAlertPct" | "lastSpendAlertPeriodStart" | "createdAt" | "updatedAt", ExtArgs["result"]["creditWallet"]>
   export type CreditWalletInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     entries?: boolean | CreditWallet$entriesArgs<ExtArgs>
@@ -100445,6 +100471,8 @@ export namespace Prisma {
       budgetCapCents: number | null
       serviceShutdownCents: number | null
       autoTopupCents: number | null
+      lastSpendAlertPct: number | null
+      lastSpendAlertPeriodStart: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["creditWallet"]>
@@ -100879,6 +100907,8 @@ export namespace Prisma {
     readonly budgetCapCents: FieldRef<"CreditWallet", 'Int'>
     readonly serviceShutdownCents: FieldRef<"CreditWallet", 'Int'>
     readonly autoTopupCents: FieldRef<"CreditWallet", 'Int'>
+    readonly lastSpendAlertPct: FieldRef<"CreditWallet", 'Int'>
+    readonly lastSpendAlertPeriodStart: FieldRef<"CreditWallet", 'DateTime'>
     readonly createdAt: FieldRef<"CreditWallet", 'DateTime'>
     readonly updatedAt: FieldRef<"CreditWallet", 'DateTime'>
   }
@@ -111937,6 +111967,8 @@ export namespace Prisma {
     budgetCapCents: 'budgetCapCents',
     serviceShutdownCents: 'serviceShutdownCents',
     autoTopupCents: 'autoTopupCents',
+    lastSpendAlertPct: 'lastSpendAlertPct',
+    lastSpendAlertPeriodStart: 'lastSpendAlertPeriodStart',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -118557,6 +118589,8 @@ export namespace Prisma {
     budgetCapCents?: IntNullableFilter<"CreditWallet"> | number | null
     serviceShutdownCents?: IntNullableFilter<"CreditWallet"> | number | null
     autoTopupCents?: IntNullableFilter<"CreditWallet"> | number | null
+    lastSpendAlertPct?: IntNullableFilter<"CreditWallet"> | number | null
+    lastSpendAlertPeriodStart?: DateTimeNullableFilter<"CreditWallet"> | Date | string | null
     createdAt?: DateTimeFilter<"CreditWallet"> | Date | string
     updatedAt?: DateTimeFilter<"CreditWallet"> | Date | string
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
@@ -118571,6 +118605,8 @@ export namespace Prisma {
     budgetCapCents?: SortOrderInput | SortOrder
     serviceShutdownCents?: SortOrderInput | SortOrder
     autoTopupCents?: SortOrderInput | SortOrder
+    lastSpendAlertPct?: SortOrderInput | SortOrder
+    lastSpendAlertPeriodStart?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     organization?: OrganizationOrderByWithRelationInput
@@ -118588,6 +118624,8 @@ export namespace Prisma {
     budgetCapCents?: IntNullableFilter<"CreditWallet"> | number | null
     serviceShutdownCents?: IntNullableFilter<"CreditWallet"> | number | null
     autoTopupCents?: IntNullableFilter<"CreditWallet"> | number | null
+    lastSpendAlertPct?: IntNullableFilter<"CreditWallet"> | number | null
+    lastSpendAlertPeriodStart?: DateTimeNullableFilter<"CreditWallet"> | Date | string | null
     createdAt?: DateTimeFilter<"CreditWallet"> | Date | string
     updatedAt?: DateTimeFilter<"CreditWallet"> | Date | string
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
@@ -118602,6 +118640,8 @@ export namespace Prisma {
     budgetCapCents?: SortOrderInput | SortOrder
     serviceShutdownCents?: SortOrderInput | SortOrder
     autoTopupCents?: SortOrderInput | SortOrder
+    lastSpendAlertPct?: SortOrderInput | SortOrder
+    lastSpendAlertPeriodStart?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: CreditWalletCountOrderByAggregateInput
@@ -118622,6 +118662,8 @@ export namespace Prisma {
     budgetCapCents?: IntNullableWithAggregatesFilter<"CreditWallet"> | number | null
     serviceShutdownCents?: IntNullableWithAggregatesFilter<"CreditWallet"> | number | null
     autoTopupCents?: IntNullableWithAggregatesFilter<"CreditWallet"> | number | null
+    lastSpendAlertPct?: IntNullableWithAggregatesFilter<"CreditWallet"> | number | null
+    lastSpendAlertPeriodStart?: DateTimeNullableWithAggregatesFilter<"CreditWallet"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"CreditWallet"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"CreditWallet"> | Date | string
   }
@@ -125916,6 +125958,8 @@ export namespace Prisma {
     budgetCapCents?: number | null
     serviceShutdownCents?: number | null
     autoTopupCents?: number | null
+    lastSpendAlertPct?: number | null
+    lastSpendAlertPeriodStart?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutCreditWalletInput
@@ -125930,6 +125974,8 @@ export namespace Prisma {
     budgetCapCents?: number | null
     serviceShutdownCents?: number | null
     autoTopupCents?: number | null
+    lastSpendAlertPct?: number | null
+    lastSpendAlertPeriodStart?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     entries?: CreditLedgerUncheckedCreateNestedManyWithoutWalletInput
@@ -125942,6 +125988,8 @@ export namespace Prisma {
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPct?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutCreditWalletNestedInput
@@ -125956,6 +126004,8 @@ export namespace Prisma {
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPct?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     entries?: CreditLedgerUncheckedUpdateManyWithoutWalletNestedInput
@@ -125969,6 +126019,8 @@ export namespace Prisma {
     budgetCapCents?: number | null
     serviceShutdownCents?: number | null
     autoTopupCents?: number | null
+    lastSpendAlertPct?: number | null
+    lastSpendAlertPeriodStart?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -125980,6 +126032,8 @@ export namespace Prisma {
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPct?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -125992,6 +126046,8 @@ export namespace Prisma {
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPct?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -130965,6 +131021,8 @@ export namespace Prisma {
     budgetCapCents?: SortOrder
     serviceShutdownCents?: SortOrder
     autoTopupCents?: SortOrder
+    lastSpendAlertPct?: SortOrder
+    lastSpendAlertPeriodStart?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -130974,6 +131032,7 @@ export namespace Prisma {
     budgetCapCents?: SortOrder
     serviceShutdownCents?: SortOrder
     autoTopupCents?: SortOrder
+    lastSpendAlertPct?: SortOrder
   }
 
   export type CreditWalletMaxOrderByAggregateInput = {
@@ -130984,6 +131043,8 @@ export namespace Prisma {
     budgetCapCents?: SortOrder
     serviceShutdownCents?: SortOrder
     autoTopupCents?: SortOrder
+    lastSpendAlertPct?: SortOrder
+    lastSpendAlertPeriodStart?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -130996,6 +131057,8 @@ export namespace Prisma {
     budgetCapCents?: SortOrder
     serviceShutdownCents?: SortOrder
     autoTopupCents?: SortOrder
+    lastSpendAlertPct?: SortOrder
+    lastSpendAlertPeriodStart?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -131005,6 +131068,7 @@ export namespace Prisma {
     budgetCapCents?: SortOrder
     serviceShutdownCents?: SortOrder
     autoTopupCents?: SortOrder
+    lastSpendAlertPct?: SortOrder
   }
 
   export type CreditPackCountOrderByAggregateInput = {
@@ -141026,6 +141090,8 @@ export namespace Prisma {
     budgetCapCents?: number | null
     serviceShutdownCents?: number | null
     autoTopupCents?: number | null
+    lastSpendAlertPct?: number | null
+    lastSpendAlertPeriodStart?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     entries?: CreditLedgerCreateNestedManyWithoutWalletInput
@@ -141038,6 +141104,8 @@ export namespace Prisma {
     budgetCapCents?: number | null
     serviceShutdownCents?: number | null
     autoTopupCents?: number | null
+    lastSpendAlertPct?: number | null
+    lastSpendAlertPeriodStart?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     entries?: CreditLedgerUncheckedCreateNestedManyWithoutWalletInput
@@ -141899,6 +141967,8 @@ export namespace Prisma {
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPct?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     entries?: CreditLedgerUpdateManyWithoutWalletNestedInput
@@ -141911,6 +141981,8 @@ export namespace Prisma {
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPct?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     entries?: CreditLedgerUncheckedUpdateManyWithoutWalletNestedInput
@@ -159190,6 +159262,8 @@ export namespace Prisma {
     budgetCapCents?: number | null
     serviceShutdownCents?: number | null
     autoTopupCents?: number | null
+    lastSpendAlertPct?: number | null
+    lastSpendAlertPeriodStart?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutCreditWalletInput
@@ -159203,6 +159277,8 @@ export namespace Prisma {
     budgetCapCents?: number | null
     serviceShutdownCents?: number | null
     autoTopupCents?: number | null
+    lastSpendAlertPct?: number | null
+    lastSpendAlertPeriodStart?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -159315,6 +159391,8 @@ export namespace Prisma {
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPct?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutCreditWalletNestedInput
@@ -159328,6 +159406,8 @@ export namespace Prisma {
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPct?: NullableIntFieldUpdateOperationsInput | number | null
+    lastSpendAlertPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
