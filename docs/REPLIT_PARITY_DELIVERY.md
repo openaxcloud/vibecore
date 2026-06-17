@@ -93,8 +93,14 @@
 - 🟢 **15 pages in-repo SSR** browser-verified: `/`, `/pricing`, `/features`, `/mobile`, `/ai`,
   `/deployments`, `/team`, `/terms`, `/privacy`, `/security`, `/dpa`, `/student-dpa`,
   `/subprocessors`, `/report-abuse`, `/marketing/:slug`.
-- ⏳ **~24 content pages** with no in-repo source (about/blog/careers/contact/compare/solutions/
-  status/tutorials/…) — they work via the external bundle; rewrite in-repo (phase P9).
+- ✅ **19 content pages authored in-repo** (Remix SSR, e-code tone, responsive) via parallel
+  sub-agents, full web typecheck+lint green: about, careers, contact, contact-sales, press,
+  partners, forum, help-center, tutorials, changelog, case-studies, accessibility (wave 1);
+  blog, desktop, collaboration, commercial-agreement, status, languages, compare-index (wave 2).
+  (Browser-verify pending in the final pass.)
+- ⏳ **~5 functional/dynamic routes kept on the external bundle** (would break if converted blindly):
+  `templates.languages` (needs template catalog data), `compare.$slug` + `solutions.$slug`
+  (slug-driven), `newsletter.confirm` + `newsletter.unsubscribe` (token-based actions).
 
 ### Legal / security (P8)
 - 🟢 security/terms/privacy/dpa/report-abuse pages live in-repo.
