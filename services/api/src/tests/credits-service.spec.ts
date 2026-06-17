@@ -1,12 +1,14 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   applyPlanGrant,
   availableCreditsCents,
   checkServiceShutdown,
   gateCheckpoint,
   openCheckpoint,
+  reportCheckpointPaygUsage,
   settleCheckpoint,
 } from '../credits-service.js';
+import type { ApiStore } from '../store.js';
 import { TestApiStore } from './test-api-store.js';
 
 const NOW = 2_000_000_000_000;
@@ -50,6 +52,85 @@ describe('checkServiceShutdown (Replit-parity service-shutdown limit)', () => {
     process.env.BILLING_CREDITS_ENABLED = 'true';
     const store = new TestApiStore();
     expect((await checkServiceShutdown(store, { organizationId: 'org_1', nowMs: NOW })).shutdown).toBe(false);
+  });
+});
+
+describe('reportCheckpointPaygUsage (Replit-parity PAYG draw-down, SHADOW-safe)', () => {
+  const originalFlag = process.env.BILLING_CREDITS_ENABLED;
+  const originalPrice = process.env.STRIPE_PAYG_AI_PRICE_ID;
+
+  afterEach(() => {
+    process.env.BILLING_CREDITS_ENABLED = originalFlag ?? '';
+    if (originalFlag === undefined) {
+      delete process.env.BILLING_CREDITS_ENABLED;
+    }
+    process.env.STRIPE_PAYG_AI_PRICE_ID = originalPrice ?? '';
+    if (originalPrice === undefined) {
+      delete process.env.STRIPE_PAYG_AI_PRICE_ID;
+    }
+  });
+
+  const storeWithSub = (externalId?: string) =>
+    ({ getSubscription: async () => (externalId ? { externalId } : undefined) }) as unknown as ApiStore;
+
+  const stripe = (priceId: string) => ({
+    getSubscription: vi.fn(async () => ({ items: { data: [{ id: 'si_1', price: { id: priceId } }] } })),
+    reportUsage: vi.fn(async () => ({})),
+  });
+
+  it('is a no-op in SHADOW (flag off)', async () => {
+    delete process.env.BILLING_CREDITS_ENABLED;
+    process.env.STRIPE_PAYG_AI_PRICE_ID = 'price_payg';
+    const s = stripe('price_payg');
+    const out = await reportCheckpointPaygUsage(storeWithSub('sub_1'), s, {
+      organizationId: 'org_1',
+      checkpointId: 'cp_1',
+      paygChargeCents: 500,
+    });
+    expect(out.reported).toBe(false);
+    expect(out.reason).toBe('shadow');
+    expect(s.reportUsage).not.toHaveBeenCalled();
+  });
+
+  it('reports the overage with a checkpoint-id idempotency key when fully configured', async () => {
+    process.env.BILLING_CREDITS_ENABLED = 'true';
+    process.env.STRIPE_PAYG_AI_PRICE_ID = 'price_payg';
+    const s = stripe('price_payg');
+    const out = await reportCheckpointPaygUsage(storeWithSub('sub_1'), s, {
+      organizationId: 'org_1',
+      checkpointId: 'cp_42',
+      paygChargeCents: 350,
+    });
+    expect(out.reported).toBe(true);
+    expect(s.reportUsage).toHaveBeenCalledWith({
+      subscriptionItemId: 'si_1',
+      quantity: 350,
+      idempotencyKey: 'checkpoint:cp_42',
+    });
+  });
+
+  it('no-ops when there is no overage', async () => {
+    process.env.BILLING_CREDITS_ENABLED = 'true';
+    process.env.STRIPE_PAYG_AI_PRICE_ID = 'price_payg';
+    const out = await reportCheckpointPaygUsage(storeWithSub('sub_1'), stripe('price_payg'), {
+      organizationId: 'org_1',
+      checkpointId: 'cp_1',
+      paygChargeCents: 0,
+    });
+    expect(out.reported).toBe(false);
+    expect(out.reason).toBe('no_overage');
+  });
+
+  it('no-ops when the subscription has no matching metered item', async () => {
+    process.env.BILLING_CREDITS_ENABLED = 'true';
+    process.env.STRIPE_PAYG_AI_PRICE_ID = 'price_payg';
+    const out = await reportCheckpointPaygUsage(storeWithSub('sub_1'), stripe('price_OTHER'), {
+      organizationId: 'org_1',
+      checkpointId: 'cp_1',
+      paygChargeCents: 500,
+    });
+    expect(out.reported).toBe(false);
+    expect(out.reason).toBe('no_metered_item');
   });
 });
 

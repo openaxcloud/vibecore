@@ -586,6 +586,24 @@ export class StripeBillingClient {
     return (response as { data?: Array<{ id: string; unit_amount: number; currency: string }> }).data?.[0];
   }
 
+  /**
+   * Fetch a subscription with its line items — used to locate the PAYG metered
+   * subscription item by its price id so usage can be reported against it.
+   * Returns undefined on any error (best-effort; never throws into the caller).
+   */
+  async getSubscription(
+    subscriptionId: string,
+  ): Promise<{ id: string; items?: { data?: Array<{ id: string; price?: { id?: string } }> } } | undefined> {
+    try {
+      return (await this.getJson(`/v1/subscriptions/${encodeURIComponent(subscriptionId)}`)) as {
+        id: string;
+        items?: { data?: Array<{ id: string; price?: { id?: string } }> };
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
   private async postForm(path: string, fields: Record<string, string>, idempotencyKey?: string) {
     const response = await fetch(`${this.input.baseUrl ?? 'https://api.stripe.com'}${path}`, {
       method: 'POST',

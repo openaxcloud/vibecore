@@ -211,6 +211,72 @@ export async function settleCheckpoint(
   return { creditCents, fromPacks, fromBalance, shadow: false };
 }
 
+/** Minimal Stripe surface needed to report PAYG metered usage (keeps this
+ * module decoupled from the concrete StripeBillingClient + easy to unit-test). */
+export interface PaygStripeClient {
+  getSubscription(
+    subscriptionId: string,
+  ): Promise<{ items?: { data?: Array<{ id: string; price?: { id?: string } }> } } | undefined>;
+  reportUsage(input: { subscriptionItemId: string; quantity: number; idempotencyKey?: string }): Promise<unknown>;
+}
+
+/**
+ * Report a checkpoint's PAYG overage (the part of the cost not covered by packs
+ * or wallet balance) to the org's Stripe metered subscription item. Replit-parity
+ * pay-as-you-go draw-down.
+ *
+ * FULLY SHADOW-SAFE — it is a no-op (returns `{reported:false, reason}`) unless
+ * ALL of: `BILLING_CREDITS_ENABLED==='true'`, a `STRIPE_PAYG_AI_PRICE_ID` is set,
+ * a Stripe client is provided, there is a real overage, the org has a Stripe
+ * subscription, and that subscription has the metered item. So it is wired and
+ * unit-testable today, and activates only at the Stripe go-live. Idempotent via
+ * the checkpoint id (safe on retries).
+ */
+export async function reportCheckpointPaygUsage(
+  store: ApiStore,
+  stripe: PaygStripeClient | undefined,
+  input: { organizationId: string; checkpointId: string; paygChargeCents: number },
+): Promise<{ reported: boolean; reason?: string }> {
+  if (process.env.BILLING_CREDITS_ENABLED !== 'true') {
+    return { reported: false, reason: 'shadow' };
+  }
+
+  if (!stripe) {
+    return { reported: false, reason: 'no_stripe_client' };
+  }
+
+  const priceId = process.env.STRIPE_PAYG_AI_PRICE_ID;
+
+  if (!priceId) {
+    return { reported: false, reason: 'no_payg_price' };
+  }
+
+  if (!(input.paygChargeCents > 0)) {
+    return { reported: false, reason: 'no_overage' };
+  }
+
+  const subscription = await store.getSubscription(input.organizationId);
+
+  if (!subscription?.externalId) {
+    return { reported: false, reason: 'no_subscription' };
+  }
+
+  const stripeSub = await stripe.getSubscription(subscription.externalId);
+  const item = stripeSub?.items?.data?.find((entry) => entry.price?.id === priceId);
+
+  if (!item) {
+    return { reported: false, reason: 'no_metered_item' };
+  }
+
+  await stripe.reportUsage({
+    subscriptionItemId: item.id,
+    quantity: Math.round(input.paygChargeCents),
+    idempotencyKey: `checkpoint:${input.checkpointId}`,
+  });
+
+  return { reported: true };
+}
+
 /** Convenience: estimate the reservation cost for the agent UI cost preview. */
 export function estimateRequestCents(input: {
   baseProviderCents: number;

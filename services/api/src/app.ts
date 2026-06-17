@@ -122,7 +122,7 @@ import {
   createDefaultMcpMarketplaceService,
 } from './mcp-marketplace.js';
 import { PrismaApiStore } from './prisma-store.js';
-import { checkServiceShutdown, openCheckpoint, settleCheckpoint } from './credits-service.js';
+import { checkServiceShutdown, openCheckpoint, reportCheckpointPaygUsage, settleCheckpoint } from './credits-service.js';
 import {
   DELETION_GRACE_PERIOD_DAYS,
   canCancelDeletion,
@@ -16135,6 +16135,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           nowMs: Date.now(),
         });
         checkpointCreditCents = settled.creditCents;
+
+        // PAYG draw-down: report the overage (cost not covered by packs/balance)
+        // to Stripe metered usage. Fully no-op in SHADOW / until the PAYG price +
+        // subscription item exist (Stripe go-live). Idempotent via checkpoint id.
+        const paygChargeCents = Math.max(0, settled.creditCents - settled.fromPacks - settled.fromBalance);
+        await reportCheckpointPaygUsage(store, stripeClient, {
+          organizationId: project.organizationId,
+          checkpointId: checkpoint.id,
+          paygChargeCents,
+        }).catch((error) => request.log?.warn?.({ err: error }, 'PAYG usage report failed (non-fatal)'));
       } catch (error) {
         request.log?.warn?.({ err: error }, 'effort-based checkpoint settle failed (non-fatal)');
       }
