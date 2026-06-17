@@ -331,25 +331,31 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                       }}
                     />
                   )}
-
-              {/*
-               * Replit-parity per-request power controls + live proof-of-work
-               * cost preview. Shown in the agent composer (IDE) settings panel.
-               */}
-              {props.projectIdeMode && (
-                <div className="mt-2 border-t border-bolt-elements-borderColor pt-2">
-                  <AgentPowerControls
-                    value={agentPower}
-                    onChange={handleAgentPowerChange}
-                    estimatedCents={agentPowerEstimateCents}
-                    disabled={props.isStreaming}
-                  />
-                </div>
-              )}
             </div>
           )}
         </ClientOnly>
       </div>
+      {/*
+       * Replit-parity per-request power controls + live proof-of-work cost
+       * preview. Always visible in the agent composer (IDE) — not hidden behind
+       * the collapsible model-settings — so the effort/cost controls are
+       * discoverable. ClientOnly because the estimate + persisted state are
+       * client-side.
+       */}
+      {props.projectIdeMode && (
+        <ClientOnly>
+          {() => (
+            <div className="mt-2 border-t border-bolt-elements-borderColor px-1 pt-2">
+              <AgentPowerControls
+                value={agentPower}
+                onChange={handleAgentPowerChange}
+                estimatedCents={agentPowerEstimateCents}
+                disabled={props.isStreaming}
+              />
+            </div>
+          )}
+        </ClientOnly>
+      )}
       <FilePreview
         files={props.uploadedFiles}
         imageDataList={props.imageDataList}
