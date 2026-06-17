@@ -40,6 +40,7 @@ import { Messages } from './Messages.client';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
+import { DatabaseRollbackPanel } from '~/components/database/DatabaseRollbackPanel';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { PanelBoundary, PanelErrorBoundary, PanelLoading, ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
@@ -14816,6 +14817,9 @@ function ProjectDatabasePanel({
             ])}
             empty="No database checkpoints yet."
           />
+          {/* Replit-parity point-in-time rollback (Pro). Self-hides until the
+              DB_ROLLBACK_ENABLED feature flag is on, so it's inert today. */}
+          {projectId ? <DatabaseRollbackPanel projectId={projectId} /> : null}
         </div>
       )}
     </div>
