@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { loader as communityLoader } from './community';
 import { loader as marketplaceTemplatesLoader } from './marketplace.templates';
 import { loader as templatesLoader } from './templates';
+import { toResponse } from '~/lib/test/rr7-data';
 
 function loaderArgs(url: string): Parameters<typeof templatesLoader>[0] {
   return {
@@ -14,7 +15,7 @@ function loaderArgs(url: string): Parameters<typeof templatesLoader>[0] {
 
 describe('public resource marketing routes', () => {
   it('serves /templates as Remix data for the marketing page instead of the E-Code app shell', async () => {
-    const response = await templatesLoader(loaderArgs('http://app.e-code.ai/templates'));
+    const response = toResponse(await templatesLoader(loaderArgs('http://app.e-code.ai/templates')));
     const payload = (await response.json()) as { categories: unknown[]; templates: unknown[] };
 
     expect(response.headers.get('content-type')).toContain('application/json');
@@ -24,14 +25,17 @@ describe('public resource marketing routes', () => {
   });
 
   it('serves /marketplace/templates with the same public template marketing data', async () => {
-    const response = await marketplaceTemplatesLoader(loaderArgs('http://app.e-code.ai/marketplace/templates'));
+    const response = toResponse(
+      await marketplaceTemplatesLoader(loaderArgs('http://app.e-code.ai/marketplace/templates')),
+    );
+
     const payload = (await response.json()) as { templates: Array<{ name: string }> };
 
     expect(payload.templates.some((template) => template.name.toLowerCase().includes('agent'))).toBe(true);
   });
 
   it('serves /community as public marketing data without authenticated workspace chrome', async () => {
-    const response = await communityLoader(loaderArgs('http://app.e-code.ai/community'));
+    const response = toResponse(await communityLoader(loaderArgs('http://app.e-code.ai/community')));
 
     const payload = (await response.json()) as {
       posts: Array<{ authorName?: string; templateSlug?: string }>;

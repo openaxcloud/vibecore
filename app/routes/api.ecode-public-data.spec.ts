@@ -6,6 +6,7 @@ import { loader as blogFeaturedLoader } from './api.blog.featured';
 import { loader as blogPostsLoader } from './api.blog.posts';
 import { loader as blogPostLoader } from './api.blog.posts.$slug';
 import { loader as paymentPlansLoader } from './api.payments.plans';
+import { toResponse } from '~/lib/test/rr7-data';
 
 function loaderArgs(params: LoaderFunctionArgs['params']): LoaderFunctionArgs {
   return {
@@ -17,7 +18,7 @@ function loaderArgs(params: LoaderFunctionArgs['params']): LoaderFunctionArgs {
 
 describe('E-Code public marketing API compatibility', () => {
   it('serves the E-Code pricing plans required by the imported pricing page', async () => {
-    const response = await paymentPlansLoader();
+    const response = toResponse(await paymentPlansLoader());
     const plans = await response.json();
 
     expect(response.status).toBe(200);
@@ -34,7 +35,7 @@ describe('E-Code public marketing API compatibility', () => {
   });
 
   it('serves the E-Code blog list, featured list, detail, and categories', async () => {
-    const postsResponse = await blogPostsLoader();
+    const postsResponse = toResponse(await blogPostsLoader());
     const posts = await postsResponse.json();
 
     expect(postsResponse.status).toBe(200);
@@ -48,19 +49,19 @@ describe('E-Code public marketing API compatibility', () => {
       ]),
     );
 
-    const featuredResponse = await blogFeaturedLoader();
+    const featuredResponse = toResponse(await blogFeaturedLoader());
     const featured = await featuredResponse.json();
 
     expect(featuredResponse.status).toBe(200);
     expect(featured.every((post: { featured: boolean }) => post.featured)).toBe(true);
 
-    const detailResponse = await blogPostLoader(loaderArgs({ slug: 'introducing-e-code' }));
+    const detailResponse = toResponse(await blogPostLoader(loaderArgs({ slug: 'introducing-e-code' })));
     const detail = await detailResponse.json();
 
     expect(detailResponse.status).toBe(200);
     expect(detail).toMatchObject({ slug: 'introducing-e-code', author: 'E-Code Team' });
 
-    const categoryResponse = await blogCategoriesLoader(loaderArgs({ category: 'Product' }));
+    const categoryResponse = toResponse(await blogCategoriesLoader(loaderArgs({ category: 'Product' })));
     const categoryPosts = await categoryResponse.json();
 
     expect(categoryResponse.status).toBe(200);
@@ -68,7 +69,7 @@ describe('E-Code public marketing API compatibility', () => {
   });
 
   it('returns the E-Code 404 contract for unknown blog posts', async () => {
-    const response = await blogPostLoader(loaderArgs({ slug: 'missing-post' }));
+    const response = toResponse(await blogPostLoader(loaderArgs({ slug: 'missing-post' })));
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({ error: 'Blog post not found' });

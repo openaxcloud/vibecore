@@ -4,6 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { action } from './projects.new';
+import { toResponse } from '~/lib/test/rr7-data';
 
 const ORIGINAL_ENV = {
   SAAS_API_URL: process.env.SAAS_API_URL,
@@ -100,14 +101,16 @@ describe('projects/new action', () => {
       }),
     );
 
-    const response = (await action(
-      buildActionArgs({
-        prompt: 'Build a production analytics dashboard',
-        artifactType: 'web',
-        provider: 'OpenAI',
-        model: 'gpt-4o',
-      }),
-    )) as Response;
+    const response = toResponse(
+      await action(
+        buildActionArgs({
+          prompt: 'Build a production analytics dashboard',
+          artifactType: 'web',
+          provider: 'OpenAI',
+          model: 'gpt-4o',
+        }),
+      ),
+    );
 
     expect(response.status).toBe(302);
     expect(response.headers.get('location')).toBe('/projects/project_1/ide');
@@ -165,14 +168,16 @@ describe('projects/new action', () => {
       }),
     );
 
-    const response = (await action(
-      buildActionArgs({
-        prompt: longPrompt,
-        artifactType: 'web',
-        provider: 'OpenAI',
-        model: 'gpt-4o',
-      }),
-    )) as Response;
+    const response = toResponse(
+      await action(
+        buildActionArgs({
+          prompt: longPrompt,
+          artifactType: 'web',
+          provider: 'OpenAI',
+          model: 'gpt-4o',
+        }),
+      ),
+    );
 
     expect(response.status).toBe(302);
     expect(response.headers.get('location')).toBe('/projects/project_long/ide');

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { toResponse } from '~/lib/test/rr7-data';
 import { action as billingAction, loader as billingLoader } from '~/routes/billing';
 import { loader as invitationsLoader } from '~/routes/invitations';
 
@@ -46,7 +47,10 @@ describe('platform access loaders', () => {
       }),
     );
 
-    const response = await billingLoader({ request: request('/billing'), params: {}, context: {} as never });
+    const response = toResponse(
+      await billingLoader({ request: request('/billing'), params: {}, context: {} as never }),
+    );
+
     const payload = await response.json();
 
     expect(payload.billingAccessLimited).toBe(true);
@@ -71,11 +75,13 @@ describe('platform access loaders', () => {
       }),
     );
 
-    const response = await billingAction({
-      request: formRequest('/billing', { planKey: 'pro' }),
-      params: {},
-      context: {} as never,
-    });
+    const response = toResponse(
+      await billingAction({
+        request: formRequest('/billing', { planKey: 'pro' }),
+        params: {},
+        context: {} as never,
+      }),
+    );
 
     const payload = (await response.json()) as { error?: string };
 
@@ -101,11 +107,13 @@ describe('platform access loaders', () => {
       }),
     );
 
-    const response = await billingAction({
-      request: formRequest('/billing', { intent: 'portal' }),
-      params: {},
-      context: {} as never,
-    });
+    const response = toResponse(
+      await billingAction({
+        request: formRequest('/billing', { intent: 'portal' }),
+        params: {},
+        context: {} as never,
+      }),
+    );
 
     const payload = (await response.json()) as { error?: string };
 
@@ -135,11 +143,13 @@ describe('platform access loaders', () => {
       }),
     );
 
-    const response = await invitationsLoader({
-      request: request('/invitations'),
-      params: {},
-      context: {} as never,
-    });
+    const response = toResponse(
+      await invitationsLoader({
+        request: request('/invitations'),
+        params: {},
+        context: {} as never,
+      }),
+    );
 
     const payload = await response.json();
 

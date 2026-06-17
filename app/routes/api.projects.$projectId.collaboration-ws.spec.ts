@@ -5,6 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { loader } from './api.projects.$projectId.collaboration-ws';
+import { toResponse } from '~/lib/test/rr7-data';
 
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -68,14 +69,16 @@ describe('project collaboration websocket loader', () => {
       ),
     );
 
-    const response = await loader({
-      request: request('http://app.e-code.ai/api/projects/project-1/collaboration-ws?sessionId=session-1', {
-        'x-forwarded-proto': 'https',
-        'x-forwarded-host': 'app.e-code.ai',
+    const response = toResponse(
+      await loader({
+        request: request('http://app.e-code.ai/api/projects/project-1/collaboration-ws?sessionId=session-1', {
+          'x-forwarded-proto': 'https',
+          'x-forwarded-host': 'app.e-code.ai',
+        }),
+        params: { projectId: 'project-1' },
+        context: {} as Parameters<typeof loader>[0]['context'],
       }),
-      params: { projectId: 'project-1' },
-      context: {} as Parameters<typeof loader>[0]['context'],
-    });
+    );
 
     const payload = (await response.json()) as { websocketUrl: string };
 
@@ -100,11 +103,13 @@ describe('project collaboration websocket loader', () => {
       ),
     );
 
-    const response = await loader({
-      request: request('http://localhost:5173/api/projects/project-2/collaboration-ws?sessionId=session-2'),
-      params: { projectId: 'project-2' },
-      context: {} as Parameters<typeof loader>[0]['context'],
-    });
+    const response = toResponse(
+      await loader({
+        request: request('http://localhost:5173/api/projects/project-2/collaboration-ws?sessionId=session-2'),
+        params: { projectId: 'project-2' },
+        context: {} as Parameters<typeof loader>[0]['context'],
+      }),
+    );
 
     const payload = (await response.json()) as { websocketUrl: string };
 

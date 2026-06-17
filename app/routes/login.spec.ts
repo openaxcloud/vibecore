@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { action, loader } from './login';
+import { toResponse } from '~/lib/test/rr7-data';
 
 function buildRequest(host: string): Request {
   return new Request(`http://${host}/login`, {
@@ -15,13 +16,15 @@ function buildRequest(host: string): Request {
 
 describe('login route loader', () => {
   it('redirects e-code.ai/login to app.e-code.ai/login with 301', async () => {
-    const response = await loader({
-      request: buildRequest('e-code.ai'),
-      params: {},
-      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
-        typeof loader
-      >[0]['context'],
-    });
+    const response = toResponse(
+      await loader({
+        request: buildRequest('e-code.ai'),
+        params: {},
+        context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+          typeof loader
+        >[0]['context'],
+      }),
+    );
 
     expect(response).toBeInstanceOf(Response);
     expect((response as Response).status).toBe(301);
@@ -29,28 +32,32 @@ describe('login route loader', () => {
   });
 
   it('redirects www.e-code.ai/login the same way', async () => {
-    const response = await loader({
-      request: buildRequest('www.e-code.ai'),
-      params: {},
-      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
-        typeof loader
-      >[0]['context'],
-    });
+    const response = toResponse(
+      await loader({
+        request: buildRequest('www.e-code.ai'),
+        params: {},
+        context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+          typeof loader
+        >[0]['context'],
+      }),
+    );
 
     expect((response as Response).status).toBe(301);
     expect((response as Response).headers.get('location')).toBe('https://app.e-code.ai/login');
   });
 
   it('preserves a safe returnTo when redirecting the marketing host to the app login', async () => {
-    const response = await loader({
-      request: new Request(`http://e-code.ai/login?returnTo=${encodeURIComponent('/community')}`, {
-        headers: { host: 'e-code.ai' },
+    const response = toResponse(
+      await loader({
+        request: new Request(`http://e-code.ai/login?returnTo=${encodeURIComponent('/community')}`, {
+          headers: { host: 'e-code.ai' },
+        }),
+        params: {},
+        context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+          typeof loader
+        >[0]['context'],
       }),
-      params: {},
-      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
-        typeof loader
-      >[0]['context'],
-    });
+    );
 
     expect((response as Response).status).toBe(301);
     expect((response as Response).headers.get('location')).toBe(
@@ -59,40 +66,46 @@ describe('login route loader', () => {
   });
 
   it('does not preserve an unsafe returnTo when redirecting from the marketing host', async () => {
-    const response = await loader({
-      request: new Request(`http://e-code.ai/login?returnTo=${encodeURIComponent('https://evil.com/steal')}`, {
-        headers: { host: 'e-code.ai' },
+    const response = toResponse(
+      await loader({
+        request: new Request(`http://e-code.ai/login?returnTo=${encodeURIComponent('https://evil.com/steal')}`, {
+          headers: { host: 'e-code.ai' },
+        }),
+        params: {},
+        context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+          typeof loader
+        >[0]['context'],
       }),
-      params: {},
-      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
-        typeof loader
-      >[0]['context'],
-    });
+    );
 
     expect((response as Response).status).toBe(301);
     expect((response as Response).headers.get('location')).toBe('https://app.e-code.ai/login');
   });
 
   it('treats the host case-insensitively', async () => {
-    const response = await loader({
-      request: buildRequest('E-Code.AI'),
-      params: {},
-      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
-        typeof loader
-      >[0]['context'],
-    });
+    const response = toResponse(
+      await loader({
+        request: buildRequest('E-Code.AI'),
+        params: {},
+        context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+          typeof loader
+        >[0]['context'],
+      }),
+    );
 
     expect((response as Response).status).toBe(301);
   });
 
   it('returns no oauth error on the app subdomain so the form renders', async () => {
-    const response = await loader({
-      request: buildRequest('app.e-code.ai'),
-      params: {},
-      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
-        typeof loader
-      >[0]['context'],
-    });
+    const response = toResponse(
+      await loader({
+        request: buildRequest('app.e-code.ai'),
+        params: {},
+        context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+          typeof loader
+        >[0]['context'],
+      }),
+    );
 
     expect(response).toBeInstanceOf(Response);
 
@@ -101,13 +114,15 @@ describe('login route loader', () => {
   });
 
   it('returns no oauth error on localhost so dev mode keeps working', async () => {
-    const response = await loader({
-      request: buildRequest('localhost:5173'),
-      params: {},
-      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
-        typeof loader
-      >[0]['context'],
-    });
+    const response = toResponse(
+      await loader({
+        request: buildRequest('localhost:5173'),
+        params: {},
+        context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+          typeof loader
+        >[0]['context'],
+      }),
+    );
 
     expect(response).toBeInstanceOf(Response);
 
@@ -122,13 +137,15 @@ describe('login route loader', () => {
         headers: { host: 'app.e-code.ai' },
       },
     );
-    const response = await loader({
-      request,
-      params: {},
-      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
-        typeof loader
-      >[0]['context'],
-    });
+    const response = toResponse(
+      await loader({
+        request,
+        params: {},
+        context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+          typeof loader
+        >[0]['context'],
+      }),
+    );
 
     expect(response).toBeInstanceOf(Response);
 
@@ -219,16 +236,18 @@ describe('login route action', () => {
   it('redirects to the safe returnTo from the URL after a successful sign-in', async () => {
     stubLoginOk();
 
-    const response = (await action({
-      request: buildActionRequest(`http://app.e-code.ai/login?returnTo=${encodeURIComponent('/projects/abc/ide')}`, {
-        email: 'a@b.c',
-        password: 'pw',
+    const response = toResponse(
+      await action({
+        request: buildActionRequest(`http://app.e-code.ai/login?returnTo=${encodeURIComponent('/projects/abc/ide')}`, {
+          email: 'a@b.c',
+          password: 'pw',
+        }),
+        params: {},
+        context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+          typeof action
+        >[0]['context'],
       }),
-      params: {},
-      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
-        typeof action
-      >[0]['context'],
-    })) as Response;
+    );
 
     expect(response.status).toBe(302);
     expect(response.headers.get('location')).toBe('/projects/abc/ide');
@@ -237,13 +256,15 @@ describe('login route action', () => {
   it('falls back to /dashboard when no returnTo is present', async () => {
     stubLoginOk();
 
-    const response = (await action({
-      request: buildActionRequest('http://app.e-code.ai/login', { email: 'a@b.c', password: 'pw' }),
-      params: {},
-      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
-        typeof action
-      >[0]['context'],
-    })) as Response;
+    const response = toResponse(
+      await action({
+        request: buildActionRequest('http://app.e-code.ai/login', { email: 'a@b.c', password: 'pw' }),
+        params: {},
+        context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+          typeof action
+        >[0]['context'],
+      }),
+    );
 
     expect(response.status).toBe(302);
     expect(response.headers.get('location')).toBe('/dashboard');
@@ -252,16 +273,18 @@ describe('login route action', () => {
   it('ignores a hostile absolute-URL returnTo (open-redirect guard)', async () => {
     stubLoginOk();
 
-    const response = (await action({
-      request: buildActionRequest(
-        `http://app.e-code.ai/login?returnTo=${encodeURIComponent('https://evil.com/steal')}`,
-        { email: 'a@b.c', password: 'pw' },
-      ),
-      params: {},
-      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
-        typeof action
-      >[0]['context'],
-    })) as Response;
+    const response = toResponse(
+      await action({
+        request: buildActionRequest(
+          `http://app.e-code.ai/login?returnTo=${encodeURIComponent('https://evil.com/steal')}`,
+          { email: 'a@b.c', password: 'pw' },
+        ),
+        params: {},
+        context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+          typeof action
+        >[0]['context'],
+      }),
+    );
 
     expect(response.status).toBe(302);
     expect(response.headers.get('location')).toBe('/dashboard');

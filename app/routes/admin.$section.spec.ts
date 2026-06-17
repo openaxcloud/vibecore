@@ -4,6 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { action } from './admin.$section';
+import { toResponse } from '~/lib/test/rr7-data';
 
 const ENV_KEYS = ['SAAS_API_URL', 'API_BASE_URL'] as const;
 
@@ -46,9 +47,9 @@ describe('admin.$section action — user management', () => {
   });
 
   it('requires a password before mutating', async () => {
-    const response = (await action(
-      args(actionRequest({ intent: 'platform-admin', userId: 'u1', value: 'true' })),
-    )) as Response;
+    const response = toResponse(
+      await action(args(actionRequest({ intent: 'platform-admin', userId: 'u1', value: 'true' }))),
+    );
     expect(response.status).toBe(400);
     expect(((await response.json()) as { error: string }).error).toMatch(/password/i);
   });
@@ -73,9 +74,9 @@ describe('admin.$section action — user management', () => {
       }),
     );
 
-    const response = (await action(
-      args(actionRequest({ intent: 'platform-admin', userId: 'u1', value: 'true', password: 'pw' })),
-    )) as Response;
+    const response = toResponse(
+      await action(args(actionRequest({ intent: 'platform-admin', userId: 'u1', value: 'true', password: 'pw' }))),
+    );
 
     expect(response.status).toBe(200);
     expect(((await response.json()) as { message: string }).message).toMatch(/platform admin/i);
@@ -101,9 +102,9 @@ describe('admin.$section action — user management', () => {
       }),
     );
 
-    const response = (await action(
-      args(actionRequest({ intent: 'suspend', userId: 'u1', password: 'wrong' })),
-    )) as Response;
+    const response = toResponse(
+      await action(args(actionRequest({ intent: 'suspend', userId: 'u1', password: 'wrong' }))),
+    );
 
     expect(response.status).toBe(401);
   });
@@ -134,9 +135,9 @@ describe('admin.$section action — user management', () => {
       }),
     );
 
-    const response = (await action(
-      args(actionRequest({ intent: 'strike', userId: 'u1', severity: 'minor', password: 'pw' })),
-    )) as Response;
+    const response = toResponse(
+      await action(args(actionRequest({ intent: 'strike', userId: 'u1', severity: 'minor', password: 'pw' }))),
+    );
 
     expect(response.status).toBe(200);
     expect(calls.some((c) => c === 'POST https://api.example.com/admin/users/u1/strikes')).toBe(true);
@@ -169,17 +170,19 @@ describe('admin.$section action — user management', () => {
       }),
     );
 
-    const response = (await action(
-      args(
-        actionRequest({
-          intent: 'model-toggle',
-          provider: 'Anthropic',
-          modelId: 'claude',
-          value: 'true',
-          password: 'pw',
-        }),
+    const response = toResponse(
+      await action(
+        args(
+          actionRequest({
+            intent: 'model-toggle',
+            provider: 'Anthropic',
+            modelId: 'claude',
+            value: 'true',
+            password: 'pw',
+          }),
+        ),
       ),
-    )) as Response;
+    );
 
     expect(response.status).toBe(200);
     expect(((await response.json()) as { message: string }).message).toMatch(/model enabled/i);
@@ -210,9 +213,9 @@ describe('admin.$section action — user management', () => {
       }),
     );
 
-    const response = (await action(
-      args(actionRequest({ intent: 'impersonate', userId: 'u9', password: 'pw' })),
-    )) as Response;
+    const response = toResponse(
+      await action(args(actionRequest({ intent: 'impersonate', userId: 'u9', password: 'pw' }))),
+    );
 
     expect(response.status).toBe(302);
     expect(response.headers.get('location')).toBe('/dashboard');

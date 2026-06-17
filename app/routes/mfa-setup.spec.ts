@@ -5,6 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { action, loader } from './mfa-setup';
+import { toResponse } from '~/lib/test/rr7-data';
 
 const ENV_KEYS = ['SAAS_API_URL', 'API_BASE_URL'] as const;
 
@@ -71,7 +72,7 @@ describe('mfa-setup route', () => {
     });
     vi.stubGlobal('fetch', fetchSpy);
 
-    const response = (await loader(args(new Request('http://localhost/mfa-setup')))) as Response;
+    const response = toResponse(await loader(args(new Request('http://localhost/mfa-setup'))));
     const payload = (await response.json()) as { status: string; secret?: string; otpauthUrl?: string };
 
     expect(payload.status).toBe('setup');
@@ -101,7 +102,7 @@ describe('mfa-setup route', () => {
     });
     vi.stubGlobal('fetch', fetchSpy);
 
-    const response = (await loader(args(new Request('http://localhost/mfa-setup')))) as Response;
+    const response = toResponse(await loader(args(new Request('http://localhost/mfa-setup'))));
     const payload = (await response.json()) as { status: string };
 
     expect(payload.status).toBe('reauth');
@@ -122,7 +123,7 @@ describe('mfa-setup route', () => {
     });
     vi.stubGlobal('fetch', fetchSpy);
 
-    const response = (await loader(args(new Request('http://localhost/mfa-setup')))) as Response;
+    const response = toResponse(await loader(args(new Request('http://localhost/mfa-setup'))));
     const payload = (await response.json()) as { status: string };
 
     expect(payload.status).toBe('enabled');
@@ -151,7 +152,7 @@ describe('mfa-setup route', () => {
     });
     vi.stubGlobal('fetch', fetchSpy);
 
-    const response = (await action(args(buildFormRequest({ code: '123456' })))) as Response;
+    const response = toResponse(await action(args(buildFormRequest({ code: '123456' }))));
     expect(response.status).toBe(200);
 
     const payload = (await response.json()) as { enabled: boolean; codes: string[] };
@@ -174,7 +175,7 @@ describe('mfa-setup route', () => {
     });
     vi.stubGlobal('fetch', fetchSpy);
 
-    const response = (await action(args(buildFormRequest({ code: '000000' })))) as Response;
+    const response = toResponse(await action(args(buildFormRequest({ code: '000000' }))));
     expect(response.status).toBe(401);
 
     const payload = (await response.json()) as { error: string };

@@ -5,6 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { action, loader } from './signup';
+import { toResponse } from '~/lib/test/rr7-data';
 
 const ORIGINAL_ENV = {
   SAAS_API_URL: process.env.SAAS_API_URL,
@@ -61,7 +62,7 @@ afterEach(() => {
 
 describe('signup route loader', () => {
   it('redirects e-code.ai/register to app.e-code.ai/register with 301', async () => {
-    const response = (await loader(buildLoaderArgs('e-code.ai'))) as Response;
+    const response = toResponse(await loader(buildLoaderArgs('e-code.ai')));
 
     expect(response).toBeInstanceOf(Response);
     expect(response.status).toBe(301);
@@ -69,19 +70,19 @@ describe('signup route loader', () => {
   });
 
   it('redirects www.e-code.ai/register the same way', async () => {
-    const response = (await loader(buildLoaderArgs('www.e-code.ai'))) as Response;
+    const response = toResponse(await loader(buildLoaderArgs('www.e-code.ai')));
 
     expect(response.status).toBe(301);
     expect(response.headers.get('location')).toBe('https://app.e-code.ai/register');
   });
 
   it('returns null on app.e-code.ai so the form renders', async () => {
-    const response = await loader(buildLoaderArgs('app.e-code.ai'));
+    const response = toResponse(await loader(buildLoaderArgs('app.e-code.ai')));
     expect(response).toBeNull();
   });
 
   it('returns null on localhost so dev mode keeps working', async () => {
-    const response = await loader(buildLoaderArgs('localhost:5173'));
+    const response = toResponse(await loader(buildLoaderArgs('localhost:5173')));
     expect(response).toBeNull();
   });
 });
@@ -91,9 +92,9 @@ describe('signup route action', () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
 
-    const response = (await action(
-      buildActionArgs({ email: 'ada@example.com', password: 'short', confirmPassword: 'short' }),
-    )) as Response;
+    const response = toResponse(
+      await action(buildActionArgs({ email: 'ada@example.com', password: 'short', confirmPassword: 'short' })),
+    );
 
     expect(response.status).toBe(400);
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -106,13 +107,15 @@ describe('signup route action', () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
 
-    const response = (await action(
-      buildActionArgs({
-        email: 'ada@example.com',
-        password: 'correcthorse',
-        confirmPassword: 'wronghorse123',
-      }),
-    )) as Response;
+    const response = toResponse(
+      await action(
+        buildActionArgs({
+          email: 'ada@example.com',
+          password: 'correcthorse',
+          confirmPassword: 'wronghorse123',
+        }),
+      ),
+    );
 
     expect(response.status).toBe(400);
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -136,15 +139,17 @@ describe('signup route action', () => {
     });
     vi.stubGlobal('fetch', fetchSpy);
 
-    const response = (await action(
-      buildActionArgs({
-        name: 'Ada Lovelace',
-        email: 'Ada@Example.COM',
-        password: 'correcthorse',
-        confirmPassword: 'correcthorse',
-        organizationName: 'Analytical Engine Co',
-      }),
-    )) as Response;
+    const response = toResponse(
+      await action(
+        buildActionArgs({
+          name: 'Ada Lovelace',
+          email: 'Ada@Example.COM',
+          password: 'correcthorse',
+          confirmPassword: 'correcthorse',
+          organizationName: 'Analytical Engine Co',
+        }),
+      ),
+    );
 
     expect(response.status).toBe(302);
     expect(response.headers.get('location')).toBe('/dashboard');
@@ -200,13 +205,15 @@ describe('signup route action', () => {
       ),
     );
 
-    const response = (await action(
-      buildActionArgs({
-        email: 'ada@example.com',
-        password: 'correcthorse',
-        confirmPassword: 'correcthorse',
-      }),
-    )) as Response;
+    const response = toResponse(
+      await action(
+        buildActionArgs({
+          email: 'ada@example.com',
+          password: 'correcthorse',
+          confirmPassword: 'correcthorse',
+        }),
+      ),
+    );
 
     expect(response.status).toBe(409);
 

@@ -20,6 +20,7 @@ import { loader as advancedLoader } from './advanced.$section';
 import { loader as compareLoader } from './compare.$slug';
 import { loader as marketingLoader } from './marketing.$slug';
 import { loader as solutionsLoader } from './solutions.$slug';
+import { toResponse } from '~/lib/test/rr7-data';
 
 type Loader = (args: {
   request: Request;
@@ -33,16 +34,26 @@ function runLoader(
   pathname = '/',
 ): { response?: Response; threw: boolean; status?: number } {
   try {
-    const response = loader({
+    /*
+     * RR7: loaders that previously returned a Remix `json()` Response now
+     * return a `data()` sentinel; normalize both that and a raw `Response`
+     * back to a real `Response` so the `.status`/`.headers` assertions below
+     * keep working. Routes that 404 still `throw new Response(...)`.
+     */
+    const raw = loader({
       request: new Request(`http://app.e-code.ai${pathname}`),
       params,
       context: {},
     });
 
+    const response = toResponse(raw);
+
     return { response: response instanceof Response ? response : undefined, threw: false };
   } catch (thrown) {
-    if (thrown instanceof Response) {
-      return { threw: true, status: thrown.status };
+    const normalized = thrown instanceof Response ? thrown : toResponse(thrown);
+
+    if (normalized instanceof Response) {
+      return { threw: true, status: normalized.status };
     }
 
     throw thrown;

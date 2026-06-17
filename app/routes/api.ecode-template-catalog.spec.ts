@@ -15,6 +15,7 @@ import {
   listEcodeTemplates,
   paginateTemplates,
 } from '~/lib/marketing/ecode-template-catalog.server';
+import { toResponse } from '~/lib/test/rr7-data';
 
 function loaderArgs(url: string): Parameters<typeof templatesLoader>[0] {
   return {
@@ -70,7 +71,10 @@ describe('E-Code public template catalog adapter', () => {
 
 describe('E-Code public template API routes', () => {
   it('serves an array for the simple /templates page', async () => {
-    const response = await templatesLoader(loaderArgs('http://app.e-code.ai/api/marketplace/templates?q=react'));
+    const response = toResponse(
+      await templatesLoader(loaderArgs('http://app.e-code.ai/api/marketplace/templates?q=react')),
+    );
+
     const payload = (await response.json()) as unknown[];
 
     expect(Array.isArray(payload)).toBe(true);
@@ -78,8 +82,10 @@ describe('E-Code public template API routes', () => {
   });
 
   it('serves paginated marketplace data for the marketplace page', async () => {
-    const response = await templatesLoader(
-      loaderArgs('http://app.e-code.ai/api/marketplace/templates?page=1&sortBy=popularity&maxPrice=100'),
+    const response = toResponse(
+      await templatesLoader(
+        loaderArgs('http://app.e-code.ai/api/marketplace/templates?page=1&sortBy=popularity&maxPrice=100'),
+      ),
     );
 
     const payload = (await response.json()) as { page: number; templates: unknown[]; total: number };
@@ -90,14 +96,14 @@ describe('E-Code public template API routes', () => {
   });
 
   it('serves categories, tags and suggestions endpoints consumed by E-Code components', async () => {
-    const categories = (await (
-      await categoriesLoader(loaderArgs('http://app.e-code.ai/api/marketplace/categories'))
+    const categories = (await toResponse(
+      await categoriesLoader(loaderArgs('http://app.e-code.ai/api/marketplace/categories')),
     ).json()) as unknown[];
-    const tags = (await (
-      await tagsLoader(loaderArgs('http://app.e-code.ai/api/marketplace/tags?limit=5'))
+    const tags = (await toResponse(
+      await tagsLoader(loaderArgs('http://app.e-code.ai/api/marketplace/tags?limit=5')),
     ).json()) as unknown[];
-    const suggestions = (await (
-      await suggestionsLoader(loaderArgs('http://app.e-code.ai/api/templates/suggestions?q=vite&limit=5'))
+    const suggestions = (await toResponse(
+      await suggestionsLoader(loaderArgs('http://app.e-code.ai/api/templates/suggestions?q=vite&limit=5')),
     ).json()) as { suggestions: string[] };
 
     expect(categories.length).toBeGreaterThan(0);
@@ -106,13 +112,13 @@ describe('E-Code public template API routes', () => {
   });
 
   it('serves anonymous shell endpoints without breaking the E-Code header', async () => {
-    const me = await (await meLoader(loaderArgs('http://app.e-code.ai/api/me'))).json();
+    const me = await toResponse(await meLoader(loaderArgs('http://app.e-code.ai/api/me'))).json();
 
-    const notifications = (await (
-      await notificationsLoader(loaderArgs('http://app.e-code.ai/api/notifications'))
+    const notifications = (await toResponse(
+      await notificationsLoader(loaderArgs('http://app.e-code.ai/api/notifications')),
     ).json()) as unknown[];
-    const preferences = (await (
-      await notificationPreferencesLoader(loaderArgs('http://app.e-code.ai/api/notifications/preferences'))
+    const preferences = (await toResponse(
+      await notificationPreferencesLoader(loaderArgs('http://app.e-code.ai/api/notifications/preferences')),
     ).json()) as { email: Record<string, boolean>; push: Record<string, boolean>; frequency: string };
 
     expect(me).toBeNull();
@@ -123,12 +129,14 @@ describe('E-Code public template API routes', () => {
   });
 
   it('accepts E-Code performance telemetry posted by the public shell', async () => {
-    const response = await performanceAction(
-      actionArgs('http://app.e-code.ai/api/monitoring/performance', {
-        method: 'POST',
-        body: JSON.stringify({ reports: [], sessionId: 'test-session', timestamp: Date.now() }),
-        headers: { 'Content-Type': 'application/json' },
-      }),
+    const response = toResponse(
+      await performanceAction(
+        actionArgs('http://app.e-code.ai/api/monitoring/performance', {
+          method: 'POST',
+          body: JSON.stringify({ reports: [], sessionId: 'test-session', timestamp: Date.now() }),
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
     );
 
     expect(response.status).toBe(202);

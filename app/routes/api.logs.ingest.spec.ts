@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 
 import { action, __testing } from './api.logs.ingest';
+import { toResponse } from '~/lib/test/rr7-data';
 
 function buildRequest(body: unknown, init: RequestInit = {}) {
   return new Request('http://localhost/api/logs/ingest', {
@@ -21,23 +22,25 @@ describe('/api/logs/ingest', () => {
   });
 
   it('accepts a valid frontend telemetry batch', async () => {
-    const response = await action({
-      request: buildRequest({
-        sessionId: 'session-1',
-        pageUrl: 'http://localhost/',
-        logs: [
-          {
-            level: 'info',
-            message: 'Telemetry initialized',
-            timestamp: new Date().toISOString(),
-            source: 'frontend',
-            category: 'action',
-          },
-        ],
+    const response = toResponse(
+      await action({
+        request: buildRequest({
+          sessionId: 'session-1',
+          pageUrl: 'http://localhost/',
+          logs: [
+            {
+              level: 'info',
+              message: 'Telemetry initialized',
+              timestamp: new Date().toISOString(),
+              source: 'frontend',
+              category: 'action',
+            },
+          ],
+        }),
+        context: {},
+        params: {},
       }),
-      context: {},
-      params: {},
-    });
+    );
 
     expect(response.status).toBe(202);
     await expect(response.json()).resolves.toMatchObject({ success: true, processed: 1 });
@@ -51,11 +54,13 @@ describe('/api/logs/ingest', () => {
   });
 
   it('rejects malformed telemetry events', async () => {
-    const response = await action({
-      request: buildRequest({ logs: [{ level: 'fatal', message: '' }] }),
-      context: {},
-      params: {},
-    });
+    const response = toResponse(
+      await action({
+        request: buildRequest({ logs: [{ level: 'fatal', message: '' }] }),
+        context: {},
+        params: {},
+      }),
+    );
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({ error: 'Invalid log format' });

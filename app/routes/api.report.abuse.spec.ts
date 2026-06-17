@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { action } from './api.report.abuse';
+import { toResponse } from '~/lib/test/rr7-data';
 
 function request(body: unknown, init: RequestInit = {}) {
   return new Request('https://e-code.ai/api/report/abuse', {
@@ -12,21 +13,25 @@ function request(body: unknown, init: RequestInit = {}) {
 
 describe('/api/report/abuse', () => {
   it('rejects unsupported methods', async () => {
-    const response = await action({
-      request: new Request('https://e-code.ai/api/report/abuse', { method: 'GET' }),
-      context: {},
-      params: {},
-    });
+    const response = toResponse(
+      await action({
+        request: new Request('https://e-code.ai/api/report/abuse', { method: 'GET' }),
+        context: {},
+        params: {},
+      }),
+    );
 
     expect(response.status).toBe(405);
   });
 
   it('validates abuse report payloads', async () => {
-    const response = await action({
-      request: request({ reportType: 'code', targetUrl: 'not-a-url', description: 'too short' }),
-      context: {},
-      params: {},
-    });
+    const response = toResponse(
+      await action({
+        request: request({ reportType: 'code', targetUrl: 'not-a-url', description: 'too short' }),
+        context: {},
+        params: {},
+      }),
+    );
 
     const data = (await response.json()) as { error: string };
 
@@ -44,18 +49,20 @@ describe('/api/report/abuse', () => {
     delete process.env.GITHUB_BUG_REPORT_TOKEN;
 
     try {
-      const response = await action({
-        request: request({
-          reportType: 'privacy',
-          targetUrl: 'https://e-code.ai/u/example/project',
-          description: 'This page exposes private information without consent.',
-          reporterEmail: 'reporter@example.com',
-          username: '@example',
-          pagePath: '/report-abuse',
+      const response = toResponse(
+        await action({
+          request: request({
+            reportType: 'privacy',
+            targetUrl: 'https://e-code.ai/u/example/project',
+            description: 'This page exposes private information without consent.',
+            reporterEmail: 'reporter@example.com',
+            username: '@example',
+            pagePath: '/report-abuse',
+          }),
+          context: {},
+          params: {},
         }),
-        context: {},
-        params: {},
-      });
+      );
 
       const data = (await response.json()) as { fallbackMailto: string };
 

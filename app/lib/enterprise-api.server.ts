@@ -1,4 +1,5 @@
 import { data as json, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
+import { json as jsonResponse } from '~/lib/json-response';
 
 const sessionCookieName = 'vc_session';
 
@@ -258,7 +259,13 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
       throw loginRedirectFromRequest(request);
     }
 
-    throw json(
+    /*
+     * Throw a real `Response` (not RR7's `data()` sentinel): callers detect
+     * these via `error instanceof Response` and read them with
+     * `error.clone().json()` / `error.status` (see `apiErrorMessage`,
+     * `isApiResponse`, and the signup/admin action catch blocks).
+     */
+    throw jsonResponse(
       {
         ok: false,
         error:
@@ -304,7 +311,7 @@ export async function firstOrganization(request: Request) {
   const organization = result.organizations[0];
 
   if (!organization) {
-    throw json({ ok: false, error: 'No organization found for this user' }, { status: 400 });
+    throw jsonResponse({ ok: false, error: 'No organization found for this user' }, { status: 400 });
   }
 
   return organization;
