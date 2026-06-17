@@ -1,1 +1,14 @@
-export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';
+import type { MetaFunction } from '@remix-run/cloudflare';
+import Collaboration from '~/components/marketing/ecode-exact/pages/Collaboration';
+
+export const meta: MetaFunction = () => [
+  { title: 'Collaboration — VibeCore' },
+  {
+    name: 'description',
+    content: 'Real-time collaboration in VibeCore — multiplayer editing, comments, presence and shared workspaces.',
+  },
+];
+
+export default function CollaborationRoute() {
+  return <Collaboration />;
+}
