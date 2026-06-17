@@ -138,4 +138,36 @@ describe('database point-in-time rollback routes (Phase-1 scaffold)', () => {
     expect(res.statusCode).toBe(409);
     expect(res.json().code).toBe('NO_DATABASE');
   });
+
+  it('404s provision + snapshot while the feature flag is off', async () => {
+    delete (process.env as Record<string, string | undefined>).DB_ROLLBACK_ENABLED;
+    const { app, project } = await setup();
+
+    const prov = await app.inject({ method: 'POST', url: `/projects/${project.id}/database/provision`, headers: auth });
+    expect(prov.statusCode).toBe(404);
+    const snap = await app.inject({ method: 'POST', url: `/projects/${project.id}/database/snapshots`, headers: auth });
+    expect(snap.statusCode).toBe(404);
+  });
+
+  it('provisions a (dormant) instance row, then takes a manual snapshot', async () => {
+    process.env.DB_ROLLBACK_ENABLED = 'true';
+    const { app, store, project } = await setup();
+
+    const prov = await app.inject({ method: 'POST', url: `/projects/${project.id}/database/provision`, headers: auth });
+    expect(prov.statusCode).toBe(202);
+    expect(prov.json().created).toBe(true);
+    // No provisioner port/bucket configured → no real Postgres, just the row.
+    const instance = await store.getDatabaseInstanceByProject(project.id);
+    expect(instance?.status).toBe('PROVISIONING');
+
+    const snap = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/database/snapshots`,
+      headers: auth,
+      payload: { label: 'before migration' },
+    });
+    expect(snap.statusCode).toBe(202);
+    expect(snap.json().snapshot.kind).toBe('manual');
+    expect(await store.listDatabaseSnapshots(instance!.id)).toHaveLength(1);
+  });
 });

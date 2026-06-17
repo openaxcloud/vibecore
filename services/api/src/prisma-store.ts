@@ -1683,6 +1683,111 @@ export class PrismaApiStore implements ApiStore {
     return mapDatabaseRestore(row);
   }
 
+  async createDatabaseInstance(input: {
+    projectId: string;
+    organizationId: string;
+    retentionDays: number;
+    region?: string;
+  }): Promise<DatabaseInstanceRecord> {
+    const row = await this.prisma.databaseInstance.create({
+      data: {
+        projectId: input.projectId,
+        organizationId: input.organizationId,
+        retentionDays: input.retentionDays,
+        region: input.region ?? null,
+        pitrEnabled: input.retentionDays > 0,
+      },
+    });
+
+    return mapDatabaseInstance(row);
+  }
+
+  async updateDatabaseInstance(
+    id: string,
+    patch: Partial<Pick<DatabaseInstanceRecord, 'status' | 'sizeBytes' | 'pitrEnabled' | 'region'>>,
+  ): Promise<DatabaseInstanceRecord | undefined> {
+    const row = await this.prisma.databaseInstance
+      .update({
+        where: { id },
+        data: {
+          status: patch.status,
+          sizeBytes: patch.sizeBytes === undefined ? undefined : BigInt(patch.sizeBytes),
+          pitrEnabled: patch.pitrEnabled,
+          region: patch.region,
+        },
+      })
+      .catch(() => undefined);
+
+    return row ? mapDatabaseInstance(row) : undefined;
+  }
+
+  async createDatabaseSnapshot(input: {
+    databaseInstanceId: string;
+    kind: 'auto' | 'manual';
+    label?: string;
+    createdByUserId?: string;
+    expiresAt?: string;
+  }): Promise<DatabaseSnapshotRecord> {
+    const row = await this.prisma.databaseSnapshot.create({
+      data: {
+        databaseInstanceId: input.databaseInstanceId,
+        kind: input.kind,
+        label: input.label ?? null,
+        createdByUserId: input.createdByUserId ?? null,
+        expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+      },
+    });
+
+    return mapDatabaseSnapshot(row);
+  }
+
+  async pruneExpiredDatabaseSnapshots(nowMs: number): Promise<number> {
+    const result = await this.prisma.databaseSnapshot.deleteMany({
+      where: { expiresAt: { not: null, lt: new Date(nowMs) } },
+    });
+
+    return result.count;
+  }
+
+  async updateDatabaseRestore(
+    id: string,
+    patch: Partial<Pick<DatabaseRestoreRecord, 'status' | 'error' | 'startedAt' | 'completedAt'>>,
+  ): Promise<DatabaseRestoreRecord | undefined> {
+    const row = await this.prisma.databaseRestore
+      .update({
+        where: { id },
+        data: {
+          status: patch.status,
+          error: patch.error,
+          startedAt: patch.startedAt ? new Date(patch.startedAt) : undefined,
+          completedAt: patch.completedAt ? new Date(patch.completedAt) : undefined,
+        },
+      })
+      .catch(() => undefined);
+
+    return row ? mapDatabaseRestore(row) : undefined;
+  }
+
+  async listActiveDatabaseInstances(take = 500): Promise<DatabaseInstanceRecord[]> {
+    const rows = await this.prisma.databaseInstance.findMany({
+      where: { status: 'ACTIVE' },
+      orderBy: { createdAt: 'asc' },
+      take,
+    });
+
+    return rows.map(mapDatabaseInstance);
+  }
+
+  async listPendingDatabaseRestores(take = 100): Promise<DatabaseRestoreRecord[]> {
+    const rows = await this.prisma.databaseRestore.findMany({
+      where: { status: { in: ['PENDING', 'RUNNING'] } },
+      orderBy: { createdAt: 'asc' },
+      take,
+    });
+
+    return rows.map(mapDatabaseRestore);
+  }
+
   async createDeployment(input: {
     projectId: string;
     workspaceId?: string;

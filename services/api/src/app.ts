@@ -161,6 +161,7 @@ import {
   isDatabaseRollbackEnabled,
   validateRestoreTarget,
 } from './database-rollback-service.js';
+import { clusterName, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
   filesFromZip,
@@ -17963,6 +17964,68 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { kind: 'object-storage-sweep', shadow, result };
   });
 
+  /**
+   * Database point-in-time rollback maintenance (Phase 2 executor). Daily cron:
+   * prune expired snapshots, take an automatic daily snapshot per active
+   * instance, and advance in-flight restores to COMPLETED when their recovery
+   * cluster is healthy. Entirely inert while DB_ROLLBACK_ENABLED is off (the
+   * provisioner is a Noop and no instances exist). Auth = internal secret.
+   */
+  app.post('/internal/database-maintenance', async (request) => {
+    requireInternalSecret(request);
+
+    if (!isDatabaseRollbackEnabled()) {
+      return { skipped: true, reason: 'DB_ROLLBACK_ENABLED is off' };
+    }
+
+    const provisioner = resolveDefaultDatabaseProvisioner();
+    const nowMs = Date.now();
+    const pruned = await store.pruneExpiredDatabaseSnapshots(nowMs).catch(() => 0);
+    const instances = await store.listActiveDatabaseInstances().catch(() => []);
+    let snapshotted = 0;
+    let restoresAdvanced = 0;
+
+    for (const instance of instances) {
+      // Daily automatic snapshot, retained for the plan window.
+      const expiresAt = new Date(nowMs + Math.max(1, instance.retentionDays) * 24 * 60 * 60 * 1000).toISOString();
+      const snapshot = await store
+        .createDatabaseSnapshot({ databaseInstanceId: instance.id, kind: 'auto', expiresAt })
+        .catch(() => undefined);
+
+      if (snapshot) {
+        snapshotted += 1;
+
+        if (provisioner.active) {
+          await provisioner.takeSnapshot({ projectId: instance.projectId, snapshotId: snapshot.id }).catch(() => {});
+        }
+      }
+
+      // Advance this instance's in-flight restores.
+      const restores = (await store.listDatabaseRestores(instance.id).catch(() => [])).filter(
+        (restore) => restore.status === 'PENDING' || restore.status === 'RUNNING',
+      );
+
+      for (const restore of restores) {
+        if (!provisioner.active) {
+          continue;
+        }
+
+        const progress = await provisioner
+          .restoreProgress({ projectId: instance.projectId, restoreId: restore.id })
+          .catch(() => ({ ready: false }));
+
+        if (progress.ready) {
+          await store
+            .updateDatabaseRestore(restore.id, { status: 'COMPLETED', completedAt: new Date().toISOString() })
+            .catch(() => {});
+          restoresAdvanced += 1;
+        }
+      }
+    }
+
+    return { skipped: false, pruned, snapshotted, restoresAdvanced, instances: instances.length };
+  });
+
   /*
    * ===== Replit-parity moderation strikes (P8 — see docs/REPLIT_PARITY_SPEC.md
    * §16.5 and ./strike-system.ts) =====
@@ -18995,7 +19058,98 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       requestedByUserId: request.currentUser?.id,
     });
 
+    // Kick off the recovery cluster (no-op while dormant). The worker
+    // `database.maintenance` job polls it to COMPLETED/FAILED. Best-effort:
+    // failure here just leaves the restore PENDING for the worker to retry.
+    const provisioner = resolveDefaultDatabaseProvisioner();
+
+    if (provisioner.active) {
+      await provisioner
+        .startRestore({
+          projectId: project.id,
+          organizationId: project.organizationId,
+          restoreId: restore.id,
+          targetTimeIso: new Date(targetTimestampMs).toISOString(),
+          retentionDays: entitlement.retentionDays,
+        })
+        .then(() => store.updateDatabaseRestore(restore.id, { status: 'RUNNING', startedAt: new Date().toISOString() }))
+        .catch((error) => request.log?.warn?.({ err: error }, 'restore kickoff failed (non-fatal)'));
+    }
+
     return reply.code(202).send({ restore });
+  });
+
+  /**
+   * Provision a project's managed database (Phase 2). Dormant: while
+   * DB_ROLLBACK_ENABLED is off the provisioner is a Noop and this just 404s.
+   */
+  app.post('/projects/:projectId/database/provision', async (request, reply) => {
+    if (!isDatabaseRollbackEnabled()) {
+      return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    const existing = await store.getDatabaseInstanceByProject(project.id);
+
+    if (existing) {
+      return { instance: existing, created: false };
+    }
+
+    const state = await billingState(project.organizationId).catch(() => undefined);
+    const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
+    const instance = await store.createDatabaseInstance({
+      projectId: project.id,
+      organizationId: project.organizationId,
+      retentionDays: entitlement.retentionDays,
+    });
+
+    const provisioner = resolveDefaultDatabaseProvisioner();
+
+    if (provisioner.active) {
+      await provisioner
+        .provisionInstance({
+          projectId: project.id,
+          organizationId: project.organizationId,
+          retentionDays: entitlement.retentionDays,
+        })
+        .catch((error) => request.log?.warn?.({ err: error }, 'db provision kickoff failed (non-fatal)'));
+    }
+
+    return reply.code(202).send({ instance, created: true, clusterName: clusterName(project.id) });
+  });
+
+  /** Take a manual snapshot of a project's database (Phase 2, dormant). */
+  app.post('/projects/:projectId/database/snapshots', async (request, reply) => {
+    if (!isDatabaseRollbackEnabled()) {
+      return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    const instance = await store.getDatabaseInstanceByProject(project.id);
+
+    if (!instance) {
+      return reply.code(409).send({ error: 'No database for this project', code: 'NO_DATABASE' });
+    }
+
+    const body = parse(z.object({ label: z.string().max(200).optional() }), request.body ?? {});
+    const expiresAt = new Date(Date.now() + Math.max(1, instance.retentionDays) * 24 * 60 * 60 * 1000).toISOString();
+    const snapshot = await store.createDatabaseSnapshot({
+      databaseInstanceId: instance.id,
+      kind: 'manual',
+      label: body.label,
+      createdByUserId: request.currentUser?.id,
+      expiresAt,
+    });
+
+    const provisioner = resolveDefaultDatabaseProvisioner();
+
+    if (provisioner.active) {
+      await provisioner
+        .takeSnapshot({ projectId: project.id, snapshotId: snapshot.id })
+        .catch((error) => request.log?.warn?.({ err: error }, 'db snapshot kickoff failed (non-fatal)'));
+    }
+
+    return reply.code(202).send({ snapshot });
   });
 
   app.post('/projects/:projectId/deployments', async (request, reply) => {

@@ -49,6 +49,11 @@
       "schedule" "15 2 * * *"
       "queue" "enterprise-jobs"
       "job" "metering.objectStorage")
+    "databaseMaintenance" (dict
+      "enabled" true
+      "schedule" "30 2 * * *"
+      "queue" "enterprise-jobs"
+      "job" "database.maintenance")
 -}}
 {{- $merged := mustMergeOverwrite (deepCopy $defaults) $cronjobs -}}
 {{- $workerImageTag := default .Values.global.imageTag .Values.services.worker.imageTag -}}

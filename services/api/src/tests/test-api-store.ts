@@ -1228,6 +1228,108 @@ export class TestApiStore implements ApiStore {
     return restore;
   }
 
+  async createDatabaseInstance(input: {
+    projectId: string;
+    organizationId: string;
+    retentionDays: number;
+    region?: string;
+  }) {
+    const instance: DatabaseInstanceRecord = {
+      id: id('database_instance'),
+      projectId: input.projectId,
+      organizationId: input.organizationId,
+      status: 'PROVISIONING',
+      engine: 'postgres',
+      region: input.region,
+      sizeBytes: 0,
+      retentionDays: input.retentionDays,
+      pitrEnabled: input.retentionDays > 0,
+      createdAt: now(),
+      updatedAt: now(),
+    };
+    this.databaseInstances.set(instance.id, instance);
+
+    return instance;
+  }
+
+  async updateDatabaseInstance(
+    instanceId: string,
+    patch: Partial<Pick<DatabaseInstanceRecord, 'status' | 'sizeBytes' | 'pitrEnabled' | 'region'>>,
+  ) {
+    const instance = this.databaseInstances.get(instanceId);
+
+    if (!instance) {
+      return undefined;
+    }
+
+    const updated: DatabaseInstanceRecord = { ...instance, ...patch, updatedAt: now() };
+    this.databaseInstances.set(instanceId, updated);
+
+    return updated;
+  }
+
+  async createDatabaseSnapshot(input: {
+    databaseInstanceId: string;
+    kind: 'auto' | 'manual';
+    label?: string;
+    createdByUserId?: string;
+    expiresAt?: string;
+  }) {
+    const snapshot: DatabaseSnapshotRecord = {
+      id: id('database_snapshot'),
+      databaseInstanceId: input.databaseInstanceId,
+      kind: input.kind,
+      label: input.label,
+      sizeBytes: 0,
+      createdByUserId: input.createdByUserId,
+      createdAt: now(),
+      expiresAt: input.expiresAt,
+    };
+    this.databaseSnapshots.set(snapshot.id, snapshot);
+
+    return snapshot;
+  }
+
+  async pruneExpiredDatabaseSnapshots(nowMs: number) {
+    let pruned = 0;
+
+    for (const [key, snapshot] of this.databaseSnapshots) {
+      if (snapshot.expiresAt && new Date(snapshot.expiresAt).getTime() < nowMs) {
+        this.databaseSnapshots.delete(key);
+        pruned += 1;
+      }
+    }
+
+    return pruned;
+  }
+
+  async updateDatabaseRestore(
+    restoreId: string,
+    patch: Partial<Pick<DatabaseRestoreRecord, 'status' | 'error' | 'startedAt' | 'completedAt'>>,
+  ) {
+    const restore = this.databaseRestores.get(restoreId);
+
+    if (!restore) {
+      return undefined;
+    }
+
+    const updated: DatabaseRestoreRecord = { ...restore, ...patch };
+    this.databaseRestores.set(restoreId, updated);
+
+    return updated;
+  }
+
+  async listActiveDatabaseInstances(take = 500) {
+    return [...this.databaseInstances.values()].filter((i) => i.status === 'ACTIVE').slice(0, take);
+  }
+
+  async listPendingDatabaseRestores(take = 100) {
+    return [...this.databaseRestores.values()]
+      .filter((r) => r.status === 'PENDING' || r.status === 'RUNNING')
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      .slice(0, take);
+  }
+
   async createDeployment(input: {
     projectId: string;
     workspaceId?: string;

@@ -1073,6 +1073,35 @@ export interface ApiStore {
     targetTimestamp?: string;
     requestedByUserId?: string;
   }): Promise<DatabaseRestoreRecord>;
+  /**
+   * Phase-2 provisioning lifecycle (dormant behind DB_ROLLBACK_ENABLED). Create
+   * the per-project instance row, transition its status, record snapshots, prune
+   * expired ones, and drive restore state. See database-provisioner.ts.
+   */
+  createDatabaseInstance(input: {
+    projectId: string;
+    organizationId: string;
+    retentionDays: number;
+    region?: string;
+  }): Promise<DatabaseInstanceRecord>;
+  updateDatabaseInstance(
+    id: string,
+    patch: Partial<Pick<DatabaseInstanceRecord, 'status' | 'sizeBytes' | 'pitrEnabled' | 'region'>>,
+  ): Promise<DatabaseInstanceRecord | undefined>;
+  createDatabaseSnapshot(input: {
+    databaseInstanceId: string;
+    kind: 'auto' | 'manual';
+    label?: string;
+    createdByUserId?: string;
+    expiresAt?: string;
+  }): Promise<DatabaseSnapshotRecord>;
+  pruneExpiredDatabaseSnapshots(nowMs: number): Promise<number>;
+  updateDatabaseRestore(
+    id: string,
+    patch: Partial<Pick<DatabaseRestoreRecord, 'status' | 'error' | 'startedAt' | 'completedAt'>>,
+  ): Promise<DatabaseRestoreRecord | undefined>;
+  listActiveDatabaseInstances(take?: number): Promise<DatabaseInstanceRecord[]>;
+  listPendingDatabaseRestores(take?: number): Promise<DatabaseRestoreRecord[]>;
   createDeployment(input: {
     projectId: string;
     workspaceId?: string;

@@ -320,6 +320,39 @@ export async function triggerObjectStorageMetering(jobData: Record<string, unkno
   return result as Record<string, unknown>;
 }
 
+/**
+ * Database point-in-time rollback maintenance trigger (Phase 2) — POSTs to the
+ * api's internal /internal/database-maintenance which prunes expired snapshots,
+ * takes daily auto snapshots, and advances in-flight restores. Inert while
+ * DB_ROLLBACK_ENABLED is off (the api returns skipped:true). Auth = internal secret.
+ */
+export async function triggerDatabaseMaintenance(jobData: Record<string, unknown> = {}) {
+  const baseUrl = process.env.API_INTERNAL_URL ?? process.env.API_URL;
+  if (!baseUrl) {
+    throw new Error('API_INTERNAL_URL (or API_URL) is required to trigger database.maintenance');
+  }
+
+  const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
+
+  const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/internal/database-maintenance`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+    },
+    body: JSON.stringify(jobData ?? {}),
+    signal: AbortSignal.timeout(120_000),
+  });
+
+  if (!response.ok) {
+    await response.body?.cancel().catch(() => {});
+    throw new Error(`database.maintenance upstream failed: ${response.status}`);
+  }
+
+  const result = await response.json().catch(() => ({}));
+  return result as Record<string, unknown>;
+}
+
 export function startWorkers() {
   const connection = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
     maxRetriesPerRequest: null,
@@ -375,6 +408,10 @@ export function startWorkers() {
 
       if (job.name === 'metering.objectStorage') {
         return await triggerObjectStorageMetering(job.data ?? {});
+      }
+
+      if (job.name === 'database.maintenance') {
+        return await triggerDatabaseMaintenance(job.data ?? {});
       }
 
       if (job.name === 'connector.healthcheck') {

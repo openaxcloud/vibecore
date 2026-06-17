@@ -284,6 +284,68 @@ export class CnpgProvisioner implements DatabaseProvisioner {
 }
 
 /**
+ * Real k8s port: the api pod has no cluster RBAC, so CNPG CRs are applied via the
+ * workspace-manager control plane (which does). Guarded by the shared manager
+ * secret. Only constructed when the feature is on; the manager route restricts
+ * kinds/namespace. All calls are bounded by a timeout.
+ */
+export class ManagerK8sPort implements K8sApplyPort {
+  constructor(
+    private readonly baseUrl: string,
+    private readonly secret?: string,
+  ) {}
+
+  private async call(method: string, path: string, body?: unknown): Promise<Response> {
+    return fetch(`${this.baseUrl.replace(/\/+$/, '')}${path}`, {
+      method,
+      headers: {
+        'content-type': 'application/json',
+        ...(this.secret ? { authorization: `Bearer ${this.secret}` } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(30_000),
+    });
+  }
+
+  async apply(manifest: K8sManifest): Promise<void> {
+    const res = await this.call('POST', '/databases/apply', { manifest });
+    await res.body?.cancel().catch(() => {});
+
+    if (!res.ok) {
+      throw new Error(`manager apply failed: ${res.status}`);
+    }
+  }
+
+  async get(kind: string, namespace: string, name: string) {
+    const res = await this.call(
+      'GET',
+      `/databases/resource?kind=${encodeURIComponent(kind)}&namespace=${encodeURIComponent(namespace)}&name=${encodeURIComponent(name)}`,
+    );
+
+    if (res.status === 404) {
+      await res.body?.cancel().catch(() => {});
+
+      return undefined;
+    }
+
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => {});
+      throw new Error(`manager get failed: ${res.status}`);
+    }
+
+    return (await res.json().catch(() => undefined)) as { status?: Record<string, unknown> } | undefined;
+  }
+
+  async delete(kind: string, namespace: string, name: string): Promise<void> {
+    const res = await this.call(
+      'DELETE',
+      `/databases/resource?kind=${encodeURIComponent(kind)}&namespace=${encodeURIComponent(namespace)}&name=${encodeURIComponent(name)}`,
+    );
+    await res.body?.cancel().catch(() => {});
+  }
+}
+
+/**
  * Resolve the active provisioner. Returns the inert Noop unless the feature is
  * enabled AND a real k8s port + backup bucket are configured — so Phase-2 code
  * is a no-op (and free) until Avi flips `DB_ROLLBACK_ENABLED` and the operator
@@ -301,4 +363,13 @@ export function resolveDatabaseProvisioner(port?: K8sApplyPort): DatabaseProvisi
   }
 
   return new CnpgProvisioner(port, bucket);
+}
+
+/** Build the default env-wired provisioner (ManagerK8sPort → ws-manager). */
+export function resolveDefaultDatabaseProvisioner(): DatabaseProvisioner {
+  const managerUrl = process.env.WORKSPACE_MANAGER_URL?.trim();
+  const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+  const port = managerUrl ? new ManagerK8sPort(managerUrl, secret) : undefined;
+
+  return resolveDatabaseProvisioner(port);
 }
