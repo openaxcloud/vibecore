@@ -1,0 +1,16 @@
+/*
+ * @vibecore/ecode-theme — aggregate entry.
+ *
+ * Single import that brings the whole e-code design system (fonts → tokens →
+ * typography) into any surface. Order matters: fonts first (defines the
+ * font-family vars), then tokens (colors/radius/spacing), then the type scale.
+ *
+ *   @import '@vibecore/ecode-theme/src/index.css';
+ *
+ * See docs/ECODE_THEME_SOURCE.md for provenance and packages/ecode-theme/preset.ts
+ * for the Tailwind/UnoCSS theme fragment.
+ */
+
+@import './fonts.css';
+@import './tokens.css';
+@import './typography.css';

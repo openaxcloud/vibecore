@@ -1,0 +1,107 @@
+/*
+ * @vibecore/ecode-theme — typography
+ *
+ * The e-code responsive type scale, ported from ~/dev/e-code's @apply-based
+ * utilities (client/src/index.css:727-754) into plain CSS + media queries so it
+ * works without Tailwind's @apply (VibeCore's app uses UnoCSS). Breakpoints
+ * match tailwind.config.ts: sm 640, lg 1024, xl 1280.
+ *
+ * px reference (xs→sm→lg→xl):
+ *   text-responsive-xs   11 → 13
+ *   text-responsive-sm   13 → 16
+ *   text-responsive-base 16 → 15
+ *   text-responsive-lg   15 → 20 → 24
+ *   text-responsive-xl   20 → 24 → 30
+ *   text-responsive-2xl  24 → 30 → 36 → 48
+ *   text-responsive-3xl  30 → 36 → 48 → 60
+ */
+
+.text-responsive-xs {
+  font-size: 11px;
+  line-height: 16px;
+}
+.text-responsive-sm {
+  font-size: 13px;
+  line-height: 18px;
+}
+.text-responsive-base {
+  font-size: 16px;
+  line-height: 24px;
+}
+.text-responsive-lg {
+  font-size: 15px;
+  line-height: 22px;
+}
+.text-responsive-xl {
+  font-size: 20px;
+  line-height: 28px;
+}
+.text-responsive-2xl {
+  font-size: 24px;
+  line-height: 32px;
+}
+.text-responsive-3xl {
+  font-size: 30px;
+  line-height: 36px;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-xs {
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .text-responsive-sm {
+    font-size: 16px;
+    line-height: 24px;
+  }
+  .text-responsive-base {
+    font-size: 15px;
+    line-height: 22px;
+  }
+  .text-responsive-lg {
+    font-size: 20px;
+    line-height: 28px;
+  }
+  .text-responsive-xl {
+    font-size: 24px;
+    line-height: 32px;
+  }
+  .text-responsive-2xl {
+    font-size: 30px;
+    line-height: 36px;
+  }
+  .text-responsive-3xl {
+    font-size: 36px;
+    line-height: 40px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-lg {
+    font-size: 24px;
+    line-height: 32px;
+  }
+  .text-responsive-xl {
+    font-size: 30px;
+    line-height: 36px;
+  }
+  .text-responsive-2xl {
+    font-size: 36px;
+    line-height: 40px;
+  }
+  .text-responsive-3xl {
+    font-size: 48px;
+    line-height: 1;
+  }
+}
+
+@media (min-width: 1280px) {
+  .text-responsive-2xl {
+    font-size: 48px;
+    line-height: 1;
+  }
+  .text-responsive-3xl {
+    font-size: 60px;
+    line-height: 1;
+  }
+}

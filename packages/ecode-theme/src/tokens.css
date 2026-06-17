@@ -1,0 +1,252 @@
+/*
+ * @vibecore/ecode-theme — design tokens (single source of truth)
+ *
+ * Extracted verbatim from the reference repo ~/dev/e-code
+ * (client/src/styles/replit-theme.css) — see docs/ECODE_THEME_SOURCE.md for
+ * full provenance. Pure CSS custom properties only (no @apply / framework
+ * directives) so this file works in ANY pipeline: UnoCSS (VibeCore app),
+ * Tailwind, or vanilla. Light = :root, dark = .dark, explicit light = .light.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* RUI foreground / background / accent / border / status */
+  --foreground-default: #1a1a1a;
+  --foreground-dimmer: #666666;
+  --foreground-dimmest: #999999;
+  --background-root: #ffffff;
+  --background-default: #f8f9fa;
+  --background-higher: #f0f1f3;
+  --background-highest: #e5e7eb;
+  --accent-default: #f26207;
+  --accent-dimmer: #d04e00;
+  --accent-dimmest: #ffe4d3;
+  --accent-stronger: #ff7a2b;
+  --border-default: #e0e0e0;
+  --border-dimmer: #f0f1f3;
+  --border-stronger: #c1c8cd;
+  --status-success: #22c55e;
+  --status-warning: #f59e0b;
+  --status-error: #ef4444;
+  --status-info: #3b82f6;
+
+  /* RUI shadows */
+  --shadow1: 0 1px 2px color-mix(in srgb, var(--foreground-default) 5%, transparent);
+  --shadow2: 0 2px 4px color-mix(in srgb, var(--foreground-default) 8%, transparent);
+  --shadow3: 0 4px 8px color-mix(in srgb, var(--foreground-default) 12%, transparent);
+  --shadow4: 0 8px 16px color-mix(in srgb, var(--foreground-default) 16%, transparent);
+
+  /* Tailwind/Uno HSL-channel design tokens (light) */
+  --background: 0 0% 99%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 24 96 49; /* E-Code Orange #F26207 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 39 96 56; /* E-Code Yellow-Orange #F99D25 */
+  --secondary-foreground: 0 0% 0%;
+  --muted: 210 17% 96%;
+  --muted-foreground: 215 16% 40%;
+  --accent: 39 96 56;
+  --accent-foreground: 0 0% 0%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214 32% 88%;
+  --input: 214 32% 90%;
+  --ring: 24 96 49;
+  --chart-1: 24 96 49;
+  --chart-2: 39 96 56;
+  --chart-3: 142 71% 45%;
+  --chart-4: 38 92% 50%;
+  --chart-5: 280 87% 65%;
+  --sidebar-background: 0 0% 98%;
+  --sidebar-foreground: 222 47% 11%;
+  --sidebar-primary: 24 96 49;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 39 96 56;
+  --sidebar-accent-foreground: 222 47% 11%;
+  --sidebar-border: 220 13% 88%;
+  --sidebar-ring: 24 96 49;
+  --background-rgb: 252, 252, 253;
+
+  /* E-Code corporate light palette */
+  --ecode-background: #ffffff;
+  --ecode-surface: #ffffff;
+  --ecode-surface-secondary: #ffffff;
+  --ecode-surface-tertiary: #f8f9fa;
+  --ecode-border: #e0e0e0;
+  --ecode-border-strong: #c1c8cd;
+  --ecode-text: #1a1a1a;
+  --ecode-text-secondary: #333333;
+  --ecode-text-muted: #666666;
+  --ecode-accent: #f26207; /* E-Code Orange */
+  --ecode-accent-hover: #d04e00;
+  --ecode-danger: 354 70% 54%;
+  --ecode-warning: 37 92% 50%;
+  --ecode-info: 219 91% 60%;
+  --ecode-green: 159 64% 39%;
+  --ecode-surface-hover: #f5f5f5;
+  --ecode-surface-elevated: #ffffff;
+  --ecode-blue: #3b82f6;
+  --ecode-purple: #7c3aed;
+  --ecode-orange: #f26207;
+  --ecode-orange-light: #ff7a2b;
+  --ecode-orange-tint: #ffe4d3;
+  --ecode-yellow: #f99d25;
+  --ecode-secondary-accent: #f99d25;
+  --ecode-red: #dc3545;
+  --ecode-sidebar-bg: #f7f8fa;
+  --ecode-sidebar-hover: #eef0f3;
+  --ecode-sidebar-active: #f26207;
+  --ecode-sidebar-border: #dfe3e8;
+
+  --ecode-button-primary: #f26207;
+  --ecode-button-primary-hover: #d04e00;
+  --ecode-button-secondary: #f7f8fa;
+  --ecode-button-secondary-hover: #eef0f3;
+
+  --ecode-shadow-sm: 0 1px 3px 0 color-mix(in srgb, var(--foreground-default) 10%, transparent);
+  --ecode-shadow-md: 0 4px 8px -2px color-mix(in srgb, var(--foreground-default) 10%, transparent);
+  --ecode-shadow-lg: 0 12px 24px -6px color-mix(in srgb, var(--foreground-default) 12%, transparent);
+
+  /* Spacing (Replit system) */
+  --ecode-space-1: 4px;
+  --ecode-space-2: 8px;
+  --ecode-space-3: 12px;
+  --ecode-space-4: 16px;
+  --ecode-space-5: 20px;
+  --ecode-space-6: 24px;
+  --ecode-space-8: 32px;
+  --ecode-space-10: 40px;
+  --ecode-space-12: 48px;
+
+  /* Border radius (Replit values) */
+  --ecode-radius-sm: 4px;
+  --ecode-radius-md: 8px;
+  --ecode-radius-lg: 12px;
+
+  /* Brand color channels (RGB triplets + hex) */
+  --ecode-primary: 242 98 7;
+  --ecode-primary-hex: #f26207;
+  --ecode-secondary: 249 157 37;
+  --ecode-secondary-hex: #f99d25;
+  --ecode-primary-dark: #d04e00;
+  --ecode-primary-light: #ff7a2b;
+  --ecode-secondary-dark: #e88510;
+  --ecode-secondary-light: #ffb64d;
+
+  /* Z-index layers */
+  --ecode-z-dropdown: 1000;
+  --ecode-z-modal: 1100;
+  --ecode-z-tooltip: 1200;
+  --ecode-z-notification: 1300;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --foreground-default: #f5f9fc;
+  --foreground-dimmer: #9ba3b3;
+  --foreground-dimmest: #6b7280;
+  --background-root: #0e1525;
+  --background-default: #1c2333;
+  --background-higher: #262c3b;
+  --background-highest: #313744;
+  --accent-default: #f26207;
+  --accent-dimmer: #d04e00;
+  --accent-dimmest: #7c2d12;
+  --accent-stronger: #ff7a2b;
+  --border-default: #313744;
+  --border-dimmer: #262c3b;
+  --border-stronger: #3a4358;
+  --status-success: #22c55e;
+  --status-warning: #f59e0b;
+  --status-error: #ef4444;
+  --status-info: #3b82f6;
+  --shadow1: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow2: 0 2px 4px rgba(0, 0, 0, 0.25);
+  --shadow3: 0 4px 8px rgba(0, 0, 0, 0.3);
+  --shadow4: 0 8px 16px rgba(0, 0, 0, 0.35);
+
+  --background: 221.7 45.1% 10%;
+  --foreground: 205.7 53.8% 97.5%;
+  --card: 221.7 29.1% 15.5%;
+  --card-foreground: 205.7 53.8% 97.5%;
+  --popover: 221.7 29.1% 15.5%;
+  --popover-foreground: 205.7 53.8% 97.5%;
+  --primary: 24 96 49;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 222.9 21.6% 19%;
+  --secondary-foreground: 205.7 53.8% 97.5%;
+  --muted: 222.9 21.6% 19%;
+  --muted-foreground: 220 13.6% 65.5%;
+  --accent: 222.9 21.6% 19%;
+  --accent-foreground: 205.7 53.8% 97.5%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 221.1 16.2% 22.9%;
+  --input: 221.1 16.2% 22.9%;
+  --ring: 24 96 49;
+  --chart-1: 24 96 49;
+  --chart-2: 160.1 84.1% 39.4%;
+  --chart-3: 24.6 95% 61%;
+  --chart-4: 258.3 89.5% 70.3%;
+  --chart-5: 0 84.2% 65.2%;
+  --sidebar-background: 221.7 29.1% 15.5%;
+  --sidebar-foreground: 205.7 53.8% 97.5%;
+  --sidebar-primary: 24 96 49;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-accent: 222.9 21.6% 19%;
+  --sidebar-accent-foreground: 205.7 53.8% 97.5%;
+  --sidebar-border: 221.1 16.2% 22.9%;
+  --sidebar-ring: 24 96 49;
+  --background-rgb: 14, 21, 37;
+
+  --ecode-background: #0e1525;
+  --ecode-surface: #1c2333;
+  --ecode-surface-secondary: #262c3b;
+  --ecode-border: #313744;
+  --ecode-border-strong: #3a4358;
+  --ecode-text: #f5f9fc;
+  --ecode-text-secondary: #9ba3b3;
+  --ecode-text-muted: #8b95a7;
+  --ecode-accent: #f26207;
+  --ecode-accent-hover: #ff7a2b;
+  --ecode-danger: 0 84% 60%;
+  --ecode-warning: 37 92% 50%;
+  --ecode-info: 199 89% 48%;
+  --ecode-green: 158 64% 52%;
+  --ecode-surface-hover: rgba(59, 130, 246, 0.16);
+  --ecode-surface-elevated: rgba(28, 35, 51, 0.92);
+  --ecode-blue: #3b82f6;
+  --ecode-purple: #a78bfa;
+  --ecode-orange: #fb923c;
+  --ecode-orange-light: #fdba74;
+  --ecode-orange-tint: #7c2d12;
+  --ecode-yellow: #fbbf24;
+  --ecode-secondary-accent: #fbbf24;
+  --ecode-red: #f87171;
+  --ecode-sidebar-bg: #1c2333;
+  --ecode-sidebar-hover: #262c3b;
+  --ecode-sidebar-active: #f26207;
+  --ecode-sidebar-border: #313744;
+
+  --ecode-button-primary: #f26207;
+  --ecode-button-primary-hover: #ff7a2b;
+  --ecode-button-secondary: #262c3b;
+  --ecode-button-secondary-hover: #313744;
+
+  --ecode-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --ecode-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --ecode-shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Explicit light selector (parity with e-code's .light compatibility block) */
+.light {
+  color-scheme: light;
+  --background: 0 0% 99%;
+  --foreground: 222 47% 11%;
+}

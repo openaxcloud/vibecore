@@ -1,0 +1,17 @@
+/*
+ * @vibecore/ecode-theme — fonts
+ *
+ * IBM Plex Sans (400/500/600/700) + IBM Plex Mono (400/500/600), the e-code
+ * typefaces. Provenance: ~/dev/e-code/client/index.html:21 (preload) +
+ * tailwind.config.ts:62-65. display=swap to avoid blocking first paint.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --ecode-font-sans:
+    'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
+    'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --ecode-font-mono:
+    'IBM Plex Mono', 'SF Mono', Monaco, 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
+}
