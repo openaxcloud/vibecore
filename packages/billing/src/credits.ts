@@ -40,6 +40,19 @@ export interface PlanCreditConfig {
 /**
  * Included-credit configuration per plan. Enterprise defaults to 0 and is
  * expected to be overridden per-contract via a QuotaOverride-style grant.
+ *
+ * Replit parity (sources, verified 2026-06-17):
+ *  - https://replit.com/pricing and https://docs.replit.com/billing/plans/starter-plan:
+ *    the Starter (free) plan grants **"Free daily Agent credits"** that **reset
+ *    daily** (no rollover), up to a monthly cap. Replit does NOT publish a
+ *    precise dollar figure for the Starter daily/monthly credit amount.
+ *  - The only published dollar anchor is **Core = "$25 of monthly credits"**
+ *    (modelled below as `core.monthlyCreditCents = 2500`), and Pro = $100/mo.
+ * So Starter mirrors the *model* exactly — `dailyCreditCents` + `rollover:false`
+ * (daily reset, no carryover) — and we set the amount to **25¢/day** (≈ $7.50/mo
+ * of daily credits, "enough to experiment but you hit limits quickly", which is
+ * how Replit describes the free tier). This is the official-closest value; if
+ * Replit later publishes an exact Starter figure, change ONLY this number.
  */
 export const planCreditConfig: Record<CreditPlanKey, PlanCreditConfig> = {
   starter: { monthlyCreditCents: 0, dailyCreditCents: 25, rollover: false },

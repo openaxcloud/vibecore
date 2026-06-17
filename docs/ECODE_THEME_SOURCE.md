@@ -195,6 +195,7 @@ homepage hero IBM Plex bold + orange `#F26207` + light pill badge; pricing/secur
 legal responsive type scale exact (`text-responsive-2xl` 24→30→36→48); app chrome
 (login/dashboard) IBM Plex; 0 console errors. The EcodeExactUi Badge/Card/Button
 components already mirror the cva specs above (rounded-full pills, `--ecode-border`
-cards, `--ecode-accent` focus). Remaining intentional divergence: code/mono font
-is JetBrains Mono in VibeCore vs IBM Plex Mono in the source (editor-font choice,
-pending Avi's call).
+cards, `--ecode-accent` focus). Mono font: **resolved (2026-06-17)** — VibeCore now
+uses **IBM Plex Mono** everywhere (editor, terminal, code blocks, `--vc-font-code`,
+the `@vibecore/editor` Monaco config, OG image), matching the source. IBM Plex Mono
+is loaded app-wide via the root `<head>` font link + the `index.scss` `@import`.

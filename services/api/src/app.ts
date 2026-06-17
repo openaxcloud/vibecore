@@ -4663,7 +4663,7 @@ function renderProjectHomepagePreviewSvg(input: {
   <rect x="178" y="444" width="210" height="36" rx="9" fill="url(#accent)"/>
   <text x="210" y="467" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="650">Open in E-code IDE</text>
   <rect x="744" y="292" width="314" height="196" rx="18" fill="#111827" stroke="#2B3245"/>
-  <text x="782" y="340" fill="#6E7681" font-family="JetBrains Mono, monospace" font-size="14">latest preview</text>
+  <text x="782" y="340" fill="#6E7681" font-family="IBM Plex Mono, monospace" font-size="14">latest preview</text>
   <text x="782" y="378" fill="#F5F9FC" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="650">${fileCount} files</text>
   <text x="782" y="410" fill="#C2C8CC" font-family="Inter, Arial, sans-serif" font-size="15">${sourceType}</text>
   <text x="782" y="442" fill="#6E7681" font-family="Inter, Arial, sans-serif" font-size="13">Updated ${updated}</text>

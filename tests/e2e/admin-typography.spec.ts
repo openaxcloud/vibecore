@@ -47,7 +47,7 @@ test('admin console applies the platform typography system', async ({ page }) =>
   });
 
   expect(typography.interfaceFont).toContain('Inter');
-  expect(typography.codeFont).toContain('JetBrains Mono');
+  expect(typography.codeFont).toContain('IBM Plex Mono');
   expect(typography.interfaceSize).toBe('13px');
   expect(typography.codeSize).toBe('13px');
   expect(typography.headingSize).toBe('15px');
@@ -58,7 +58,7 @@ test('admin console applies the platform typography system', async ({ page }) =>
   expect(Number.parseFloat(typography.bodyLineHeight)).toBeCloseTo(19.5, 1);
   expect(typography.headingSizeActual).toBe('15px');
   expect(typography.headingWeight).toBe('600');
-  expect(typography.codeFontActual).toContain('JetBrains Mono');
+  expect(typography.codeFontActual).toContain('IBM Plex Mono');
   expect(typography.codeSizeActual).toBe('13px');
   expect(typography.codeLigaturesActual).toContain('common-ligatures');
   expect(typography.labelSizeActual).toBe('11px');

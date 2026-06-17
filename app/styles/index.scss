@@ -10,7 +10,7 @@
 // IBM Plex Sans — the e-code marketing theme's typeface (matches the reference
 // e-code bundle). Loaded here so the in-repo SSR marketing pages render
 // pixel-identical to the e-code theme.
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 :root {
   --vc-mobile-visual-viewport-height: 100dvh;
@@ -394,7 +394,7 @@ html:has([data-ecode-static-shell]) body {
     sans-serif;
   --vc-font-sans: var(--vc-font-interface);
   --vc-font-code:
-    'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --vc-ide-font-mono: var(--vc-font-code);
   --vc-type-interface-size: 12px;
   --vc-type-interface-compact-size: 11px;
@@ -6803,7 +6803,7 @@ body :where(.lucide, svg[data-lucide]) {
   min-height: 18px;
   padding: 0 10px;
   color: var(--vc-ide-text-secondary);
-  font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 11px;
   line-height: 18px;
   white-space: pre-wrap;
@@ -12355,7 +12355,7 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 6px;
   background: var(--vc-ide-bg-app);
   color: var(--vc-ide-text-primary);
-  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: 'IBM Plex Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
   padding: 10px;
 }
@@ -12394,7 +12394,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-secret-row span {
   min-width: 0;
   overflow: hidden;
-  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: 'IBM Plex Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -12778,7 +12778,7 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 6px;
   background: var(--vc-ide-bg-app);
   color: var(--vc-ide-text-primary);
-  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: 'IBM Plex Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   padding: 8px;
   text-overflow: ellipsis;
@@ -12893,7 +12893,7 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 6px;
   background: var(--vc-ide-bg-app);
   color: var(--vc-ide-text-secondary);
-  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: 'IBM Plex Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   line-height: 1.55;
   padding: 10px;
@@ -12952,7 +12952,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-deploy-wizard textarea {
   min-height: 96px;
-  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: 'IBM Plex Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .bolt-project-deploy-wizard .bolt-project-checkbox-row {
@@ -21214,7 +21214,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   margin: 0;
   padding: 24px;
   color: var(--vc-public-code-text);
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
   line-height: 1.8;
 }
@@ -23234,7 +23234,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   background: var(--vc-public-hover-bg);
   padding: 12px;
   color: var(--vc-public-trust-text);
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
 }
 

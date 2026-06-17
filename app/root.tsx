@@ -62,8 +62,14 @@ export const links: LinksFunction = () => [
     crossOrigin: 'anonymous',
   },
   {
+    /*
+     * E-Code design system fonts for the whole app: IBM Plex Sans (interface)
+     * + IBM Plex Mono (editor / terminal / code blocks). Replaces the legacy
+     * Inter + JetBrains Mono load so the IDE mono matches the e-code theme
+     * (see packages/ecode-theme + --vc-font-code in app/styles/index.scss).
+     */
     rel: 'stylesheet',
-    href: 'https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=JetBrains+Mono:wght@400..700&display=swap',
+    href: 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap',
   },
 ];
 

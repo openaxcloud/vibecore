@@ -87,6 +87,14 @@ describe('planCreditConfig', () => {
     expect(planCreditConfig.core.monthlyCreditCents).toBe(2500);
     expect(planCreditConfig.pro.monthlyCreditCents).toBe(10_000);
   });
+
+  // Replit publishes no precise Starter $ figure (official wording: "Free daily
+  // Agent credits", daily reset, no rollover); Core=$25/mo is the only anchor.
+  // 25¢/day is our documented official-closest default — lock it so any change
+  // is deliberate (see the provenance note on planCreditConfig).
+  it('pins the documented Starter daily credit amount (25 cents/day)', () => {
+    expect(planCreditConfig.starter.dailyCreditCents).toBe(25);
+  });
 });
 
 describe('sumLedgerCents', () => {

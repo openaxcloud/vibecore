@@ -1171,7 +1171,7 @@ test('platform typography tokens apply to the web IDE', async ({ page, isMobile 
   });
 
   expect(typography.interfaceFont).toContain('Inter');
-  expect(typography.codeFont).toContain('JetBrains Mono');
+  expect(typography.codeFont).toContain('IBM Plex Mono');
   expect(typography.interfaceSize).toBe('12px');
   expect(typography.codeSize).toBe('12px');
   expect(typography.headingSize).toBe('14px');
@@ -1185,7 +1185,7 @@ test('platform typography tokens apply to the web IDE', async ({ page, isMobile 
   expect(typography.labelSizeActual).toBe('12px');
   expect(typography.labelWeight).toBe('500');
   expect(['normal', '0.4px']).toContain(typography.labelTrackingActual);
-  expect(typography.codeFontActual).toContain('JetBrains Mono');
+  expect(typography.codeFontActual).toContain('IBM Plex Mono');
   expect(typography.codeSizeActual).toBe('12px');
   expect(typography.codeLigaturesActual).toContain('common-ligatures');
 });

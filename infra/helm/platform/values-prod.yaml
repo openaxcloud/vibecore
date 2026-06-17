@@ -58,6 +58,12 @@ secrets:
     OPENAI_API_KEY: vibecore-prod-openai-api-key
     ANTHROPIC_API_KEY: vibecore-prod-anthropic-api-key
     GOOGLE_GEMINI_API_KEY: vibecore-prod-google-gemini-api-key
+    # Same Google key under the env name the web LLM provider expects
+    # (app/lib/modules/llm/providers/google.ts `apiTokenKey`). The ai-gateway
+    # reads GOOGLE_GEMINI_API_KEY; the web direct-provider path + the managed
+    # selector trim read GOOGLE_GENERATIVE_AI_API_KEY. Point both at the one
+    # secret so every code path resolves Google. (Same value, no new secret.)
+    GOOGLE_GENERATIVE_AI_API_KEY: vibecore-prod-google-gemini-api-key
     XAI_API_KEY: vibecore-prod-xai-api-key
     MOONSHOT_API_KEY: vibecore-prod-moonshot-api-key
     STRIPE_SECRET_KEY: vibecore-prod-stripe-secret-key

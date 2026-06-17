@@ -789,7 +789,7 @@ export function DesktopCodeEditor({
         automaticLayout: true,
         minimap: getEditorMinimapOptions({ largeFile, minimapEnabled }),
         fontSize: 13,
-        fontFamily: '"JetBrains Mono", "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace',
+        fontFamily: '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
         fontLigatures: !largeFile,
         tabSize: 2,
         wordWrap: largeFile ? 'off' : 'on',
@@ -1122,7 +1122,7 @@ function codeMirrorExtensions(
       },
       '.cm-scroller': {
         fontFamily:
-          '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+          '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
         fontVariantLigatures: 'contextual common-ligatures',
         fontFeatureSettings: '"liga" 1, "calt" 1',
         overscrollBehavior: 'contain',

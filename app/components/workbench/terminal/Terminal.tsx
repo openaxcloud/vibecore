@@ -52,8 +52,7 @@ export const Terminal = memo(
           convertEol: true,
           disableStdin: readonly,
           theme: getTerminalTheme(readonly ? { cursor: '#00000000' } : {}),
-          fontFamily:
-            '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+          fontFamily: '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
           fontSize: 13,
           allowProposedApi: true,
           scrollback: 1000,
