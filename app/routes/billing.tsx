@@ -101,6 +101,29 @@ export async function action({ request }: EnterpriseActionArgs) {
   const form = await request.formData();
   const intent = String(form.get('intent') ?? 'checkout');
 
+  if (intent === 'set-limits') {
+    // Pay-as-you-go spend cap (Usage Limit). Empty = no cap; "0.01" restricts to credits.
+    const raw = String(form.get('budgetCapDollars') ?? '').trim();
+    const budgetCapCents = raw === '' ? null : Math.round(Number(raw) * 100);
+
+    if (budgetCapCents != null && (!Number.isFinite(budgetCapCents) || budgetCapCents < 0)) {
+      return json({ error: 'Enter a valid spend limit in dollars (or leave blank for no cap).' }, { status: 400 });
+    }
+
+    try {
+      await apiRequest(request, `/orgs/${organization.id}/credits/limits`, {
+        method: 'POST',
+        body: JSON.stringify({ budgetCapCents }),
+      });
+      return json({ ok: 'Spend limit updated.' });
+    } catch (error) {
+      const message = isApiResponse(error)
+        ? await apiErrorMessage(error, 'Could not update the spend limit.')
+        : 'Could not update the spend limit. Please try again.';
+      return json({ error: message }, { status: isApiResponse(error) ? error.status : 503 });
+    }
+  }
+
   if (intent === 'portal') {
     try {
       const result = await apiRequest<{ portalUrl: string }>(request, `/orgs/${organization.id}/billing/portal`, {
@@ -178,7 +201,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 
 export default function BillingPage() {
   const { billing, credits, billingAccessLimited } = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+  const actionData = useActionData<typeof action>() as { error?: string; ok?: string } | undefined;
 
   /*
    * Disable every checkout/portal button while any submission is in flight so a
@@ -279,6 +302,35 @@ export default function BillingPage() {
               },
             ]}
           />
+          <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+            <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Spend limit (pay-as-you-go)</h3>
+            <p className="mb-3 text-xs text-bolt-elements-textSecondary">
+              Cap usage-based spend beyond your included credits. Leave blank for no cap; set $0.01 to restrict to
+              credits only. Org limits are set in $500 increments.
+            </p>
+            {actionData?.ok ? (
+              <div className="mb-3 rounded-md border border-green-500/30 bg-green-500/10 p-2 text-xs text-green-300">
+                {actionData.ok}
+              </div>
+            ) : null}
+            <Form method="post" className="flex flex-wrap items-center gap-2">
+              <input type="hidden" name="intent" value="set-limits" />
+              <span className="text-sm text-bolt-elements-textSecondary">$</span>
+              <input
+                type="number"
+                name="budgetCapDollars"
+                min="0"
+                step="0.01"
+                defaultValue={credits.budgetCapCents != null ? (credits.budgetCapCents / 100).toString() : ''}
+                placeholder="No cap"
+                aria-label="Spend limit in dollars"
+                className="w-32 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-1.5 text-sm text-bolt-elements-textPrimary"
+              />
+              <Button type="submit" variant="outline" disabled={submitting}>
+                {submitting && navigation.formData?.get('intent') === 'set-limits' ? 'Saving…' : 'Save limit'}
+              </Button>
+            </Form>
+          </div>
           <div className="mt-4">
             <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Recent agent checkpoints</h3>
             <ActivityList

@@ -16197,6 +16197,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
 
+  /*
+   * Spend guard-rails (Replit "Usage Limit" + "Service Shutdown Limit"). Org
+   * budgets are set in $500 increments; $0.01 effectively restricts spend to
+   * purchased credits only; null clears a limit. Requires billing:manage.
+   */
+  app.post('/orgs/:orgId/credits/limits', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'billing:manage');
+
+    const body = parse(
+      z.object({
+        budgetCapCents: z.number().int().min(0).nullable().optional(),
+        serviceShutdownCents: z.number().int().min(0).nullable().optional(),
+      }),
+      request.body ?? {},
+    );
+
+    const FIVE_HUNDRED = 50_000;
+    const validIncrement = (cents: number | null | undefined) =>
+      cents == null || cents === 1 || cents % FIVE_HUNDRED === 0;
+
+    if (!validIncrement(body.budgetCapCents) || !validIncrement(body.serviceShutdownCents)) {
+      throw Object.assign(new Error('Spend limits must be set in $500 increments (or $0.01 to cap at credits).'), {
+        statusCode: 400,
+        code: 'SPEND_LIMIT_INCREMENT',
+      });
+    }
+
+    const wallet = await store.updateCreditWalletSettings({
+      organizationId: orgId,
+      budgetCapCents: body.budgetCapCents,
+      serviceShutdownCents: body.serviceShutdownCents,
+    });
+    await audit(request, store, {
+      organizationId: orgId,
+      action: 'credits.limits.update',
+      resourceType: 'wallet',
+      resourceId: orgId,
+      metadata: { budgetCapCents: wallet.budgetCapCents, serviceShutdownCents: wallet.serviceShutdownCents },
+    });
+
+    return { budgetCapCents: wallet.budgetCapCents ?? null, serviceShutdownCents: wallet.serviceShutdownCents ?? null };
+  });
+
   app.post('/orgs/:orgId/billing/checkout', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(billingCheckoutSchema, request.body);
