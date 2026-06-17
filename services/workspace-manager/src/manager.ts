@@ -34,6 +34,10 @@ export interface WorkspaceRecord {
   agentTokenSecretName: string;
   createdAt: string;
   lastActiveAt: string;
+  // Last time this runtime's active compute was metered to billing (P4). The GC
+  // meters the window from here (or createdAt) to lastActiveAt on stop, then
+  // advances it — idempotent across restarts. Undefined until first metered.
+  lastMeteredAt?: string;
   error?: string;
 }
 
@@ -137,6 +141,53 @@ export interface StartWorkspaceInput {
     storageGb?: number;
   };
   storageClassName?: string;
+}
+
+/*
+ * Per-plan reserved compute used for runtime metering (P4). Mirrors the request
+ * tier in packages/k8s-client planResources (free 250m/512Mi, pro 500m/1Gi, team
+ * 750m/1.5Gi, enterprise 1/2Gi) expressed as millicores / MB. Metering the
+ * reserved request (what's allocated for the active window) is the conservative,
+ * deterministic choice; the api turns this into Replit compute units.
+ */
+const PLAN_METER_COMPUTE: Record<WorkspacePlan, { cpuMillicores: number; ramMb: number }> = {
+  free: { cpuMillicores: 250, ramMb: 512 },
+  pro: { cpuMillicores: 500, ramMb: 1024 },
+  team: { cpuMillicores: 750, ramMb: 1536 },
+  enterprise: { cpuMillicores: 1000, ramMb: 2048 },
+};
+
+/*
+ * Best-effort POST of a workspace-compute metering event to the api's internal
+ * ingest. Never throws — metering must not break GC. Returns true on a 2xx.
+ */
+async function postWorkspaceComputeMetering(body: {
+  organizationId: string;
+  projectId: string;
+  cpuMillicores: number;
+  ramMb: number;
+  seconds: number;
+}): Promise<boolean> {
+  const baseUrl = process.env.API_INTERNAL_URL ?? process.env.API_URL;
+  const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
+  if (!baseUrl) {
+    return false;
+  }
+  try {
+    const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/internal/metering`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+      },
+      body: JSON.stringify({ kind: 'compute', ...body }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    await response.body?.cancel().catch(() => {});
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 export class WorkspaceManager {
@@ -467,12 +518,16 @@ export class WorkspaceManager {
           const pod = await this.k8s.getPod(namespace, workspace.podName);
 
           if (!pod) {
+            // The pod died externally; meter the runtime it consumed before reconciling.
+            await this.#meterRuntimeOnStop(workspace);
             await this.stopWorkspace(namespace, workspace.id, guard);
             continue;
           }
         }
 
         if (workspace.status === 'RUNNING' && inactiveFor > inactiveMs) {
+          // Meter the active runtime window (marker→lastActiveAt) before stopping.
+          await this.#meterRuntimeOnStop(workspace);
           await this.stopWorkspace(namespace, workspace.id, guard);
         } else if (workspace.status === 'STOPPED' && inactiveFor > deleteMs) {
           await this.deleteWorkspace(namespace, workspace.id, guard);
@@ -490,6 +545,46 @@ export class WorkspaceManager {
       } catch (error) {
         console.error('workspace garbage-collection failed', { workspaceId: snapshot.id, error });
       }
+    }
+  }
+
+  /*
+   * Meter the active-runtime window for a workspace about to be stopped (P4):
+   * from the last-metered marker (or createdAt) up to lastActiveAt, at the plan's
+   * reserved compute. Best-effort — failures never abort GC — and idempotent: the
+   * marker only advances on a successful ingest, so a failed post just re-meters
+   * the same window next time rather than double-charging.
+   */
+  async #meterRuntimeOnStop(workspace: WorkspaceRecord): Promise<void> {
+    try {
+      const startMs = workspace.lastMeteredAt
+        ? new Date(workspace.lastMeteredAt).getTime()
+        : new Date(workspace.createdAt).getTime();
+      const endMs = new Date(workspace.lastActiveAt).getTime();
+      if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
+        return;
+      }
+      const seconds = Math.max(0, Math.floor((endMs - startMs) / 1000));
+      if (seconds < 1) {
+        return;
+      }
+
+      const compute = PLAN_METER_COMPUTE[workspace.plan] ?? PLAN_METER_COMPUTE.free;
+      const ok = await postWorkspaceComputeMetering({
+        organizationId: workspace.orgId,
+        projectId: workspace.projectId,
+        cpuMillicores: compute.cpuMillicores,
+        ramMb: compute.ramMb,
+        seconds,
+      });
+
+      if (ok) {
+        await this.store
+          .update(workspace.id, { lastMeteredAt: new Date(endMs).toISOString() })
+          .catch(() => {});
+      }
+    } catch {
+      // metering must never break GC
     }
   }
 

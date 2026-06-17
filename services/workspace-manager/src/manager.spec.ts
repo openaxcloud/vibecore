@@ -1,6 +1,6 @@
 import type { K8sObject, WorkspaceK8sClient } from '@vibecore/k8s-client';
 import type { WorkspaceEvent } from '@vibecore/workspace-sdk';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WorkspaceManager, type EventBus, type WorkspaceRecord, type WorkspaceStore } from './manager.js';
 
 class TestWorkspaceK8sClient implements WorkspaceK8sClient {
@@ -235,6 +235,68 @@ describe('WorkspaceManager', () => {
     expect((await store.get(input.workspaceId))?.status).toBe('DELETED');
     expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(false);
     expect(k8s.objects.has('workspaces:PersistentVolumeClaim:pvc-workspace_1')).toBe(false);
+  });
+
+  it('meters the active runtime window to the api when GC stops a RUNNING workspace (P4)', async () => {
+    const prevFetch = globalThis.fetch;
+    const prevApi = process.env.API_URL;
+    const prevSecret = process.env.INTERNAL_API_SHARED_SECRET;
+    process.env.API_URL = 'http://api.internal';
+    process.env.INTERNAL_API_SHARED_SECRET = 'internal-secret';
+
+    const calls: Array<{ url: string; body: any; auth?: string }> = [];
+    globalThis.fetch = vi.fn(async (url: any, init: any) => {
+      calls.push({
+        url: String(url),
+        body: JSON.parse(init?.body ?? '{}'),
+        auth: init?.headers?.authorization,
+      });
+      return { ok: true, body: { cancel: async () => {} } } as any;
+    }) as any;
+
+    try {
+      const k8s = new TestWorkspaceK8sClient();
+      const store = new TestWorkspaceStore();
+      const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+      await manager.startWorkspace(input);
+      const meteredFrom = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      const activeUntil = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      await store.update(input.workspaceId, {
+        status: 'RUNNING',
+        lastMeteredAt: meteredFrom,
+        lastActiveAt: activeUntil,
+      });
+
+      await manager.garbageCollect('workspaces', 5 * 60 * 1000, 30 * 60 * 1000);
+
+      const meterCall = calls.find((call) => call.url.endsWith('/internal/metering'));
+      expect(meterCall).toBeTruthy();
+      expect(meterCall!.auth).toBe('Bearer internal-secret');
+      expect(meterCall!.body.kind).toBe('compute');
+      expect(meterCall!.body.organizationId).toBe('org_1');
+      expect(meterCall!.body.projectId).toBe('project_1');
+      // plan 'pro' → 500m / 1Gi reserved compute
+      expect(meterCall!.body.cpuMillicores).toBe(500);
+      expect(meterCall!.body.ramMb).toBe(1024);
+      // metered window = 2h marker → 1h lastActiveAt = ~3600s
+      expect(meterCall!.body.seconds).toBe(3600);
+
+      // The marker advanced to lastActiveAt so the next stop won't re-meter it.
+      expect((await store.get(input.workspaceId))?.lastMeteredAt).toBe(activeUntil);
+    } finally {
+      globalThis.fetch = prevFetch;
+      if (prevApi === undefined) {
+        delete process.env.API_URL;
+      } else {
+        process.env.API_URL = prevApi;
+      }
+      if (prevSecret === undefined) {
+        delete process.env.INTERNAL_API_SHARED_SECRET;
+      } else {
+        process.env.INTERNAL_API_SHARED_SECRET = prevSecret;
+      }
+    }
   });
 
   it('does not delete a workspace re-provisioned since the GC snapshot (TOCTOU)', async () => {

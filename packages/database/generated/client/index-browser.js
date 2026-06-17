@@ -899,6 +899,7 @@ exports.Prisma.WorkspaceRuntimeScalarFieldEnum = {
   error: 'error',
   createdAt: 'createdAt',
   lastActiveAt: 'lastActiveAt',
+  lastMeteredAt: 'lastMeteredAt',
   updatedAt: 'updatedAt'
 };
 

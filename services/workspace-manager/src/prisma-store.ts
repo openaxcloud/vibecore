@@ -43,6 +43,7 @@ interface PrismaRuntimeRow {
   error: string | null;
   createdAt: Date;
   lastActiveAt: Date;
+  lastMeteredAt: Date | null;
 }
 
 function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
@@ -59,6 +60,7 @@ function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
     createdAt: row.createdAt.toISOString(),
     lastActiveAt: row.lastActiveAt.toISOString(),
     ...(row.error ? { error: row.error } : {}),
+    ...(row.lastMeteredAt ? { lastMeteredAt: row.lastMeteredAt.toISOString() } : {}),
   };
 }
 
@@ -131,6 +133,9 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     }
     if (patch.lastActiveAt !== undefined) {
       data.lastActiveAt = new Date(patch.lastActiveAt);
+    }
+    if (patch.lastMeteredAt !== undefined) {
+      data.lastMeteredAt = new Date(patch.lastMeteredAt);
     }
     if (Object.prototype.hasOwnProperty.call(patch, 'error')) {
       data.error = patch.error ?? null;

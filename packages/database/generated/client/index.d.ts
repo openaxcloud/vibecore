@@ -89329,6 +89329,7 @@ export namespace Prisma {
     error: string | null
     createdAt: Date | null
     lastActiveAt: Date | null
+    lastMeteredAt: Date | null
     updatedAt: Date | null
   }
 
@@ -89344,6 +89345,7 @@ export namespace Prisma {
     error: string | null
     createdAt: Date | null
     lastActiveAt: Date | null
+    lastMeteredAt: Date | null
     updatedAt: Date | null
   }
 
@@ -89360,6 +89362,7 @@ export namespace Prisma {
     error: number
     createdAt: number
     lastActiveAt: number
+    lastMeteredAt: number
     updatedAt: number
     _all: number
   }
@@ -89377,6 +89380,7 @@ export namespace Prisma {
     error?: true
     createdAt?: true
     lastActiveAt?: true
+    lastMeteredAt?: true
     updatedAt?: true
   }
 
@@ -89392,6 +89396,7 @@ export namespace Prisma {
     error?: true
     createdAt?: true
     lastActiveAt?: true
+    lastMeteredAt?: true
     updatedAt?: true
   }
 
@@ -89408,6 +89413,7 @@ export namespace Prisma {
     error?: true
     createdAt?: true
     lastActiveAt?: true
+    lastMeteredAt?: true
     updatedAt?: true
     _all?: true
   }
@@ -89497,6 +89503,7 @@ export namespace Prisma {
     error: string | null
     createdAt: Date
     lastActiveAt: Date
+    lastMeteredAt: Date | null
     updatedAt: Date
     _count: WorkspaceRuntimeCountAggregateOutputType | null
     _min: WorkspaceRuntimeMinAggregateOutputType | null
@@ -89530,6 +89537,7 @@ export namespace Prisma {
     error?: boolean
     createdAt?: boolean
     lastActiveAt?: boolean
+    lastMeteredAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workspaceRuntime"]>
 
@@ -89546,6 +89554,7 @@ export namespace Prisma {
     error?: boolean
     createdAt?: boolean
     lastActiveAt?: boolean
+    lastMeteredAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workspaceRuntime"]>
 
@@ -89562,6 +89571,7 @@ export namespace Prisma {
     error?: boolean
     createdAt?: boolean
     lastActiveAt?: boolean
+    lastMeteredAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workspaceRuntime"]>
 
@@ -89578,10 +89588,11 @@ export namespace Prisma {
     error?: boolean
     createdAt?: boolean
     lastActiveAt?: boolean
+    lastMeteredAt?: boolean
     updatedAt?: boolean
   }
 
-  export type WorkspaceRuntimeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orgId" | "projectId" | "plan" | "status" | "pvcName" | "podName" | "serviceName" | "agentTokenSecretName" | "error" | "createdAt" | "lastActiveAt" | "updatedAt", ExtArgs["result"]["workspaceRuntime"]>
+  export type WorkspaceRuntimeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orgId" | "projectId" | "plan" | "status" | "pvcName" | "podName" | "serviceName" | "agentTokenSecretName" | "error" | "createdAt" | "lastActiveAt" | "lastMeteredAt" | "updatedAt", ExtArgs["result"]["workspaceRuntime"]>
 
   export type $WorkspaceRuntimePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "WorkspaceRuntime"
@@ -89599,6 +89610,7 @@ export namespace Prisma {
       error: string | null
       createdAt: Date
       lastActiveAt: Date
+      lastMeteredAt: Date | null
       updatedAt: Date
     }, ExtArgs["result"]["workspaceRuntime"]>
     composites: {}
@@ -90035,6 +90047,7 @@ export namespace Prisma {
     readonly error: FieldRef<"WorkspaceRuntime", 'String'>
     readonly createdAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
     readonly lastActiveAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
+    readonly lastMeteredAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
     readonly updatedAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
   }
     
@@ -107861,6 +107874,7 @@ export namespace Prisma {
     error: 'error',
     createdAt: 'createdAt',
     lastActiveAt: 'lastActiveAt',
+    lastMeteredAt: 'lastMeteredAt',
     updatedAt: 'updatedAt'
   };
 
@@ -113694,6 +113708,7 @@ export namespace Prisma {
     error?: StringNullableFilter<"WorkspaceRuntime"> | string | null
     createdAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
     lastActiveAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
+    lastMeteredAt?: DateTimeNullableFilter<"WorkspaceRuntime"> | Date | string | null
     updatedAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
   }
 
@@ -113710,6 +113725,7 @@ export namespace Prisma {
     error?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
+    lastMeteredAt?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
   }
 
@@ -113729,6 +113745,7 @@ export namespace Prisma {
     error?: StringNullableFilter<"WorkspaceRuntime"> | string | null
     createdAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
     lastActiveAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
+    lastMeteredAt?: DateTimeNullableFilter<"WorkspaceRuntime"> | Date | string | null
     updatedAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
   }, "id">
 
@@ -113745,6 +113762,7 @@ export namespace Prisma {
     error?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
+    lastMeteredAt?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
     _count?: WorkspaceRuntimeCountOrderByAggregateInput
     _max?: WorkspaceRuntimeMaxOrderByAggregateInput
@@ -113767,6 +113785,7 @@ export namespace Prisma {
     error?: StringNullableWithAggregatesFilter<"WorkspaceRuntime"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"WorkspaceRuntime"> | Date | string
     lastActiveAt?: DateTimeWithAggregatesFilter<"WorkspaceRuntime"> | Date | string
+    lastMeteredAt?: DateTimeNullableWithAggregatesFilter<"WorkspaceRuntime"> | Date | string | null
     updatedAt?: DateTimeWithAggregatesFilter<"WorkspaceRuntime"> | Date | string
   }
 
@@ -120668,6 +120687,7 @@ export namespace Prisma {
     error?: string | null
     createdAt?: Date | string
     lastActiveAt?: Date | string
+    lastMeteredAt?: Date | string | null
     updatedAt?: Date | string
   }
 
@@ -120684,6 +120704,7 @@ export namespace Prisma {
     error?: string | null
     createdAt?: Date | string
     lastActiveAt?: Date | string
+    lastMeteredAt?: Date | string | null
     updatedAt?: Date | string
   }
 
@@ -120700,6 +120721,7 @@ export namespace Prisma {
     error?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -120716,6 +120738,7 @@ export namespace Prisma {
     error?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -120732,6 +120755,7 @@ export namespace Prisma {
     error?: string | null
     createdAt?: Date | string
     lastActiveAt?: Date | string
+    lastMeteredAt?: Date | string | null
     updatedAt?: Date | string
   }
 
@@ -120748,6 +120772,7 @@ export namespace Prisma {
     error?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -120764,6 +120789,7 @@ export namespace Prisma {
     error?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -125940,6 +125966,7 @@ export namespace Prisma {
     error?: SortOrder
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
+    lastMeteredAt?: SortOrder
     updatedAt?: SortOrder
   }
 
@@ -125955,6 +125982,7 @@ export namespace Prisma {
     error?: SortOrder
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
+    lastMeteredAt?: SortOrder
     updatedAt?: SortOrder
   }
 
@@ -125970,6 +125998,7 @@ export namespace Prisma {
     error?: SortOrder
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
+    lastMeteredAt?: SortOrder
     updatedAt?: SortOrder
   }
 

@@ -1270,7 +1270,7 @@ model ConsensusRecord {
 /// is effectively the canonical state shared between workspace-manager
 /// replicas — replacing the file-backed JsonWorkspaceStore.
 model WorkspaceRuntime {
-  id                   String   @id
+  id                   String    @id
   orgId                String
   projectId            String
   plan                 Json
@@ -1280,9 +1280,14 @@ model WorkspaceRuntime {
   serviceName          String
   agentTokenSecretName String
   error                String?
-  createdAt            DateTime @default(now())
-  lastActiveAt         DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt            DateTime  @default(now())
+  lastActiveAt         DateTime  @default(now())
+  // Last time this runtime's active compute was metered to the billing usage
+  // ledger (P4 metering emitter). The GC meters the window from here (or
+  // createdAt) to lastActiveAt on stop, then advances this marker — idempotent
+  // across manager restarts. Null until first metered.
+  lastMeteredAt        DateTime?
+  updatedAt            DateTime  @updatedAt
 
   @@index([orgId])
   @@index([projectId])
