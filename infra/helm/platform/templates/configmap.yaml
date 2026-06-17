@@ -59,6 +59,16 @@ data:
   PROJECT_STORAGE_DIR: {{ .Values.platformEnv.projectStorageDir | default "/tmp/vibecore-project-storage" | quote }}
   STATIC_DEPLOY_STORAGE_DIR: {{ .Values.platformEnv.staticDeployStorageDir | default "/tmp/vibecore-static-deployments" | quote }}
 
+  # Replit-parity billing — SHADOW mode: the effort-based credit engine OPENS and
+  # SETTLES a checkpoint per agent request and records the computed cost + usage,
+  # but NEVER debits the wallet (shadow). This certifies the engine in prod with
+  # zero billing risk. Going LIVE is a separate, deliberate step — set
+  # BILLING_CREDITS_ENABLED: "true" (which flips shadow off and starts debiting).
+  # Hardcoded literal (NOT a values key) because CD runs `helm upgrade
+  # --reuse-values`, which ignores newly-added values keys — see the
+  # ECODE_PARALLEL_SUBAGENTS_ENABLED note below.
+  BILLING_CREDITS_SHADOW: "true"
+
   # Remote Kubernetes runtime. These are operational endpoints and image
   # references, not credentials; credentials stay in the Secret.
   VITE_RUNTIME_MODE: {{ .Values.platformEnv.runtime.mode | quote }}
