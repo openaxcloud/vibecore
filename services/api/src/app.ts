@@ -150,6 +150,7 @@ import {
   shouldSendInactivityWarning,
 } from './account-lifecycle.js';
 import {
+  meterAllObjectStorage,
   meterDatabaseCompute,
   meterDeployment,
   meterObjectStorage,
@@ -17843,6 +17844,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       nowMs,
     });
     return { kind: body.kind, shadow, result };
+  });
+
+  /**
+   * Daily object-storage metering sweep (Replit parity — $0.03/GiB-month). Unlike
+   * /internal/metering (per-event, producer-driven), this scans the REAL stored
+   * bytes (ProjectStorageObject.byteLength) for every org and meters one day's
+   * worth of GiB-months so the monthly total accrues across the daily cron. No
+   * producer instrumentation needed — the numbers come straight from what's on
+   * disk. Shadow unless billing credits are fully enabled. Auth = internal secret.
+   */
+  app.post('/internal/metering/object-storage', async (request, reply) => {
+    requireInternalSecret(request);
+    const body = parse(
+      z.object({ shadow: z.boolean().optional(), daysInPeriod: z.number().positive().optional() }),
+      request.body ?? {},
+    );
+    const shadow = body.shadow ?? process.env.BILLING_CREDITS_ENABLED !== 'true';
+    const result = await meterAllObjectStorage(store, {
+      shadow,
+      nowMs: Date.now(),
+      daysInPeriod: body.daysInPeriod,
+    });
+    return { kind: 'object-storage-sweep', shadow, result };
   });
 
   /*

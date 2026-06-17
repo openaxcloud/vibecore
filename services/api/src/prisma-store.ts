@@ -1535,6 +1535,27 @@ export class PrismaApiStore implements ApiStore {
     return object ? mapProjectStorageObject(object) : undefined;
   }
 
+  async aggregateStorageBytesByOrg(): Promise<Array<{ organizationId: string; bytes: number }>> {
+    const rows = await this.prisma.projectStorageObject.findMany({
+      where: { project: { isNot: null } },
+      select: { byteLength: true, project: { select: { organizationId: true } } },
+    });
+
+    const byOrg = new Map<string, number>();
+
+    for (const row of rows) {
+      const organizationId = row.project?.organizationId;
+
+      if (!organizationId) {
+        continue;
+      }
+
+      byOrg.set(organizationId, (byOrg.get(organizationId) ?? 0) + (row.byteLength ?? 0));
+    }
+
+    return [...byOrg.entries()].map(([organizationId, bytes]) => ({ organizationId, bytes }));
+  }
+
   async createDeployment(input: {
     projectId: string;
     workspaceId?: string;

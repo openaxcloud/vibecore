@@ -1003,6 +1003,11 @@ export interface ApiStore {
     contentHash: string;
   }): Promise<ProjectStorageObjectRecord>;
   getProjectStorageObject(key: string): Promise<ProjectStorageObjectRecord | undefined>;
+  /**
+   * Total stored object bytes per organization (project storage objects joined
+   * to their org). Drives the daily object-storage metering sweep (P4).
+   */
+  aggregateStorageBytesByOrg(): Promise<Array<{ organizationId: string; bytes: number }>>;
   createDeployment(input: {
     projectId: string;
     workspaceId?: string;

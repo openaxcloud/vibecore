@@ -44,6 +44,11 @@
       "schedule" "0 4 * * *"
       "queue" "enterprise-jobs"
       "job" "inactivity.gc")
+    "objectStorageMetering" (dict
+      "enabled" true
+      "schedule" "15 2 * * *"
+      "queue" "enterprise-jobs"
+      "job" "metering.objectStorage")
 -}}
 {{- $merged := mustMergeOverwrite (deepCopy $defaults) $cronjobs -}}
 {{- $workerImageTag := default .Values.global.imageTag .Values.services.worker.imageTag -}}

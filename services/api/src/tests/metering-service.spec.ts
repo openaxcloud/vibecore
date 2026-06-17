@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  meterAllObjectStorage,
   meterDatabaseCompute,
   meterDeployment,
   meterObjectStorage,
@@ -8,6 +9,38 @@ import {
 import { TestApiStore } from './test-api-store.js';
 
 const NOW = 2_000_000_000_000;
+
+describe('meterAllObjectStorage (daily sweep)', () => {
+  it('sums real stored bytes per org and meters a day of GiB-months', async () => {
+    const store = new TestApiStore();
+    const project = await store.createProject({ organizationId: 'org_1', name: 'p', slug: 'p' });
+    const GIB = 1024 ** 3;
+    // 60 GiB stored → one day = 60/30 = 2 GiB-months (ceil → metered as 2).
+    await store.putProjectStorageObject({
+      projectId: project.id,
+      key: 'k1',
+      kind: 'snapshot',
+      contentBase64: '',
+      byteLength: 60 * GIB,
+      contentHash: 'h1',
+    });
+
+    const result = await meterAllObjectStorage(store, { shadow: true, nowMs: NOW, daysInPeriod: 30 });
+
+    expect(result.orgsMetered).toBe(1);
+    expect(result.totalBytes).toBe(60 * GIB);
+    expect(result.shadow).toBe(true);
+    // 60 GiB / 30 days = 2 GiB-months recorded today (meterObjectStorage ceils).
+    expect(await store.sumUsage('org_1', 'storage.objectGiBMonths')).toBe(2);
+  });
+
+  it('meters nothing when there are no stored objects', async () => {
+    const store = new TestApiStore();
+    const result = await meterAllObjectStorage(store, { shadow: true, nowMs: NOW });
+    expect(result.orgsMetered).toBe(0);
+    expect(result.totalBytes).toBe(0);
+  });
+});
 
 describe('meterWorkspaceCompute', () => {
   it('records runtime minutes and debits compute at Replit CU rate', async () => {

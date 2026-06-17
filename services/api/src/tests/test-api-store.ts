@@ -1160,6 +1160,26 @@ export class TestApiStore implements ApiStore {
     return this.projectStorageObjects.get(key);
   }
 
+  async aggregateStorageBytesByOrg() {
+    const byOrg = new Map<string, number>();
+
+    for (const object of this.projectStorageObjects.values()) {
+      if (!object.projectId) {
+        continue;
+      }
+
+      const organizationId = this.projects.get(object.projectId)?.organizationId;
+
+      if (!organizationId) {
+        continue;
+      }
+
+      byOrg.set(organizationId, (byOrg.get(organizationId) ?? 0) + (object.byteLength ?? 0));
+    }
+
+    return [...byOrg.entries()].map(([organizationId, bytes]) => ({ organizationId, bytes }));
+  }
+
   async createDeployment(input: {
     projectId: string;
     workspaceId?: string;

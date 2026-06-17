@@ -112,6 +112,37 @@ export async function meterObjectStorage(
   });
 }
 
+const BYTES_PER_GIB = 1024 ** 3;
+
+/**
+ * Daily object-storage metering sweep (Replit-parity $0.03/GiB-month). Sums the
+ * real stored bytes per org and meters one day's worth of GiB-months (so the
+ * monthly total accrues across daily runs). Idempotent at the day granularity:
+ * run once per day from the cron. SHADOW-safe via the `shadow` flag.
+ */
+export async function meterAllObjectStorage(
+  store: ApiStore,
+  input: { shadow?: boolean; nowMs: number; daysInPeriod?: number },
+): Promise<{ orgsMetered: number; totalBytes: number; shadow: boolean }> {
+  const days = input.daysInPeriod && input.daysInPeriod > 0 ? input.daysInPeriod : 30;
+  const rows = await store.aggregateStorageBytesByOrg();
+  let totalBytes = 0;
+
+  for (const row of rows) {
+    totalBytes += row.bytes;
+    // bytes held for one day → GiB-months charged today = (bytes/GiB) * (1 / period days).
+    const gibMonths = row.bytes / BYTES_PER_GIB / days;
+    await meterObjectStorage(store, {
+      organizationId: row.organizationId,
+      gibMonths,
+      shadow: input.shadow,
+      nowMs: input.nowMs,
+    });
+  }
+
+  return { orgsMetered: rows.length, totalBytes, shadow: Boolean(input.shadow) };
+}
+
 /** Meter database compute by active hours. */
 export async function meterDatabaseCompute(
   store: ApiStore,
