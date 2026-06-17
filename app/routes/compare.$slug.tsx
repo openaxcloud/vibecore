@@ -1,1 +1,31 @@
-export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';
+import { json, type LoaderFunctionArgs, type MetaFunction } from '@remix-run/cloudflare';
+
+import { comparePages, MarketingDynamicPage } from '~/components/marketing/EcodeMarketingPages';
+
+/**
+ * In-repo SSR compare page (VibeCore vs <competitor>). Renders the e-code public
+ * shell + the marketing page definition from `comparePages`; unknown slugs 404
+ * server-side. Replaces the external-bundle proxy.
+ */
+export const meta: MetaFunction<typeof loader> = ({ data }) => [
+  { title: data ? `VibeCore vs ${data.title} — Compare` : 'Compare — VibeCore' },
+  {
+    name: 'description',
+    content: data?.description ?? 'How VibeCore compares to other AI development platforms.',
+  },
+];
+
+export function loader({ params }: LoaderFunctionArgs) {
+  const slug = params.slug ?? '';
+  const page = comparePages[slug as keyof typeof comparePages];
+
+  if (!page) {
+    throw new Response('Compare page not found', { status: 404 });
+  }
+
+  return json({ title: page.title, description: page.description });
+}
+
+export default function CompareSlugRoute() {
+  return <MarketingDynamicPage pages={comparePages} fallbackTitle="Compare" />;
+}
