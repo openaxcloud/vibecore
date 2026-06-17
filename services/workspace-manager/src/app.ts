@@ -235,5 +235,85 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     };
   });
 
+  /*
+   * ===== Database point-in-time rollback (Phase 2) k8s bridge =====
+   * The api has no cluster RBAC, so it applies CloudNativePG CRs for managed
+   * project databases through these routes (guarded by the global manager-secret
+   * hook above). TIGHTLY SCOPED: only CNPG kinds in the dedicated
+   * `project-databases` namespace are allowed — this is an arbitrary-CR-apply
+   * surface otherwise. Inert in practice until DB_ROLLBACK_ENABLED on the api +
+   * the operator is installed (a missing CRD just makes apply fail).
+   */
+  const DB_ROLLBACK_NAMESPACE = 'project-databases';
+  const DB_ROLLBACK_KINDS = new Set(['Cluster', 'ScheduledBackup', 'Backup']);
+
+  const dbResourceGuard = (kind: string, namespace: string, reply: any): boolean => {
+    if (namespace !== DB_ROLLBACK_NAMESPACE || !DB_ROLLBACK_KINDS.has(kind)) {
+      reply.code(403).send({ error: 'Database resource not permitted', code: 'DB_RESOURCE_FORBIDDEN' });
+
+      return false;
+    }
+
+    return true;
+  };
+
+  app.post('/databases/apply', async (request, reply) => {
+    const { manifest } = z
+      .object({
+        manifest: z.object({
+          apiVersion: z.string(),
+          kind: z.string(),
+          metadata: z.object({ name: z.string(), namespace: z.string().optional() }).passthrough(),
+        }).passthrough(),
+      })
+      .parse(request.body ?? {});
+
+    const namespace = manifest.metadata.namespace ?? '';
+
+    if (!dbResourceGuard(manifest.kind, namespace, reply)) {
+      return;
+    }
+
+    if (!/^postgresql\.cnpg\.io\//.test(manifest.apiVersion)) {
+      return reply.code(403).send({ error: 'Only CloudNativePG resources are permitted', code: 'DB_RESOURCE_FORBIDDEN' });
+    }
+
+    await manager.k8s.apply(manifest as any);
+
+    return { applied: true };
+  });
+
+  app.get('/databases/resource', async (request, reply) => {
+    const { kind, namespace, name } = z
+      .object({ kind: z.string(), namespace: z.string(), name: z.string() })
+      .parse(request.query ?? {});
+
+    if (!dbResourceGuard(kind, namespace, reply)) {
+      return;
+    }
+
+    const resource = await manager.k8s.get(kind, namespace, name);
+
+    if (!resource) {
+      return reply.code(404).send({ error: 'Not found', code: 'DB_RESOURCE_NOT_FOUND' });
+    }
+
+    return resource;
+  });
+
+  app.delete('/databases/resource', async (request, reply) => {
+    const { kind, namespace, name } = z
+      .object({ kind: z.string(), namespace: z.string(), name: z.string() })
+      .parse(request.query ?? {});
+
+    if (!dbResourceGuard(kind, namespace, reply)) {
+      return;
+    }
+
+    await manager.k8s.delete(kind, namespace, name);
+
+    return { deleted: true };
+  });
+
   return app;
 }

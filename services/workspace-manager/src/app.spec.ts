@@ -202,4 +202,70 @@ describe('workspace-manager app', () => {
 
     await app.close();
   });
+
+  describe('database rollback k8s bridge (Phase 2)', () => {
+    const cnpgCluster = {
+      apiVersion: 'postgresql.cnpg.io/v1',
+      kind: 'Cluster',
+      metadata: { name: 'db-p1', namespace: 'project-databases' },
+      spec: { instances: 1 },
+    };
+
+    it('applies a CNPG resource in the project-databases namespace', async () => {
+      const runtime = manager();
+      const app = buildWorkspaceManagerApp(runtime.manager);
+      const res = await app.inject({ method: 'POST', url: '/databases/apply', payload: { manifest: cnpgCluster } });
+      expect(res.statusCode).toBe(200);
+      expect(runtime.k8s.objects.has('project-databases:Cluster:db-p1')).toBe(true);
+      await app.close();
+    });
+
+    it('rejects a forbidden kind', async () => {
+      const app = buildWorkspaceManagerApp(manager().manager);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/databases/apply',
+        payload: { manifest: { ...cnpgCluster, kind: 'Pod' } },
+      });
+      expect(res.statusCode).toBe(403);
+      await app.close();
+    });
+
+    it('rejects the wrong namespace', async () => {
+      const app = buildWorkspaceManagerApp(manager().manager);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/databases/apply',
+        payload: { manifest: { ...cnpgCluster, metadata: { name: 'db-p1', namespace: 'kube-system' } } },
+      });
+      expect(res.statusCode).toBe(403);
+      await app.close();
+    });
+
+    it('rejects a non-CNPG apiVersion even for an allowed kind', async () => {
+      const app = buildWorkspaceManagerApp(manager().manager);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/databases/apply',
+        payload: { manifest: { ...cnpgCluster, apiVersion: 'v1' } },
+      });
+      expect(res.statusCode).toBe(403);
+      await app.close();
+    });
+
+    it('404s a missing resource and 403s a forbidden get', async () => {
+      const app = buildWorkspaceManagerApp(manager().manager);
+      const missing = await app.inject({
+        method: 'GET',
+        url: '/databases/resource?kind=Cluster&namespace=project-databases&name=nope',
+      });
+      expect(missing.statusCode).toBe(404);
+      const forbidden = await app.inject({
+        method: 'GET',
+        url: '/databases/resource?kind=Secret&namespace=project-databases&name=x',
+      });
+      expect(forbidden.statusCode).toBe(403);
+      await app.close();
+    });
+  });
 });
