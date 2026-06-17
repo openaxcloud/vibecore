@@ -124,6 +124,13 @@ import {
 import { PrismaApiStore } from './prisma-store.js';
 import { openCheckpoint, settleCheckpoint } from './credits-service.js';
 import {
+  DELETION_GRACE_PERIOD_DAYS,
+  canCancelDeletion,
+  deletionScope,
+  deletionStatus,
+  purgeDueAtMs,
+} from './data-deletion.js';
+import {
   filesFromZip,
   filesFromZipBase64,
   GitCliProvider,
@@ -7197,6 +7204,110 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { preference };
+  });
+
+  /*
+   * ===== Replit-parity self-serve account deletion (P8 — see
+   * docs/REPLIT_PARITY_SPEC.md §16.5 and ./data-deletion.ts) =====
+   * Request → 14-day grace/cancel window → purge. The per-user request lives in
+   * the user's `preferences` blob (DB-backed, shallow-merged); a global id set
+   * (`account.pendingDeletionUserIds`, mutated atomically) indexes who has a
+   * pending request so an admin/cron purge job can find them without scanning
+   * every user. The destructive purge itself (financial-record retention,
+   * cascade) is intentionally a separate slice; these routes only record and
+   * surface intent.
+   */
+  const ACCOUNT_DELETION_PENDING_KEY = 'account.pendingDeletionUserIds';
+
+  function accountDeletionEnabled(): boolean {
+    // Non-destructive (records intent only), so default-on; set
+    // ACCOUNT_SELF_DELETION_ENABLED=false to hide the endpoints.
+    return process.env.ACCOUNT_SELF_DELETION_ENABLED !== 'false';
+  }
+
+  function readAccountDeletionState(preferences: Record<string, unknown> | undefined): {
+    requestedAtMs: number | null;
+    purgedAtMs: number | null;
+  } {
+    const raw = (preferences?.accountDeletion ?? null) as { requestedAt?: string; purgedAt?: string } | null;
+    const toMs = (value?: string): number | null => {
+      if (!value) {
+        return null;
+      }
+      const ms = new Date(value).getTime();
+      return Number.isFinite(ms) ? ms : null;
+    };
+    return { requestedAtMs: toMs(raw?.requestedAt), purgedAtMs: toMs(raw?.purgedAt) };
+  }
+
+  function accountDeletionView(state: { requestedAtMs: number | null; purgedAtMs: number | null }, nowMs: number) {
+    return {
+      status: deletionStatus({ ...state, nowMs }),
+      canCancel: canCancelDeletion({ ...state, nowMs }),
+      requestedAt: state.requestedAtMs != null ? new Date(state.requestedAtMs).toISOString() : null,
+      purgeDueAt: state.requestedAtMs != null ? new Date(purgeDueAtMs(state.requestedAtMs)).toISOString() : null,
+      gracePeriodDays: DELETION_GRACE_PERIOD_DAYS,
+      scope: deletionScope(),
+    };
+  }
+
+  app.get('/account/deletion', async (request) => {
+    const user = await store.findUserById(request.currentUser!.id);
+    const state = readAccountDeletionState(user?.preferences);
+    return accountDeletionView(state, Date.now());
+  });
+
+  app.post('/account/deletion', async (request, reply) => {
+    if (!accountDeletionEnabled()) {
+      return reply.code(404).send({ error: 'not_found' });
+    }
+
+    const userId = request.currentUser!.id;
+    const user = await store.findUserById(userId);
+    if (!user) {
+      return reply.code(404).send({ error: 'not_found' });
+    }
+
+    const nowMs = Date.now();
+    const existing = readAccountDeletionState(user.preferences);
+
+    // Idempotent: a second request while already in grace just echoes state.
+    if (deletionStatus({ ...existing, nowMs }) !== 'grace_period') {
+      const requestedAt = new Date(nowMs).toISOString();
+      await store.updateUser({
+        userId,
+        preferences: { ...(user.preferences ?? {}), accountDeletion: { requestedAt } },
+      });
+      await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { add: userId });
+      await audit(request, store, {
+        action: 'account.deletion_requested',
+        resourceType: 'user',
+        resourceId: userId,
+        metadata: { purgeDueAt: new Date(purgeDueAtMs(nowMs)).toISOString() },
+      });
+      return accountDeletionView({ requestedAtMs: nowMs, purgedAtMs: null }, nowMs);
+    }
+
+    return accountDeletionView(existing, nowMs);
+  });
+
+  app.post('/account/deletion/cancel', async (request, reply) => {
+    const userId = request.currentUser!.id;
+    const user = await store.findUserById(userId);
+    const state = readAccountDeletionState(user?.preferences);
+    const nowMs = Date.now();
+
+    if (!canCancelDeletion({ ...state, nowMs })) {
+      return reply.code(409).send({ error: 'cannot_cancel', status: deletionStatus({ ...state, nowMs }) });
+    }
+
+    const preferences = { ...(user!.preferences ?? {}) };
+    delete preferences.accountDeletion;
+    await store.updateUser({ userId, preferences });
+    await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+    await audit(request, store, { action: 'account.deletion_cancelled', resourceType: 'user', resourceId: userId });
+
+    return { status: 'none' as const, cancelled: true };
   });
 
   app.post('/agent-memory', async (request, reply) => {
@@ -17263,6 +17374,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await recordAdminAction(request, store, { action: 'admin.user.unsuspend', metadata: { userId } });
 
     return { suspended: false };
+  });
+
+  /*
+   * Admin visibility into pending self-serve account deletions (P8 §16.5). Lists
+   * each user with a pending request and whether the 14-day grace window has
+   * elapsed (ready_to_purge), so an operator/cron can action the purge. Read-only.
+   */
+  app.get('/admin/account-deletions', async (request) => {
+    await requirePlatformAdmin(request);
+
+    const settings = await store.listSystemSettings();
+    const pending = settings.find((setting) => setting.key === 'account.pendingDeletionUserIds');
+    const ids = Array.isArray(pending?.value) ? (pending!.value as unknown[]).filter((id): id is string => typeof id === 'string') : [];
+    const nowMs = Date.now();
+
+    const requests = await Promise.all(
+      ids.map(async (userId) => {
+        const user = await store.findUserById(userId);
+        const raw = (user?.preferences?.accountDeletion ?? null) as { requestedAt?: string; purgedAt?: string } | null;
+        const toMs = (value?: string): number | null => {
+          if (!value) {
+            return null;
+          }
+          const ms = new Date(value).getTime();
+          return Number.isFinite(ms) ? ms : null;
+        };
+        const state = { requestedAtMs: toMs(raw?.requestedAt), purgedAtMs: toMs(raw?.purgedAt) };
+        return {
+          userId,
+          email: user?.email ?? null,
+          status: deletionStatus({ ...state, nowMs }),
+          requestedAt: state.requestedAtMs != null ? new Date(state.requestedAtMs).toISOString() : null,
+          purgeDueAt: state.requestedAtMs != null ? new Date(purgeDueAtMs(state.requestedAtMs)).toISOString() : null,
+        };
+      }),
+    );
+
+    return {
+      gracePeriodDays: DELETION_GRACE_PERIOD_DAYS,
+      requests,
+      readyToPurge: requests.filter((entry) => entry.status === 'ready_to_purge').length,
+    };
   });
 
   app.post('/admin/users/:userId/force-logout', async (request) => {
