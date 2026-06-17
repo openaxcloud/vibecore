@@ -147,6 +147,12 @@ import {
   isEligibleForInactivityDeletion,
 } from './account-lifecycle.js';
 import {
+  meterDatabaseCompute,
+  meterDeployment,
+  meterObjectStorage,
+  meterWorkspaceCompute,
+} from './metering-service.js';
+import {
   filesFromZip,
   filesFromZipBase64,
   GitCliProvider,
@@ -17662,6 +17668,117 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       skippedShared,
       exemptPaid,
     };
+  });
+
+  /*
+   * ===== Replit-parity metering ingest (P8/P4 — internal, service-to-service) =====
+   * The workspace-manager GC (compute), and other producers (object storage, DB,
+   * deployments), POST real usage here after an event. Dispatches to
+   * metering-service.ts which records the usage event and (outside shadow mode)
+   * debits credits. Shadow defaults to "on" unless BILLING_CREDITS_ENABLED=true,
+   * so wiring producers is safe before billing is switched live. Idempotency
+   * (the last-metered marker) is the producer's responsibility.
+   */
+  app.post('/internal/metering', async (request, reply) => {
+    requireInternalSecret(request);
+
+    const body = parse(
+      z.discriminatedUnion('kind', [
+        z.object({
+          kind: z.literal('compute'),
+          organizationId: z.string().min(1),
+          projectId: z.string().optional(),
+          cpuMillicores: z.number().nonnegative(),
+          ramMb: z.number().nonnegative(),
+          seconds: z.number().nonnegative(),
+          shadow: z.boolean().optional(),
+        }),
+        z.object({
+          kind: z.literal('object-storage'),
+          organizationId: z.string().min(1),
+          gibMonths: z.number().nonnegative().optional(),
+          transferGib: z.number().nonnegative().optional(),
+          classAOps: z.number().nonnegative().optional(),
+          classBOps: z.number().nonnegative().optional(),
+          shadow: z.boolean().optional(),
+        }),
+        z.object({
+          kind: z.literal('database'),
+          organizationId: z.string().min(1),
+          cpuMillicores: z.number().nonnegative(),
+          ramMb: z.number().nonnegative(),
+          hours: z.number().nonnegative(),
+          shadow: z.boolean().optional(),
+        }),
+        z.object({
+          kind: z.literal('deployment'),
+          organizationId: z.string().min(1),
+          deploymentKind: z.enum(['autoscale', 'scheduled', 'static', 'reserved-vm']),
+          computeUnits: z.number().nonnegative().optional(),
+          requests: z.number().nonnegative().optional(),
+          egressGib: z.number().nonnegative().optional(),
+          reservedTier: z.enum(['shared-0.5', 'dedicated-1', 'dedicated-2', 'dedicated-4']).optional(),
+          includeBase: z.boolean().optional(),
+          shadow: z.boolean().optional(),
+        }),
+      ]),
+      request.body ?? {},
+    );
+
+    // Shadow unless billing credits are fully enabled (mirrors record-usage).
+    const shadow = body.shadow ?? process.env.BILLING_CREDITS_ENABLED !== 'true';
+    const nowMs = Date.now();
+
+    if (body.kind === 'compute') {
+      const result = await meterWorkspaceCompute(store, {
+        organizationId: body.organizationId,
+        projectId: body.projectId,
+        cpuMillicores: body.cpuMillicores,
+        ramMb: body.ramMb,
+        seconds: body.seconds,
+        shadow,
+        nowMs,
+      });
+      return { kind: body.kind, shadow, result };
+    }
+
+    if (body.kind === 'object-storage') {
+      const result = await meterObjectStorage(store, {
+        organizationId: body.organizationId,
+        gibMonths: body.gibMonths,
+        transferGib: body.transferGib,
+        classAOps: body.classAOps,
+        classBOps: body.classBOps,
+        shadow,
+        nowMs,
+      });
+      return { kind: body.kind, shadow, result };
+    }
+
+    if (body.kind === 'database') {
+      const result = await meterDatabaseCompute(store, {
+        organizationId: body.organizationId,
+        cpuMillicores: body.cpuMillicores,
+        ramMb: body.ramMb,
+        hours: body.hours,
+        shadow,
+        nowMs,
+      });
+      return { kind: body.kind, shadow, result };
+    }
+
+    const result = await meterDeployment(store, {
+      organizationId: body.organizationId,
+      kind: body.deploymentKind,
+      computeUnits: body.computeUnits,
+      requests: body.requests,
+      egressGib: body.egressGib,
+      reservedTier: body.reservedTier,
+      includeBase: body.includeBase,
+      shadow,
+      nowMs,
+    });
+    return { kind: body.kind, shadow, result };
   });
 
   /*
