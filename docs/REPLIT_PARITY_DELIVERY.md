@@ -281,3 +281,37 @@ kubectl/DB from my machine are refused):**
 emits `502 /runtime/.../files`, `429 ide-panel/snapshots`, `412 ide-state`, and runtime-WS reconnect errors
 under heavy streaming. These are infrastructure robustness issues (tracked in prior audit waves), independent
 of the parity work; the agent still functioned. Parity surfaces (marketing/dashboard/billing/admin) are 0-error.
+
+---
+
+## 9. How `platformAdmin` is granted (read-only investigation) + exact procedure for Avi
+
+I cannot self-grant prod admin (privilege self-escalation is blocked regardless of authorization), so here is
+the mechanism + the one-step procedure for **you** to provision it. After that I certify admin + impersonation
+in prod in ~10 min.
+
+**Mechanism (env bootstrap, verification-gated):**
+- `bootstrapPlatformAdmin(email)` — `services/api/src/app.ts:4267-4274` — returns true if the lowercased email
+  is in the comma-separated `PLATFORM_ADMIN_EMAILS` env.
+- Applied **only at email verification** — `app.ts:6530-6532` — `if (!user.platformAdmin && bootstrapPlatformAdmin(user.email)) updateUser({ platformAdmin: true })`. Gated on proven inbox ownership so a configured address can't be claimed by someone who doesn't control the inbox.
+- Configmap key: `PLATFORM_ADMIN_EMAILS` ← `.Values.platformEnv.platformAdminEmails` — `infra/helm/platform/templates/configmap.yaml:39`.
+- **Current prod value** — `infra/helm/platform/values-prod.yaml:88`: `'avi@snatchbot.me,groupequaliwatt@gmail.com'`.
+  → **`avi@snatchbot.me` is ALREADY a prod platform admin** (once that email is verified on prod).
+- Also: an existing admin can promote anyone via `PATCH /admin/users/:userId/platform-admin` (`app.ts:12306`,
+  requires caller = admin + MFA + recent reauth).
+
+**Procedure for Avi — pick ONE:**
+- **A (0 changes, fastest):** Log into app.e-code.ai as **`avi@snatchbot.me`** (verify the email once if not
+  already) → you're platformAdmin → open `/admin`. Then either certify yourself, or in **Admin → Users** flip
+  **platform-admin ON** for `cert-verify-prod@example.com` (the throwaway account I created) so I can certify,
+  then flip it **OFF** afterwards. (Promotion via the admin action needs no inbox for the target.)
+- **B (GitOps, if you prefer config):** add a *real* address you control to `values-prod.yaml:88`
+  `platformAdminEmails`, push → CD, verify that address's email, certify, then revert the line. (A fake address
+  like `cert-verify-prod@example.com` will NOT work via B — the bootstrap requires email verification.)
+
+Either way, hand me an admin login (or flip my cert account on per A) and I finish the prod cert immediately.
+
+**Shadow-checkpoint proof (recap, already certified §8):** with `BILLING_CREDITS_SHADOW=true` live (`5361d92c`),
+a prod agent request produced **Recent agent checkpoints → "$0.00 — power · COMPLETED · 17/06/2026 13:27:11"**
+with a **"Preview (not charged)"** badge, Usage events 40, real token ledger, wallet **not** debited. Left in
+SHADOW. (Screenshot delivered.)
