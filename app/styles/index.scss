@@ -7,6 +7,11 @@
 @use 'components/editor.scss';
 @use 'components/toast.scss';
 
+// IBM Plex Sans — the e-code marketing theme's typeface (matches the reference
+// e-code bundle). Loaded here so the in-repo SSR marketing pages render
+// pixel-identical to the e-code theme.
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
 :root {
   --vc-mobile-visual-viewport-height: 100dvh;
   --vc-mobile-sheet-height: min(
@@ -32,19 +37,13 @@ html[data-ecode-public-chrome='homepage'],
 html[data-ecode-public-chrome='homepage'] body,
 html:has([data-ecode-static-shell]),
 html:has([data-ecode-static-shell]) body {
-  font-family:
-    Inter,
-    -apple-system,
-    'system-ui',
-    'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
-    sans-serif;
+  // Override the interface-font var within the e-code marketing scope so every
+  // element using it (incl. headings) inherits IBM Plex Sans, matching the
+  // reference e-code theme exactly.
+  --vc-font-interface:
+    'IBM Plex Sans', Inter, -apple-system, 'system-ui', 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans',
+    'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: var(--vc-font-interface);
   font-size: 16px;
 }
 
