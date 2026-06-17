@@ -1,9 +1,7 @@
-import type { AppLoadContext } from '@remix-run/cloudflare';
-import { RemixServer } from '@remix-run/react';
-import { renderToReadableStream } from 'react-dom/server.browser';
-import { renderHeadToString } from 'remix-island';
-import { Head } from './root';
-import { isPublicMarketingPath, themeStore } from '~/lib/stores/theme';
+import { renderToReadableStream } from 'react-dom/server';
+import type { AppLoadContext, EntryContext } from 'react-router';
+import { ServerRouter } from 'react-router';
+import { isPublicMarketingPath } from '~/lib/stores/theme';
 
 export const SERVER_RENDER_READY_TIMEOUT_MS = 4_000;
 
@@ -80,16 +78,10 @@ export default async function handleRequest(
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
-  remixContext: any,
+  routerContext: EntryContext,
   _loadContext: AppLoadContext,
 ) {
-  const head = renderHeadToString({
-    request,
-    remixContext: { ...remixContext, serverHandoffStream: undefined },
-    Head,
-  });
-
-  const readable = await renderToReadableStream(<RemixServer context={remixContext} url={request.url} />, {
+  const readable = await renderToReadableStream(<ServerRouter context={routerContext} url={request.url} />, {
     signal: request.signal,
     onError(error: unknown) {
       console.error(error);
@@ -101,6 +93,10 @@ export default async function handleRequest(
    * Prefer the complete SSR payload, but never let one unresolved Suspense
    * boundary hold the whole document hostage. The client can hydrate the
    * boot fallback while the route bundle finishes loading.
+   *
+   * The <!DOCTYPE html> is prepended here; the rest of the document
+   * (<html>/<head>/<body>) is rendered by the root route's `Layout` export,
+   * which replaced the former remix-island head/body split.
    */
   await waitForServerRenderReady(readable.allReady);
 
@@ -108,20 +104,13 @@ export default async function handleRequest(
 
   const body = new ReadableStream({
     start(controller) {
-      controller.enqueue(
-        new Uint8Array(
-          new TextEncoder().encode(
-            `<!DOCTYPE html><html lang="en" data-theme="${themeStore.get()}"><head>${head}</head><body><div id="root" class="w-full h-full">`,
-          ),
-        ),
-      );
+      controller.enqueue(new Uint8Array(new TextEncoder().encode('<!DOCTYPE html>')));
 
       function read() {
         reader
           .read()
           .then(({ done, value }) => {
             if (done) {
-              controller.enqueue(new Uint8Array(new TextEncoder().encode('</div></body></html>')));
               controller.close();
 
               return;

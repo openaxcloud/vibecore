@@ -1,6 +1,6 @@
 /* eslint-disable import/order */
 import { useStore } from '@nanostores/react';
-import type { LinksFunction } from '@remix-run/cloudflare';
+import type { LinksFunction } from 'react-router';
 import {
   isRouteErrorResponse,
   Links,
@@ -13,7 +13,7 @@ import {
   useLocation,
   useNavigation,
   useRouteError,
-} from '@remix-run/react';
+} from 'react-router';
 import { LinkButton, PublicShell } from './components/dashboard/SaaSLayout';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { installEditorPwaServiceWorker } from '@vibecore/editor';
@@ -28,7 +28,6 @@ import { getI18nInstance } from './lib/i18n/runtime';
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
-import { createHead } from 'remix-island';
 import { ClientOnly } from 'remix-utils/client-only';
 
 import 'virtual:uno.css';
@@ -184,29 +183,52 @@ const inlineThemeCode = stripIndents`
   }
 `;
 
-export const Head = createHead(() => (
-  <>
-    <meta charSet="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0a0f1c" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="E-Code" />
-    <Meta />
-    <Links />
-    <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
-  </>
-));
-
+/*
+ * React Router 7 root Layout: renders the entire HTML document. This replaces
+ * the former remix-island `createHead` + the hand-rolled <!DOCTYPE>/<head>/
+ * <body> wrapper that entry.server.tsx streamed around <RemixServer />. RR7
+ * renders <ServerRouter /> / <HydratedRouter /> *as* the children of this
+ * Layout, so the document shell lives here in one place.
+ *
+ * data-theme is seeded to "dark" (the app default) on the server; the inline
+ * theme script below runs before hydration and reconciles it with
+ * localStorage / the public-marketing override, exactly as before.
+ */
 export function Layout({ children }: { children: React.ReactNode }) {
-  const theme = useStore(themeStore);
+  return (
+    <html lang="en" data-theme="dark">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="theme-color" content="#0a0f1c" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="E-Code" />
+        <Meta />
+        <Links />
+        <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
+      </head>
+      <body>
+        <div id="root" className="w-full h-full">
+          {children}
+        </div>
+        <ScrollRestoration />
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+
+/*
+ * Body chrome shared by the app root and the root ErrorBoundary: i18n + DnD
+ * providers, the global route loader, and the toast container. Was the old
+ * remix-island body `Layout`; renamed to AppShell so the RR7 document `Layout`
+ * export above can own the <html> shell.
+ */
+function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const showIdeBootFallback = /^\/projects\/[^/]+\/ide(?:\/|$)/.test(location.pathname);
-
-  useEffect(() => {
-    applyThemeToDocument(theme);
-  }, [theme]);
 
   useEffect(() => {
     if (isPublicMarketingPath(window.location.pathname)) {
@@ -228,8 +250,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </ClientOnly>
       <ClientOnly>{() => <GlobalRouteLoader />}</ClientOnly>
       <ClientOnly>{() => <AppToastContainer />}</ClientOnly>
-      <ScrollRestoration />
-      <Scripts />
     </>
   );
 }
@@ -375,6 +395,15 @@ function clearMarketingPageServiceWorkerState() {
 export default function App() {
   const theme = useStore(themeStore);
 
+  /*
+   * Keep the live <html data-theme> attribute in sync with the theme store.
+   * (Was an effect on the old body Layout; the RR7 document Layout can't read
+   * the store without forcing a hydration mismatch, so it lives here.)
+   */
+  useEffect(() => {
+    applyThemeToDocument(theme);
+  }, [theme]);
+
   useEffect(() => {
     logStore.logSystem('Application initialized', {
       theme,
@@ -403,11 +432,11 @@ export default function App() {
   }, []);
 
   return (
-    <Layout>
+    <AppShell>
       <AppErrorBoundary title="E-Code" boundaryId="app-root">
         <Outlet />
       </AppErrorBoundary>
-    </Layout>
+    </AppShell>
   );
 }
 
@@ -469,9 +498,14 @@ export function ErrorBoundary() {
   const error = useRouteError();
   const status = isRouteErrorResponse(error) ? error.status : 500;
 
+  /*
+   * RR7 renders this ErrorBoundary *inside* the exported document `Layout`,
+   * so wrap only in the body chrome (AppShell), not the <html> shell, to avoid
+   * a nested <html>.
+   */
   return (
-    <Layout>
+    <AppShell>
       <RootErrorView status={status} />
-    </Layout>
+    </AppShell>
   );
 }
