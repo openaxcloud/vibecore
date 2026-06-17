@@ -92,6 +92,7 @@ describe('<ChatBox /> toolbar', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    window.localStorage.clear();
   });
 
   it('keeps the composer toolbar compact and moves the newline hint behind a tooltip', () => {
@@ -136,5 +137,54 @@ describe('<ChatBox /> toolbar', () => {
     fireEvent.click(planButton);
 
     expect(onPlanFirstChange).toHaveBeenCalledWith(false);
+  });
+});
+
+describe('<ChatBox /> agent power controls', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+    window.localStorage.clear();
+  });
+
+  it('renders the per-request power controls + a default proof-of-work estimate in the IDE composer', () => {
+    renderChatBox();
+
+    expect(screen.getByRole('button', { name: /High power/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Extended thinking/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Turbo/i })).toBeTruthy();
+    expect(screen.getByRole('radiogroup', { name: 'Build tier' })).toBeTruthy();
+
+    // economy (×1) × $0.25 baseline
+    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$0.25');
+  });
+
+  it('does not render the power controls outside the IDE composer', () => {
+    renderChatBox({ projectIdeMode: false });
+    expect(screen.queryByRole('button', { name: /High power/i })).toBeNull();
+  });
+
+  it('raises the proof-of-work estimate when High power is enabled and reports the change', () => {
+    const onAgentPowerChange = vi.fn();
+    renderChatBox({ onAgentPowerChange });
+
+    fireEvent.click(screen.getByRole('button', { name: /High power/i }));
+
+    expect(onAgentPowerChange).toHaveBeenCalledWith(expect.objectContaining({ highPowerModel: true }));
+
+    // $0.25 × 4 = $1.00
+    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$1.00');
+  });
+
+  it('honors a parent-controlled power value (Turbo → ~$1.50)', () => {
+    renderChatBox({
+      agentPower: { highPowerModel: false, extendedThinking: false, turboMode: true, buildTier: 'economy' },
+      onAgentPowerChange: vi.fn(),
+    });
+
+    expect(screen.getByRole('button', { name: /Turbo/i }).getAttribute('aria-pressed')).toBe('true');
+
+    // $0.25 × 6 = $1.50
+    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$1.50');
   });
 });

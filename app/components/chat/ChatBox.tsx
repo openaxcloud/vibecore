@@ -2,6 +2,7 @@
 import React from 'react';
 import { toast } from 'react-toastify';
 import { ClientOnly } from 'remix-utils/client-only';
+import { AgentPowerControls, type AgentPowerControlsValue } from './AgentPowerControls';
 import { APIKeyManager } from './APIKeyManager';
 import { ComposerMentionsOverlay } from './ComposerMentionsOverlay';
 import { ComposerSlashOverlay } from './ComposerSlashOverlay';
@@ -24,6 +25,48 @@ import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
 import { normalizeModelList } from './modelList';
+
+const DEFAULT_AGENT_POWER: AgentPowerControlsValue = {
+  highPowerModel: false,
+  extendedThinking: false,
+  turboMode: false,
+  buildTier: 'economy',
+};
+
+const AGENT_POWER_STORAGE_KEY = 'vibecore.agentPower';
+
+/*
+ * Proof-of-work estimate multipliers — mirror packages/billing/src/credits.ts
+ * (the server-side source of truth used at checkpoint reservation:
+ * BUILD_TIER_ESTIMATE_MULTIPLIER / HIGH_POWER / EXTENDED_THINKING / TURBO).
+ * Inlined so the web bundle stays free of the server billing package; the live
+ * settle figure comes from the server, this is just the pre-flight preview.
+ */
+const POWER_ESTIMATE = {
+  baselineCents: 25, // a "simple" Replit request (~$0.25)
+  buildTier: { lite: 0.4, economy: 1, power: 1.8 } as Record<AgentPowerControlsValue['buildTier'], number>,
+  highPower: 4,
+  extendedThinking: 2.5,
+  turbo: 6,
+};
+
+function estimateAgentPowerCents(value: AgentPowerControlsValue): number {
+  let cents = POWER_ESTIMATE.baselineCents * (POWER_ESTIMATE.buildTier[value.buildTier] ?? 1);
+
+  if (value.highPowerModel) {
+    cents *= POWER_ESTIMATE.highPower;
+  }
+
+  if (value.extendedThinking) {
+    cents *= POWER_ESTIMATE.extendedThinking;
+  }
+
+  if (value.turboMode) {
+    cents *= POWER_ESTIMATE.turbo;
+  }
+
+  return Math.round(cents);
+}
 
 interface ChatBoxProps {
   isModelSettingsCollapsed: boolean;
@@ -72,6 +115,16 @@ interface ChatBoxProps {
   projectIdeMode?: boolean;
   planFirstEnabled?: boolean;
   onPlanFirstChange?: (next: boolean) => void;
+
+  /**
+   * Per-request agent power controls (Replit parity: High power, Extended
+   * thinking, Turbo, build tier). Controlled by the parent when provided;
+   * otherwise ChatBox manages local, localStorage-persisted state so the
+   * composer works standalone. `onAgentPowerChange` lets the parent capture the
+   * selection to attach to the agent request.
+   */
+  agentPower?: AgentPowerControlsValue;
+  onAgentPowerChange?: (next: AgentPowerControlsValue) => void;
   placeholder?: string;
 
   /** Project id used by the composer overlays to persist MRU palettes. */
@@ -110,6 +163,53 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
 
   const [isToolsMenuOpen, setIsToolsMenuOpen] = React.useState(false);
   const toolsMenuRef = React.useRef<HTMLDivElement>(null);
+
+  /*
+   * Per-request agent power controls. Parent-controlled when `props.agentPower`
+   * is supplied; otherwise locally managed + persisted to localStorage.
+   */
+  const [localAgentPower, setLocalAgentPower] = React.useState<AgentPowerControlsValue>(() => {
+    if (props.agentPower) {
+      return props.agentPower;
+    }
+
+    if (typeof window === 'undefined') {
+      return DEFAULT_AGENT_POWER;
+    }
+
+    try {
+      const raw = window.localStorage.getItem(AGENT_POWER_STORAGE_KEY);
+
+      if (raw) {
+        return { ...DEFAULT_AGENT_POWER, ...(JSON.parse(raw) as Partial<AgentPowerControlsValue>) };
+      }
+    } catch {
+      // ignore malformed/blocked storage
+    }
+
+    return DEFAULT_AGENT_POWER;
+  });
+
+  const agentPower = props.agentPower ?? localAgentPower;
+
+  const handleAgentPowerChange = React.useCallback(
+    (next: AgentPowerControlsValue) => {
+      if (!props.agentPower) {
+        setLocalAgentPower(next);
+
+        try {
+          window.localStorage.setItem(AGENT_POWER_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          // ignore blocked storage
+        }
+      }
+
+      props.onAgentPowerChange?.(next);
+    },
+    [props.agentPower, props.onAgentPowerChange],
+  );
+
+  const agentPowerEstimateCents = React.useMemo(() => estimateAgentPowerCents(agentPower), [agentPower]);
 
   React.useEffect(() => {
     if (!isToolsMenuOpen) {
@@ -231,6 +331,21 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                       }}
                     />
                   )}
+
+              {/*
+               * Replit-parity per-request power controls + live proof-of-work
+               * cost preview. Shown in the agent composer (IDE) settings panel.
+               */}
+              {props.projectIdeMode && (
+                <div className="mt-2 border-t border-bolt-elements-borderColor pt-2">
+                  <AgentPowerControls
+                    value={agentPower}
+                    onChange={handleAgentPowerChange}
+                    estimatedCents={agentPowerEstimateCents}
+                    disabled={props.isStreaming}
+                  />
+                </div>
+              )}
             </div>
           )}
         </ClientOnly>
