@@ -518,6 +518,54 @@ export class StripeBillingClient {
     });
   }
 
+  /**
+   * Create a usage-metered recurring price for pay-as-you-go (AI / compute
+   * overage beyond included credits). `unitAmountCents` is the price per unit
+   * (e.g. per credit or per 1k credits); usage is reported via `reportUsage`.
+   */
+  async createMeteredPrice(input: {
+    productId: string;
+    nickname: string;
+    unitAmountCents: number;
+    currency?: string;
+    interval?: 'month' | 'year';
+  }) {
+    return this.postForm('/v1/prices', {
+      product: input.productId,
+      currency: input.currency ?? 'usd',
+      unit_amount: String(input.unitAmountCents),
+      nickname: input.nickname,
+      'recurring[interval]': input.interval ?? 'month',
+      'recurring[usage_type]': 'metered',
+      'recurring[aggregate_usage]': 'sum',
+    });
+  }
+
+  /**
+   * Report metered usage for a subscription item (pay-as-you-go draw-down).
+   * `action: 'increment'` adds to the period total; `'set'` overwrites it.
+   */
+  async reportUsage(input: {
+    subscriptionItemId: string;
+    quantity: number;
+    timestampSeconds?: number;
+    action?: 'increment' | 'set';
+    idempotencyKey?: string;
+  }) {
+    const fields: Record<string, string> = {
+      quantity: String(Math.max(0, Math.floor(input.quantity))),
+      action: input.action ?? 'increment',
+    };
+    if (input.timestampSeconds) {
+      fields.timestamp = String(input.timestampSeconds);
+    }
+    return this.postForm(
+      `/v1/subscription_items/${encodeURIComponent(input.subscriptionItemId)}/usage_records`,
+      fields,
+      input.idempotencyKey,
+    );
+  }
+
   async findProductByPlanKey(planKey: PlanKey) {
     const response = await this.getJson(`/v1/products/search?query=${encodeURIComponent(`metadata['planKey']:'${planKey}' AND active:'true'`)}`);
     return (response as { data?: Array<{ id: string; name: string }> }).data?.[0];
@@ -528,7 +576,7 @@ export class StripeBillingClient {
     return (response as { data?: Array<{ id: string; unit_amount: number; currency: string }> }).data?.[0];
   }
 
-  private async postForm(path: string, fields: Record<string, string>) {
+  private async postForm(path: string, fields: Record<string, string>, idempotencyKey?: string) {
     const response = await fetch(`${this.input.baseUrl ?? 'https://api.stripe.com'}${path}`, {
       method: 'POST',
       headers: {
@@ -538,6 +586,8 @@ export class StripeBillingClient {
         // account's dashboard default (the webhook reads top-level
         // current_period_* / subscription fields that newer versions relocate).
         'stripe-version': STRIPE_API_VERSION,
+        // Safe retries for metered usage reporting (avoid double-charging on retry).
+        ...(idempotencyKey ? { 'idempotency-key': idempotencyKey } : {}),
       },
       body: new URLSearchParams(fields),
       signal: AbortSignal.timeout(20_000),

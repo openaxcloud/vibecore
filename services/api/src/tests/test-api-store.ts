@@ -2224,6 +2224,8 @@ export class TestApiStore implements ApiStore {
     limits: Record<string, number>;
     stripeProductId?: string;
     stripePriceId?: string;
+    stripePriceMonthlyId?: string;
+    stripePriceAnnualId?: string;
   }) {
     const plan: BillingPlanRecord = { id: this.billingPlans.get(input.key)?.id ?? id('plan'), ...input };
     this.billingPlans.set(input.key, plan);

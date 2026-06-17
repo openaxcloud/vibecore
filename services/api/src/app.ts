@@ -991,6 +991,8 @@ const adminIncidentSchema = z.object({
 });
 const billingCheckoutSchema = z.object({
   planKey: z.enum(['free', 'pro', 'team', 'enterprise']),
+  // Replit-parity: monthly vs annual (discounted) billing.
+  interval: z.enum(['monthly', 'annual']).default('monthly'),
   successUrl: z.string().url(),
   cancelUrl: z.string().url(),
   trialDays: z.number().int().min(1).max(365).optional(),
@@ -5604,16 +5606,24 @@ export async function estimateAiTokens(content: string) {
 
 async function seedBillingPlans(store: ApiStore) {
   await Promise.all(
-    billingPlans.map((plan) =>
-      store.upsertBillingPlan({
+    billingPlans.map((plan) => {
+      // Replit-parity: distinct monthly/annual price ids by convention
+      // STRIPE_<KEY>_PRICE_MONTHLY_ID / _ANNUAL_ID; the legacy STRIPE_<KEY>_PRICE_ID
+      // stays as the monthly fallback so existing single-price setups keep working.
+      const upper = plan.key.toUpperCase();
+      const monthly = process.env[`STRIPE_${upper}_PRICE_MONTHLY_ID`] ?? process.env[plan.stripePriceEnv];
+      const annual = process.env[`STRIPE_${upper}_PRICE_ANNUAL_ID`];
+      return store.upsertBillingPlan({
         key: plan.key,
         name: plan.name,
         monthlyCents: plan.monthlyCents,
         limits: plan.limits,
         stripeProductId: process.env[plan.stripeProductEnv],
         stripePriceId: process.env[plan.stripePriceEnv],
-      }),
-    ),
+        stripePriceMonthlyId: monthly,
+        stripePriceAnnualId: annual,
+      });
+    }),
   );
 }
 
@@ -16210,11 +16220,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const plan = await store.getBillingPlan(body.planKey);
 
-    if (!plan?.stripePriceId) {
-      throw Object.assign(new Error('Stripe price is not configured for this plan'), {
-        statusCode: 503,
-        code: 'STRIPE_PRICE_NOT_CONFIGURED',
-      });
+    // Pick the interval-specific price; fall back to the legacy single price id.
+    const resolvedPriceId =
+      body.interval === 'annual'
+        ? (plan?.stripePriceAnnualId ?? plan?.stripePriceMonthlyId ?? plan?.stripePriceId)
+        : (plan?.stripePriceMonthlyId ?? plan?.stripePriceId);
+
+    if (!resolvedPriceId) {
+      throw Object.assign(
+        new Error(
+          body.interval === 'annual'
+            ? 'Annual Stripe price is not configured for this plan'
+            : 'Stripe price is not configured for this plan',
+        ),
+        { statusCode: 503, code: 'STRIPE_PRICE_NOT_CONFIGURED' },
+      );
     }
 
     if (!stripeClient) {
@@ -16279,7 +16299,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const session = await stripeClient.createCheckoutSession({
       customerId: customer.externalId,
-      priceId: plan.stripePriceId,
+      priceId: resolvedPriceId,
       planKey: body.planKey,
       successUrl: body.successUrl,
       cancelUrl: body.cancelUrl,
@@ -16501,7 +16521,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const priceId =
           object.items?.data?.[0]?.price?.id ?? object.lines?.data?.[0]?.price?.id ?? object.metadata?.priceId;
 
-        let plan = (await store.listBillingPlans()).find((candidate) => candidate.stripePriceId === priceId);
+        let plan = (await store.listBillingPlans()).find(
+          (candidate) =>
+            candidate.stripePriceId === priceId ||
+            candidate.stripePriceMonthlyId === priceId ||
+            candidate.stripePriceAnnualId === priceId,
+        );
 
         if (!plan) {
           const metaPlanKey = object.metadata?.planKey as PlanKey | undefined;

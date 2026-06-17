@@ -650,6 +650,9 @@ export interface BillingPlanRecord {
   limits: Record<string, number>;
   stripeProductId?: string;
   stripePriceId?: string;
+  // Replit-parity: distinct monthly/annual price ids (annual = discounted).
+  stripePriceMonthlyId?: string;
+  stripePriceAnnualId?: string;
 }
 
 export interface SubscriptionRecord {
@@ -1295,6 +1298,8 @@ export interface ApiStore {
     limits: Record<string, number>;
     stripeProductId?: string;
     stripePriceId?: string;
+    stripePriceMonthlyId?: string;
+    stripePriceAnnualId?: string;
   }): Promise<BillingPlanRecord>;
   listBillingPlans(): Promise<BillingPlanRecord[]>;
   getBillingPlan(key: PlanKey): Promise<BillingPlanRecord | undefined>;

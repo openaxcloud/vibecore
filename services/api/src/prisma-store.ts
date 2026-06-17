@@ -2895,25 +2895,23 @@ export class PrismaApiStore implements ApiStore {
     limits: Record<string, number>;
     stripeProductId?: string;
     stripePriceId?: string;
+    stripePriceMonthlyId?: string;
+    stripePriceAnnualId?: string;
   }) {
+    const fields = {
+      name: input.name,
+      monthlyCents: input.monthlyCents,
+      limits: input.limits as any,
+      stripeProductId: input.stripeProductId,
+      stripePriceId: input.stripePriceId,
+      stripePriceMonthlyId: input.stripePriceMonthlyId,
+      stripePriceAnnualId: input.stripePriceAnnualId,
+    };
     return mapBillingPlan(
       await this.prisma.plan.upsert({
         where: { key: input.key },
-        create: {
-          key: input.key,
-          name: input.name,
-          monthlyCents: input.monthlyCents,
-          limits: input.limits as any,
-          stripeProductId: input.stripeProductId,
-          stripePriceId: input.stripePriceId,
-        },
-        update: {
-          name: input.name,
-          monthlyCents: input.monthlyCents,
-          limits: input.limits as any,
-          stripeProductId: input.stripeProductId,
-          stripePriceId: input.stripePriceId,
-        },
+        create: { key: input.key, ...fields },
+        update: fields,
       }),
     );
   }
@@ -4107,6 +4105,8 @@ function mapBillingPlan(plan: any): BillingPlanRecord {
     limits: plan.limits ?? {},
     stripeProductId: plan.stripeProductId ?? undefined,
     stripePriceId: plan.stripePriceId ?? undefined,
+    stripePriceMonthlyId: plan.stripePriceMonthlyId ?? undefined,
+    stripePriceAnnualId: plan.stripePriceAnnualId ?? undefined,
   };
 }
 
