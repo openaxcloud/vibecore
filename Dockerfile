@@ -57,6 +57,17 @@ ENV VITE_RUNTIME_MODE=${VITE_RUNTIME_MODE}
 ARG VITE_RUNTIME_API_BASE_URL
 ENV VITE_RUNTIME_API_BASE_URL=${VITE_RUNTIME_API_BASE_URL}
 
+# Managed (Replit-parity) mode: the platform admin provides the AI provider
+# keys, so the IDE composer must NOT prompt end users for their own per-provider
+# API key. `VITE_BYOK_DISABLED` gates that key-entry block (ChatBox.tsx), and
+# like every VITE_* value it is inlined by Vite at *build* time — setting it only
+# in the Helm configmap is a no-op for the client bundle. So it MUST be a build
+# arg here. Left empty by default so a bare `docker build` (dev / self-host)
+# keeps BYOK key entry working; the prod web Cloud Build (single-web.yaml)
+# passes "true".
+ARG VITE_BYOK_DISABLED
+ENV VITE_BYOK_DISABLED=${VITE_BYOK_DISABLED}
+
 # Source overlay. When DEPS_IMAGE is the shared deps base, node_modules
 # is already populated and this COPY only adds source. When DEPS_IMAGE
 # is local-deps, node_modules is absent and we run the install below.

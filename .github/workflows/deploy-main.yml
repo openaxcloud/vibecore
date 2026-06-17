@@ -137,7 +137,7 @@ jobs:
             --project="${GCP_PROJECT_ID}" \
             --region="${GAR_LOCATION}" \
             --config=infra/cloudbuild/single-web.yaml \
-            --substitutions=_DEPS_TAG="${SHORT_SHA}",_SHORT_SHA="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime \
+            --substitutions=_DEPS_TAG="${SHORT_SHA}",_SHORT_SHA="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true \
             --machine-type=e2-highcpu-8 \
             --timeout=1800s \
             .

@@ -75,6 +75,19 @@ data:
   # ECODE_PARALLEL_SUBAGENTS_ENABLED note below.
   BILLING_CREDITS_SHADOW: "true"
 
+  # Replit-parity managed model registry, read-through. "true" makes
+  # GET /orgs/:id/ai/models return the admin-owned provider/model registry
+  # (seeded enabled-by-default at API boot — seedProviderRegistry, app.ts:5722)
+  # filtered to the org's plan tier, instead of {registryEnabled:false,models:[]}.
+  # This is the authoritative source for the (future) admin-managed model picker;
+  # the current IDE composer still reads the legacy /api/models catalog, so this
+  # flag is forward-looking and inert for today's selector — the user-visible
+  # "no per-user key" change is driven by VITE_BYOK_DISABLED (a build arg), not
+  # this. Hardcoded literal (NOT a values key) because CD's `helm upgrade
+  # --reuse-values` ignores newly-added values keys. Reversible: set "false" or
+  # delete this line (the endpoint then reports the registry as disabled).
+  MODEL_REGISTRY_DB: "true"
+
   # Remote Kubernetes runtime. These are operational endpoints and image
   # references, not credentials; credentials stay in the Secret.
   VITE_RUNTIME_MODE: {{ .Values.platformEnv.runtime.mode | quote }}

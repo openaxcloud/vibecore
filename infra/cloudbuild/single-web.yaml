@@ -37,6 +37,14 @@ substitutions:
   # shell". (The Helm configmap's VITE_RUNTIME_API_BASE_URL is a *runtime* env
   # that the browser never reads — only this build arg reaches the bundle.)
   _VITE_RUNTIME_API_BASE_URL: 'https://api.e-code.ai/api/runtime'
+  # Managed (Replit-parity) mode: the platform admin supplies the AI provider
+  # keys (OPENAI/ANTHROPIC/GOOGLE/XAI/MOONSHOT secrets), so the IDE composer must
+  # not show the per-user "API Key: Not set / Get API Key" prompt. This is a
+  # VITE_* flag, inlined at vite build time, so it MUST come through as a build
+  # arg here (a runtime configmap env would never reach the client bundle).
+  # Defaults to true because this is the prod web image; a bare local
+  # `docker build` leaves the arg empty and keeps BYOK key entry (dev/self-host).
+  _VITE_BYOK_DISABLED: 'true'
 options:
   machineType: E2_HIGHCPU_8
   logging: CLOUD_LOGGING_ONLY
@@ -71,6 +79,7 @@ steps:
       - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_DEPS_TAG}
       - --build-arg=VITE_RUNTIME_MODE=${_VITE_RUNTIME_MODE}
       - --build-arg=VITE_RUNTIME_API_BASE_URL=${_VITE_RUNTIME_API_BASE_URL}
+      - --build-arg=VITE_BYOK_DISABLED=${_VITE_BYOK_DISABLED}
       - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest
