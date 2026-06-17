@@ -1,1 +1,14 @@
-export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';
+import type { MetaFunction } from '@remix-run/cloudflare';
+import Accessibility from '~/components/marketing/ecode-exact/pages/Accessibility';
+
+export const meta: MetaFunction = () => [
+  { title: 'Accessibility — VibeCore' },
+  {
+    name: 'description',
+    content: 'VibeCore accessibility commitment — WCAG 2.1 AA, assistive tech support and how to report issues.',
+  },
+];
+
+export default function AccessibilityRoute() {
+  return <Accessibility />;
+}

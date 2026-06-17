@@ -1,1 +1,11 @@
-export { ecodeMarketingShellLoader as loader } from '~/lib/marketing/ecode-static-shell.server';
+import type { MetaFunction } from '@remix-run/cloudflare';
+import Tutorials from '~/components/marketing/ecode-exact/pages/Tutorials';
+
+export const meta: MetaFunction = () => [
+  { title: 'Tutorials — VibeCore' },
+  { name: 'description', content: 'VibeCore tutorials — learn to build, deploy and collaborate with the AI agent.' },
+];
+
+export default function TutorialsRoute() {
+  return <Tutorials />;
+}
