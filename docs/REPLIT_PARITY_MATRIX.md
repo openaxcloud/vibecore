@@ -121,7 +121,7 @@ intentionally gated). §B is the doc-by-doc verdict you can quote to Avi.**
 | Pro: $100/mo, 15 collab, 50 viewers, 28-day DB rollback, top models | ✅ catalog `dbRollbackDays`, `viewers`, `topModels` | ✅ pricing | ✅ | ✅ live (entitlements enforced where wired) | 🟡 |
 | Enterprise: SSO/SAML/SCIM, custom | ✅ SAML/SCIM impl | ✅ enterprise-sso settings | ✅ | ✅ live | ✅ |
 | Parallel agents per plan (1/2/10) | ✅ catalog `parallelAgents` | 🟡 enforced server-side | n/a | 🟡 | 🟡 |
-| DB point-in-time rollback (Pro 28d) | 🟡 **Phase-1**: schema (mig 0040) + entitlement service + dormant endpoints `1bb78d8a`/`4a230be9` | 🟡 **UI shell mounted** in IDE Database→Backups tab `aba62dc4`/`728c1509` (self-hides until flag) | n/a | 🟠 dormant behind `DB_ROLLBACK_ENABLED`; Phase-2 = provision + WAL-restore (real) | 🟡 |
+| DB point-in-time rollback (Pro 28d) | 🟡 **Phase-1+2 implemented dormant**: schema + entitlement + CNPG provisioner + executor + scheduler + ws-manager bridge `050d0e51`→`8d623d2e` | 🟡 **functional panel** (provision/snapshot/restore) in IDE Database→Backups, self-hides until flag | n/a | 🟠 dormant behind `DB_ROLLBACK_ENABLED`; go-live = operator install + flip (no code) | 🟡 |
 
 ## 12. `legal-and-security` (category) — hub
 
@@ -238,7 +238,7 @@ genuine **dedicated chantiers** (§D).
 | **Inactivity-warning emails** | ✅ **done** `besujnvm4` | Resend, e-code tone, de-duped per threshold; on the daily cron. 5 tests. |
 | **Compute metering — event coverage** | 🟡 workspace + object-storage + deploy all emitting | workspace compute (ws-mgr GC), **object-storage** daily sweep `23683aaa`, **deploy** once-at-READY `69bd8d06` (idempotent via `Deployment.lastMeteredAt`, mig 0042) — all SHADOW-safe + tested. Only DB-compute (active-hours) remains, and it needs a **provisioned** DatabaseInstance → ships with DB-PITR Phase-2. |
 | **Spend-alert emails (50/80/100%)** | ✅ **wired (SHADOW)** `ceb67f6a` | settle-path hook fires once per rung per billing period (de-duped via wallet markers, migration 0041); skips in SHADOW, activates at go-live. Pure rung logic reuses `paygAlertThresholdCrossed`. 8 tests. |
-| **DB point-in-time rollback (Pro 28d)** | 🟡 **Phase-1 done** `1bb78d8a`+`4a230be9`+`aba62dc4` | migration 0040 (DatabaseInstance/Snapshot/Restore) + pure PITR service (entitlement Pro/Ent=28d, restore-window validation) + dormant flag-gated `GET/POST /projects/:id/database*` (404 until `DB_ROLLBACK_ENABLED`) + dormant UI shell. 19 tests. **Phase-2 = real provisioning + WAL-restore executor** (multi-day, not blocked on Stripe). |
+| **DB point-in-time rollback (Pro 28d)** | 🟡 **Phase-1 + Phase-2 implemented, dormant** | Phase-1 (mig 0040 + entitlement service + endpoints + UI shell). **Phase-2** `050d0e51`→`8d623d2e`: CloudNativePG provisioner (Cluster/ScheduledBackup/Backup + PITR recovery-cluster manifests), store lifecycle, real `provision`/`snapshots`/`restores` endpoints, `/internal/database-maintenance` executor (prune + daily auto-snapshot + advance restores), worker cron, tightly-scoped ws-manager k8s bridge, functional IDE panel. **Behind `DB_ROLLBACK_ENABLED` (off) → Noop provisioner, no Postgres, no cost.** 40+ tests. Arch: `docs/DB_PITR_ARCHITECTURE.md`. **Go-live = Avi approves + operator install runbook + flip** (no code left). |
 | **turbo-stream → React Router 7** | 🟠 open (separate track) | 297 routes, single-fetch deep — `docs/DEFERRED_HARDENING.md` (6–8 wk). |
 | **Go-live billing** | ⏳ Avi | flip `BILLING_CREDITS_ENABLED` after the 2 Stripe clicks. |
 
