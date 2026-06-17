@@ -122,7 +122,7 @@ import {
   createDefaultMcpMarketplaceService,
 } from './mcp-marketplace.js';
 import { PrismaApiStore } from './prisma-store.js';
-import { openCheckpoint, settleCheckpoint } from './credits-service.js';
+import { checkServiceShutdown, openCheckpoint, settleCheckpoint } from './credits-service.js';
 import {
   DELETION_GRACE_PERIOD_DAYS,
   canCancelDeletion,
@@ -10343,6 +10343,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
     await requireOrganizationNotSuspended(store, authorized.organizationId);
 
+    // Replit-parity service-shutdown limit: suspend workspace provisioning when
+    // the org's credits are exhausted and a shutdown cap is configured. Inert
+    // unless BILLING_CREDITS_ENABLED=true (SHADOW/default never blocks).
+    if (authorized.organizationId) {
+      const shutdown = await checkServiceShutdown(store, {
+        organizationId: authorized.organizationId,
+        nowMs: Date.now(),
+      });
+
+      if (shutdown.shutdown) {
+        return reply
+          .code(402)
+          .send({ error: 'Service shutdown limit reached; workspace start is paused.', code: 'SERVICE_SHUTDOWN_LIMIT_REACHED' });
+      }
+    }
+
     const state = authorized.organizationId ? await billingState(authorized.organizationId) : undefined;
 
     /*
@@ -18721,6 +18737,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * the workspace create/start routes.
      */
     await requireOrganizationNotSuspended(store, project.organizationId);
+
+    // Replit-parity service-shutdown limit: pause deployments when the org's
+    // credits are exhausted and a shutdown cap is set. Inert unless
+    // BILLING_CREDITS_ENABLED=true (SHADOW/default never blocks).
+    const deployShutdown = await checkServiceShutdown(store, {
+      organizationId: project.organizationId,
+      nowMs: Date.now(),
+    });
+
+    if (deployShutdown.shutdown) {
+      return reply
+        .code(402)
+        .send({ error: 'Service shutdown limit reached; deployments are paused.', code: 'SERVICE_SHUTDOWN_LIMIT_REACHED' });
+    }
 
     const body = {
       provider: 'static' as const,

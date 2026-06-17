@@ -73,6 +73,42 @@ export async function gateCheckpoint(
   });
 }
 
+/**
+ * Service-shutdown gate (Replit-parity "Service shutdown limit"). When an org has
+ * a `serviceShutdownCents` cap configured AND its credits are exhausted, ALL
+ * billable services — not just AI — are suspended until the budget is raised or
+ * the cycle resets. Used to gate workspace start + deploy in addition to the AI
+ * checkpoint gate.
+ *
+ * SHADOW-safe: inert unless `BILLING_CREDITS_ENABLED === 'true'` (so SHADOW /
+ * default never blocks). The precise `paygSpent >= serviceShutdownCents`
+ * threshold becomes exact once PAYG metered spend is tracked (reportUsage); until
+ * then the trigger is "credits exhausted with a shutdown limit set", which is the
+ * real out-of-budget moment.
+ */
+export async function checkServiceShutdown(
+  store: ApiStore,
+  input: { organizationId: string; nowMs: number },
+): Promise<{ shutdown: boolean; reason?: string }> {
+  if (process.env.BILLING_CREDITS_ENABLED !== 'true') {
+    return { shutdown: false };
+  }
+
+  const wallet = await store.ensureCreditWallet(input.organizationId);
+
+  if (wallet.serviceShutdownCents == null) {
+    return { shutdown: false };
+  }
+
+  const available = await availableCreditsCents(store, input.organizationId, input.nowMs);
+
+  if (available > 0) {
+    return { shutdown: false };
+  }
+
+  return { shutdown: true, reason: 'service_shutdown_limit_reached' };
+}
+
 export interface DebitResult {
   fromPacks: number;
   fromBalance: number;

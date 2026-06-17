@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   applyPlanGrant,
   availableCreditsCents,
+  checkServiceShutdown,
   gateCheckpoint,
   openCheckpoint,
   settleCheckpoint,
@@ -10,6 +11,47 @@ import { TestApiStore } from './test-api-store.js';
 
 const NOW = 2_000_000_000_000;
 const future = () => new Date(NOW + 90 * 24 * 3600 * 1000);
+
+describe('checkServiceShutdown (Replit-parity service-shutdown limit)', () => {
+  const originalFlag = process.env.BILLING_CREDITS_ENABLED;
+
+  afterEach(() => {
+    if (originalFlag === undefined) {
+      delete process.env.BILLING_CREDITS_ENABLED;
+    } else {
+      process.env.BILLING_CREDITS_ENABLED = originalFlag;
+    }
+  });
+
+  it('is inert in SHADOW (flag off): never shuts down even with zero credits + cap set', async () => {
+    delete process.env.BILLING_CREDITS_ENABLED;
+    const store = new TestApiStore();
+    await store.updateCreditWalletSettings({ organizationId: 'org_1', serviceShutdownCents: 1000 });
+    expect((await checkServiceShutdown(store, { organizationId: 'org_1', nowMs: NOW })).shutdown).toBe(false);
+  });
+
+  it('shuts down when flag on + cap set + credits exhausted', async () => {
+    process.env.BILLING_CREDITS_ENABLED = 'true';
+    const store = new TestApiStore();
+    await store.updateCreditWalletSettings({ organizationId: 'org_1', serviceShutdownCents: 1000 });
+    // no grants → available = 0
+    expect((await checkServiceShutdown(store, { organizationId: 'org_1', nowMs: NOW })).shutdown).toBe(true);
+  });
+
+  it('does not shut down when credits remain', async () => {
+    process.env.BILLING_CREDITS_ENABLED = 'true';
+    const store = new TestApiStore();
+    await store.updateCreditWalletSettings({ organizationId: 'org_1', serviceShutdownCents: 1000 });
+    await store.recordCreditEntry({ organizationId: 'org_1', deltaCents: 500, kind: 'GRANT', reason: 'grant' });
+    expect((await checkServiceShutdown(store, { organizationId: 'org_1', nowMs: NOW })).shutdown).toBe(false);
+  });
+
+  it('does not shut down when no cap is configured', async () => {
+    process.env.BILLING_CREDITS_ENABLED = 'true';
+    const store = new TestApiStore();
+    expect((await checkServiceShutdown(store, { organizationId: 'org_1', nowMs: NOW })).shutdown).toBe(false);
+  });
+});
 
 describe('settleCheckpoint', () => {
   it('debits the wallet balance when there are no packs', async () => {
