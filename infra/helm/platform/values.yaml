@@ -58,10 +58,8 @@ platformEnv:
   # be shared across replicas, defaults to /tmp emptyDir when storage is
   # disabled.
   staticDeployStorageDir: '/tmp/vibecore-static-deployments'
-  # PlatformAdmin TOTP gate. Defaults to "true" in the api (the env var is
-  # treated as required unless it equals the string "false") — set
-  # explicitly so the policy is visible in chart values.
-  adminMfaRequired: 'true'
+  # NOTE: ADMIN_MFA_REQUIRED is hardcoded "false" in templates/configmap.yaml
+  # (MFA optional for everyone). See that file to change the policy.
   runtime:
     mode: 'remote-kubernetes'
     apiBaseUrl: 'https://api.staging.example.com/api/runtime'

@@ -48,10 +48,16 @@ data:
   # is the real client IP (audit logs, rate-limits, OAuth callback origin).
   TRUST_PROXY: {{ .Values.platformEnv.trustProxy | default "true" | quote }}
 
-  # Gate /platform/admin/* behind a TOTP step-up. The api treats anything
-  # other than the literal string "false" as required (services/api/src/app.ts:1005),
-  # so the only way to relax the policy is to set this to "false".
-  ADMIN_MFA_REQUIRED: {{ .Values.platformEnv.adminMfaRequired | default "true" | quote }}
+  # MFA is OPTIONAL for everyone, admins included (Avi's decision). "false" turns
+  # adminMfaRequired() off so the global requireAuth gate (app.ts:2297) and
+  # requireAdminMfaForSensitiveAction (app.ts:3289, e.g. the platform-admin
+  # promotion) no longer block an admin who hasn't enrolled MFA. MFA stays
+  # AVAILABLE (anyone can enroll it on the security page), just never forced.
+  # Hardcoded LITERAL (not a values key) because CD's `helm upgrade
+  # --reuse-values` ignores values changes — same reason as BILLING_CREDITS_SHADOW.
+  # Reversible: set "true" (or delete this line — the env then defaults to
+  # MFA-required for admins).
+  ADMIN_MFA_REQUIRED: "false"
   # Default paths for API-local project files + static deployment artifacts.
   # The deployment template overrides these via per-pod env vars when the
   # `storage` block is enabled, so this is only the fallback for the

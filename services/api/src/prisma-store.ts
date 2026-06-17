@@ -1856,7 +1856,11 @@ export class PrismaApiStore implements ApiStore {
       create: {
         organizationId,
         ipAllowlist: [],
-        requireMfaForAdmins: true,
+        // MFA optional everywhere (Avi's decision): default an org to NOT forcing
+        // admin MFA. Note this setting is not itself an enforcement gate — the
+        // global ADMIN_MFA_REQUIRED env (adminMfaRequired()) is the real lever —
+        // so this default is for consistency/UI, not behavior.
+        requireMfaForAdmins: false,
         dataRetentionDays: 365,
         legalHoldEnabled: false,
       },
@@ -1875,7 +1879,7 @@ export class PrismaApiStore implements ApiStore {
           organizationId: input.organizationId,
           ipAllowlist: input.ipAllowlist ?? [],
           sessionDurationMinutes: input.sessionDurationMinutes,
-          requireMfaForAdmins: input.requireMfaForAdmins ?? true,
+          requireMfaForAdmins: input.requireMfaForAdmins ?? false,
           dataRetentionDays: input.dataRetentionDays ?? 365,
           legalHoldEnabled: input.legalHoldEnabled ?? false,
         },

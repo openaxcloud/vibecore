@@ -1372,7 +1372,7 @@ export class TestApiStore implements ApiStore {
       organizationId,
       ipAllowlist: [],
       sessionDurationMinutes: 60 * 24 * 30,
-      requireMfaForAdmins: true,
+      requireMfaForAdmins: false,
       dataRetentionDays: 365,
       legalHoldEnabled: false,
       updatedAt: now(),

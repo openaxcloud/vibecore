@@ -97,11 +97,9 @@ platformEnv:
   # Keep them in sync with `storage.mountPath` for sanity.
   projectStorageDir: '/data/vibecore/projects'
   staticDeployStorageDir: '/data/vibecore/static-deployments'
-  # Require TOTP MFA for every PlatformAdmin endpoint. The api defaults to
-  # required when the env var is anything other than the string "false"
-  # (services/api/src/app.ts:1005), but we set it explicitly here so the
-  # policy is auditable from the chart values rather than implicit in code.
-  adminMfaRequired: 'true'
+  # NOTE: ADMIN_MFA_REQUIRED is hardcoded "false" in templates/configmap.yaml
+  # (MFA optional for everyone — Avi's decision; reuse-values would ignore a
+  # values key here). To re-require admin MFA, flip that literal to "true".
   runtime:
     mode: 'remote-kubernetes'
     apiBaseUrl: 'https://api.e-code.ai/api/runtime'
