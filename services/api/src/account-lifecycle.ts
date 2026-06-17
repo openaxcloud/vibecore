@@ -69,14 +69,14 @@ export function isStarterPublishExpired(publishedAtMs: number, nowMs: number): b
  */
 export function inactivityWarningEmailContent(daysInactive: number): { subject: string; text: string; html: string } {
   const daysLeft = Math.max(0, INACTIVITY_DAYS - daysInactive);
-  const subject = `Your VibeCore account will be deleted in ${daysLeft} days`;
+  const subject = `Your E-Code account will be deleted in ${daysLeft} days`;
   const text = [
-    `Your free VibeCore account has been inactive for ${daysInactive} days.`,
+    `Your free E-Code account has been inactive for ${daysInactive} days.`,
     `Inactive free accounts are permanently deleted after ${INACTIVITY_DAYS} days.`,
     `You have ${daysLeft} days left — sign in to keep your account and projects.`,
   ].join('\n\n');
   const html =
-    `<p>Your free VibeCore account has been inactive for <strong>${daysInactive} days</strong>.</p>` +
+    `<p>Your free E-Code account has been inactive for <strong>${daysInactive} days</strong>.</p>` +
     `<p>Inactive free accounts are permanently deleted after ${INACTIVITY_DAYS} days. ` +
     `You have <strong>${daysLeft} days</strong> left.</p>` +
     `<p>Sign in to keep your account and projects.</p>`;

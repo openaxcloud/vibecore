@@ -1645,7 +1645,7 @@ export function EcodeTeamsPage() {
         <Section tone="muted">
           <SectionIntro
             title="Everything Your Team Needs"
-            description="The public E-Code team page restored inside Vibecore."
+            description="The public E-Code team page restored inside E-Code."
           />
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {teamFeatures.map((feature) => (

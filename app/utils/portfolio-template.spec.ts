@@ -64,7 +64,7 @@ describe('portfolio template cache', () => {
   it('streams cached portfolio output by file action chunks', () => {
     const chunks = createPortfolioTemplateStreamChunks([{ role: 'user', content: 'Build a portfolio for Jordan Lee' }]);
 
-    expect(chunks[0]).toContain("Vibecore's cached portfolio app template");
+    expect(chunks[0]).toContain("E-Code's cached portfolio app template");
     expect(chunks.filter((chunk) => chunk.includes('<boltAction type="file"'))).toHaveLength(
       createPortfolioTemplateFiles([{ role: 'user', content: 'Build a portfolio for Jordan Lee' }]).length,
     );

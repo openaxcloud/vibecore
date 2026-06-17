@@ -13,7 +13,7 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 
-export const meta: MetaFunction = () => [{ title: 'Organization members - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Organization members - E-Code' }];
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const orgIdParam = new URL(request.url).searchParams.get('orgId');

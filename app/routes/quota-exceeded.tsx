@@ -2,7 +2,7 @@ import type { MetaFunction } from '@remix-run/cloudflare';
 import { Link } from '@remix-run/react';
 import { EnterpriseFormPage } from '~/components/enterprise/EnterpriseFormPage';
 
-export const meta: MetaFunction = () => [{ title: 'Quota exceeded - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Quota exceeded - E-Code' }];
 
 export default function QuotaExceededPage() {
   return (

@@ -57,7 +57,7 @@ export function AuthScreen({
   children,
   footer,
   heroEyebrow = 'Enterprise-grade security',
-  heroTitle = 'Build production apps with Vibecore',
+  heroTitle = 'Build production apps with E-Code',
   heroBody = 'Provision workspaces, share live previews and ship to your own infrastructure from a single browser tab.',
   heroAside,
   belowCard,

@@ -14,7 +14,7 @@ type UsageData = {
   plan: { name: string };
 };
 
-export const meta: MetaFunction = () => [{ title: 'Usage - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Usage - E-Code' }];
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
 

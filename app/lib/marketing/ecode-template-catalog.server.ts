@@ -64,7 +64,7 @@ export interface ListTemplatesOptions {
 
 const AUTHOR: EcodeTemplateAuthor = {
   id: 'vibecore',
-  name: 'Vibecore',
+  name: 'E-Code',
   verified: true,
 };
 

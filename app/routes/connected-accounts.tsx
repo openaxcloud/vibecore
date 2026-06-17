@@ -7,7 +7,7 @@ import { useConnectorPopup } from '~/lib/chat/use-connector-popup';
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { classNames } from '~/utils/classNames';
 
-export const meta: MetaFunction = () => [{ title: 'Connected accounts - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Connected accounts - E-Code' }];
 
 type ProviderKey = 'github' | 'google' | 'microsoft';
 

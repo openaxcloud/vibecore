@@ -36,7 +36,7 @@ export default function Press() {
   const inTheNews = [
     {
       outlet: 'TechCrunch',
-      headline: 'VibeCore lets anyone ship a full-stack app from a single prompt',
+      headline: 'E-Code lets anyone ship a full-stack app from a single prompt',
       date: 'June 2026',
     },
     {
@@ -46,12 +46,12 @@ export default function Press() {
     },
     {
       outlet: 'VentureBeat',
-      headline: 'VibeCore raises the bar for autonomous multi-agent software builders',
+      headline: 'E-Code raises the bar for autonomous multi-agent software builders',
       date: 'May 2026',
     },
     {
       outlet: 'Hacker News',
-      headline: 'Show HN: VibeCore — prompt to deployed app with a live IDE',
+      headline: 'Show HN: E-Code — prompt to deployed app with a live IDE',
       date: 'April 2026',
     },
   ];
@@ -77,7 +77,7 @@ export default function Press() {
                 Press &amp; Media
               </h1>
               <p className="text-[15px] text-muted-foreground mb-8">
-                Everything you need to tell the VibeCore story — brand assets, company facts, and the latest coverage
+                Everything you need to tell the E-Code story — brand assets, company facts, and the latest coverage
               </p>
               <Badge variant="secondary" className="text-[15px] px-4 py-2">
                 Press Kit
@@ -120,7 +120,7 @@ export default function Press() {
           <div className="container-responsive">
             <h2 className="text-3xl font-bold text-center mb-4">Brand Assets &amp; Logos</h2>
             <p className="text-[15px] text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
-              Download official VibeCore logos and brand materials. Please follow our brand guidelines when using them.
+              Download official E-Code logos and brand materials. Please follow our brand guidelines when using them.
             </p>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -198,7 +198,7 @@ export default function Press() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Building2 className="h-5 w-5" style={{ color: 'var(--ecode-accent)' }} />
-                    About VibeCore
+                    About E-Code
                   </CardTitle>
                   <CardDescription>
                     The AI development platform that turns a prompt into a deployed application
@@ -206,10 +206,10 @@ export default function Press() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">
-                    VibeCore is an AI-native development platform where anyone can describe an idea in plain language
-                    and watch autonomous agents plan, build, run, and deploy a full-stack application in a live cloud
-                    IDE. By combining multi-agent reasoning with a real workspace, terminal, and one-click deploys,
-                    VibeCore closes the gap between intent and shipped software.
+                    E-Code is an AI-native development platform where anyone can describe an idea in plain language and
+                    watch autonomous agents plan, build, run, and deploy a full-stack application in a live cloud IDE.
+                    By combining multi-agent reasoning with a real workspace, terminal, and one-click deploys, E-Code
+                    closes the gap between intent and shipped software.
                   </p>
                 </CardContent>
               </Card>

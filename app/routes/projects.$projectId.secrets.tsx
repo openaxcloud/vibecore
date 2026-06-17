@@ -13,7 +13,7 @@ import { projectAction, projectPageLoader } from '~/lib/project-route.server';
 
 type SecretsData = { secrets: Array<{ id: string; key: string; createdAt?: string; updatedAt?: string }> };
 
-export const meta: MetaFunction = () => [{ title: 'Project secrets - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Project secrets - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<SecretsData>(args, (projectId) => `/projects/${projectId}/secrets`);
 export const action = (args: EnterpriseActionArgs) =>

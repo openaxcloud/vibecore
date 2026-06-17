@@ -11,7 +11,7 @@ import {
   type EnterpriseActionArgs,
 } from '~/lib/enterprise-api.server';
 
-export const meta: MetaFunction = () => [{ title: 'Downgrade - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Downgrade - E-Code' }];
 
 export async function action({ request }: EnterpriseActionArgs) {
   const organization = await firstOrganization(request);

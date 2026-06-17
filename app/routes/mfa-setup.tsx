@@ -14,7 +14,7 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 
-export const meta: MetaFunction = () => [{ title: 'Two-factor authentication - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Two-factor authentication - E-Code' }];
 
 type MfaLoaderData = { status: 'enabled' | 'reauth' | 'setup'; secret?: string; otpauthUrl?: string };
 
@@ -147,7 +147,7 @@ function RecoveryCodes({ codes }: { codes: string[] }) {
         <button
           type="button"
           onClick={() => {
-            const blob = new Blob([`VibeCore recovery codes\n\n${text}\n`], { type: 'text/plain' });
+            const blob = new Blob([`E-Code recovery codes\n\n${text}\n`], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;

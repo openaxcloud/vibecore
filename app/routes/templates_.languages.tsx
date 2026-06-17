@@ -6,7 +6,7 @@ import { getEcodeTemplateCatalog } from '~/lib/marketing/ecode-template-catalog.
 
 /**
  * In-repo SSR "browse templates by language" page. Derives the language facets
- * (with counts) from the real Vibecore starter-template catalog and links each
+ * (with counts) from the real E-Code starter-template catalog and links each
  * into the templates gallery. e-code public shell, responsive. Replaces the
  * external-bundle proxy.
  */

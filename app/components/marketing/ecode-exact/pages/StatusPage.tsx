@@ -86,7 +86,7 @@ export default function StatusPage() {
                 System Status
               </h1>
               <p className="text-[15px] text-muted-foreground mb-8">
-                Real-time status and uptime for all VibeCore services
+                Real-time status and uptime for all E-Code services
               </p>
 
               <div className="flex items-center justify-center gap-3 rounded-lg border border-green-600/30 bg-green-600/10 px-6 py-4 max-w-md mx-auto">
@@ -146,7 +146,7 @@ export default function StatusPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Overall Availability</CardTitle>
-                  <CardDescription>Aggregate uptime across all VibeCore services</CardDescription>
+                  <CardDescription>Aggregate uptime across all E-Code services</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="flex flex-wrap gap-1" aria-hidden="true">

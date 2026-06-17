@@ -46,7 +46,7 @@ export default function About() {
     {
       icon: Globe,
       title: 'Open to the world',
-      description: 'From a first prototype to a global product, VibeCore scales with you across every stage of growth.',
+      description: 'From a first prototype to a global product, E-Code scales with you across every stage of growth.',
     },
   ];
 
@@ -54,7 +54,7 @@ export default function About() {
     {
       year: '2023',
       title: 'A simple question',
-      description: 'What if anyone could turn a sentence into running software? VibeCore began as a single prompt box.',
+      description: 'What if anyone could turn a sentence into running software? E-Code began as a single prompt box.',
     },
     {
       year: '2024',
@@ -71,7 +71,7 @@ export default function About() {
     {
       year: '2026',
       title: 'Software creation, reimagined',
-      description: 'Today VibeCore powers builders worldwide — turning ideas into apps faster than ever before.',
+      description: 'Today E-Code powers builders worldwide — turning ideas into apps faster than ever before.',
     },
   ];
 
@@ -102,7 +102,7 @@ export default function About() {
                 Building the future of software creation
               </h1>
               <p className="text-base sm:text-lg text-bolt-elements-textSecondary leading-relaxed">
-                VibeCore is an AI-native development platform that turns plain language into real, deployable
+                E-Code is an AI-native development platform that turns plain language into real, deployable
                 applications. We are on a mission to make software creation accessible to everyone.
               </p>
             </div>
@@ -129,7 +129,7 @@ export default function About() {
                   setup, or scale.
                 </p>
                 <p className="text-bolt-elements-textSecondary leading-relaxed">
-                  VibeCore pairs an autonomous coding agent with a complete cloud workspace, so describing what you want
+                  E-Code pairs an autonomous coding agent with a complete cloud workspace, so describing what you want
                   is enough to get a working app you can edit, run, and ship.
                 </p>
               </div>
@@ -220,7 +220,7 @@ export default function About() {
           <div className="container-responsive py-16 sm:py-24">
             <div className="text-center max-w-2xl mx-auto">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-bolt-elements-textPrimary mb-4">
-                Start building with VibeCore
+                Start building with E-Code
               </h2>
               <p className="text-base sm:text-lg text-bolt-elements-textSecondary mb-8 leading-relaxed">
                 Join the creators turning ideas into software every day. Your next app is one prompt away.

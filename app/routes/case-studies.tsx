@@ -2,8 +2,8 @@ import type { MetaFunction } from '@remix-run/cloudflare';
 import CaseStudies from '~/components/marketing/ecode-exact/pages/CaseStudies';
 
 export const meta: MetaFunction = () => [
-  { title: 'Case Studies — VibeCore' },
-  { name: 'description', content: 'How teams ship faster with VibeCore — customer case studies and results.' },
+  { title: 'Case Studies — E-Code' },
+  { name: 'description', content: 'How teams ship faster with E-Code — customer case studies and results.' },
 ];
 
 export default function CaseStudiesRoute() {

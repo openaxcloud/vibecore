@@ -6,7 +6,7 @@ import { AppShell, ProjectGrid, LinkButton, StatusPill, type ProjectCard } from 
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { projectIdePath } from '~/utils/project-url';
 
-export const meta: MetaFunction = () => [{ title: 'Projects - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Projects - E-Code' }];
 
 type Organization = { id: string; slug?: string };
 type ApiProject = {

@@ -10824,7 +10824,7 @@ function ProjectIdePanelContent({
           <label title="Detected framework used to choose provider defaults. Leave empty to keep auto-detection.">
             <span>Framework detected</span>
             <PanelInput name="framework" placeholder={`Auto: ${inferredFramework}`} aria-label="Framework detected" />
-            <small>Leave blank to let Vibecore infer the framework from package scripts and config files.</small>
+            <small>Leave blank to let E-Code infer the framework from package scripts and config files.</small>
           </label>
           <label title="Git branch or workspace branch used as the deployment source.">
             <span>Branch</span>
@@ -11127,7 +11127,7 @@ function ProjectDomainsPanel({ data, onSubmit, busy }: { data: any; onSubmit: an
           <span className="bolt-project-domains-kicker">Domains</span>
           <h3 id="domains-title">Production routing, DNS verification and managed TLS</h3>
           <p>
-            Add a hostname, publish the DNS records below, then verify. VibeCore keeps redirect, wildcard and TLS
+            Add a hostname, publish the DNS records below, then verify. E-Code keeps redirect, wildcard and TLS
             readiness as backend state for this organization.
           </p>
         </div>
@@ -11775,7 +11775,7 @@ function ProjectSettingsPanel({
     }
 
     if (agent.includes('node')) {
-      return 'VibeCore CLI or local development session';
+      return 'E-Code CLI or local development session';
     }
 
     return session.userAgent ? 'Browser session' : 'Authenticated session';
@@ -12470,7 +12470,7 @@ function ProjectSettingsPanel({
               {import.meta.env.VITE_BYOK_DISABLED === 'true' ? (
                 <div className="bolt-project-managed-note" data-testid="ai-keys-managed-note">
                   <p>
-                    AI provider keys are managed by VibeCore. Calls are billed to your plan's included credits — there's
+                    AI provider keys are managed by E-Code. Calls are billed to your plan's included credits — there's
                     no key to enter. Pick your default model and routing above.
                   </p>
                 </div>
@@ -12493,7 +12493,7 @@ function ProjectSettingsPanel({
                                 : 'Managed credits'}
                             </small>
                           </span>
-                          <em title="Managed credits use VibeCore platform billing. BYOK stores a project secret and routes calls through your provider key.">
+                          <em title="Managed credits use E-Code platform billing. BYOK stores a project secret and routes calls through your provider key.">
                             {mode === 'byok' ? 'BYOK' : 'Managed'}
                           </em>
                         </div>
@@ -13032,7 +13032,7 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
           <span>Package intelligence</span>
           <h3>{manifests.length ? `${dependencies.length} dependencies detected` : 'No package manifest detected'}</h3>
           <p>
-            Vibecore reads package manifests and lockfiles directly from the project/runtime, then runs install, audit,
+            E-Code reads package manifests and lockfiles directly from the project/runtime, then runs install, audit,
             and outdated checks against the real workspace terminal.
           </p>
         </div>
@@ -14861,7 +14861,7 @@ function DatabaseConnectionOnboarding({ onSubmit, busy }: { onSubmit: any; busy:
           <span className="i-ph:database-duotone" aria-hidden />
           <h3>Add your first database</h3>
           <p>
-            Connect a real provider by saving its connection string as an encrypted project secret. Vibecore detects
+            Connect a real provider by saving its connection string as an encrypted project secret. E-Code detects
             Postgres, MySQL, MongoDB and Redis URLs from secrets and uses them for schema browsing, backups and
             read-only queries.
           </p>
@@ -15647,7 +15647,7 @@ function securityReportToSarif(report: any) {
       {
         tool: {
           driver: {
-            name: 'VibeCore Security Scanner',
+            name: 'E-Code Security Scanner',
             informationUri: 'https://github.com/openaxcloud/vibecore',
             rules: vulnerabilities.map((vulnerability: any) => ({
               id: vulnerability.id,

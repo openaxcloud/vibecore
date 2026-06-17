@@ -4,8 +4,8 @@ import Subprocessors from '~/components/marketing/ecode-exact/pages/Subprocessor
 
 // In-repo SSR (main Remix app) rather than the prebuilt external marketing bundle.
 export const meta: MetaFunction = () => [
-  { title: 'Subprocessors — VibeCore' },
-  { name: 'description', content: 'VibeCore subprocessors list.' },
+  { title: 'Subprocessors — E-Code' },
+  { name: 'description', content: 'E-Code subprocessors list.' },
 ];
 
 export default function SubprocessorsRoute() {

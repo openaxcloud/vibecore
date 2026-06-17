@@ -538,7 +538,7 @@ h2 {
       path: 'README.md',
       content: `# ${name} Portfolio
 
-Production-ready React + Vite portfolio generated from the cached Vibecore portfolio template.
+Production-ready React + Vite portfolio generated from the cached E-Code portfolio template.
 
 ## Scripts
 
@@ -564,7 +564,7 @@ function escapeAttribute(value: string) {
  */
 export const PORTFOLIO_TEMPLATE_INTRO =
   '> 📦 **Quick Start Template** — using a pre-built portfolio template for fast setup. No AI tokens were used for this response.\n\n' +
-  "I matched this to Vibecore's cached portfolio app template, then customized the structure and copy for the request.\n\n";
+  "I matched this to E-Code's cached portfolio app template, then customized the structure and copy for the request.\n\n";
 
 export function createPortfolioTemplateArtifact(messages: ChatLikeMessage[]) {
   const files = createPortfolioTemplateFiles(messages);

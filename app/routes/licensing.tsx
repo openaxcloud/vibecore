@@ -4,25 +4,25 @@ import { PublicShell } from '~/components/dashboard/SaaSLayout';
 
 /**
  * Public licensing page (Replit parity: legal-and-security/licensing-info). The
- * VibeCore platform is MIT-licensed (see repo LICENSE, derived from bolt.diy);
+ * E-Code platform is MIT-licensed (see repo LICENSE, derived from bolt.diy);
  * apps you build are owned by you. Static SSR, e-code public shell.
  */
 export const meta: MetaFunction = () => [
-  { title: 'Licensing — VibeCore' },
+  { title: 'Licensing — E-Code' },
   {
     name: 'description',
-    content: 'How the VibeCore platform is licensed (MIT) and what licensing applies to the apps you build.',
+    content: 'How the E-Code platform is licensed (MIT) and what licensing applies to the apps you build.',
   },
 ];
 
 const SECTIONS: Array<{ title: string; body: string; points?: string[] }> = [
   {
     title: 'Platform license (MIT)',
-    body: 'The VibeCore platform source is distributed under the MIT License (derived from the bolt.diy project). You may use, copy, modify and distribute it under the terms of that license, included in full in the project repository as LICENSE.',
+    body: 'The E-Code platform source is distributed under the MIT License (derived from the bolt.diy project). You may use, copy, modify and distribute it under the terms of that license, included in full in the project repository as LICENSE.',
   },
   {
     title: 'Your apps belong to you',
-    body: 'Code and content you create with the AI agent in your workspace are yours. VibeCore claims no ownership over the applications you build, and you are free to deploy, publish and relicense them as you see fit, subject to the licenses of any third-party dependencies you add.',
+    body: 'Code and content you create with the AI agent in your workspace are yours. E-Code claims no ownership over the applications you build, and you are free to deploy, publish and relicense them as you see fit, subject to the licenses of any third-party dependencies you add.',
   },
   {
     title: 'Third-party dependencies',
@@ -31,7 +31,7 @@ const SECTIONS: Array<{ title: string; body: string; points?: string[] }> = [
   },
   {
     title: 'Trademarks',
-    body: 'The VibeCore and E-Code names and logos are trademarks of their respective owners and are not licensed for use except to identify the platform.',
+    body: 'The E-Code and E-Code names and logos are trademarks of their respective owners and are not licensed for use except to identify the platform.',
   },
 ];
 

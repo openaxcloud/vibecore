@@ -106,7 +106,7 @@ export function categorizeProjectsNewError(error: unknown): ProjectsNewErrorDesc
         kind: 'auth',
         title: 'Sign in to create a project',
         subtitle:
-          'Vibecore needs your authenticated workspace and configured AI providers before it can create a real project.',
+          'E-Code needs your authenticated workspace and configured AI providers before it can create a real project.',
         detail,
       };
     }

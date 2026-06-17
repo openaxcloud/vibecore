@@ -240,9 +240,9 @@ export default function Careers() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-muted-foreground">
-                    VibeCore is an equal-opportunity employer. We welcome applicants of every race, gender, age,
-                    religion, identity, ability and experience, and we&apos;re committed to a hiring process that is
-                    fair, accessible and free of bias.
+                    E-Code is an equal-opportunity employer. We welcome applicants of every race, gender, age, religion,
+                    identity, ability and experience, and we&apos;re committed to a hiring process that is fair,
+                    accessible and free of bias.
                   </p>
                   <p className="text-muted-foreground">
                     Need an accommodation during the interview process? Let us know on your application and we&apos;ll

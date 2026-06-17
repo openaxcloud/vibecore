@@ -18,10 +18,10 @@ export default function Partners() {
       icon: Boxes,
       name: 'Technology Partners',
       description:
-        'Integrate your platform, API, or developer tool with VibeCore and reach teams building production apps with AI.',
+        'Integrate your platform, API, or developer tool with E-Code and reach teams building production apps with AI.',
       points: [
         'Co-built integrations & MCP connectors',
-        'Listing in the VibeCore marketplace',
+        'Listing in the E-Code marketplace',
         'Joint launch & technical support',
       ],
     },
@@ -29,7 +29,7 @@ export default function Partners() {
       icon: Briefcase,
       name: 'Solutions Partners',
       description:
-        'Consultancies and SIs delivering VibeCore to enterprise customers, from migration to managed delivery.',
+        'Consultancies and SIs delivering E-Code to enterprise customers, from migration to managed delivery.',
       points: [
         'Implementation enablement & certification',
         'Deal registration & revenue share',
@@ -40,7 +40,7 @@ export default function Partners() {
       icon: Building2,
       name: 'Agency Partners',
       description:
-        'Digital agencies and studios shipping client apps faster by building on VibeCore as your delivery platform.',
+        'Digital agencies and studios shipping client apps faster by building on E-Code as your delivery platform.',
       points: ['Agency dashboard & pooled seats', 'Co-marketing & referral rewards', 'Priority access to new features'],
     },
   ];
@@ -49,7 +49,7 @@ export default function Partners() {
     {
       icon: TrendingUp,
       title: 'Grow Revenue',
-      description: 'Earn referral commissions and revenue share on every customer you bring to VibeCore.',
+      description: 'Earn referral commissions and revenue share on every customer you bring to E-Code.',
     },
     {
       icon: Rocket,
@@ -70,7 +70,7 @@ export default function Partners() {
 
   const steps = [
     { title: 'Apply', description: 'Tell us about your business and the customers you serve.' },
-    { title: 'Onboard', description: 'Complete enablement and get certified on the VibeCore platform.' },
+    { title: 'Onboard', description: 'Complete enablement and get certified on the E-Code platform.' },
     { title: 'Launch', description: 'Go to market together with co-branded campaigns and joint sales.' },
     { title: 'Grow', description: 'Scale your practice with revenue share, referrals, and roadmap access.' },
   ];
@@ -86,7 +86,7 @@ export default function Partners() {
             <div className="text-center max-w-3xl mx-auto">
               <Handshake className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
               <h1 className="text-4xl font-bold mb-4" data-testid="heading-partners">
-                Partner with VibeCore
+                Partner with E-Code
               </h1>
               <p className="text-[15px] text-muted-foreground mb-8">
                 Build, sell, and deliver alongside the AI development platform teams use to ship production apps. Join a
@@ -104,7 +104,7 @@ export default function Partners() {
           <div className="container-responsive">
             <h2 className="text-3xl font-bold text-center mb-4">Partner Programs</h2>
             <p className="text-[15px] text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
-              Whatever you build or who you serve, there is a VibeCore program built for you.
+              Whatever you build or who you serve, there is a E-Code program built for you.
             </p>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

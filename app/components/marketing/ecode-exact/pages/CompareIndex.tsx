@@ -15,22 +15,22 @@ import {
 
 const comparisons = [
   {
-    name: 'VibeCore vs Replit',
+    name: 'E-Code vs Replit',
     icon: Sparkles,
     blurb: 'Agentic full-stack builds, managed AI keys and effort-based credits — without per-user key setup.',
   },
   {
-    name: 'VibeCore vs Cursor',
+    name: 'E-Code vs Cursor',
     icon: Bot,
     blurb: 'A complete cloud workspace — editor, terminal, preview, deploys — not just an AI editor on your machine.',
   },
   {
-    name: 'VibeCore vs GitHub Codespaces',
+    name: 'E-Code vs GitHub Codespaces',
     icon: Cloud,
     blurb: 'Instant AI app generation and one-click production deploys, with built-in databases and collaboration.',
   },
   {
-    name: 'VibeCore vs Bolt',
+    name: 'E-Code vs Bolt',
     icon: Zap,
     blurb:
       'Production-grade runtime, real deployments, teams, billing and enterprise controls on top of fast prototyping.',
@@ -63,9 +63,9 @@ export default function CompareIndex() {
       <main>
         <section className="mx-auto max-w-5xl px-4 py-16 text-center sm:py-24">
           <Badge>Comparisons</Badge>
-          <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl">How VibeCore compares</h1>
+          <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl">How E-Code compares</h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-bolt-elements-textSecondary">
-            See how VibeCore stacks up against other AI development platforms — from prompt to production.
+            See how E-Code stacks up against other AI development platforms — from prompt to production.
           </p>
         </section>
 
@@ -101,7 +101,7 @@ export default function CompareIndex() {
         </section>
 
         <section className="mx-auto max-w-6xl px-4 py-12">
-          <h2 className="text-center text-2xl font-bold sm:text-3xl">Why teams choose VibeCore</h2>
+          <h2 className="text-center text-2xl font-bold sm:text-3xl">Why teams choose E-Code</h2>
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {reasons.map((reason) => {
               const Icon = reason.icon;

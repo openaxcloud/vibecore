@@ -187,18 +187,18 @@ export function ecodeAboutLoader() {
       milestones: [
         { year: '2024', event: 'E-Code founded with a mission to make production app creation faster.' },
         { year: '2025', event: 'Enterprise AI coding workflows expanded across web, mobile and teams.' },
-        { year: '2026', event: 'Vibecore integrates the E-Code public experience with real workspace templates.' },
+        { year: '2026', event: 'E-Code integrates the E-Code public experience with real workspace templates.' },
       ],
       team: [
         { name: 'E-Code Team', role: 'Product Engineering', avatar: 'EC' },
-        { name: 'Vibecore Platform', role: 'Workspace Runtime', avatar: 'VC' },
+        { name: 'E-Code Platform', role: 'Workspace Runtime', avatar: 'VC' },
       ],
       stats: [
         {
           icon: 'Rocket',
           label: 'Templates',
           value: '20',
-          description: 'Production starters available from the Vibecore catalog.',
+          description: 'Production starters available from the E-Code catalog.',
         },
         {
           icon: 'Code',
@@ -419,9 +419,9 @@ export function ecodeMarketplaceExtensionsLoader() {
       },
       {
         id: 4,
-        name: 'Vibecore AI Workspace',
+        name: 'E-Code AI Workspace',
         description: 'Workspace helpers for agent orchestration, previews and deployments',
-        author: 'Vibecore',
+        author: 'E-Code',
         category: 'ai',
         tags: ['ai', 'workspace', 'deployments'],
         downloads: 0,
@@ -443,13 +443,13 @@ export function ecodeMarketplacePublishersLoader() {
     [
       {
         id: 'vibecore',
-        name: 'Vibecore',
+        name: 'E-Code',
         avatar: 'VC',
         verified: true,
         extensions: 1,
         templates: officialTemplates.length,
         downloads: officialTemplates.reduce((sum, template) => sum + template.stats.downloads, 0),
-        description: 'Official Vibecore workspace templates and E-Code shell adapters.',
+        description: 'Official E-Code workspace templates and E-Code shell adapters.',
       },
     ],
     { headers: noStoreHeaders },

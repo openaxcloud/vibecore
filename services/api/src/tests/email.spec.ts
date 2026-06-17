@@ -103,7 +103,7 @@ describe('createEmailProvider', () => {
         accept: 'application/json',
         authorization: 'Bearer resend-token',
         'content-type': 'application/json',
-        'user-agent': 'Vibecore API transactional email',
+        'user-agent': 'E-Code API transactional email',
       }),
     });
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({

@@ -54,7 +54,7 @@ const providers = [
   { id: 'docker', name: 'Custom Dockerfile', detail: 'Enterprise isolated builder only.', icon: ShieldCheck },
 ];
 
-export const meta: MetaFunction = () => [{ title: 'Project deployments - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Project deployments - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<DeploymentsData>(args, (projectId) => `/projects/${projectId}/deployments`);
 export const action = (args: EnterpriseActionArgs) =>

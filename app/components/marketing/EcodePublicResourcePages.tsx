@@ -131,7 +131,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
         <ResourceHero
           eyebrow="Templates"
           title="Start faster with production-ready E-Code templates"
-          description="Browse real Vibecore project starters adapted into the E-Code marketing experience. Pick a foundation, open the preserved IDE, and continue with typed code, preview and deployment workflows."
+          description="Browse real E-Code project starters adapted into the E-Code marketing experience. Pick a foundation, open the preserved IDE, and continue with typed code, preview and deployment workflows."
           primaryAction={{ label: 'Browse templates', to: '#featured-templates' }}
           secondaryAction={{ label: 'Open docs', to: '/docs' }}
           metrics={[
@@ -146,7 +146,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
           <SectionHeader
             eyebrow="Template gallery"
             title="Curated starters without the app dashboard chrome"
-            description="This is a public marketing gallery. It uses the same E-Code header and footer as the homepage, while the cards are powered by Vibecore's real template catalog."
+            description="This is a public marketing gallery. It uses the same E-Code header and footer as the homepage, while the cards are powered by E-Code's real template catalog."
           />
 
           <div className="mt-8 flex flex-wrap gap-3 pb-2" aria-label="Template categories">
@@ -185,7 +185,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               {[
-                ['No invented catalog', 'Cards come from existing Vibecore starters.'],
+                ['No invented catalog', 'Cards come from existing E-Code starters.'],
                 ['No user menu', 'Public pages do not render account dropdowns.'],
                 ['Same shell', 'Header and footer match the marketing routes.'],
               ].map(([title, body]) => (

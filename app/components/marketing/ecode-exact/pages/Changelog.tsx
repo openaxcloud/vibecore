@@ -112,7 +112,7 @@ export default function Changelog() {
                 Changelog
               </h1>
               <p className="text-[15px] text-muted-foreground mb-8">
-                The latest features, improvements, and fixes shipping to VibeCore
+                The latest features, improvements, and fixes shipping to E-Code
               </p>
               <Badge variant="secondary" className="text-[15px] px-4 py-2">
                 Updated continuously

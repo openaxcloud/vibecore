@@ -174,7 +174,7 @@ export default function Contact() {
             <MapPin className="h-10 w-10 mx-auto mb-4 text-primary" />
             <h2 className="text-3xl font-bold mb-4">Visit Us</h2>
             <p className="text-[15px] text-muted-foreground max-w-2xl mx-auto">
-              VibeCore is a remote-first company with team members around the world. For partnership or in-person
+              E-Code is a remote-first company with team members around the world. For partnership or in-person
               inquiries, reach out to <span className="font-medium text-foreground">hello@vibecore.dev</span> and we
               will point you to the right person.
             </p>

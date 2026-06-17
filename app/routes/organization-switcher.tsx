@@ -4,7 +4,7 @@ import { Building2, Plus } from 'lucide-react';
 import { ActivityList, AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 
-export const meta: MetaFunction = () => [{ title: 'Organizations - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Organizations - E-Code' }];
 
 type Organization = { id: string; name?: string; slug?: string };
 

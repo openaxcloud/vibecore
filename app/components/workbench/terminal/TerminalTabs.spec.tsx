@@ -117,11 +117,11 @@ describe('<TerminalTabs />', () => {
     cleanup();
   });
 
-  it('uses a compact Shell (Terminal) header without the legacy Vibecore tab', () => {
+  it('uses a compact Shell (Terminal) header without the legacy E-Code tab', () => {
     render(<TerminalTabs panelDefaultSize={100} />);
 
     expect(screen.getByTestId('terminal-tabs-bar').getAttribute('aria-label')).toBe('Shell (Terminal)');
-    expect(screen.queryByText('Vibecore Terminal')).toBeNull();
+    expect(screen.queryByText('E-Code Terminal')).toBeNull();
     expect(screen.queryByPlaceholderText('Find')).toBeNull();
     expect(screen.getByRole('button', { name: /Open shell sessions/i }).textContent).toContain('~/workspace: bash');
     expect(screen.getByRole('button', { name: 'Find in Shell' })).toBeTruthy();

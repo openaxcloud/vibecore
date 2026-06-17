@@ -12,7 +12,7 @@ const page = {
   title: 'Create a new IDE project',
   eyebrow: 'IDE',
   description:
-    'The original E-Code /ide/new route is preserved and points builders to Vibecore project creation with the Bolt IDE intact.',
+    'The original E-Code /ide/new route is preserved and points builders to E-Code project creation with the Bolt IDE intact.',
   kind: 'standard',
   icon: MonitorPlay,
   primaryAction: ['Create project', '/projects/new'],
@@ -25,7 +25,7 @@ const page = {
       items: ['Prompt builder', 'Template gallery', 'Repository import', 'Runtime preview'],
     },
     {
-      title: 'Canonical Vibecore route',
+      title: 'Canonical E-Code route',
       body: 'New project creation lives at /projects/new so authentication, quotas and project persistence stay centralized.',
       items: ['/projects/new', 'Authenticated workspace', 'Quota checks', 'Project persistence'],
     },

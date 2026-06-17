@@ -570,7 +570,7 @@ export const AGENT_WALKTHROUGH_NAV: { id: string; label: string }[] = WALKTHROUG
 
 const PREREQUISITES = [
   {
-    title: 'Sign in to your VibeCore workspace',
+    title: 'Sign in to your E-Code workspace',
     detail: 'Free accounts get a workspace immediately; enterprise SSO is available for admins.',
   },
   {

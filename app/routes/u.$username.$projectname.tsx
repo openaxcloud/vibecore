@@ -7,7 +7,7 @@ export const meta: MetaFunction = ({ params }) => [
   { title: `${params.projectname ?? 'Project'} by ${params.username ?? 'builder'} - E-Code` },
   {
     name: 'description',
-    content: 'Public E-Code project compatibility route in Vibecore.',
+    content: 'Public E-Code project compatibility route in E-Code.',
   },
 ];
 
@@ -21,7 +21,7 @@ export default function PublicUserProjectPage() {
     title: `${projectName} by ${username}`,
     eyebrow: 'Public project',
     description:
-      'Public E-Code project route for shared project pages, previews and portfolio links preserved in Vibecore.',
+      'Public E-Code project route for shared project pages, previews and portfolio links preserved in E-Code.',
     kind: 'resource',
     icon: FolderGit2,
     primaryAction: ['Browse templates', '/templates'],
@@ -35,7 +35,7 @@ export default function PublicUserProjectPage() {
       },
       {
         title: 'Private workspace boundary',
-        body: 'Editing, secrets, runtime state and collaboration stay inside authenticated Vibecore project routes.',
+        body: 'Editing, secrets, runtime state and collaboration stay inside authenticated E-Code project routes.',
         items: ['Protected IDE', 'Scoped secrets', 'Runtime isolation', 'Team permissions'],
       },
     ],

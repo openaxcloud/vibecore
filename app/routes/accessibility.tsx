@@ -2,10 +2,10 @@ import type { MetaFunction } from '@remix-run/cloudflare';
 import Accessibility from '~/components/marketing/ecode-exact/pages/Accessibility';
 
 export const meta: MetaFunction = () => [
-  { title: 'Accessibility — VibeCore' },
+  { title: 'Accessibility — E-Code' },
   {
     name: 'description',
-    content: 'VibeCore accessibility commitment — WCAG 2.1 AA, assistive tech support and how to report issues.',
+    content: 'E-Code accessibility commitment — WCAG 2.1 AA, assistive tech support and how to report issues.',
   },
 ];
 

@@ -11,7 +11,7 @@ import {
   type EnterpriseActionArgs,
 } from '~/lib/enterprise-api.server';
 
-export const meta: MetaFunction = () => [{ title: 'Plan comparison - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Plan comparison - E-Code' }];
 
 const PLANS = [
   { key: 'free', name: 'Free', summary: 'Public templates and small workspaces.' },

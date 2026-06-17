@@ -17,7 +17,7 @@ import {
 
 type Ticket = { id: string; subject: string; status: string; createdAt?: string };
 
-export const meta: MetaFunction = () => [{ title: 'Support - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Support - E-Code' }];
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   try {

@@ -34,7 +34,7 @@ export default function HelpCenter() {
     {
       icon: FolderKanban,
       title: 'Workspaces',
-      description: 'Manage files, terminals, ports, and live previews in the VibeCore IDE.',
+      description: 'Manage files, terminals, ports, and live previews in the E-Code IDE.',
       articleCount: 22,
     },
     {
@@ -88,7 +88,7 @@ export default function HelpCenter() {
                 How can we help?
               </h1>
               <p className="text-[15px] text-muted-foreground mb-8">
-                Search our guides or browse by topic to get the most out of VibeCore.
+                Search our guides or browse by topic to get the most out of E-Code.
               </p>
 
               <div className="relative max-w-xl mx-auto">

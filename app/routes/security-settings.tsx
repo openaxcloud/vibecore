@@ -5,7 +5,7 @@ import { KeyRound, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { ActivityList, AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import { apiRequest, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 
-export const meta: MetaFunction = () => [{ title: 'Security settings - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Security settings - E-Code' }];
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const me = await apiRequest<{ user?: { mfaEnabled?: boolean } }>(request, '/auth/me').catch(() => ({

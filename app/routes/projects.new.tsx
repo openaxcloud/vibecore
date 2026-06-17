@@ -63,7 +63,7 @@ import { detectPromptLanguage } from '~/utils/prompt-language';
 import { describeFlaggedCategories, moderateProjectPrompt } from '~/utils/prompt-moderation.server';
 import { PROMPT_MAX_CHARS, validateProjectPrompt } from '~/utils/prompt-validation';
 
-export const meta: MetaFunction = () => [{ title: 'Create project - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Create project - E-Code' }];
 
 type Project = { id: string; slug?: string };
 type ProjectCreationResult = { project: Project };
@@ -930,7 +930,7 @@ export default function NewProjectPage() {
   return (
     <AppShell
       title="Create project"
-      description="Describe your idea. Vibecore creates a real workspace and opens the IDE."
+      description="Describe your idea. E-Code creates a real workspace and opens the IDE."
       hideHeader
       hideTopBar
       mainClassName="vc-new-project-page"
@@ -941,7 +941,7 @@ export default function NewProjectPage() {
         <header className="vc-new-project-header">
           <h1 className="vc-new-project-title">What do you want to build?</h1>
           <p className="vc-new-project-subtitle">
-            Describe your idea. Vibecore creates a real workspace and opens the IDE.
+            Describe your idea. E-Code creates a real workspace and opens the IDE.
           </p>
         </header>
 

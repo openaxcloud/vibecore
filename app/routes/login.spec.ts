@@ -144,17 +144,22 @@ describe('login route loader', () => {
 });
 
 describe('login visible branding', () => {
-  it('keeps the Vibecore auth shell instead of the imported E-Code marketing login', () => {
+  it('keeps the E-Code auth shell instead of the imported E-Code marketing login', () => {
     const loginSource = readFileSync('app/routes/login.tsx', 'utf8');
     const authScreenSource = readFileSync('app/components/auth/AuthScreen.tsx', 'utf8');
 
-    expect(authScreenSource).toContain('src="/logo.svg"');
-    expect(authScreenSource).toContain('alt="Vibecore"');
-    expect(authScreenSource).toContain('>Vibecore<');
+    /*
+     * The auth shell renders the inline EcodeBrandMark (no external <img> logo)
+     * and the "E-Code" wordmark — not the old Vibecore bolt or the marketing login.
+     */
+    expect(authScreenSource).toContain('EcodeBrandMark');
+    expect(authScreenSource).toContain('>E-Code<');
+    expect(authScreenSource).not.toContain('src="/logo.svg"');
     expect(authScreenSource).not.toContain('src="/assets/logo.svg"');
     expect(authScreenSource).not.toContain('>E-code<');
-    expect(loginSource).toContain('Login - Vibecore');
-    expect(loginSource).toContain('Vibecore IDE');
+    expect(authScreenSource).not.toContain('Vibecore');
+    expect(loginSource).toContain('Login - E-Code');
+    expect(loginSource).toContain('E-Code IDE');
     expect(loginSource).not.toContain('E-code IDE');
   });
 });

@@ -27,7 +27,7 @@ type InvoicesResponse = {
   stripeConfigured: boolean;
 };
 
-export const meta: MetaFunction = () => [{ title: 'Invoices - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Invoices - E-Code' }];
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);

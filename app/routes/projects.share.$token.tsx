@@ -61,7 +61,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   }
 };
 
-export const meta: MetaFunction = () => [{ title: 'Project share · Vibecore' }];
+export const meta: MetaFunction = () => [{ title: 'Project share · E-Code' }];
 
 export default function ProjectShareRedeemRoute() {
   const { error } = useLoaderData<typeof loader>() as LoaderData;

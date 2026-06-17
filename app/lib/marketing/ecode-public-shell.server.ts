@@ -13,7 +13,7 @@ export type EcodeNotificationPreferences = {
   frequency: 'instant' | 'hourly' | 'daily' | 'weekly';
 };
 
-type VibecoreUser = {
+type EcodeUser = {
   id: string;
   email: string;
   name?: string | null;
@@ -98,7 +98,7 @@ function emailHandle(email: string) {
   return email.split('@')[0]?.replace(/[^a-zA-Z0-9_-]/g, '') || 'user';
 }
 
-function mapVibecoreUserToEcodeUser(user: VibecoreUser) {
+function mapEcodeUserToEcodeUser(user: EcodeUser) {
   const username = emailHandle(user.email);
   const displayName = user.name || username;
 
@@ -125,9 +125,9 @@ export async function ecodeMeLoader({ request }: EnterpriseLoaderArgs) {
   }
 
   try {
-    const payload = await apiRequest<{ user?: VibecoreUser }>(request, '/auth/me', { redirectOn401: false });
+    const payload = await apiRequest<{ user?: EcodeUser }>(request, '/auth/me', { redirectOn401: false });
 
-    return json(payload.user ? mapVibecoreUserToEcodeUser(payload.user) : null, { headers: noStoreHeaders });
+    return json(payload.user ? mapEcodeUserToEcodeUser(payload.user) : null, { headers: noStoreHeaders });
   } catch (error) {
     if (isApiResponse(error, 401)) {
       return json(null, { headers: noStoreHeaders });

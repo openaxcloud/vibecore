@@ -56,7 +56,7 @@ export class HttpEmailProvider implements EmailProvider {
       headers: {
         accept: 'application/json',
         'content-type': 'application/json',
-        'user-agent': 'Vibecore API transactional email',
+        'user-agent': 'E-Code API transactional email',
         ...(token ? { authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({

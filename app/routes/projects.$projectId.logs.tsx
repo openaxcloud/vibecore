@@ -9,7 +9,7 @@ type DashboardData = {
   recentActivity: Array<{ id: string; action: string; createdAt?: string }>;
 };
 
-export const meta: MetaFunction = () => [{ title: 'Project logs - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Project logs - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<DashboardData>(args, (projectId) => `/projects/${projectId}/dashboard`);
 

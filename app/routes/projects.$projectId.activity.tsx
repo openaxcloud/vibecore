@@ -7,7 +7,7 @@ import { projectPageLoader } from '~/lib/project-route.server';
 
 type ActivityData = { activity: Array<{ id: string; action: string; createdAt?: string; metadata?: unknown }> };
 
-export const meta: MetaFunction = () => [{ title: 'Project activity - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Project activity - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<ActivityData>(args, (projectId) => `/projects/${projectId}/activity`);
 

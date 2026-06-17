@@ -3,7 +3,7 @@ import { useLoaderData } from '@remix-run/react';
 import { AppShell, ProjectGrid } from '~/components/dashboard/SaaSLayout';
 import { apiRequest, firstOrganizationOrNull, redirect, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 
-export const meta: MetaFunction = () => [{ title: 'Recent projects - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Recent projects - E-Code' }];
 
 type ApiProject = { id: string; name: string; updatedAt?: string; sourceType?: string; gitRepositoryUrl?: string };
 

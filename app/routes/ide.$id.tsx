@@ -5,7 +5,7 @@ import { MarketingStaticPage, type MarketingPageDefinition } from '~/components/
 
 export const meta: MetaFunction = ({ params }) => [
   { title: `IDE ${params.id ?? ''} - E-Code` },
-  { name: 'description', content: 'E-Code IDE compatibility route for Vibecore project workspaces.' },
+  { name: 'description', content: 'E-Code IDE compatibility route for E-Code project workspaces.' },
 ];
 
 export default function IdeProjectCompatibilityPage() {
@@ -17,7 +17,7 @@ export default function IdeProjectCompatibilityPage() {
     title: `Open IDE project ${projectId}`,
     eyebrow: 'IDE compatibility',
     description:
-      'This E-Code compatibility route preserves /ide/:id links while pointing users to the canonical Vibecore project IDE.',
+      'This E-Code compatibility route preserves /ide/:id links while pointing users to the canonical E-Code project IDE.',
     kind: 'standard',
     icon: MonitorPlay,
     primaryAction: ['Open canonical IDE', `/projects/${projectId}/ide`],

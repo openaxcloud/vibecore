@@ -387,7 +387,7 @@ function IdeProjectTopBar({
   return (
     <header className="bolt-project-topbar fixed left-0 top-0 z-50 flex w-screen items-center justify-between border-b text-[12px]">
       <div className="bolt-project-topbar-left">
-        <Link to="/dashboard" className="bolt-project-topbar-icon-button" aria-label="VibeCore dashboard">
+        <Link to="/dashboard" className="bolt-project-topbar-icon-button" aria-label="E-Code dashboard">
           <Home className="h-4 w-4" aria-hidden />
         </Link>
         <nav className="bolt-project-breadcrumb" aria-label="Project breadcrumb">

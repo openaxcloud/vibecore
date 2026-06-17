@@ -2,7 +2,7 @@ import type { MetaFunction } from '@remix-run/cloudflare';
 import { CheckCircle2, Github, Sparkles, Users } from 'lucide-react';
 import { ActivityList, AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 
-export const meta: MetaFunction = () => [{ title: 'Onboarding - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Onboarding - E-Code' }];
 
 export default function OnboardingPage() {
   return (

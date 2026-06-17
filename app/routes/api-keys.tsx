@@ -7,7 +7,7 @@ import { Button } from '~/components/ui/Button';
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { classNames } from '~/utils/classNames';
 
-export const meta: MetaFunction = () => [{ title: 'API keys - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'API keys - E-Code' }];
 
 type ApiKeyScope = 'read' | 'write' | 'admin';
 

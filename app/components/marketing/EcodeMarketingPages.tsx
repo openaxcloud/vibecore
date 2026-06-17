@@ -269,7 +269,7 @@ export const marketingPages = {
     sections: [
       {
         title: 'Technology partners',
-        body: 'The imported E-Code partner system is now part of Vibecore marketing and footer navigation.',
+        body: 'The imported E-Code partner system is now part of E-Code marketing and footer navigation.',
         items: ['AI providers', 'Deployment platforms', 'Database providers', 'Cloud infrastructure'],
       },
       {
@@ -475,7 +475,7 @@ export const marketingPages = {
       },
       {
         title: 'Showcase paths',
-        body: 'The imported showcase now routes through real Vibecore pages instead of a detached static HTML file.',
+        body: 'The imported showcase now routes through real E-Code pages instead of a detached static HTML file.',
         items: ['Templates', 'Marketplace', 'Community', 'Case studies'],
       },
     ],
@@ -861,7 +861,7 @@ export const marketingPages = {
       },
       {
         title: 'Why no video file is embedded',
-        body: 'The source platform-demo.mp4 is not a media file, so Vibecore uses a real rendered product explanation instead of serving a broken video.',
+        body: 'The source platform-demo.mp4 is not a media file, so E-Code uses a real rendered product explanation instead of serving a broken video.',
         items: ['No broken media', 'Accessible copy', 'Real routes', 'Production-safe assets'],
       },
     ],

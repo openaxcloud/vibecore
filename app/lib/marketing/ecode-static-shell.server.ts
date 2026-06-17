@@ -157,7 +157,7 @@ export function ecodeMarketingShellLoader({ request }: LoaderFunctionArgs) {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
-      'X-Vibecore-Marketing-Shell': 'ecode-static',
+      'X-E-Code-Marketing-Shell': 'ecode-static',
     },
   });
 }

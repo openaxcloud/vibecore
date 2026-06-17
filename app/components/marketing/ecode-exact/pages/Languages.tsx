@@ -53,7 +53,7 @@ export default function Languages() {
                 Build in any language
               </h1>
               <p className="text-[15px] text-muted-foreground mb-8">
-                VibeCore supports every major programming language with instant environments, package managers and live
+                E-Code supports every major programming language with instant environments, package managers and live
                 previews — no local setup required.
               </p>
               <Badge variant="secondary" className="text-[15px] px-4 py-2">
@@ -100,8 +100,7 @@ export default function Languages() {
               <Layers className="h-10 w-10 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
               <h2 className="text-3xl font-bold mb-4">Frameworks and runtimes</h2>
               <p className="text-[15px] text-muted-foreground">
-                Spin up the stack you already know. VibeCore detects your project and installs dependencies
-                automatically.
+                Spin up the stack you already know. E-Code detects your project and installs dependencies automatically.
               </p>
             </div>
 
@@ -118,7 +117,7 @@ export default function Languages() {
           </div>
         </section>
 
-        {/* Why VibeCore */}
+        {/* Why E-Code */}
         <section className="py-responsive">
           <div className="container-responsive">
             <h2 className="text-3xl font-bold text-center mb-12">One workspace, every stack</h2>
@@ -160,7 +159,7 @@ export default function Languages() {
           <div className="container-responsive text-center">
             <h2 className="text-3xl font-bold mb-4">Pick a language and start building</h2>
             <p className="text-[15px] text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Open a workspace, write a prompt and watch VibeCore scaffold your project in the stack of your choice.
+              Open a workspace, write a prompt and watch E-Code scaffold your project in the stack of your choice.
             </p>
             <a
               href="/"

@@ -14,7 +14,7 @@ type DashboardData = {
 };
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
-  { title: data ? `${data.project.name} - VibeCore` : 'Project - VibeCore' },
+  { title: data ? `${data.project.name} - E-Code` : 'Project - E-Code' },
 ];
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<DashboardData>(args, (projectId) => `/projects/${projectId}/dashboard`);

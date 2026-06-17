@@ -16,7 +16,7 @@ export const meta: MetaFunction = () => [
   { title: 'Templates - E-Code' },
   {
     name: 'description',
-    content: 'Public E-Code template gallery powered by real Vibecore starter templates.',
+    content: 'Public E-Code template gallery powered by real E-Code starter templates.',
   },
 ];
 

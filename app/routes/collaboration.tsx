@@ -2,10 +2,10 @@ import type { MetaFunction } from '@remix-run/cloudflare';
 import Collaboration from '~/components/marketing/ecode-exact/pages/Collaboration';
 
 export const meta: MetaFunction = () => [
-  { title: 'Collaboration — VibeCore' },
+  { title: 'Collaboration — E-Code' },
   {
     name: 'description',
-    content: 'Real-time collaboration in VibeCore — multiplayer editing, comments, presence and shared workspaces.',
+    content: 'Real-time collaboration in E-Code — multiplayer editing, comments, presence and shared workspaces.',
   },
 ];
 

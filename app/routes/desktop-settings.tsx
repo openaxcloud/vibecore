@@ -53,7 +53,7 @@ export default function DesktopSettingsRoute() {
     }
 
     await window.vibecoreDesktop.notifications.show({
-      title: 'VibeCore',
+      title: 'E-Code',
       body: 'Native notifications are enabled.',
     });
     setStatus('Test notification sent.');
@@ -70,7 +70,7 @@ export default function DesktopSettingsRoute() {
   }
 
   return (
-    <AppShell title="Desktop settings" description="Native desktop controls for the VibeCore Electron app.">
+    <AppShell title="Desktop settings" description="Native desktop controls for the E-Code Electron app.">
       <StatGrid
         stats={[
           {

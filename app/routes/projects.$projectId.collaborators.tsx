@@ -13,7 +13,7 @@ import { projectAction, projectPageLoader } from '~/lib/project-route.server';
 
 type CollaboratorsData = { collaborators: Array<{ id: string; userId: string; roleKey: string; createdAt?: string }> };
 
-export const meta: MetaFunction = () => [{ title: 'Project collaborators - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Project collaborators - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<CollaboratorsData>(args, (projectId) => `/projects/${projectId}/collaborators`);
 export const action = (args: EnterpriseActionArgs) =>

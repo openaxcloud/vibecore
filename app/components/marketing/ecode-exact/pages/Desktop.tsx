@@ -25,9 +25,9 @@ import {
 
 export default function Desktop() {
   const downloads = [
-    { os: 'macOS', icon: Apple, hint: 'Universal · Apple Silicon & Intel', file: 'VibeCore.dmg' },
-    { os: 'Windows', icon: Monitor, hint: '64-bit · Windows 10 and later', file: 'VibeCore-Setup.exe' },
-    { os: 'Linux', icon: Terminal, hint: 'AppImage · Debian & RPM', file: 'VibeCore.AppImage' },
+    { os: 'macOS', icon: Apple, hint: 'Universal · Apple Silicon & Intel', file: 'E-Code.dmg' },
+    { os: 'Windows', icon: Monitor, hint: '64-bit · Windows 10 and later', file: 'E-Code-Setup.exe' },
+    { os: 'Linux', icon: Terminal, hint: 'AppImage · Debian & RPM', file: 'E-Code.AppImage' },
   ];
 
   const features = [
@@ -99,10 +99,10 @@ export default function Desktop() {
             <div className="text-center max-w-3xl mx-auto">
               <MonitorSmartphone className="h-12 w-12 mx-auto mb-4 text-primary" />
               <h1 className="text-4xl font-bold mb-4" data-testid="heading-desktop">
-                VibeCore on your desktop
+                E-Code on your desktop
               </h1>
               <p className="text-[15px] text-muted-foreground mb-8">
-                The full VibeCore AI development platform as a native app for macOS, Windows, and Linux — faster,
+                The full E-Code AI development platform as a native app for macOS, Windows, and Linux — faster,
                 offline-ready, and built into your operating system.
               </p>
               <Badge variant="secondary" className="text-[15px] px-4 py-2">
@@ -207,7 +207,7 @@ export default function Desktop() {
         {/* Closing CTA */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive text-center">
-            <h2 className="text-3xl font-bold mb-4">Bring VibeCore everywhere you build</h2>
+            <h2 className="text-3xl font-bold mb-4">Bring E-Code everywhere you build</h2>
             <p className="text-[15px] text-muted-foreground mb-8 max-w-2xl mx-auto">
               The same projects, agents, and previews you know from the web — now with the speed and reach of a native
               desktop app.

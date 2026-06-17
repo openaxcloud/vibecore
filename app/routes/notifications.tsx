@@ -22,7 +22,7 @@ import { Button } from '~/components/ui/Button';
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { classNames } from '~/utils/classNames';
 
-export const meta: MetaFunction = () => [{ title: 'Notifications - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Notifications - E-Code' }];
 
 type NotificationSurface = {
   key: string;

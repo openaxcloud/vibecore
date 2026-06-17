@@ -16,14 +16,14 @@ const requiredPhrases = [
   'External service behavior must use real typed local/offline adapters',
 ];
 
-describe('VibeCore prompt requirements', () => {
-  it('keeps the critical VibeCore requirements in the shared prompt block', () => {
+describe('E-Code prompt requirements', () => {
+  it('keeps the critical E-Code requirements in the shared prompt block', () => {
     for (const phrase of requiredPhrases) {
       expect(ECODE_AGENT_REQUIREMENTS).toContain(phrase);
     }
   });
 
-  it('injects VibeCore requirements into all active chat system prompts', () => {
+  it('injects E-Code requirements into all active chat system prompts', () => {
     const prompts = [
       getSystemPrompt(),
       getFineTunedPrompt(),

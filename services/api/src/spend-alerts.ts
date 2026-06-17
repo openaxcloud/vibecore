@@ -73,8 +73,8 @@ export function spendAlertEmailContent(input: {
   const atCap = input.pct >= 100;
 
   const subject = atCap
-    ? `You've reached your VibeCore usage limit (${cap})`
-    : `You've used ${input.pct}% of your VibeCore usage limit`;
+    ? `You've reached your E-Code usage limit (${cap})`
+    : `You've used ${input.pct}% of your E-Code usage limit`;
 
   const lead = atCap
     ? `Your usage-based spend has reached your limit of ${cap}. Usage-based services are paused until you raise the limit.`

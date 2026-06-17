@@ -14,7 +14,7 @@ type SettingsData = {
   project: { id: string; name: string; description?: string; gitRepositoryUrl?: string; gitDefaultBranch?: string };
 };
 
-export const meta: MetaFunction = () => [{ title: 'Project settings - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Project settings - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<SettingsData>(args, (projectId) => `/projects/${projectId}/settings`);
 export const action = (args: EnterpriseActionArgs) =>

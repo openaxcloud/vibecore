@@ -11,13 +11,13 @@ import { EcodePricingPage, ecodeProductMarketingPages } from '~/components/marke
 export const meta: MetaFunction = () => {
   const page = ecodeProductMarketingPages.pricing;
   return [
-    { title: 'Pricing — VibeCore' },
+    { title: 'Pricing — E-Code' },
     {
       name: 'description',
       content:
-        'VibeCore pricing: Starter (free daily Agent credits), Core $25/mo ($20 annual), Pro $100/mo ($95 annual), and Enterprise. Monthly or annual billing with included credits, parallel agents, collaborators and more.',
+        'E-Code pricing: Starter (free daily Agent credits), Core $25/mo ($20 annual), Pro $100/mo ($95 annual), and Enterprise. Monthly or annual billing with included credits, parallel agents, collaborators and more.',
     },
-    { property: 'og:title', content: 'VibeCore Pricing' },
+    { property: 'og:title', content: 'E-Code Pricing' },
     { property: 'og:description', content: page?.description ?? 'Pricing that scales with your growth.' },
   ];
 };

@@ -17,7 +17,7 @@ export default function Forum() {
     {
       icon: Megaphone,
       title: 'Announcements',
-      description: 'Product updates, release notes and news straight from the VibeCore team.',
+      description: 'Product updates, release notes and news straight from the E-Code team.',
       topics: '128 topics',
       posts: '1.2k posts',
     },
@@ -31,7 +31,7 @@ export default function Forum() {
     {
       icon: Sparkles,
       title: 'Showcase',
-      description: 'Share the apps you built with VibeCore and get feedback from your peers.',
+      description: 'Share the apps you built with E-Code and get feedback from your peers.',
       topics: '960 topics',
       posts: '5.1k posts',
     },
@@ -80,10 +80,10 @@ export default function Forum() {
             <div className="text-center max-w-3xl mx-auto">
               <Users className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
               <h1 className="text-4xl font-bold mb-4" data-testid="heading-forum">
-                Join the VibeCore community
+                Join the E-Code community
               </h1>
               <p className="text-[15px] text-muted-foreground mb-8">
-                Get help, share what you build and shape the future of VibeCore with thousands of developers around the
+                Get help, share what you build and shape the future of E-Code with thousands of developers around the
                 world.
               </p>
               <Badge variant="secondary" className="text-[15px] px-4 py-2">

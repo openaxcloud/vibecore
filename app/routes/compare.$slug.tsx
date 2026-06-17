@@ -3,15 +3,15 @@ import { json, type LoaderFunctionArgs, type MetaFunction } from '@remix-run/clo
 import { comparePages, MarketingDynamicPage } from '~/components/marketing/EcodeMarketingPages';
 
 /**
- * In-repo SSR compare page (VibeCore vs <competitor>). Renders the e-code public
+ * In-repo SSR compare page (E-Code vs <competitor>). Renders the e-code public
  * shell + the marketing page definition from `comparePages`; unknown slugs 404
  * server-side. Replaces the external-bundle proxy.
  */
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
-  { title: data ? `VibeCore vs ${data.title} — Compare` : 'Compare — VibeCore' },
+  { title: data ? `E-Code vs ${data.title} — Compare` : 'Compare — E-Code' },
   {
     name: 'description',
-    content: data?.description ?? 'How VibeCore compares to other AI development platforms.',
+    content: data?.description ?? 'How E-Code compares to other AI development platforms.',
   },
 ];
 

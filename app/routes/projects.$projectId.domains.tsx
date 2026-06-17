@@ -22,7 +22,7 @@ type Domain = {
 };
 type Project = { id: string; name: string; description?: string };
 
-export const meta: MetaFunction = () => [{ title: 'Custom domains - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Custom domains - E-Code' }];
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   const projectId = params.projectId;

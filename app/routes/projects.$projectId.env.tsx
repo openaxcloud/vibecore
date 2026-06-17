@@ -13,7 +13,7 @@ import { projectAction, projectPageLoader } from '~/lib/project-route.server';
 
 type EnvData = { envVars: Array<{ id: string; key: string; value: string; updatedAt?: string }> };
 
-export const meta: MetaFunction = () => [{ title: 'Environment variables - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Environment variables - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<EnvData>(args, (projectId) => `/projects/${projectId}/env-vars`);
 export const action = (args: EnterpriseActionArgs) =>

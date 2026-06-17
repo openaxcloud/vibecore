@@ -13,7 +13,7 @@ import {
 } from '~/lib/enterprise-api.server';
 import { projectIdePath } from '~/utils/project-url';
 
-export const meta: MetaFunction = () => [{ title: 'Import zip - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Import zip - E-Code' }];
 
 type Project = { id: string; slug?: string };
 

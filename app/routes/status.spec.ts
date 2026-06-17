@@ -14,8 +14,8 @@ describe('status public route', () => {
     const metadata = meta({} as Parameters<typeof meta>[0]);
 
     expect(metadata).toEqual([
-      { title: 'System Status — VibeCore' },
-      { name: 'description', content: 'VibeCore system status and uptime.' },
+      { title: 'System Status — E-Code' },
+      { name: 'description', content: 'E-Code system status and uptime.' },
     ]);
   });
 });

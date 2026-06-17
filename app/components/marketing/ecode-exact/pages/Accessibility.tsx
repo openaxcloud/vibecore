@@ -63,7 +63,7 @@ export default function Accessibility() {
             <div className="text-center max-w-3xl mx-auto">
               <AccessibilityIcon className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
               <h1 className="text-4xl font-bold mb-4" data-testid="heading-accessibility">
-                Accessibility at VibeCore
+                Accessibility at E-Code
               </h1>
               <p className="text-[15px] text-muted-foreground mb-8">
                 We are building a development platform that everyone can use, regardless of ability or the assistive
@@ -82,8 +82,8 @@ export default function Accessibility() {
             <div className="max-w-3xl mx-auto text-center mb-12">
               <h2 className="text-3xl font-bold mb-4">Our Commitment</h2>
               <p className="text-[15px] text-muted-foreground">
-                Accessibility is a core part of how we design and build VibeCore. We follow the four guiding principles
-                of the Web Content Accessibility Guidelines, and we treat accessibility issues as bugs that deserve the
+                Accessibility is a core part of how we design and build E-Code. We follow the four guiding principles of
+                the Web Content Accessibility Guidelines, and we treat accessibility issues as bugs that deserve the
                 same priority as any other defect.
               </p>
             </div>
@@ -115,7 +115,7 @@ export default function Accessibility() {
                 <CardHeader>
                   <CardTitle>WCAG 2.1 Level AA</CardTitle>
                   <CardDescription>
-                    VibeCore aims to conform to Level AA of the Web Content Accessibility Guidelines 2.1
+                    E-Code aims to conform to Level AA of the Web Content Accessibility Guidelines 2.1
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -203,7 +203,7 @@ export default function Accessibility() {
             <Mail className="h-10 w-10 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
             <h2 className="text-3xl font-bold mb-4">Report an Accessibility Issue</h2>
             <p className="text-[15px] text-muted-foreground mb-8 max-w-2xl mx-auto">
-              If you encounter a barrier while using VibeCore, we want to hear about it. Please include the page, the
+              If you encounter a barrier while using E-Code, we want to hear about it. Please include the page, the
               assistive technology you were using, and a short description so we can reproduce and resolve it quickly.
             </p>
             <a

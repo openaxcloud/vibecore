@@ -33,12 +33,12 @@ function actionArgs(url: string, init: RequestInit): Parameters<typeof performan
 }
 
 describe('E-Code public template catalog adapter', () => {
-  it('maps Vibecore starter templates into E-Code template cards', () => {
+  it('maps E-Code starter templates into E-Code template cards', () => {
     const templates = listEcodeTemplates();
 
     expect(templates.length).toBeGreaterThan(10);
     expect(templates.some((template) => template.name.includes('React'))).toBe(true);
-    expect(templates.every((template) => template.author.name === 'Vibecore')).toBe(true);
+    expect(templates.every((template) => template.author.name === 'E-Code')).toBe(true);
     expect(templates.every((template) => Array.isArray(template.technologies))).toBe(true);
     expect(templates.every((template) => template.stats && typeof template.stats.downloads === 'number')).toBe(true);
   });

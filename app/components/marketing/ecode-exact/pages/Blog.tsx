@@ -17,7 +17,7 @@ export default function Blog() {
 
   const featured = {
     category: 'Product',
-    title: 'Introducing the VibeCore Agent: from prompt to production in one flow',
+    title: 'Introducing the E-Code Agent: from prompt to production in one flow',
     excerpt:
       'Our new autonomous coding agent plans, writes, runs and previews your app end to end. Describe what you want in plain language and watch a full-stack project come to life in the IDE — then ship it with a single click.',
     author: 'Avi Cohen',
@@ -31,7 +31,7 @@ export default function Blog() {
       icon: Bot,
       title: 'How parallel sub-agents reach consensus on your code',
       excerpt:
-        'A look under the hood at how VibeCore fans work out to multiple sub-agents, then merges their proposals into a single high-confidence change.',
+        'A look under the hood at how E-Code fans work out to multiple sub-agents, then merges their proposals into a single high-confidence change.',
       author: 'Maya Rossi',
       date: 'June 10, 2026',
     },
@@ -40,7 +40,7 @@ export default function Blog() {
       icon: Rocket,
       title: 'Zero-config deployments: static and full-stack, instantly',
       excerpt:
-        'Push from chat to a live URL with no YAML. We walk through how VibeCore snapshots your build and serves it on managed infrastructure.',
+        'Push from chat to a live URL with no YAML. We walk through how E-Code snapshots your build and serves it on managed infrastructure.',
       author: 'Diego Fernández',
       date: 'June 4, 2026',
     },
@@ -56,7 +56,7 @@ export default function Blog() {
     {
       category: 'Collaboration',
       icon: Users,
-      title: 'Real-time multiplayer editing comes to the VibeCore IDE',
+      title: 'Real-time multiplayer editing comes to the E-Code IDE',
       excerpt:
         'Presence, shared cursors and live agent activity let your whole team build in the same workspace without stepping on each other.',
       author: 'Tom Becker',
@@ -76,7 +76,7 @@ export default function Blog() {
       icon: Sparkles,
       title: 'Self-repair: when the agent fixes its own mistakes',
       excerpt:
-        'VibeCore now detects failed builds and broken previews, then retries with a corrected plan — turning dead ends into shipped features.',
+        'E-Code now detects failed builds and broken previews, then retries with a corrected plan — turning dead ends into shipped features.',
       author: 'Avi Cohen',
       date: 'May 5, 2026',
     },
@@ -93,7 +93,7 @@ export default function Blog() {
             <div className="text-center max-w-3xl mx-auto">
               <Newspaper className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
               <h1 className="text-4xl font-bold mb-4" data-testid="heading-blog">
-                The VibeCore Blog
+                The E-Code Blog
               </h1>
               <p className="text-[15px] text-muted-foreground mb-8">
                 Product updates, engineering deep-dives and the future of AI-native software development
@@ -218,7 +218,7 @@ export default function Blog() {
           <div className="container-responsive text-center">
             <h2 className="text-3xl font-bold mb-4">Never miss an update</h2>
             <p className="text-[15px] text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Get the latest VibeCore product news, engineering posts and AI development tips delivered to your inbox
+              Get the latest E-Code product news, engineering posts and AI development tips delivered to your inbox
             </p>
             <button
               className="px-6 py-3 text-primary-foreground rounded-md hover:opacity-90 min-h-[44px]"

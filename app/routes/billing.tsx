@@ -134,7 +134,7 @@ async function billingActionErrorMessage(error: Response, fallback: string) {
   return message && message !== 'Internal server error' && message !== 'Request failed' ? message : fallback;
 }
 
-export const meta: MetaFunction = () => [{ title: 'Billing - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Billing - E-Code' }];
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
 

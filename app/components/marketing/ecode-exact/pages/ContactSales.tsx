@@ -32,7 +32,7 @@ export default function ContactSales() {
     {
       icon: Network,
       title: 'VPC Peering',
-      description: 'Private network connectivity so VibeCore reaches your internal services securely',
+      description: 'Private network connectivity so E-Code reaches your internal services securely',
     },
     {
       icon: Headphones,
@@ -57,7 +57,7 @@ export default function ContactSales() {
     },
     {
       title: 'Guided pilot',
-      description: 'A hands-on trial with onboarding support so your developers can evaluate VibeCore live',
+      description: 'A hands-on trial with onboarding support so your developers can evaluate E-Code live',
     },
     {
       title: 'Rollout & onboarding',
@@ -81,8 +81,8 @@ export default function ContactSales() {
                 Talk to our sales team
               </h1>
               <p className="text-[15px] text-muted-foreground mb-8">
-                VibeCore Enterprise brings SSO/SAML, custom quotas, single-tenant deployments, VPC peering, and
-                dedicated support to teams shipping software at scale.
+                E-Code Enterprise brings SSO/SAML, custom quotas, single-tenant deployments, VPC peering, and dedicated
+                support to teams shipping software at scale.
               </p>
               <Badge variant="secondary" className="text-[15px] px-4 py-2">
                 Enterprise plan
@@ -231,7 +231,7 @@ export default function ContactSales() {
                     </button>
 
                     <p className="text-[13px] text-muted-foreground text-center">
-                      By submitting, you agree to be contacted about VibeCore Enterprise. We&apos;ll never share your
+                      By submitting, you agree to be contacted about E-Code Enterprise. We&apos;ll never share your
                       details.
                     </p>
                   </form>

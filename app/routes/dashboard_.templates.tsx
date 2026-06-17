@@ -12,7 +12,7 @@ import {
 } from '~/lib/enterprise-api.server';
 import { projectIdePath } from '~/utils/project-url';
 
-export const meta: MetaFunction = () => [{ title: 'Workspace templates - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Workspace templates - E-Code' }];
 
 type Project = { id: string; slug?: string };
 

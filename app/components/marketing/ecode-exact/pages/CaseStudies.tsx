@@ -20,7 +20,7 @@ export default function CaseStudies() {
       metric: '6x faster shipping',
       headline: 'From idea to production in a single afternoon',
       summary:
-        'Northwind replaced a tangle of local toolchains with VibeCore and now prototypes payment flows directly in the browser, cutting setup time to zero.',
+        'Northwind replaced a tangle of local toolchains with E-Code and now prototypes payment flows directly in the browser, cutting setup time to zero.',
     },
     {
       company: 'Cobalt Health',
@@ -36,7 +36,7 @@ export default function CaseStudies() {
       metric: '12 stores launched in a quarter',
       headline: 'Storefronts built by the merchandising team',
       summary:
-        'Non-engineers describe the storefront they want and VibeCore agents scaffold, preview, and deploy it — freeing the core team for platform work.',
+        'Non-engineers describe the storefront they want and E-Code agents scaffold, preview, and deploy it — freeing the core team for platform work.',
     },
     {
       company: 'Atlas Robotics',
@@ -52,7 +52,7 @@ export default function CaseStudies() {
       metric: '90% less environment drift',
       headline: 'One workspace, every contributor',
       summary:
-        'Lumen standardized its editorial tooling on VibeCore, so freelance contributors build in the exact same environment as staff.',
+        'Lumen standardized its editorial tooling on E-Code, so freelance contributors build in the exact same environment as staff.',
     },
     {
       company: 'Verdant Energy',
@@ -65,7 +65,7 @@ export default function CaseStudies() {
   ];
 
   const stats = [
-    { icon: Rocket, value: '500+', label: 'Teams building on VibeCore' },
+    { icon: Rocket, value: '500+', label: 'Teams building on E-Code' },
     { icon: Timer, value: '6x', label: 'Faster time to first deploy' },
     { icon: TrendingUp, value: '40%', label: 'Lower tooling overhead' },
     { icon: Users, value: '50k+', label: 'Workspaces provisioned' },
@@ -85,7 +85,7 @@ export default function CaseStudies() {
                 Case Studies
               </h1>
               <p className="text-[15px] text-muted-foreground mb-8">
-                See how teams of every size ship faster with VibeCore — real workflows, measurable results.
+                See how teams of every size ship faster with E-Code — real workflows, measurable results.
               </p>
               <Badge variant="secondary" className="text-[15px] px-4 py-2">
                 Trusted by builders worldwide
@@ -157,7 +157,7 @@ export default function CaseStudies() {
               <CardContent className="p-8 text-center">
                 <Quote className="h-10 w-10 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
                 <p className="text-xl font-medium mb-4">
-                  "VibeCore collapsed our setup, review, and deploy loop into one place. We ship the moment an idea is
+                  "E-Code collapsed our setup, review, and deploy loop into one place. We ship the moment an idea is
                   ready."
                 </p>
                 <p className="text-[13px] text-muted-foreground">Head of Engineering, Northwind Labs</p>
@@ -171,7 +171,7 @@ export default function CaseStudies() {
           <div className="container-responsive text-center">
             <h2 className="text-3xl font-bold mb-4">Write your own story</h2>
             <p className="text-[15px] text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Tell us what you are building and we will show you how teams like yours ship faster with VibeCore.
+              Tell us what you are building and we will show you how teams like yours ship faster with E-Code.
             </p>
             <a
               href="/contact"

@@ -15,7 +15,7 @@ type SnapshotsData = {
   snapshots: Array<{ id: string; label?: string; kind: string; byteLength?: number; createdAt?: string }>;
 };
 
-export const meta: MetaFunction = () => [{ title: 'Project snapshots - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Project snapshots - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<SnapshotsData>(args, (projectId) => `/projects/${projectId}/snapshots`);
 export const action = (args: EnterpriseActionArgs) =>

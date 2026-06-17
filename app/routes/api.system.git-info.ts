@@ -347,7 +347,7 @@ export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs & {
       author:
         process.env.VIBECORE_EXPOSE_PLATFORM_GIT_INFO === 'true' && typeof __GIT_AUTHOR !== 'undefined'
           ? __GIT_AUTHOR
-          : 'VibeCore',
+          : 'E-Code',
       email:
         process.env.VIBECORE_EXPOSE_PLATFORM_GIT_INFO === 'true' && typeof __GIT_EMAIL !== 'undefined'
           ? __GIT_EMAIL

@@ -18,8 +18,8 @@ import {
 import { invalidateRuntimeToken } from '~/lib/runtime/RuntimeAdapterProvider';
 
 export const meta: MetaFunction = () => [
-  { title: 'Login - Vibecore' },
-  { name: 'description', content: 'Sign in to your Vibecore workspace.' },
+  { title: 'Login - E-Code' },
+  { name: 'description', content: 'Sign in to your E-Code workspace.' },
 ];
 
 /*
@@ -166,12 +166,12 @@ export default function LoginPage() {
     <AuthScreen
       eyebrow="Secure workspace access"
       title="Welcome back"
-      description="Sign in to continue building, previewing and deploying production applications with the Vibecore IDE."
+      description="Sign in to continue building, previewing and deploying production applications with the E-Code IDE."
       error={error}
       backTo="/"
       backLabel="Back to home"
       heroEyebrow="AI-powered development"
-      heroTitle="Build faster inside your Vibecore workspace"
+      heroTitle="Build faster inside your E-Code workspace"
       heroBody="Ship production-ready applications with an AI agent, live preview, secure workspaces and deployment workflows."
       heroAside={
         <>

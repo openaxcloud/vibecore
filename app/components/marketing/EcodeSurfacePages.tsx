@@ -289,7 +289,7 @@ function makeSurfacePage(input: SurfacePageInput): EcodeSurfacePageDefinition {
     sections: input.sections ?? [
       {
         title: `${input.title} workflow`,
-        body: `${input.title} is now a real Vibecore route backed by the imported E-Code product map. It keeps the user moving from intent to a visible, recoverable product workflow.`,
+        body: `${input.title} is now a real E-Code route backed by the imported E-Code product map. It keeps the user moving from intent to a visible, recoverable product workflow.`,
         items: input.highlights,
       },
       {
@@ -969,7 +969,7 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
                 </div>
                 <div className="flex items-center gap-3 rounded-lg bg-[var(--ecode-background)] p-3 text-[13px] text-[var(--ecode-text-secondary)]">
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
-                  <span>Imported from E-Code and rendered through Vibecore public navigation.</span>
+                  <span>Imported from E-Code and rendered through E-Code public navigation.</span>
                 </div>
               </div>
             </aside>
@@ -1148,12 +1148,12 @@ export function createProjectCompatSurfacePage(projectId: string): EcodeSurfaceP
     slug: `project/${projectId}`,
     route: `/project/${projectId}`,
     title: 'Project Compatibility Overview',
-    description: `Compatibility route for legacy E-Code project ${projectId}, with links into the Vibecore project workspace.`,
+    description: `Compatibility route for legacy E-Code project ${projectId}, with links into the E-Code project workspace.`,
     category: 'builder',
     icon: Boxes,
     highlights: ['Legacy route support', 'Project overview', 'Workspace links', 'Preview handoff'],
     relatedRoutes: [
-      { label: 'Projects', to: '/projects', description: 'Open the Vibecore project list.' },
+      { label: 'Projects', to: '/projects', description: 'Open the E-Code project list.' },
       { label: 'Project workspace', to: `/projects/${projectId}`, description: 'Open the canonical project route.' },
       { label: 'Editor', to: `/editor/${projectId}`, description: 'Use the imported editor compatibility route.' },
     ],
@@ -1165,7 +1165,7 @@ export function createEditorSurfacePage(editorId: string): EcodeSurfacePageDefin
     slug: `editor/${editorId}`,
     route: `/editor/${editorId}`,
     title: 'Editor Session',
-    description: `Editor compatibility route for session ${editorId}, preserving the E-Code path into the Vibecore IDE flow.`,
+    description: `Editor compatibility route for session ${editorId}, preserving the E-Code path into the E-Code IDE flow.`,
     category: 'builder',
     icon: FileCode2,
     highlights: ['File editor', 'Agent context', 'Preview panel', 'Session continuity'],
@@ -1221,7 +1221,7 @@ export function createUserSurfacePage(username: string): EcodeSurfacePageDefinit
     slug: `user/${username}`,
     route: `/user/${username}`,
     title: `${username} User Profile`,
-    description: `Legacy E-Code user route for ${username}, mapped into a real Vibecore profile-compatible surface.`,
+    description: `Legacy E-Code user route for ${username}, mapped into a real E-Code profile-compatible surface.`,
     category: 'team',
     icon: Users,
     highlights: ['Legacy user route', 'Profile context', 'Shared projects', 'Community identity'],

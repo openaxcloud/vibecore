@@ -1,7 +1,7 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
 import { AppShell, CommandPalettePreview } from '~/components/dashboard/SaaSLayout';
 
-export const meta: MetaFunction = () => [{ title: 'Command palette - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Command palette - E-Code' }];
 
 export default function CommandPalettePage() {
   return (

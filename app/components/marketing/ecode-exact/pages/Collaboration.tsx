@@ -61,7 +61,7 @@ export default function Collaboration() {
     {
       icon: Rocket,
       title: 'Pair Programming',
-      description: 'Build features side by side with a teammate or with the VibeCore AI agent, all in one session.',
+      description: 'Build features side by side with a teammate or with the E-Code AI agent, all in one session.',
     },
     {
       icon: GraduationCap,
@@ -108,7 +108,7 @@ export default function Collaboration() {
                 Build together, in real time
               </h1>
               <p className="text-[15px] text-muted-foreground mb-8">
-                Code, comment, and ship side by side. VibeCore brings your whole team — and the AI agent — into one
+                Code, comment, and ship side by side. E-Code brings your whole team — and the AI agent — into one
                 shared, always-live workspace.
               </p>
               <Badge variant="secondary" className="text-[15px] px-4 py-2">
@@ -150,7 +150,7 @@ export default function Collaboration() {
                 <CardHeader>
                   <CardTitle>Presence that keeps everyone in sync</CardTitle>
                   <CardDescription>
-                    VibeCore surfaces live signals so your team never steps on each other&apos;s work
+                    E-Code surfaces live signals so your team never steps on each other&apos;s work
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-6">

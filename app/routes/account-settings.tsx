@@ -10,7 +10,7 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 
-export const meta: MetaFunction = () => [{ title: 'Account settings - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Account settings - E-Code' }];
 
 interface CurrentUser {
   name?: string;

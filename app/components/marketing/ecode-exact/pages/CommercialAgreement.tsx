@@ -25,10 +25,10 @@ export default function CommercialAgreement() {
               <CardContent className="pt-6">
                 <p className="text-[15px] text-muted-foreground">
                   This Commercial Agreement (the "Agreement") governs your purchase and use of paid plans,
-                  subscriptions, and enterprise services offered by VibeCore (operated by Snatch Group Limited,
-                  "VibeCore", "we", "us"). It supplements our Terms of Service and applies whenever you subscribe to a
-                  paid plan or sign an order form referencing this Agreement. Capitalized terms not defined here have
-                  the meaning given in the Terms of Service.
+                  subscriptions, and enterprise services offered by E-Code (operated by Snatch Group Limited, "E-Code",
+                  "we", "us"). It supplements our Terms of Service and applies whenever you subscribe to a paid plan or
+                  sign an order form referencing this Agreement. Capitalized terms not defined here have the meaning
+                  given in the Terms of Service.
                 </p>
               </CardContent>
             </Card>
@@ -37,10 +37,10 @@ export default function CommercialAgreement() {
               <section>
                 <h2 className="text-2xl font-semibold mt-8 mb-4">1. Scope</h2>
                 <p>
-                  This Agreement covers VibeCore's cloud development platform, AI agents, workspaces, deployment
-                  services, and related support (collectively, the "Services") that you access under a paid plan. The
-                  specific Services, usage limits, and pricing applicable to you are set out in your selected plan or in
-                  a separately executed order form. Where an order form conflicts with this Agreement, the order form
+                  This Agreement covers E-Code's cloud development platform, AI agents, workspaces, deployment services,
+                  and related support (collectively, the "Services") that you access under a paid plan. The specific
+                  Services, usage limits, and pricing applicable to you are set out in your selected plan or in a
+                  separately executed order form. Where an order form conflicts with this Agreement, the order form
                   controls for the affected subject matter.
                 </p>
               </section>
@@ -165,7 +165,7 @@ export default function CommercialAgreement() {
                 <h2 className="text-2xl font-semibold mt-8 mb-4">10. Contact</h2>
                 <p>For questions about this Commercial Agreement, please contact us at:</p>
                 <div className="mt-4 p-4 bg-muted rounded-lg">
-                  <p>VibeCore — Snatch Group Limited</p>
+                  <p>E-Code — Snatch Group Limited</p>
                   <p>Email: legal@e-code.ai</p>
                   <p>Address: Abba Eban 8 Blvd, 46120 Herzliya Pituach, Israel</p>
                 </div>

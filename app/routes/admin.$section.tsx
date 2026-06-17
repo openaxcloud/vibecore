@@ -213,7 +213,7 @@ const navItems = [
 ];
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
-  { title: data ? `${data.config.title} - VibeCore` : 'Admin - VibeCore' },
+  { title: data ? `${data.config.title} - E-Code` : 'Admin - E-Code' },
 ];
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {

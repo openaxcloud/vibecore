@@ -7,7 +7,7 @@ export const meta: MetaFunction = ({ params }) => [
   { title: `Mobile workspace ${params.projectId ?? ''} - E-Code` },
   {
     name: 'description',
-    content: 'Mobile workspace compatibility route for E-Code projects in Vibecore.',
+    content: 'Mobile workspace compatibility route for E-Code projects in E-Code.',
   },
 ];
 
@@ -29,7 +29,7 @@ export default function MobileWorkspacePage() {
     sections: [
       {
         title: 'Compatibility path',
-        body: 'The original E-Code mobile workspace URL is preserved while Vibecore keeps the canonical project IDE route under /projects.',
+        body: 'The original E-Code mobile workspace URL is preserved while E-Code keeps the canonical project IDE route under /projects.',
         items: ['Project-aware link', 'Mobile shell', 'Agent workflow', 'Preview route'],
       },
       {

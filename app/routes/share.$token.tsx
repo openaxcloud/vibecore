@@ -55,7 +55,7 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const payload = (data as LoaderData | undefined)?.payload;
-  const title = payload?.title ? `${payload.title} · Vibecore share` : 'Vibecore share';
+  const title = payload?.title ? `${payload.title} · E-Code share` : 'E-Code share';
 
   return [{ title }];
 };

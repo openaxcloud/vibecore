@@ -11,7 +11,7 @@ import {
   type EnterpriseActionArgs,
 } from '~/lib/enterprise-api.server';
 
-export const meta: MetaFunction = () => [{ title: 'Payment method - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Payment method - E-Code' }];
 
 export async function action({ request }: EnterpriseActionArgs) {
   const organization = await firstOrganization(request);

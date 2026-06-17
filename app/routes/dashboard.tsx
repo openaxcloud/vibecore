@@ -131,7 +131,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   };
 }
 
-export const meta: MetaFunction = () => [{ title: 'Dashboard - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Dashboard - E-Code' }];
 
 export default function DashboardPage() {
   const { projects, usageSummary, billingAccessLimited } = useLoaderData<typeof loader>();

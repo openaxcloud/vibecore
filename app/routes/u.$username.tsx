@@ -7,7 +7,7 @@ export const meta: MetaFunction = ({ params }) => [
   { title: `${params.username ?? 'Builder'} - E-Code` },
   {
     name: 'description',
-    content: 'Public E-Code builder profile compatibility route in Vibecore.',
+    content: 'Public E-Code builder profile compatibility route in E-Code.',
   },
 ];
 
@@ -20,7 +20,7 @@ export default function PublicUserPage() {
     title: `${username} on E-Code`,
     eyebrow: 'Builder profile',
     description:
-      'Public E-Code profile route for builder pages, project showcases and portfolio-style discovery in Vibecore.',
+      'Public E-Code profile route for builder pages, project showcases and portfolio-style discovery in E-Code.',
     kind: 'resource',
     icon: UserCircle,
     primaryAction: ['Explore templates', '/templates'],
@@ -29,7 +29,7 @@ export default function PublicUserPage() {
     sections: [
       {
         title: 'Profile route',
-        body: 'Vibecore preserves the /u/:username URL format from E-Code so public builder links keep resolving.',
+        body: 'E-Code preserves the /u/:username URL format from E-Code so public builder links keep resolving.',
         items: ['Readable profile URL', 'Project discovery', 'Community context', 'Template links'],
       },
       {
