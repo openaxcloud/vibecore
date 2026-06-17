@@ -93,7 +93,23 @@ export function createRuntimeAdapter(
   return webcontainerRuntimeAdapter;
 }
 
-export const runtimeAdapter = createRuntimeAdapter();
+let runtimeAdapterSingleton: RuntimeAdapter | undefined;
+
+/**
+ * Lazily create + cache the module-singleton runtime adapter, read through a
+ * (hoisted) function rather than a module const. This breaks a circular-import
+ * TDZ: workbench.ts imports the adapter and instantiates `new WorkbenchStore()`
+ * at module load; in the dev (unbundled ESM) graph that field initializer could
+ * run before this module finished assigning the const, throwing "Cannot access
+ * 'runtimeAdapter' before initialization" — which aborts client hydration and
+ * leaves every client-rendered route (login, dashboard, …) stuck on the boot
+ * fallback. A hoisted function is callable mid-cycle, so the read is safe.
+ */
+export function getRuntimeAdapter(): RuntimeAdapter {
+  return (runtimeAdapterSingleton ??= createRuntimeAdapter());
+}
+
+export const runtimeAdapter = getRuntimeAdapter();
 
 async function resolveRuntimeAuthToken() {
   if (typeof window === 'undefined') {

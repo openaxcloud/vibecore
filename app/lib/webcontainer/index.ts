@@ -4,7 +4,6 @@ import {
   type BrowserWebContainerRuntime,
   type WebContainerLike,
 } from '@vibecore/runtime-webcontainer';
-import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR, WORK_DIR_NAME } from '~/utils/constants';
 import { cleanStackTrace } from '~/utils/stacktrace';
 
@@ -64,12 +63,20 @@ function bootBrowserWebContainer() {
       if (message.type === 'PREVIEW_UNCAUGHT_EXCEPTION' || message.type === 'PREVIEW_UNHANDLED_REJECTION') {
         const isPromise = message.type === 'PREVIEW_UNHANDLED_REJECTION';
         const title = isPromise ? 'Unhandled Promise Rejection' : 'Uncaught Exception';
-        workbenchStore.actionAlert.set({
-          type: 'preview',
-          title,
-          description: 'message' in message ? message.message : 'Unknown error',
-          content: `Error occurred at ${message.pathname}${message.search}${message.hash}\nPort: ${message.port}\n\nStack trace:\n${cleanStackTrace(message.stack || '')}`,
-          source: 'preview',
+
+        /*
+         * Lazy import to avoid a static webcontainer→workbench→RuntimeAdapter import
+         * cycle (which TDZ-crashed `new WorkbenchStore()` at module load and aborted
+         * client hydration). This callback runs at runtime, long after modules settle.
+         */
+        void import('~/lib/stores/workbench').then(({ workbenchStore }) => {
+          workbenchStore.actionAlert.set({
+            type: 'preview',
+            title,
+            description: 'message' in message ? message.message : 'Unknown error',
+            content: `Error occurred at ${message.pathname}${message.search}${message.hash}\nPort: ${message.port}\n\nStack trace:\n${cleanStackTrace(message.stack || '')}`,
+            source: 'preview',
+          });
         });
       }
     },

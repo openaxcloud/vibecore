@@ -18,7 +18,7 @@ import {
   isTerminalAgentPatchStatus,
   putAgentPatchProposal,
 } from '~/lib/persistence/agentPatchProposalSync';
-import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
+import { getRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import { hasInstalledPreviewDependencies, type PreviewPackageManifest } from '~/lib/runtime/preview-dependencies';
 import { buildPreviewManifestRepair } from '~/lib/runtime/preview-manifest';
@@ -147,7 +147,7 @@ function workspaceLogLines(event: CommandEvent | string) {
 }
 
 export class WorkbenchStore {
-  #runtime: RuntimeAdapter = runtimeAdapter;
+  #runtime: RuntimeAdapter = getRuntimeAdapter();
   #previewsStore = new PreviewsStore(this.#runtime);
   #filesStore = new FilesStore(this.#runtime);
   #editorStore = new EditorStore(this.#filesStore);
