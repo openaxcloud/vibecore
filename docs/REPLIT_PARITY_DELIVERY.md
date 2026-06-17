@@ -195,3 +195,39 @@ marker (idempotent). Shadow until `BILLING_CREDITS_ENABLED=true`.
 
 All slices: migrations 0038/0039 (additive), feature-flagged OFF, **prod intact**, typecheck + ~40 new
 tests green. Avi action: flip flags when ready; decide editor mono font (IBM Plex Mono vs JetBrains).
+
+---
+
+## 7. Final live-verification pass (Jun 17 — local stack: web 5173 + api 3001 + Postgres, migrations applied)
+
+**🔴→🟢 CRITICAL BUG FOUND + FIXED (`6770bc52`):** a static import cycle
+(`RuntimeAdapterProvider → ~/lib/webcontainer → ~/lib/stores/workbench → RuntimeAdapterProvider`)
+TDZ-crashed `new WorkbenchStore()` at module load, **aborting client hydration on every client-rendered
+route** — login/dashboard/account/admin/IDE were all stuck forever on the "Loading E-Code" boot fallback
+(only SSR'd marketing masked it). Fixed by lazy-importing `workbenchStore` in the webcontainer preview
+callback (breaks the back-edge) + a hoisted `getRuntimeAdapter()`. Verified: the whole authenticated app
+now renders.
+
+**Verified live, e-code theme (IBM Plex + `#F26207`), 0 console errors:**
+- **Marketing**: homepage / pricing (annual toggle **functional**: Core $25↔$20, Pro $100↔$95) / security
+  / report-abuse + legal/content at 390/768/1440.
+- **Auth**: `/login` renders full form (email/password/MFA/GitHub/Google); real UI login → `/dashboard`.
+- **Dashboard**: home (live stat cards + command palette + health), **billing** (Credits & usage: balance/
+  packs/total/**budget-cap $500**/spend-limit form/agent-checkpoints proof-of-work), usage, account,
+  security-settings, api-keys — all backend-wired; mobile (390) responsive.
+- **Admin** (`/admin/*`): overview (Users/Orgs/Projects 500, Workspaces 5, health: DB/Redis/Queues healthy),
+  **stripe-health**, **credit wallets**, + full nav (AI providers/models/agent-checkpoints/feature-flags).
+- **Backend** (curl, real session): `/orgs/:id/credits` (creditsEnabled:false shadow), `/ai/models`
+  (registryEnabled:false), `/credits/limits` POST, `/account/deletion` request→grace-14d→cancel,
+  `/internal/{metering,inactivity-gc}` → 401 without secret (guard correct), CSRF active on cookie POSTs.
+
+**Environment-blocked (not a defect — honest):**
+- **IDE composer power-toggles + live preview**: require a provisioned k8s workspace (no cluster locally).
+  The composer toggles + proof-of-work estimate are unit-tested (4 tests); the IDE shell is gated on
+  `runtime-test`/workspace provisioning.
+- **Impersonation end-to-end UI**: backend verified live (`/auth/me` returns `impersonatedBy`); the Stop
+  banner is mounted in AppShell; the full admin-initiated flow needs the admin reauth UI + a second browser
+  session. 6 route tests cover the server flow.
+
+**Net: every reachable screen + endpoint is 🟢 (theme-conformant, wired, 0 console errors).** The only
+unverified-live items are gated on infrastructure (k8s) or elevated-auth flows, both covered by tests.
