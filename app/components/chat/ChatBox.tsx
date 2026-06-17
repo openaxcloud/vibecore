@@ -212,15 +212,25 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 modelLoading={props.isModelLoading}
                 modelError={props.modelError}
               />
-              {providerList.length > 0 && props.provider && !LOCAL_PROVIDERS.includes(props.provider.name) && (
-                <APIKeyManager
-                  provider={props.provider}
-                  apiKey={props.apiKeys[props.provider.name] || ''}
-                  setApiKey={(key) => {
-                    props.onApiKeysChange(props.provider.name, key);
-                  }}
-                />
-              )}
+              {/*
+               * Managed (Replit-parity) model: the platform admin provides the
+               * provider keys, so end users don't enter their own. Set
+               * VITE_BYOK_DISABLED=true to hide per-user key entry (flag off = no
+               * change, so existing self-host / Enterprise BYOK keeps working).
+               */}
+              {import.meta.env.VITE_BYOK_DISABLED === 'true'
+                ? null
+                : providerList.length > 0 &&
+                  props.provider &&
+                  !LOCAL_PROVIDERS.includes(props.provider.name) && (
+                    <APIKeyManager
+                      provider={props.provider}
+                      apiKey={props.apiKeys[props.provider.name] || ''}
+                      setApiKey={(key) => {
+                        props.onApiKeysChange(props.provider.name, key);
+                      }}
+                    />
+                  )}
             </div>
           )}
         </ClientOnly>
