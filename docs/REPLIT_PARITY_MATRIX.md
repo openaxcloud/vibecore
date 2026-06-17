@@ -231,7 +231,7 @@ genuine **dedicated chantiers** (§D).
 | **Service-shutdown enforcement** | ✅ **enforced (SHADOW-safe)** `4aaa3747` | gates workspace-start + deploy → 402 when credits exhausted + cap set; active when `BILLING_CREDITS_ENABLED=true`. 4 tests. |
 | **PAYG `reportUsage` wiring** | ✅ **wired (SHADOW)** `061b4ad1` | `reportCheckpointPaygUsage` in the settle path, idempotent; activates at Stripe go-live. 4 tests. |
 | **Inactivity-warning emails** | ✅ **done** `besujnvm4` | Resend, e-code tone, de-duped per threshold; on the daily cron. 5 tests. |
-| **Compute metering — full event coverage** | 🟡 partial | workspace compute emitted; **deploy + object-storage emitters = next wave**; DB metering needs a `DatabaseInstance` model (ships with DB-PITR). |
+| **Compute metering — full event coverage** | 🟡 partial | workspace compute emitted; **object-storage sweep done** `23683aaa` (daily cron sums real `ProjectStorageObject.byteLength` per org → `$0.03/GiB-month`, SHADOW-safe, 4+4 tests); deploy emitter = next (static=$0, low value); DB metering needs a `DatabaseInstance` model (ships with DB-PITR). |
 | **Spend-alert emails (50/80/100%)** | 🟠 open | coupled to PAYG metered-spend tracking; wires when PAYG goes live. |
 | **DB point-in-time rollback (Pro 28d)** | 🟠 open | honest 4–6 day chantier; safe Phase-1 scaffold (schema + flag + dormant endpoints + UI shell) = next wave. |
 | **turbo-stream → React Router 7** | 🟠 open (separate track) | 297 routes, single-fetch deep — `docs/DEFERRED_HARDENING.md` (6–8 wk). |
