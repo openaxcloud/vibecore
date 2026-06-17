@@ -31,6 +31,8 @@ type CreditsData = {
   totalAvailableCents: number;
   budgetCapCents: number | null;
   serviceShutdownCents: number | null;
+  paygSpentCents?: number;
+  spendAlertThresholds?: number[];
   checkpoints: Array<{
     id: string;
     creditCents: number;
@@ -51,10 +53,80 @@ const EMPTY_CREDITS: CreditsData = {
   totalAvailableCents: 0,
   budgetCapCents: null,
   serviceShutdownCents: null,
+  paygSpentCents: 0,
+  spendAlertThresholds: [50, 80, 100],
   checkpoints: [],
 };
 
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+
+type SpendTone = 'none' | 'ok' | 'warn' | 'critical' | 'reached';
+
+/**
+ * Pure: resolve the in-app spend-vs-cap state. Mirrors the server-side
+ * 50/80/100% email-alert ladder so the UI and the emails agree. Exported for
+ * unit testing. `capCents == null` → no cap configured.
+ */
+export function spendUsageState(
+  spentCents: number,
+  capCents: number | null | undefined,
+): { tone: SpendTone; pct: number } {
+  if (capCents == null || capCents <= 0) {
+    return { tone: 'none', pct: 0 };
+  }
+
+  const pct = Math.min(100, Math.max(0, Math.round((spentCents / capCents) * 100)));
+  const tone: SpendTone = pct >= 100 ? 'reached' : pct >= 80 ? 'critical' : pct >= 50 ? 'warn' : 'ok';
+
+  return { tone, pct };
+}
+
+const SPEND_TONE_BAR: Record<SpendTone, string> = {
+  none: 'bg-bolt-elements-borderColor',
+  ok: 'bg-green-500',
+  warn: 'bg-amber-500',
+  critical: 'bg-red-500',
+  reached: 'bg-red-600',
+};
+
+function SpendUsageIndicator({
+  spentCents,
+  capCents,
+  thresholds,
+}: {
+  spentCents: number;
+  capCents: number | null;
+  thresholds: number[];
+}) {
+  const { tone, pct } = spendUsageState(spentCents, capCents);
+
+  if (tone === 'none') {
+    return (
+      <p className="mb-3 text-xs text-bolt-elements-textSecondary">
+        No usage limit set — usage-based spend is uncapped.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mb-3 flex flex-col gap-1.5">
+      <div className="flex items-center justify-between text-xs text-bolt-elements-textSecondary">
+        <span>
+          {dollars(spentCents)} of {dollars(capCents ?? 0)} used
+        </span>
+        <span className={tone === 'ok' ? '' : 'text-bolt-elements-textPrimary'}>{pct}%</span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-bolt-elements-background-depth-1">
+        <div className={`h-full ${SPEND_TONE_BAR[tone]}`} style={{ width: `${pct}%` }} />
+      </div>
+      <p className="text-[11px] text-bolt-elements-textSecondary">
+        {tone === 'reached'
+          ? 'Usage limit reached — usage-based services are paused until you raise it.'
+          : `We'll email you at ${thresholds.join('% / ')}% of your limit.`}
+      </p>
+    </div>
+  );
+}
 
 async function billingActionErrorMessage(error: Response, fallback: string) {
   const message = await apiErrorMessage(error, fallback);
@@ -318,6 +390,11 @@ export default function BillingPage() {
               Cap usage-based spend beyond your included credits. Leave blank for no cap; set $0.01 to restrict to
               credits only. Org limits are set in $500 increments.
             </p>
+            <SpendUsageIndicator
+              spentCents={credits.paygSpentCents ?? 0}
+              capCents={credits.budgetCapCents}
+              thresholds={credits.spendAlertThresholds ?? [50, 80, 100]}
+            />
             {actionData?.ok ? (
               <div className="mb-3 rounded-md border border-green-500/30 bg-green-500/10 p-2 text-xs text-green-300">
                 {actionData.ok}

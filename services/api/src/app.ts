@@ -16473,6 +16473,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const packs = await store.listCreditPacks(orgId, { activeOnly: true });
     const packTotal = packs.reduce((acc, p) => acc + Math.max(0, p.remainingCents), 0);
 
+    // Usage-based (PAYG) spend this billing period — drives the in-app spend
+    // indicator + the 50/80/100% alert surface. 0 in SHADOW (nothing charged).
+    const periodStart = await resolveUsagePeriodStart(orgId).catch(() => undefined);
+    const paygSpentCents = periodStart ? await store.sumPaygSpendSince(orgId, periodStart.getTime()) : 0;
+
     return {
       creditsEnabled: process.env.BILLING_CREDITS_ENABLED === 'true',
       shadow: process.env.BILLING_CREDITS_SHADOW === 'true',
@@ -16481,6 +16486,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       totalAvailableCents: (wallet?.balanceCents ?? 0) + packTotal,
       budgetCapCents: wallet?.budgetCapCents ?? null,
       serviceShutdownCents: wallet?.serviceShutdownCents ?? null,
+      paygSpentCents,
+      spendAlertThresholds: [50, 80, 100],
       activePacks: packs,
       ledger: await store.listCreditLedger(orgId, { take: 50 }),
       checkpoints: await store.listAgentCheckpoints(orgId, { take: 50 }),
