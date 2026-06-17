@@ -246,6 +246,8 @@ export interface DeploymentRecord {
   logs: Array<{ timestamp: string; level: 'info' | 'warn' | 'error'; message: string }>;
   metadata?: Record<string, unknown>;
   rolledBackFromId?: string;
+  /** Replit-parity deploy metering idempotency marker (ISO); set once metered. */
+  lastMeteredAt?: string;
   startedAt?: string;
   finishedAt?: string;
   canceledAt?: string;

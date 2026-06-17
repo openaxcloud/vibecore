@@ -627,6 +627,10 @@ model Deployment {
   logs             Json                   @default("[]")
   metadata         Json                   @default("{}")
   rolledBackFromId String?
+  // Replit-parity deploy metering idempotency marker: set once the deployment is
+  // metered (mirrors WorkspaceRuntime.lastMeteredAt) so a re-reconcile never
+  // double-charges. Dormant/SHADOW until BILLING_CREDITS_ENABLED. See metering-service.ts.
+  lastMeteredAt    DateTime?
   startedAt        DateTime?
   finishedAt       DateTime?
   canceledAt       DateTime?

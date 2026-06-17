@@ -45988,6 +45988,7 @@ export namespace Prisma {
     commitSha: string | null
     customDomain: string | null
     rolledBackFromId: string | null
+    lastMeteredAt: Date | null
     startedAt: Date | null
     finishedAt: Date | null
     canceledAt: Date | null
@@ -46013,6 +46014,7 @@ export namespace Prisma {
     commitSha: string | null
     customDomain: string | null
     rolledBackFromId: string | null
+    lastMeteredAt: Date | null
     startedAt: Date | null
     finishedAt: Date | null
     canceledAt: Date | null
@@ -46040,6 +46042,7 @@ export namespace Prisma {
     logs: number
     metadata: number
     rolledBackFromId: number
+    lastMeteredAt: number
     startedAt: number
     finishedAt: number
     canceledAt: number
@@ -46067,6 +46070,7 @@ export namespace Prisma {
     commitSha?: true
     customDomain?: true
     rolledBackFromId?: true
+    lastMeteredAt?: true
     startedAt?: true
     finishedAt?: true
     canceledAt?: true
@@ -46092,6 +46096,7 @@ export namespace Prisma {
     commitSha?: true
     customDomain?: true
     rolledBackFromId?: true
+    lastMeteredAt?: true
     startedAt?: true
     finishedAt?: true
     canceledAt?: true
@@ -46119,6 +46124,7 @@ export namespace Prisma {
     logs?: true
     metadata?: true
     rolledBackFromId?: true
+    lastMeteredAt?: true
     startedAt?: true
     finishedAt?: true
     canceledAt?: true
@@ -46219,6 +46225,7 @@ export namespace Prisma {
     logs: JsonValue
     metadata: JsonValue
     rolledBackFromId: string | null
+    lastMeteredAt: Date | null
     startedAt: Date | null
     finishedAt: Date | null
     canceledAt: Date | null
@@ -46263,6 +46270,7 @@ export namespace Prisma {
     logs?: boolean
     metadata?: boolean
     rolledBackFromId?: boolean
+    lastMeteredAt?: boolean
     startedAt?: boolean
     finishedAt?: boolean
     canceledAt?: boolean
@@ -46292,6 +46300,7 @@ export namespace Prisma {
     logs?: boolean
     metadata?: boolean
     rolledBackFromId?: boolean
+    lastMeteredAt?: boolean
     startedAt?: boolean
     finishedAt?: boolean
     canceledAt?: boolean
@@ -46321,6 +46330,7 @@ export namespace Prisma {
     logs?: boolean
     metadata?: boolean
     rolledBackFromId?: boolean
+    lastMeteredAt?: boolean
     startedAt?: boolean
     finishedAt?: boolean
     canceledAt?: boolean
@@ -46350,6 +46360,7 @@ export namespace Prisma {
     logs?: boolean
     metadata?: boolean
     rolledBackFromId?: boolean
+    lastMeteredAt?: boolean
     startedAt?: boolean
     finishedAt?: boolean
     canceledAt?: boolean
@@ -46357,7 +46368,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type DeploymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "workspaceId" | "environmentId" | "environmentName" | "status" | "provider" | "url" | "previewUrl" | "productionUrl" | "framework" | "buildCommand" | "outputDirectory" | "branch" | "commitSha" | "customDomain" | "logs" | "metadata" | "rolledBackFromId" | "startedAt" | "finishedAt" | "canceledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["deployment"]>
+  export type DeploymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "workspaceId" | "environmentId" | "environmentName" | "status" | "provider" | "url" | "previewUrl" | "productionUrl" | "framework" | "buildCommand" | "outputDirectory" | "branch" | "commitSha" | "customDomain" | "logs" | "metadata" | "rolledBackFromId" | "lastMeteredAt" | "startedAt" | "finishedAt" | "canceledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["deployment"]>
   export type DeploymentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     environment?: boolean | Deployment$environmentArgs<ExtArgs>
@@ -46397,6 +46408,7 @@ export namespace Prisma {
       logs: Prisma.JsonValue
       metadata: Prisma.JsonValue
       rolledBackFromId: string | null
+      lastMeteredAt: Date | null
       startedAt: Date | null
       finishedAt: Date | null
       canceledAt: Date | null
@@ -46846,6 +46858,7 @@ export namespace Prisma {
     readonly logs: FieldRef<"Deployment", 'Json'>
     readonly metadata: FieldRef<"Deployment", 'Json'>
     readonly rolledBackFromId: FieldRef<"Deployment", 'String'>
+    readonly lastMeteredAt: FieldRef<"Deployment", 'DateTime'>
     readonly startedAt: FieldRef<"Deployment", 'DateTime'>
     readonly finishedAt: FieldRef<"Deployment", 'DateTime'>
     readonly canceledAt: FieldRef<"Deployment", 'DateTime'>
@@ -111255,6 +111268,7 @@ export namespace Prisma {
     logs: 'logs',
     metadata: 'metadata',
     rolledBackFromId: 'rolledBackFromId',
+    lastMeteredAt: 'lastMeteredAt',
     startedAt: 'startedAt',
     finishedAt: 'finishedAt',
     canceledAt: 'canceledAt',
@@ -114894,6 +114908,7 @@ export namespace Prisma {
     logs?: JsonFilter<"Deployment">
     metadata?: JsonFilter<"Deployment">
     rolledBackFromId?: StringNullableFilter<"Deployment"> | string | null
+    lastMeteredAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     startedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     canceledAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
@@ -114923,6 +114938,7 @@ export namespace Prisma {
     logs?: SortOrder
     metadata?: SortOrder
     rolledBackFromId?: SortOrderInput | SortOrder
+    lastMeteredAt?: SortOrderInput | SortOrder
     startedAt?: SortOrderInput | SortOrder
     finishedAt?: SortOrderInput | SortOrder
     canceledAt?: SortOrderInput | SortOrder
@@ -114955,6 +114971,7 @@ export namespace Prisma {
     logs?: JsonFilter<"Deployment">
     metadata?: JsonFilter<"Deployment">
     rolledBackFromId?: StringNullableFilter<"Deployment"> | string | null
+    lastMeteredAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     startedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     canceledAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
@@ -114984,6 +115001,7 @@ export namespace Prisma {
     logs?: SortOrder
     metadata?: SortOrder
     rolledBackFromId?: SortOrderInput | SortOrder
+    lastMeteredAt?: SortOrderInput | SortOrder
     startedAt?: SortOrderInput | SortOrder
     finishedAt?: SortOrderInput | SortOrder
     canceledAt?: SortOrderInput | SortOrder
@@ -115017,6 +115035,7 @@ export namespace Prisma {
     logs?: JsonWithAggregatesFilter<"Deployment">
     metadata?: JsonWithAggregatesFilter<"Deployment">
     rolledBackFromId?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    lastMeteredAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
     startedAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
     canceledAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
@@ -121918,6 +121937,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: string | null
+    lastMeteredAt?: Date | string | null
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -121947,6 +121967,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: string | null
+    lastMeteredAt?: Date | string | null
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -121972,6 +121993,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -122001,6 +122023,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -122028,6 +122051,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: string | null
+    lastMeteredAt?: Date | string | null
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -122053,6 +122077,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -122080,6 +122105,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -128952,6 +128978,7 @@ export namespace Prisma {
     logs?: SortOrder
     metadata?: SortOrder
     rolledBackFromId?: SortOrder
+    lastMeteredAt?: SortOrder
     startedAt?: SortOrder
     finishedAt?: SortOrder
     canceledAt?: SortOrder
@@ -128977,6 +129004,7 @@ export namespace Prisma {
     commitSha?: SortOrder
     customDomain?: SortOrder
     rolledBackFromId?: SortOrder
+    lastMeteredAt?: SortOrder
     startedAt?: SortOrder
     finishedAt?: SortOrder
     canceledAt?: SortOrder
@@ -129002,6 +129030,7 @@ export namespace Prisma {
     commitSha?: SortOrder
     customDomain?: SortOrder
     rolledBackFromId?: SortOrder
+    lastMeteredAt?: SortOrder
     startedAt?: SortOrder
     finishedAt?: SortOrder
     canceledAt?: SortOrder
@@ -143351,6 +143380,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: string | null
+    lastMeteredAt?: Date | string | null
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -143378,6 +143408,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: string | null
+    lastMeteredAt?: Date | string | null
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -144041,6 +144072,7 @@ export namespace Prisma {
     logs?: JsonFilter<"Deployment">
     metadata?: JsonFilter<"Deployment">
     rolledBackFromId?: StringNullableFilter<"Deployment"> | string | null
+    lastMeteredAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     startedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     canceledAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
@@ -149984,6 +150016,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: string | null
+    lastMeteredAt?: Date | string | null
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -150011,6 +150044,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: string | null
+    lastMeteredAt?: Date | string | null
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -162968,6 +163002,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: string | null
+    lastMeteredAt?: Date | string | null
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -163323,6 +163358,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -163350,6 +163386,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -163376,6 +163413,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -163835,6 +163873,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: string | null
+    lastMeteredAt?: Date | string | null
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -163860,6 +163899,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -163887,6 +163927,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -163913,6 +163954,7 @@ export namespace Prisma {
     logs?: JsonNullValueInput | InputJsonValue
     metadata?: JsonNullValueInput | InputJsonValue
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

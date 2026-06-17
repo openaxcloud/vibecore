@@ -2637,7 +2637,47 @@ function isWriteProjectPermission(permission: PermissionKey) {
  * status forward (stateless, multi-replica safe). A still-building or
  * unpollable deployment is returned unchanged.
  */
+/**
+ * Replit-parity deploy metering: meter a deployment's compute EXACTLY ONCE, the
+ * first time it is observed READY. Idempotent via the `lastMeteredAt` marker so
+ * the per-GET status reconcile never double-charges. VibeCore deployments are
+ * static builds today (egress is billed on served traffic, not at deploy time →
+ * $0 here); the kind mapping + recorded usage event complete the metering wiring
+ * for when autoscale / reserved-VM / egress data flows. Dormant/SHADOW until
+ * BILLING_CREDITS_ENABLED. Returns the (possibly marker-updated) record.
+ */
+async function meterDeploymentOnce(store: ApiStore, deployment: DeploymentRecord): Promise<DeploymentRecord> {
+  if (deployment.status !== 'READY' || deployment.lastMeteredAt) {
+    return deployment;
+  }
+
+  const project = await store.getProject(deployment.projectId);
+
+  if (!project) {
+    return deployment;
+  }
+
+  const shadow = process.env.BILLING_CREDITS_ENABLED !== 'true';
+  const kind = deployment.provider === 'static' ? 'static' : 'autoscale';
+  await meterDeployment(store, {
+    organizationId: project.organizationId,
+    kind,
+    shadow,
+    nowMs: Date.now(),
+  }).catch(() => {});
+
+  return store
+    .updateDeployment(deployment.projectId, deployment.id, { lastMeteredAt: new Date().toISOString() })
+    .catch(() => deployment);
+}
+
 async function reconcileDeploymentStatus(store: ApiStore, deployment: DeploymentRecord): Promise<DeploymentRecord> {
+  // Meter a newly-READY deployment once (best-effort, idempotent). READY rows
+  // otherwise fall straight through the BUILDING-only logic below.
+  if (deployment.status === 'READY' && !deployment.lastMeteredAt) {
+    return meterDeploymentOnce(store, deployment);
+  }
+
   /*
    * Static builds run synchronously inside the deploy request and only flip to
    * READY/FAILED at the end. If the client disconnects or the api pod restarts

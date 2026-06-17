@@ -466,6 +466,7 @@ exports.Prisma.DeploymentScalarFieldEnum = {
   logs: 'logs',
   metadata: 'metadata',
   rolledBackFromId: 'rolledBackFromId',
+  lastMeteredAt: 'lastMeteredAt',
   startedAt: 'startedAt',
   finishedAt: 'finishedAt',
   canceledAt: 'canceledAt',
