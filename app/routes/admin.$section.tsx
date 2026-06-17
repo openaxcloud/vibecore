@@ -1,5 +1,5 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Link, useFetcher, useLoaderData } from '@remix-run/react';
+import { Link, useFetcher, useLoaderData, useNavigate } from '@remix-run/react';
 import { AlertTriangle, BarChart3, CheckCircle2, Database, ShieldCheck } from 'lucide-react';
 import React, { useState } from 'react';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
@@ -419,7 +419,7 @@ export default function AdminSectionPage() {
       description={config.description}
       actions={<LinkButton to="/admin/billing">Billing admin</LinkButton>}
     >
-      <div className="grid gap-6 xl:grid-cols-[220px_1fr]">
+      <div className="grid items-start gap-6 lg:grid-cols-[232px_1fr]">
         <AdminNav active={section} />
         <div className="grid gap-6">
           {section === 'overview' ? <OverviewPanel payload={payload} /> : null}
@@ -438,26 +438,55 @@ export default function AdminSectionPage() {
 }
 
 function AdminNav({ active }: { active: string }) {
+  const navigate = useNavigate();
+
   return (
-    <nav
-      aria-label="Admin sections"
-      className="h-max rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 shadow-sm"
-    >
-      {navItems.map((item) => (
-        <Link
-          key={item}
-          to={`/admin/${item}`}
-          className={[
-            'flex min-h-8 items-center rounded-md px-2 text-sm transition-colors',
-            active === item
-              ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
-              : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
-          ].join(' ')}
+    <>
+      {/*
+       * Mobile / tablet (< lg): a compact section picker instead of a tall
+       * vertical nav, so the active tab's content is visible immediately without
+       * scrolling past ~25 links.
+       */}
+      <div className="lg:hidden">
+        <label htmlFor="admin-section-picker" className="sr-only">
+          Admin section
+        </label>
+        <select
+          id="admin-section-picker"
+          value={active}
+          onChange={(event) => navigate(`/admin/${event.target.value}`)}
+          data-testid="admin-section-picker"
+          className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
         >
-          {adminSections[item].title}
-        </Link>
-      ))}
-    </nav>
+          {navItems.map((item) => (
+            <option key={item} value={item}>
+              {adminSections[item].title}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Desktop (lg+): sticky vertical sidebar; content scrolls independently. */}
+      <nav
+        aria-label="Admin sections"
+        className="hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 shadow-sm lg:block lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto"
+      >
+        {navItems.map((item) => (
+          <Link
+            key={item}
+            to={`/admin/${item}`}
+            className={[
+              'flex min-h-8 items-center rounded-md px-2 text-sm transition-colors',
+              active === item
+                ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
+                : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
+            ].join(' ')}
+          >
+            {adminSections[item].title}
+          </Link>
+        ))}
+      </nav>
+    </>
   );
 }
 
