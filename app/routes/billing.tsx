@@ -23,6 +23,39 @@ type BillingData = {
   upgradePrompts: Array<{ planKey: string; name: string }>;
 };
 
+type CreditsData = {
+  creditsEnabled: boolean;
+  shadow: boolean;
+  balanceCents: number;
+  packBalanceCents: number;
+  totalAvailableCents: number;
+  budgetCapCents: number | null;
+  serviceShutdownCents: number | null;
+  checkpoints: Array<{
+    id: string;
+    creditCents: number;
+    status: string;
+    highPowerModel: boolean;
+    extendedThinking: boolean;
+    turboMode: boolean;
+    buildTier: string;
+    startedAt: string;
+  }>;
+};
+
+const EMPTY_CREDITS: CreditsData = {
+  creditsEnabled: false,
+  shadow: false,
+  balanceCents: 0,
+  packBalanceCents: 0,
+  totalAvailableCents: 0,
+  budgetCapCents: null,
+  serviceShutdownCents: null,
+  checkpoints: [],
+};
+
+const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+
 export const meta: MetaFunction = () => [{ title: 'Billing - VibeCore' }];
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
@@ -31,15 +64,25 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return redirect('/');
   }
 
+  /*
+   * Credits are a separate, lower-sensitivity read (member-level scope); never
+   * let a credits failure break the billing page.
+   */
+  const creditsPromise = apiRequest<CreditsData>(request, `/orgs/${organization.id}/credits`).catch(
+    () => EMPTY_CREDITS,
+  );
+
   try {
     const billing = await apiRequest<BillingData>(request, `/orgs/${organization.id}/billing`);
+    const credits = await creditsPromise;
 
-    return json({ organization, billing, billingAccessLimited: false });
+    return json({ organization, billing, credits, billingAccessLimited: false });
   } catch (error) {
     if (isForbiddenApiResponse(error)) {
       return json({
         organization,
         billingAccessLimited: true,
+        credits: await creditsPromise,
         billing: {
           plan: { key: 'unavailable', name: 'Unavailable', monthlyCents: 0 },
           subscription: null,
@@ -134,7 +177,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 export default function BillingPage() {
-  const { billing, billingAccessLimited } = useLoaderData<typeof loader>();
+  const { billing, credits, billingAccessLimited } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
 
   /*
@@ -194,6 +237,71 @@ export default function BillingPage() {
             },
           ]}
         />
+        <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Credits &amp; usage</h2>
+              <p className="text-sm text-bolt-elements-textSecondary">
+                Your included credits, purchased packs and effort-based agent usage.
+              </p>
+            </div>
+            {credits.shadow ? (
+              <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-300">
+                Preview (not charged)
+              </span>
+            ) : null}
+          </div>
+          <StatGrid
+            stats={[
+              {
+                label: 'Credit balance',
+                value: dollars(credits.balanceCents),
+                detail: 'Included monthly credits',
+                icon: CreditCard,
+              },
+              {
+                label: 'Credit packs',
+                value: dollars(credits.packBalanceCents),
+                detail: 'Purchased, earliest-expiry first',
+                icon: CreditCard,
+              },
+              {
+                label: 'Total available',
+                value: dollars(credits.totalAvailableCents),
+                detail: 'Balance + active packs',
+                icon: TrendingUp,
+              },
+              {
+                label: 'Budget cap',
+                value: credits.budgetCapCents != null ? dollars(credits.budgetCapCents) : 'None',
+                detail: 'Pay-as-you-go spend limit',
+                icon: FileText,
+              },
+            ]}
+          />
+          <div className="mt-4">
+            <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Recent agent checkpoints</h3>
+            <ActivityList
+              items={
+                credits.checkpoints.length
+                  ? credits.checkpoints.slice(0, 8).map((cp) => ({
+                      title: `${dollars(cp.creditCents)} — ${cp.buildTier}${cp.highPowerModel ? ' · high-power' : ''}${
+                        cp.extendedThinking ? ' · extended-thinking' : ''
+                      }${cp.turboMode ? ' · turbo' : ''}`,
+                      detail: `${cp.status} · ${new Date(cp.startedAt).toLocaleString()}`,
+                      icon: TrendingUp,
+                    }))
+                  : [
+                      {
+                        title: 'No agent checkpoints yet',
+                        detail: 'Each agent request records one effort-based checkpoint with its credit cost.',
+                        icon: TrendingUp,
+                      },
+                    ]
+              }
+            />
+          </div>
+        </section>
         {!billingAccessLimited ? (
           <div className="flex flex-wrap gap-3">
             {billing.upgradePrompts.map((plan) => (
