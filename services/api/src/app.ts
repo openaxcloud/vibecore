@@ -11876,6 +11876,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/auth/me', async (request) => {
     const user = await store.findUserById(request.currentUser!.id);
 
+    // P8: when the current session is an admin impersonating this user, surface
+    // the impersonator id so the web can render a persistent "stop" banner.
+    const impersonatedBy = request.currentSession?.impersonatedBy ?? null;
+
     return {
       user: user
         ? {
@@ -11891,6 +11895,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             createdAt: user.createdAt,
           }
         : request.currentUser,
+      impersonatedBy,
     };
   });
   app.patch('/auth/me', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
@@ -17384,6 +17389,82 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await recordAdminAction(request, store, { action: 'admin.user.unsuspend', metadata: { userId } });
 
     return { suspended: false };
+  });
+
+  /*
+   * ===== Replit-parity admin impersonation (P8) =====
+   * An admin mints a short, time-boxed session that acts AS another user, flagged
+   * with Session.impersonatedBy = admin id. The flag (a) drives a persistent web
+   * banner via GET /auth/me, (b) keeps the action auditable, (c) lets the user
+   * end it with POST /auth/impersonation/stop. Guards: recent admin re-auth, never
+   * self, never another platform admin (privilege-escalation), never a suspended
+   * user. The session is short-lived (30 min) and independently revocable, so it
+   * never silently becomes the user's own long-lived login.
+   */
+  const IMPERSONATION_TTL_MS = 30 * 60 * 1000;
+
+  app.post('/admin/users/:userId/impersonate', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { userId } = parse(adminUserParams, request.params);
+    const adminId = request.currentUser!.id;
+
+    if (userId === adminId) {
+      return reply.code(400).send({ error: 'cannot_impersonate_self' });
+    }
+
+    const target = await store.findUserById(userId);
+    if (!target) {
+      return reply.code(404).send({ error: 'not_found' });
+    }
+    if (target.platformAdmin) {
+      return reply.code(403).send({ error: 'cannot_impersonate_admin' });
+    }
+    if (await isUserSuspended(store, userId)) {
+      return reply.code(409).send({ error: 'user_suspended' });
+    }
+
+    const token = createOpaqueToken('session');
+    const expiresAt = new Date(Date.now() + IMPERSONATION_TTL_MS);
+    await store.createSession({
+      userId,
+      token,
+      expiresAt,
+      ipAddress: request.ip,
+      userAgent: request.headers['user-agent'],
+      impersonatedBy: adminId,
+    });
+    reply.setCookie('session', token, authCookieOptions(isProduction));
+    await recordAdminAction(request, store, {
+      action: 'admin.user.impersonate_start',
+      metadata: { userId, expiresAt: expiresAt.toISOString() },
+    });
+
+    return {
+      token,
+      expiresAt: expiresAt.toISOString(),
+      user: { id: target.id, email: target.email, name: target.name },
+    };
+  });
+
+  app.post('/auth/impersonation/stop', async (request, reply) => {
+    const session = request.currentSession;
+    if (!session?.impersonatedBy) {
+      return reply.code(409).send({ error: 'not_impersonating' });
+    }
+
+    await store.revokeSession(request.currentUser!.id, session.id);
+    reply.clearCookie('session', authCookieOptions(isProduction));
+    // Attribute the audit to the impersonating admin, not the impersonated user.
+    await store.recordAdminAudit({
+      actorUserId: session.impersonatedBy,
+      action: 'admin.user.impersonate_stop',
+      metadata: { userId: request.currentUser!.id },
+      ipAddress: request.ip,
+    });
+
+    return { stopped: true };
   });
 
   /*
