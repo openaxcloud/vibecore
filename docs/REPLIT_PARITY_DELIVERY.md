@@ -315,3 +315,75 @@ Either way, hand me an admin login (or flip my cert account on per A) and I fini
 a prod agent request produced **Recent agent checkpoints → "$0.00 — power · COMPLETED · 17/06/2026 13:27:11"**
 with a **"Preview (not charged)"** badge, Usage events 40, real token ledger, wallet **not** debited. Left in
 SHADOW. (Screenshot delivered.)
+
+---
+
+## 10. Managed mode — legacy per-user BYOK removed (Jun 17)
+
+**Trigger:** the prod IDE composer still showed the legacy per-user BYOK UI — provider dropdown
+("Moonshot / Kimi K2 Preview") with **"Moonshot API Key: Not set (Please set via UI or ENV_VAR)"** +
+**"Get API Key"** — i.e. it asked the *end user* for a key. That contradicts the Replit-identical model
+(admin owns the keys; users never enter one).
+
+**Why it was still legacy (root cause):** the two managed-mode flags were **never set in prod**.
+- `VITE_BYOK_DISABLED` gates the key-entry block (`ChatBox.tsx`), but it is a **`VITE_*` flag inlined by
+  Vite at *build* time** — a runtime Helm configmap env never reaches the browser bundle (same class as the
+  old `VITE_RUNTIME_MODE` bug). It was wired **nowhere** (no Dockerfile ARG, no Cloud Build arg), so the
+  gate could never be true in any prod web image.
+- `MODEL_REGISTRY_DB` only gates `GET /orgs/:id/ai/models`. **No web client consumes that endpoint** — the
+  composer reads the legacy `/api/models` catalog — so the flag is forward-looking and does **not** change
+  today's selector. The user-visible fix is `VITE_BYOK_DISABLED` alone.
+
+**What changed (commits `67fac5a2` + `42e8aeea`, on `main` → CD):**
+- **Build-arg wiring for `VITE_BYOK_DISABLED`** (the actual fix): `Dockerfile` `ARG/ENV`,
+  `infra/cloudbuild/single-web.yaml` substitution `_VITE_BYOK_DISABLED: 'true'` + `--build-arg`, and the CD
+  `deploy-main.yml` substitution `_VITE_BYOK_DISABLED=true`. A bare local `docker build` leaves it empty →
+  **BYOK stays on for dev / self-host / Enterprise**.
+- **`MODEL_REGISTRY_DB: "true"`** hardcoded literal in `configmap.yaml` (CD's `helm upgrade --reuse-values`
+  ignores new values keys — same pattern as `BILLING_CREDITS_SHADOW` / `ADMIN_MFA_REQUIRED`). Forward-looking.
+- **Per-project BYOK grid hidden** (`BaseChat.tsx`): Project Settings → **AI** tab no longer renders the
+  per-provider "Managed/BYOK" dropdown + API-key entry/removal grid to users; in managed mode it shows a
+  *"AI provider keys are managed by VibeCore — no key to enter"* note and keeps only model/routing controls.
+
+**Full BYOK-vestige audit (every user-facing key surface):**
+| Surface | State |
+|---|---|
+| IDE composer key prompt (`APIKeyManager` in `ChatBox`) | 🟢 hidden by `VITE_BYOK_DISABLED` |
+| Project Settings → AI tab BYOK grid (`BaseChat`) | 🟢 hidden by `VITE_BYOK_DISABLED` (managed note instead) |
+| Settings → **Cloud Providers** / **Local Providers** tabs (key entry) | 🟢 already `window:'developer'` → never rendered in the user panel; no developer-mode toggle is exposed (`developerMode` has no UI and no consumer) |
+| Per-project credential mode (Enterprise BYOK path) | 🟢 preserved when the flag is unset (self-host / Enterprise) |
+
+**No breakage from removing key entry — platform keys present in prod** (`values-prod.yaml`):
+`OPENAI`, `ANTHROPIC`, `GOOGLE_GEMINI`, `XAI`, **`MOONSHOT`**. The flagged Moonshot model was *already
+usable* (platform key `vibecore-prod-moonshot-api-key` exists); the "API Key: Not set" prompt was purely the
+misleading *per-user* legacy UI reading the user's cookie, not the platform key. The admin registry seed
+(`seedProviderRegistry`, `app.ts:5722`) inserts providers/models **enabled by default** at every API boot,
+filtered per plan tier — so no user is left without a model.
+
+**One non-breaking observation (flagged, not a blocker):** the *legacy* selector lists every registered
+provider, including ones with **no platform key** (Groq, Mistral, OpenRouter, …). With BYOK hidden, picking
+one has no user key — but the server-side `resolveUsableProvider` fallback (`2dd93cfe`) silently routes to a
+credentialed provider, so it degrades gracefully. Trimming the selector itself to only platform-keyed
+providers is a clean future follow-up (does not block managed mode).
+
+**Deploy + verification:** code typecheck + lint green; CD run `27691909787` building both commits (it
+rebuilds the web image **with** the `VITE_BYOK_DISABLED=true` build arg — the only way the bundle picks it
+up). Real-browser before/after on app.e-code.ai with a live workspace is performed once that run completes
+(captures delivered separately). **Reversible:** unset the build arg / set the configmap literal to `"false"`.
+
+---
+
+## 11. Definitive, minimal list of what literally requires Avi
+
+Everything activatable from code/GitOps **without** Avi is done (registry on, BYOK off via build arg,
+admin-enabled models by default, MFA optional, shadow billing certified). What remains needs Avi personally:
+
+1. **Stripe — 2 actions (payment credentials, not GCP):** in the Stripe Dashboard, (a) create the
+   products/prices (Core $25/mo + $20-equiv/yr, Pro $100/mo + $95-equiv/yr, + a metered PAYG price — layout
+   in §3) and (b) **generate/rotate the LIVE secret key**. Everything after (paste price IDs into the
+   configmap, `helm upgrade`, flip `BILLING_CREDITS_ENABLED` off SHADOW → real charges) is mine.
+2. **One admin login** for the prod admin/impersonation certification: log into app.e-code.ai as
+   **`avi@snatchbot.me`** (already in `PLATFORM_ADMIN_EMAILS`; verify the email once) → open `/admin`, or flip
+   my throwaway cert account on per §9-A. Then I certify Admin sections + impersonation E2E in prod (~10 min).
+
+That's it — **2 Stripe clicks + 1 admin login.** Nothing else is blocked on you.
