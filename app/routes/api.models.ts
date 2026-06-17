@@ -1,5 +1,5 @@
-import { json } from '@remix-run/cloudflare';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
+import { json } from '~/lib/json-response';
 import {
   getPlatformKeyedProviderNames,
   isManagedModelsMode,

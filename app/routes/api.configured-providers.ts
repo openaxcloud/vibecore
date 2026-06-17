@@ -1,5 +1,5 @@
-import type { LoaderFunction } from '@remix-run/cloudflare';
-import { json } from '@remix-run/cloudflare';
+import type { LoaderFunction } from 'react-router';
+import { data as json } from 'react-router';
 import { readSessionToken } from '~/lib/enterprise-api.server';
 import { LLMManager } from '~/lib/modules/llm/manager';
 

@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/cloudflare';
+import { data as json, type LoaderFunctionArgs } from 'react-router';
 
 import { listEcodeTemplates } from './ecode-template-catalog.server';
 

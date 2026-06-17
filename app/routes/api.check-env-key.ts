@@ -1,4 +1,4 @@
-import type { LoaderFunction } from '@remix-run/cloudflare';
+import type { LoaderFunction } from 'react-router';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { readSessionToken } from '~/lib/enterprise-api.server';
 import { LLMManager } from '~/lib/modules/llm/manager';

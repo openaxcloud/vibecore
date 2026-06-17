@@ -109,7 +109,7 @@ import {
 } from '~/lib/persistence/projectIdeMemory';
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
-import { useSearchParams } from '@remix-run/react';
+import { useSearchParams } from 'react-router';
 import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
 import {
   type CompactPreviewRunState,

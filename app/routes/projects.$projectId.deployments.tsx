@@ -1,5 +1,3 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useLoaderData, useNavigation, useSearchParams } from '@remix-run/react';
 import {
   Ban,
   CheckCircle2,
@@ -15,6 +13,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type React from 'react';
+import type { MetaFunction } from 'react-router';
+import { Form, useLoaderData, useNavigation, useSearchParams } from 'react-router';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {

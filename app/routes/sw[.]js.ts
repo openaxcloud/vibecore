@@ -1,4 +1,4 @@
-import type { LoaderFunctionArgs } from '@remix-run/cloudflare';
+import type { LoaderFunctionArgs } from 'react-router';
 import { pwaServiceWorkerScript } from '~/lib/pwa-service-worker.server';
 
 export function loader(_args: LoaderFunctionArgs) {

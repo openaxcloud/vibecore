@@ -1,6 +1,6 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/cloudflare';
-import { useLoaderData } from '@remix-run/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { data as json, type LoaderFunctionArgs } from 'react-router';
+import { useLoaderData } from 'react-router';
 
 const PREVIEW_CHANNEL = 'preview-updates';
 

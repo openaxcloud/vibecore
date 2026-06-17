@@ -1,6 +1,6 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { useLoaderData } from '@remix-run/react';
 import { Activity, Boxes, Database, Sparkles } from 'lucide-react';
+import type { MetaFunction } from 'react-router';
+import { useLoaderData } from 'react-router';
 import { AppShell, StatGrid } from '~/components/dashboard/SaaSLayout';
 import { apiRequest, firstOrganizationOrNull, redirect, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 

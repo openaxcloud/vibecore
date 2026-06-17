@@ -1,4 +1,4 @@
-import type { LoaderFunctionArgs } from '@remix-run/cloudflare';
+import type { LoaderFunctionArgs } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
 import { loader as blogCategoriesLoader } from './api.blog.categories.$category';

@@ -3,12 +3,12 @@ import * as LabelPrimitive from '@radix-ui/react-label';
 import * as SwitchPrimitive from '@radix-ui/react-switch';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
-import { Link as RemixLink, useLocation, useNavigate } from '@remix-run/react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { clsx, type ClassValue } from 'clsx';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import * as React from 'react';
+import { Link as RemixLink, useLocation, useNavigate } from 'react-router';
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {

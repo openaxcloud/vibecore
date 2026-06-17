@@ -1,6 +1,6 @@
-import { json } from '@remix-run/cloudflare';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { apiRequest } from '~/lib/enterprise-api.server';
+import { json } from '~/lib/json-response';
 import { withSecurity } from '~/lib/security';
 
 async function githubUserLoader({ request }: { request: Request; context?: unknown }) {

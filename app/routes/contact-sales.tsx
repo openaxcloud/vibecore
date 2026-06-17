@@ -1,4 +1,4 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
+import type { MetaFunction } from 'react-router';
 import ContactSales from '~/components/marketing/ecode-exact/pages/ContactSales';
 
 export const meta: MetaFunction = () => [

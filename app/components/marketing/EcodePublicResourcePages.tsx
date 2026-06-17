@@ -1,4 +1,3 @@
-import { Link } from '@remix-run/react';
 import {
   ArrowRight,
   Award,
@@ -24,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import type React from 'react';
+import { Link } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 import { classNames } from '~/utils/classNames';
 

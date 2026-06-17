@@ -1,4 +1,4 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
+import type { MetaFunction } from 'react-router';
 import AI from './ecode-exact/pages/AI';
 import AIAgent from './ecode-exact/pages/AIAgent';
 import Bounties from './ecode-exact/pages/Bounties';

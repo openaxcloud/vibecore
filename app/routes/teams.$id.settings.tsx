@@ -1,5 +1,5 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { useParams } from '@remix-run/react';
+import type { MetaFunction } from 'react-router';
+import { useParams } from 'react-router';
 import {
   createTeamSurfacePage,
   EcodeSurfacePage,

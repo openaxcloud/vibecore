@@ -1,7 +1,4 @@
 import { useStore } from '@nanostores/react';
-import { type LoaderFunctionArgs, type MetaFunction } from '@remix-run/cloudflare';
-import { useLoaderData } from '@remix-run/react';
-import { Link } from '@remix-run/react';
 import {
   Activity,
   AlertTriangle,
@@ -37,6 +34,9 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
+import { type LoaderFunctionArgs, type MetaFunction } from 'react-router';
+import { useLoaderData } from 'react-router';
+import { Link } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';

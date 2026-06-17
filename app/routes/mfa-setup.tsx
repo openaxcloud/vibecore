@@ -1,9 +1,9 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { redirect } from '@remix-run/cloudflare';
-import { Form, Link, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
 import { Check, Copy, Download, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { QRCode } from 'react-qrcode-logo';
+import type { MetaFunction } from 'react-router';
+import { redirect } from 'react-router';
+import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router';
 
 import { EnterpriseFormPage, PrimaryButton } from '~/components/enterprise/EnterpriseFormPage';
 import {

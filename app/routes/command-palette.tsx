@@ -1,4 +1,4 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
+import type { MetaFunction } from 'react-router';
 import { AppShell, CommandPalettePreview } from '~/components/dashboard/SaaSLayout';
 
 export const meta: MetaFunction = () => [{ title: 'Command palette - VibeCore' }];

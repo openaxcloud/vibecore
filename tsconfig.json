@@ -2,12 +2,13 @@
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "types": [
-      "@remix-run/cloudflare",
+      "@react-router/node",
       "vite/client",
       "@cloudflare/workers-types/2023-07-01",
       "@types/dom-speech-recognition",
       "electron"
     ],
+    "rootDirs": [".", "./.react-router/types"],
     "isolatedModules": true,
     "esModuleInterop": true,
     "jsx": "react-jsx",

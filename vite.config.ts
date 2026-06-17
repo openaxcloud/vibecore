@@ -1,4 +1,4 @@
-import { cloudflareDevProxyVitePlugin as remixCloudflareDevProxy, vitePlugin as remixVitePlugin } from '@remix-run/dev';
+import { reactRouter } from '@react-router/dev/vite';
 import * as dotenv from 'dotenv';
 import UnoCSS from 'unocss/vite';
 import { defineConfig, normalizePath, type ViteDevServer } from 'vite';
@@ -43,8 +43,6 @@ const IDE_OPTIMIZE_DEPS = [
   '@radix-ui/react-label',
   '@radix-ui/react-popover',
   '@radix-ui/react-tooltip',
-  '@remix-run/cloudflare',
-  '@remix-run/react',
   '@webcontainer/api',
   'ai',
   'chart.js',
@@ -81,12 +79,12 @@ const IDE_OPTIMIZE_DEPS = [
   'react-window',
   'react/jsx-dev-runtime',
   'react/jsx-runtime',
+  'react-router',
   'rehype-katex',
   'rehype-raw',
   'rehype-sanitize',
   'remark-gfm',
   'remark-math',
-  'remix-island',
   'remix-utils/client-only',
   'shiki',
   'unist-util-visit',
@@ -198,10 +196,10 @@ export default defineConfig((config) => {
             }
 
             /*
-             * React, react-dom, scheduler, @remix-run, @radix-ui and jszip
+             * React, react-dom, scheduler, react-router, @radix-ui and jszip
              * are kept together. Splitting them produced cycles like
              *   vendor-react -> vendor-radix   -> vendor-react
-             *   vendor-react -> vendor-remix   -> vendor-react
+             *   vendor-react -> vendor-router  -> vendor-react
              *   vendor-react -> vendor-export-zip -> vendor-react
              * which left react-dom's __SECRET_INTERNALS / radix's forwardRef
              * in the TDZ at runtime and crashed hydration ("black screen"
@@ -211,7 +209,8 @@ export default defineConfig((config) => {
               id.includes('/react-dom/') ||
               id.includes('/react/') ||
               id.includes('/scheduler/') ||
-              id.includes('/@remix-run/') ||
+              id.includes('/react-router/') ||
+              id.includes('/@react-router/') ||
               id.includes('/@radix-ui/') ||
               id.includes('/jszip/')
             ) {
@@ -267,33 +266,19 @@ export default defineConfig((config) => {
           return null;
         },
       },
-      config.command === 'serve' && config.mode !== 'test' && remixCloudflareDevProxy(),
-
       /*
-       * The Remix Vite plugin injects a HMR preamble that errors out under
-       * jsdom-environment vitest specs (no Remix runtime in scope). Keep it
-       * out of `mode === 'test'` so component specs can render React; the
-       * production / dev build still installs it the normal way.
+       * The React Router Vite plugin injects an HMR preamble that errors out
+       * under jsdom-environment vitest specs (no router runtime in scope).
+       * Keep it out of `mode === 'test'` so component specs can render React;
+       * the production / dev build still installs it the normal way.
+       *
+       * All the former Remix v3 future flags (fetcherPersist, relativeSplatPath,
+       * throwAbortReason, lazyRouteDiscovery, singleFetch) are now defaults in
+       * React Router 7. Route discovery / flat-route config + the SSR flag live
+       * in react-router.config.ts and app/routes.ts (spec files are excluded
+       * from the route manifest there).
        */
-      config.mode !== 'test' &&
-        remixVitePlugin({
-          /*
-           * Co-located component / route specs (`Foo.spec.ts`,
-           * `Foo.spec.tsx`) live next to the modules they test, including
-           * inside `app/routes/`. Remix's default route discovery would
-           * import them as SSR route modules and explode the moment the
-           * file imports `vitest`. Exclude every spec file from the route
-           * manifest so the dev server only ever loads real routes.
-           */
-          ignoredRouteFiles: ['**/*.spec.ts', '**/*.spec.tsx'],
-          future: {
-            v3_fetcherPersist: true,
-            v3_relativeSplatPath: true,
-            v3_throwAbortReason: true,
-            v3_lazyRouteDiscovery: true,
-            v3_singleFetch: true,
-          },
-        }),
+      config.mode !== 'test' && reactRouter(),
       UnoCSS(),
       tsconfigPaths({ projects: ['./tsconfig.json'] }),
       chrome129IssuePlugin(),

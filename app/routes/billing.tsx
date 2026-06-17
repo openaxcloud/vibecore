@@ -1,6 +1,6 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
 import { CreditCard, FileText, TrendingUp } from 'lucide-react';
+import type { MetaFunction } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { ActivityList, AppShell, LinkButton, StatGrid } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {

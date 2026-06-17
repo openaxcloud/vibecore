@@ -1,5 +1,3 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { Link } from '@remix-run/react';
 import {
   Activity,
   ArrowRight,
@@ -39,6 +37,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import type { MetaFunction } from 'react-router';
+import { Link } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import { classNames } from '~/utils/classNames';

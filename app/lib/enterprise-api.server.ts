@@ -1,4 +1,4 @@
-import { json, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from '@remix-run/cloudflare';
+import { data as json, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
 
 const sessionCookieName = 'vc_session';
 

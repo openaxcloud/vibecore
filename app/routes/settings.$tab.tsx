@@ -1,5 +1,5 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { useNavigate, useParams } from '@remix-run/react';
+import type { MetaFunction } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
 import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 import type { TabType } from '~/components/@settings/core/types';

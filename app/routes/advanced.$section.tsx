@@ -1,4 +1,4 @@
-import type { LoaderFunctionArgs, MetaFunction } from '@remix-run/cloudflare';
+import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import {
   EcodeAdvancedSurfaceRoute,
   getEcodeAdvancedSurfacePage,

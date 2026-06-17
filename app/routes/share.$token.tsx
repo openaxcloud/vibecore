@@ -9,9 +9,9 @@
  * "unavailable" state below.
  */
 
-import type { LoaderFunctionArgs, MetaFunction } from '@remix-run/cloudflare';
-import { json } from '@remix-run/cloudflare';
-import { useLoaderData } from '@remix-run/react';
+import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
+import { data as json } from 'react-router';
+import { useLoaderData } from 'react-router';
 
 import type { ShareLinkPayload } from '~/lib/chat/share-link';
 import { apiBaseUrl } from '~/lib/enterprise-api.server';

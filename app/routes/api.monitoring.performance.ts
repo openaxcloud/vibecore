@@ -1,4 +1,4 @@
-import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from '@remix-run/cloudflare';
+import { data as json, type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
 
 const MAX_BUFFERED_REPORTS = 200;
 

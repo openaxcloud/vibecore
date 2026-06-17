@@ -1,7 +1,7 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, Link, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
 import { CheckCircle, Chrome, Code2, Eye, EyeOff, Github, KeyRound, Lock, Mail, Shield, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { MetaFunction } from 'react-router';
+import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { AuthField, AuthScreen, AuthSubmit } from '~/components/auth/AuthScreen';
 import {
   apiRequest,

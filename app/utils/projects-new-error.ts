@@ -9,7 +9,7 @@
  * from React. The route only renders the result.
  */
 
-import { isRouteErrorResponse } from '@remix-run/react';
+import { isRouteErrorResponse } from 'react-router';
 
 export type ProjectsNewErrorKind = 'auth' | 'network' | 'quota' | 'server' | 'unknown';
 

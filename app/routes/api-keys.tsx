@@ -1,7 +1,7 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { json } from '@remix-run/cloudflare';
-import { Form, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
 import { KeyRound, Trash2 } from 'lucide-react';
+import type { MetaFunction } from 'react-router';
+import { data as json } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { AppShell, StatusPill } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
