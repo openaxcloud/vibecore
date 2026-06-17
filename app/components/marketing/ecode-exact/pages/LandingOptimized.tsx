@@ -181,8 +181,12 @@ export default function LandingOptimized() {
         <div className="container-responsive relative z-10 max-w-7xl text-center px-4 py-20">
           <div className="space-y-8">
             <Badge
-              variant="secondary"
-              className="mx-auto inline-flex items-center gap-2 px-6 py-2 text-[13px] font-semibold bg-gradient-to-r from-ecode-accent/10 to-ecode-secondary-accent/10 border border-ecode-accent/20 animate-fade-in"
+              variant="outline"
+              className="mx-auto inline-flex items-center gap-2 px-6 py-2 text-[13px] font-semibold text-[var(--ecode-text)] shadow-[0_12px_42px_-34px_rgba(242,98,7,0.65)] animate-fade-in"
+              style={{
+                background: 'linear-gradient(90deg, rgba(242, 98, 7, 0.06), rgba(247, 127, 0, 0.06))',
+                borderColor: 'rgba(242, 98, 7, 0.2)',
+              }}
               data-testid="badge-hero"
             >
               <Sparkles className="h-4 w-4 text-ecode-accent" />
@@ -191,21 +195,17 @@ export default function LandingOptimized() {
             </Badge>
 
             <h1
-              className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight animate-fade-in"
+              className="text-[44px] sm:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight animate-fade-in"
               style={{ animationDelay: '100ms' }}
               data-testid="heading-hero"
             >
-              <span className="bg-gradient-to-r from-[var(--ecode-text)] to-[var(--ecode-text-secondary)] bg-clip-text text-transparent">
-                Build & Deploy
-              </span>
+              <span className="text-[var(--ecode-text)]">Build & Deploy</span>
               <br />
               <span className="bg-gradient-to-r from-ecode-orange via-ecode-orange-light to-ecode-yellow bg-clip-text text-transparent">
                 Production Apps
               </span>
               <br />
-              <span className="bg-gradient-to-r from-[var(--ecode-text)] to-[var(--ecode-text-secondary)] bg-clip-text text-transparent">
-                in Minutes
-              </span>
+              <span className="text-[var(--ecode-text)]">in Minutes</span>
             </h1>
 
             <p

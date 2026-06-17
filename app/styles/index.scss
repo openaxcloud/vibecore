@@ -19580,6 +19580,168 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   background: var(--marketing-divider);
 }
 
+[data-ecode-static-shell] :where([class~='font-medium']) {
+  font-weight: 500 !important;
+}
+
+[data-ecode-static-shell] :where([class~='font-semibold']) {
+  font-weight: 600 !important;
+}
+
+[data-ecode-static-shell] :where([class~='font-bold']) {
+  font-weight: 700 !important;
+}
+
+[data-ecode-static-shell] :where(h1, h2, h3, h4, h5, h6) :where(span:not([class*='i-'])) {
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+}
+
+[data-ecode-static-shell] :where([class~='text-[10px]']) {
+  font-size: 10px !important;
+  line-height: 14px !important;
+}
+
+[data-ecode-static-shell] :where([class~='text-[11px]'], [class~='text-xs']) {
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+
+[data-ecode-static-shell] :where([class~='text-[13px]'], [class~='text-sm']) {
+  font-size: 14px !important;
+  line-height: 20px !important;
+}
+
+[data-ecode-static-shell] :where([class~='text-[15px]'], [class~='text-base']) {
+  font-size: 16px !important;
+  line-height: 24px !important;
+}
+
+[data-ecode-static-shell] :where([class~='text-lg']) {
+  font-size: 18px !important;
+  line-height: 28px !important;
+}
+
+[data-ecode-static-shell] :where([class~='text-xl']) {
+  font-size: 20px !important;
+  line-height: 28px !important;
+}
+
+[data-ecode-static-shell] :where([class~='text-2xl']) {
+  font-size: 24px !important;
+  line-height: 32px !important;
+}
+
+[data-ecode-static-shell] :where([class~='text-3xl']) {
+  font-size: 30px !important;
+  line-height: 36px !important;
+}
+
+[data-ecode-static-shell] :where([class~='text-4xl']) {
+  font-size: 36px !important;
+  line-height: 40px !important;
+}
+
+[data-ecode-static-shell] :where([class~='text-[44px]']) {
+  font-size: 44px !important;
+  line-height: 1.02 !important;
+}
+
+[data-ecode-static-shell] :where([class~='text-5xl']) {
+  font-size: 48px !important;
+  line-height: 1 !important;
+}
+
+[data-ecode-static-shell] :where([class~='text-6xl']) {
+  font-size: 60px !important;
+  line-height: 1 !important;
+}
+
+[data-ecode-static-shell] :where([class~='text-7xl']) {
+  font-size: 72px !important;
+  line-height: 1 !important;
+}
+
+[data-ecode-static-shell] :where([class~='text-8xl']) {
+  font-size: 96px !important;
+  line-height: 1 !important;
+}
+
+@media (min-width: 640px) {
+  [data-ecode-static-shell] :where([class~='sm:text-[13px]'], [class~='sm:text-sm']) {
+    font-size: 14px !important;
+    line-height: 20px !important;
+  }
+
+  [data-ecode-static-shell] :where([class~='sm:text-[15px]'], [class~='sm:text-base']) {
+    font-size: 16px !important;
+    line-height: 24px !important;
+  }
+
+  [data-ecode-static-shell] :where([class~='sm:text-xl']) {
+    font-size: 20px !important;
+    line-height: 28px !important;
+  }
+
+  [data-ecode-static-shell] :where([class~='sm:text-2xl']) {
+    font-size: 24px !important;
+    line-height: 32px !important;
+  }
+
+  [data-ecode-static-shell] :where([class~='sm:text-3xl']) {
+    font-size: 30px !important;
+    line-height: 36px !important;
+  }
+
+  [data-ecode-static-shell] :where([class~='sm:text-4xl']) {
+    font-size: 36px !important;
+    line-height: 40px !important;
+  }
+
+  [data-ecode-static-shell] :where([class~='sm:text-5xl']) {
+    font-size: 48px !important;
+    line-height: 1 !important;
+  }
+
+  [data-ecode-static-shell] :where([class~='sm:text-6xl']) {
+    font-size: 60px !important;
+    line-height: 1 !important;
+  }
+}
+
+@media (min-width: 768px) {
+  [data-ecode-static-shell] :where([class~='md:text-5xl']) {
+    font-size: 48px !important;
+    line-height: 1 !important;
+  }
+
+  [data-ecode-static-shell] :where([class~='md:text-6xl']) {
+    font-size: 60px !important;
+    line-height: 1 !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  [data-ecode-static-shell] :where([class~='lg:text-6xl']) {
+    font-size: 60px !important;
+    line-height: 1 !important;
+  }
+
+  [data-ecode-static-shell] :where([class~='lg:text-7xl']) {
+    font-size: 72px !important;
+    line-height: 1 !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  [data-ecode-static-shell] :where([class~='xl:text-8xl']) {
+    font-size: 96px !important;
+    line-height: 1 !important;
+  }
+}
+
 .ecode-nav-menu:hover .ecode-nav-menu-panel,
 .ecode-nav-menu:focus-within .ecode-nav-menu-panel {
   display: block;

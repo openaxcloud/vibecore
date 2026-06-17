@@ -56,7 +56,19 @@ export async function apiRequest<TResponse = unknown>(
   return data;
 }
 
-const modelOptions = [
+interface PublicModelOption {
+  id: string;
+  name: string;
+  provider: string;
+  description: string;
+  supportsStreaming: boolean;
+}
+
+interface PublicModelsResponse {
+  models?: PublicModelOption[];
+}
+
+const modelOptions: PublicModelOption[] = [
   {
     id: 'gpt-5',
     name: 'GPT-5',
@@ -78,7 +90,21 @@ const modelOptions = [
     description: 'Balanced coding model for long-running implementation tasks.',
     supportsStreaming: true,
   },
-] as const;
+];
+
+function normalizePublicModelOption(model: PublicModelOption): PublicModelOption | null {
+  if (!model.id || !model.name) {
+    return null;
+  }
+
+  return {
+    id: model.id,
+    name: model.name,
+    provider: model.provider || 'default',
+    description: model.description || model.name,
+    supportsStreaming: Boolean(model.supportsStreaming),
+  };
+}
 
 const AnthropicIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
@@ -115,20 +141,28 @@ interface AiModelSelectorProps {
 }
 
 function AiModelSelector({ variant = 'inline', className = '', onModelChange }: AiModelSelectorProps) {
+  const [models, setModels] = useState<PublicModelOption[]>(modelOptions);
+  const [modelsLoading, setModelsLoading] = useState(variant === 'card');
+  const [modelsError, setModelsError] = useState<string | null>(null);
+
   const [selectedModel, setSelectedModel] = useState<string>(() => {
-    if (typeof window === 'undefined') {
-      return modelOptions[0].id;
+    if (variant === 'card' || typeof window === 'undefined') {
+      return '';
     }
 
-    return window.localStorage.getItem('ecode-preferred-ai-model') || modelOptions[0].id;
+    return window.localStorage.getItem('ecode-preferred-ai-model') || modelOptions[0]?.id || '';
   });
 
   const currentModel = useMemo(
-    () => modelOptions.find((model) => model.id === selectedModel) ?? modelOptions[0],
-    [selectedModel],
+    () => models.find((model) => model.id === selectedModel) ?? null,
+    [models, selectedModel],
   );
 
   const handleModelChange = (modelId: string) => {
+    if (!modelId) {
+      return;
+    }
+
     setSelectedModel(modelId);
     onModelChange?.(modelId);
 
@@ -137,11 +171,58 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
     }
   };
 
-  if (!currentModel) {
+  useEffect(() => {
+    if (variant !== 'card' || typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+
+    async function loadModels() {
+      setModelsLoading(true);
+      setModelsError(null);
+
+      try {
+        const response = await fetch('/api/models', {
+          credentials: 'include',
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Model catalog request failed with ${response.status}`);
+        }
+
+        const payload = (await response.json()) as PublicModelsResponse;
+
+        const loadedModels = (payload.models ?? [])
+          .map((model) => normalizePublicModelOption(model))
+          .filter((model): model is PublicModelOption => Boolean(model));
+
+        if (loadedModels.length > 0) {
+          setModels(loadedModels);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setModels(modelOptions);
+          setModelsError(error instanceof Error ? error.message : 'Model catalog unavailable');
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setModelsLoading(false);
+        }
+      }
+    }
+
+    void loadModels();
+
+    return () => controller.abort();
+  }, [variant]);
+
+  if (variant !== 'card' && !currentModel) {
     return <Skeleton className="h-10 sm:h-12 w-full" />;
   }
 
-  const CurrentProviderIcon = getProviderIcon(currentModel.provider);
+  const CurrentProviderIcon = currentModel ? getProviderIcon(currentModel.provider) : null;
 
   if (variant === 'card') {
     return (
@@ -153,39 +234,57 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
               <h3 className="font-semibold text-[13px] sm:text-base">AI Model Selection</h3>
             </div>
             <p className="text-[10px] sm:text-[11px] text-muted-foreground">
-              Choose your preferred AI model for code generation ({modelOptions.length} available)
+              {modelsLoading
+                ? 'Loading available AI models for code generation...'
+                : `Choose your preferred AI model for code generation (${models.length} available)`}
             </p>
             <select
               value={selectedModel}
               onChange={(event) => handleModelChange(event.target.value)}
-              className="w-full min-h-[44px] rounded-md border border-border bg-background px-3 text-[13px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
+              disabled={modelsLoading}
+              className="w-full min-h-[44px] rounded-md border border-border bg-background px-3 text-base sm:text-[13px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:cursor-wait disabled:opacity-70"
               data-testid="select-ai-model"
             >
-              {modelOptions.map((model) => (
+              <option value="" disabled>
+                {modelsLoading ? 'Loading AI models...' : 'Select AI model...'}
+              </option>
+              {models.map((model) => (
                 <option key={model.id} value={model.id}>
                   {model.name}
                 </option>
               ))}
             </select>
-            <div className="flex items-start gap-3 rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface-tertiary)] p-3">
-              <div className={cn('mt-1 h-2.5 w-2.5 rounded-full shrink-0', getProviderColor(currentModel.provider))} />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2 text-[13px] font-medium">
-                  <CurrentProviderIcon className="h-4 w-4" />
-                  {currentModel.name}
-                  {currentModel.supportsStreaming ? (
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                      Stream
-                    </Badge>
-                  ) : null}
+            {currentModel && CurrentProviderIcon ? (
+              <div className="flex items-start gap-3 rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface-tertiary)] p-3">
+                <div
+                  className={cn('mt-1 h-2.5 w-2.5 rounded-full shrink-0', getProviderColor(currentModel.provider))}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 text-[13px] font-medium">
+                    <CurrentProviderIcon className="h-4 w-4" />
+                    {currentModel.name}
+                    {currentModel.supportsStreaming ? (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                        Stream
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-[10px] leading-tight text-muted-foreground">{currentModel.description}</p>
                 </div>
-                <p className="mt-1 text-[10px] leading-tight text-muted-foreground">{currentModel.description}</p>
               </div>
-            </div>
-            <div className="flex items-center gap-2 text-[11px] sm:text-[13px] text-green-600 dark:text-green-500">
-              <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-              <span>Model preference saved</span>
-            </div>
+            ) : null}
+            {modelsError ? (
+              <div className="flex items-center gap-2 text-[11px] sm:text-[13px] text-amber-700 dark:text-amber-400">
+                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                <span>Using the static model fallback while the catalog reconnects.</span>
+              </div>
+            ) : null}
+            {currentModel ? (
+              <div className="flex items-center gap-2 text-[11px] sm:text-[13px] text-green-600 dark:text-green-500">
+                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                <span>Model preference saved</span>
+              </div>
+            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -196,7 +295,7 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
     <div className={cn('flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2', className)}>
       <Zap className="h-4 w-4 text-orange-500" />
       <select
-        value={selectedModel}
+        value={selectedModel || modelOptions[0]?.id || ''}
         onChange={(event) => handleModelChange(event.target.value)}
         className="min-h-[36px] flex-1 bg-transparent text-[13px] outline-none"
       >

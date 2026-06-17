@@ -56,6 +56,12 @@ const EMPTY_CREDITS: CreditsData = {
 
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
+async function billingActionErrorMessage(error: Response, fallback: string) {
+  const message = await apiErrorMessage(error, fallback);
+
+  return message && message !== 'Internal server error' && message !== 'Request failed' ? message : fallback;
+}
+
 export const meta: MetaFunction = () => [{ title: 'Billing - VibeCore' }];
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
@@ -133,10 +139,12 @@ export async function action({ request }: EnterpriseActionArgs) {
       return redirect(result.portalUrl);
     } catch (error) {
       if (isApiResponse(error)) {
-        const message =
+        const message = await billingActionErrorMessage(
+          error,
           error.status >= 500
             ? 'The billing portal is temporarily unavailable. Please try again in a moment.'
-            : await apiErrorMessage(error, 'You cannot manage billing for this organization.');
+            : 'You cannot manage billing for this organization.',
+        );
 
         return json({ error: message }, { status: error.status });
       }
@@ -171,14 +179,16 @@ export async function action({ request }: EnterpriseActionArgs) {
     if (isApiResponse(error)) {
       /*
        * 4xx carries an actionable client message (already subscribed, free plan
-       * has no checkout, …) so surface it. 5xx is an upstream/Stripe failure
-       * whose raw text ("Internal server error") is noise to the user — show a
-       * clean, honest fallback instead.
+       * has no checkout, …) so surface it. 5xx can also carry a specific Stripe
+       * configuration error; keep that, but fall back when the upstream only
+       * returns a generic internal error.
        */
-      const message =
+      const message = await billingActionErrorMessage(
+        error,
         error.status >= 500
           ? 'Billing checkout is temporarily unavailable. Please try again in a moment.'
-          : await apiErrorMessage(error, 'Billing checkout is unavailable. Please try again later.');
+          : 'Billing checkout is unavailable. Please try again later.',
+      );
 
       return json({ error: message }, { status: error.status });
     }
