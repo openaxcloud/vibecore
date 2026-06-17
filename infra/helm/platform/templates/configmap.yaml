@@ -88,6 +88,16 @@ data:
   # delete this line (the endpoint then reports the registry as disabled).
   MODEL_REGISTRY_DB: "true"
 
+  # Managed-mode model-selector trim (runtime half of VITE_BYOK_DISABLED). The
+  # build arg hides the per-user key UI in the *client bundle*; this runtime pod
+  # env lets the web SSR `/api/models` loader (services it from the web pod) read
+  # the same flag (the SSR `process.env` is shimmed to {}, so the loader reads
+  # globalThis.process.env via readRuntimeEnv). When "true", the loader trims the
+  # selector to providers that have a configured platform key, so users can't
+  # pick a provider with no key. Hardcoded literal (CD `--reuse-values` ignores
+  # new values keys). Reversible: set "false" / delete → full legacy BYOK list.
+  VITE_BYOK_DISABLED: "true"
+
   # Remote Kubernetes runtime. These are operational endpoints and image
   # references, not credentials; credentials stay in the Secret.
   VITE_RUNTIME_MODE: {{ .Values.platformEnv.runtime.mode | quote }}

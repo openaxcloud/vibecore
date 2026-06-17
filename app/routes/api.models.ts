@@ -1,5 +1,10 @@
 import { json } from '@remix-run/cloudflare';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
+import {
+  getPlatformKeyedProviderNames,
+  isManagedModelsMode,
+  trimToUsableProviders,
+} from '~/lib/modules/llm/managed-models';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { ProviderInfo } from '~/types/model';
@@ -84,7 +89,7 @@ export async function loader({
   const apiKeys = getApiKeysFromCookie(cookieHeader);
   const providerSettings = getProviderSettingsFromCookie(cookieHeader);
 
-  const { providers, defaultProvider } = getProviderInfo(llmManager);
+  let { providers, defaultProvider } = getProviderInfo(llmManager);
 
   let modelList: ModelInfo[] = [];
 
@@ -106,6 +111,23 @@ export async function loader({
       providerSettings,
       serverEnv: context.cloudflare?.env,
     });
+  }
+
+  /*
+   * Managed (Replit-parity) mode: the model selector must list ONLY usable
+   * models = providers with a configured platform key. Hide providers without a
+   * platform key (e.g. Groq/Mistral/OpenRouter when those secrets aren't set) so
+   * a user — who has no BYOK key entry anymore — can't pick a dead provider.
+   * Off by default (full legacy/BYOK list) so dev / self-host is unchanged.
+   */
+  if (isManagedModelsMode(context.cloudflare?.env)) {
+    const usableProviderNames = getPlatformKeyedProviderNames(llmManager.getAllProviders(), context.cloudflare?.env);
+    ({ modelList, providers, defaultProvider } = trimToUsableProviders({
+      modelList,
+      providers,
+      defaultProvider,
+      usableProviderNames,
+    }));
   }
 
   return json<ModelsResponse>({
