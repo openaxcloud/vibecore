@@ -30,7 +30,7 @@ tested and 🟡 live-in-SHADOW** (computes real cost, never debits); **~7 items 
 |---|---|
 | ✅ **Live now** | Pricing/plans display + toggle, power controls + proof-of-work pill, legal/security/abuse/usage pages, self-serve deletion, managed models, admin user-mgmt actions, exact rate tables |
 | 🟡 **Built, SHADOW/flag** | Credit debits, checkpoint settle, PAYG gate, compute/storage/DB/deploy metering — coded+tested, run in SHADOW until `BILLING_CREDITS_ENABLED=true` + Stripe go-live |
-| 🟠 **Dedicated chantier** | turbo-stream→RR7; PAYG `reportUsage` wiring; service-shutdown enforcement; full metering-event coverage; spend-alert + inactivity-warning delivery; DB point-in-time rollback |
+| 🟠 **Dedicated chantier** | turbo-stream→RR7 (separate track); deploy/DB metering emitters; DB point-in-time rollback **Phase-2** (provision + WAL-restore + UI). *(Done since last rev: PAYG `reportUsage`, service-shutdown enforcement, object-storage metering, spend-alert + inactivity emails, DB-PITR Phase-1.)* |
 
 **Nothing is marked ✅/100% unless BE+UI+Resp are all ✅ and it is Live (or Live-in-SHADOW where billing is
 intentionally gated). §B is the doc-by-doc verdict you can quote to Avi.**
@@ -105,7 +105,7 @@ intentionally gated). §B is the doc-by-doc verdict you can quote to Avi.**
 | Service shutdown limit | ✅ `serviceShutdownCents` parsed | 🟡 set via form | ✅ | 🟠 **enforcement gap** (parsed, not enforced at services) → chantier | 🟠 |
 | Org budgets in $500 increments | ✅ validation `app.ts:16390` | ✅ form | ✅ | 🟡 SHADOW | 🟡 |
 | Per-user spend caps (Enterprise) | ✅ quota overrides | 🟡 admin-only | n/a | 🟡 | 🟡 |
-| Spend alerts (note: Replit lists limits, not 50/80/100%) | ✅ `paygAlertThresholdCrossed` computed | ❌ no delivery/UI | n/a | 🟠 chantier (alert delivery) | 🟡 |
+| Spend alerts (note: Replit lists limits, not 50/80/100%) | ✅ computed + **email delivery wired** `ceb67f6a` (settle hook, per-rung/period de-dup) | 🟡 email only (no in-app UI) | n/a | 🟡 SHADOW (activates at go-live) | 🟡 |
 
 ## 8–11. `plans/{starter,core,pro,enterprise}` — entitlements
 
@@ -116,7 +116,7 @@ intentionally gated). §B is the doc-by-doc verdict you can quote to Avi.**
 | Pro: $100/mo, 15 collab, 50 viewers, 28-day DB rollback, top models | ✅ catalog `dbRollbackDays`, `viewers`, `topModels` | ✅ pricing | ✅ | ✅ live (entitlements enforced where wired) | 🟡 |
 | Enterprise: SSO/SAML/SCIM, custom | ✅ SAML/SCIM impl | ✅ enterprise-sso settings | ✅ | ✅ live | ✅ |
 | Parallel agents per plan (1/2/10) | ✅ catalog `parallelAgents` | 🟡 enforced server-side | n/a | 🟡 | 🟡 |
-| DB point-in-time rollback (Pro 28d) | 🟡 entitlement value present | ❌ no rollback UI/feature | n/a | 🟠 chantier (DB PITR feature) | 🟠 |
+| DB point-in-time rollback (Pro 28d) | 🟡 **Phase-1**: schema (mig 0040) + entitlement service + dormant endpoints `1bb78d8a`/`4a230be9` | ❌ no UI yet (Phase-2) | n/a | 🟠 dormant behind `DB_ROLLBACK_ENABLED`; Phase-2 = provision + WAL-restore + UI | 🟡 |
 
 ## 12. `legal-and-security` (category) — hub
 
@@ -232,8 +232,8 @@ genuine **dedicated chantiers** (§D).
 | **PAYG `reportUsage` wiring** | ✅ **wired (SHADOW)** `061b4ad1` | `reportCheckpointPaygUsage` in the settle path, idempotent; activates at Stripe go-live. 4 tests. |
 | **Inactivity-warning emails** | ✅ **done** `besujnvm4` | Resend, e-code tone, de-duped per threshold; on the daily cron. 5 tests. |
 | **Compute metering — full event coverage** | 🟡 partial | workspace compute emitted; **object-storage sweep done** `23683aaa` (daily cron sums real `ProjectStorageObject.byteLength` per org → `$0.03/GiB-month`, SHADOW-safe, 4+4 tests); deploy emitter = next (static=$0, low value); DB metering needs a `DatabaseInstance` model (ships with DB-PITR). |
-| **Spend-alert emails (50/80/100%)** | 🟠 open | coupled to PAYG metered-spend tracking; wires when PAYG goes live. |
-| **DB point-in-time rollback (Pro 28d)** | 🟠 open | honest 4–6 day chantier; safe Phase-1 scaffold (schema + flag + dormant endpoints + UI shell) = next wave. |
+| **Spend-alert emails (50/80/100%)** | ✅ **wired (SHADOW)** `ceb67f6a` | settle-path hook fires once per rung per billing period (de-duped via wallet markers, migration 0041); skips in SHADOW, activates at go-live. Pure rung logic reuses `paygAlertThresholdCrossed`. 8 tests. |
+| **DB point-in-time rollback (Pro 28d)** | 🟡 **Phase-1 done** `1bb78d8a`+`4a230be9` | migration 0040 (DatabaseInstance/Snapshot/Restore) + pure PITR service (entitlement Pro/Ent=28d, restore-window validation) + dormant flag-gated `GET/POST /projects/:id/database*` (404 until `DB_ROLLBACK_ENABLED`). 16 tests. **Phase-2 = provisioning + WAL-restore executor + UI** (multi-day). |
 | **turbo-stream → React Router 7** | 🟠 open (separate track) | 297 routes, single-fetch deep — `docs/DEFERRED_HARDENING.md` (6–8 wk). |
 | **Go-live billing** | ⏳ Avi | flip `BILLING_CREDITS_ENABLED` after the 2 Stripe clicks. |
 
