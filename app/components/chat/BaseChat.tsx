@@ -12458,68 +12458,85 @@ function ProjectSettingsPanel({
                 </label>
                 <PanelButton disabled={busy}>Save AI routing</PanelButton>
               </form>
-              <div className="bolt-project-settings-provider-grid">
-                {providers.map((provider) => {
-                  const configured = secrets.some((secret: any) => secret.key === provider.secretKey);
-                  const mode = state.aiCredentials?.[provider.id]?.mode ?? 'managed';
+              {/*
+               * Managed (Replit-parity) mode: the platform admin owns the
+               * provider keys, so the per-provider BYOK credential-mode + key
+               * entry/removal grid is hidden from end users. VITE_BYOK_DISABLED
+               * is a build-time flag (true for the prod web image); a bare
+               * docker build leaves it unset and keeps the BYOK grid for
+               * self-host / Enterprise BYOK.
+               */}
+              {import.meta.env.VITE_BYOK_DISABLED === 'true' ? (
+                <div className="bolt-project-managed-note" data-testid="ai-keys-managed-note">
+                  <p>
+                    AI provider keys are managed by VibeCore. Calls are billed to your plan's included credits — there's
+                    no key to enter. Pick your default model and routing above.
+                  </p>
+                </div>
+              ) : (
+                <div className="bolt-project-settings-provider-grid">
+                  {providers.map((provider) => {
+                    const configured = secrets.some((secret: any) => secret.key === provider.secretKey);
+                    const mode = state.aiCredentials?.[provider.id]?.mode ?? 'managed';
 
-                  return (
-                    <article key={provider.id}>
-                      <div className="bolt-project-provider-header">
-                        <span>
-                          <strong>{provider.label}</strong>
-                          <small>
-                            {mode === 'byok'
-                              ? configured
-                                ? 'BYOK key configured'
-                                : 'BYOK enabled, key missing'
-                              : 'Managed credits'}
-                          </small>
-                        </span>
-                        <em title="Managed credits use VibeCore platform billing. BYOK stores a project secret and routes calls through your provider key.">
-                          {mode === 'byok' ? 'BYOK' : 'Managed'}
-                        </em>
-                      </div>
-                      <form onSubmit={submitWithNotice(`${provider.label} provider mode saved.`)}>
-                        <input name="intent" value="ai-credential-mode" type="hidden" />
-                        <input name="provider" value={provider.id} type="hidden" />
-                        <label>
-                          Credential mode
-                          <select name="mode" defaultValue={mode}>
-                            <option value="managed">Managed platform credits</option>
-                            <option value="byok">Bring your own key</option>
-                          </select>
-                        </label>
-                        <PanelButton disabled={busy}>Save mode</PanelButton>
-                      </form>
-                      <form onSubmit={submitWithNotice(`${provider.label} API key saved as a project secret.`)}>
-                        <input name="intent" value="save-ai-key" type="hidden" />
-                        <input name="provider" value={provider.id} type="hidden" />
-                        <label>
-                          API key secret
-                          <input
-                            name="apiKey"
-                            type="password"
-                            placeholder={`${provider.secretKey}`}
-                            required
-                            aria-label={`${provider.label} API key`}
-                          />
-                        </label>
-                        <PanelButton disabled={busy}>Save key</PanelButton>
-                      </form>
-                      {configured && (
-                        <form onSubmit={submitWithNotice(`${provider.label} API key removal submitted.`)}>
-                          <input name="intent" value="delete-ai-key" type="hidden" />
+                    return (
+                      <article key={provider.id}>
+                        <div className="bolt-project-provider-header">
+                          <span>
+                            <strong>{provider.label}</strong>
+                            <small>
+                              {mode === 'byok'
+                                ? configured
+                                  ? 'BYOK key configured'
+                                  : 'BYOK enabled, key missing'
+                                : 'Managed credits'}
+                            </small>
+                          </span>
+                          <em title="Managed credits use VibeCore platform billing. BYOK stores a project secret and routes calls through your provider key.">
+                            {mode === 'byok' ? 'BYOK' : 'Managed'}
+                          </em>
+                        </div>
+                        <form onSubmit={submitWithNotice(`${provider.label} provider mode saved.`)}>
+                          <input name="intent" value="ai-credential-mode" type="hidden" />
                           <input name="provider" value={provider.id} type="hidden" />
-                          <PanelButton disabled={busy} variant="outline">
-                            Remove key
-                          </PanelButton>
+                          <label>
+                            Credential mode
+                            <select name="mode" defaultValue={mode}>
+                              <option value="managed">Managed platform credits</option>
+                              <option value="byok">Bring your own key</option>
+                            </select>
+                          </label>
+                          <PanelButton disabled={busy}>Save mode</PanelButton>
                         </form>
-                      )}
-                    </article>
-                  );
-                })}
-              </div>
+                        <form onSubmit={submitWithNotice(`${provider.label} API key saved as a project secret.`)}>
+                          <input name="intent" value="save-ai-key" type="hidden" />
+                          <input name="provider" value={provider.id} type="hidden" />
+                          <label>
+                            API key secret
+                            <input
+                              name="apiKey"
+                              type="password"
+                              placeholder={`${provider.secretKey}`}
+                              required
+                              aria-label={`${provider.label} API key`}
+                            />
+                          </label>
+                          <PanelButton disabled={busy}>Save key</PanelButton>
+                        </form>
+                        {configured && (
+                          <form onSubmit={submitWithNotice(`${provider.label} API key removal submitted.`)}>
+                            <input name="intent" value="delete-ai-key" type="hidden" />
+                            <input name="provider" value={provider.id} type="hidden" />
+                            <PanelButton disabled={busy} variant="outline">
+                              Remove key
+                            </PanelButton>
+                          </form>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
             </section>
           )}
 
