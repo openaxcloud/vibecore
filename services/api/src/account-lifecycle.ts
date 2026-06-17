@@ -1,0 +1,64 @@
+/**
+ * Replit-parity account inactivity + Starter publish-expiry (pure, IO-free).
+ * Free accounts inactive >= 1 year are eligible for deletion (after warnings);
+ * paid accounts are exempt. Starter published links expire after 30 days.
+ * See docs/REPLIT_PARITY_SPEC.md §16.5.
+ */
+
+export const INACTIVITY_DAYS = 365;
+export const INACTIVITY_WARNING_DAYS = [335, 358] as const;
+export const STARTER_PUBLISH_EXPIRY_DAYS = 30;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+export type InactivityStage = 'active' | 'warning' | 'eligible_for_deletion';
+
+/** Whole days between lastActiveAt and now (clamped >= 0; 0 for non-finite). */
+export function daysSince(lastActiveAtMs: number, nowMs: number): number {
+  if (!Number.isFinite(lastActiveAtMs) || !Number.isFinite(nowMs)) {
+    return 0;
+  }
+  return Math.max(0, Math.floor((nowMs - lastActiveAtMs) / MS_PER_DAY));
+}
+
+/** Inactivity stage. Paid accounts are always 'active'. */
+export function inactivityStage(input: { lastActiveAtMs: number; nowMs: number; isPaid: boolean }): InactivityStage {
+  if (input.isPaid) {
+    return 'active';
+  }
+  const days = daysSince(input.lastActiveAtMs, input.nowMs);
+  if (days >= INACTIVITY_DAYS) {
+    return 'eligible_for_deletion';
+  }
+  if (days >= INACTIVITY_WARNING_DAYS[0]) {
+    return 'warning';
+  }
+  return 'active';
+}
+
+/** A FREE account is eligible for inactivity deletion at >= INACTIVITY_DAYS. */
+export function isEligibleForInactivityDeletion(input: {
+  lastActiveAtMs: number;
+  nowMs: number;
+  isPaid: boolean;
+}): boolean {
+  return !input.isPaid && daysSince(input.lastActiveAtMs, input.nowMs) >= INACTIVITY_DAYS;
+}
+
+/** Highest inactivity-warning threshold crossed (for notifications), or null. */
+export function inactivityWarningCrossed(daysInactive: number): number | null {
+  if (!Number.isFinite(daysInactive)) {
+    return null;
+  }
+  let crossed: number | null = null;
+  for (const threshold of INACTIVITY_WARNING_DAYS) {
+    if (daysInactive >= threshold) {
+      crossed = threshold;
+    }
+  }
+  return crossed;
+}
+
+/** Starter published link expired (>= 30 days since publish). */
+export function isStarterPublishExpired(publishedAtMs: number, nowMs: number): boolean {
+  return daysSince(publishedAtMs, nowMs) >= STARTER_PUBLISH_EXPIRY_DAYS;
+}
