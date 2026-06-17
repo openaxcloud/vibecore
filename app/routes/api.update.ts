@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { json, type ActionFunction, type LoaderFunction } from '@remix-run/cloudflare';
+import { data as json, type ActionFunction, type LoaderFunction } from 'react-router';
 
 type UpdateStage = 'fetch' | 'pull' | 'install' | 'build' | 'complete';
 

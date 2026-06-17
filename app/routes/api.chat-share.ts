@@ -10,7 +10,7 @@
  * API sign the token with a secret the browser never sees.
  */
 
-import { json, type ActionFunctionArgs } from '@remix-run/cloudflare';
+import { data as json, type ActionFunctionArgs } from 'react-router';
 
 import { apiRequest } from '~/lib/enterprise-api.server';
 

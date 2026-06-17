@@ -1,5 +1,5 @@
-import { useFetcher } from '@remix-run/react';
 import { useEffect } from 'react';
+import { useFetcher } from 'react-router';
 
 /*
  * Persistent banner shown whenever the current session is an admin impersonating

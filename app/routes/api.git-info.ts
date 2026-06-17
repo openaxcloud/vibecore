@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { json } from '@remix-run/cloudflare';
+import { data as json } from 'react-router';
 
 export async function loader() {
   if (process.env.VIBECORE_EXPOSE_PLATFORM_GIT_INFO !== 'true') {

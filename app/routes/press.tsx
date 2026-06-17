@@ -1,4 +1,4 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
+import type { MetaFunction } from 'react-router';
 import Press from '~/components/marketing/ecode-exact/pages/Press';
 export const meta: MetaFunction = () => [
   { title: 'Press — E-Code' },

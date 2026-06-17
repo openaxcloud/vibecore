@@ -1,5 +1,5 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useLoaderData } from '@remix-run/react';
+import type { MetaFunction } from 'react-router';
+import { Form, useLoaderData } from 'react-router';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {

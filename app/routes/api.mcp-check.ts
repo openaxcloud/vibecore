@@ -1,4 +1,4 @@
-import { type LoaderFunctionArgs } from '@remix-run/cloudflare';
+import { type LoaderFunctionArgs } from 'react-router';
 import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
 import { apiRequest } from '~/lib/enterprise-api.server';
 import { MCPService } from '~/lib/services/mcpService';

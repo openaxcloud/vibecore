@@ -1,5 +1,5 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { useActionData } from '@remix-run/react';
+import type { MetaFunction } from 'react-router';
+import { useActionData } from 'react-router';
 import { AppShell, LinkButton, TemplateGallery, templates } from '~/components/dashboard/SaaSLayout';
 import {
   apiRequest,

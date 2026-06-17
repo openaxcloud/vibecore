@@ -1,4 +1,4 @@
-import { type ActionFunctionArgs, json } from '@remix-run/cloudflare';
+import { type ActionFunctionArgs, data as json } from 'react-router';
 import type { NetlifySiteInfo } from '~/types/netlify';
 
 /*

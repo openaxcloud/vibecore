@@ -1,6 +1,6 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { useActionData } from '@remix-run/react';
 import { Github } from 'lucide-react';
+import type { MetaFunction } from 'react-router';
+import { useActionData } from 'react-router';
 import { AppShell, SettingsForm } from '~/components/dashboard/SaaSLayout';
 import {
   apiRequest,

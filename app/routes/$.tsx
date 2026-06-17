@@ -1,6 +1,6 @@
-import type { LoaderFunctionArgs, MetaFunction } from '@remix-run/cloudflare';
-import { isRouteErrorResponse, Link, useRouteError } from '@remix-run/react';
 import { useEffect } from 'react';
+import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
+import { isRouteErrorResponse, Link, useRouteError } from 'react-router';
 
 import { LinkButton, PublicShell } from '~/components/dashboard/SaaSLayout';
 

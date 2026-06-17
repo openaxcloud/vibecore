@@ -1,6 +1,6 @@
 import { lookup } from 'node:dns/promises';
-import { json } from '@remix-run/cloudflare';
-import type { ActionFunctionArgs } from '@remix-run/cloudflare';
+import { data as json } from 'react-router';
+import type { ActionFunctionArgs } from 'react-router';
 import { isAllowedUrl, isPrivateIp } from '~/utils/url';
 
 const MAX_CONTENT_LENGTH = 8000;

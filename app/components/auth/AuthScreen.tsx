@@ -1,6 +1,6 @@
-import { Link } from '@remix-run/react';
 import { ChevronLeft, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Link } from 'react-router';
 import { EcodeBrandMark } from '~/components/brand/EcodeBrandMark';
 
 const heroImage = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=2070&auto=format&fit=crop';

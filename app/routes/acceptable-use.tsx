@@ -1,5 +1,5 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
 import { ShieldCheck } from 'lucide-react';
+import type { MetaFunction } from 'react-router';
 import { MarketingStaticPage, type MarketingPageDefinition } from '~/components/marketing/EcodeMarketingPages';
 
 export const meta: MetaFunction = () => [{ title: 'Acceptable use - E-Code' }];

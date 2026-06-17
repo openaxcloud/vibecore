@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/cloudflare';
+import { data as json, type LoaderFunctionArgs } from 'react-router';
 
 export const loader = async ({ request: _request }: LoaderFunctionArgs) => {
   return json({

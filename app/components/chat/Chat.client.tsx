@@ -2,7 +2,7 @@
 import { useChat } from '@ai-sdk/react';
 import type { TextUIPart, FileUIPart, Attachment } from '@ai-sdk/ui-utils';
 import { useStore } from '@nanostores/react';
-import { useSearchParams } from '@remix-run/react';
+import { useSearchParams } from 'react-router';
 import type { Message } from 'ai';
 import { useAnimate } from 'framer-motion';
 import Cookies from 'js-cookie';

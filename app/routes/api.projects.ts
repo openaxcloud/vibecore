@@ -1,4 +1,4 @@
-import type { ActionFunctionArgs } from '@remix-run/cloudflare';
+import type { ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
 
 import { apiRequest, firstOrganization, json } from '~/lib/enterprise-api.server';

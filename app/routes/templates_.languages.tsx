@@ -1,5 +1,5 @@
-import { json, type LoaderFunctionArgs, type MetaFunction } from '@remix-run/cloudflare';
-import { Link, useLoaderData } from '@remix-run/react';
+import { data as json, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
+import { Link, useLoaderData } from 'react-router';
 
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 import { getEcodeTemplateCatalog } from '~/lib/marketing/ecode-template-catalog.server';

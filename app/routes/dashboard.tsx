@@ -1,6 +1,6 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { useLoaderData } from '@remix-run/react';
 import { Activity, Boxes, CreditCard, Rocket } from 'lucide-react';
+import type { MetaFunction } from 'react-router';
+import { useLoaderData } from 'react-router';
 import {
   ActivityList,
   AppShell,

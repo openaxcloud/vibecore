@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs, type MetaFunction } from '@remix-run/cloudflare';
+import { data as json, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 
 import { comparePages, MarketingDynamicPage } from '~/components/marketing/EcodeMarketingPages';
 

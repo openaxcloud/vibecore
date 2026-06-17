@@ -1,4 +1,4 @@
-import { type ActionFunctionArgs, type LoaderFunctionArgs, json } from '@remix-run/cloudflare';
+import { type ActionFunctionArgs, type LoaderFunctionArgs, data as json } from 'react-router';
 import type { VercelProjectInfo } from '~/types/vercel';
 
 /*

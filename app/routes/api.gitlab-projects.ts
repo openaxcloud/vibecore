@@ -1,4 +1,4 @@
-import { json } from '@remix-run/cloudflare';
+import { json } from '~/lib/json-response';
 import { withSecurity } from '~/lib/security';
 import type { GitLabProjectInfo } from '~/types/GitLab';
 import { isSafeGitForgeUrl, safeGitForgeFetch } from '~/utils/url';

@@ -1,5 +1,5 @@
-import { type ActionFunctionArgs } from '@remix-run/cloudflare';
 import { generateText } from 'ai';
+import { type ActionFunctionArgs } from 'react-router';
 import {
   MAX_TOKENS,
   PROVIDER_COMPLETION_LIMITS,

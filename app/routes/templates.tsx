@@ -1,5 +1,5 @@
-import { json, type LoaderFunctionArgs, type MetaFunction } from '@remix-run/cloudflare';
-import { useLoaderData } from '@remix-run/react';
+import { data as json, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
+import { useLoaderData } from 'react-router';
 import {
   TemplatesMarketingPage,
   type PublicTemplateCard,

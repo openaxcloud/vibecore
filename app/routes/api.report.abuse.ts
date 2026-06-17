@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import { json, type ActionFunctionArgs } from '@remix-run/cloudflare';
+import { data as json, type ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
 
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();

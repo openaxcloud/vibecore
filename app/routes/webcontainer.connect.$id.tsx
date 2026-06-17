@@ -1,5 +1,5 @@
-import { type LoaderFunction } from '@remix-run/cloudflare';
 import { webContainerConnectModuleUrl } from '@vibecore/runtime-webcontainer';
+import { type LoaderFunction } from 'react-router';
 
 export const loader: LoaderFunction = async ({ request }) => {
   const url = new URL(request.url);

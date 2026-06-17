@@ -1,5 +1,5 @@
-import { json } from '@remix-run/cloudflare';
 import JSZip from 'jszip';
+import { data as json } from 'react-router';
 import { STARTER_TEMPLATES } from '~/utils/constants';
 
 /*

@@ -1,5 +1,5 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
 import { CheckCircle2, Github, Sparkles, Users } from 'lucide-react';
+import type { MetaFunction } from 'react-router';
 import { ActivityList, AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 
 export const meta: MetaFunction = () => [{ title: 'Onboarding - E-Code' }];

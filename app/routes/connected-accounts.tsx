@@ -1,7 +1,7 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { Link, useLoaderData, useRevalidator } from '@remix-run/react';
 import { Chrome, Github, Link2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import type { MetaFunction } from 'react-router';
+import { Link, useLoaderData, useRevalidator } from 'react-router';
 import { AppShell, StatusPill } from '~/components/dashboard/SaaSLayout';
 import { useConnectorPopup } from '~/lib/chat/use-connector-popup';
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';

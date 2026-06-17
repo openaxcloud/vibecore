@@ -1,6 +1,6 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { useLoaderData } from '@remix-run/react';
 import { Building2, Plus } from 'lucide-react';
+import type { MetaFunction } from 'react-router';
+import { useLoaderData } from 'react-router';
 import { ActivityList, AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 

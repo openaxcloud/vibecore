@@ -1,4 +1,4 @@
-import { json, type ActionFunctionArgs } from '@remix-run/cloudflare';
+import { data as json, type ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
 
 const MAX_LOGS_PER_BATCH = 100;

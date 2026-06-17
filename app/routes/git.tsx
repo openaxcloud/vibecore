@@ -1,5 +1,5 @@
-import type { LoaderFunctionArgs } from '@remix-run/cloudflare';
-import { json, type MetaFunction } from '@remix-run/cloudflare';
+import type { LoaderFunctionArgs } from 'react-router';
+import { data as json, type MetaFunction } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { GitUrlImport } from '~/components/git/GitUrlImport.client';

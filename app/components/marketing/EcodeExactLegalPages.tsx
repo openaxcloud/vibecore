@@ -1,4 +1,4 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
+import type { MetaFunction } from 'react-router';
 import DPA from './ecode-exact/pages/DPA';
 import Legal from './ecode-exact/pages/Legal';
 import Privacy from './ecode-exact/pages/Privacy';

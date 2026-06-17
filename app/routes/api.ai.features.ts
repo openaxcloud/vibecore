@@ -1,4 +1,4 @@
-import { json } from '@remix-run/cloudflare';
+import { data as json } from 'react-router';
 
 export async function loader() {
   return json({

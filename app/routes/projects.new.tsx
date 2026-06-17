@@ -1,6 +1,4 @@
 import { useStore } from '@nanostores/react';
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, Link, useActionData, useLoaderData, useNavigation, useRouteError } from '@remix-run/react';
 import {
   BarChart3,
   Code2,
@@ -28,6 +26,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import type { MetaFunction } from 'react-router';
+import { Form, Link, useActionData, useLoaderData, useNavigation, useRouteError } from 'react-router';
 import { AppShell, TemplateGallery } from '~/components/dashboard/SaaSLayout';
 import {
   Select,

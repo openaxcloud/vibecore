@@ -1,6 +1,6 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { json } from '@remix-run/cloudflare';
-import { useActionData, useLoaderData } from '@remix-run/react';
+import type { MetaFunction } from 'react-router';
+import { data as json } from 'react-router';
+import { useActionData, useLoaderData } from 'react-router';
 import { AppShell, SettingsForm } from '~/components/dashboard/SaaSLayout';
 import {
   apiErrorMessage,

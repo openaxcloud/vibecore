@@ -1,5 +1,5 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { useNavigate } from '@remix-run/react';
+import type { MetaFunction } from 'react-router';
+import { useNavigate } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
 import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 import BackgroundRays from '~/components/ui/BackgroundRays';

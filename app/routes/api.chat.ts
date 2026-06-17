@@ -1,5 +1,5 @@
 /* eslint-disable import/order */
-import { type ActionFunctionArgs } from '@remix-run/cloudflare';
+import { type ActionFunctionArgs } from 'react-router';
 import { createDataStream, formatDataStreamPart, generateId, type JSONValue } from 'ai';
 import {
   agentMemoryAnnotation,

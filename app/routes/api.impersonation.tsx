@@ -1,4 +1,4 @@
-import { json } from '@remix-run/cloudflare';
+import { data as json } from 'react-router';
 
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 

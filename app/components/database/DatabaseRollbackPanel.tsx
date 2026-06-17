@@ -1,5 +1,5 @@
-import { useFetcher } from '@remix-run/react';
 import { useEffect, useMemo, useState } from 'react';
+import { useFetcher } from 'react-router';
 
 /*
  * Replit-parity database point-in-time rollback — dormant UI shell (Phase-1).

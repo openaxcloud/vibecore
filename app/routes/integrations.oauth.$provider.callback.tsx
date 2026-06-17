@@ -1,6 +1,6 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/cloudflare';
-import { useLoaderData } from '@remix-run/react';
 import { useEffect } from 'react';
+import { data as json, type LoaderFunctionArgs } from 'react-router';
+import { useLoaderData } from 'react-router';
 import { apiRequest } from '~/lib/enterprise-api.server';
 
 /*

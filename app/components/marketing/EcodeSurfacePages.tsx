@@ -1,5 +1,3 @@
-import type { MetaFunction } from '@remix-run/cloudflare';
-import { Link, useParams } from '@remix-run/react';
 import {
   Activity,
   ArrowRight,
@@ -31,6 +29,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import type { MetaFunction } from 'react-router';
+import { Link, useParams } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 
 type SurfaceCategory =
