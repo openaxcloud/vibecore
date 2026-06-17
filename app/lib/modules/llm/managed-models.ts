@@ -28,9 +28,28 @@ interface ProviderLike {
 }
 
 /**
- * Names of providers that have a non-empty platform API key in the pod env.
- * A provider with no `apiTokenKey` (local providers like Ollama/LMStudio) is
- * never "platform-keyed" and is excluded from managed cloud mode.
+ * Provider name → extra env var names that ALSO count as that provider's
+ * platform key. The web LLM provider's `apiTokenKey` doesn't always match the
+ * env name the platform injects: prod sets the Google key as
+ * `GOOGLE_GEMINI_API_KEY` (the name the ai-gateway uses,
+ * services/ai-gateway/src/gateway.ts) while the web provider's `apiTokenKey` is
+ * `GOOGLE_GENERATIVE_AI_API_KEY`. Without this alias a genuinely-paid Google
+ * provider would be wrongly trimmed out of the managed selector.
+ */
+const PROVIDER_KEY_ALIASES: Record<string, string[]> = {
+  Google: ['GOOGLE_GEMINI_API_KEY'],
+};
+
+function envHasValue(key: string, serverEnv?: Record<string, string | undefined>): boolean {
+  const value = serverEnv?.[key] ?? readRuntimeEnv(key);
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+/**
+ * Names of providers that have a non-empty platform API key in the pod env
+ * (under the provider's `apiTokenKey` or a known alias). A provider with no
+ * `apiTokenKey` (local providers like Ollama/LMStudio) is never "platform-keyed"
+ * and is excluded from managed cloud mode.
  */
 export function getPlatformKeyedProviderNames(
   allProviders: ProviderLike[],
@@ -39,15 +58,11 @@ export function getPlatformKeyedProviderNames(
   const usable = new Set<string>();
 
   for (const provider of allProviders) {
-    const tokenKey = provider.config?.apiTokenKey;
+    const candidateKeys = [provider.config?.apiTokenKey, ...(PROVIDER_KEY_ALIASES[provider.name] ?? [])].filter(
+      (key): key is string => typeof key === 'string' && key.length > 0,
+    );
 
-    if (!tokenKey) {
-      continue;
-    }
-
-    const value = serverEnv?.[tokenKey] ?? readRuntimeEnv(tokenKey);
-
-    if (typeof value === 'string' && value.trim().length > 0) {
+    if (candidateKeys.some((key) => envHasValue(key, serverEnv))) {
       usable.add(provider.name);
     }
   }

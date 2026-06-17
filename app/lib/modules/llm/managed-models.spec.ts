@@ -39,6 +39,17 @@ describe('getPlatformKeyedProviderNames', () => {
     expect(usable.has('Ollama')).toBe(false);
   });
 
+  it('accepts the Google alias key (prod GOOGLE_GEMINI_API_KEY vs provider GOOGLE_GENERATIVE_AI_API_KEY)', () => {
+    const withGoogle = [{ name: 'Google', config: { apiTokenKey: 'GOOGLE_GENERATIVE_AI_API_KEY' } }];
+
+    // Provider's own key absent, but the platform alias is present → usable.
+    const usable = getPlatformKeyedProviderNames(withGoogle, {
+      GOOGLE_GENERATIVE_AI_API_KEY: '',
+      GOOGLE_GEMINI_API_KEY: 'goog-key',
+    });
+    expect(usable.has('Google')).toBe(true);
+  });
+
   it('excludes everything when no platform keys are set', () => {
     /*
      * Explicit empty values (not omitted) so the per-key readRuntimeEnv fallback
