@@ -210,15 +210,19 @@ genuine **dedicated chantiers** (§D).
 
 ## §C — Gaps fixed in this audit wave (this commit series)
 
-1. **Admin UI for user management** (prior commit `be7a3fb7`) — promote/revoke admin, suspend, force-logout,
-   reset-MFA, impersonate, all wired + verified.
-2. **Admin UI for strikes** — issue/clear strikes on the users panel.
-3. **Admin "Account deletions" section** — surfaces `/admin/account-deletions` (pending/ready-to-purge).
-4. **Admin toggles** for providers/models (enable/disable) + feature-flags + wallet limits where backed by an
-   endpoint.
-5. **Inactivity-GC CronJob** — scheduled (daily) but **DRY-RUN by default** (`INACTIVITY_GC_ENABLED` still
-   gates real deletion), closing the "not scheduled" gap without changing behaviour.
-6. **Public licensing page** `/licensing` — publishes the MIT/usage licensing.
+1. **Admin UI for user management** (commit `be7a3fb7`) — promote/revoke admin, suspend, force-logout,
+   reset-MFA, impersonate, all wired + verified live (DB + audit).
+2. ✅ **Admin UI for strikes** — issue/clear strikes on the users panel (action + 1 test).
+3. ✅ **Admin "Account deletions" section** — new nav entry surfacing `/admin/account-deletions`
+   (grace-period / ready-to-purge / purged).
+4. ✅ **Inactivity-GC CronJob** — scheduled **daily 04:00** (`cronjobs.yaml`) but **DRY-RUN by default**
+   (`INACTIVITY_GC_ENABLED` still gates real deletion), closing the "not scheduled" gap without changing
+   behaviour. Verified `helm template` renders the job.
+5. ✅ **Public licensing page** `/licensing` — publishes the MIT/usage licensing (e-code shell, responsive).
+6. 🟡 **Admin toggles for providers/models/feature-flags** — the backend endpoints exist
+   (`/admin/models/toggle`, `/admin/providers/toggle`, `/admin/feature-flags`); wiring the in-panel toggle
+   buttons is the **immediate next increment** (same action+fetcher pattern as the users panel). Not yet
+   landed.
 
 ## §D — Remaining dedicated chantiers (not safe to autonomously rush)
 

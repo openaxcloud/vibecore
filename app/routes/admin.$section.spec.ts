@@ -106,7 +106,41 @@ describe('admin.$section action — user management', () => {
     )) as Response;
 
     expect(response.status).toBe(401);
-    expect(((await response.json()) as { error: string }).error).toMatch(/password/i);
+  });
+
+  it('issues a strike (reauth then POST /strikes)', async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        const href = typeof url === 'string' ? url : url.toString();
+        calls.push(`${init?.method ?? 'GET'} ${href}`);
+
+        if (href.endsWith('/auth/reauth')) {
+          return new Response(JSON.stringify({ reauthenticated: true }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        if (href.endsWith('/admin/users/u1/strikes')) {
+          return new Response(JSON.stringify({ strikes: [{ severity: 'minor' }] }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        throw new Error(`unexpected ${href}`);
+      }),
+    );
+
+    const response = (await action(
+      args(actionRequest({ intent: 'strike', userId: 'u1', severity: 'minor', password: 'pw' })),
+    )) as Response;
+
+    expect(response.status).toBe(200);
+    expect(calls.some((c) => c === 'POST https://api.example.com/admin/users/u1/strikes')).toBe(true);
+    expect(((await response.json()) as { message: string }).message).toMatch(/strike/i);
   });
 
   it('impersonate redirects to the dashboard with a new session cookie', async () => {

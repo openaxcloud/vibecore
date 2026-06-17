@@ -39,6 +39,11 @@
       "schedule" "*/15 * * * *"
       "queue" "enterprise-jobs"
       "job" "connector.notify.reconnect")
+    "inactivityGc" (dict
+      "enabled" true
+      "schedule" "0 4 * * *"
+      "queue" "enterprise-jobs"
+      "job" "inactivity.gc")
 -}}
 {{- $merged := mustMergeOverwrite (deepCopy $defaults) $cronjobs -}}
 {{- $workerImageTag := default .Values.global.imageTag .Values.services.worker.imageTag -}}

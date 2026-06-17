@@ -129,6 +129,12 @@ const adminSections: Record<string, AdminSectionConfig> = {
     endpoint: '/admin/support-tickets',
     primaryKey: 'tickets',
   },
+  'account-deletions': {
+    title: 'Account deletions',
+    description: 'Pending self-serve account deletions — grace period, ready-to-purge and purged.',
+    endpoint: '/admin/account-deletions',
+    primaryKey: 'deletions',
+  },
   'feature-flags': {
     title: 'Feature flags',
     description: 'Feature flag rollout configuration.',
@@ -195,6 +201,7 @@ const navItems = [
   'audit-logs',
   'admin-audit-logs',
   'support-tickets',
+  'account-deletions',
   'feature-flags',
   'system-settings',
   'costs',
@@ -329,6 +336,22 @@ export async function action({ request }: EnterpriseActionArgs) {
        * ImpersonationBanner renders and Stop revokes it.
        */
       return redirect('/dashboard', { headers: { 'Set-Cookie': sessionCookie(result.token) } });
+    }
+
+    if (intent === 'strike') {
+      const severity = String(form.get('severity') ?? 'minor');
+      await apiRequest(request, `/admin/users/${userId}/strikes`, {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ severity, reason: 'Issued from admin console' }),
+      });
+
+      return json({ ok: true, userId, message: `Strike issued (${severity}).` });
+    }
+
+    if (intent === 'clear-strikes') {
+      await apiRequest(request, `/admin/users/${userId}/strikes`, { method: 'DELETE', redirectOn401: false });
+      return json({ ok: true, userId, message: 'Strikes cleared.' });
     }
 
     const endpoint = USER_POST_INTENTS[intent];
@@ -595,6 +618,23 @@ function UserRow({ user, suspended, password }: { user: AdminUser; suspended: bo
             <button type="button" className={btn} disabled={busy} onClick={() => run({ intent: 'reset-mfa' })}>
               Reset MFA
             </button>
+          ) : null}
+
+          {!user.platformAdmin ? (
+            <>
+              <button
+                type="button"
+                className={danger}
+                disabled={busy}
+                data-testid={`user-strike-${user.id}`}
+                onClick={() => run({ intent: 'strike', severity: 'minor' })}
+              >
+                Strike
+              </button>
+              <button type="button" className={btn} disabled={busy} onClick={() => run({ intent: 'clear-strikes' })}>
+                Clear strikes
+              </button>
+            </>
           ) : null}
 
           {!user.platformAdmin && !suspended ? (
