@@ -1,9 +1,16 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Link, useLoaderData } from '@remix-run/react';
+import { Link, useFetcher, useLoaderData } from '@remix-run/react';
 import { AlertTriangle, BarChart3, CheckCircle2, Database, ShieldCheck } from 'lucide-react';
-import type React from 'react';
+import React, { useState } from 'react';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
-import { apiRequest, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import {
+  apiRequest,
+  type EnterpriseActionArgs,
+  type EnterpriseLoaderArgs,
+  json,
+  redirect,
+  sessionCookie,
+} from '~/lib/enterprise-api.server';
 
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
@@ -215,6 +222,133 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
   return { section, config, payload };
 }
 
+/*
+ * Admin mutations (user management today) require BOTH platform-admin and a
+ * recent (≤5 min) API re-authentication. We collect the admin's password with
+ * the action, step the session up via /auth/reauth, then perform the mutation —
+ * the same pattern as admin.billing.tsx. No hand-pasted token: auth rides the
+ * session cookie like every other in-app admin request.
+ */
+async function reauthenticate(request: Request, password: string): Promise<string | undefined> {
+  try {
+    await apiRequest(request, '/auth/reauth', {
+      method: 'POST',
+      redirectOn401: false,
+      body: JSON.stringify({ password }),
+    });
+
+    return undefined;
+  } catch (error) {
+    if (error instanceof Response && error.status === 401) {
+      return 'Incorrect password. Re-enter it to confirm this change.';
+    }
+
+    throw error;
+  }
+}
+
+async function adminMutationError(error: unknown): Promise<string> {
+  if (error instanceof Response) {
+    const payload = (await error.json().catch(() => ({}))) as { error?: string; code?: string };
+
+    if (payload.code === 'ADMIN_REAUTH_REQUIRED') {
+      return 'Re-authentication expired. Enter your password and try again.';
+    }
+
+    if (payload.code === 'PLATFORM_ADMIN_REQUIRED') {
+      return 'This action requires a platform administrator account.';
+    }
+
+    return payload.error ?? 'The change could not be applied.';
+  }
+
+  return 'The admin service is not reachable. Please try again in a moment.';
+}
+
+const USER_POST_INTENTS: Record<string, string> = {
+  suspend: 'suspend',
+  unsuspend: 'unsuspend',
+  'force-logout': 'force-logout',
+  'reset-mfa': 'reset-mfa',
+};
+
+const USER_INTENT_OK: Record<string, string> = {
+  'platform-admin-grant': 'Promoted to platform admin.',
+  'platform-admin-revoke': 'Revoked platform admin.',
+  suspend: 'User suspended.',
+  unsuspend: 'User reactivated.',
+  'force-logout': 'All sessions revoked.',
+  'reset-mfa': 'MFA reset for the user.',
+};
+
+export async function action({ request }: EnterpriseActionArgs) {
+  const form = await request.formData();
+  const intent = String(form.get('intent') ?? '');
+  const userId = String(form.get('userId') ?? '');
+  const password = String(form.get('password') ?? '');
+
+  if (!userId) {
+    return json({ ok: false, error: 'Missing user.' }, { status: 400 });
+  }
+
+  if (!password) {
+    return json({ ok: false, userId, error: 'Enter your password to apply this change.' }, { status: 400 });
+  }
+
+  const reauthError = await reauthenticate(request, password);
+
+  if (reauthError) {
+    return json({ ok: false, userId, error: reauthError }, { status: 401 });
+  }
+
+  try {
+    if (intent === 'platform-admin') {
+      const grant = String(form.get('value')) === 'true';
+      await apiRequest(request, `/admin/users/${userId}/platform-admin`, {
+        method: 'PATCH',
+        redirectOn401: false,
+        body: JSON.stringify({ platformAdmin: grant }),
+      });
+
+      return json({
+        ok: true,
+        userId,
+        message: USER_INTENT_OK[grant ? 'platform-admin-grant' : 'platform-admin-revoke'],
+      });
+    }
+
+    if (intent === 'impersonate') {
+      const result = await apiRequest<{ token: string }>(request, `/admin/users/${userId}/impersonate`, {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({}),
+      });
+
+      /*
+       * Become the impersonation session in this browser → the persistent
+       * ImpersonationBanner renders and Stop revokes it.
+       */
+      return redirect('/dashboard', { headers: { 'Set-Cookie': sessionCookie(result.token) } });
+    }
+
+    const endpoint = USER_POST_INTENTS[intent];
+
+    if (!endpoint) {
+      return json({ ok: false, userId, error: 'Unknown action.' }, { status: 400 });
+    }
+
+    await apiRequest(request, `/admin/users/${userId}/${endpoint}`, {
+      method: 'POST',
+      redirectOn401: false,
+      body: JSON.stringify({}),
+    });
+
+    return json({ ok: true, userId, message: USER_INTENT_OK[intent] });
+  } catch (error) {
+    return json({ ok: false, userId, error: await adminMutationError(error) }, { status: 400 });
+  }
+}
+
 export default function AdminSectionPage() {
   const { section, config, payload } = useLoaderData<typeof loader>();
 
@@ -229,7 +363,10 @@ export default function AdminSectionPage() {
         <div className="grid gap-6">
           {section === 'overview' ? <OverviewPanel payload={payload} /> : null}
           {section === 'health' ? <HealthPanel payload={payload} /> : null}
-          {section !== 'overview' && section !== 'health' ? <DataPanel config={config} payload={payload} /> : null}
+          {section === 'users' ? <UsersPanel payload={payload} /> : null}
+          {section !== 'overview' && section !== 'health' && section !== 'users' ? (
+            <DataPanel config={config} payload={payload} />
+          ) : null}
         </div>
       </div>
     </AppShell>
@@ -329,6 +466,172 @@ function MetricCard({ label, value }: { label: string; value: string }) {
       <p className="text-sm text-bolt-elements-textSecondary">{label}</p>
       <p className="mt-2 text-3xl font-semibold text-bolt-elements-textPrimary">{value}</p>
     </div>
+  );
+}
+
+type AdminUser = {
+  id: string;
+  email?: string;
+  name?: string | null;
+  platformAdmin?: boolean;
+  mfaEnabled?: boolean;
+};
+
+/*
+ * Operational user-management panel for the in-app /admin. Every action is wired
+ * to the real backend over the session cookie (no hand-pasted token). The admin
+ * types their password once (step-up); each row action reuses it. The promote /
+ * revoke platform-admin button is the one that unblocks everything else.
+ */
+function UsersPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const users = (Array.isArray(payload.users) ? payload.users : []) as AdminUser[];
+  const suspendedIds = new Set((Array.isArray(payload.suspendedUserIds) ? payload.suspendedUserIds : []).map(String));
+  const [password, setPassword] = useState('');
+
+  return (
+    <div className="grid gap-4">
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+        <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Confirm changes with your password</h3>
+        <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+          Admin actions are step-up protected. Enter your password once, then apply changes below. It is sent only with
+          the action and never stored.
+        </p>
+        <input
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="current-password"
+          placeholder="Your password"
+          data-testid="admin-reauth-password"
+          className="mt-3 w-full max-w-sm rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
+        />
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+        <table className="w-full min-w-[680px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+              <th className="px-4 py-3 font-medium">User</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <UserRow key={user.id} user={user} suspended={suspendedIds.has(user.id)} password={password} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function UserRow({ user, suspended, password }: { user: AdminUser; suspended: boolean; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+
+  const run = (fields: Record<string, string>) => {
+    fetcher.submit({ ...fields, userId: user.id, password }, { method: 'post' });
+  };
+
+  const btn =
+    'inline-flex items-center rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50';
+
+  const danger = `${btn} border-red-500/40 text-red-600 hover:bg-red-500/10 dark:text-red-400`;
+
+  return (
+    <tr className="border-b border-bolt-elements-borderColor align-top last:border-b-0">
+      <td className="px-4 py-3">
+        <div className="font-medium text-bolt-elements-textPrimary">{user.email ?? user.id}</div>
+        {user.name ? <div className="text-xs text-bolt-elements-textSecondary">{user.name}</div> : null}
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex flex-wrap gap-1.5">
+          {user.platformAdmin ? <StatusPill tone="accent">platform-admin</StatusPill> : null}
+          {suspended ? <StatusPill tone="danger">suspended</StatusPill> : <StatusPill tone="ok">active</StatusPill>}
+          {user.mfaEnabled ? <StatusPill tone="muted">MFA on</StatusPill> : null}
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex flex-wrap gap-1.5">
+          {user.platformAdmin ? (
+            <button
+              type="button"
+              className={danger}
+              disabled={busy}
+              data-testid={`user-demote-${user.id}`}
+              onClick={() => run({ intent: 'platform-admin', value: 'false' })}
+            >
+              Revoke admin
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={btn}
+              disabled={busy}
+              data-testid={`user-promote-${user.id}`}
+              onClick={() => run({ intent: 'platform-admin', value: 'true' })}
+            >
+              Promote to admin
+            </button>
+          )}
+
+          {suspended ? (
+            <button type="button" className={btn} disabled={busy} onClick={() => run({ intent: 'unsuspend' })}>
+              Reactivate
+            </button>
+          ) : (
+            <button type="button" className={danger} disabled={busy} onClick={() => run({ intent: 'suspend' })}>
+              Suspend
+            </button>
+          )}
+
+          <button type="button" className={btn} disabled={busy} onClick={() => run({ intent: 'force-logout' })}>
+            Force logout
+          </button>
+
+          {user.mfaEnabled ? (
+            <button type="button" className={btn} disabled={busy} onClick={() => run({ intent: 'reset-mfa' })}>
+              Reset MFA
+            </button>
+          ) : null}
+
+          {!user.platformAdmin && !suspended ? (
+            <button
+              type="button"
+              className={btn}
+              disabled={busy}
+              data-testid={`user-impersonate-${user.id}`}
+              onClick={() => run({ intent: 'impersonate' })}
+            >
+              Impersonate
+            </button>
+          ) : null}
+        </div>
+        {fetcher.data?.message ? (
+          <p className="mt-1.5 text-xs text-green-600 dark:text-green-400">{fetcher.data.message}</p>
+        ) : null}
+        {fetcher.data?.error ? (
+          <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{fetcher.data.error}</p>
+        ) : null}
+      </td>
+    </tr>
+  );
+}
+
+function StatusPill({ tone, children }: { tone: 'ok' | 'danger' | 'accent' | 'muted'; children: React.ReactNode }) {
+  const tones: Record<string, string> = {
+    ok: 'border-green-500/30 text-green-600 dark:text-green-400',
+    danger: 'border-red-500/30 text-red-600 dark:text-red-400',
+    accent: 'border-bolt-elements-borderColorActive text-bolt-elements-textPrimary',
+    muted: 'border-bolt-elements-borderColor text-bolt-elements-textSecondary',
+  };
+
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${tones[tone]}`}>
+      {children}
+    </span>
   );
 }
 
