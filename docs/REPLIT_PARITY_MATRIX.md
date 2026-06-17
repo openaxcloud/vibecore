@@ -219,10 +219,10 @@ genuine **dedicated chantiers** (§D).
    (`INACTIVITY_GC_ENABLED` still gates real deletion), closing the "not scheduled" gap without changing
    behaviour. Verified `helm template` renders the job.
 5. ✅ **Public licensing page** `/licensing` — publishes the MIT/usage licensing (e-code shell, responsive).
-6. 🟡 **Admin toggles for providers/models/feature-flags** — the backend endpoints exist
-   (`/admin/models/toggle`, `/admin/providers/toggle`, `/admin/feature-flags`); wiring the in-panel toggle
-   buttons is the **immediate next increment** (same action+fetcher pattern as the users panel). Not yet
-   landed.
+6. ✅ **Admin toggles for providers/models/feature-flags** — enable/disable buttons wired to
+   `/admin/providers/toggle`, `/admin/models/toggle`, `/admin/feature-flags` over the session (password
+   step-up), with a generic `ToggleListPanel`. +1 test (model-toggle). The AI providers / AI models / Feature
+   flags admin sections are now operational, not read-only.
 
 ## §D — Remaining dedicated chantiers (not safe to autonomously rush)
 

@@ -143,6 +143,49 @@ describe('admin.$section action — user management', () => {
     expect(((await response.json()) as { message: string }).message).toMatch(/strike/i);
   });
 
+  it('toggles a model on (reauth then POST /admin/models/toggle, no userId needed)', async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        const href = typeof url === 'string' ? url : url.toString();
+        calls.push(`${init?.method ?? 'GET'} ${href}`);
+
+        if (href.endsWith('/auth/reauth')) {
+          return new Response(JSON.stringify({ reauthenticated: true }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        if (href.endsWith('/admin/models/toggle')) {
+          return new Response(JSON.stringify({ model: { enabled: true } }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        throw new Error(`unexpected ${href}`);
+      }),
+    );
+
+    const response = (await action(
+      args(
+        actionRequest({
+          intent: 'model-toggle',
+          provider: 'Anthropic',
+          modelId: 'claude',
+          value: 'true',
+          password: 'pw',
+        }),
+      ),
+    )) as Response;
+
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as { message: string }).message).toMatch(/model enabled/i);
+    expect(calls.some((c) => c === 'POST https://api.example.com/admin/models/toggle')).toBe(true);
+  });
+
   it('impersonate redirects to the dashboard with a new session cookie', async () => {
     vi.stubGlobal(
       'fetch',

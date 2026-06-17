@@ -294,10 +294,6 @@ export async function action({ request }: EnterpriseActionArgs) {
   const userId = String(form.get('userId') ?? '');
   const password = String(form.get('password') ?? '');
 
-  if (!userId) {
-    return json({ ok: false, error: 'Missing user.' }, { status: 400 });
-  }
-
   if (!password) {
     return json({ ok: false, userId, error: 'Enter your password to apply this change.' }, { status: 400 });
   }
@@ -309,6 +305,48 @@ export async function action({ request }: EnterpriseActionArgs) {
   }
 
   try {
+    // Registry / feature-flag toggles (no userId).
+    if (intent === 'provider-toggle') {
+      const enabled = String(form.get('value')) === 'true';
+      const provider = String(form.get('provider') ?? '');
+      await apiRequest(request, '/admin/providers/toggle', {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ provider, displayName: String(form.get('displayName') ?? provider), enabled }),
+      });
+
+      return json({ ok: true, rowId: provider, message: `Provider ${enabled ? 'enabled' : 'disabled'}.` });
+    }
+
+    if (intent === 'model-toggle') {
+      const enabled = String(form.get('value')) === 'true';
+      const provider = String(form.get('provider') ?? '');
+      const modelId = String(form.get('modelId') ?? '');
+      await apiRequest(request, '/admin/models/toggle', {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ provider, modelId, enabled }),
+      });
+
+      return json({ ok: true, rowId: `${provider}:${modelId}`, message: `Model ${enabled ? 'enabled' : 'disabled'}.` });
+    }
+
+    if (intent === 'feature-flag') {
+      const enabled = String(form.get('value')) === 'true';
+      const key = String(form.get('key') ?? '');
+      await apiRequest(request, '/admin/feature-flags', {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ key, enabled }),
+      });
+
+      return json({ ok: true, rowId: key, message: `Flag ${enabled ? 'enabled' : 'disabled'}.` });
+    }
+
+    if (!userId) {
+      return json({ ok: false, error: 'Missing user.' }, { status: 400 });
+    }
+
     if (intent === 'platform-admin') {
       const grant = String(form.get('value')) === 'true';
       await apiRequest(request, `/admin/users/${userId}/platform-admin`, {
@@ -387,7 +425,10 @@ export default function AdminSectionPage() {
           {section === 'overview' ? <OverviewPanel payload={payload} /> : null}
           {section === 'health' ? <HealthPanel payload={payload} /> : null}
           {section === 'users' ? <UsersPanel payload={payload} /> : null}
-          {section !== 'overview' && section !== 'health' && section !== 'users' ? (
+          {section === 'providers' ? <ToggleListPanel payload={payload} kind="providers" /> : null}
+          {section === 'models' ? <ToggleListPanel payload={payload} kind="models" /> : null}
+          {section === 'feature-flags' ? <ToggleListPanel payload={payload} kind="feature-flags" /> : null}
+          {!['overview', 'health', 'users', 'providers', 'models', 'feature-flags'].includes(section) ? (
             <DataPanel config={config} payload={payload} />
           ) : null}
         </div>
@@ -672,6 +713,138 @@ function StatusPill({ tone, children }: { tone: 'ok' | 'danger' | 'accent' | 'mu
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${tones[tone]}`}>
       {children}
     </span>
+  );
+}
+
+type ToggleKind = 'providers' | 'models' | 'feature-flags';
+
+/*
+ * Operational enable/disable panel for the registry + feature-flag admin
+ * sections. Same session-auth + password step-up as the users panel: the admin
+ * confirms once, then flips providers/models/flags on or off (real backend
+ * toggle, reflected on revalidate).
+ */
+function ToggleListPanel({ payload, kind }: { payload: Record<string, JsonValue>; kind: ToggleKind }) {
+  const collectionKey = kind === 'feature-flags' ? 'flags' : kind;
+
+  const rows = (Array.isArray(payload[collectionKey]) ? payload[collectionKey] : []) as Array<
+    Record<string, JsonValue>
+  >;
+
+  const [password, setPassword] = useState('');
+
+  const noun = kind === 'providers' ? 'provider' : kind === 'models' ? 'model' : 'flag';
+
+  return (
+    <div className="grid gap-4">
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+        <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Confirm changes with your password</h3>
+        <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+          Enter your password once, then enable or disable each {noun}. Sent only with the action.
+        </p>
+        <input
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="current-password"
+          placeholder="Your password"
+          data-testid="admin-reauth-password"
+          className="mt-3 w-full max-w-sm rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
+        />
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+        <table className="w-full min-w-[560px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+              <th className="px-4 py-3 font-medium">{kind === 'feature-flags' ? 'Flag' : noun}</th>
+              <th className="px-4 py-3 font-medium">State</th>
+              <th className="px-4 py-3 font-medium">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <ToggleRow key={toggleRowId(row, kind) || index} row={row} kind={kind} password={password} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function toggleRowId(row: Record<string, JsonValue>, kind: ToggleKind): string {
+  if (kind === 'feature-flags') {
+    return String(row.key ?? '');
+  }
+
+  if (kind === 'models') {
+    return `${row.provider ?? ''}:${row.modelId ?? ''}`;
+  }
+
+  return String(row.provider ?? '');
+}
+
+function ToggleRow({ row, kind, password }: { row: Record<string, JsonValue>; kind: ToggleKind; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const enabled = row.enabled === true;
+
+  const label =
+    kind === 'feature-flags' ? String(row.key ?? '') : String(row.displayName ?? row.modelId ?? row.provider ?? '');
+
+  const sub = kind === 'models' ? String(row.provider ?? '') : '';
+
+  const toggle = () => {
+    const fields: Record<string, string> = {
+      intent: kind === 'providers' ? 'provider-toggle' : kind === 'models' ? 'model-toggle' : 'feature-flag',
+      value: String(!enabled),
+      password,
+    };
+
+    if (kind === 'providers') {
+      fields.provider = String(row.provider ?? '');
+      fields.displayName = String(row.displayName ?? row.provider ?? '');
+    } else if (kind === 'models') {
+      fields.provider = String(row.provider ?? '');
+      fields.modelId = String(row.modelId ?? '');
+    } else {
+      fields.key = String(row.key ?? '');
+    }
+
+    fetcher.submit(fields, { method: 'post' });
+  };
+
+  const btn =
+    'inline-flex items-center rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50';
+
+  return (
+    <tr className="border-b border-bolt-elements-borderColor align-top last:border-b-0">
+      <td className="px-4 py-3">
+        <div className="font-medium text-bolt-elements-textPrimary">{label}</div>
+        {sub ? <div className="text-xs text-bolt-elements-textSecondary">{sub}</div> : null}
+      </td>
+      <td className="px-4 py-3">
+        {enabled ? <StatusPill tone="ok">enabled</StatusPill> : <StatusPill tone="muted">disabled</StatusPill>}
+      </td>
+      <td className="px-4 py-3">
+        <button
+          type="button"
+          className={btn}
+          disabled={busy}
+          data-testid={`toggle-${kind}-${toggleRowId(row, kind)}`}
+          onClick={toggle}
+        >
+          {enabled ? 'Disable' : 'Enable'}
+        </button>
+        {fetcher.data?.message ? (
+          <p className="mt-1.5 text-xs text-green-600 dark:text-green-400">{fetcher.data.message}</p>
+        ) : null}
+        {fetcher.data?.error ? (
+          <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{fetcher.data.error}</p>
+        ) : null}
+      </td>
+    </tr>
   );
 }
 
