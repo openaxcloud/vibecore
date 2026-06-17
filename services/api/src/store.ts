@@ -761,6 +761,16 @@ export interface ApiStore {
    * is best-effort. Returns the new timestamp (ISO) or null if the user is gone.
    */
   touchUserActivity(userId: string, nowMs?: number): Promise<string | null>;
+
+  /**
+   * Inactivity-GC candidates: users whose last activity (lastActiveAt, falling
+   * back to createdAt for accounts never touched) is older than `cutoffMs`.
+   * `take` caps the batch. Used by the worker-triggered inactivity sweep (P8).
+   */
+  listInactiveUserCandidates(input: {
+    cutoffMs: number;
+    take?: number;
+  }): Promise<Array<{ id: string; email: string; lastActiveAtMs: number }>>;
   createSession(input: {
     userId: string;
     token: string;

@@ -141,6 +141,12 @@ import {
   permissionsForAction,
 } from './strike-system.js';
 import {
+  INACTIVITY_DAYS,
+  INACTIVITY_WARNING_DAYS,
+  inactivityStage,
+  isEligibleForInactivityDeletion,
+} from './account-lifecycle.js';
+import {
   filesFromZip,
   filesFromZipBase64,
   GitCliProvider,
@@ -2296,6 +2302,31 @@ async function requirePlatformAdmin(request: FastifyRequest) {
   }
 }
 
+/*
+ * Service-to-service auth for /internal/* routes (metering ingest, inactivity GC).
+ * Constant-time bearer check against INTERNAL_API_SHARED_SECRET (falls back to
+ * WORKSPACE_MANAGER_SHARED_SECRET, which the manager/worker pods already hold).
+ * Fails closed when no secret is configured.
+ */
+function requireInternalSecret(request: FastifyRequest) {
+  const expected = (process.env.INTERNAL_API_SHARED_SECRET || process.env.WORKSPACE_MANAGER_SHARED_SECRET || '').trim();
+  const header = request.headers.authorization;
+  const provided =
+    typeof header === 'string' && header.startsWith('Bearer ') ? header.slice('Bearer '.length).trim() : '';
+
+  const fail = () =>
+    Object.assign(new Error('Internal authentication required'), { statusCode: 401, code: 'INTERNAL_AUTH_REQUIRED' });
+
+  if (!expected || !provided) {
+    throw fail();
+  }
+  const expectedBuf = Buffer.from(expected);
+  const providedBuf = Buffer.from(provided);
+  if (expectedBuf.length !== providedBuf.length || !timingSafeEqual(expectedBuf, providedBuf)) {
+    throw fail();
+  }
+}
+
 async function recordAdminAction(
   request: FastifyRequest,
   store: ApiStore,
@@ -3414,6 +3445,10 @@ async function createLoginSession(input: {
   if (input.markReauthenticated) {
     await input.store.markSessionReauthenticated(session.id);
   }
+
+  // P8 inactivity GC: a login is the canonical "activity" signal (Replit deletes
+  // free accounts with no login for ~1 year). Best-effort, non-blocking.
+  void input.store.touchUserActivity(input.userId).catch(() => {});
 
   return session;
 }
@@ -7046,6 +7081,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
+      /*
+       * Service-to-service internal endpoints (metering ingest, inactivity GC).
+       * Exempt from user auth; each route self-authenticates with the shared
+       * internal secret via requireInternalSecret(). P8.
+       */
+      request.url.startsWith('/internal/') ||
       /*
        * Public read of a shared conversation snapshot — the signed token is the
        * capability. Only the token-scoped GET path is exempt; POST /chat-shares
@@ -17506,6 +17547,120 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       gracePeriodDays: DELETION_GRACE_PERIOD_DAYS,
       requests,
       readyToPurge: requests.filter((entry) => entry.status === 'ready_to_purge').length,
+    };
+  });
+
+  /*
+   * ===== Replit-parity account-inactivity GC (P8 — internal, worker-triggered) =====
+   * Free accounts inactive >= 1 year are eligible for deletion; paid accounts are
+   * exempt (account-lifecycle.ts). The worker cron POSTs here with the shared
+   * internal secret. DRY-RUN by default: it scans + counts + audits warnings but
+   * only deletes when INACTIVITY_GC_ENABLED=true (or body.enabled), and even then
+   * skips users who share an org with others (orphan-prevention). Idempotent.
+   */
+  app.post('/internal/inactivity-gc', async (request, reply) => {
+    requireInternalSecret(request);
+
+    const body = parse(
+      z.object({ enabled: z.boolean().optional(), take: z.number().int().positive().max(5000).optional() }),
+      request.body ?? {},
+    );
+    const enabled = body.enabled ?? process.env.INACTIVITY_GC_ENABLED === 'true';
+    const nowMs = Date.now();
+    const dayMs = 24 * 60 * 60 * 1000;
+    // Candidates = anyone past the FIRST warning threshold; the stage function
+    // then classifies warning vs eligible and exempts paid accounts.
+    const cutoffMs = nowMs - INACTIVITY_WARNING_DAYS[0] * dayMs;
+
+    const candidates = await store.listInactiveUserCandidates({ cutoffMs, take: body.take ?? 500 });
+
+    const resolveIsPaid = async (userId: string): Promise<boolean> => {
+      const orgs = await store.listOrganizations(userId).catch(() => []);
+      for (const org of orgs) {
+        const sub = await store.getSubscription(org.id).catch(() => undefined);
+        if (sub && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(sub.status) && sub.planKey !== 'free') {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const sharesOrgWithOthers = async (userId: string): Promise<boolean> => {
+      const orgs = await store.listOrganizations(userId).catch(() => []);
+      for (const org of orgs) {
+        const members = await store.listMembers(org.id).catch(() => []);
+        if (members.length > 1) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    let warned = 0;
+    let eligible = 0;
+    let deleted = 0;
+    let skippedShared = 0;
+    let exemptPaid = 0;
+
+    for (const candidate of candidates) {
+      const isPaid = await resolveIsPaid(candidate.id);
+      const stage = inactivityStage({ lastActiveAtMs: candidate.lastActiveAtMs, nowMs, isPaid });
+
+      if (stage === 'active') {
+        if (isPaid) {
+          exemptPaid += 1;
+        }
+        continue;
+      }
+
+      if (stage === 'warning') {
+        warned += 1;
+        await store
+          .recordAdminAudit({
+            actorUserId: undefined,
+            action: 'account.inactivity_warning',
+            metadata: { userId: candidate.id, daysInactive: Math.floor((nowMs - candidate.lastActiveAtMs) / dayMs) },
+          })
+          .catch(() => {});
+        continue;
+      }
+
+      // eligible_for_deletion (free + >= INACTIVITY_DAYS)
+      if (!isEligibleForInactivityDeletion({ lastActiveAtMs: candidate.lastActiveAtMs, nowMs, isPaid })) {
+        continue;
+      }
+      eligible += 1;
+
+      if (!enabled) {
+        continue; // dry-run: counted, not deleted
+      }
+      if (await sharesOrgWithOthers(candidate.id)) {
+        skippedShared += 1;
+        continue;
+      }
+
+      const ok = await store.deleteUser(candidate.id);
+      if (ok) {
+        deleted += 1;
+        await store
+          .recordAdminAudit({
+            actorUserId: undefined,
+            action: 'account.inactivity_deleted',
+            metadata: { userId: candidate.id },
+          })
+          .catch(() => {});
+      }
+    }
+
+    return {
+      enabled,
+      inactivityDays: INACTIVITY_DAYS,
+      scanned: candidates.length,
+      warned,
+      eligible,
+      deleted,
+      skippedShared,
+      exemptPaid,
     };
   });
 

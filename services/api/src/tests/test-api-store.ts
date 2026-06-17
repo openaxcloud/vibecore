@@ -245,6 +245,19 @@ export class TestApiStore implements ApiStore {
     return at;
   }
 
+  async listInactiveUserCandidates(input: { cutoffMs: number; take?: number }) {
+    const take = Math.max(1, Math.min(input.take ?? 500, 5000));
+    return [...this.users.values()]
+      .map((user) => ({
+        id: user.id,
+        email: user.email,
+        lastActiveAtMs: new Date(user.lastActiveAt ?? user.createdAt).getTime(),
+      }))
+      .filter((entry) => Number.isFinite(entry.lastActiveAtMs) && entry.lastActiveAtMs < input.cutoffMs)
+      .sort((a, b) => a.lastActiveAtMs - b.lastActiveAtMs)
+      .slice(0, take);
+  }
+
   async createSession(input: {
     userId: string;
     token: string;

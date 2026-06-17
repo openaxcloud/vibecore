@@ -265,6 +265,27 @@ export class PrismaApiStore implements ApiStore {
     }
   }
 
+  async listInactiveUserCandidates(input: { cutoffMs: number; take?: number }) {
+    const cutoff = new Date(input.cutoffMs);
+    const take = Math.max(1, Math.min(input.take ?? 500, 5000));
+    // Active reference = lastActiveAt, falling back to createdAt for accounts
+    // never touched. Both branches must be older than the cutoff.
+    const users = await this.prisma.user.findMany({
+      where: {
+        OR: [{ lastActiveAt: { lt: cutoff } }, { AND: [{ lastActiveAt: null }, { createdAt: { lt: cutoff } }] }],
+      },
+      select: { id: true, email: true, lastActiveAt: true, createdAt: true },
+      orderBy: { createdAt: 'asc' },
+      take,
+    });
+
+    return users.map((user) => ({
+      id: user.id,
+      email: user.email,
+      lastActiveAtMs: (user.lastActiveAt ?? user.createdAt).getTime(),
+    }));
+  }
+
   async createSession(input: {
     userId: string;
     token: string;

@@ -245,6 +245,43 @@ export async function triggerWorkspaceGarbageCollect(jobData: Record<string, unk
   await response.body?.cancel().catch(() => {});
 }
 
+/**
+ * Inactivity-GC trigger (P8) — POSTs to the api's internal /internal/inactivity-gc
+ * which scans inactive free accounts, warns at thresholds and (when enabled)
+ * deletes those past 1 year. Thin trigger so the deletion logic + plan resolution
+ * stay in the api with the store abstraction. Auth = internal shared secret.
+ */
+export async function triggerInactivityGc(jobData: Record<string, unknown> = {}) {
+  const baseUrl = process.env.API_INTERNAL_URL ?? process.env.API_URL;
+  if (!baseUrl) {
+    throw new Error('API_INTERNAL_URL (or API_URL) is required to trigger inactivity.gc');
+  }
+
+  const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
+  const body = {
+    enabled: jobData.enabled as boolean | undefined,
+    take: jobData.take as number | undefined,
+  };
+
+  const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/internal/inactivity-gc`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(120_000),
+  });
+
+  if (!response.ok) {
+    await response.body?.cancel().catch(() => {});
+    throw new Error(`inactivity.gc upstream failed: ${response.status}`);
+  }
+
+  const result = await response.json().catch(() => ({}));
+  return result as Record<string, unknown>;
+}
+
 export function startWorkers() {
   const connection = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
     maxRetriesPerRequest: null,
@@ -292,6 +329,10 @@ export function startWorkers() {
       if (job.name === 'retention.enforce') {
         await enforceDataRetention();
         return { retained: true };
+      }
+
+      if (job.name === 'inactivity.gc') {
+        return await triggerInactivityGc(job.data ?? {});
       }
 
       if (job.name === 'connector.healthcheck') {
