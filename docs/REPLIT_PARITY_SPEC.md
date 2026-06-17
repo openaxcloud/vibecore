@@ -375,54 +375,63 @@ or debit — lets us validate cost accuracy against `AiCostLedger` before chargi
 
 ---
 
-## 11. Settings tabs → Admin vs User mapping (answer to Avi's question)
+## 11. Settings tabs → Admin vs User vs Remove (FIRM — Avi, implement in P5)
 
-**Today:** all 18 tabs are `window:'user'` and the panel is **orphaned** (only `/settings` URL,
-no nav link). Bolt's model assumed the *end‑user supplies their own keys*. VibeCore's model is the
-opposite: **the platform admin owns providers/keys/integrations**; users get a clean product
-surface. So provider/integration/diagnostic tabs move to **Admin (global)**, and the genuinely
-personal tabs stay **User** but must be **surfaced in the Dashboard** (they're invisible now).
+**Today:** all 18 Bolt settings tabs are `window:'user'` and the panel is **orphaned in a Bolt
+modal** (only `/settings` URL, no Dashboard link). VibeCore's model is the opposite of Bolt's:
+**the platform admin owns providers/keys/integrations**; users get a clean product surface. So:
+(a) provider/integration/diagnostic tabs → **Admin (global)**; (b) the genuinely personal tabs stay
+**User** and MUST be **surfaced visibly in the Dashboard** (not a modal); (c) some bolt tabs are
+**removed** for end users. **This is a firm requirement — the user-facing #1 gap is a Billing/Usage
+section (plan, credit balance, effort-based consumption, invoices).**
 
-### → ADMIN (global / platform), move into the `/admin` SPA
+### → ADMIN (global / platform) — in the `/admin` SPA
 
-| Tab | Why admin | Where in admin |
-|-----|-----------|----------------|
-| **Cloud Providers** | Platform keys; admin enables providers/models | `/admin/providers` (new) — backs §9 registry |
-| **Local Providers** | Same (Ollama/local) | `/admin/providers` |
-| **MCP** | Platform‑wide MCP servers/catalog | `/admin/mcp` (new) or fold into providers |
-| **Service Status** | Platform health/SLA | `/admin/health` (exists) |
-| **Event Logs** | Platform/audit activity | `/admin/audit-logs` / `/admin/security-events` (exist) |
-| **Update** | Upstream bolt.diy status — platform concern | `/admin/system-settings` → "Upstream" panel |
-| **Debug** | Runtime diagnostics — admin/support | `/admin/system-settings` → "Diagnostics" (keep a read‑only user view, see below) |
-| **Features** (flags) | Platform rollout control | `/admin/feature-flags` (exists) — admin owns; user sees read‑only enabled features |
+| Area | What | Where |
+|------|------|-------|
+| **Providers & Models** | Cloud + Local — enable/disable each **provider AND model** | `/admin/providers`, `/admin/models` (built, §9) |
+| **Updates** | Upstream bolt.diy sync status | `/admin/system-settings` → "Upstream" |
+| **Service Status / Debug / Event Logs** | platform health, diagnostics, activity | `/admin/health`, `/admin/system-settings`→Diagnostics, `/admin/audit-logs`+`/admin/security-events` |
+| **MCP (global)** | curated platform MCP catalog | `/admin/mcp` (or fold into providers) |
+| **Credits / balances** | per‑org wallets, grants, adjust | `/admin/wallets` (built) |
+| **Usage / effort‑based** | checkpoints + AI/compute usage | `/admin/checkpoints` (built), `/admin/ai-usage`, `/admin/usage` |
+| **Pay‑as‑you‑go** | overage, budgets, PAYG state | `/admin/wallets` + spend (P5b) |
+| **Plans / quotas (editable)** | plan catalog + quota overrides | `/admin/quotas`, `/admin/billing` |
+| **Stripe key health** | ping `GET /v1/balance` | `/admin/system-settings` → "Stripe" |
+| **Users + impersonation** | accounts, suspend, impersonate | `/admin/users` (+ impersonation, P5) |
+| **Feature flags** | rollout control | `/admin/feature-flags` |
 
-Integration connectors are **dual‑scope** (see note): **GitHub / GitLab / Netlify / Vercel /
-Supabase** — the *platform OAuth app credentials* (client id/secret, webhook secrets) are
-**Admin** (`/admin/system-settings` → "Integrations"); the *per‑user account connection*
-(authorize my GitHub) stays **User** and is surfaced in the Dashboard "Connected accounts".
+Integration connectors are **dual‑scope**: the *platform OAuth app credentials* (client id/secret,
+webhook secrets) are **Admin** (`/admin/system-settings` → "Integrations"); the *per‑user account
+connection* stays **User** (below).
 
-### → USER (personal), surface in the **Dashboard**
+### → USER (personal) — KEEP and make VISIBLE in the Dashboard (Account group)
 
-| Tab | Keep as user because | Surface at |
-|-----|----------------------|-----------|
-| **Profile** | avatar/username/bio | Dashboard → **Account → Profile** (`/account-settings`) |
-| **Settings** | theme/language/timezone/shortcuts | Dashboard → **Account → Preferences** |
-| **Notifications** | personal notifications | Dashboard → **Account → Notifications** (nav already lists it) |
-| **Data Management** | user's local IndexedDB export/clear | Dashboard → **Account → Data & privacy** |
-| **Connections** (status view) | which of *my* accounts are linked | Dashboard → **Account → Connected accounts** |
-| **GitHub/GitLab/Netlify/Vercel/Supabase** (connect *my* account) | personal OAuth link | Dashboard → **Account → Connected accounts** (one card per provider) |
-| **Task Manager** | local browser data | Dashboard → **Account → Data & privacy** (or drop; low value in SaaS) |
-| **Debug** (read‑only "download my logs") | self‑service support | Dashboard → **Account → Help/Support** |
+| Tab | Keep because | Surface at |
+|-----|--------------|-----------|
+| **Profile** | avatar / name / bio | Dashboard → **Account → Profile** |
+| **Settings** | language / timezone / theme / notifs | Dashboard → **Account → Preferences** |
+| **Connections** | GitHub/GitLab/Netlify/Vercel/Supabase — connect *my* account | Dashboard → **Account → Connected accounts** (card/provider) |
+| **Data Management** | export/import *my* projects/chats | Dashboard → **Account → Data & privacy** |
+| **Notifications** | personal notifications | Dashboard → **Account → Notifications** |
+| **MCP (mine)** | my own MCP servers | Dashboard → **Account → MCP servers** |
+| **NEW Billing / Usage** | **my plan, my credit balance, my effort‑based usage, my invoices** (#1 user gap) | Dashboard → **Organization → Billing** (`/billing`, `/usage`) — backed by `GET /orgs/:id/credits` + `/orgs/:id/billing` |
 
-**Surfacing mechanism:** add the missing links in `SaaSLayout.tsx` "Account" group
-(`:246‑283`) so the existing `/settings/:tab` (alias‑routed, `settings.$tab.tsx:8`) tabs are
-reachable, and gate provider/integration‑credential tabs behind an `isPlatformAdmin` check
-(reuse the API `PLATFORM_ADMIN_REQUIRED` signal — expose a small `me.isPlatformAdmin` flag to the
-client so the UI hides admin‑only tabs instead of 403‑ing).
+**Model selector** (choose among admin‑enabled models) lives in the **IDE/composer**, NOT in settings.
 
-**Net effect:** users get Profile/Preferences/Notifications/Data/Connected‑accounts in the
-Dashboard; admins get Providers/Models/MCP/Health/Logs/Flags/Integrations/Upstream/Diagnostics in
-`/admin`. The "enter your own API key" surface is removed for non‑Enterprise.
+### → REMOVE for end users (Free/Pro)
+
+| Item | Action |
+|------|--------|
+| **Task Manager** (localStorage inspector) | admin‑only / drop |
+| **Debug** | admin‑only (self‑serve "download my logs" only under Account → Help) |
+| **Event Logs** | admin‑only |
+| **API‑key entry in chat** | removed for Free/Pro (admin provides keys) — `BYOK_DISABLED`, Enterprise exempt |
+| **Cloud/Local Providers per‑user toggles** | replaced by the admin registry; user only picks a model among enabled ones |
+
+**Surfacing mechanism:** expose `me.isPlatformAdmin` to the client; render the User tabs as real
+Dashboard pages in the `SaaSLayout.tsx` "Account"/"Organization" groups (not the Bolt modal); hide
+admin‑only tabs from non‑admins; remove the BYOK key entry behind `BYOK_DISABLED`.
 
 ---
 
@@ -481,6 +490,15 @@ flip new pricing page live. Each step = its own batch, tests, green CI, deploy, 
 - **P7 — Enforce + PAYG + Stripe products (monthly+annual+metered) + migrate subs (real money).**
 - **P8 — Legal/security parity (§16.5):** strike system, account‑inactivity GC, data‑deletion
   self‑serve, acceptable‑use/licensing/security policy pages, abuse‑report wiring, public‑app MIT default.
+- **P9 — Marketing content pages (in‑repo):** Author NEW in‑repo React components (e‑code tone) for
+  the ~24 marketing routes that currently have NO in‑repo source and still render from the prebuilt
+  external bundle, then re‑point them to Remix SSR and verify responsive (390/768/1440, 0 console
+  errors). They WORK today via the external bundle, so this is the final, lowest‑urgency phase.
+  Routes: `about`, `accessibility`, `blog`, `careers`, `case-studies`, `changelog`, `collaboration`,
+  `commercial-agreement`, `compare._index`, `compare.$slug`, `contact`, `contact-sales`, `desktop`,
+  `forum`, `help-center`, `languages`, `newsletter.confirm`, `newsletter.unsubscribe`, `partners`,
+  `press`, `solutions.$slug`, `status`, `templates.languages`, `tutorials`. (15 marketing routes with
+  existing in‑repo source were already re‑pointed + verified — see §16.)
 
 ---
 
