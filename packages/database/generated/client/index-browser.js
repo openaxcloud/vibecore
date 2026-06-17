@@ -1111,6 +1111,46 @@ exports.Prisma.ModelConfigScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.DatabaseInstanceScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  organizationId: 'organizationId',
+  status: 'status',
+  engine: 'engine',
+  region: 'region',
+  sizeBytes: 'sizeBytes',
+  retentionDays: 'retentionDays',
+  pitrEnabled: 'pitrEnabled',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.DatabaseSnapshotScalarFieldEnum = {
+  id: 'id',
+  databaseInstanceId: 'databaseInstanceId',
+  kind: 'kind',
+  label: 'label',
+  lsn: 'lsn',
+  sizeBytes: 'sizeBytes',
+  storageKey: 'storageKey',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  expiresAt: 'expiresAt'
+};
+
+exports.Prisma.DatabaseRestoreScalarFieldEnum = {
+  id: 'id',
+  databaseInstanceId: 'databaseInstanceId',
+  snapshotId: 'snapshotId',
+  targetTimestamp: 'targetTimestamp',
+  status: 'status',
+  requestedByUserId: 'requestedByUserId',
+  error: 'error',
+  createdAt: 'createdAt',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1238,6 +1278,20 @@ exports.CheckpointStatus = exports.$Enums.CheckpointStatus = {
   FAILED: 'FAILED'
 };
 
+exports.DatabaseInstanceStatus = exports.$Enums.DatabaseInstanceStatus = {
+  PROVISIONING: 'PROVISIONING',
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+  DELETED: 'DELETED'
+};
+
+exports.DatabaseRestoreStatus = exports.$Enums.DatabaseRestoreStatus = {
+  PENDING: 'PENDING',
+  RUNNING: 'RUNNING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Account: 'Account',
@@ -1322,7 +1376,10 @@ exports.Prisma.ModelName = {
   CreditLedger: 'CreditLedger',
   AgentCheckpoint: 'AgentCheckpoint',
   ProviderConfig: 'ProviderConfig',
-  ModelConfig: 'ModelConfig'
+  ModelConfig: 'ModelConfig',
+  DatabaseInstance: 'DatabaseInstance',
+  DatabaseSnapshot: 'DatabaseSnapshot',
+  DatabaseRestore: 'DatabaseRestore'
 };
 
 /**

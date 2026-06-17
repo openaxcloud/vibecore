@@ -262,6 +262,7 @@ model Project {
   agentMemoryPreferences AgentMemoryPreference[]
   agentPatchProposals    AgentPatchProposal[]
   connectionLinks        ProjectConnectionLink[]
+  databaseInstance       DatabaseInstance?
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -1633,4 +1634,85 @@ model ModelConfig {
 
   @@unique([providerConfigId, modelId])
   @@index([enabled])
+}
+
+enum DatabaseInstanceStatus {
+  PROVISIONING
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+/// Managed Postgres database for a project (Replit "Database" tab). Phase-1
+/// scaffold for point-in-time rollback: the row models the instance and its
+/// retention window; provisioning + WAL-based PITR are wired in later phases and
+/// gated behind DB_ROLLBACK_ENABLED, so this table is dormant until then.
+/// `retentionDays` is the plan-derived PITR window (Pro = 28).
+model DatabaseInstance {
+  id             String                 @id @default(cuid())
+  projectId      String                 @unique
+  organizationId String
+  status         DatabaseInstanceStatus @default(PROVISIONING)
+  engine         String                 @default("postgres")
+  region         String?
+  sizeBytes      BigInt                 @default(0)
+  retentionDays  Int                    @default(7)
+  pitrEnabled    Boolean                @default(false)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  project        Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  snapshots      DatabaseSnapshot[]
+  restores       DatabaseRestore[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+/// A recovery point for a DatabaseInstance — either a scheduled automatic
+/// snapshot or a user-requested manual one. `lsn` records the Postgres WAL
+/// position so a restore can target an exact point in time; `expiresAt` is the
+/// retention horizon (older snapshots are pruned). Dormant until PITR ships.
+model DatabaseSnapshot {
+  id                 String           @id @default(cuid())
+  databaseInstanceId String
+  kind               String           @default("auto")
+  label              String?
+  lsn                String?
+  sizeBytes          BigInt           @default(0)
+  storageKey         String?
+  createdByUserId    String?
+  createdAt          DateTime         @default(now())
+  expiresAt          DateTime?
+  databaseInstance   DatabaseInstance @relation(fields: [databaseInstanceId], references: [id], onDelete: Cascade)
+
+  @@index([databaseInstanceId, createdAt])
+  @@index([expiresAt])
+}
+
+enum DatabaseRestoreStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+/// A point-in-time restore request for a DatabaseInstance. Targets either a
+/// specific snapshot or an arbitrary `targetTimestamp` within the retention
+/// window (true PITR). Status moves PENDING → RUNNING → COMPLETED/FAILED. The
+/// restore executor is a later phase; rows can be created dormant for the UI.
+model DatabaseRestore {
+  id                 String                @id @default(cuid())
+  databaseInstanceId String
+  snapshotId         String?
+  targetTimestamp    DateTime?
+  status             DatabaseRestoreStatus  @default(PENDING)
+  requestedByUserId  String?
+  error              String?
+  createdAt          DateTime               @default(now())
+  startedAt          DateTime?
+  completedAt        DateTime?
+  databaseInstance   DatabaseInstance       @relation(fields: [databaseInstanceId], references: [id], onDelete: Cascade)
+
+  @@index([databaseInstanceId, createdAt])
+  @@index([status])
 }

@@ -457,6 +457,31 @@ export type ProviderConfig = $Result.DefaultSelection<Prisma.$ProviderConfigPayl
  * effort-based credit cost.
  */
 export type ModelConfig = $Result.DefaultSelection<Prisma.$ModelConfigPayload>
+/**
+ * Model DatabaseInstance
+ * Managed Postgres database for a project (Replit "Database" tab). Phase-1
+ * scaffold for point-in-time rollback: the row models the instance and its
+ * retention window; provisioning + WAL-based PITR are wired in later phases and
+ * gated behind DB_ROLLBACK_ENABLED, so this table is dormant until then.
+ * `retentionDays` is the plan-derived PITR window (Pro = 28).
+ */
+export type DatabaseInstance = $Result.DefaultSelection<Prisma.$DatabaseInstancePayload>
+/**
+ * Model DatabaseSnapshot
+ * A recovery point for a DatabaseInstance — either a scheduled automatic
+ * snapshot or a user-requested manual one. `lsn` records the Postgres WAL
+ * position so a restore can target an exact point in time; `expiresAt` is the
+ * retention horizon (older snapshots are pruned). Dormant until PITR ships.
+ */
+export type DatabaseSnapshot = $Result.DefaultSelection<Prisma.$DatabaseSnapshotPayload>
+/**
+ * Model DatabaseRestore
+ * A point-in-time restore request for a DatabaseInstance. Targets either a
+ * specific snapshot or an arbitrary `targetTimestamp` within the retention
+ * window (true PITR). Status moves PENDING → RUNNING → COMPLETED/FAILED. The
+ * restore executor is a later phase; rows can be created dormant for the UI.
+ */
+export type DatabaseRestore = $Result.DefaultSelection<Prisma.$DatabaseRestorePayload>
 
 /**
  * Enums
@@ -595,6 +620,26 @@ export const CheckpointStatus: {
 
 export type CheckpointStatus = (typeof CheckpointStatus)[keyof typeof CheckpointStatus]
 
+
+export const DatabaseInstanceStatus: {
+  PROVISIONING: 'PROVISIONING',
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+  DELETED: 'DELETED'
+};
+
+export type DatabaseInstanceStatus = (typeof DatabaseInstanceStatus)[keyof typeof DatabaseInstanceStatus]
+
+
+export const DatabaseRestoreStatus: {
+  PENDING: 'PENDING',
+  RUNNING: 'RUNNING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED'
+};
+
+export type DatabaseRestoreStatus = (typeof DatabaseRestoreStatus)[keyof typeof DatabaseRestoreStatus]
+
 }
 
 export type WorkspaceStatus = $Enums.WorkspaceStatus
@@ -644,6 +689,14 @@ export const CreditEntryKind: typeof $Enums.CreditEntryKind
 export type CheckpointStatus = $Enums.CheckpointStatus
 
 export const CheckpointStatus: typeof $Enums.CheckpointStatus
+
+export type DatabaseInstanceStatus = $Enums.DatabaseInstanceStatus
+
+export const DatabaseInstanceStatus: typeof $Enums.DatabaseInstanceStatus
+
+export type DatabaseRestoreStatus = $Enums.DatabaseRestoreStatus
+
+export const DatabaseRestoreStatus: typeof $Enums.DatabaseRestoreStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -1605,6 +1658,36 @@ export class PrismaClient<
     * ```
     */
   get modelConfig(): Prisma.ModelConfigDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.databaseInstance`: Exposes CRUD operations for the **DatabaseInstance** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DatabaseInstances
+    * const databaseInstances = await prisma.databaseInstance.findMany()
+    * ```
+    */
+  get databaseInstance(): Prisma.DatabaseInstanceDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.databaseSnapshot`: Exposes CRUD operations for the **DatabaseSnapshot** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DatabaseSnapshots
+    * const databaseSnapshots = await prisma.databaseSnapshot.findMany()
+    * ```
+    */
+  get databaseSnapshot(): Prisma.DatabaseSnapshotDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.databaseRestore`: Exposes CRUD operations for the **DatabaseRestore** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DatabaseRestores
+    * const databaseRestores = await prisma.databaseRestore.findMany()
+    * ```
+    */
+  get databaseRestore(): Prisma.DatabaseRestoreDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -2122,7 +2205,10 @@ export namespace Prisma {
     CreditLedger: 'CreditLedger',
     AgentCheckpoint: 'AgentCheckpoint',
     ProviderConfig: 'ProviderConfig',
-    ModelConfig: 'ModelConfig'
+    ModelConfig: 'ModelConfig',
+    DatabaseInstance: 'DatabaseInstance',
+    DatabaseSnapshot: 'DatabaseSnapshot',
+    DatabaseRestore: 'DatabaseRestore'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2138,7 +2224,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "providerConfig" | "modelConfig"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -8342,6 +8428,228 @@ export namespace Prisma {
           }
         }
       }
+      DatabaseInstance: {
+        payload: Prisma.$DatabaseInstancePayload<ExtArgs>
+        fields: Prisma.DatabaseInstanceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DatabaseInstanceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseInstancePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DatabaseInstanceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseInstancePayload>
+          }
+          findFirst: {
+            args: Prisma.DatabaseInstanceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseInstancePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DatabaseInstanceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseInstancePayload>
+          }
+          findMany: {
+            args: Prisma.DatabaseInstanceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseInstancePayload>[]
+          }
+          create: {
+            args: Prisma.DatabaseInstanceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseInstancePayload>
+          }
+          createMany: {
+            args: Prisma.DatabaseInstanceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DatabaseInstanceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseInstancePayload>[]
+          }
+          delete: {
+            args: Prisma.DatabaseInstanceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseInstancePayload>
+          }
+          update: {
+            args: Prisma.DatabaseInstanceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseInstancePayload>
+          }
+          deleteMany: {
+            args: Prisma.DatabaseInstanceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DatabaseInstanceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.DatabaseInstanceUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseInstancePayload>[]
+          }
+          upsert: {
+            args: Prisma.DatabaseInstanceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseInstancePayload>
+          }
+          aggregate: {
+            args: Prisma.DatabaseInstanceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDatabaseInstance>
+          }
+          groupBy: {
+            args: Prisma.DatabaseInstanceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DatabaseInstanceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DatabaseInstanceCountArgs<ExtArgs>
+            result: $Utils.Optional<DatabaseInstanceCountAggregateOutputType> | number
+          }
+        }
+      }
+      DatabaseSnapshot: {
+        payload: Prisma.$DatabaseSnapshotPayload<ExtArgs>
+        fields: Prisma.DatabaseSnapshotFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DatabaseSnapshotFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseSnapshotPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DatabaseSnapshotFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseSnapshotPayload>
+          }
+          findFirst: {
+            args: Prisma.DatabaseSnapshotFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseSnapshotPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DatabaseSnapshotFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseSnapshotPayload>
+          }
+          findMany: {
+            args: Prisma.DatabaseSnapshotFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseSnapshotPayload>[]
+          }
+          create: {
+            args: Prisma.DatabaseSnapshotCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseSnapshotPayload>
+          }
+          createMany: {
+            args: Prisma.DatabaseSnapshotCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DatabaseSnapshotCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseSnapshotPayload>[]
+          }
+          delete: {
+            args: Prisma.DatabaseSnapshotDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseSnapshotPayload>
+          }
+          update: {
+            args: Prisma.DatabaseSnapshotUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseSnapshotPayload>
+          }
+          deleteMany: {
+            args: Prisma.DatabaseSnapshotDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DatabaseSnapshotUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.DatabaseSnapshotUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseSnapshotPayload>[]
+          }
+          upsert: {
+            args: Prisma.DatabaseSnapshotUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseSnapshotPayload>
+          }
+          aggregate: {
+            args: Prisma.DatabaseSnapshotAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDatabaseSnapshot>
+          }
+          groupBy: {
+            args: Prisma.DatabaseSnapshotGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DatabaseSnapshotGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DatabaseSnapshotCountArgs<ExtArgs>
+            result: $Utils.Optional<DatabaseSnapshotCountAggregateOutputType> | number
+          }
+        }
+      }
+      DatabaseRestore: {
+        payload: Prisma.$DatabaseRestorePayload<ExtArgs>
+        fields: Prisma.DatabaseRestoreFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DatabaseRestoreFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestorePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DatabaseRestoreFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestorePayload>
+          }
+          findFirst: {
+            args: Prisma.DatabaseRestoreFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestorePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DatabaseRestoreFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestorePayload>
+          }
+          findMany: {
+            args: Prisma.DatabaseRestoreFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestorePayload>[]
+          }
+          create: {
+            args: Prisma.DatabaseRestoreCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestorePayload>
+          }
+          createMany: {
+            args: Prisma.DatabaseRestoreCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DatabaseRestoreCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestorePayload>[]
+          }
+          delete: {
+            args: Prisma.DatabaseRestoreDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestorePayload>
+          }
+          update: {
+            args: Prisma.DatabaseRestoreUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestorePayload>
+          }
+          deleteMany: {
+            args: Prisma.DatabaseRestoreDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DatabaseRestoreUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.DatabaseRestoreUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestorePayload>[]
+          }
+          upsert: {
+            args: Prisma.DatabaseRestoreUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestorePayload>
+          }
+          aggregate: {
+            args: Prisma.DatabaseRestoreAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDatabaseRestore>
+          }
+          groupBy: {
+            args: Prisma.DatabaseRestoreGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DatabaseRestoreGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DatabaseRestoreCountArgs<ExtArgs>
+            result: $Utils.Optional<DatabaseRestoreCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -8534,6 +8842,9 @@ export namespace Prisma {
     agentCheckpoint?: AgentCheckpointOmit
     providerConfig?: ProviderConfigOmit
     modelConfig?: ModelConfigOmit
+    databaseInstance?: DatabaseInstanceOmit
+    databaseSnapshot?: DatabaseSnapshotOmit
+    databaseRestore?: DatabaseRestoreOmit
   }
 
   /* Types for Logging */
@@ -9804,6 +10115,46 @@ export namespace Prisma {
    */
   export type ProviderConfigCountOutputTypeCountModelsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ModelConfigWhereInput
+  }
+
+
+  /**
+   * Count Type DatabaseInstanceCountOutputType
+   */
+
+  export type DatabaseInstanceCountOutputType = {
+    snapshots: number
+    restores: number
+  }
+
+  export type DatabaseInstanceCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    snapshots?: boolean | DatabaseInstanceCountOutputTypeCountSnapshotsArgs
+    restores?: boolean | DatabaseInstanceCountOutputTypeCountRestoresArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * DatabaseInstanceCountOutputType without action
+   */
+  export type DatabaseInstanceCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseInstanceCountOutputType
+     */
+    select?: DatabaseInstanceCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * DatabaseInstanceCountOutputType without action
+   */
+  export type DatabaseInstanceCountOutputTypeCountSnapshotsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DatabaseSnapshotWhereInput
+  }
+
+  /**
+   * DatabaseInstanceCountOutputType without action
+   */
+  export type DatabaseInstanceCountOutputTypeCountRestoresArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DatabaseRestoreWhereInput
   }
 
 
@@ -21560,6 +21911,7 @@ export namespace Prisma {
     agentMemoryPreferences?: boolean | Project$agentMemoryPreferencesArgs<ExtArgs>
     agentPatchProposals?: boolean | Project$agentPatchProposalsArgs<ExtArgs>
     connectionLinks?: boolean | Project$connectionLinksArgs<ExtArgs>
+    databaseInstance?: boolean | Project$databaseInstanceArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -21636,6 +21988,7 @@ export namespace Prisma {
     agentMemoryPreferences?: boolean | Project$agentMemoryPreferencesArgs<ExtArgs>
     agentPatchProposals?: boolean | Project$agentPatchProposalsArgs<ExtArgs>
     connectionLinks?: boolean | Project$connectionLinksArgs<ExtArgs>
+    databaseInstance?: boolean | Project$databaseInstanceArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -21669,6 +22022,7 @@ export namespace Prisma {
       agentMemoryPreferences: Prisma.$AgentMemoryPreferencePayload<ExtArgs>[]
       agentPatchProposals: Prisma.$AgentPatchProposalPayload<ExtArgs>[]
       connectionLinks: Prisma.$ProjectConnectionLinkPayload<ExtArgs>[]
+      databaseInstance: Prisma.$DatabaseInstancePayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -22099,6 +22453,7 @@ export namespace Prisma {
     agentMemoryPreferences<T extends Project$agentMemoryPreferencesArgs<ExtArgs> = {}>(args?: Subset<T, Project$agentMemoryPreferencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentPatchProposals<T extends Project$agentPatchProposalsArgs<ExtArgs> = {}>(args?: Subset<T, Project$agentPatchProposalsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     connectionLinks<T extends Project$connectionLinksArgs<ExtArgs> = {}>(args?: Subset<T, Project$connectionLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    databaseInstance<T extends Project$databaseInstanceArgs<ExtArgs> = {}>(args?: Subset<T, Project$databaseInstanceArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -23014,6 +23369,25 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ProjectConnectionLinkScalarFieldEnum | ProjectConnectionLinkScalarFieldEnum[]
+  }
+
+  /**
+   * Project.databaseInstance
+   */
+  export type Project$databaseInstanceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseInstance
+     */
+    select?: DatabaseInstanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseInstance
+     */
+    omit?: DatabaseInstanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseInstanceInclude<ExtArgs> | null
+    where?: DatabaseInstanceWhereInput
   }
 
   /**
@@ -106875,6 +107249,3533 @@ export namespace Prisma {
 
 
   /**
+   * Model DatabaseInstance
+   */
+
+  export type AggregateDatabaseInstance = {
+    _count: DatabaseInstanceCountAggregateOutputType | null
+    _avg: DatabaseInstanceAvgAggregateOutputType | null
+    _sum: DatabaseInstanceSumAggregateOutputType | null
+    _min: DatabaseInstanceMinAggregateOutputType | null
+    _max: DatabaseInstanceMaxAggregateOutputType | null
+  }
+
+  export type DatabaseInstanceAvgAggregateOutputType = {
+    sizeBytes: number | null
+    retentionDays: number | null
+  }
+
+  export type DatabaseInstanceSumAggregateOutputType = {
+    sizeBytes: bigint | null
+    retentionDays: number | null
+  }
+
+  export type DatabaseInstanceMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    organizationId: string | null
+    status: $Enums.DatabaseInstanceStatus | null
+    engine: string | null
+    region: string | null
+    sizeBytes: bigint | null
+    retentionDays: number | null
+    pitrEnabled: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type DatabaseInstanceMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    organizationId: string | null
+    status: $Enums.DatabaseInstanceStatus | null
+    engine: string | null
+    region: string | null
+    sizeBytes: bigint | null
+    retentionDays: number | null
+    pitrEnabled: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type DatabaseInstanceCountAggregateOutputType = {
+    id: number
+    projectId: number
+    organizationId: number
+    status: number
+    engine: number
+    region: number
+    sizeBytes: number
+    retentionDays: number
+    pitrEnabled: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type DatabaseInstanceAvgAggregateInputType = {
+    sizeBytes?: true
+    retentionDays?: true
+  }
+
+  export type DatabaseInstanceSumAggregateInputType = {
+    sizeBytes?: true
+    retentionDays?: true
+  }
+
+  export type DatabaseInstanceMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    organizationId?: true
+    status?: true
+    engine?: true
+    region?: true
+    sizeBytes?: true
+    retentionDays?: true
+    pitrEnabled?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type DatabaseInstanceMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    organizationId?: true
+    status?: true
+    engine?: true
+    region?: true
+    sizeBytes?: true
+    retentionDays?: true
+    pitrEnabled?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type DatabaseInstanceCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    organizationId?: true
+    status?: true
+    engine?: true
+    region?: true
+    sizeBytes?: true
+    retentionDays?: true
+    pitrEnabled?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type DatabaseInstanceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DatabaseInstance to aggregate.
+     */
+    where?: DatabaseInstanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseInstances to fetch.
+     */
+    orderBy?: DatabaseInstanceOrderByWithRelationInput | DatabaseInstanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DatabaseInstanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseInstances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseInstances.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DatabaseInstances
+    **/
+    _count?: true | DatabaseInstanceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: DatabaseInstanceAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: DatabaseInstanceSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DatabaseInstanceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DatabaseInstanceMaxAggregateInputType
+  }
+
+  export type GetDatabaseInstanceAggregateType<T extends DatabaseInstanceAggregateArgs> = {
+        [P in keyof T & keyof AggregateDatabaseInstance]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDatabaseInstance[P]>
+      : GetScalarType<T[P], AggregateDatabaseInstance[P]>
+  }
+
+
+
+
+  export type DatabaseInstanceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DatabaseInstanceWhereInput
+    orderBy?: DatabaseInstanceOrderByWithAggregationInput | DatabaseInstanceOrderByWithAggregationInput[]
+    by: DatabaseInstanceScalarFieldEnum[] | DatabaseInstanceScalarFieldEnum
+    having?: DatabaseInstanceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DatabaseInstanceCountAggregateInputType | true
+    _avg?: DatabaseInstanceAvgAggregateInputType
+    _sum?: DatabaseInstanceSumAggregateInputType
+    _min?: DatabaseInstanceMinAggregateInputType
+    _max?: DatabaseInstanceMaxAggregateInputType
+  }
+
+  export type DatabaseInstanceGroupByOutputType = {
+    id: string
+    projectId: string
+    organizationId: string
+    status: $Enums.DatabaseInstanceStatus
+    engine: string
+    region: string | null
+    sizeBytes: bigint
+    retentionDays: number
+    pitrEnabled: boolean
+    createdAt: Date
+    updatedAt: Date
+    _count: DatabaseInstanceCountAggregateOutputType | null
+    _avg: DatabaseInstanceAvgAggregateOutputType | null
+    _sum: DatabaseInstanceSumAggregateOutputType | null
+    _min: DatabaseInstanceMinAggregateOutputType | null
+    _max: DatabaseInstanceMaxAggregateOutputType | null
+  }
+
+  type GetDatabaseInstanceGroupByPayload<T extends DatabaseInstanceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DatabaseInstanceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DatabaseInstanceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DatabaseInstanceGroupByOutputType[P]>
+            : GetScalarType<T[P], DatabaseInstanceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DatabaseInstanceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    status?: boolean
+    engine?: boolean
+    region?: boolean
+    sizeBytes?: boolean
+    retentionDays?: boolean
+    pitrEnabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    snapshots?: boolean | DatabaseInstance$snapshotsArgs<ExtArgs>
+    restores?: boolean | DatabaseInstance$restoresArgs<ExtArgs>
+    _count?: boolean | DatabaseInstanceCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseInstance"]>
+
+  export type DatabaseInstanceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    status?: boolean
+    engine?: boolean
+    region?: boolean
+    sizeBytes?: boolean
+    retentionDays?: boolean
+    pitrEnabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseInstance"]>
+
+  export type DatabaseInstanceSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    status?: boolean
+    engine?: boolean
+    region?: boolean
+    sizeBytes?: boolean
+    retentionDays?: boolean
+    pitrEnabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseInstance"]>
+
+  export type DatabaseInstanceSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    status?: boolean
+    engine?: boolean
+    region?: boolean
+    sizeBytes?: boolean
+    retentionDays?: boolean
+    pitrEnabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type DatabaseInstanceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "organizationId" | "status" | "engine" | "region" | "sizeBytes" | "retentionDays" | "pitrEnabled" | "createdAt" | "updatedAt", ExtArgs["result"]["databaseInstance"]>
+  export type DatabaseInstanceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    snapshots?: boolean | DatabaseInstance$snapshotsArgs<ExtArgs>
+    restores?: boolean | DatabaseInstance$restoresArgs<ExtArgs>
+    _count?: boolean | DatabaseInstanceCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type DatabaseInstanceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type DatabaseInstanceIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+
+  export type $DatabaseInstancePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DatabaseInstance"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+      snapshots: Prisma.$DatabaseSnapshotPayload<ExtArgs>[]
+      restores: Prisma.$DatabaseRestorePayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      organizationId: string
+      status: $Enums.DatabaseInstanceStatus
+      engine: string
+      region: string | null
+      sizeBytes: bigint
+      retentionDays: number
+      pitrEnabled: boolean
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["databaseInstance"]>
+    composites: {}
+  }
+
+  type DatabaseInstanceGetPayload<S extends boolean | null | undefined | DatabaseInstanceDefaultArgs> = $Result.GetResult<Prisma.$DatabaseInstancePayload, S>
+
+  type DatabaseInstanceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<DatabaseInstanceFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: DatabaseInstanceCountAggregateInputType | true
+    }
+
+  export interface DatabaseInstanceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DatabaseInstance'], meta: { name: 'DatabaseInstance' } }
+    /**
+     * Find zero or one DatabaseInstance that matches the filter.
+     * @param {DatabaseInstanceFindUniqueArgs} args - Arguments to find a DatabaseInstance
+     * @example
+     * // Get one DatabaseInstance
+     * const databaseInstance = await prisma.databaseInstance.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DatabaseInstanceFindUniqueArgs>(args: SelectSubset<T, DatabaseInstanceFindUniqueArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one DatabaseInstance that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {DatabaseInstanceFindUniqueOrThrowArgs} args - Arguments to find a DatabaseInstance
+     * @example
+     * // Get one DatabaseInstance
+     * const databaseInstance = await prisma.databaseInstance.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DatabaseInstanceFindUniqueOrThrowArgs>(args: SelectSubset<T, DatabaseInstanceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DatabaseInstance that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseInstanceFindFirstArgs} args - Arguments to find a DatabaseInstance
+     * @example
+     * // Get one DatabaseInstance
+     * const databaseInstance = await prisma.databaseInstance.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DatabaseInstanceFindFirstArgs>(args?: SelectSubset<T, DatabaseInstanceFindFirstArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DatabaseInstance that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseInstanceFindFirstOrThrowArgs} args - Arguments to find a DatabaseInstance
+     * @example
+     * // Get one DatabaseInstance
+     * const databaseInstance = await prisma.databaseInstance.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DatabaseInstanceFindFirstOrThrowArgs>(args?: SelectSubset<T, DatabaseInstanceFindFirstOrThrowArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more DatabaseInstances that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseInstanceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DatabaseInstances
+     * const databaseInstances = await prisma.databaseInstance.findMany()
+     * 
+     * // Get first 10 DatabaseInstances
+     * const databaseInstances = await prisma.databaseInstance.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const databaseInstanceWithIdOnly = await prisma.databaseInstance.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DatabaseInstanceFindManyArgs>(args?: SelectSubset<T, DatabaseInstanceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a DatabaseInstance.
+     * @param {DatabaseInstanceCreateArgs} args - Arguments to create a DatabaseInstance.
+     * @example
+     * // Create one DatabaseInstance
+     * const DatabaseInstance = await prisma.databaseInstance.create({
+     *   data: {
+     *     // ... data to create a DatabaseInstance
+     *   }
+     * })
+     * 
+     */
+    create<T extends DatabaseInstanceCreateArgs>(args: SelectSubset<T, DatabaseInstanceCreateArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many DatabaseInstances.
+     * @param {DatabaseInstanceCreateManyArgs} args - Arguments to create many DatabaseInstances.
+     * @example
+     * // Create many DatabaseInstances
+     * const databaseInstance = await prisma.databaseInstance.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DatabaseInstanceCreateManyArgs>(args?: SelectSubset<T, DatabaseInstanceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DatabaseInstances and returns the data saved in the database.
+     * @param {DatabaseInstanceCreateManyAndReturnArgs} args - Arguments to create many DatabaseInstances.
+     * @example
+     * // Create many DatabaseInstances
+     * const databaseInstance = await prisma.databaseInstance.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DatabaseInstances and only return the `id`
+     * const databaseInstanceWithIdOnly = await prisma.databaseInstance.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DatabaseInstanceCreateManyAndReturnArgs>(args?: SelectSubset<T, DatabaseInstanceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a DatabaseInstance.
+     * @param {DatabaseInstanceDeleteArgs} args - Arguments to delete one DatabaseInstance.
+     * @example
+     * // Delete one DatabaseInstance
+     * const DatabaseInstance = await prisma.databaseInstance.delete({
+     *   where: {
+     *     // ... filter to delete one DatabaseInstance
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DatabaseInstanceDeleteArgs>(args: SelectSubset<T, DatabaseInstanceDeleteArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one DatabaseInstance.
+     * @param {DatabaseInstanceUpdateArgs} args - Arguments to update one DatabaseInstance.
+     * @example
+     * // Update one DatabaseInstance
+     * const databaseInstance = await prisma.databaseInstance.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DatabaseInstanceUpdateArgs>(args: SelectSubset<T, DatabaseInstanceUpdateArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more DatabaseInstances.
+     * @param {DatabaseInstanceDeleteManyArgs} args - Arguments to filter DatabaseInstances to delete.
+     * @example
+     * // Delete a few DatabaseInstances
+     * const { count } = await prisma.databaseInstance.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DatabaseInstanceDeleteManyArgs>(args?: SelectSubset<T, DatabaseInstanceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DatabaseInstances.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseInstanceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DatabaseInstances
+     * const databaseInstance = await prisma.databaseInstance.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DatabaseInstanceUpdateManyArgs>(args: SelectSubset<T, DatabaseInstanceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DatabaseInstances and returns the data updated in the database.
+     * @param {DatabaseInstanceUpdateManyAndReturnArgs} args - Arguments to update many DatabaseInstances.
+     * @example
+     * // Update many DatabaseInstances
+     * const databaseInstance = await prisma.databaseInstance.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more DatabaseInstances and only return the `id`
+     * const databaseInstanceWithIdOnly = await prisma.databaseInstance.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends DatabaseInstanceUpdateManyAndReturnArgs>(args: SelectSubset<T, DatabaseInstanceUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one DatabaseInstance.
+     * @param {DatabaseInstanceUpsertArgs} args - Arguments to update or create a DatabaseInstance.
+     * @example
+     * // Update or create a DatabaseInstance
+     * const databaseInstance = await prisma.databaseInstance.upsert({
+     *   create: {
+     *     // ... data to create a DatabaseInstance
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DatabaseInstance we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DatabaseInstanceUpsertArgs>(args: SelectSubset<T, DatabaseInstanceUpsertArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of DatabaseInstances.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseInstanceCountArgs} args - Arguments to filter DatabaseInstances to count.
+     * @example
+     * // Count the number of DatabaseInstances
+     * const count = await prisma.databaseInstance.count({
+     *   where: {
+     *     // ... the filter for the DatabaseInstances we want to count
+     *   }
+     * })
+    **/
+    count<T extends DatabaseInstanceCountArgs>(
+      args?: Subset<T, DatabaseInstanceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DatabaseInstanceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DatabaseInstance.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseInstanceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DatabaseInstanceAggregateArgs>(args: Subset<T, DatabaseInstanceAggregateArgs>): Prisma.PrismaPromise<GetDatabaseInstanceAggregateType<T>>
+
+    /**
+     * Group by DatabaseInstance.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseInstanceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DatabaseInstanceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DatabaseInstanceGroupByArgs['orderBy'] }
+        : { orderBy?: DatabaseInstanceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DatabaseInstanceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDatabaseInstanceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DatabaseInstance model
+   */
+  readonly fields: DatabaseInstanceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DatabaseInstance.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DatabaseInstanceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    snapshots<T extends DatabaseInstance$snapshotsArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstance$snapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    restores<T extends DatabaseInstance$restoresArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstance$restoresArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DatabaseInstance model
+   */
+  interface DatabaseInstanceFieldRefs {
+    readonly id: FieldRef<"DatabaseInstance", 'String'>
+    readonly projectId: FieldRef<"DatabaseInstance", 'String'>
+    readonly organizationId: FieldRef<"DatabaseInstance", 'String'>
+    readonly status: FieldRef<"DatabaseInstance", 'DatabaseInstanceStatus'>
+    readonly engine: FieldRef<"DatabaseInstance", 'String'>
+    readonly region: FieldRef<"DatabaseInstance", 'String'>
+    readonly sizeBytes: FieldRef<"DatabaseInstance", 'BigInt'>
+    readonly retentionDays: FieldRef<"DatabaseInstance", 'Int'>
+    readonly pitrEnabled: FieldRef<"DatabaseInstance", 'Boolean'>
+    readonly createdAt: FieldRef<"DatabaseInstance", 'DateTime'>
+    readonly updatedAt: FieldRef<"DatabaseInstance", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DatabaseInstance findUnique
+   */
+  export type DatabaseInstanceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseInstance
+     */
+    select?: DatabaseInstanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseInstance
+     */
+    omit?: DatabaseInstanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseInstanceInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseInstance to fetch.
+     */
+    where: DatabaseInstanceWhereUniqueInput
+  }
+
+  /**
+   * DatabaseInstance findUniqueOrThrow
+   */
+  export type DatabaseInstanceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseInstance
+     */
+    select?: DatabaseInstanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseInstance
+     */
+    omit?: DatabaseInstanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseInstanceInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseInstance to fetch.
+     */
+    where: DatabaseInstanceWhereUniqueInput
+  }
+
+  /**
+   * DatabaseInstance findFirst
+   */
+  export type DatabaseInstanceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseInstance
+     */
+    select?: DatabaseInstanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseInstance
+     */
+    omit?: DatabaseInstanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseInstanceInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseInstance to fetch.
+     */
+    where?: DatabaseInstanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseInstances to fetch.
+     */
+    orderBy?: DatabaseInstanceOrderByWithRelationInput | DatabaseInstanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DatabaseInstances.
+     */
+    cursor?: DatabaseInstanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseInstances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseInstances.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseInstances.
+     */
+    distinct?: DatabaseInstanceScalarFieldEnum | DatabaseInstanceScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseInstance findFirstOrThrow
+   */
+  export type DatabaseInstanceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseInstance
+     */
+    select?: DatabaseInstanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseInstance
+     */
+    omit?: DatabaseInstanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseInstanceInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseInstance to fetch.
+     */
+    where?: DatabaseInstanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseInstances to fetch.
+     */
+    orderBy?: DatabaseInstanceOrderByWithRelationInput | DatabaseInstanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DatabaseInstances.
+     */
+    cursor?: DatabaseInstanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseInstances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseInstances.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseInstances.
+     */
+    distinct?: DatabaseInstanceScalarFieldEnum | DatabaseInstanceScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseInstance findMany
+   */
+  export type DatabaseInstanceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseInstance
+     */
+    select?: DatabaseInstanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseInstance
+     */
+    omit?: DatabaseInstanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseInstanceInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseInstances to fetch.
+     */
+    where?: DatabaseInstanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseInstances to fetch.
+     */
+    orderBy?: DatabaseInstanceOrderByWithRelationInput | DatabaseInstanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DatabaseInstances.
+     */
+    cursor?: DatabaseInstanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseInstances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseInstances.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseInstances.
+     */
+    distinct?: DatabaseInstanceScalarFieldEnum | DatabaseInstanceScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseInstance create
+   */
+  export type DatabaseInstanceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseInstance
+     */
+    select?: DatabaseInstanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseInstance
+     */
+    omit?: DatabaseInstanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseInstanceInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DatabaseInstance.
+     */
+    data: XOR<DatabaseInstanceCreateInput, DatabaseInstanceUncheckedCreateInput>
+  }
+
+  /**
+   * DatabaseInstance createMany
+   */
+  export type DatabaseInstanceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DatabaseInstances.
+     */
+    data: DatabaseInstanceCreateManyInput | DatabaseInstanceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DatabaseInstance createManyAndReturn
+   */
+  export type DatabaseInstanceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseInstance
+     */
+    select?: DatabaseInstanceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseInstance
+     */
+    omit?: DatabaseInstanceOmit<ExtArgs> | null
+    /**
+     * The data used to create many DatabaseInstances.
+     */
+    data: DatabaseInstanceCreateManyInput | DatabaseInstanceCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseInstanceIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DatabaseInstance update
+   */
+  export type DatabaseInstanceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseInstance
+     */
+    select?: DatabaseInstanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseInstance
+     */
+    omit?: DatabaseInstanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseInstanceInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DatabaseInstance.
+     */
+    data: XOR<DatabaseInstanceUpdateInput, DatabaseInstanceUncheckedUpdateInput>
+    /**
+     * Choose, which DatabaseInstance to update.
+     */
+    where: DatabaseInstanceWhereUniqueInput
+  }
+
+  /**
+   * DatabaseInstance updateMany
+   */
+  export type DatabaseInstanceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DatabaseInstances.
+     */
+    data: XOR<DatabaseInstanceUpdateManyMutationInput, DatabaseInstanceUncheckedUpdateManyInput>
+    /**
+     * Filter which DatabaseInstances to update
+     */
+    where?: DatabaseInstanceWhereInput
+    /**
+     * Limit how many DatabaseInstances to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DatabaseInstance updateManyAndReturn
+   */
+  export type DatabaseInstanceUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseInstance
+     */
+    select?: DatabaseInstanceSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseInstance
+     */
+    omit?: DatabaseInstanceOmit<ExtArgs> | null
+    /**
+     * The data used to update DatabaseInstances.
+     */
+    data: XOR<DatabaseInstanceUpdateManyMutationInput, DatabaseInstanceUncheckedUpdateManyInput>
+    /**
+     * Filter which DatabaseInstances to update
+     */
+    where?: DatabaseInstanceWhereInput
+    /**
+     * Limit how many DatabaseInstances to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseInstanceIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DatabaseInstance upsert
+   */
+  export type DatabaseInstanceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseInstance
+     */
+    select?: DatabaseInstanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseInstance
+     */
+    omit?: DatabaseInstanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseInstanceInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DatabaseInstance to update in case it exists.
+     */
+    where: DatabaseInstanceWhereUniqueInput
+    /**
+     * In case the DatabaseInstance found by the `where` argument doesn't exist, create a new DatabaseInstance with this data.
+     */
+    create: XOR<DatabaseInstanceCreateInput, DatabaseInstanceUncheckedCreateInput>
+    /**
+     * In case the DatabaseInstance was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DatabaseInstanceUpdateInput, DatabaseInstanceUncheckedUpdateInput>
+  }
+
+  /**
+   * DatabaseInstance delete
+   */
+  export type DatabaseInstanceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseInstance
+     */
+    select?: DatabaseInstanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseInstance
+     */
+    omit?: DatabaseInstanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseInstanceInclude<ExtArgs> | null
+    /**
+     * Filter which DatabaseInstance to delete.
+     */
+    where: DatabaseInstanceWhereUniqueInput
+  }
+
+  /**
+   * DatabaseInstance deleteMany
+   */
+  export type DatabaseInstanceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DatabaseInstances to delete
+     */
+    where?: DatabaseInstanceWhereInput
+    /**
+     * Limit how many DatabaseInstances to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * DatabaseInstance.snapshots
+   */
+  export type DatabaseInstance$snapshotsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseSnapshot
+     */
+    select?: DatabaseSnapshotSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseSnapshot
+     */
+    omit?: DatabaseSnapshotOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseSnapshotInclude<ExtArgs> | null
+    where?: DatabaseSnapshotWhereInput
+    orderBy?: DatabaseSnapshotOrderByWithRelationInput | DatabaseSnapshotOrderByWithRelationInput[]
+    cursor?: DatabaseSnapshotWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DatabaseSnapshotScalarFieldEnum | DatabaseSnapshotScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseInstance.restores
+   */
+  export type DatabaseInstance$restoresArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestore
+     */
+    select?: DatabaseRestoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestore
+     */
+    omit?: DatabaseRestoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreInclude<ExtArgs> | null
+    where?: DatabaseRestoreWhereInput
+    orderBy?: DatabaseRestoreOrderByWithRelationInput | DatabaseRestoreOrderByWithRelationInput[]
+    cursor?: DatabaseRestoreWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DatabaseRestoreScalarFieldEnum | DatabaseRestoreScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseInstance without action
+   */
+  export type DatabaseInstanceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseInstance
+     */
+    select?: DatabaseInstanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseInstance
+     */
+    omit?: DatabaseInstanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseInstanceInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DatabaseSnapshot
+   */
+
+  export type AggregateDatabaseSnapshot = {
+    _count: DatabaseSnapshotCountAggregateOutputType | null
+    _avg: DatabaseSnapshotAvgAggregateOutputType | null
+    _sum: DatabaseSnapshotSumAggregateOutputType | null
+    _min: DatabaseSnapshotMinAggregateOutputType | null
+    _max: DatabaseSnapshotMaxAggregateOutputType | null
+  }
+
+  export type DatabaseSnapshotAvgAggregateOutputType = {
+    sizeBytes: number | null
+  }
+
+  export type DatabaseSnapshotSumAggregateOutputType = {
+    sizeBytes: bigint | null
+  }
+
+  export type DatabaseSnapshotMinAggregateOutputType = {
+    id: string | null
+    databaseInstanceId: string | null
+    kind: string | null
+    label: string | null
+    lsn: string | null
+    sizeBytes: bigint | null
+    storageKey: string | null
+    createdByUserId: string | null
+    createdAt: Date | null
+    expiresAt: Date | null
+  }
+
+  export type DatabaseSnapshotMaxAggregateOutputType = {
+    id: string | null
+    databaseInstanceId: string | null
+    kind: string | null
+    label: string | null
+    lsn: string | null
+    sizeBytes: bigint | null
+    storageKey: string | null
+    createdByUserId: string | null
+    createdAt: Date | null
+    expiresAt: Date | null
+  }
+
+  export type DatabaseSnapshotCountAggregateOutputType = {
+    id: number
+    databaseInstanceId: number
+    kind: number
+    label: number
+    lsn: number
+    sizeBytes: number
+    storageKey: number
+    createdByUserId: number
+    createdAt: number
+    expiresAt: number
+    _all: number
+  }
+
+
+  export type DatabaseSnapshotAvgAggregateInputType = {
+    sizeBytes?: true
+  }
+
+  export type DatabaseSnapshotSumAggregateInputType = {
+    sizeBytes?: true
+  }
+
+  export type DatabaseSnapshotMinAggregateInputType = {
+    id?: true
+    databaseInstanceId?: true
+    kind?: true
+    label?: true
+    lsn?: true
+    sizeBytes?: true
+    storageKey?: true
+    createdByUserId?: true
+    createdAt?: true
+    expiresAt?: true
+  }
+
+  export type DatabaseSnapshotMaxAggregateInputType = {
+    id?: true
+    databaseInstanceId?: true
+    kind?: true
+    label?: true
+    lsn?: true
+    sizeBytes?: true
+    storageKey?: true
+    createdByUserId?: true
+    createdAt?: true
+    expiresAt?: true
+  }
+
+  export type DatabaseSnapshotCountAggregateInputType = {
+    id?: true
+    databaseInstanceId?: true
+    kind?: true
+    label?: true
+    lsn?: true
+    sizeBytes?: true
+    storageKey?: true
+    createdByUserId?: true
+    createdAt?: true
+    expiresAt?: true
+    _all?: true
+  }
+
+  export type DatabaseSnapshotAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DatabaseSnapshot to aggregate.
+     */
+    where?: DatabaseSnapshotWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseSnapshots to fetch.
+     */
+    orderBy?: DatabaseSnapshotOrderByWithRelationInput | DatabaseSnapshotOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DatabaseSnapshotWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseSnapshots from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseSnapshots.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DatabaseSnapshots
+    **/
+    _count?: true | DatabaseSnapshotCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: DatabaseSnapshotAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: DatabaseSnapshotSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DatabaseSnapshotMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DatabaseSnapshotMaxAggregateInputType
+  }
+
+  export type GetDatabaseSnapshotAggregateType<T extends DatabaseSnapshotAggregateArgs> = {
+        [P in keyof T & keyof AggregateDatabaseSnapshot]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDatabaseSnapshot[P]>
+      : GetScalarType<T[P], AggregateDatabaseSnapshot[P]>
+  }
+
+
+
+
+  export type DatabaseSnapshotGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DatabaseSnapshotWhereInput
+    orderBy?: DatabaseSnapshotOrderByWithAggregationInput | DatabaseSnapshotOrderByWithAggregationInput[]
+    by: DatabaseSnapshotScalarFieldEnum[] | DatabaseSnapshotScalarFieldEnum
+    having?: DatabaseSnapshotScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DatabaseSnapshotCountAggregateInputType | true
+    _avg?: DatabaseSnapshotAvgAggregateInputType
+    _sum?: DatabaseSnapshotSumAggregateInputType
+    _min?: DatabaseSnapshotMinAggregateInputType
+    _max?: DatabaseSnapshotMaxAggregateInputType
+  }
+
+  export type DatabaseSnapshotGroupByOutputType = {
+    id: string
+    databaseInstanceId: string
+    kind: string
+    label: string | null
+    lsn: string | null
+    sizeBytes: bigint
+    storageKey: string | null
+    createdByUserId: string | null
+    createdAt: Date
+    expiresAt: Date | null
+    _count: DatabaseSnapshotCountAggregateOutputType | null
+    _avg: DatabaseSnapshotAvgAggregateOutputType | null
+    _sum: DatabaseSnapshotSumAggregateOutputType | null
+    _min: DatabaseSnapshotMinAggregateOutputType | null
+    _max: DatabaseSnapshotMaxAggregateOutputType | null
+  }
+
+  type GetDatabaseSnapshotGroupByPayload<T extends DatabaseSnapshotGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DatabaseSnapshotGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DatabaseSnapshotGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DatabaseSnapshotGroupByOutputType[P]>
+            : GetScalarType<T[P], DatabaseSnapshotGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DatabaseSnapshotSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    databaseInstanceId?: boolean
+    kind?: boolean
+    label?: boolean
+    lsn?: boolean
+    sizeBytes?: boolean
+    storageKey?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    expiresAt?: boolean
+    databaseInstance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseSnapshot"]>
+
+  export type DatabaseSnapshotSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    databaseInstanceId?: boolean
+    kind?: boolean
+    label?: boolean
+    lsn?: boolean
+    sizeBytes?: boolean
+    storageKey?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    expiresAt?: boolean
+    databaseInstance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseSnapshot"]>
+
+  export type DatabaseSnapshotSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    databaseInstanceId?: boolean
+    kind?: boolean
+    label?: boolean
+    lsn?: boolean
+    sizeBytes?: boolean
+    storageKey?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    expiresAt?: boolean
+    databaseInstance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseSnapshot"]>
+
+  export type DatabaseSnapshotSelectScalar = {
+    id?: boolean
+    databaseInstanceId?: boolean
+    kind?: boolean
+    label?: boolean
+    lsn?: boolean
+    sizeBytes?: boolean
+    storageKey?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    expiresAt?: boolean
+  }
+
+  export type DatabaseSnapshotOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "databaseInstanceId" | "kind" | "label" | "lsn" | "sizeBytes" | "storageKey" | "createdByUserId" | "createdAt" | "expiresAt", ExtArgs["result"]["databaseSnapshot"]>
+  export type DatabaseSnapshotInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    databaseInstance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }
+  export type DatabaseSnapshotIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    databaseInstance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }
+  export type DatabaseSnapshotIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    databaseInstance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }
+
+  export type $DatabaseSnapshotPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DatabaseSnapshot"
+    objects: {
+      databaseInstance: Prisma.$DatabaseInstancePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      databaseInstanceId: string
+      kind: string
+      label: string | null
+      lsn: string | null
+      sizeBytes: bigint
+      storageKey: string | null
+      createdByUserId: string | null
+      createdAt: Date
+      expiresAt: Date | null
+    }, ExtArgs["result"]["databaseSnapshot"]>
+    composites: {}
+  }
+
+  type DatabaseSnapshotGetPayload<S extends boolean | null | undefined | DatabaseSnapshotDefaultArgs> = $Result.GetResult<Prisma.$DatabaseSnapshotPayload, S>
+
+  type DatabaseSnapshotCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<DatabaseSnapshotFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: DatabaseSnapshotCountAggregateInputType | true
+    }
+
+  export interface DatabaseSnapshotDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DatabaseSnapshot'], meta: { name: 'DatabaseSnapshot' } }
+    /**
+     * Find zero or one DatabaseSnapshot that matches the filter.
+     * @param {DatabaseSnapshotFindUniqueArgs} args - Arguments to find a DatabaseSnapshot
+     * @example
+     * // Get one DatabaseSnapshot
+     * const databaseSnapshot = await prisma.databaseSnapshot.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DatabaseSnapshotFindUniqueArgs>(args: SelectSubset<T, DatabaseSnapshotFindUniqueArgs<ExtArgs>>): Prisma__DatabaseSnapshotClient<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one DatabaseSnapshot that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {DatabaseSnapshotFindUniqueOrThrowArgs} args - Arguments to find a DatabaseSnapshot
+     * @example
+     * // Get one DatabaseSnapshot
+     * const databaseSnapshot = await prisma.databaseSnapshot.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DatabaseSnapshotFindUniqueOrThrowArgs>(args: SelectSubset<T, DatabaseSnapshotFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DatabaseSnapshotClient<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DatabaseSnapshot that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseSnapshotFindFirstArgs} args - Arguments to find a DatabaseSnapshot
+     * @example
+     * // Get one DatabaseSnapshot
+     * const databaseSnapshot = await prisma.databaseSnapshot.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DatabaseSnapshotFindFirstArgs>(args?: SelectSubset<T, DatabaseSnapshotFindFirstArgs<ExtArgs>>): Prisma__DatabaseSnapshotClient<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DatabaseSnapshot that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseSnapshotFindFirstOrThrowArgs} args - Arguments to find a DatabaseSnapshot
+     * @example
+     * // Get one DatabaseSnapshot
+     * const databaseSnapshot = await prisma.databaseSnapshot.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DatabaseSnapshotFindFirstOrThrowArgs>(args?: SelectSubset<T, DatabaseSnapshotFindFirstOrThrowArgs<ExtArgs>>): Prisma__DatabaseSnapshotClient<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more DatabaseSnapshots that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseSnapshotFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DatabaseSnapshots
+     * const databaseSnapshots = await prisma.databaseSnapshot.findMany()
+     * 
+     * // Get first 10 DatabaseSnapshots
+     * const databaseSnapshots = await prisma.databaseSnapshot.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const databaseSnapshotWithIdOnly = await prisma.databaseSnapshot.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DatabaseSnapshotFindManyArgs>(args?: SelectSubset<T, DatabaseSnapshotFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a DatabaseSnapshot.
+     * @param {DatabaseSnapshotCreateArgs} args - Arguments to create a DatabaseSnapshot.
+     * @example
+     * // Create one DatabaseSnapshot
+     * const DatabaseSnapshot = await prisma.databaseSnapshot.create({
+     *   data: {
+     *     // ... data to create a DatabaseSnapshot
+     *   }
+     * })
+     * 
+     */
+    create<T extends DatabaseSnapshotCreateArgs>(args: SelectSubset<T, DatabaseSnapshotCreateArgs<ExtArgs>>): Prisma__DatabaseSnapshotClient<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many DatabaseSnapshots.
+     * @param {DatabaseSnapshotCreateManyArgs} args - Arguments to create many DatabaseSnapshots.
+     * @example
+     * // Create many DatabaseSnapshots
+     * const databaseSnapshot = await prisma.databaseSnapshot.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DatabaseSnapshotCreateManyArgs>(args?: SelectSubset<T, DatabaseSnapshotCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DatabaseSnapshots and returns the data saved in the database.
+     * @param {DatabaseSnapshotCreateManyAndReturnArgs} args - Arguments to create many DatabaseSnapshots.
+     * @example
+     * // Create many DatabaseSnapshots
+     * const databaseSnapshot = await prisma.databaseSnapshot.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DatabaseSnapshots and only return the `id`
+     * const databaseSnapshotWithIdOnly = await prisma.databaseSnapshot.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DatabaseSnapshotCreateManyAndReturnArgs>(args?: SelectSubset<T, DatabaseSnapshotCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a DatabaseSnapshot.
+     * @param {DatabaseSnapshotDeleteArgs} args - Arguments to delete one DatabaseSnapshot.
+     * @example
+     * // Delete one DatabaseSnapshot
+     * const DatabaseSnapshot = await prisma.databaseSnapshot.delete({
+     *   where: {
+     *     // ... filter to delete one DatabaseSnapshot
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DatabaseSnapshotDeleteArgs>(args: SelectSubset<T, DatabaseSnapshotDeleteArgs<ExtArgs>>): Prisma__DatabaseSnapshotClient<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one DatabaseSnapshot.
+     * @param {DatabaseSnapshotUpdateArgs} args - Arguments to update one DatabaseSnapshot.
+     * @example
+     * // Update one DatabaseSnapshot
+     * const databaseSnapshot = await prisma.databaseSnapshot.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DatabaseSnapshotUpdateArgs>(args: SelectSubset<T, DatabaseSnapshotUpdateArgs<ExtArgs>>): Prisma__DatabaseSnapshotClient<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more DatabaseSnapshots.
+     * @param {DatabaseSnapshotDeleteManyArgs} args - Arguments to filter DatabaseSnapshots to delete.
+     * @example
+     * // Delete a few DatabaseSnapshots
+     * const { count } = await prisma.databaseSnapshot.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DatabaseSnapshotDeleteManyArgs>(args?: SelectSubset<T, DatabaseSnapshotDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DatabaseSnapshots.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseSnapshotUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DatabaseSnapshots
+     * const databaseSnapshot = await prisma.databaseSnapshot.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DatabaseSnapshotUpdateManyArgs>(args: SelectSubset<T, DatabaseSnapshotUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DatabaseSnapshots and returns the data updated in the database.
+     * @param {DatabaseSnapshotUpdateManyAndReturnArgs} args - Arguments to update many DatabaseSnapshots.
+     * @example
+     * // Update many DatabaseSnapshots
+     * const databaseSnapshot = await prisma.databaseSnapshot.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more DatabaseSnapshots and only return the `id`
+     * const databaseSnapshotWithIdOnly = await prisma.databaseSnapshot.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends DatabaseSnapshotUpdateManyAndReturnArgs>(args: SelectSubset<T, DatabaseSnapshotUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one DatabaseSnapshot.
+     * @param {DatabaseSnapshotUpsertArgs} args - Arguments to update or create a DatabaseSnapshot.
+     * @example
+     * // Update or create a DatabaseSnapshot
+     * const databaseSnapshot = await prisma.databaseSnapshot.upsert({
+     *   create: {
+     *     // ... data to create a DatabaseSnapshot
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DatabaseSnapshot we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DatabaseSnapshotUpsertArgs>(args: SelectSubset<T, DatabaseSnapshotUpsertArgs<ExtArgs>>): Prisma__DatabaseSnapshotClient<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of DatabaseSnapshots.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseSnapshotCountArgs} args - Arguments to filter DatabaseSnapshots to count.
+     * @example
+     * // Count the number of DatabaseSnapshots
+     * const count = await prisma.databaseSnapshot.count({
+     *   where: {
+     *     // ... the filter for the DatabaseSnapshots we want to count
+     *   }
+     * })
+    **/
+    count<T extends DatabaseSnapshotCountArgs>(
+      args?: Subset<T, DatabaseSnapshotCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DatabaseSnapshotCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DatabaseSnapshot.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseSnapshotAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DatabaseSnapshotAggregateArgs>(args: Subset<T, DatabaseSnapshotAggregateArgs>): Prisma.PrismaPromise<GetDatabaseSnapshotAggregateType<T>>
+
+    /**
+     * Group by DatabaseSnapshot.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseSnapshotGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DatabaseSnapshotGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DatabaseSnapshotGroupByArgs['orderBy'] }
+        : { orderBy?: DatabaseSnapshotGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DatabaseSnapshotGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDatabaseSnapshotGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DatabaseSnapshot model
+   */
+  readonly fields: DatabaseSnapshotFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DatabaseSnapshot.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DatabaseSnapshotClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    databaseInstance<T extends DatabaseInstanceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstanceDefaultArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DatabaseSnapshot model
+   */
+  interface DatabaseSnapshotFieldRefs {
+    readonly id: FieldRef<"DatabaseSnapshot", 'String'>
+    readonly databaseInstanceId: FieldRef<"DatabaseSnapshot", 'String'>
+    readonly kind: FieldRef<"DatabaseSnapshot", 'String'>
+    readonly label: FieldRef<"DatabaseSnapshot", 'String'>
+    readonly lsn: FieldRef<"DatabaseSnapshot", 'String'>
+    readonly sizeBytes: FieldRef<"DatabaseSnapshot", 'BigInt'>
+    readonly storageKey: FieldRef<"DatabaseSnapshot", 'String'>
+    readonly createdByUserId: FieldRef<"DatabaseSnapshot", 'String'>
+    readonly createdAt: FieldRef<"DatabaseSnapshot", 'DateTime'>
+    readonly expiresAt: FieldRef<"DatabaseSnapshot", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DatabaseSnapshot findUnique
+   */
+  export type DatabaseSnapshotFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseSnapshot
+     */
+    select?: DatabaseSnapshotSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseSnapshot
+     */
+    omit?: DatabaseSnapshotOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseSnapshotInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseSnapshot to fetch.
+     */
+    where: DatabaseSnapshotWhereUniqueInput
+  }
+
+  /**
+   * DatabaseSnapshot findUniqueOrThrow
+   */
+  export type DatabaseSnapshotFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseSnapshot
+     */
+    select?: DatabaseSnapshotSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseSnapshot
+     */
+    omit?: DatabaseSnapshotOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseSnapshotInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseSnapshot to fetch.
+     */
+    where: DatabaseSnapshotWhereUniqueInput
+  }
+
+  /**
+   * DatabaseSnapshot findFirst
+   */
+  export type DatabaseSnapshotFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseSnapshot
+     */
+    select?: DatabaseSnapshotSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseSnapshot
+     */
+    omit?: DatabaseSnapshotOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseSnapshotInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseSnapshot to fetch.
+     */
+    where?: DatabaseSnapshotWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseSnapshots to fetch.
+     */
+    orderBy?: DatabaseSnapshotOrderByWithRelationInput | DatabaseSnapshotOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DatabaseSnapshots.
+     */
+    cursor?: DatabaseSnapshotWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseSnapshots from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseSnapshots.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseSnapshots.
+     */
+    distinct?: DatabaseSnapshotScalarFieldEnum | DatabaseSnapshotScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseSnapshot findFirstOrThrow
+   */
+  export type DatabaseSnapshotFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseSnapshot
+     */
+    select?: DatabaseSnapshotSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseSnapshot
+     */
+    omit?: DatabaseSnapshotOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseSnapshotInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseSnapshot to fetch.
+     */
+    where?: DatabaseSnapshotWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseSnapshots to fetch.
+     */
+    orderBy?: DatabaseSnapshotOrderByWithRelationInput | DatabaseSnapshotOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DatabaseSnapshots.
+     */
+    cursor?: DatabaseSnapshotWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseSnapshots from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseSnapshots.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseSnapshots.
+     */
+    distinct?: DatabaseSnapshotScalarFieldEnum | DatabaseSnapshotScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseSnapshot findMany
+   */
+  export type DatabaseSnapshotFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseSnapshot
+     */
+    select?: DatabaseSnapshotSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseSnapshot
+     */
+    omit?: DatabaseSnapshotOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseSnapshotInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseSnapshots to fetch.
+     */
+    where?: DatabaseSnapshotWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseSnapshots to fetch.
+     */
+    orderBy?: DatabaseSnapshotOrderByWithRelationInput | DatabaseSnapshotOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DatabaseSnapshots.
+     */
+    cursor?: DatabaseSnapshotWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseSnapshots from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseSnapshots.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseSnapshots.
+     */
+    distinct?: DatabaseSnapshotScalarFieldEnum | DatabaseSnapshotScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseSnapshot create
+   */
+  export type DatabaseSnapshotCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseSnapshot
+     */
+    select?: DatabaseSnapshotSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseSnapshot
+     */
+    omit?: DatabaseSnapshotOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseSnapshotInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DatabaseSnapshot.
+     */
+    data: XOR<DatabaseSnapshotCreateInput, DatabaseSnapshotUncheckedCreateInput>
+  }
+
+  /**
+   * DatabaseSnapshot createMany
+   */
+  export type DatabaseSnapshotCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DatabaseSnapshots.
+     */
+    data: DatabaseSnapshotCreateManyInput | DatabaseSnapshotCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DatabaseSnapshot createManyAndReturn
+   */
+  export type DatabaseSnapshotCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseSnapshot
+     */
+    select?: DatabaseSnapshotSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseSnapshot
+     */
+    omit?: DatabaseSnapshotOmit<ExtArgs> | null
+    /**
+     * The data used to create many DatabaseSnapshots.
+     */
+    data: DatabaseSnapshotCreateManyInput | DatabaseSnapshotCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseSnapshotIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DatabaseSnapshot update
+   */
+  export type DatabaseSnapshotUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseSnapshot
+     */
+    select?: DatabaseSnapshotSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseSnapshot
+     */
+    omit?: DatabaseSnapshotOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseSnapshotInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DatabaseSnapshot.
+     */
+    data: XOR<DatabaseSnapshotUpdateInput, DatabaseSnapshotUncheckedUpdateInput>
+    /**
+     * Choose, which DatabaseSnapshot to update.
+     */
+    where: DatabaseSnapshotWhereUniqueInput
+  }
+
+  /**
+   * DatabaseSnapshot updateMany
+   */
+  export type DatabaseSnapshotUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DatabaseSnapshots.
+     */
+    data: XOR<DatabaseSnapshotUpdateManyMutationInput, DatabaseSnapshotUncheckedUpdateManyInput>
+    /**
+     * Filter which DatabaseSnapshots to update
+     */
+    where?: DatabaseSnapshotWhereInput
+    /**
+     * Limit how many DatabaseSnapshots to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DatabaseSnapshot updateManyAndReturn
+   */
+  export type DatabaseSnapshotUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseSnapshot
+     */
+    select?: DatabaseSnapshotSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseSnapshot
+     */
+    omit?: DatabaseSnapshotOmit<ExtArgs> | null
+    /**
+     * The data used to update DatabaseSnapshots.
+     */
+    data: XOR<DatabaseSnapshotUpdateManyMutationInput, DatabaseSnapshotUncheckedUpdateManyInput>
+    /**
+     * Filter which DatabaseSnapshots to update
+     */
+    where?: DatabaseSnapshotWhereInput
+    /**
+     * Limit how many DatabaseSnapshots to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseSnapshotIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DatabaseSnapshot upsert
+   */
+  export type DatabaseSnapshotUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseSnapshot
+     */
+    select?: DatabaseSnapshotSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseSnapshot
+     */
+    omit?: DatabaseSnapshotOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseSnapshotInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DatabaseSnapshot to update in case it exists.
+     */
+    where: DatabaseSnapshotWhereUniqueInput
+    /**
+     * In case the DatabaseSnapshot found by the `where` argument doesn't exist, create a new DatabaseSnapshot with this data.
+     */
+    create: XOR<DatabaseSnapshotCreateInput, DatabaseSnapshotUncheckedCreateInput>
+    /**
+     * In case the DatabaseSnapshot was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DatabaseSnapshotUpdateInput, DatabaseSnapshotUncheckedUpdateInput>
+  }
+
+  /**
+   * DatabaseSnapshot delete
+   */
+  export type DatabaseSnapshotDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseSnapshot
+     */
+    select?: DatabaseSnapshotSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseSnapshot
+     */
+    omit?: DatabaseSnapshotOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseSnapshotInclude<ExtArgs> | null
+    /**
+     * Filter which DatabaseSnapshot to delete.
+     */
+    where: DatabaseSnapshotWhereUniqueInput
+  }
+
+  /**
+   * DatabaseSnapshot deleteMany
+   */
+  export type DatabaseSnapshotDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DatabaseSnapshots to delete
+     */
+    where?: DatabaseSnapshotWhereInput
+    /**
+     * Limit how many DatabaseSnapshots to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * DatabaseSnapshot without action
+   */
+  export type DatabaseSnapshotDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseSnapshot
+     */
+    select?: DatabaseSnapshotSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseSnapshot
+     */
+    omit?: DatabaseSnapshotOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseSnapshotInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DatabaseRestore
+   */
+
+  export type AggregateDatabaseRestore = {
+    _count: DatabaseRestoreCountAggregateOutputType | null
+    _min: DatabaseRestoreMinAggregateOutputType | null
+    _max: DatabaseRestoreMaxAggregateOutputType | null
+  }
+
+  export type DatabaseRestoreMinAggregateOutputType = {
+    id: string | null
+    databaseInstanceId: string | null
+    snapshotId: string | null
+    targetTimestamp: Date | null
+    status: $Enums.DatabaseRestoreStatus | null
+    requestedByUserId: string | null
+    error: string | null
+    createdAt: Date | null
+    startedAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type DatabaseRestoreMaxAggregateOutputType = {
+    id: string | null
+    databaseInstanceId: string | null
+    snapshotId: string | null
+    targetTimestamp: Date | null
+    status: $Enums.DatabaseRestoreStatus | null
+    requestedByUserId: string | null
+    error: string | null
+    createdAt: Date | null
+    startedAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type DatabaseRestoreCountAggregateOutputType = {
+    id: number
+    databaseInstanceId: number
+    snapshotId: number
+    targetTimestamp: number
+    status: number
+    requestedByUserId: number
+    error: number
+    createdAt: number
+    startedAt: number
+    completedAt: number
+    _all: number
+  }
+
+
+  export type DatabaseRestoreMinAggregateInputType = {
+    id?: true
+    databaseInstanceId?: true
+    snapshotId?: true
+    targetTimestamp?: true
+    status?: true
+    requestedByUserId?: true
+    error?: true
+    createdAt?: true
+    startedAt?: true
+    completedAt?: true
+  }
+
+  export type DatabaseRestoreMaxAggregateInputType = {
+    id?: true
+    databaseInstanceId?: true
+    snapshotId?: true
+    targetTimestamp?: true
+    status?: true
+    requestedByUserId?: true
+    error?: true
+    createdAt?: true
+    startedAt?: true
+    completedAt?: true
+  }
+
+  export type DatabaseRestoreCountAggregateInputType = {
+    id?: true
+    databaseInstanceId?: true
+    snapshotId?: true
+    targetTimestamp?: true
+    status?: true
+    requestedByUserId?: true
+    error?: true
+    createdAt?: true
+    startedAt?: true
+    completedAt?: true
+    _all?: true
+  }
+
+  export type DatabaseRestoreAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DatabaseRestore to aggregate.
+     */
+    where?: DatabaseRestoreWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestores to fetch.
+     */
+    orderBy?: DatabaseRestoreOrderByWithRelationInput | DatabaseRestoreOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DatabaseRestoreWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestores from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestores.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DatabaseRestores
+    **/
+    _count?: true | DatabaseRestoreCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DatabaseRestoreMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DatabaseRestoreMaxAggregateInputType
+  }
+
+  export type GetDatabaseRestoreAggregateType<T extends DatabaseRestoreAggregateArgs> = {
+        [P in keyof T & keyof AggregateDatabaseRestore]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDatabaseRestore[P]>
+      : GetScalarType<T[P], AggregateDatabaseRestore[P]>
+  }
+
+
+
+
+  export type DatabaseRestoreGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DatabaseRestoreWhereInput
+    orderBy?: DatabaseRestoreOrderByWithAggregationInput | DatabaseRestoreOrderByWithAggregationInput[]
+    by: DatabaseRestoreScalarFieldEnum[] | DatabaseRestoreScalarFieldEnum
+    having?: DatabaseRestoreScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DatabaseRestoreCountAggregateInputType | true
+    _min?: DatabaseRestoreMinAggregateInputType
+    _max?: DatabaseRestoreMaxAggregateInputType
+  }
+
+  export type DatabaseRestoreGroupByOutputType = {
+    id: string
+    databaseInstanceId: string
+    snapshotId: string | null
+    targetTimestamp: Date | null
+    status: $Enums.DatabaseRestoreStatus
+    requestedByUserId: string | null
+    error: string | null
+    createdAt: Date
+    startedAt: Date | null
+    completedAt: Date | null
+    _count: DatabaseRestoreCountAggregateOutputType | null
+    _min: DatabaseRestoreMinAggregateOutputType | null
+    _max: DatabaseRestoreMaxAggregateOutputType | null
+  }
+
+  type GetDatabaseRestoreGroupByPayload<T extends DatabaseRestoreGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DatabaseRestoreGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DatabaseRestoreGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DatabaseRestoreGroupByOutputType[P]>
+            : GetScalarType<T[P], DatabaseRestoreGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DatabaseRestoreSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    databaseInstanceId?: boolean
+    snapshotId?: boolean
+    targetTimestamp?: boolean
+    status?: boolean
+    requestedByUserId?: boolean
+    error?: boolean
+    createdAt?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    databaseInstance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseRestore"]>
+
+  export type DatabaseRestoreSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    databaseInstanceId?: boolean
+    snapshotId?: boolean
+    targetTimestamp?: boolean
+    status?: boolean
+    requestedByUserId?: boolean
+    error?: boolean
+    createdAt?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    databaseInstance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseRestore"]>
+
+  export type DatabaseRestoreSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    databaseInstanceId?: boolean
+    snapshotId?: boolean
+    targetTimestamp?: boolean
+    status?: boolean
+    requestedByUserId?: boolean
+    error?: boolean
+    createdAt?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    databaseInstance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseRestore"]>
+
+  export type DatabaseRestoreSelectScalar = {
+    id?: boolean
+    databaseInstanceId?: boolean
+    snapshotId?: boolean
+    targetTimestamp?: boolean
+    status?: boolean
+    requestedByUserId?: boolean
+    error?: boolean
+    createdAt?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+  }
+
+  export type DatabaseRestoreOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "databaseInstanceId" | "snapshotId" | "targetTimestamp" | "status" | "requestedByUserId" | "error" | "createdAt" | "startedAt" | "completedAt", ExtArgs["result"]["databaseRestore"]>
+  export type DatabaseRestoreInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    databaseInstance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }
+  export type DatabaseRestoreIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    databaseInstance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }
+  export type DatabaseRestoreIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    databaseInstance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+  }
+
+  export type $DatabaseRestorePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DatabaseRestore"
+    objects: {
+      databaseInstance: Prisma.$DatabaseInstancePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      databaseInstanceId: string
+      snapshotId: string | null
+      targetTimestamp: Date | null
+      status: $Enums.DatabaseRestoreStatus
+      requestedByUserId: string | null
+      error: string | null
+      createdAt: Date
+      startedAt: Date | null
+      completedAt: Date | null
+    }, ExtArgs["result"]["databaseRestore"]>
+    composites: {}
+  }
+
+  type DatabaseRestoreGetPayload<S extends boolean | null | undefined | DatabaseRestoreDefaultArgs> = $Result.GetResult<Prisma.$DatabaseRestorePayload, S>
+
+  type DatabaseRestoreCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<DatabaseRestoreFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: DatabaseRestoreCountAggregateInputType | true
+    }
+
+  export interface DatabaseRestoreDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DatabaseRestore'], meta: { name: 'DatabaseRestore' } }
+    /**
+     * Find zero or one DatabaseRestore that matches the filter.
+     * @param {DatabaseRestoreFindUniqueArgs} args - Arguments to find a DatabaseRestore
+     * @example
+     * // Get one DatabaseRestore
+     * const databaseRestore = await prisma.databaseRestore.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DatabaseRestoreFindUniqueArgs>(args: SelectSubset<T, DatabaseRestoreFindUniqueArgs<ExtArgs>>): Prisma__DatabaseRestoreClient<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one DatabaseRestore that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {DatabaseRestoreFindUniqueOrThrowArgs} args - Arguments to find a DatabaseRestore
+     * @example
+     * // Get one DatabaseRestore
+     * const databaseRestore = await prisma.databaseRestore.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DatabaseRestoreFindUniqueOrThrowArgs>(args: SelectSubset<T, DatabaseRestoreFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DatabaseRestoreClient<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DatabaseRestore that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreFindFirstArgs} args - Arguments to find a DatabaseRestore
+     * @example
+     * // Get one DatabaseRestore
+     * const databaseRestore = await prisma.databaseRestore.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DatabaseRestoreFindFirstArgs>(args?: SelectSubset<T, DatabaseRestoreFindFirstArgs<ExtArgs>>): Prisma__DatabaseRestoreClient<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DatabaseRestore that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreFindFirstOrThrowArgs} args - Arguments to find a DatabaseRestore
+     * @example
+     * // Get one DatabaseRestore
+     * const databaseRestore = await prisma.databaseRestore.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DatabaseRestoreFindFirstOrThrowArgs>(args?: SelectSubset<T, DatabaseRestoreFindFirstOrThrowArgs<ExtArgs>>): Prisma__DatabaseRestoreClient<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more DatabaseRestores that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DatabaseRestores
+     * const databaseRestores = await prisma.databaseRestore.findMany()
+     * 
+     * // Get first 10 DatabaseRestores
+     * const databaseRestores = await prisma.databaseRestore.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const databaseRestoreWithIdOnly = await prisma.databaseRestore.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DatabaseRestoreFindManyArgs>(args?: SelectSubset<T, DatabaseRestoreFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a DatabaseRestore.
+     * @param {DatabaseRestoreCreateArgs} args - Arguments to create a DatabaseRestore.
+     * @example
+     * // Create one DatabaseRestore
+     * const DatabaseRestore = await prisma.databaseRestore.create({
+     *   data: {
+     *     // ... data to create a DatabaseRestore
+     *   }
+     * })
+     * 
+     */
+    create<T extends DatabaseRestoreCreateArgs>(args: SelectSubset<T, DatabaseRestoreCreateArgs<ExtArgs>>): Prisma__DatabaseRestoreClient<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many DatabaseRestores.
+     * @param {DatabaseRestoreCreateManyArgs} args - Arguments to create many DatabaseRestores.
+     * @example
+     * // Create many DatabaseRestores
+     * const databaseRestore = await prisma.databaseRestore.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DatabaseRestoreCreateManyArgs>(args?: SelectSubset<T, DatabaseRestoreCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DatabaseRestores and returns the data saved in the database.
+     * @param {DatabaseRestoreCreateManyAndReturnArgs} args - Arguments to create many DatabaseRestores.
+     * @example
+     * // Create many DatabaseRestores
+     * const databaseRestore = await prisma.databaseRestore.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DatabaseRestores and only return the `id`
+     * const databaseRestoreWithIdOnly = await prisma.databaseRestore.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DatabaseRestoreCreateManyAndReturnArgs>(args?: SelectSubset<T, DatabaseRestoreCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a DatabaseRestore.
+     * @param {DatabaseRestoreDeleteArgs} args - Arguments to delete one DatabaseRestore.
+     * @example
+     * // Delete one DatabaseRestore
+     * const DatabaseRestore = await prisma.databaseRestore.delete({
+     *   where: {
+     *     // ... filter to delete one DatabaseRestore
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DatabaseRestoreDeleteArgs>(args: SelectSubset<T, DatabaseRestoreDeleteArgs<ExtArgs>>): Prisma__DatabaseRestoreClient<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one DatabaseRestore.
+     * @param {DatabaseRestoreUpdateArgs} args - Arguments to update one DatabaseRestore.
+     * @example
+     * // Update one DatabaseRestore
+     * const databaseRestore = await prisma.databaseRestore.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DatabaseRestoreUpdateArgs>(args: SelectSubset<T, DatabaseRestoreUpdateArgs<ExtArgs>>): Prisma__DatabaseRestoreClient<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more DatabaseRestores.
+     * @param {DatabaseRestoreDeleteManyArgs} args - Arguments to filter DatabaseRestores to delete.
+     * @example
+     * // Delete a few DatabaseRestores
+     * const { count } = await prisma.databaseRestore.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DatabaseRestoreDeleteManyArgs>(args?: SelectSubset<T, DatabaseRestoreDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DatabaseRestores.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DatabaseRestores
+     * const databaseRestore = await prisma.databaseRestore.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DatabaseRestoreUpdateManyArgs>(args: SelectSubset<T, DatabaseRestoreUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DatabaseRestores and returns the data updated in the database.
+     * @param {DatabaseRestoreUpdateManyAndReturnArgs} args - Arguments to update many DatabaseRestores.
+     * @example
+     * // Update many DatabaseRestores
+     * const databaseRestore = await prisma.databaseRestore.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more DatabaseRestores and only return the `id`
+     * const databaseRestoreWithIdOnly = await prisma.databaseRestore.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends DatabaseRestoreUpdateManyAndReturnArgs>(args: SelectSubset<T, DatabaseRestoreUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one DatabaseRestore.
+     * @param {DatabaseRestoreUpsertArgs} args - Arguments to update or create a DatabaseRestore.
+     * @example
+     * // Update or create a DatabaseRestore
+     * const databaseRestore = await prisma.databaseRestore.upsert({
+     *   create: {
+     *     // ... data to create a DatabaseRestore
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DatabaseRestore we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DatabaseRestoreUpsertArgs>(args: SelectSubset<T, DatabaseRestoreUpsertArgs<ExtArgs>>): Prisma__DatabaseRestoreClient<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of DatabaseRestores.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreCountArgs} args - Arguments to filter DatabaseRestores to count.
+     * @example
+     * // Count the number of DatabaseRestores
+     * const count = await prisma.databaseRestore.count({
+     *   where: {
+     *     // ... the filter for the DatabaseRestores we want to count
+     *   }
+     * })
+    **/
+    count<T extends DatabaseRestoreCountArgs>(
+      args?: Subset<T, DatabaseRestoreCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DatabaseRestoreCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DatabaseRestore.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DatabaseRestoreAggregateArgs>(args: Subset<T, DatabaseRestoreAggregateArgs>): Prisma.PrismaPromise<GetDatabaseRestoreAggregateType<T>>
+
+    /**
+     * Group by DatabaseRestore.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DatabaseRestoreGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DatabaseRestoreGroupByArgs['orderBy'] }
+        : { orderBy?: DatabaseRestoreGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DatabaseRestoreGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDatabaseRestoreGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DatabaseRestore model
+   */
+  readonly fields: DatabaseRestoreFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DatabaseRestore.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DatabaseRestoreClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    databaseInstance<T extends DatabaseInstanceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstanceDefaultArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DatabaseRestore model
+   */
+  interface DatabaseRestoreFieldRefs {
+    readonly id: FieldRef<"DatabaseRestore", 'String'>
+    readonly databaseInstanceId: FieldRef<"DatabaseRestore", 'String'>
+    readonly snapshotId: FieldRef<"DatabaseRestore", 'String'>
+    readonly targetTimestamp: FieldRef<"DatabaseRestore", 'DateTime'>
+    readonly status: FieldRef<"DatabaseRestore", 'DatabaseRestoreStatus'>
+    readonly requestedByUserId: FieldRef<"DatabaseRestore", 'String'>
+    readonly error: FieldRef<"DatabaseRestore", 'String'>
+    readonly createdAt: FieldRef<"DatabaseRestore", 'DateTime'>
+    readonly startedAt: FieldRef<"DatabaseRestore", 'DateTime'>
+    readonly completedAt: FieldRef<"DatabaseRestore", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DatabaseRestore findUnique
+   */
+  export type DatabaseRestoreFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestore
+     */
+    select?: DatabaseRestoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestore
+     */
+    omit?: DatabaseRestoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestore to fetch.
+     */
+    where: DatabaseRestoreWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestore findUniqueOrThrow
+   */
+  export type DatabaseRestoreFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestore
+     */
+    select?: DatabaseRestoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestore
+     */
+    omit?: DatabaseRestoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestore to fetch.
+     */
+    where: DatabaseRestoreWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestore findFirst
+   */
+  export type DatabaseRestoreFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestore
+     */
+    select?: DatabaseRestoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestore
+     */
+    omit?: DatabaseRestoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestore to fetch.
+     */
+    where?: DatabaseRestoreWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestores to fetch.
+     */
+    orderBy?: DatabaseRestoreOrderByWithRelationInput | DatabaseRestoreOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DatabaseRestores.
+     */
+    cursor?: DatabaseRestoreWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestores from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestores.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseRestores.
+     */
+    distinct?: DatabaseRestoreScalarFieldEnum | DatabaseRestoreScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseRestore findFirstOrThrow
+   */
+  export type DatabaseRestoreFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestore
+     */
+    select?: DatabaseRestoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestore
+     */
+    omit?: DatabaseRestoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestore to fetch.
+     */
+    where?: DatabaseRestoreWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestores to fetch.
+     */
+    orderBy?: DatabaseRestoreOrderByWithRelationInput | DatabaseRestoreOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DatabaseRestores.
+     */
+    cursor?: DatabaseRestoreWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestores from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestores.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseRestores.
+     */
+    distinct?: DatabaseRestoreScalarFieldEnum | DatabaseRestoreScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseRestore findMany
+   */
+  export type DatabaseRestoreFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestore
+     */
+    select?: DatabaseRestoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestore
+     */
+    omit?: DatabaseRestoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestores to fetch.
+     */
+    where?: DatabaseRestoreWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestores to fetch.
+     */
+    orderBy?: DatabaseRestoreOrderByWithRelationInput | DatabaseRestoreOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DatabaseRestores.
+     */
+    cursor?: DatabaseRestoreWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestores from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestores.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseRestores.
+     */
+    distinct?: DatabaseRestoreScalarFieldEnum | DatabaseRestoreScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseRestore create
+   */
+  export type DatabaseRestoreCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestore
+     */
+    select?: DatabaseRestoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestore
+     */
+    omit?: DatabaseRestoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DatabaseRestore.
+     */
+    data: XOR<DatabaseRestoreCreateInput, DatabaseRestoreUncheckedCreateInput>
+  }
+
+  /**
+   * DatabaseRestore createMany
+   */
+  export type DatabaseRestoreCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DatabaseRestores.
+     */
+    data: DatabaseRestoreCreateManyInput | DatabaseRestoreCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DatabaseRestore createManyAndReturn
+   */
+  export type DatabaseRestoreCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestore
+     */
+    select?: DatabaseRestoreSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestore
+     */
+    omit?: DatabaseRestoreOmit<ExtArgs> | null
+    /**
+     * The data used to create many DatabaseRestores.
+     */
+    data: DatabaseRestoreCreateManyInput | DatabaseRestoreCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DatabaseRestore update
+   */
+  export type DatabaseRestoreUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestore
+     */
+    select?: DatabaseRestoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestore
+     */
+    omit?: DatabaseRestoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DatabaseRestore.
+     */
+    data: XOR<DatabaseRestoreUpdateInput, DatabaseRestoreUncheckedUpdateInput>
+    /**
+     * Choose, which DatabaseRestore to update.
+     */
+    where: DatabaseRestoreWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestore updateMany
+   */
+  export type DatabaseRestoreUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DatabaseRestores.
+     */
+    data: XOR<DatabaseRestoreUpdateManyMutationInput, DatabaseRestoreUncheckedUpdateManyInput>
+    /**
+     * Filter which DatabaseRestores to update
+     */
+    where?: DatabaseRestoreWhereInput
+    /**
+     * Limit how many DatabaseRestores to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DatabaseRestore updateManyAndReturn
+   */
+  export type DatabaseRestoreUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestore
+     */
+    select?: DatabaseRestoreSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestore
+     */
+    omit?: DatabaseRestoreOmit<ExtArgs> | null
+    /**
+     * The data used to update DatabaseRestores.
+     */
+    data: XOR<DatabaseRestoreUpdateManyMutationInput, DatabaseRestoreUncheckedUpdateManyInput>
+    /**
+     * Filter which DatabaseRestores to update
+     */
+    where?: DatabaseRestoreWhereInput
+    /**
+     * Limit how many DatabaseRestores to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DatabaseRestore upsert
+   */
+  export type DatabaseRestoreUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestore
+     */
+    select?: DatabaseRestoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestore
+     */
+    omit?: DatabaseRestoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DatabaseRestore to update in case it exists.
+     */
+    where: DatabaseRestoreWhereUniqueInput
+    /**
+     * In case the DatabaseRestore found by the `where` argument doesn't exist, create a new DatabaseRestore with this data.
+     */
+    create: XOR<DatabaseRestoreCreateInput, DatabaseRestoreUncheckedCreateInput>
+    /**
+     * In case the DatabaseRestore was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DatabaseRestoreUpdateInput, DatabaseRestoreUncheckedUpdateInput>
+  }
+
+  /**
+   * DatabaseRestore delete
+   */
+  export type DatabaseRestoreDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestore
+     */
+    select?: DatabaseRestoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestore
+     */
+    omit?: DatabaseRestoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreInclude<ExtArgs> | null
+    /**
+     * Filter which DatabaseRestore to delete.
+     */
+    where: DatabaseRestoreWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestore deleteMany
+   */
+  export type DatabaseRestoreDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DatabaseRestores to delete
+     */
+    where?: DatabaseRestoreWhereInput
+    /**
+     * Limit how many DatabaseRestores to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * DatabaseRestore without action
+   */
+  export type DatabaseRestoreDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestore
+     */
+    select?: DatabaseRestoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestore
+     */
+    omit?: DatabaseRestoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -108131,6 +112032,55 @@ export namespace Prisma {
   export type ModelConfigScalarFieldEnum = (typeof ModelConfigScalarFieldEnum)[keyof typeof ModelConfigScalarFieldEnum]
 
 
+  export const DatabaseInstanceScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    organizationId: 'organizationId',
+    status: 'status',
+    engine: 'engine',
+    region: 'region',
+    sizeBytes: 'sizeBytes',
+    retentionDays: 'retentionDays',
+    pitrEnabled: 'pitrEnabled',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type DatabaseInstanceScalarFieldEnum = (typeof DatabaseInstanceScalarFieldEnum)[keyof typeof DatabaseInstanceScalarFieldEnum]
+
+
+  export const DatabaseSnapshotScalarFieldEnum: {
+    id: 'id',
+    databaseInstanceId: 'databaseInstanceId',
+    kind: 'kind',
+    label: 'label',
+    lsn: 'lsn',
+    sizeBytes: 'sizeBytes',
+    storageKey: 'storageKey',
+    createdByUserId: 'createdByUserId',
+    createdAt: 'createdAt',
+    expiresAt: 'expiresAt'
+  };
+
+  export type DatabaseSnapshotScalarFieldEnum = (typeof DatabaseSnapshotScalarFieldEnum)[keyof typeof DatabaseSnapshotScalarFieldEnum]
+
+
+  export const DatabaseRestoreScalarFieldEnum: {
+    id: 'id',
+    databaseInstanceId: 'databaseInstanceId',
+    snapshotId: 'snapshotId',
+    targetTimestamp: 'targetTimestamp',
+    status: 'status',
+    requestedByUserId: 'requestedByUserId',
+    error: 'error',
+    createdAt: 'createdAt',
+    startedAt: 'startedAt',
+    completedAt: 'completedAt'
+  };
+
+  export type DatabaseRestoreScalarFieldEnum = (typeof DatabaseRestoreScalarFieldEnum)[keyof typeof DatabaseRestoreScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -108426,6 +112376,48 @@ export namespace Prisma {
    * Reference to a field of type 'CheckpointStatus[]'
    */
   export type ListEnumCheckpointStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CheckpointStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'DatabaseInstanceStatus'
+   */
+  export type EnumDatabaseInstanceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DatabaseInstanceStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'DatabaseInstanceStatus[]'
+   */
+  export type ListEnumDatabaseInstanceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DatabaseInstanceStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'BigInt'
+   */
+  export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
+    
+
+
+  /**
+   * Reference to a field of type 'BigInt[]'
+   */
+  export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'DatabaseRestoreStatus'
+   */
+  export type EnumDatabaseRestoreStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DatabaseRestoreStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'DatabaseRestoreStatus[]'
+   */
+  export type ListEnumDatabaseRestoreStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DatabaseRestoreStatus[]'>
     
   /**
    * Deep Input Types
@@ -109228,6 +113220,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     agentPatchProposals?: AgentPatchProposalListRelationFilter
     connectionLinks?: ProjectConnectionLinkListRelationFilter
+    databaseInstance?: XOR<DatabaseInstanceNullableScalarRelationFilter, DatabaseInstanceWhereInput> | null
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -109265,6 +113258,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceOrderByRelationAggregateInput
     agentPatchProposals?: AgentPatchProposalOrderByRelationAggregateInput
     connectionLinks?: ProjectConnectionLinkOrderByRelationAggregateInput
+    databaseInstance?: DatabaseInstanceOrderByWithRelationInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -109306,6 +113300,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     agentPatchProposals?: AgentPatchProposalListRelationFilter
     connectionLinks?: ProjectConnectionLinkListRelationFilter
+    databaseInstance?: XOR<DatabaseInstanceNullableScalarRelationFilter, DatabaseInstanceWhereInput> | null
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -115083,6 +119078,261 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"ModelConfig"> | Date | string
   }
 
+  export type DatabaseInstanceWhereInput = {
+    AND?: DatabaseInstanceWhereInput | DatabaseInstanceWhereInput[]
+    OR?: DatabaseInstanceWhereInput[]
+    NOT?: DatabaseInstanceWhereInput | DatabaseInstanceWhereInput[]
+    id?: StringFilter<"DatabaseInstance"> | string
+    projectId?: StringFilter<"DatabaseInstance"> | string
+    organizationId?: StringFilter<"DatabaseInstance"> | string
+    status?: EnumDatabaseInstanceStatusFilter<"DatabaseInstance"> | $Enums.DatabaseInstanceStatus
+    engine?: StringFilter<"DatabaseInstance"> | string
+    region?: StringNullableFilter<"DatabaseInstance"> | string | null
+    sizeBytes?: BigIntFilter<"DatabaseInstance"> | bigint | number
+    retentionDays?: IntFilter<"DatabaseInstance"> | number
+    pitrEnabled?: BoolFilter<"DatabaseInstance"> | boolean
+    createdAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
+    updatedAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    snapshots?: DatabaseSnapshotListRelationFilter
+    restores?: DatabaseRestoreListRelationFilter
+  }
+
+  export type DatabaseInstanceOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    status?: SortOrder
+    engine?: SortOrder
+    region?: SortOrderInput | SortOrder
+    sizeBytes?: SortOrder
+    retentionDays?: SortOrder
+    pitrEnabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+    snapshots?: DatabaseSnapshotOrderByRelationAggregateInput
+    restores?: DatabaseRestoreOrderByRelationAggregateInput
+  }
+
+  export type DatabaseInstanceWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    projectId?: string
+    AND?: DatabaseInstanceWhereInput | DatabaseInstanceWhereInput[]
+    OR?: DatabaseInstanceWhereInput[]
+    NOT?: DatabaseInstanceWhereInput | DatabaseInstanceWhereInput[]
+    organizationId?: StringFilter<"DatabaseInstance"> | string
+    status?: EnumDatabaseInstanceStatusFilter<"DatabaseInstance"> | $Enums.DatabaseInstanceStatus
+    engine?: StringFilter<"DatabaseInstance"> | string
+    region?: StringNullableFilter<"DatabaseInstance"> | string | null
+    sizeBytes?: BigIntFilter<"DatabaseInstance"> | bigint | number
+    retentionDays?: IntFilter<"DatabaseInstance"> | number
+    pitrEnabled?: BoolFilter<"DatabaseInstance"> | boolean
+    createdAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
+    updatedAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    snapshots?: DatabaseSnapshotListRelationFilter
+    restores?: DatabaseRestoreListRelationFilter
+  }, "id" | "projectId">
+
+  export type DatabaseInstanceOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    status?: SortOrder
+    engine?: SortOrder
+    region?: SortOrderInput | SortOrder
+    sizeBytes?: SortOrder
+    retentionDays?: SortOrder
+    pitrEnabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: DatabaseInstanceCountOrderByAggregateInput
+    _avg?: DatabaseInstanceAvgOrderByAggregateInput
+    _max?: DatabaseInstanceMaxOrderByAggregateInput
+    _min?: DatabaseInstanceMinOrderByAggregateInput
+    _sum?: DatabaseInstanceSumOrderByAggregateInput
+  }
+
+  export type DatabaseInstanceScalarWhereWithAggregatesInput = {
+    AND?: DatabaseInstanceScalarWhereWithAggregatesInput | DatabaseInstanceScalarWhereWithAggregatesInput[]
+    OR?: DatabaseInstanceScalarWhereWithAggregatesInput[]
+    NOT?: DatabaseInstanceScalarWhereWithAggregatesInput | DatabaseInstanceScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"DatabaseInstance"> | string
+    projectId?: StringWithAggregatesFilter<"DatabaseInstance"> | string
+    organizationId?: StringWithAggregatesFilter<"DatabaseInstance"> | string
+    status?: EnumDatabaseInstanceStatusWithAggregatesFilter<"DatabaseInstance"> | $Enums.DatabaseInstanceStatus
+    engine?: StringWithAggregatesFilter<"DatabaseInstance"> | string
+    region?: StringNullableWithAggregatesFilter<"DatabaseInstance"> | string | null
+    sizeBytes?: BigIntWithAggregatesFilter<"DatabaseInstance"> | bigint | number
+    retentionDays?: IntWithAggregatesFilter<"DatabaseInstance"> | number
+    pitrEnabled?: BoolWithAggregatesFilter<"DatabaseInstance"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"DatabaseInstance"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"DatabaseInstance"> | Date | string
+  }
+
+  export type DatabaseSnapshotWhereInput = {
+    AND?: DatabaseSnapshotWhereInput | DatabaseSnapshotWhereInput[]
+    OR?: DatabaseSnapshotWhereInput[]
+    NOT?: DatabaseSnapshotWhereInput | DatabaseSnapshotWhereInput[]
+    id?: StringFilter<"DatabaseSnapshot"> | string
+    databaseInstanceId?: StringFilter<"DatabaseSnapshot"> | string
+    kind?: StringFilter<"DatabaseSnapshot"> | string
+    label?: StringNullableFilter<"DatabaseSnapshot"> | string | null
+    lsn?: StringNullableFilter<"DatabaseSnapshot"> | string | null
+    sizeBytes?: BigIntFilter<"DatabaseSnapshot"> | bigint | number
+    storageKey?: StringNullableFilter<"DatabaseSnapshot"> | string | null
+    createdByUserId?: StringNullableFilter<"DatabaseSnapshot"> | string | null
+    createdAt?: DateTimeFilter<"DatabaseSnapshot"> | Date | string
+    expiresAt?: DateTimeNullableFilter<"DatabaseSnapshot"> | Date | string | null
+    databaseInstance?: XOR<DatabaseInstanceScalarRelationFilter, DatabaseInstanceWhereInput>
+  }
+
+  export type DatabaseSnapshotOrderByWithRelationInput = {
+    id?: SortOrder
+    databaseInstanceId?: SortOrder
+    kind?: SortOrder
+    label?: SortOrderInput | SortOrder
+    lsn?: SortOrderInput | SortOrder
+    sizeBytes?: SortOrder
+    storageKey?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    expiresAt?: SortOrderInput | SortOrder
+    databaseInstance?: DatabaseInstanceOrderByWithRelationInput
+  }
+
+  export type DatabaseSnapshotWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: DatabaseSnapshotWhereInput | DatabaseSnapshotWhereInput[]
+    OR?: DatabaseSnapshotWhereInput[]
+    NOT?: DatabaseSnapshotWhereInput | DatabaseSnapshotWhereInput[]
+    databaseInstanceId?: StringFilter<"DatabaseSnapshot"> | string
+    kind?: StringFilter<"DatabaseSnapshot"> | string
+    label?: StringNullableFilter<"DatabaseSnapshot"> | string | null
+    lsn?: StringNullableFilter<"DatabaseSnapshot"> | string | null
+    sizeBytes?: BigIntFilter<"DatabaseSnapshot"> | bigint | number
+    storageKey?: StringNullableFilter<"DatabaseSnapshot"> | string | null
+    createdByUserId?: StringNullableFilter<"DatabaseSnapshot"> | string | null
+    createdAt?: DateTimeFilter<"DatabaseSnapshot"> | Date | string
+    expiresAt?: DateTimeNullableFilter<"DatabaseSnapshot"> | Date | string | null
+    databaseInstance?: XOR<DatabaseInstanceScalarRelationFilter, DatabaseInstanceWhereInput>
+  }, "id">
+
+  export type DatabaseSnapshotOrderByWithAggregationInput = {
+    id?: SortOrder
+    databaseInstanceId?: SortOrder
+    kind?: SortOrder
+    label?: SortOrderInput | SortOrder
+    lsn?: SortOrderInput | SortOrder
+    sizeBytes?: SortOrder
+    storageKey?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    expiresAt?: SortOrderInput | SortOrder
+    _count?: DatabaseSnapshotCountOrderByAggregateInput
+    _avg?: DatabaseSnapshotAvgOrderByAggregateInput
+    _max?: DatabaseSnapshotMaxOrderByAggregateInput
+    _min?: DatabaseSnapshotMinOrderByAggregateInput
+    _sum?: DatabaseSnapshotSumOrderByAggregateInput
+  }
+
+  export type DatabaseSnapshotScalarWhereWithAggregatesInput = {
+    AND?: DatabaseSnapshotScalarWhereWithAggregatesInput | DatabaseSnapshotScalarWhereWithAggregatesInput[]
+    OR?: DatabaseSnapshotScalarWhereWithAggregatesInput[]
+    NOT?: DatabaseSnapshotScalarWhereWithAggregatesInput | DatabaseSnapshotScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"DatabaseSnapshot"> | string
+    databaseInstanceId?: StringWithAggregatesFilter<"DatabaseSnapshot"> | string
+    kind?: StringWithAggregatesFilter<"DatabaseSnapshot"> | string
+    label?: StringNullableWithAggregatesFilter<"DatabaseSnapshot"> | string | null
+    lsn?: StringNullableWithAggregatesFilter<"DatabaseSnapshot"> | string | null
+    sizeBytes?: BigIntWithAggregatesFilter<"DatabaseSnapshot"> | bigint | number
+    storageKey?: StringNullableWithAggregatesFilter<"DatabaseSnapshot"> | string | null
+    createdByUserId?: StringNullableWithAggregatesFilter<"DatabaseSnapshot"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"DatabaseSnapshot"> | Date | string
+    expiresAt?: DateTimeNullableWithAggregatesFilter<"DatabaseSnapshot"> | Date | string | null
+  }
+
+  export type DatabaseRestoreWhereInput = {
+    AND?: DatabaseRestoreWhereInput | DatabaseRestoreWhereInput[]
+    OR?: DatabaseRestoreWhereInput[]
+    NOT?: DatabaseRestoreWhereInput | DatabaseRestoreWhereInput[]
+    id?: StringFilter<"DatabaseRestore"> | string
+    databaseInstanceId?: StringFilter<"DatabaseRestore"> | string
+    snapshotId?: StringNullableFilter<"DatabaseRestore"> | string | null
+    targetTimestamp?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
+    status?: EnumDatabaseRestoreStatusFilter<"DatabaseRestore"> | $Enums.DatabaseRestoreStatus
+    requestedByUserId?: StringNullableFilter<"DatabaseRestore"> | string | null
+    error?: StringNullableFilter<"DatabaseRestore"> | string | null
+    createdAt?: DateTimeFilter<"DatabaseRestore"> | Date | string
+    startedAt?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
+    completedAt?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
+    databaseInstance?: XOR<DatabaseInstanceScalarRelationFilter, DatabaseInstanceWhereInput>
+  }
+
+  export type DatabaseRestoreOrderByWithRelationInput = {
+    id?: SortOrder
+    databaseInstanceId?: SortOrder
+    snapshotId?: SortOrderInput | SortOrder
+    targetTimestamp?: SortOrderInput | SortOrder
+    status?: SortOrder
+    requestedByUserId?: SortOrderInput | SortOrder
+    error?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    startedAt?: SortOrderInput | SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    databaseInstance?: DatabaseInstanceOrderByWithRelationInput
+  }
+
+  export type DatabaseRestoreWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: DatabaseRestoreWhereInput | DatabaseRestoreWhereInput[]
+    OR?: DatabaseRestoreWhereInput[]
+    NOT?: DatabaseRestoreWhereInput | DatabaseRestoreWhereInput[]
+    databaseInstanceId?: StringFilter<"DatabaseRestore"> | string
+    snapshotId?: StringNullableFilter<"DatabaseRestore"> | string | null
+    targetTimestamp?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
+    status?: EnumDatabaseRestoreStatusFilter<"DatabaseRestore"> | $Enums.DatabaseRestoreStatus
+    requestedByUserId?: StringNullableFilter<"DatabaseRestore"> | string | null
+    error?: StringNullableFilter<"DatabaseRestore"> | string | null
+    createdAt?: DateTimeFilter<"DatabaseRestore"> | Date | string
+    startedAt?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
+    completedAt?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
+    databaseInstance?: XOR<DatabaseInstanceScalarRelationFilter, DatabaseInstanceWhereInput>
+  }, "id">
+
+  export type DatabaseRestoreOrderByWithAggregationInput = {
+    id?: SortOrder
+    databaseInstanceId?: SortOrder
+    snapshotId?: SortOrderInput | SortOrder
+    targetTimestamp?: SortOrderInput | SortOrder
+    status?: SortOrder
+    requestedByUserId?: SortOrderInput | SortOrder
+    error?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    startedAt?: SortOrderInput | SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    _count?: DatabaseRestoreCountOrderByAggregateInput
+    _max?: DatabaseRestoreMaxOrderByAggregateInput
+    _min?: DatabaseRestoreMinOrderByAggregateInput
+  }
+
+  export type DatabaseRestoreScalarWhereWithAggregatesInput = {
+    AND?: DatabaseRestoreScalarWhereWithAggregatesInput | DatabaseRestoreScalarWhereWithAggregatesInput[]
+    OR?: DatabaseRestoreScalarWhereWithAggregatesInput[]
+    NOT?: DatabaseRestoreScalarWhereWithAggregatesInput | DatabaseRestoreScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"DatabaseRestore"> | string
+    databaseInstanceId?: StringWithAggregatesFilter<"DatabaseRestore"> | string
+    snapshotId?: StringNullableWithAggregatesFilter<"DatabaseRestore"> | string | null
+    targetTimestamp?: DateTimeNullableWithAggregatesFilter<"DatabaseRestore"> | Date | string | null
+    status?: EnumDatabaseRestoreStatusWithAggregatesFilter<"DatabaseRestore"> | $Enums.DatabaseRestoreStatus
+    requestedByUserId?: StringNullableWithAggregatesFilter<"DatabaseRestore"> | string | null
+    error?: StringNullableWithAggregatesFilter<"DatabaseRestore"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"DatabaseRestore"> | Date | string
+    startedAt?: DateTimeNullableWithAggregatesFilter<"DatabaseRestore"> | Date | string | null
+    completedAt?: DateTimeNullableWithAggregatesFilter<"DatabaseRestore"> | Date | string | null
+  }
+
   export type UserCreateInput = {
     id?: string
     email: string
@@ -115964,6 +120214,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -116000,6 +120251,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -116036,6 +120288,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -116072,6 +120325,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -122252,6 +126506,291 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type DatabaseInstanceCreateInput = {
+    id?: string
+    organizationId: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutDatabaseInstanceInput
+    snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
+    restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+  }
+
+  export type DatabaseInstanceUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+  }
+
+  export type DatabaseInstanceUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutDatabaseInstanceNestedInput
+    snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
+    restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
+  export type DatabaseInstanceUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
+  export type DatabaseInstanceCreateManyInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type DatabaseInstanceUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseInstanceUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseSnapshotCreateInput = {
+    id?: string
+    kind?: string
+    label?: string | null
+    lsn?: string | null
+    sizeBytes?: bigint | number
+    storageKey?: string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    expiresAt?: Date | string | null
+    databaseInstance: DatabaseInstanceCreateNestedOneWithoutSnapshotsInput
+  }
+
+  export type DatabaseSnapshotUncheckedCreateInput = {
+    id?: string
+    databaseInstanceId: string
+    kind?: string
+    label?: string | null
+    lsn?: string | null
+    sizeBytes?: bigint | number
+    storageKey?: string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    expiresAt?: Date | string | null
+  }
+
+  export type DatabaseSnapshotUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    lsn?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    storageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    databaseInstance?: DatabaseInstanceUpdateOneRequiredWithoutSnapshotsNestedInput
+  }
+
+  export type DatabaseSnapshotUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    databaseInstanceId?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    lsn?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    storageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseSnapshotCreateManyInput = {
+    id?: string
+    databaseInstanceId: string
+    kind?: string
+    label?: string | null
+    lsn?: string | null
+    sizeBytes?: bigint | number
+    storageKey?: string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    expiresAt?: Date | string | null
+  }
+
+  export type DatabaseSnapshotUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    lsn?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    storageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseSnapshotUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    databaseInstanceId?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    lsn?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    storageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseRestoreCreateInput = {
+    id?: string
+    snapshotId?: string | null
+    targetTimestamp?: Date | string | null
+    status?: $Enums.DatabaseRestoreStatus
+    requestedByUserId?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    startedAt?: Date | string | null
+    completedAt?: Date | string | null
+    databaseInstance: DatabaseInstanceCreateNestedOneWithoutRestoresInput
+  }
+
+  export type DatabaseRestoreUncheckedCreateInput = {
+    id?: string
+    databaseInstanceId: string
+    snapshotId?: string | null
+    targetTimestamp?: Date | string | null
+    status?: $Enums.DatabaseRestoreStatus
+    requestedByUserId?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    startedAt?: Date | string | null
+    completedAt?: Date | string | null
+  }
+
+  export type DatabaseRestoreUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    snapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    targetTimestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: EnumDatabaseRestoreStatusFieldUpdateOperationsInput | $Enums.DatabaseRestoreStatus
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    databaseInstance?: DatabaseInstanceUpdateOneRequiredWithoutRestoresNestedInput
+  }
+
+  export type DatabaseRestoreUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    databaseInstanceId?: StringFieldUpdateOperationsInput | string
+    snapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    targetTimestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: EnumDatabaseRestoreStatusFieldUpdateOperationsInput | $Enums.DatabaseRestoreStatus
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseRestoreCreateManyInput = {
+    id?: string
+    databaseInstanceId: string
+    snapshotId?: string | null
+    targetTimestamp?: Date | string | null
+    status?: $Enums.DatabaseRestoreStatus
+    requestedByUserId?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    startedAt?: Date | string | null
+    completedAt?: Date | string | null
+  }
+
+  export type DatabaseRestoreUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    snapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    targetTimestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: EnumDatabaseRestoreStatusFieldUpdateOperationsInput | $Enums.DatabaseRestoreStatus
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseRestoreUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    databaseInstanceId?: StringFieldUpdateOperationsInput | string
+    snapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    targetTimestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: EnumDatabaseRestoreStatusFieldUpdateOperationsInput | $Enums.DatabaseRestoreStatus
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -123274,6 +127813,11 @@ export namespace Prisma {
     every?: AgentPatchProposalWhereInput
     some?: AgentPatchProposalWhereInput
     none?: AgentPatchProposalWhereInput
+  }
+
+  export type DatabaseInstanceNullableScalarRelationFilter = {
+    is?: DatabaseInstanceWhereInput | null
+    isNot?: DatabaseInstanceWhereInput | null
   }
 
   export type ProjectEnvironmentOrderByRelationAggregateInput = {
@@ -126785,6 +131329,230 @@ export namespace Prisma {
     contextWindow?: SortOrder
   }
 
+  export type EnumDatabaseInstanceStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.DatabaseInstanceStatus | EnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.DatabaseInstanceStatus[] | ListEnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DatabaseInstanceStatus[] | ListEnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel> | $Enums.DatabaseInstanceStatus
+  }
+
+  export type BigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+
+  export type DatabaseSnapshotListRelationFilter = {
+    every?: DatabaseSnapshotWhereInput
+    some?: DatabaseSnapshotWhereInput
+    none?: DatabaseSnapshotWhereInput
+  }
+
+  export type DatabaseRestoreListRelationFilter = {
+    every?: DatabaseRestoreWhereInput
+    some?: DatabaseRestoreWhereInput
+    none?: DatabaseRestoreWhereInput
+  }
+
+  export type DatabaseSnapshotOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type DatabaseRestoreOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type DatabaseInstanceCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    status?: SortOrder
+    engine?: SortOrder
+    region?: SortOrder
+    sizeBytes?: SortOrder
+    retentionDays?: SortOrder
+    pitrEnabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DatabaseInstanceAvgOrderByAggregateInput = {
+    sizeBytes?: SortOrder
+    retentionDays?: SortOrder
+  }
+
+  export type DatabaseInstanceMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    status?: SortOrder
+    engine?: SortOrder
+    region?: SortOrder
+    sizeBytes?: SortOrder
+    retentionDays?: SortOrder
+    pitrEnabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DatabaseInstanceMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    status?: SortOrder
+    engine?: SortOrder
+    region?: SortOrder
+    sizeBytes?: SortOrder
+    retentionDays?: SortOrder
+    pitrEnabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DatabaseInstanceSumOrderByAggregateInput = {
+    sizeBytes?: SortOrder
+    retentionDays?: SortOrder
+  }
+
+  export type EnumDatabaseInstanceStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DatabaseInstanceStatus | EnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.DatabaseInstanceStatus[] | ListEnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DatabaseInstanceStatus[] | ListEnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumDatabaseInstanceStatusWithAggregatesFilter<$PrismaModel> | $Enums.DatabaseInstanceStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel>
+    _max?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel>
+  }
+
+  export type BigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
+  }
+
+  export type DatabaseInstanceScalarRelationFilter = {
+    is?: DatabaseInstanceWhereInput
+    isNot?: DatabaseInstanceWhereInput
+  }
+
+  export type DatabaseSnapshotCountOrderByAggregateInput = {
+    id?: SortOrder
+    databaseInstanceId?: SortOrder
+    kind?: SortOrder
+    label?: SortOrder
+    lsn?: SortOrder
+    sizeBytes?: SortOrder
+    storageKey?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+    expiresAt?: SortOrder
+  }
+
+  export type DatabaseSnapshotAvgOrderByAggregateInput = {
+    sizeBytes?: SortOrder
+  }
+
+  export type DatabaseSnapshotMaxOrderByAggregateInput = {
+    id?: SortOrder
+    databaseInstanceId?: SortOrder
+    kind?: SortOrder
+    label?: SortOrder
+    lsn?: SortOrder
+    sizeBytes?: SortOrder
+    storageKey?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+    expiresAt?: SortOrder
+  }
+
+  export type DatabaseSnapshotMinOrderByAggregateInput = {
+    id?: SortOrder
+    databaseInstanceId?: SortOrder
+    kind?: SortOrder
+    label?: SortOrder
+    lsn?: SortOrder
+    sizeBytes?: SortOrder
+    storageKey?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+    expiresAt?: SortOrder
+  }
+
+  export type DatabaseSnapshotSumOrderByAggregateInput = {
+    sizeBytes?: SortOrder
+  }
+
+  export type EnumDatabaseRestoreStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.DatabaseRestoreStatus | EnumDatabaseRestoreStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.DatabaseRestoreStatus[] | ListEnumDatabaseRestoreStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DatabaseRestoreStatus[] | ListEnumDatabaseRestoreStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumDatabaseRestoreStatusFilter<$PrismaModel> | $Enums.DatabaseRestoreStatus
+  }
+
+  export type DatabaseRestoreCountOrderByAggregateInput = {
+    id?: SortOrder
+    databaseInstanceId?: SortOrder
+    snapshotId?: SortOrder
+    targetTimestamp?: SortOrder
+    status?: SortOrder
+    requestedByUserId?: SortOrder
+    error?: SortOrder
+    createdAt?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type DatabaseRestoreMaxOrderByAggregateInput = {
+    id?: SortOrder
+    databaseInstanceId?: SortOrder
+    snapshotId?: SortOrder
+    targetTimestamp?: SortOrder
+    status?: SortOrder
+    requestedByUserId?: SortOrder
+    error?: SortOrder
+    createdAt?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type DatabaseRestoreMinOrderByAggregateInput = {
+    id?: SortOrder
+    databaseInstanceId?: SortOrder
+    snapshotId?: SortOrder
+    targetTimestamp?: SortOrder
+    status?: SortOrder
+    requestedByUserId?: SortOrder
+    error?: SortOrder
+    createdAt?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type EnumDatabaseRestoreStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DatabaseRestoreStatus | EnumDatabaseRestoreStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.DatabaseRestoreStatus[] | ListEnumDatabaseRestoreStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DatabaseRestoreStatus[] | ListEnumDatabaseRestoreStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumDatabaseRestoreStatusWithAggregatesFilter<$PrismaModel> | $Enums.DatabaseRestoreStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumDatabaseRestoreStatusFilter<$PrismaModel>
+    _max?: NestedEnumDatabaseRestoreStatusFilter<$PrismaModel>
+  }
+
   export type AccountCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -129735,6 +134503,12 @@ export namespace Prisma {
     connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
   }
 
+  export type DatabaseInstanceCreateNestedOneWithoutProjectInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutProjectInput
+    connect?: DatabaseInstanceWhereUniqueInput
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -129869,6 +134643,12 @@ export namespace Prisma {
     connectOrCreate?: ProjectConnectionLinkCreateOrConnectWithoutProjectInput | ProjectConnectionLinkCreateOrConnectWithoutProjectInput[]
     createMany?: ProjectConnectionLinkCreateManyProjectInputEnvelope
     connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+  }
+
+  export type DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutProjectInput
+    connect?: DatabaseInstanceWhereUniqueInput
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -130151,6 +134931,16 @@ export namespace Prisma {
     deleteMany?: ProjectConnectionLinkScalarWhereInput | ProjectConnectionLinkScalarWhereInput[]
   }
 
+  export type DatabaseInstanceUpdateOneWithoutProjectNestedInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutProjectInput
+    upsert?: DatabaseInstanceUpsertWithoutProjectInput
+    disconnect?: DatabaseInstanceWhereInput | boolean
+    delete?: DatabaseInstanceWhereInput | boolean
+    connect?: DatabaseInstanceWhereUniqueInput
+    update?: XOR<XOR<DatabaseInstanceUpdateToOneWithWhereWithoutProjectInput, DatabaseInstanceUpdateWithoutProjectInput>, DatabaseInstanceUncheckedUpdateWithoutProjectInput>
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -130421,6 +135211,16 @@ export namespace Prisma {
     update?: ProjectConnectionLinkUpdateWithWhereUniqueWithoutProjectInput | ProjectConnectionLinkUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: ProjectConnectionLinkUpdateManyWithWhereWithoutProjectInput | ProjectConnectionLinkUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: ProjectConnectionLinkScalarWhereInput | ProjectConnectionLinkScalarWhereInput[]
+  }
+
+  export type DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutProjectInput
+    upsert?: DatabaseInstanceUpsertWithoutProjectInput
+    disconnect?: DatabaseInstanceWhereInput | boolean
+    delete?: DatabaseInstanceWhereInput | boolean
+    connect?: DatabaseInstanceWhereUniqueInput
+    update?: XOR<XOR<DatabaseInstanceUpdateToOneWithWhereWithoutProjectInput, DatabaseInstanceUpdateWithoutProjectInput>, DatabaseInstanceUncheckedUpdateWithoutProjectInput>
   }
 
   export type IntFieldUpdateOperationsInput = {
@@ -132603,6 +137403,148 @@ export namespace Prisma {
     update?: XOR<XOR<ProviderConfigUpdateToOneWithWhereWithoutModelsInput, ProviderConfigUpdateWithoutModelsInput>, ProviderConfigUncheckedUpdateWithoutModelsInput>
   }
 
+  export type ProjectCreateNestedOneWithoutDatabaseInstanceInput = {
+    create?: XOR<ProjectCreateWithoutDatabaseInstanceInput, ProjectUncheckedCreateWithoutDatabaseInstanceInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutDatabaseInstanceInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput = {
+    create?: XOR<DatabaseSnapshotCreateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseSnapshotCreateWithoutDatabaseInstanceInput[] | DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput[]
+    connectOrCreate?: DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput | DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput[]
+    createMany?: DatabaseSnapshotCreateManyDatabaseInstanceInputEnvelope
+    connect?: DatabaseSnapshotWhereUniqueInput | DatabaseSnapshotWhereUniqueInput[]
+  }
+
+  export type DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput = {
+    create?: XOR<DatabaseRestoreCreateWithoutDatabaseInstanceInput, DatabaseRestoreUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseRestoreCreateWithoutDatabaseInstanceInput[] | DatabaseRestoreUncheckedCreateWithoutDatabaseInstanceInput[]
+    connectOrCreate?: DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput | DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput[]
+    createMany?: DatabaseRestoreCreateManyDatabaseInstanceInputEnvelope
+    connect?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
+  }
+
+  export type DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput = {
+    create?: XOR<DatabaseSnapshotCreateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseSnapshotCreateWithoutDatabaseInstanceInput[] | DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput[]
+    connectOrCreate?: DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput | DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput[]
+    createMany?: DatabaseSnapshotCreateManyDatabaseInstanceInputEnvelope
+    connect?: DatabaseSnapshotWhereUniqueInput | DatabaseSnapshotWhereUniqueInput[]
+  }
+
+  export type DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput = {
+    create?: XOR<DatabaseRestoreCreateWithoutDatabaseInstanceInput, DatabaseRestoreUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseRestoreCreateWithoutDatabaseInstanceInput[] | DatabaseRestoreUncheckedCreateWithoutDatabaseInstanceInput[]
+    connectOrCreate?: DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput | DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput[]
+    createMany?: DatabaseRestoreCreateManyDatabaseInstanceInputEnvelope
+    connect?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
+  }
+
+  export type EnumDatabaseInstanceStatusFieldUpdateOperationsInput = {
+    set?: $Enums.DatabaseInstanceStatus
+  }
+
+  export type BigIntFieldUpdateOperationsInput = {
+    set?: bigint | number
+    increment?: bigint | number
+    decrement?: bigint | number
+    multiply?: bigint | number
+    divide?: bigint | number
+  }
+
+  export type ProjectUpdateOneRequiredWithoutDatabaseInstanceNestedInput = {
+    create?: XOR<ProjectCreateWithoutDatabaseInstanceInput, ProjectUncheckedCreateWithoutDatabaseInstanceInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutDatabaseInstanceInput
+    upsert?: ProjectUpsertWithoutDatabaseInstanceInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutDatabaseInstanceInput, ProjectUpdateWithoutDatabaseInstanceInput>, ProjectUncheckedUpdateWithoutDatabaseInstanceInput>
+  }
+
+  export type DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput = {
+    create?: XOR<DatabaseSnapshotCreateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseSnapshotCreateWithoutDatabaseInstanceInput[] | DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput[]
+    connectOrCreate?: DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput | DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput[]
+    upsert?: DatabaseSnapshotUpsertWithWhereUniqueWithoutDatabaseInstanceInput | DatabaseSnapshotUpsertWithWhereUniqueWithoutDatabaseInstanceInput[]
+    createMany?: DatabaseSnapshotCreateManyDatabaseInstanceInputEnvelope
+    set?: DatabaseSnapshotWhereUniqueInput | DatabaseSnapshotWhereUniqueInput[]
+    disconnect?: DatabaseSnapshotWhereUniqueInput | DatabaseSnapshotWhereUniqueInput[]
+    delete?: DatabaseSnapshotWhereUniqueInput | DatabaseSnapshotWhereUniqueInput[]
+    connect?: DatabaseSnapshotWhereUniqueInput | DatabaseSnapshotWhereUniqueInput[]
+    update?: DatabaseSnapshotUpdateWithWhereUniqueWithoutDatabaseInstanceInput | DatabaseSnapshotUpdateWithWhereUniqueWithoutDatabaseInstanceInput[]
+    updateMany?: DatabaseSnapshotUpdateManyWithWhereWithoutDatabaseInstanceInput | DatabaseSnapshotUpdateManyWithWhereWithoutDatabaseInstanceInput[]
+    deleteMany?: DatabaseSnapshotScalarWhereInput | DatabaseSnapshotScalarWhereInput[]
+  }
+
+  export type DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput = {
+    create?: XOR<DatabaseRestoreCreateWithoutDatabaseInstanceInput, DatabaseRestoreUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseRestoreCreateWithoutDatabaseInstanceInput[] | DatabaseRestoreUncheckedCreateWithoutDatabaseInstanceInput[]
+    connectOrCreate?: DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput | DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput[]
+    upsert?: DatabaseRestoreUpsertWithWhereUniqueWithoutDatabaseInstanceInput | DatabaseRestoreUpsertWithWhereUniqueWithoutDatabaseInstanceInput[]
+    createMany?: DatabaseRestoreCreateManyDatabaseInstanceInputEnvelope
+    set?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
+    disconnect?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
+    delete?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
+    connect?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
+    update?: DatabaseRestoreUpdateWithWhereUniqueWithoutDatabaseInstanceInput | DatabaseRestoreUpdateWithWhereUniqueWithoutDatabaseInstanceInput[]
+    updateMany?: DatabaseRestoreUpdateManyWithWhereWithoutDatabaseInstanceInput | DatabaseRestoreUpdateManyWithWhereWithoutDatabaseInstanceInput[]
+    deleteMany?: DatabaseRestoreScalarWhereInput | DatabaseRestoreScalarWhereInput[]
+  }
+
+  export type DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput = {
+    create?: XOR<DatabaseSnapshotCreateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseSnapshotCreateWithoutDatabaseInstanceInput[] | DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput[]
+    connectOrCreate?: DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput | DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput[]
+    upsert?: DatabaseSnapshotUpsertWithWhereUniqueWithoutDatabaseInstanceInput | DatabaseSnapshotUpsertWithWhereUniqueWithoutDatabaseInstanceInput[]
+    createMany?: DatabaseSnapshotCreateManyDatabaseInstanceInputEnvelope
+    set?: DatabaseSnapshotWhereUniqueInput | DatabaseSnapshotWhereUniqueInput[]
+    disconnect?: DatabaseSnapshotWhereUniqueInput | DatabaseSnapshotWhereUniqueInput[]
+    delete?: DatabaseSnapshotWhereUniqueInput | DatabaseSnapshotWhereUniqueInput[]
+    connect?: DatabaseSnapshotWhereUniqueInput | DatabaseSnapshotWhereUniqueInput[]
+    update?: DatabaseSnapshotUpdateWithWhereUniqueWithoutDatabaseInstanceInput | DatabaseSnapshotUpdateWithWhereUniqueWithoutDatabaseInstanceInput[]
+    updateMany?: DatabaseSnapshotUpdateManyWithWhereWithoutDatabaseInstanceInput | DatabaseSnapshotUpdateManyWithWhereWithoutDatabaseInstanceInput[]
+    deleteMany?: DatabaseSnapshotScalarWhereInput | DatabaseSnapshotScalarWhereInput[]
+  }
+
+  export type DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput = {
+    create?: XOR<DatabaseRestoreCreateWithoutDatabaseInstanceInput, DatabaseRestoreUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseRestoreCreateWithoutDatabaseInstanceInput[] | DatabaseRestoreUncheckedCreateWithoutDatabaseInstanceInput[]
+    connectOrCreate?: DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput | DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput[]
+    upsert?: DatabaseRestoreUpsertWithWhereUniqueWithoutDatabaseInstanceInput | DatabaseRestoreUpsertWithWhereUniqueWithoutDatabaseInstanceInput[]
+    createMany?: DatabaseRestoreCreateManyDatabaseInstanceInputEnvelope
+    set?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
+    disconnect?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
+    delete?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
+    connect?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
+    update?: DatabaseRestoreUpdateWithWhereUniqueWithoutDatabaseInstanceInput | DatabaseRestoreUpdateWithWhereUniqueWithoutDatabaseInstanceInput[]
+    updateMany?: DatabaseRestoreUpdateManyWithWhereWithoutDatabaseInstanceInput | DatabaseRestoreUpdateManyWithWhereWithoutDatabaseInstanceInput[]
+    deleteMany?: DatabaseRestoreScalarWhereInput | DatabaseRestoreScalarWhereInput[]
+  }
+
+  export type DatabaseInstanceCreateNestedOneWithoutSnapshotsInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutSnapshotsInput, DatabaseInstanceUncheckedCreateWithoutSnapshotsInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutSnapshotsInput
+    connect?: DatabaseInstanceWhereUniqueInput
+  }
+
+  export type DatabaseInstanceUpdateOneRequiredWithoutSnapshotsNestedInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutSnapshotsInput, DatabaseInstanceUncheckedCreateWithoutSnapshotsInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutSnapshotsInput
+    upsert?: DatabaseInstanceUpsertWithoutSnapshotsInput
+    connect?: DatabaseInstanceWhereUniqueInput
+    update?: XOR<XOR<DatabaseInstanceUpdateToOneWithWhereWithoutSnapshotsInput, DatabaseInstanceUpdateWithoutSnapshotsInput>, DatabaseInstanceUncheckedUpdateWithoutSnapshotsInput>
+  }
+
+  export type DatabaseInstanceCreateNestedOneWithoutRestoresInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutRestoresInput, DatabaseInstanceUncheckedCreateWithoutRestoresInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutRestoresInput
+    connect?: DatabaseInstanceWhereUniqueInput
+  }
+
+  export type EnumDatabaseRestoreStatusFieldUpdateOperationsInput = {
+    set?: $Enums.DatabaseRestoreStatus
+  }
+
+  export type DatabaseInstanceUpdateOneRequiredWithoutRestoresNestedInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutRestoresInput, DatabaseInstanceUncheckedCreateWithoutRestoresInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutRestoresInput
+    upsert?: DatabaseInstanceUpsertWithoutRestoresInput
+    connect?: DatabaseInstanceWhereUniqueInput
+    update?: XOR<XOR<DatabaseInstanceUpdateToOneWithWhereWithoutRestoresInput, DatabaseInstanceUpdateWithoutRestoresInput>, DatabaseInstanceUncheckedUpdateWithoutRestoresInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -133068,6 +138010,67 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumCheckpointStatusFilter<$PrismaModel>
     _max?: NestedEnumCheckpointStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumDatabaseInstanceStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.DatabaseInstanceStatus | EnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.DatabaseInstanceStatus[] | ListEnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DatabaseInstanceStatus[] | ListEnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel> | $Enums.DatabaseInstanceStatus
+  }
+
+  export type NestedBigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+
+  export type NestedEnumDatabaseInstanceStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DatabaseInstanceStatus | EnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.DatabaseInstanceStatus[] | ListEnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DatabaseInstanceStatus[] | ListEnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumDatabaseInstanceStatusWithAggregatesFilter<$PrismaModel> | $Enums.DatabaseInstanceStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel>
+    _max?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel>
+  }
+
+  export type NestedBigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
+  }
+
+  export type NestedEnumDatabaseRestoreStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.DatabaseRestoreStatus | EnumDatabaseRestoreStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.DatabaseRestoreStatus[] | ListEnumDatabaseRestoreStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DatabaseRestoreStatus[] | ListEnumDatabaseRestoreStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumDatabaseRestoreStatusFilter<$PrismaModel> | $Enums.DatabaseRestoreStatus
+  }
+
+  export type NestedEnumDatabaseRestoreStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DatabaseRestoreStatus | EnumDatabaseRestoreStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.DatabaseRestoreStatus[] | ListEnumDatabaseRestoreStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DatabaseRestoreStatus[] | ListEnumDatabaseRestoreStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumDatabaseRestoreStatusWithAggregatesFilter<$PrismaModel> | $Enums.DatabaseRestoreStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumDatabaseRestoreStatusFilter<$PrismaModel>
+    _max?: NestedEnumDatabaseRestoreStatusFilter<$PrismaModel>
   }
 
   export type AccountCreateWithoutUserInput = {
@@ -135217,6 +140220,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
@@ -135252,6 +140256,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -138591,6 +143596,41 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type DatabaseInstanceCreateWithoutProjectInput = {
+    id?: string
+    organizationId: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
+    restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+  }
+
+  export type DatabaseInstanceUncheckedCreateWithoutProjectInput = {
+    id?: string
+    organizationId: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+  }
+
+  export type DatabaseInstanceCreateOrConnectWithoutProjectInput = {
+    where: DatabaseInstanceWhereUniqueInput
+    create: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput>
+  }
+
   export type OrganizationUpsertWithoutProjectsInput = {
     update: XOR<OrganizationUpdateWithoutProjectsInput, OrganizationUncheckedUpdateWithoutProjectsInput>
     create: XOR<OrganizationCreateWithoutProjectsInput, OrganizationUncheckedCreateWithoutProjectsInput>
@@ -139135,6 +144175,47 @@ export namespace Prisma {
     data: XOR<ProjectConnectionLinkUpdateManyMutationInput, ProjectConnectionLinkUncheckedUpdateManyWithoutProjectInput>
   }
 
+  export type DatabaseInstanceUpsertWithoutProjectInput = {
+    update: XOR<DatabaseInstanceUpdateWithoutProjectInput, DatabaseInstanceUncheckedUpdateWithoutProjectInput>
+    create: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput>
+    where?: DatabaseInstanceWhereInput
+  }
+
+  export type DatabaseInstanceUpdateToOneWithWhereWithoutProjectInput = {
+    where?: DatabaseInstanceWhereInput
+    data: XOR<DatabaseInstanceUpdateWithoutProjectInput, DatabaseInstanceUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type DatabaseInstanceUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
+    restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
+  export type DatabaseInstanceUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
   export type UserCreateWithoutAgentMemoriesInput = {
     id?: string
     email: string
@@ -139536,6 +144617,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoriesInput = {
@@ -139571,6 +144653,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoriesInput = {
@@ -139622,6 +144705,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -139657,6 +144741,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoryPreferencesInput = {
@@ -139870,6 +144955,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -139905,6 +144991,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -140146,6 +145233,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -140181,6 +145269,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutIdeStateInput = {
@@ -140216,6 +145305,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutIdeStateInput = {
@@ -140251,6 +145341,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutIdeStateInput = {
@@ -140395,6 +145486,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutIdeStateInput = {
@@ -140430,6 +145522,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
@@ -140564,6 +145657,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentPatchProposalsInput = {
@@ -140599,6 +145693,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentPatchProposalsInput = {
@@ -140650,6 +145745,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentPatchProposalsInput = {
@@ -140685,6 +145781,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvironmentsInput = {
@@ -140720,6 +145817,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
@@ -140755,6 +145853,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -140806,6 +145905,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
@@ -140841,6 +145941,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
@@ -140876,6 +145977,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
@@ -140911,6 +146013,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -140962,6 +146065,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
@@ -140997,6 +146101,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
@@ -141032,6 +146137,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
@@ -141067,6 +146173,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -141118,6 +146225,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
@@ -141153,6 +146261,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
@@ -141188,6 +146297,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
@@ -141223,6 +146333,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -141367,6 +146478,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
@@ -141402,6 +146514,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -141536,6 +146649,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
@@ -141571,6 +146685,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -141715,6 +146830,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
@@ -141750,6 +146866,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -141884,6 +147001,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -141919,6 +147037,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -142063,6 +147182,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -142098,6 +147218,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationPresenceInput = {
@@ -142232,6 +147353,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -142267,6 +147389,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -142411,6 +147534,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -142446,6 +147570,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationCommentsInput = {
@@ -142580,6 +147705,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -142615,6 +147741,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -142759,6 +147886,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -142794,6 +147922,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationShareLinksInput = {
@@ -142928,6 +148057,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
@@ -142963,6 +148093,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -143099,6 +148230,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
@@ -143134,6 +148266,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -143260,6 +148393,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
@@ -143295,6 +148429,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -143449,6 +148584,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
@@ -143484,6 +148620,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -143846,6 +148983,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
@@ -143881,6 +149019,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -143967,6 +149106,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
@@ -144002,6 +149142,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -144078,6 +149219,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
@@ -144113,6 +149255,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -144257,6 +149400,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
@@ -144292,6 +149436,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -144426,6 +149571,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutStorageObjectsInput = {
@@ -144461,6 +149607,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutStorageObjectsInput = {
@@ -144512,6 +149659,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutStorageObjectsInput = {
@@ -144547,6 +149695,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutDeploymentsInput = {
@@ -144582,6 +149731,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
@@ -144617,6 +149767,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -144683,6 +149834,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
@@ -144718,6 +149870,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -146594,6 +151747,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
@@ -146629,6 +151783,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -146801,6 +151956,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
@@ -146836,6 +151992,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -152095,6 +157252,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConnectionLinksInput = {
@@ -152130,6 +157288,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConnectionLinksInput = {
@@ -152327,6 +157486,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConnectionLinksInput = {
@@ -152362,6 +157522,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserConnectionUpsertWithoutProjectLinksInput = {
@@ -154577,6 +159738,450 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ProjectCreateWithoutDatabaseInstanceInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutDatabaseInstanceInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutDatabaseInstanceInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutDatabaseInstanceInput, ProjectUncheckedCreateWithoutDatabaseInstanceInput>
+  }
+
+  export type DatabaseSnapshotCreateWithoutDatabaseInstanceInput = {
+    id?: string
+    kind?: string
+    label?: string | null
+    lsn?: string | null
+    sizeBytes?: bigint | number
+    storageKey?: string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    expiresAt?: Date | string | null
+  }
+
+  export type DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput = {
+    id?: string
+    kind?: string
+    label?: string | null
+    lsn?: string | null
+    sizeBytes?: bigint | number
+    storageKey?: string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    expiresAt?: Date | string | null
+  }
+
+  export type DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput = {
+    where: DatabaseSnapshotWhereUniqueInput
+    create: XOR<DatabaseSnapshotCreateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput>
+  }
+
+  export type DatabaseSnapshotCreateManyDatabaseInstanceInputEnvelope = {
+    data: DatabaseSnapshotCreateManyDatabaseInstanceInput | DatabaseSnapshotCreateManyDatabaseInstanceInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type DatabaseRestoreCreateWithoutDatabaseInstanceInput = {
+    id?: string
+    snapshotId?: string | null
+    targetTimestamp?: Date | string | null
+    status?: $Enums.DatabaseRestoreStatus
+    requestedByUserId?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    startedAt?: Date | string | null
+    completedAt?: Date | string | null
+  }
+
+  export type DatabaseRestoreUncheckedCreateWithoutDatabaseInstanceInput = {
+    id?: string
+    snapshotId?: string | null
+    targetTimestamp?: Date | string | null
+    status?: $Enums.DatabaseRestoreStatus
+    requestedByUserId?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    startedAt?: Date | string | null
+    completedAt?: Date | string | null
+  }
+
+  export type DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput = {
+    where: DatabaseRestoreWhereUniqueInput
+    create: XOR<DatabaseRestoreCreateWithoutDatabaseInstanceInput, DatabaseRestoreUncheckedCreateWithoutDatabaseInstanceInput>
+  }
+
+  export type DatabaseRestoreCreateManyDatabaseInstanceInputEnvelope = {
+    data: DatabaseRestoreCreateManyDatabaseInstanceInput | DatabaseRestoreCreateManyDatabaseInstanceInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ProjectUpsertWithoutDatabaseInstanceInput = {
+    update: XOR<ProjectUpdateWithoutDatabaseInstanceInput, ProjectUncheckedUpdateWithoutDatabaseInstanceInput>
+    create: XOR<ProjectCreateWithoutDatabaseInstanceInput, ProjectUncheckedCreateWithoutDatabaseInstanceInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutDatabaseInstanceInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutDatabaseInstanceInput, ProjectUncheckedUpdateWithoutDatabaseInstanceInput>
+  }
+
+  export type ProjectUpdateWithoutDatabaseInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutDatabaseInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type DatabaseSnapshotUpsertWithWhereUniqueWithoutDatabaseInstanceInput = {
+    where: DatabaseSnapshotWhereUniqueInput
+    update: XOR<DatabaseSnapshotUpdateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedUpdateWithoutDatabaseInstanceInput>
+    create: XOR<DatabaseSnapshotCreateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput>
+  }
+
+  export type DatabaseSnapshotUpdateWithWhereUniqueWithoutDatabaseInstanceInput = {
+    where: DatabaseSnapshotWhereUniqueInput
+    data: XOR<DatabaseSnapshotUpdateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedUpdateWithoutDatabaseInstanceInput>
+  }
+
+  export type DatabaseSnapshotUpdateManyWithWhereWithoutDatabaseInstanceInput = {
+    where: DatabaseSnapshotScalarWhereInput
+    data: XOR<DatabaseSnapshotUpdateManyMutationInput, DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceInput>
+  }
+
+  export type DatabaseSnapshotScalarWhereInput = {
+    AND?: DatabaseSnapshotScalarWhereInput | DatabaseSnapshotScalarWhereInput[]
+    OR?: DatabaseSnapshotScalarWhereInput[]
+    NOT?: DatabaseSnapshotScalarWhereInput | DatabaseSnapshotScalarWhereInput[]
+    id?: StringFilter<"DatabaseSnapshot"> | string
+    databaseInstanceId?: StringFilter<"DatabaseSnapshot"> | string
+    kind?: StringFilter<"DatabaseSnapshot"> | string
+    label?: StringNullableFilter<"DatabaseSnapshot"> | string | null
+    lsn?: StringNullableFilter<"DatabaseSnapshot"> | string | null
+    sizeBytes?: BigIntFilter<"DatabaseSnapshot"> | bigint | number
+    storageKey?: StringNullableFilter<"DatabaseSnapshot"> | string | null
+    createdByUserId?: StringNullableFilter<"DatabaseSnapshot"> | string | null
+    createdAt?: DateTimeFilter<"DatabaseSnapshot"> | Date | string
+    expiresAt?: DateTimeNullableFilter<"DatabaseSnapshot"> | Date | string | null
+  }
+
+  export type DatabaseRestoreUpsertWithWhereUniqueWithoutDatabaseInstanceInput = {
+    where: DatabaseRestoreWhereUniqueInput
+    update: XOR<DatabaseRestoreUpdateWithoutDatabaseInstanceInput, DatabaseRestoreUncheckedUpdateWithoutDatabaseInstanceInput>
+    create: XOR<DatabaseRestoreCreateWithoutDatabaseInstanceInput, DatabaseRestoreUncheckedCreateWithoutDatabaseInstanceInput>
+  }
+
+  export type DatabaseRestoreUpdateWithWhereUniqueWithoutDatabaseInstanceInput = {
+    where: DatabaseRestoreWhereUniqueInput
+    data: XOR<DatabaseRestoreUpdateWithoutDatabaseInstanceInput, DatabaseRestoreUncheckedUpdateWithoutDatabaseInstanceInput>
+  }
+
+  export type DatabaseRestoreUpdateManyWithWhereWithoutDatabaseInstanceInput = {
+    where: DatabaseRestoreScalarWhereInput
+    data: XOR<DatabaseRestoreUpdateManyMutationInput, DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceInput>
+  }
+
+  export type DatabaseRestoreScalarWhereInput = {
+    AND?: DatabaseRestoreScalarWhereInput | DatabaseRestoreScalarWhereInput[]
+    OR?: DatabaseRestoreScalarWhereInput[]
+    NOT?: DatabaseRestoreScalarWhereInput | DatabaseRestoreScalarWhereInput[]
+    id?: StringFilter<"DatabaseRestore"> | string
+    databaseInstanceId?: StringFilter<"DatabaseRestore"> | string
+    snapshotId?: StringNullableFilter<"DatabaseRestore"> | string | null
+    targetTimestamp?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
+    status?: EnumDatabaseRestoreStatusFilter<"DatabaseRestore"> | $Enums.DatabaseRestoreStatus
+    requestedByUserId?: StringNullableFilter<"DatabaseRestore"> | string | null
+    error?: StringNullableFilter<"DatabaseRestore"> | string | null
+    createdAt?: DateTimeFilter<"DatabaseRestore"> | Date | string
+    startedAt?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
+    completedAt?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
+  }
+
+  export type DatabaseInstanceCreateWithoutSnapshotsInput = {
+    id?: string
+    organizationId: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutDatabaseInstanceInput
+    restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+  }
+
+  export type DatabaseInstanceUncheckedCreateWithoutSnapshotsInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+  }
+
+  export type DatabaseInstanceCreateOrConnectWithoutSnapshotsInput = {
+    where: DatabaseInstanceWhereUniqueInput
+    create: XOR<DatabaseInstanceCreateWithoutSnapshotsInput, DatabaseInstanceUncheckedCreateWithoutSnapshotsInput>
+  }
+
+  export type DatabaseInstanceUpsertWithoutSnapshotsInput = {
+    update: XOR<DatabaseInstanceUpdateWithoutSnapshotsInput, DatabaseInstanceUncheckedUpdateWithoutSnapshotsInput>
+    create: XOR<DatabaseInstanceCreateWithoutSnapshotsInput, DatabaseInstanceUncheckedCreateWithoutSnapshotsInput>
+    where?: DatabaseInstanceWhereInput
+  }
+
+  export type DatabaseInstanceUpdateToOneWithWhereWithoutSnapshotsInput = {
+    where?: DatabaseInstanceWhereInput
+    data: XOR<DatabaseInstanceUpdateWithoutSnapshotsInput, DatabaseInstanceUncheckedUpdateWithoutSnapshotsInput>
+  }
+
+  export type DatabaseInstanceUpdateWithoutSnapshotsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutDatabaseInstanceNestedInput
+    restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
+  export type DatabaseInstanceUncheckedUpdateWithoutSnapshotsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
+  export type DatabaseInstanceCreateWithoutRestoresInput = {
+    id?: string
+    organizationId: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutDatabaseInstanceInput
+    snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
+  }
+
+  export type DatabaseInstanceUncheckedCreateWithoutRestoresInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+  }
+
+  export type DatabaseInstanceCreateOrConnectWithoutRestoresInput = {
+    where: DatabaseInstanceWhereUniqueInput
+    create: XOR<DatabaseInstanceCreateWithoutRestoresInput, DatabaseInstanceUncheckedCreateWithoutRestoresInput>
+  }
+
+  export type DatabaseInstanceUpsertWithoutRestoresInput = {
+    update: XOR<DatabaseInstanceUpdateWithoutRestoresInput, DatabaseInstanceUncheckedUpdateWithoutRestoresInput>
+    create: XOR<DatabaseInstanceCreateWithoutRestoresInput, DatabaseInstanceUncheckedCreateWithoutRestoresInput>
+    where?: DatabaseInstanceWhereInput
+  }
+
+  export type DatabaseInstanceUpdateToOneWithWhereWithoutRestoresInput = {
+    where?: DatabaseInstanceWhereInput
+    data: XOR<DatabaseInstanceUpdateWithoutRestoresInput, DatabaseInstanceUncheckedUpdateWithoutRestoresInput>
+  }
+
+  export type DatabaseInstanceUpdateWithoutRestoresInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutDatabaseInstanceNestedInput
+    snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
+  export type DatabaseInstanceUncheckedUpdateWithoutRestoresInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
   export type AccountCreateManyUserInput = {
     id?: string
     provider: string
@@ -156119,6 +161724,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
@@ -156154,6 +161760,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
@@ -158715,6 +164322,102 @@ export namespace Prisma {
     contextWindow?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseSnapshotCreateManyDatabaseInstanceInput = {
+    id?: string
+    kind?: string
+    label?: string | null
+    lsn?: string | null
+    sizeBytes?: bigint | number
+    storageKey?: string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    expiresAt?: Date | string | null
+  }
+
+  export type DatabaseRestoreCreateManyDatabaseInstanceInput = {
+    id?: string
+    snapshotId?: string | null
+    targetTimestamp?: Date | string | null
+    status?: $Enums.DatabaseRestoreStatus
+    requestedByUserId?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    startedAt?: Date | string | null
+    completedAt?: Date | string | null
+  }
+
+  export type DatabaseSnapshotUpdateWithoutDatabaseInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    lsn?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    storageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseSnapshotUncheckedUpdateWithoutDatabaseInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    lsn?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    storageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    lsn?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    storageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseRestoreUpdateWithoutDatabaseInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    snapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    targetTimestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: EnumDatabaseRestoreStatusFieldUpdateOperationsInput | $Enums.DatabaseRestoreStatus
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseRestoreUncheckedUpdateWithoutDatabaseInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    snapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    targetTimestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: EnumDatabaseRestoreStatusFieldUpdateOperationsInput | $Enums.DatabaseRestoreStatus
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    snapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    targetTimestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: EnumDatabaseRestoreStatusFieldUpdateOperationsInput | $Enums.DatabaseRestoreStatus
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
 
