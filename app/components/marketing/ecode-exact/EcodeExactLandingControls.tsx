@@ -194,9 +194,26 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
 
         const payload = (await response.json()) as PublicModelsResponse;
 
-        const loadedModels = (payload.models ?? [])
+        const normalized = (payload.models ?? [])
           .map((model) => normalizePublicModelOption(model))
           .filter((model): model is PublicModelOption => Boolean(model));
+
+        /*
+         * De-duplicate by id: the catalog can return the same model id from
+         * multiple providers, which produced duplicate React keys on the <option>
+         * list (console errors). Keep the first occurrence.
+         */
+        const seen = new Set<string>();
+
+        const loadedModels = normalized.filter((model) => {
+          if (seen.has(model.id)) {
+            return false;
+          }
+
+          seen.add(model.id);
+
+          return true;
+        });
 
         if (loadedModels.length > 0) {
           setModels(loadedModels);
