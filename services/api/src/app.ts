@@ -157,6 +157,11 @@ import {
   meterWorkspaceCompute,
 } from './metering-service.js';
 import {
+  databaseRollbackEntitlement,
+  isDatabaseRollbackEnabled,
+  validateRestoreTarget,
+} from './database-rollback-service.js';
+import {
   filesFromZip,
   filesFromZipBase64,
   GitCliProvider,
@@ -18796,6 +18801,114 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { deployment: await reconcileDeploymentStatus(store, deployment).catch(() => deployment) };
   });
+
+  /*
+   * ===== Replit-parity database point-in-time rollback (Pro: 28-day window) =====
+   * Phase-1 scaffold — DORMANT behind DB_ROLLBACK_ENABLED. The read route returns
+   * the project's managed-database panel (instance + plan entitlement + recovery
+   * points); the restore route records a PENDING restore request (the WAL-restore
+   * executor is a later phase). Both 404 with FEATURE_NOT_ENABLED until the flag
+   * is on, so shipping this has no effect on live traffic. See
+   * database-rollback-service.ts + migration 0040.
+   */
+  app.get('/projects/:projectId/database', async (request, reply) => {
+    if (!isDatabaseRollbackEnabled()) {
+      return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    const state = await billingState(project.organizationId).catch(() => undefined);
+    const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
+    const instance = await store.getDatabaseInstanceByProject(project.id);
+
+    if (!instance) {
+      return { entitlement, instance: null, snapshots: [], restores: [] };
+    }
+
+    const [snapshots, restores] = await Promise.all([
+      store.listDatabaseSnapshots(instance.id),
+      store.listDatabaseRestores(instance.id),
+    ]);
+
+    return { entitlement, instance, snapshots, restores };
+  });
+
+  app.post('/projects/:projectId/database/restores', async (request, reply) => {
+    if (!isDatabaseRollbackEnabled()) {
+      return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    const body = parse(
+      z
+        .object({
+          snapshotId: z.string().min(1).optional(),
+          targetTimestamp: z.string().datetime().optional(),
+        })
+        .refine((value) => Boolean(value.snapshotId || value.targetTimestamp), {
+          message: 'Provide a snapshotId or a targetTimestamp',
+        }),
+      request.body ?? {},
+    );
+
+    const instance = await store.getDatabaseInstanceByProject(project.id);
+
+    if (!instance) {
+      return reply.code(409).send({ error: 'No database for this project', code: 'NO_DATABASE' });
+    }
+
+    const state = await billingState(project.organizationId).catch(() => undefined);
+    const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
+    const nowMs = Date.now();
+
+    // A snapshot restore targets the snapshot's creation time; a bare target is
+    // true PITR. Either way the target must sit inside the plan's retention window.
+    let targetTimestampMs = nowMs;
+
+    if (body.targetTimestamp) {
+      targetTimestampMs = Date.parse(body.targetTimestamp);
+    } else if (body.snapshotId) {
+      const snapshots = await store.listDatabaseSnapshots(instance.id);
+      const snapshot = snapshots.find((entry) => entry.id === body.snapshotId);
+
+      if (!snapshot) {
+        return reply.code(404).send({ error: 'Snapshot not found', code: 'SNAPSHOT_NOT_FOUND' });
+      }
+
+      targetTimestampMs = Date.parse(snapshot.createdAt);
+    }
+
+    const validation = validateRestoreTarget({ enabled: true, entitlement, targetTimestampMs, nowMs });
+
+    if (!validation.ok) {
+      return reply.code(validation.code === 'PLAN_NOT_ELIGIBLE' ? 403 : 422).send({
+        error: validation.message,
+        code: validation.code,
+      });
+    }
+
+    const restore = await store.createDatabaseRestore({
+      databaseInstanceId: instance.id,
+      snapshotId: body.snapshotId,
+      targetTimestamp: body.targetTimestamp,
+      requestedByUserId: request.currentUser?.id,
+    });
+
+    return reply.code(202).send({ restore });
+  });
+
   app.post('/projects/:projectId/deployments', async (request, reply) => {
     const project = await requireProject(
       request,

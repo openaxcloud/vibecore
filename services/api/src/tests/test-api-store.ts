@@ -49,6 +49,9 @@ import type {
   ProjectShareLinkRecord,
   ChatShareRecord,
   ProjectStorageObjectRecord,
+  DatabaseInstanceRecord,
+  DatabaseSnapshotRecord,
+  DatabaseRestoreRecord,
   ProjectTemplateRecord,
   RecoveryCodeRecord,
   ScimTokenRecord,
@@ -93,6 +96,9 @@ export class TestApiStore implements ApiStore {
   readonly workspaces = new Map<string, WorkspaceRecord>();
   readonly snapshots = new Map<string, SnapshotRecord>();
   readonly projectStorageObjects = new Map<string, ProjectStorageObjectRecord>();
+  readonly databaseInstances = new Map<string, DatabaseInstanceRecord>();
+  readonly databaseSnapshots = new Map<string, DatabaseSnapshotRecord>();
+  readonly databaseRestores = new Map<string, DatabaseRestoreRecord>();
   readonly projectEnvVars = new Map<string, ProjectEnvironmentRecord>();
   readonly projectSecrets = new Map<string, ProjectSecretRecord>();
   readonly projectCollaborators = new Map<string, ProjectCollaboratorRecord>();
@@ -1178,6 +1184,48 @@ export class TestApiStore implements ApiStore {
     }
 
     return [...byOrg.entries()].map(([organizationId, bytes]) => ({ organizationId, bytes }));
+  }
+
+  async getDatabaseInstanceByProject(projectId: string) {
+    for (const instance of this.databaseInstances.values()) {
+      if (instance.projectId === projectId) {
+        return instance;
+      }
+    }
+
+    return undefined;
+  }
+
+  async listDatabaseSnapshots(databaseInstanceId: string) {
+    return [...this.databaseSnapshots.values()]
+      .filter((snapshot) => snapshot.databaseInstanceId === databaseInstanceId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  async listDatabaseRestores(databaseInstanceId: string) {
+    return [...this.databaseRestores.values()]
+      .filter((restore) => restore.databaseInstanceId === databaseInstanceId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  async createDatabaseRestore(input: {
+    databaseInstanceId: string;
+    snapshotId?: string;
+    targetTimestamp?: string;
+    requestedByUserId?: string;
+  }) {
+    const restore: DatabaseRestoreRecord = {
+      id: id('database_restore'),
+      databaseInstanceId: input.databaseInstanceId,
+      snapshotId: input.snapshotId,
+      targetTimestamp: input.targetTimestamp,
+      status: 'PENDING',
+      requestedByUserId: input.requestedByUserId,
+      createdAt: now(),
+    };
+    this.databaseRestores.set(restore.id, restore);
+
+    return restore;
   }
 
   async createDeployment(input: {

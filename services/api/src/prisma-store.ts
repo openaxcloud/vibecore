@@ -51,6 +51,9 @@ import type {
   ChatShareRecord,
   ProjectStorageObjectRecord,
   ProjectTemplateRecord,
+  DatabaseInstanceRecord,
+  DatabaseSnapshotRecord,
+  DatabaseRestoreRecord,
   RecoveryCodeRecord,
   ScimTokenRecord,
   SessionRecord,
@@ -77,6 +80,88 @@ function now() {
 
 function toIso(value: Date | string | null | undefined) {
   return value ? new Date(value).toISOString() : undefined;
+}
+
+// Database point-in-time rollback (Phase-1 scaffold) row → record mappers.
+// sizeBytes is a Postgres BIGINT (Prisma `bigint`); narrow to number for the API.
+function mapDatabaseInstance(row: {
+  id: string;
+  projectId: string;
+  organizationId: string;
+  status: DatabaseInstanceRecord['status'];
+  engine: string;
+  region: string | null;
+  sizeBytes: bigint;
+  retentionDays: number;
+  pitrEnabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}): DatabaseInstanceRecord {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    organizationId: row.organizationId,
+    status: row.status,
+    engine: row.engine,
+    region: row.region ?? undefined,
+    sizeBytes: Number(row.sizeBytes),
+    retentionDays: row.retentionDays,
+    pitrEnabled: row.pitrEnabled,
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
+  };
+}
+
+function mapDatabaseSnapshot(row: {
+  id: string;
+  databaseInstanceId: string;
+  kind: string;
+  label: string | null;
+  lsn: string | null;
+  sizeBytes: bigint;
+  storageKey: string | null;
+  createdByUserId: string | null;
+  createdAt: Date;
+  expiresAt: Date | null;
+}): DatabaseSnapshotRecord {
+  return {
+    id: row.id,
+    databaseInstanceId: row.databaseInstanceId,
+    kind: row.kind === 'manual' ? 'manual' : 'auto',
+    label: row.label ?? undefined,
+    lsn: row.lsn ?? undefined,
+    sizeBytes: Number(row.sizeBytes),
+    storageKey: row.storageKey ?? undefined,
+    createdByUserId: row.createdByUserId ?? undefined,
+    createdAt: toIso(row.createdAt)!,
+    expiresAt: toIso(row.expiresAt),
+  };
+}
+
+function mapDatabaseRestore(row: {
+  id: string;
+  databaseInstanceId: string;
+  snapshotId: string | null;
+  targetTimestamp: Date | null;
+  status: DatabaseRestoreRecord['status'];
+  requestedByUserId: string | null;
+  error: string | null;
+  createdAt: Date;
+  startedAt: Date | null;
+  completedAt: Date | null;
+}): DatabaseRestoreRecord {
+  return {
+    id: row.id,
+    databaseInstanceId: row.databaseInstanceId,
+    snapshotId: row.snapshotId ?? undefined,
+    targetTimestamp: toIso(row.targetTimestamp),
+    status: row.status,
+    requestedByUserId: row.requestedByUserId ?? undefined,
+    error: row.error ?? undefined,
+    createdAt: toIso(row.createdAt)!,
+    startedAt: toIso(row.startedAt),
+    completedAt: toIso(row.completedAt),
+  };
 }
 
 function slugify(value: string) {
@@ -1554,6 +1639,48 @@ export class PrismaApiStore implements ApiStore {
     }
 
     return [...byOrg.entries()].map(([organizationId, bytes]) => ({ organizationId, bytes }));
+  }
+
+  async getDatabaseInstanceByProject(projectId: string): Promise<DatabaseInstanceRecord | undefined> {
+    const row = await this.prisma.databaseInstance.findUnique({ where: { projectId } });
+
+    return row ? mapDatabaseInstance(row) : undefined;
+  }
+
+  async listDatabaseSnapshots(databaseInstanceId: string): Promise<DatabaseSnapshotRecord[]> {
+    const rows = await this.prisma.databaseSnapshot.findMany({
+      where: { databaseInstanceId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return rows.map(mapDatabaseSnapshot);
+  }
+
+  async listDatabaseRestores(databaseInstanceId: string): Promise<DatabaseRestoreRecord[]> {
+    const rows = await this.prisma.databaseRestore.findMany({
+      where: { databaseInstanceId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return rows.map(mapDatabaseRestore);
+  }
+
+  async createDatabaseRestore(input: {
+    databaseInstanceId: string;
+    snapshotId?: string;
+    targetTimestamp?: string;
+    requestedByUserId?: string;
+  }): Promise<DatabaseRestoreRecord> {
+    const row = await this.prisma.databaseRestore.create({
+      data: {
+        databaseInstanceId: input.databaseInstanceId,
+        snapshotId: input.snapshotId ?? null,
+        targetTimestamp: input.targetTimestamp ? new Date(input.targetTimestamp) : null,
+        requestedByUserId: input.requestedByUserId ?? null,
+      },
+    });
+
+    return mapDatabaseRestore(row);
   }
 
   async createDeployment(input: {

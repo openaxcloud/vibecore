@@ -128,6 +128,50 @@ export interface ProjectStorageObjectRecord {
   createdAt: string;
 }
 
+/** Managed Postgres database for a project (Replit "Database" tab). Phase-1
+ *  scaffold for point-in-time rollback — see database-rollback-service.ts. */
+export interface DatabaseInstanceRecord {
+  id: string;
+  projectId: string;
+  organizationId: string;
+  status: 'PROVISIONING' | 'ACTIVE' | 'SUSPENDED' | 'DELETED';
+  engine: string;
+  region?: string;
+  sizeBytes: number;
+  retentionDays: number;
+  pitrEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A recovery point for a DatabaseInstance (auto/manual snapshot). */
+export interface DatabaseSnapshotRecord {
+  id: string;
+  databaseInstanceId: string;
+  kind: 'auto' | 'manual';
+  label?: string;
+  lsn?: string;
+  sizeBytes: number;
+  storageKey?: string;
+  createdByUserId?: string;
+  createdAt: string;
+  expiresAt?: string;
+}
+
+/** A point-in-time restore request for a DatabaseInstance. */
+export interface DatabaseRestoreRecord {
+  id: string;
+  databaseInstanceId: string;
+  snapshotId?: string;
+  targetTimestamp?: string;
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  requestedByUserId?: string;
+  error?: string;
+  createdAt: string;
+  startedAt?: string;
+  completedAt?: string;
+}
+
 export interface ProjectEnvironmentRecord {
   id: string;
   projectId: string;
@@ -1008,6 +1052,21 @@ export interface ApiStore {
    * to their org). Drives the daily object-storage metering sweep (P4).
    */
   aggregateStorageBytesByOrg(): Promise<Array<{ organizationId: string; bytes: number }>>;
+  /**
+   * Database point-in-time rollback (Phase-1 scaffold, dormant behind
+   * DB_ROLLBACK_ENABLED). Read the project's managed-database instance and its
+   * recovery points; record a restore request (no executor yet). See
+   * database-rollback-service.ts + migration 0040.
+   */
+  getDatabaseInstanceByProject(projectId: string): Promise<DatabaseInstanceRecord | undefined>;
+  listDatabaseSnapshots(databaseInstanceId: string): Promise<DatabaseSnapshotRecord[]>;
+  listDatabaseRestores(databaseInstanceId: string): Promise<DatabaseRestoreRecord[]>;
+  createDatabaseRestore(input: {
+    databaseInstanceId: string;
+    snapshotId?: string;
+    targetTimestamp?: string;
+    requestedByUserId?: string;
+  }): Promise<DatabaseRestoreRecord>;
   createDeployment(input: {
     projectId: string;
     workspaceId?: string;
