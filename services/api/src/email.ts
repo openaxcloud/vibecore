@@ -1,7 +1,5 @@
 import { createHash } from 'node:crypto';
 
-import nodemailer from 'nodemailer';
-
 export interface EmailMessage {
   to: string;
   subject: string;
@@ -30,20 +28,6 @@ function getHttpEmailFrom() {
 
   if (isProduction()) {
     throw new Error('EMAIL_FROM is required in production when EMAIL_HTTP_ENDPOINT is configured.');
-  }
-
-  return 'no-reply@vibecore.local';
-}
-
-function getSmtpEmailFrom() {
-  const from = nonEmpty(process.env.EMAIL_FROM) ?? nonEmpty(process.env.SMTP_FROM);
-
-  if (from) {
-    return from;
-  }
-
-  if (isProduction()) {
-    throw new Error('EMAIL_FROM or SMTP_FROM is required in production when SMTP_HOST is configured.');
   }
 
   return 'no-reply@vibecore.local';
@@ -88,36 +72,11 @@ export class HttpEmailProvider implements EmailProvider {
   }
 }
 
-export class SmtpEmailProvider implements EmailProvider {
-  private readonly transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT ?? 587),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth:
-      process.env.SMTP_USER && process.env.SMTP_PASSWORD
-        ? {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASSWORD,
-          }
-        : undefined,
-  });
-
-  async send(message: EmailMessage) {
-    await this.transporter.sendMail({
-      from: getSmtpEmailFrom(),
-      to: message.to,
-      subject: message.subject,
-      text: message.text,
-      html: message.html,
-    });
-  }
-}
-
 /*
- * Fallback used when neither SMTP nor an HTTP webhook is configured. The
- * message is not delivered; only redacted metadata is logged for local
- * development. Production deployments must replace this with an SMTP relay or
- * a webhook to Resend / SES.
+ * Dev-only fallback used when EMAIL_HTTP_ENDPOINT (Resend) is not configured.
+ * The message is NOT delivered; only redacted metadata is logged for local
+ * development. This is unreachable in production — createEmailProvider() throws
+ * if Resend isn't configured (see below), so prod is always Resend or boot-fail.
  */
 export class LoggingEmailProvider implements EmailProvider {
   async send(message: EmailMessage) {
@@ -128,7 +87,7 @@ export class LoggingEmailProvider implements EmailProvider {
     console.warn(
       [
         banner,
-        `[email] No SMTP_HOST / EMAIL_HTTP_ENDPOINT configured — logging only.`,
+        `[email] EMAIL_HTTP_ENDPOINT (Resend) not configured — logging only (dev).`,
         `[email] To:      ${message.to}`,
         `[email] Subject: ${message.subject}`,
         `[email] Text:    redacted (${textBytes} bytes, sha256=${textDigest})`,
@@ -139,11 +98,9 @@ export class LoggingEmailProvider implements EmailProvider {
 }
 
 export function createEmailProvider(): EmailProvider {
-  if (process.env.SMTP_HOST) {
-    getSmtpEmailFrom();
-    return new SmtpEmailProvider();
-  }
-
+  // Resend (HTTP API) is the ONLY supported transactional-email provider.
+  // EMAIL_HTTP_ENDPOINT points at https://api.resend.com/emails (see the prod
+  // configmap); EMAIL_HTTP_TOKEN is the Resend API key.
   if (process.env.EMAIL_HTTP_ENDPOINT) {
     if (isProduction() && !nonEmpty(process.env.EMAIL_HTTP_TOKEN)) {
       throw new Error('EMAIL_HTTP_TOKEN is required in production when EMAIL_HTTP_ENDPOINT is configured.');
@@ -156,10 +113,11 @@ export function createEmailProvider(): EmailProvider {
   /*
    * Refuse to silently swallow transactional email in production. The logging
    * fallback is development-only because verification, reset and invitation
-   * flows depend on real delivery.
+   * flows depend on real delivery. (Keeps the boot-fail guard when Resend is
+   * unconfigured — there is no SMTP/other fallback.)
    */
   if (isProduction()) {
-    throw new Error('SMTP_HOST or EMAIL_HTTP_ENDPOINT is required in production for transactional email.');
+    throw new Error('EMAIL_HTTP_ENDPOINT (Resend) is required in production for transactional email.');
   }
 
   return new LoggingEmailProvider();

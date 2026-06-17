@@ -1,15 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createEmailProvider, HttpEmailProvider, LoggingEmailProvider, SmtpEmailProvider } from '../email.js';
+import { createEmailProvider, HttpEmailProvider, LoggingEmailProvider } from '../email.js';
 
-const ENV_KEYS = [
-  'SMTP_HOST',
-  'SMTP_FROM',
-  'EMAIL_HTTP_ENDPOINT',
-  'EMAIL_HTTP_TOKEN',
-  'EMAIL_FROM',
-  'EMAIL_PROVIDER',
-  'NODE_ENV',
-] as const;
+const ENV_KEYS = ['EMAIL_HTTP_ENDPOINT', 'EMAIL_HTTP_TOKEN', 'EMAIL_FROM', 'EMAIL_PROVIDER', 'NODE_ENV'] as const;
 
 describe('createEmailProvider', () => {
   let original: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>>;
@@ -37,13 +29,8 @@ describe('createEmailProvider', () => {
     vi.restoreAllMocks();
   });
 
-  it('prefers SMTP when SMTP_HOST is set', () => {
-    process.env.SMTP_HOST = 'smtp.example.com';
-    expect(createEmailProvider()).toBeInstanceOf(SmtpEmailProvider);
-  });
-
-  it('falls back to HTTP when only EMAIL_HTTP_ENDPOINT is set', () => {
-    process.env.EMAIL_HTTP_ENDPOINT = 'https://hooks.example.com/email';
+  it('uses the HTTP (Resend) provider when EMAIL_HTTP_ENDPOINT is set', () => {
+    process.env.EMAIL_HTTP_ENDPOINT = 'https://api.resend.com/emails';
     expect(createEmailProvider()).toBeInstanceOf(HttpEmailProvider);
   });
 
@@ -54,13 +41,13 @@ describe('createEmailProvider', () => {
 
   it('refuses to silently swallow email in production', () => {
     process.env.NODE_ENV = 'production';
-    expect(() => createEmailProvider()).toThrow(/SMTP_HOST or EMAIL_HTTP_ENDPOINT is required/);
+    expect(() => createEmailProvider()).toThrow(/EMAIL_HTTP_ENDPOINT \(Resend\) is required/);
   });
 
   it('does not allow the logging fallback in production via EMAIL_PROVIDER=logging', () => {
     process.env.NODE_ENV = 'production';
     process.env.EMAIL_PROVIDER = 'logging';
-    expect(() => createEmailProvider()).toThrow(/SMTP_HOST or EMAIL_HTTP_ENDPOINT is required/);
+    expect(() => createEmailProvider()).toThrow(/EMAIL_HTTP_ENDPOINT \(Resend\) is required/);
   });
 
   it('validates HTTP email credentials before booting in production', () => {
@@ -74,16 +61,6 @@ describe('createEmailProvider', () => {
 
     process.env.EMAIL_FROM = 'Vibecore <no-reply@e-code.ai>';
     expect(createEmailProvider()).toBeInstanceOf(HttpEmailProvider);
-  });
-
-  it('validates SMTP sender identity before booting in production', () => {
-    process.env.NODE_ENV = 'production';
-    process.env.SMTP_HOST = 'smtp.example.com';
-
-    expect(() => createEmailProvider()).toThrow(/EMAIL_FROM or SMTP_FROM is required/);
-
-    process.env.SMTP_FROM = 'Vibecore <no-reply@e-code.ai>';
-    expect(createEmailProvider()).toBeInstanceOf(SmtpEmailProvider);
   });
 
   it('LoggingEmailProvider.send writes redacted metadata to console.warn but never throws', async () => {
