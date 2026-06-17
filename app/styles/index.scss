@@ -19668,6 +19668,21 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   line-height: 1 !important;
 }
 
+// Custom responsive utilities from the e-code bundle that were missed in the
+// port (container-responsive/py-responsive made it across; these two did not).
+// Used by the DPA / Report-abuse / Legal page heroes. Sized to match the
+// sibling legal pages (Terms/Privacy text-4xl) so the title renders large+bold
+// instead of collapsing to the UnoCSS-reset 14px.
+:is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='text-responsive-2xl']) {
+  font-size: 36px !important;
+  line-height: 40px !important;
+}
+
+:is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='text-responsive-base']) {
+  font-size: 15px !important;
+  line-height: 24px !important;
+}
+
 @media (min-width: 640px) {
   :is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='sm:text-[13px]'], [class~='sm:text-sm']) {
     font-size: 14px !important;
