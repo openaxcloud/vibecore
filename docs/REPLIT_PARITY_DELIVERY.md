@@ -387,3 +387,50 @@ admin-enabled models by default, MFA optional, shadow billing certified). What r
    my throwaway cert account on per §9-A. Then I certify Admin sections + impersonation E2E in prod (~10 min).
 
 That's it — **2 Stripe clicks + 1 admin login.** Nothing else is blocked on you.
+
+---
+
+## 12. Managed-mode selector trim + DEPLOYED browser verification (Jun 17)
+
+**Selector trim (commits `122abd8f` + `bd7635fc`).** The legacy `/api/models` catalog listed every
+registered provider, so with the key prompt hidden a user could still pick a provider with no platform key.
+Added a managed-mode trim in the `/api/models` loader: when `VITE_BYOK_DISABLED` is set as a **runtime pod
+env** (configmap literal — the SSR `process.env` is shimmed to `{}`, so the loader reads
+`globalThis.process.env`), the returned providers + models are filtered to providers whose `apiTokenKey`
+(or a known alias) resolves to a non-empty platform key, and the default provider is repointed if the legacy
+default isn't usable. Safety net: if no keys resolve, the full list is kept. Pure helpers + **8 unit tests**.
+A small alias map handles the Google env-name split (below).
+
+**⚠️ Config finding (latent, pre-existing — flagged):** the Google secret is injected as
+`GOOGLE_GEMINI_API_KEY` (the name the **ai-gateway** uses), but the web LLM provider's `apiTokenKey` is
+`GOOGLE_GENERATIVE_AI_API_KEY`. The trim aliases it so Google still shows; the agent runs Google via the
+ai-gateway (which has the right name). **Optional cleanup:** add `GOOGLE_GENERATIVE_AI_API_KEY` to the
+secret (same value) so the web pod's direct-provider path also resolves Google. Not blocking.
+
+**DEPLOYED — CD run `27692965367` SUCCESS** (single image: composer flag + per-project grid hide + selector
+trim + Google alias + `MODEL_REGISTRY_DB`/`VITE_BYOK_DISABLED` configmap literals).
+
+**🟢 Verified live in a real browser (app.e-code.ai), signed in as a NORMAL (non-admin) user
+`cert-verify-prod2@example.com`:**
+- **Data layer, `GET /api/models`:** BEFORE = **22 providers / 554 models**, default **AmazonBedrock**
+  (itself keyless/dead). AFTER (deployed) = **5 providers / 140 models** = Anthropic, OpenAI, Google, xAI,
+  Moonshot; default repointed to **Anthropic**.
+- **Create-from-prompt composer** (`/projects/new`): provider dropdown lists **exactly those 5**, each tagged
+  **"Enabled in Settings"**; caption "5 providers synced from Settings"; **no** "API Key / Get API Key / Not
+  set / Please set via UI" prompt anywhere (asserted empty); 0 console errors; captured at **390 / 768 /
+  1440**.
+- **Full IDE composer** (real project `/@cert-org-2/build-a-simple-todo-list`): **no key prompt**; the power
+  toggles **High power / Extended thinking / Turbo / Lite·Economy·Power** all render; the **proof-of-work
+  cost pill "~$0.25"** (title "Estimated cost for this request (proof-of-work)") is intact. The only console
+  errors are the **known pre-existing workspace-runtime infra noise** (`502 /runtime/.../files`,
+  `429 /ide-panel/snapshots`, RuntimeAdapter WS reconnect — §8), from the free-account workspace agent not
+  provisioning; **none** originate from the parity/composer changes.
+
+**Net:** a normal user now sees **no per-user key entry anywhere** (composer prompt + per-project BYOK grid +
+provider/local settings tabs all hidden) and a **selector limited to the 5 admin-enabled, platform-keyed
+models**, with power toggles + proof-of-work intact. Screenshots delivered.
+
+**Remaining Avi-only (unchanged, minimal):** the **2 Stripe clicks** (§11.1) and **promoting the cert account
+`cert-verify-prod2@example.com` to platform-admin** (or logging in as `avi@snatchbot.me`) so I can finish the
+**admin sections + impersonation E2E** prod certification (§11.2). Billing stays in SHADOW until the Stripe
+go-live.
