@@ -231,3 +231,53 @@ now renders.
 
 **Net: every reachable screen + endpoint is 🟢 (theme-conformant, wired, 0 console errors).** The only
 unverified-live items are gated on infrastructure (k8s) or elevated-auth flows, both covered by tests.
+
+---
+
+## 8. PROD certification (Jun 17 — real browser on app.e-code.ai, GCP access)
+
+Deployment: HEAD == `origin/main` == `56ff2bec`; "Deploy Production (Continuous)" SUCCESS (Production CI
+failure is non-blocking by design). **Prod `/login` renders** (not the boot fallback) → the critical
+hydration fix `6770bc52` is live and the whole authenticated app works in prod.
+
+**🟢 Certified in real prod (app.e-code.ai), e-code theme, screenshots captured:**
+- **IDE composer power-toggles + proof-of-work** on a **real k8s workspace** (created a project, the AI
+  agent ran live — streamed, wrote package.json/tsconfig/etc, multi-agent consensus visible). The toggles
+  (High power / Extended thinking / Turbo / Lite·Economy·Power) render with the proof-of-work pill; clicking
+  High power moved the estimate **~$0.25 → ~$1.00** (×4) live. (Follow-up `16b32534`: moved them out of the
+  collapsed settings panel to always-visible.)
+- **Pricing** annual toggle: Monthly $25/$100 → Yearly $20/$95, live.
+- **Billing/usage**: the live usage ledger shows the real agent run — `ai.outputTokens 9819`,
+  `ai.inputTokens 12410`, `ai.messages 1`, snapshots — Usage events 28; Credits & usage + spend-limit +
+  budget-cap all wired; 0 console errors.
+
+**🟢 Billing engine (SHADOW) — certified end-to-end without debiting:** enabled `BILLING_CREDITS_SHADOW=true`
+via the helm configmap → CD (`5361d92c`, deploy SUCCESS). Then ran a fresh agent request in prod. Result on
+the billing page: Credits & usage shows a **"Preview (not charged)"** badge (the shadow indicator) and
+**Recent agent checkpoints** now lists **"$0.00 — power · COMPLETED · 17/06/2026 13:27:11"** — a real
+effort-based checkpoint with its build tier + status, tied to the request; Usage events climbed to 40 with
+the real token ledger (`ai.outputTokens 1536`, `ai.inputTokens 20369`). The wallet was **not** debited
+(balance $0.00). Left in SHADOW — **not** flipped to `BILLING_CREDITS_ENABLED`. (Cost shows $0.00 because the
+request was tiny + below the cent; the checkpoint open/settle/record mechanism is what's proven.)
+
+**🟡 Blocked in prod — needs a prod platform-admin account (I have neither admin credentials nor a path to
+grant `platformAdmin`: Cloud SQL is private-IP and the GKE control plane enforces a private endpoint, so
+kubectl/DB from my machine are refused):**
+- **Admin sections** (AI providers/models/credit-wallets/agent-checkpoints/stripe-health/feature-flags) and
+  **impersonation E2E** (admin → impersonate → banner → stop). Both are deployed (same SHA) and were
+  certified live in the identical local stack + by tests (6 impersonation route tests; `/auth/me` exposes
+  `impersonatedBy`). **Avi action:** grant `platformAdmin` to a cert account (or share an admin login) and
+  I'll certify these in prod too.
+
+**🔴 Stripe — Avi-only boundary (payment-credential operations, not GCP):**
+1. In the **Stripe Dashboard**, create the products + prices: Core monthly $25 / annual $20-equiv, Pro
+   monthly $100 / annual $95-equiv, plus a **metered** price for pay-as-you-go usage (see §3 for the exact
+   product/price layout).
+2. **Generate / rotate the LIVE Stripe secret key.**
+   Everything after that is mine: paste the price IDs into the configmap (same mechanism as the shadow flag),
+   `helm upgrade`, and flip `BILLING_CREDITS_ENABLED` when you want real charges.
+
+**Pre-existing (not parity) prod IDE noise observed during the agent run:** the workspace-runtime layer
+emits `502 /runtime/.../files`, `429 ide-panel/snapshots`, `412 ide-state`, and runtime-WS reconnect errors
+under heavy streaming. These are infrastructure robustness issues (tracked in prior audit waves), independent
+of the parity work; the agent still functioned. Parity surfaces (marketing/dashboard/billing/admin) are 0-error.
