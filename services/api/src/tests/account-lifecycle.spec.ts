@@ -6,8 +6,10 @@ import {
   daysSince,
   inactivityStage,
   inactivityWarningCrossed,
+  inactivityWarningEmailContent,
   isEligibleForInactivityDeletion,
   isStarterPublishExpired,
+  shouldSendInactivityWarning,
 } from '../account-lifecycle.js';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -55,5 +57,36 @@ describe('isStarterPublishExpired', () => {
   it('expires after 30 days', () => {
     expect(isStarterPublishExpired(daysAgo(STARTER_PUBLISH_EXPIRY_DAYS), NOW)).toBe(true);
     expect(isStarterPublishExpired(daysAgo(10), NOW)).toBe(false);
+  });
+});
+
+describe('inactivityWarningEmailContent', () => {
+  it('states the days left before deletion', () => {
+    const content = inactivityWarningEmailContent(340);
+    expect(content.subject).toContain(`${INACTIVITY_DAYS - 340} days`);
+    expect(content.text).toContain('340 days');
+    expect(content.html).toContain('<strong>');
+  });
+});
+
+describe('shouldSendInactivityWarning (email de-dup)', () => {
+  it('sends when never warned at this threshold', () => {
+    expect(shouldSendInactivityWarning(null, 335, NOW)).toBe(true);
+    expect(shouldSendInactivityWarning({ inactivityWarnings: {} }, 335, NOW)).toBe(true);
+  });
+
+  it('does not re-send within the renotify window', () => {
+    const prefs = { inactivityWarnings: { d335: new Date(NOW - 2 * MS_PER_DAY).toISOString() } };
+    expect(shouldSendInactivityWarning(prefs, 335, NOW)).toBe(false);
+  });
+
+  it('re-sends after the renotify window', () => {
+    const prefs = { inactivityWarnings: { d335: new Date(NOW - 10 * MS_PER_DAY).toISOString() } };
+    expect(shouldSendInactivityWarning(prefs, 335, NOW)).toBe(true);
+  });
+
+  it('treats a different threshold independently', () => {
+    const prefs = { inactivityWarnings: { d335: new Date(NOW).toISOString() } };
+    expect(shouldSendInactivityWarning(prefs, 358, NOW)).toBe(true);
   });
 });

@@ -144,7 +144,10 @@ import {
   INACTIVITY_DAYS,
   INACTIVITY_WARNING_DAYS,
   inactivityStage,
+  inactivityWarningCrossed,
+  inactivityWarningEmailContent,
   isEligibleForInactivityDeletion,
+  shouldSendInactivityWarning,
 } from './account-lifecycle.js';
 import {
   meterDatabaseCompute,
@@ -17647,13 +17650,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (stage === 'warning') {
         warned += 1;
+        const daysInactive = Math.floor((nowMs - candidate.lastActiveAtMs) / dayMs);
         await store
           .recordAdminAudit({
             actorUserId: undefined,
             action: 'account.inactivity_warning',
-            metadata: { userId: candidate.id, daysInactive: Math.floor((nowMs - candidate.lastActiveAtMs) / dayMs) },
+            metadata: { userId: candidate.id, daysInactive },
           })
           .catch(() => {});
+
+        // Email the user a deletion warning (Resend, e-code tone), de-duped per
+        // threshold via User.preferences.inactivityWarnings. Best-effort: a send
+        // failure never breaks the GC sweep.
+        const threshold = inactivityWarningCrossed(daysInactive);
+        if (threshold != null) {
+          try {
+            const user = await store.findUserById(candidate.id);
+            const preferences = (user?.preferences ?? {}) as { inactivityWarnings?: Record<string, string> };
+
+            if (user?.email && shouldSendInactivityWarning(preferences, threshold, nowMs)) {
+              const content = inactivityWarningEmailContent(daysInactive);
+              await emailProvider.send({
+                to: user.email,
+                subject: content.subject,
+                text: content.text,
+                html: content.html,
+              });
+              await store.updateUser({
+                userId: candidate.id,
+                preferences: {
+                  ...preferences,
+                  inactivityWarnings: {
+                    ...(preferences.inactivityWarnings ?? {}),
+                    [`d${threshold}`]: new Date(nowMs).toISOString(),
+                  },
+                },
+              });
+            }
+          } catch (error) {
+            request.log?.warn?.({ err: error }, 'inactivity warning email failed (non-fatal)');
+          }
+        }
+
         continue;
       }
 

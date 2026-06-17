@@ -62,3 +62,50 @@ export function inactivityWarningCrossed(daysInactive: number): number | null {
 export function isStarterPublishExpired(publishedAtMs: number, nowMs: number): boolean {
   return daysSince(publishedAtMs, nowMs) >= STARTER_PUBLISH_EXPIRY_DAYS;
 }
+
+/**
+ * E-code-tone inactivity-warning email content (pure). Sent at the 335/358-day
+ * thresholds before a free account is deleted at INACTIVITY_DAYS.
+ */
+export function inactivityWarningEmailContent(daysInactive: number): { subject: string; text: string; html: string } {
+  const daysLeft = Math.max(0, INACTIVITY_DAYS - daysInactive);
+  const subject = `Your VibeCore account will be deleted in ${daysLeft} days`;
+  const text = [
+    `Your free VibeCore account has been inactive for ${daysInactive} days.`,
+    `Inactive free accounts are permanently deleted after ${INACTIVITY_DAYS} days.`,
+    `You have ${daysLeft} days left — sign in to keep your account and projects.`,
+  ].join('\n\n');
+  const html =
+    `<p>Your free VibeCore account has been inactive for <strong>${daysInactive} days</strong>.</p>` +
+    `<p>Inactive free accounts are permanently deleted after ${INACTIVITY_DAYS} days. ` +
+    `You have <strong>${daysLeft} days</strong> left.</p>` +
+    `<p>Sign in to keep your account and projects.</p>`;
+  return { subject, text, html };
+}
+
+/**
+ * De-dup guard for inactivity-warning emails (pure). Returns true if no warning
+ * was sent for this threshold yet, or the last one was more than `renotifyDays`
+ * ago. The marker lives in `User.preferences.inactivityWarnings['d<threshold>']`
+ * (ISO timestamp) — no schema change.
+ */
+export function shouldSendInactivityWarning(
+  preferences: { inactivityWarnings?: Record<string, string> } | null | undefined,
+  threshold: number,
+  nowMs: number,
+  renotifyDays = 7,
+): boolean {
+  const last = preferences?.inactivityWarnings?.[`d${threshold}`];
+
+  if (!last) {
+    return true;
+  }
+
+  const lastMs = new Date(last).getTime();
+
+  if (!Number.isFinite(lastMs)) {
+    return true;
+  }
+
+  return nowMs - lastMs >= renotifyDays * MS_PER_DAY;
+}
