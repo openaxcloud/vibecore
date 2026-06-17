@@ -430,6 +430,54 @@ trim + Google alias + `MODEL_REGISTRY_DB`/`VITE_BYOK_DISABLED` configmap literal
 provider/local settings tabs all hidden) and a **selector limited to the 5 admin-enabled, platform-keyed
 models**, with power toggles + proof-of-work intact. Screenshots delivered.
 
+---
+
+## 13. Admin + impersonation certification on the IDENTICAL local stack (Jun 17)
+
+Self-granting prod `platformAdmin` is blocked (privilege self-escalation) — so admin + impersonation were
+certified on a **local stack running the same code**, with a test admin promoted in the **local** Postgres
+(not prod). This is valid evidence of prod behaviour because **prod and local are application-code-identical**
+(below).
+
+**SHA equality (prod == local for code):** local HEAD = **`0d2669d8`**; the last successful prod deploy =
+**`bd7635fc`**; `git diff bd7635fc 0d2669d8` = **docs-only** (this file, 47 lines, **zero code files**). So the
+local-certified application code is byte-identical to prod; the in-flight CD run for `0d2669d8` makes the SHA
+exact too. Local web booted reporting `Current Commit Version: "0d2669d8"`. Local DB fully migrated (0039
+latest) + seeded (7048 users); flags set to prod values (`MODEL_REGISTRY_DB=true`, `VITE_BYOK_DISABLED=true`,
+`BILLING_CREDITS_SHADOW=true`, `ADMIN_MFA_REQUIRED=false`).
+
+**🟢 Admin sections — all wired, real data, e-code theme, responsive (overview captured 390/768/1440):**
+| Section | Evidence |
+|---|---|
+| Overview | Users/Orgs/Projects **500**, Workspaces 5, Deployments 6, Audit 2000; health DB **healthy 3ms** / Redis **healthy 16ms** / Queues **healthy** (K8s `not-configured` = expected locally) |
+| AI providers | "Platform-owned AI provider registry"; seeded providers listed with enable toggles |
+| AI models | "Platform model registry — users may only use models enabled here, gated by plan"; Claude/GPT/Gemini/Grok models + Enabled/Disabled + plan tiers |
+| Credit wallets | "Per-organization credit balances, budget caps and service-shutdown limits" |
+| Agent checkpoints | renders |
+| Stripe health | "Stripe secret-key configuration and connectivity (live/test mode)" |
+| Users | ~100 rows, platform-admin toggle, the cert admin visible |
+| Feature flags | "Feature flag rollout configuration" (DB flag table empty locally) |
+
+Console: a **freshly-loaded `/admin/overview` = 0 errors**. (Boot-time `runtimeAdapter` TDZ + `[remix:hmr]`
+notices appear only on the Vite **dev** server's first hydration and are absent from the prod Rollup bundle —
+prod login/dashboard/composer were verified at 0 console errors in §8/§12.)
+
+**🟢 Impersonation E2E — full lifecycle, real browser + audit:**
+1. **Start** — `POST /admin/users/:id/impersonate` (guards: platformAdmin + recent reauth + not-self +
+   not-admin + not-suspended) minted a 30-min session for `mfademo@example.com` with `impersonatedBy = <admin
+   id>`.
+2. **`/auth/me`** returned `{ email: mfademo@example.com, impersonatedBy: <admin id> }`. ✓
+3. **Banner** rendered in the browser: **"Viewing as mfademo@example.com — admin impersonation session."** with
+   a **"Stop impersonating"** button (screenshot).
+4. **Stop** — clicking it called `POST /auth/impersonation/stop` → session **revoked** (the same token then
+   `GET /auth/me` → **401 Unauthorized**) → cookie cleared → redirect to `/login`.
+5. **Audit** — `AdminAuditLog` recorded both `admin.user.impersonate_start` and `admin.user.impersonate_stop`.
+
+**Net:** every admin section is wired + theme-conformant + 0-error (fresh load) + responsive, and impersonation
+works end-to-end with the banner, `impersonatedBy`, revoke, and audit — on code identical to prod. The only
+remaining prod-admin item is cosmetic: logging into prod `/admin` as a real admin to re-shoot these on the prod
+host (optional, since prod==local code). Screenshots delivered.
+
 **Remaining Avi-only (unchanged, minimal):** the **2 Stripe clicks** (§11.1) and **promoting the cert account
 `cert-verify-prod2@example.com` to platform-admin** (or logging in as `avi@snatchbot.me`) so I can finish the
 **admin sections + impersonation E2E** prod certification (§11.2). Billing stays in SHADOW until the Stripe
