@@ -162,3 +162,36 @@ Power toggles + cost-preview in the **agent composer**; **metering wired to real
 impersonation**; **P8 mechanisms** (strike/inactivity/data-deletion/abuse/licensing); **24 content
 pages**; annual toggle in `/upgrade`; render remaining Account pages in the Dashboard. Each verified
 responsive (390/768/1440, 0 console errors) before being marked 🟢.
+
+---
+
+## 6. Delivered — E-Code theme design-system + P8/P4 slices (Jun 17)
+
+**🟢 E-Code theme = single source of truth.** Extracted from the reference repo `~/dev/e-code`
+(`tailwind.config.ts`, `client/src/styles/replit-theme.css`, `client/src/index.css`) into
+`packages/ecode-theme/` (tokens.css + fonts.css + responsive type-scale + Tailwind/Uno preset) with
+full `file:line` provenance in `docs/ECODE_THEME_SOURCE.md`. Orange **`#F26207`**, IBM Plex Sans+Mono,
+radius 4/8/12, real responsive scale (`text-responsive-2xl` 24→30→36→48). Applied app-wide: global
+`--vc-font-interface` now IBM Plex (no forced Inter); marketing scale corrected. Commits `cd42436d`,
+`867faeb7`, `f549f48e`, `998dc021`. Verified live 390/768/1440, 0 console errors.
+
+**🟢 Agent composer power toggles + proof-of-work** (`d29c682f`) — High power / Extended thinking /
+Turbo / build-tier in the IDE composer with a live cost estimate (mirrors `credits.ts` multipliers).
+
+**🟢 P8 self-serve data deletion** (`cde3d377`) — request/cancel/status + admin listing, 14-day grace,
+flag `ACCOUNT_SELF_DELETION_ENABLED`. **🟢 P8 moderation strikes** (`b103b93a`) — Warning→Community
+ban→Account ban, ACCOUNT_BAN enforced via suspension.
+
+**🟢 P8 admin impersonation** (`9fa5ed15`+`a0d3fac3`) — `Session.impersonatedBy` marker, 30-min
+time-box, guards (no self/admin/suspended), audit, `/auth/me` exposure, persistent Stop banner,
+revocable. **🟢 P8 inactivity GC** (`01cb3846`) — `User.lastActiveAt` (login touch),
+`/internal/inactivity-gc` worker-triggered sweep (free 1yr→delete, paid exempt), DRY-RUN by default
+(`INACTIVITY_GC_ENABLED`), orphan guard.
+
+**🟢 P4 real-event metering** (`ecc5e848`+`487e2999`) — `/internal/metering` ingest (compute/object-
+storage/DB/deployment → `metering-service.ts`) + the **ws-manager GC emitter**: on stop it meters the
+active window (marker→lastActiveAt) at the plan's reserved compute, durable `WorkspaceRuntime.lastMeteredAt`
+marker (idempotent). Shadow until `BILLING_CREDITS_ENABLED=true`.
+
+All slices: migrations 0038/0039 (additive), feature-flagged OFF, **prod intact**, typecheck + ~40 new
+tests green. Avi action: flip flags when ready; decide editor mono font (IBM Plex Mono vs JetBrains).

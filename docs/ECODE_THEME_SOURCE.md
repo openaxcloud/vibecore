@@ -132,3 +132,69 @@ wave, fade-in, slide-in-up/down, scale-in (`tailwind.config.ts:146-208`).
 
 `shimmer 1.5s infinite`, `wave 1.5s ease-in-out infinite`, `fade-in .2s`,
 `slide-in-up .3s`, `slide-in-down .3s`, `scale-in .2s`, accordion `.2s`.
+
+## 10. Component deep-dive (exact, from `~/dev/e-code/client/src/components`)
+
+Reconciliation notes that matter for parity:
+- **No element-level `h1`–`h6` base styles** — headings are utility-driven per
+  component; the de-facto heading weight is **`font-semibold` (600)** (e.g.
+  `CardTitle` = `text-2xl font-semibold`, `card.tsx:39`). Marketing heroes use
+  `font-bold` ad hoc. `@tailwindcss/typography` is loaded but **no `prose`
+  overrides exist** — `prose` uses plugin defaults wherever applied.
+
+**Buttons** (`components/ui/button.tsx`, cva). Base `:8`:
+`inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:opacity-50` (+ `replit-button-press`: `:active{transform:scale(.98)}`, `index.css:1164`).
+Variants `:12-20`: default `bg-primary text-primary-foreground hover:brightness-110`;
+destructive `bg-destructive …`; outline `border border-border bg-surface-solid hover:bg-surface-hover-solid`;
+secondary `bg-surface-tertiary-solid text-foreground hover:bg-surface-hover-solid`;
+ghost `hover:bg-surface-hover-solid`; link `text-primary hover:underline`.
+Sizes `:22-27`: default `h-10 px-4 py-2 min-h-[44px] md:min-h-0`; sm `h-9 px-3`;
+lg `h-11 px-8`; icon `h-10 w-10`. Radius `rounded-md` (8px). CSS legacy
+`.btn-ecode-primary` (orange `#F26207`/white, `replit-theme.css:1195`) +
+`.replit-button-primary` (radius 4px, pad 8px 16px, weight 500, `:862`).
+
+**Badges / pills** (`components/ui/badge.tsx`, cva). Base `:7`:
+`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium focus:ring-2 focus:ring-[var(--ecode-accent)]` (pill, 10px/2px pad, 12px/500, 1px border).
+Variants `:11-19`: default `bg-primary text-primary-foreground`; secondary
+`bg-secondary text-secondary-foreground`; destructive; outline `text-foreground`;
+success `bg-green-500 text-white`.
+- **Marketing hero pill (`✨ … ✨`)** (`pages/Landing.tsx:324`): `<Badge variant="secondary">`
+  + `px-6 py-2 text-[13px] font-semibold bg-gradient-to-r from-ecode-accent/10 to-ecode-secondary-accent/10 border border-ecode-accent/20` (dark: `/15` + `/30`),
+  flanked by `<Sparkles className="h-4 w-4 text-ecode-accent" />`. **Not uppercase.**
+- **Nav "NEW" pill** (`PublicNavbar.tsx:213`): `bg-surface-solid text-[var(--ecode-accent)] border-border uppercase tracking-[0.2em]`.
+
+**Cards** (`components/ui/card.tsx`). Root `:12`:
+`rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text)] shadow-sm hover:shadow-md transition-all duration-150`.
+`CardHeader` `flex flex-col space-y-1.5 p-6`; `CardTitle` `text-2xl font-semibold leading-none tracking-tight`;
+`CardDescription` `text-sm text-muted-foreground`; `CardContent` `p-6 pt-0`.
+CSS `.replit-card` (`replit-theme.css:854`): radius 12px (`--ecode-radius-lg`),
+`--ecode-shadow-sm`, pad 16px.
+
+**Nav / header (marketing)** (`components/layout/PublicNavbar.tsx`):
+`<header sticky top-0 z-50>`. Announcement bar `:210` `h-10` (40px) `border-b bg-background text-[11px]`:
+"NEW" pill + `Introducing E-Code Enterprise Cloud…` + right "Talk to an expert"
+(`text-[var(--ecode-accent)]` + ChevronRight → `/contact-sales`). Main nav `:229`
+`h-16` (64px) `border-b bg-background backdrop-blur-xl`. **Pricing/Teams pill links**
+`:177`: `h-10 rounded-full border border-[var(--ecode-border)] px-5 text-[13px] font-medium hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]`.
+**"Get started" CTA** `:198`: `bg-ecode-accent hover:bg-ecode-accent-hover text-white px-3 sm:px-4 text-[13px]` (default size → h-10 rounded-md).
+
+**Inputs** (`components/ui/{input,textarea,select}.tsx`): `h-10` (textarea `min-h-[80px]`),
+`rounded-md`, `border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-3 py-2 text-sm`,
+`placeholder:text-[var(--ecode-text-secondary)]`, focus `ring-2 ring-[var(--ecode-accent)] border-[var(--ecode-accent)]`.
+
+**Light/dark toggle:** `.dark`/`.light` class on `<html>`, set in
+`components/ThemeProvider.tsx:58` (`'light'|'dark'|'system'`, system via
+`matchMedia('(prefers-color-scheme: dark)')`). Components are token-driven so they
+flip automatically; nav uses explicit `dark:` utilities.
+
+## 11. Parity verification (VibeCore vs source)
+
+VibeCore consumes these via `packages/ecode-theme` + `app/styles/index.scss`
+(marketing scope) + the global `--vc-font-interface`. Verified live (390/768/1440):
+homepage hero IBM Plex bold + orange `#F26207` + light pill badge; pricing/security/
+legal responsive type scale exact (`text-responsive-2xl` 24→30→36→48); app chrome
+(login/dashboard) IBM Plex; 0 console errors. The EcodeExactUi Badge/Card/Button
+components already mirror the cva specs above (rounded-full pills, `--ecode-border`
+cards, `--ecode-accent` focus). Remaining intentional divergence: code/mono font
+is JetBrains Mono in VibeCore vs IBM Plex Mono in the source (editor-font choice,
+pending Avi's call).
