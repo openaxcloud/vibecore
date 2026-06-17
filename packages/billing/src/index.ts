@@ -566,6 +566,16 @@ export class StripeBillingClient {
     );
   }
 
+  /** Health check: confirms the secret key works by reading the account balance. */
+  async ping(): Promise<{ ok: boolean; livemode?: boolean; error?: string }> {
+    try {
+      const balance = (await this.getJson('/v1/balance')) as { livemode?: boolean };
+      return { ok: true, livemode: balance.livemode };
+    } catch (error: any) {
+      return { ok: false, error: error?.message ?? 'Stripe ping failed' };
+    }
+  }
+
   async findProductByPlanKey(planKey: PlanKey) {
     const response = await this.getJson(`/v1/products/search?query=${encodeURIComponent(`metadata['planKey']:'${planKey}' AND active:'true'`)}`);
     return (response as { data?: Array<{ id: string; name: string }> }).data?.[0];

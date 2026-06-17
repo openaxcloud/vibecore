@@ -17080,6 +17080,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { checkpoints: await store.listAdminAgentCheckpoints({ take: 200 }) };
   });
 
+  app.get('/admin/stripe-health', async (request) => {
+    await requirePlatformAdmin(request);
+    if (!stripeClient) {
+      return { configured: false, ok: false, detail: 'STRIPE_SECRET_KEY not configured' };
+    }
+    const result = await stripeClient.ping();
+    return {
+      configured: true,
+      ok: result.ok,
+      livemode: result.livemode ?? null,
+      detail: result.ok ? (result.livemode ? 'Live key OK' : 'Test key OK') : result.error,
+    };
+  });
+
   app.get('/admin/quotas', async (request) => {
     await requirePlatformAdmin(request);
 

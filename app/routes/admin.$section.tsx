@@ -164,6 +164,11 @@ const adminSections: Record<string, AdminSectionConfig> = {
     endpoint: '/admin/checkpoints',
     primaryKey: 'checkpoints',
   },
+  'stripe-health': {
+    title: 'Stripe health',
+    description: 'Stripe secret-key configuration and connectivity (live/test mode).',
+    endpoint: '/admin/stripe-health',
+  },
 };
 
 const navItems = [
@@ -190,6 +195,7 @@ const navItems = [
   'models',
   'wallets',
   'checkpoints',
+  'stripe-health',
 ];
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
