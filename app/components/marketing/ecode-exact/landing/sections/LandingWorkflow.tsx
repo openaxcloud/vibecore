@@ -44,8 +44,8 @@ export default function LandingWorkflow() {
               {index < steps.length - 1 && (
                 <div className="hidden md:block absolute top-12 left-1/2 w-full h-0.5 bg-gradient-to-r from-ecode-accent to-ecode-accent/20" />
               )}
-              <div className="relative z-10 inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-ecode-accent/20 to-ecode-secondary-accent/20 border-2 border-ecode-accent/30 mb-6">
-                <div className="text-ecode-accent">{step.icon}</div>
+              <div className="relative z-10 inline-flex items-center justify-center w-24 h-24 rounded-full bg-ecode-accent border-2 border-ecode-accent shadow-[0_8px_24px_-8px_rgba(242,98,7,0.5)] mb-6">
+                <div className="text-white">{step.icon}</div>
                 <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-ecode-accent text-white flex items-center justify-center font-bold text-[13px]">
                   {index + 1}
                 </div>

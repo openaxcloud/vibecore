@@ -66,6 +66,7 @@ import {
   SiTypescript,
   SiVite,
 } from 'react-icons/si';
+import { EcodeBrandMark } from '~/components/brand/EcodeBrandMark';
 import { ImpersonationBanner } from '~/components/dashboard/ImpersonationBanner';
 import { EcodeExactPublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import { Button } from '~/components/ui/Button';
@@ -370,10 +371,10 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
 function EcodeMarketingLogo({ compact = false }: { compact?: boolean }) {
   return (
     <span className="vc-logo" aria-label={ECODE_MARKETING_BRAND.name}>
-      <span className="vc-logo-mark" aria-hidden>
-        <img src={ECODE_MARKETING_BRAND.logoSrc} alt="" loading="eager" decoding="async" />
-      </span>
-      {!compact ? <span className="vc-logo-text">{ECODE_MARKETING_BRAND.name}</span> : null}
+      {/* Inline SVG mark (no external file fetch / external CSS) so the e-code
+          logo always renders in the user area — the previous <img> relied on
+          CSS classes that don't load in this shell. */}
+      <EcodeBrandMark size="sm" showText={!compact} gradientId="ecode-app-logo" />
     </span>
   );
 }

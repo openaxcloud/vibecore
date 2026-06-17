@@ -1,6 +1,7 @@
 import { Link } from '@remix-run/react';
 import { ChevronLeft, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { EcodeBrandMark } from '~/components/brand/EcodeBrandMark';
 
 const heroImage = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=2070&auto=format&fit=crop';
 
@@ -78,11 +79,9 @@ export function AuthScreen({
           </Link>
 
           <div className="mb-6 flex items-center gap-3 sm:mb-8">
-            <div className="vc-auth-logo-box grid h-10 w-10 place-items-center rounded-lg sm:h-11 sm:w-11">
-              <img src="/logo.svg" alt="Vibecore" className="h-6 w-6 rounded object-contain sm:h-7 sm:w-7" />
-            </div>
+            <EcodeBrandMark size="md" showText={false} gradientId="ecode-auth-logo" />
             <div>
-              <p className="vc-auth-brand-title text-[15px] font-semibold leading-none">Vibecore</p>
+              <p className="vc-auth-brand-title text-[15px] font-semibold leading-none">E-Code</p>
               <p className="vc-auth-brand-subtitle mt-1 text-[12px]">AI development workspace</p>
             </div>
           </div>

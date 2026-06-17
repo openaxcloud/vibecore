@@ -94,8 +94,8 @@ export default function LandingTemplates({ templates, isLoading }: LandingTempla
                 >
                   <CardHeader>
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-ecode-accent/10 flex items-center justify-center">
-                        <IconComponent className="h-5 w-5 text-ecode-accent" />
+                      <div className="w-10 h-10 rounded-lg bg-ecode-accent flex items-center justify-center">
+                        <IconComponent className="h-5 w-5 text-white" />
                       </div>
                       <div>
                         <CardTitle className="text-[15px]">{template.name}</CardTitle>
