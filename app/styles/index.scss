@@ -384,8 +384,14 @@ html:has([data-ecode-static-shell]) body {
   --bolt-elements-terminals-buttonBackground: var(--vc-ide-bg-card);
   --bolt-elements-cta-background: var(--vc-ide-bg-card);
   --bolt-elements-cta-text: var(--vc-ide-text-primary);
+  // E-Code design system: IBM Plex Sans is the single interface typeface across
+  // every surface (dashboard, admin, IDE chrome, marketing) — no more forced
+  // Inter. Loaded via the global Google-Fonts @import at the top of this file;
+  // canonical source @vibecore/ecode-theme (packages/ecode-theme). Inter kept
+  // only as a fallback while IBM Plex loads.
   --vc-font-interface:
-    'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    'IBM Plex Sans', 'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
   --vc-font-sans: var(--vc-font-interface);
   --vc-font-code:
     'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -19668,19 +19674,47 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   line-height: 1 !important;
 }
 
-// Custom responsive utilities from the e-code bundle that were missed in the
-// port (container-responsive/py-responsive made it across; these two did not).
-// Used by the DPA / Report-abuse / Legal page heroes. Sized to match the
-// sibling legal pages (Terms/Privacy text-4xl) so the title renders large+bold
-// instead of collapsing to the UnoCSS-reset 14px.
-:is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='text-responsive-2xl']) {
-  font-size: 36px !important;
-  line-height: 40px !important;
+// Custom responsive utilities from the e-code design system that were missed in
+// the original port (container-responsive/py-responsive made it across; these
+// did not). Used by the DPA / Report-abuse / Legal page heroes. These mirror the
+// REAL responsive scale from @vibecore/ecode-theme (packages/ecode-theme/src/
+// typography.css → text-responsive-base 16->15, text-responsive-2xl 24->30->36
+// ->48) — the canonical source extracted from ~/dev/e-code (client/src/index.css
+// :727-754). The earlier flat 36px/15px was an approximation; this is exact.
+:is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='text-responsive-base']) {
+  font-size: 16px !important;
+  line-height: 24px !important;
 }
 
-:is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='text-responsive-base']) {
-  font-size: 15px !important;
-  line-height: 24px !important;
+:is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='text-responsive-2xl']) {
+  font-size: 24px !important;
+  line-height: 32px !important;
+}
+
+@media (min-width: 640px) {
+  :is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='text-responsive-base']) {
+    font-size: 15px !important;
+    line-height: 22px !important;
+  }
+
+  :is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='text-responsive-2xl']) {
+    font-size: 30px !important;
+    line-height: 36px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  :is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='text-responsive-2xl']) {
+    font-size: 36px !important;
+    line-height: 40px !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  :is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='text-responsive-2xl']) {
+    font-size: 48px !important;
+    line-height: 1 !important;
+  }
 }
 
 @media (min-width: 640px) {
