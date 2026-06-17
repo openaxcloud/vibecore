@@ -3,21 +3,25 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { action } from './mfa-setup';
+
+import { action, loader } from './mfa-setup';
 
 const ENV_KEYS = ['SAAS_API_URL', 'API_BASE_URL'] as const;
 
 function buildFormRequest(body: Record<string, string>): Request {
-  const formData = new URLSearchParams(body).toString();
-
   return new Request('http://localhost/mfa-setup', {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: formData,
+    body: new URLSearchParams(body).toString(),
   });
 }
 
-describe('mfa-setup route action', () => {
+const args = (request: Request) =>
+  ({ request, params: {}, context: {} as unknown as Parameters<typeof action>[0]['context'] }) as Parameters<
+    typeof action
+  >[0];
+
+describe('mfa-setup route', () => {
   let originals: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>>;
 
   beforeEach(() => {
@@ -45,33 +49,87 @@ describe('mfa-setup route action', () => {
     }
   });
 
-  it('returns secret and otpauthUrl from /auth/mfa/setup on intent=setup', async () => {
-    const fetchSpy = vi.fn(async (_url: string, _init?: RequestInit) => {
-      return new Response(JSON.stringify({ secret: 'JBSWY3DPEHPK3PXP', otpauthUrl: 'otpauth://totp/foo' }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
+  it('loader auto-creates the secret + QR when MFA is off (no extra click)', async () => {
+    const fetchSpy = vi.fn(async (url: string | URL | Request) => {
+      const href = typeof url === 'string' ? url : url.toString();
+
+      if (href.endsWith('/auth/me')) {
+        return new Response(JSON.stringify({ user: { mfaEnabled: false } }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+
+      if (href.endsWith('/auth/mfa/setup')) {
+        return new Response(JSON.stringify({ secret: 'JBSWY3DPEHPK3PXP', otpauthUrl: 'otpauth://totp/foo' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+
+      throw new Error(`unexpected fetch: ${href}`);
     });
     vi.stubGlobal('fetch', fetchSpy);
 
-    const response = (await action({
-      request: buildFormRequest({ intent: 'setup' }),
-      params: {},
-      context: {} as unknown as Parameters<typeof action>[0]['context'],
-    })) as Response;
+    const response = (await loader(args(new Request('http://localhost/mfa-setup')))) as Response;
+    const payload = (await response.json()) as { status: string; secret?: string; otpauthUrl?: string };
 
-    expect(response).toBeInstanceOf(Response);
-
-    const payload = (await response.json()) as { secret: string; otpauthUrl: string };
+    expect(payload.status).toBe('setup');
     expect(payload.secret).toBe('JBSWY3DPEHPK3PXP');
     expect(payload.otpauthUrl).toBe('otpauth://totp/foo');
-    expect(fetchSpy).toHaveBeenCalledWith(
-      'https://api.example.com/auth/mfa/setup',
-      expect.objectContaining({ method: 'POST' }),
-    );
   });
 
-  it('mints recovery codes after a successful verify so the user leaves with backup access', async () => {
+  it('loader asks for a password step-up when setup needs a recent re-auth (403)', async () => {
+    const fetchSpy = vi.fn(async (url: string | URL | Request) => {
+      const href = typeof url === 'string' ? url : url.toString();
+
+      if (href.endsWith('/auth/me')) {
+        return new Response(JSON.stringify({ user: { mfaEnabled: false } }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+
+      if (href.endsWith('/auth/mfa/setup')) {
+        return new Response(JSON.stringify({ error: 'Recent re-authentication required', code: 'REAUTH_REQUIRED' }), {
+          status: 403,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+
+      throw new Error(`unexpected fetch: ${href}`);
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const response = (await loader(args(new Request('http://localhost/mfa-setup')))) as Response;
+    const payload = (await response.json()) as { status: string };
+
+    expect(payload.status).toBe('reauth');
+  });
+
+  it('loader short-circuits to already-enabled (and does not create a new secret)', async () => {
+    const fetchSpy = vi.fn(async (url: string | URL | Request) => {
+      const href = typeof url === 'string' ? url : url.toString();
+
+      if (href.endsWith('/auth/me')) {
+        return new Response(JSON.stringify({ user: { mfaEnabled: true } }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+
+      throw new Error(`should not fetch ${href} when already enabled`);
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const response = (await loader(args(new Request('http://localhost/mfa-setup')))) as Response;
+    const payload = (await response.json()) as { status: string };
+
+    expect(payload.status).toBe('enabled');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('action verifies the code and mints recovery codes so the user leaves with backup access', async () => {
     const fetchSpy = vi.fn(async (url: string | URL | Request) => {
       const href = typeof url === 'string' ? url : url.toString();
 
@@ -93,35 +151,15 @@ describe('mfa-setup route action', () => {
     });
     vi.stubGlobal('fetch', fetchSpy);
 
-    const response = (await action({
-      request: buildFormRequest({
-        intent: 'verify',
-        code: '123456',
-        secret: 'JBSWY3DPEHPK3PXP',
-        otpauthUrl: 'otpauth://totp/foo',
-      }),
-      params: {},
-      context: {} as unknown as Parameters<typeof action>[0]['context'],
-    })) as Response;
-
+    const response = (await action(args(buildFormRequest({ code: '123456' })))) as Response;
     expect(response.status).toBe(200);
 
     const payload = (await response.json()) as { enabled: boolean; codes: string[] };
     expect(payload.enabled).toBe(true);
     expect(payload.codes).toEqual(['aaaaaaaa-bbbbbbbb', 'cccccccc-dddddddd']);
-
-    const verifyCall = fetchSpy.mock.calls.find(([url]) =>
-      (typeof url === 'string' ? url : url.toString()).endsWith('/auth/mfa/verify'),
-    );
-    expect(verifyCall).toBeDefined();
-
-    const recoveryCall = fetchSpy.mock.calls.find(([url]) =>
-      (typeof url === 'string' ? url : url.toString()).endsWith('/auth/recovery-codes'),
-    );
-    expect(recoveryCall).toBeDefined();
   });
 
-  it('surfaces the API error and skips recovery code generation when verify fails', async () => {
+  it('action surfaces the API error and skips recovery-code generation when verify fails', async () => {
     const fetchSpy = vi.fn(async (url: string | URL | Request) => {
       const href = typeof url === 'string' ? url : url.toString();
 
@@ -136,46 +174,15 @@ describe('mfa-setup route action', () => {
     });
     vi.stubGlobal('fetch', fetchSpy);
 
-    const response = (await action({
-      request: buildFormRequest({
-        intent: 'verify',
-        code: '000000',
-        secret: 'JBSWY3DPEHPK3PXP',
-        otpauthUrl: 'otpauth://totp/foo',
-      }),
-      params: {},
-      context: {} as unknown as Parameters<typeof action>[0]['context'],
-    })) as Response;
-
+    const response = (await action(args(buildFormRequest({ code: '000000' })))) as Response;
     expect(response.status).toBe(401);
 
-    const payload = (await response.json()) as { error: string; secret?: string; otpauthUrl?: string };
+    const payload = (await response.json()) as { error: string };
     expect(payload.error).toBe('Invalid MFA code');
-    expect(payload.secret).toBe('JBSWY3DPEHPK3PXP');
-    expect(payload.otpauthUrl).toBe('otpauth://totp/foo');
 
     const recoveryCalls = fetchSpy.mock.calls.filter(([url]) =>
       (typeof url === 'string' ? url : url.toString()).endsWith('/auth/recovery-codes'),
     );
     expect(recoveryCalls).toHaveLength(0);
-  });
-
-  it('rejects unknown intents with a 400 so stray submissions cannot reach the API', async () => {
-    const fetchSpy = vi.fn(async () => {
-      throw new Error('fetch should not be called for unknown intent');
-    });
-    vi.stubGlobal('fetch', fetchSpy);
-
-    const response = (await action({
-      request: buildFormRequest({ intent: 'nope' }),
-      params: {},
-      context: {} as unknown as Parameters<typeof action>[0]['context'],
-    })) as Response;
-
-    expect(response.status).toBe(400);
-
-    const payload = (await response.json()) as { error: string };
-    expect(payload.error).toBe('Unknown form submission.');
-    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
