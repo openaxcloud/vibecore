@@ -70,17 +70,25 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     throw json({ ok: false, error: 'Project not found' }, { status: 404 });
   }
 
-  const body = await request.json().catch(() => ({}));
+  const body = (await request.json().catch(() => ({}))) as { intent?: string; [key: string]: unknown };
+  const intent = body.intent ?? 'restore';
+
+  // Map the panel's intent to the backend sub-route. All are flag-gated server-side.
+  const path =
+    intent === 'provision'
+      ? `/projects/${encodeURIComponent(projectId)}/database/provision`
+      : intent === 'snapshot'
+        ? `/projects/${encodeURIComponent(projectId)}/database/snapshots`
+        : `/projects/${encodeURIComponent(projectId)}/database/restores`;
+
+  const { intent: _intent, ...forward } = body;
 
   try {
-    const payload = await apiRequest(request, `/projects/${encodeURIComponent(projectId)}/database/restores`, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
+    const payload = await apiRequest(request, path, { method: 'POST', body: JSON.stringify(forward) });
 
-    return json({ ok: true, ...(payload as Record<string, unknown>) });
+    return json({ ok: true, intent, ...(payload as Record<string, unknown>) });
   } catch (error) {
-    const message = await apiErrorMessage(error, 'Restore request failed');
+    const message = await apiErrorMessage(error, 'Database request failed');
     const status = error instanceof Response && error.status !== 500 ? error.status : 502;
 
     throw json({ ok: false, error: message }, { status });

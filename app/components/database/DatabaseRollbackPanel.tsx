@@ -106,15 +106,16 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
   const snapshots = data?.snapshots ?? [];
   const restores = data?.restores ?? [];
 
+  const submitIntent = (payload: Record<string, string>) => {
+    restoreFetcher.submit(payload, { method: 'post', action: loadUrl, encType: 'application/json' });
+  };
+
   const submitRestore = () => {
     if (!target) {
       return;
     }
 
-    restoreFetcher.submit(
-      { targetTimestamp: new Date(target).toISOString() },
-      { method: 'post', action: loadUrl, encType: 'application/json' },
-    );
+    submitIntent({ intent: 'restore', targetTimestamp: new Date(target).toISOString() });
   };
 
   return (
@@ -135,7 +136,27 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
         ) : null}
       </div>
 
-      {entitlement.allowed ? (
+      {!instance ? (
+        <button
+          type="button"
+          onClick={() => submitIntent({ intent: 'provision' })}
+          disabled={restoreFetcher.state !== 'idle'}
+          className="self-start rounded-md bg-bolt-elements-button-primary-background px-3 py-1 text-sm text-bolt-elements-button-primary-text disabled:opacity-50"
+        >
+          {restoreFetcher.state === 'idle' ? 'Set up database' : 'Setting up…'}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => submitIntent({ intent: 'snapshot' })}
+          disabled={restoreFetcher.state !== 'idle'}
+          className="self-start rounded-md border border-bolt-elements-borderColor px-3 py-1 text-sm text-bolt-elements-textPrimary disabled:opacity-50"
+        >
+          {restoreFetcher.state === 'idle' ? 'Create snapshot' : 'Working…'}
+        </button>
+      )}
+
+      {entitlement.allowed && instance ? (
         <div className="flex flex-col gap-2">
           <label htmlFor="db-restore-target" className="text-sm font-medium text-bolt-elements-textPrimary">
             Restore to a point in time
