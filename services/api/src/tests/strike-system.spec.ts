@@ -10,6 +10,7 @@ import {
   countActiveStrikes,
   describeConsequence,
   escalate,
+  higherConsequence,
   permissionsForAction,
   type StrikeAction,
   type StrikeRecordLike,
@@ -88,5 +89,15 @@ describe('countActiveStrikes', () => {
     expect(countActiveStrikes(null as unknown as StrikeRecordLike[], NOW)).toBe(0);
     expect(countActiveStrikes([strike(daysAgo(1)), null as unknown as StrikeRecordLike], NOW)).toBe(1);
     expect(countActiveStrikes([strike('not-a-date')], NOW)).toBe(1);
+  });
+});
+
+describe('higherConsequence', () => {
+  it('returns the more severe action per the ladder', () => {
+    expect(higherConsequence('NONE', 'WARNING')).toBe('WARNING');
+    expect(higherConsequence('COMMUNITY_BAN', 'WARNING')).toBe('COMMUNITY_BAN');
+    expect(higherConsequence('ACCOUNT_BAN', 'COMMUNITY_BAN')).toBe('ACCOUNT_BAN');
+    expect(higherConsequence('NONE', 'NONE')).toBe('NONE');
+    expect(higherConsequence('WARNING', 'WARNING')).toBe('WARNING');
   });
 });

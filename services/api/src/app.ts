@@ -131,6 +131,16 @@ import {
   purgeDueAtMs,
 } from './data-deletion.js';
 import {
+  APPEALS_EMAIL,
+  STRIKE_EXPIRY_DAYS,
+  type StrikeAction,
+  consequenceForStrikeCount,
+  describeConsequence,
+  escalate,
+  higherConsequence,
+  permissionsForAction,
+} from './strike-system.js';
+import {
   filesFromZip,
   filesFromZipBase64,
   GitCliProvider,
@@ -17416,6 +17426,124 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       requests,
       readyToPurge: requests.filter((entry) => entry.status === 'ready_to_purge').length,
     };
+  });
+
+  /*
+   * ===== Replit-parity moderation strikes (P8 — see docs/REPLIT_PARITY_SPEC.md
+   * §16.5 and ./strike-system.ts) =====
+   * Admins issue strikes with a severity; the cumulative consequence escalates
+   * Warning → Community ban (keeps IDE, no public posting) → Account ban (no
+   * login, apps removed). Strikes older than STRIKE_EXPIRY_DAYS stop counting.
+   * Records live in the user's preferences blob. An ACCOUNT_BAN is enforced via
+   * the existing suspension mechanism (revokes sessions, blocks login). The
+   * COMMUNITY_BAN posting restriction is surfaced in `permissions` for the
+   * publish/share gates to consult (enforcement there is a follow-on slice).
+   */
+  type ModerationStrikeRecord = { severity: 'minor' | 'major' | 'severe'; reason?: string; createdAt: string };
+
+  function readStrikeRecords(preferences: Record<string, unknown> | undefined): ModerationStrikeRecord[] {
+    const raw = preferences?.moderationStrikes;
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+    const severities = ['minor', 'major', 'severe'] as const;
+    return raw
+      .filter(
+        (entry): entry is Record<string, unknown> =>
+          !!entry && typeof entry === 'object' && typeof (entry as Record<string, unknown>).createdAt === 'string',
+      )
+      .map((entry) => ({
+        severity: severities.includes(entry.severity as (typeof severities)[number])
+          ? (entry.severity as ModerationStrikeRecord['severity'])
+          : 'minor',
+        reason: typeof entry.reason === 'string' ? entry.reason : undefined,
+        createdAt: entry.createdAt as string,
+      }));
+  }
+
+  function strikeView(records: ModerationStrikeRecord[], nowMs: number) {
+    const cutoff = nowMs - STRIKE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+    const active = records.filter((record) => {
+      const ms = Date.parse(record.createdAt);
+      return !Number.isFinite(ms) || ms >= cutoff; // unparseable counts as active (fail open on count)
+    });
+    const escalated = active.reduce<StrikeAction | 'NONE'>((acc, record) => escalate(acc, record.severity), 'NONE');
+    const consequence = higherConsequence(consequenceForStrikeCount(active.length), escalated);
+    return {
+      strikes: records,
+      activeStrikes: active.length,
+      consequence,
+      permissions: permissionsForAction(consequence),
+      description: consequence === 'NONE' ? null : describeConsequence(consequence as StrikeAction),
+      appealsEmail: APPEALS_EMAIL,
+    };
+  }
+
+  app.get('/admin/users/:userId/strikes', async (request) => {
+    await requirePlatformAdmin(request);
+
+    const { userId } = parse(adminUserParams, request.params);
+    const user = await store.findUserById(userId);
+    if (!user) {
+      throw Object.assign(new Error('User not found'), { statusCode: 404, code: 'USER_NOT_FOUND' });
+    }
+
+    return strikeView(readStrikeRecords(user.preferences), Date.now());
+  });
+
+  app.post('/admin/users/:userId/strikes', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { userId } = parse(adminUserParams, request.params);
+    const body = parse(
+      z.object({ severity: z.enum(['minor', 'major', 'severe']), reason: z.string().max(1000).optional() }),
+      request.body,
+    );
+
+    const user = await store.findUserById(userId);
+    if (!user) {
+      throw Object.assign(new Error('User not found'), { statusCode: 404, code: 'USER_NOT_FOUND' });
+    }
+
+    const nowMs = Date.now();
+    const records = readStrikeRecords(user.preferences);
+    records.push({ severity: body.severity, reason: body.reason, createdAt: new Date(nowMs).toISOString() });
+    await store.updateUser({ userId, preferences: { ...(user.preferences ?? {}), moderationStrikes: records } });
+
+    const view = strikeView(records, nowMs);
+
+    // Enforce an account ban with the existing suspension machinery.
+    if (view.consequence === 'ACCOUNT_BAN') {
+      await assertNotLastPlatformAdmin(store, userId);
+      await store.mutateSystemSettingIds('admin.suspendedUserIds', { add: userId });
+      await store.revokeAllSessions(userId);
+    }
+
+    await recordAdminAction(request, store, {
+      action: 'admin.user.strike_issued',
+      metadata: { userId, severity: body.severity, consequence: view.consequence },
+    });
+
+    return view;
+  });
+
+  app.delete('/admin/users/:userId/strikes', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { userId } = parse(adminUserParams, request.params);
+    const user = await store.findUserById(userId);
+    if (!user) {
+      throw Object.assign(new Error('User not found'), { statusCode: 404, code: 'USER_NOT_FOUND' });
+    }
+
+    const preferences = { ...(user.preferences ?? {}) };
+    delete preferences.moderationStrikes;
+    await store.updateUser({ userId, preferences });
+    await recordAdminAction(request, store, { action: 'admin.user.strikes_cleared', metadata: { userId } });
+
+    return { cleared: true };
   });
 
   app.post('/admin/users/:userId/force-logout', async (request) => {

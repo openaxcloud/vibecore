@@ -59,6 +59,14 @@ export function escalate(current: StrikeAction | 'NONE', severity: 'minor' | 'ma
   return current as StrikeAction;
 }
 
+/** Return the more severe of two actions per the ladder (NONE < WARNING < COMMUNITY_BAN < ACCOUNT_BAN). */
+export function higherConsequence(
+  a: StrikeAction | 'NONE',
+  b: StrikeAction | 'NONE',
+): StrikeAction | 'NONE' {
+  return ladderIndex(a) >= ladderIndex(b) ? a : b;
+}
+
 /** Human-readable effect of an action. */
 export function describeConsequence(action: StrikeAction): string {
   switch (action) {
