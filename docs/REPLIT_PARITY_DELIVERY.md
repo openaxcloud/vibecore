@@ -482,3 +482,40 @@ host (optional, since prod==local code). Screenshots delivered.
 `cert-verify-prod2@example.com` to platform-admin** (or logging in as `avi@snatchbot.me`) so I can finish the
 **admin sections + impersonation E2E** prod certification (§11.2). Billing stays in SHADOW until the Stripe
 go-live.
+
+---
+
+## 14. Parity finishing wave (Jun 17) — credits, fonts, marketing, DNS, Stripe runbook
+
+All landed on `main`, green (typecheck + lint + tests), prod intact, billing still SHADOW.
+
+- **Starter credits (Replit-exact):** Replit publishes **no** Starter $ figure (official: "Free daily
+  Agent credits", daily reset / no rollover; Core=$25/mo is the only anchor). The model was already
+  correct (`planCreditConfig.starter = 25¢/day, no rollover`); added sourced provenance + a pinning test
+  (`04208620`).
+- **IBM Plex Mono everywhere (`04208620`):** swapped JetBrains Mono → IBM Plex Mono across `--vc-font-code`,
+  CodeMirror `cm-theme`, xterm Terminal, Markdown code blocks, `@vibecore/editor` Monaco config, OG image;
+  loaded app-wide (root `<head>` + `index.scss @import`). Verified live: computed `--vc-font-code` =
+  `'IBM Plex Mono', …`. e2e typography assertions updated.
+- **5 dynamic marketing pages in-repo (`9cb1f37b` + nesting fix `69863fda`):** `compare.$slug`,
+  `solutions.$slug`, `templates_.languages`, `newsletter_.confirm`, `newsletter_.unsubscribe` now render
+  in-repo SSR (e-code shell, loaders, server-side 404 on bad slug) — **no external bundle**. Verified on
+  the local stack (code == prod): all render their own content, 0 console errors, 404s work, responsive
+  390/768/1440 (captures delivered). The external `ecode-static` proxy is no longer used by any route.
+- **Google env (`04208620`):** `GOOGLE_GENERATIVE_AI_API_KEY` mapped to the existing google-gemini secret
+  (web direct-provider path + managed trim now resolve Google; ai-gateway already used GOOGLE_GEMINI_API_KEY).
+- **DNS hardening (applied live in Cloud DNS zone `e-code-ai`):** DMARC `p=none` → **`p=quarantine`**;
+  added **apex SPF** `v=spf1 include:amazonses.com ~all`. Verified.
+- **Stripe go-live runbook:** `docs/STRIPE_GO_LIVE_RUNBOOK.md` — copy-paste exact (products/prices, metered
+  how-to, webhook URL + 6 events, key rotation, exact configmap/secret key names, activation sequence,
+  the 8 IDs to send back) (`b7eb26f4`).
+- **Deferred (documented, not attempted — would risk prod):** `docs/DEFERRED_HARDENING.md` — turbo-stream →
+  React Router 7 is a **dedicated ~6–8 week chantier** (297 routes, single-fetch deep) with a staged plan;
+  **#26** node-pool OAuth scope reduction + Kyverno admission are **supervised ops** (blue-green pool
+  recreate / Audit→Enforce).
+
+**Theme sweep:** no real drift on themed surfaces; the two flagged candidates (a dark preview-thumbnail
+canvas; the minimal OAuth popup interstitial) are intentional non-marketing contexts, left as-is.
+
+**Still Avi-only:** the **2 Stripe clicks** (create products/prices + rotate LIVE key — runbook §5/§6).
+Nothing else is blocked.
