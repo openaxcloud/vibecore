@@ -30,8 +30,9 @@ export default function ProjectLogsPage() {
       description="Workspace and project activity logs from real backend records."
     >
       <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 font-mono text-xs text-bolt-elements-textSecondary">
-        {lines.map((line) => (
-          <div key={line} className="whitespace-pre-wrap break-all">
+        {/* Log lines are frequently identical; index-qualify the key so duplicate lines don't collide. */}
+        {lines.map((line, index) => (
+          <div key={`${index}-${line}`} className="whitespace-pre-wrap break-all">
             {line}
           </div>
         ))}

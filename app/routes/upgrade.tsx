@@ -4,7 +4,7 @@ import { EnterpriseFormPage, PrimaryButton, SelectField } from '~/components/ent
 import {
   apiErrorMessage,
   apiRequest,
-  firstOrganization,
+  firstOrganizationOrNull,
   isApiResponse,
   json,
   redirect,
@@ -14,7 +14,12 @@ import {
 export const meta: MetaFunction = () => [{ title: 'Upgrade - E-Code' }];
 
 export async function action({ request }: EnterpriseActionArgs) {
-  const organization = await firstOrganization(request);
+  const organization = await firstOrganizationOrNull(request);
+
+  if (!organization) {
+    return json({ error: 'No organization found for your account.' }, { status: 400 });
+  }
+
   const form = await request.formData();
 
   try {

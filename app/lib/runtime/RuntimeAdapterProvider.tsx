@@ -138,7 +138,18 @@ async function resolveRuntimeAuthToken() {
     return undefined;
   }
 
-  const payload = (await response.json()) as { token?: string };
+  /*
+   * A 200 with an empty/non-JSON body (proxy or HTML error page) would throw
+   * here and reject the auth-token provider that runs on every runtime request
+   * and reconnect; treat a parse failure as "no token" instead of crashing.
+   */
+  let payload: { token?: string };
+
+  try {
+    payload = (await response.json()) as { token?: string };
+  } catch {
+    return undefined;
+  }
 
   if (!payload.token) {
     return undefined;

@@ -134,7 +134,7 @@ export const TabTile: React.FC<TabTileProps> = ({
                       <Tooltip.Content
                         className={classNames(
                           'px-3 py-1.5 rounded-lg',
-                          'bg-[#18181B] text-white',
+                          'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary border border-bolt-elements-borderColor',
                           'text-sm font-medium',
                           'select-none',
                           'z-[100]',

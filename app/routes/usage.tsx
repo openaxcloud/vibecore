@@ -2,7 +2,13 @@ import { Activity, Boxes, Database, Sparkles } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
 import { useLoaderData } from 'react-router';
 import { AppShell, StatGrid } from '~/components/dashboard/SaaSLayout';
-import { apiRequest, firstOrganizationOrNull, redirect, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import {
+  apiRequest,
+  firstOrganizationOrNull,
+  isForbiddenApiResponse,
+  redirect,
+  type EnterpriseLoaderArgs,
+} from '~/lib/enterprise-api.server';
 
 type UsageEvent = { id: string; type: string; quantity: number; createdAt?: string };
 type QuotaOverride = { id: string; key: string; limit: number; reason?: string; expiresAt?: string };
@@ -22,7 +28,25 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return redirect('/');
   }
 
-  return apiRequest<UsageData>(request, `/orgs/${organization.id}/usage`);
+  try {
+    return await apiRequest<UsageData>(request, `/orgs/${organization.id}/usage`);
+  } catch (error) {
+    /*
+     * A member without `usage:read` gets 403; render a friendly empty state
+     * instead of crashing the page to the root error view (mirrors billing.tsx).
+     */
+    if (isForbiddenApiResponse(error)) {
+      return {
+        usage: [],
+        quotas: {},
+        quotaUsage: {},
+        overrides: [],
+        plan: { name: 'Unavailable' },
+      } satisfies UsageData;
+    }
+
+    throw error;
+  }
 }
 
 export default function UsagePage() {

@@ -345,9 +345,14 @@ export class PreviewsStore {
     this.previews.set([...previews]);
   }
 
-  // Helper to extract preview ID from URL
+  /*
+   * Helper to extract preview ID from URL. Matches both the WebContainer host
+   * (`<id>.local-credentialless.webcontainer-api.io`) and the remote-kubernetes
+   * prod host (`<workspaceId>-<port>.preview.e-code.ai`); hardcoding only the
+   * former made cross-tab preview broadcasts a silent no-op in production.
+   */
   getPreviewId(url: string): string | null {
-    const match = url.match(/^https?:\/\/([^.]+)\.local-credentialless\.webcontainer-api\.io/);
+    const match = url.match(/^https?:\/\/([^.]+)\.(?:local-credentialless\.webcontainer-api\.io|preview\.e-code\.ai)/);
     return match ? match[1] : null;
   }
 

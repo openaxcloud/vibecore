@@ -144,7 +144,7 @@ function ProjectList({ projects }: { projects: ProjectCard[] }) {
           className="flex flex-col gap-3 border-b border-bolt-elements-borderColor p-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
         >
           <div className="flex min-w-0 items-center gap-3">
-            <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-md border border-bolt-elements-borderColor bg-[#0A0F1C]">
+            <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
               {project.previewImageUrl ? (
                 <img
                   src={project.previewImageUrl}

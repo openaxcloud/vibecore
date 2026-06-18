@@ -407,12 +407,16 @@ export default function BillingPage() {
                 type="number"
                 name="budgetCapDollars"
                 min="0"
-                step="0.01"
+                step="any"
                 defaultValue={credits.budgetCapCents != null ? (credits.budgetCapCents / 100).toString() : ''}
                 placeholder="No cap"
                 aria-label="Spend limit in dollars"
+                title="Set in $500 increments, or $0.01 to cap spend at your current credits."
                 className="w-32 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-1.5 text-sm text-bolt-elements-textPrimary"
               />
+              <span className="w-full text-[11px] text-bolt-elements-textSecondary sm:w-auto">
+                $500 increments (or $0.01 to cap at credits)
+              </span>
               <Button type="submit" variant="outline" disabled={submitting}>
                 {submitting && navigation.formData?.get('intent') === 'set-limits' ? 'Saving…' : 'Save limit'}
               </Button>

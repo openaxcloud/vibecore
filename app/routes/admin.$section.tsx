@@ -298,7 +298,18 @@ export async function action({ request }: EnterpriseActionArgs) {
     return json({ ok: false, userId, error: 'Enter your password to apply this change.' }, { status: 400 });
   }
 
-  const reauthError = await reauthenticate(request, password);
+  let reauthError: string | undefined;
+
+  try {
+    reauthError = await reauthenticate(request, password);
+  } catch (error) {
+    /*
+     * reauthenticate() only returns a string for 401; non-401 (API 500/timeout/
+     * network) re-throws. Catch it so a transient failure surfaces inline instead
+     * of crashing the whole admin panel to the root ErrorBoundary.
+     */
+    return json({ ok: false, userId, error: await adminMutationError(error) }, { status: 502 });
+  }
 
   if (reauthError) {
     return json({ ok: false, userId, error: reauthError }, { status: 401 });

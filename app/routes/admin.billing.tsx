@@ -90,7 +90,17 @@ export async function action({ request }: EnterpriseActionArgs) {
     return json({ error: 'Organization ID, quota key and limit are required.' }, { status: 400 });
   }
 
-  const reauthError = await reauthenticate(request, body.password);
+  let reauthError: string | undefined;
+
+  try {
+    reauthError = await reauthenticate(request, body.password);
+  } catch (error) {
+    /*
+     * Non-401 reauth failures (API 500/timeout/network) re-throw; catch so a
+     * transient failure surfaces inline instead of crashing the admin billing page.
+     */
+    return json({ error: await adminMutationError(error) }, { status: 502 });
+  }
 
   if (reauthError) {
     return json({ error: reauthError }, { status: 401 });

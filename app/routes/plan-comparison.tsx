@@ -4,7 +4,7 @@ import { EnterpriseFormPage, PrimaryButton } from '~/components/enterprise/Enter
 import {
   apiErrorMessage,
   apiRequest,
-  firstOrganization,
+  firstOrganizationOrNull,
   isApiResponse,
   json,
   redirect,
@@ -25,7 +25,12 @@ const PLANS = [
 ];
 
 export async function action({ request }: EnterpriseActionArgs) {
-  const organization = await firstOrganization(request);
+  const organization = await firstOrganizationOrNull(request);
+
+  if (!organization) {
+    return json({ error: 'No organization found for your account.' }, { status: 400 });
+  }
+
   const form = await request.formData();
 
   try {

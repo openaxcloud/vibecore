@@ -943,17 +943,24 @@ function ProjectMenuAction({
 
           const result = (await response.json().catch(() => ({}))) as {
             project?: { project?: { id?: string }; id?: string };
+            error?: string;
           };
 
-          if (intent === 'delete' && response.ok) {
+          if (!response.ok) {
+            /*
+             * Don't silently swallow quota/permission/server errors — the action
+             * would otherwise appear to do nothing. Surface the reason.
+             */
+            window.alert(result.error ?? `Could not ${intent} this project. Please try again.`);
+          } else if (intent === 'delete') {
             window.location.href = '/projects';
-          } else if ((intent === 'duplicate' || intent === 'fork') && response.ok) {
+          } else if (intent === 'duplicate' || intent === 'fork') {
             const nextProjectId = result.project?.project?.id ?? result.project?.id;
 
             if (nextProjectId) {
               window.location.href = `/projects/${nextProjectId}/ide`;
             }
-          } else if (intent === 'rename' && response.ok) {
+          } else if (intent === 'rename') {
             window.location.reload();
           }
         } finally {

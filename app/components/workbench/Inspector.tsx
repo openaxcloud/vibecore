@@ -125,7 +125,7 @@ export const Inspector = ({ isActive, iframeRef, onElementSelect }: InspectorPro
           }}
         >
           {/* Element info tooltip */}
-          <div className="absolute -top-8 left-0 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+          <div className="absolute -top-8 left-0 bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary border border-bolt-elements-borderColor text-xs px-2 py-1 rounded whitespace-nowrap">
             {hoveredElement.tagName.toLowerCase()}
             {hoveredElement.id && `#${hoveredElement.id}`}
             {hoveredElement.className && `.${hoveredElement.className.split(' ')[0]}`}
