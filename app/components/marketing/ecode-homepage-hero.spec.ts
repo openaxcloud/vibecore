@@ -15,9 +15,17 @@ describe('E-Code homepage hero', () => {
     expect(landing).toContain('variant="outline"');
     expect(landing).toContain('text-[44px] sm:text-6xl lg:text-7xl xl:text-8xl');
     expect(landing).toContain("background: 'linear-gradient(90deg, rgba(242, 98, 7, 0.06), rgba(247, 127, 0, 0.06))'");
-    expect(styles).toContain("[data-ecode-static-shell] :where([class~='text-[44px]'])");
+
+    /*
+     * The static-shell title-scale rules were broadened to also match the
+     * homepage public chrome (commit f549f48e): :is([data-ecode-static-shell],
+     * [data-ecode-public-chrome='homepage']).
+     */
     expect(styles).toContain(
-      "[data-ecode-static-shell] :where(h1, h2, h3, h4, h5, h6) :where(span:not([class*='i-']))",
+      ":is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='text-[44px]'])",
+    );
+    expect(styles).toContain(
+      ":is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where(h1, h2, h3, h4, h5, h6) :where(span:not([class*='i-']))",
     );
     expect(landingControls).toContain("fetch('/api/models'");
     expect(landingControls).toContain('Select AI model...');

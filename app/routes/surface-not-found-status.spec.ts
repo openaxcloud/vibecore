@@ -74,24 +74,34 @@ const publicMarketingCases: Array<{
   loader: Loader;
   params: Record<string, string>;
   pathname: string;
+
+  /*
+   * marketing.$slug still serves the copied E-Code static shell; solutions.$slug
+   * and compare.$slug were migrated to real in-repo SSR (MarketingDynamicPage +
+   * loader), so they return JSON data and NOT the static-shell marker header.
+   */
+  servesStaticShell: boolean;
 }> = [
   {
     name: 'solutions.$slug',
     loader: solutionsLoader as Loader,
     params: { slug: 'app-builder' },
     pathname: '/solutions/app-builder',
+    servesStaticShell: false,
   },
   {
     name: 'compare.$slug',
     loader: compareLoader as Loader,
     params: { slug: 'heroku' },
     pathname: '/compare/heroku',
+    servesStaticShell: false,
   },
   {
     name: 'marketing.$slug',
     loader: marketingLoader as Loader,
     params: { slug: 'teams' },
     pathname: '/marketing/teams',
+    servesStaticShell: true,
   },
 ];
 
@@ -116,14 +126,20 @@ describe('dynamic surface routes return a true HTTP 404 for unknown slugs', () =
   });
 });
 
-describe('imported E-Code public dynamic routes serve the static shell', () => {
-  for (const { name, loader, params, pathname } of publicMarketingCases) {
-    it(`${name}: returns the E-Code shell for public routing`, () => {
+describe('imported E-Code public dynamic routes resolve for public routing', () => {
+  for (const { name, loader, params, pathname, servesStaticShell } of publicMarketingCases) {
+    it(`${name}: ${servesStaticShell ? 'returns the static E-Code shell' : 'serves real in-repo SSR'}`, () => {
       const result = runLoader(loader, params, pathname);
 
       expect(result.threw).toBe(false);
       expect(result.response?.status).toBe(200);
-      expect(result.response?.headers.get('x-e-code-marketing-shell')).toBe('ecode-static');
+
+      if (servesStaticShell) {
+        expect(result.response?.headers.get('x-e-code-marketing-shell')).toBe('ecode-static');
+      } else {
+        // In-repo SSR routes must NOT carry the copied-static-shell marker.
+        expect(result.response?.headers.get('x-e-code-marketing-shell')).toBeNull();
+      }
     });
   }
 });
