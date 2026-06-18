@@ -6953,6 +6953,47 @@ body :where(.lucide, svg[data-lucide]) {
   outline-offset: 2px;
 }
 
+/* Agent/Assistant mode, relocated from the old header tab row into the composer. */
+.bolt-chatbox-mode-segmented {
+  display: inline-flex;
+  height: 32px;
+  flex: 0 0 auto;
+  align-items: stretch;
+  padding: 2px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+}
+
+.bolt-chatbox-mode-segment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--vc-ide-text-secondary);
+  transition:
+    background-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.bolt-chatbox-mode-segment:hover {
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-chatbox-mode-segment[data-active='true'] {
+  background: var(--ecode-accent, var(--vc-ide-accent-action));
+  color: #fff;
+}
+
+.bolt-chatbox-mode-segment:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
+  outline-offset: 2px;
+}
+
 .bolt-chatbox-toolbar-info {
   color: var(--vc-ide-text-muted);
 }

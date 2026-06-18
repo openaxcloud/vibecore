@@ -5919,6 +5919,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 projectIdeMode={projectIdeMode}
                 planFirstEnabled={projectPlanFirst}
                 onPlanFirstChange={setProjectPlanFirst}
+                agentMode={publicModeForExecution(projectAgentExecutionMode)}
+                setAgentMode={(mode) => {
+                  /*
+                   * Mirrors the old header tab onClick: pick the execution for
+                   * the chosen public mode, set it, and sync chatMode (Agent →
+                   * build, Assistant → discuss). Relocated into the composer.
+                   */
+                  const publicMode = PROJECT_AGENT_PUBLIC_MODES.find((entry) => entry.id === mode);
+                  const execution = publicMode?.execution ?? 'agent';
+                  const executionEntry = PROJECT_AGENT_EXECUTION_MODES.find((entry) => entry.id === execution);
+                  setProjectAgentExecutionMode(execution);
+                  setChatMode?.(executionEntry?.chatMode ?? 'build');
+                }}
                 placeholder={
                   projectIdeMode
                     ? `${
@@ -6959,44 +6972,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       </HeaderTip>
                     </div>
                   </div>
-                  {(() => {
-                    const activePublicMode = publicModeForExecution(projectAgentExecutionMode);
-
-                    return (
-                      <div className="bolt-project-agent-mode-bar" role="region" aria-label="Agent mode controls">
-                        <div
-                          className="bolt-project-agent-mode bolt-project-agent-mode--segmented"
-                          role="tablist"
-                          aria-label="Agent mode"
-                          onKeyDown={moveTabFocus}
-                        >
-                          {PROJECT_AGENT_PUBLIC_MODES.map((mode) => {
-                            const isActive = activePublicMode === mode.id;
-
-                            return (
-                              <HeaderTip key={mode.id} label={mode.description}>
-                                <button
-                                  type="button"
-                                  role="tab"
-                                  aria-selected={isActive}
-                                  tabIndex={isActive ? 0 : -1}
-                                  onClick={() => {
-                                    const execution = PROJECT_AGENT_EXECUTION_MODES.find(
-                                      (entry) => entry.id === mode.execution,
-                                    );
-                                    setProjectAgentExecutionMode(mode.execution);
-                                    setChatMode?.(execution?.chatMode ?? 'build');
-                                  }}
-                                >
-                                  {mode.label}
-                                </button>
-                              </HeaderTip>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })()}
+                  {/*
+                   * The dedicated Agent/Assistant tab row was removed from the
+                   * header (Replit-style: no separate mode header). The same
+                   * Agent/Assistant control now lives in the composer toolbar
+                   * next to Plan (ChatBox `agentMode`/`setAgentMode`). No option
+                   * lost — the execution mode + chatMode sync is identical.
+                   */}
                   {isAgentRunning && <ProjectAgentRunStatus stopLabel={stopAgentLabel} onStop={handleStop} />}
                   {conversationHistoryOpen && (
                     <div className="bolt-project-conversation-history" role="dialog" aria-label="Project agent history">

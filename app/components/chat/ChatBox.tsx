@@ -117,6 +117,15 @@ interface ChatBoxProps {
   onPlanFirstChange?: (next: boolean) => void;
 
   /**
+   * Agent execution mode (Agent = autonomous end-to-end, Assistant =
+   * conversational). Relocated from the old dedicated header tab row into the
+   * composer toolbar so the mode lives next to Plan (Replit-style: mode controls
+   * sit in the composer, not a separate header). No option lost.
+   */
+  agentMode?: 'agent' | 'assistant';
+  setAgentMode?: (mode: 'agent' | 'assistant') => void;
+
+  /**
    * Per-request agent power controls (Replit parity: High power, Extended
    * thinking, Turbo, build tier). Controlled by the parent when provided;
    * otherwise ChatBox manages local, localStorage-persisted state so the
@@ -534,6 +543,38 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             >
               <div className="i-ph:paperclip text-xl"></div>
             </IconButton>
+
+            {props.projectIdeMode && props.agentMode && props.setAgentMode ? (
+              <div
+                className="bolt-chatbox-mode-segmented"
+                role="tablist"
+                aria-label="Agent mode"
+                data-mode={props.agentMode}
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={props.agentMode === 'agent'}
+                  className="bolt-chatbox-mode-segment"
+                  data-active={props.agentMode === 'agent' ? 'true' : 'false'}
+                  title="Agent — runs the task end to end"
+                  onClick={() => props.setAgentMode?.('agent')}
+                >
+                  Agent
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={props.agentMode === 'assistant'}
+                  className="bolt-chatbox-mode-segment"
+                  data-active={props.agentMode === 'assistant' ? 'true' : 'false'}
+                  title="Assistant — answers and proposes scoped edits, waits for your go"
+                  onClick={() => props.setAgentMode?.('assistant')}
+                >
+                  Assistant
+                </button>
+              </div>
+            ) : null}
 
             {props.projectIdeMode && props.onPlanFirstChange ? (
               <button
