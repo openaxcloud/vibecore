@@ -8,7 +8,12 @@ import { comparePages, MarketingDynamicPage } from '~/components/marketing/Ecode
  * server-side. Replaces the external-bundle proxy.
  */
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
-  { title: data ? `E-Code vs ${data.title} — Compare` : 'Compare — E-Code' },
+  /*
+   * `data.title` is already the full "E-Code vs <competitor>" string from
+   * makeCompare(); only append the page-kind suffix (prepending "E-Code vs"
+   * here doubled it into "E-Code vs E-Code vs Heroku").
+   */
+  { title: data ? `${data.title} — Compare` : 'Compare — E-Code' },
   {
     name: 'description',
     content: data?.description ?? 'How E-Code compares to other AI development platforms.',

@@ -1,4 +1,11 @@
-import { renderToReadableStream } from 'react-dom/server';
+/*
+ * `renderToReadableStream` (web streams) ships in the browser/edge build. The
+ * bare `react-dom/server` entry resolves to the CJS Node build
+ * (renderToPipeableStream only) under @react-router/serve and crashes at boot,
+ * so import the browser build explicitly. Node 18+ has web streams, so it runs
+ * on Node. Types are shimmed in app/types/react-dom-server-browser.d.ts.
+ */
+import { renderToReadableStream } from 'react-dom/server.browser';
 import type { AppLoadContext, EntryContext } from 'react-router';
 import { ServerRouter } from 'react-router';
 import { isPublicMarketingPath } from '~/lib/stores/theme';
@@ -94,49 +101,19 @@ export default async function handleRequest(
    * boundary hold the whole document hostage. The client can hydrate the
    * boot fallback while the route bundle finishes loading.
    *
-   * The <!DOCTYPE html> is prepended here; the rest of the document
-   * (<html>/<head>/<body>) is rendered by the root route's `Layout` export,
-   * which replaced the former remix-island head/body split.
+   * React's `renderToReadableStream` already prepends `<!DOCTYPE html>` because
+   * the root route's `Layout` export renders the whole <html> document (it
+   * replaced the former remix-island head/body split). We therefore stream the
+   * readable straight through — prepending our own DOCTYPE here would emit a
+   * second, duplicate token.
    */
   await waitForServerRenderReady(readable.allReady);
-
-  const reader = readable.getReader();
-
-  const body = new ReadableStream({
-    start(controller) {
-      controller.enqueue(new Uint8Array(new TextEncoder().encode('<!DOCTYPE html>')));
-
-      function read() {
-        reader
-          .read()
-          .then(({ done, value }) => {
-            if (done) {
-              controller.close();
-
-              return;
-            }
-
-            controller.enqueue(value);
-            read();
-          })
-          .catch((error) => {
-            controller.error(error);
-            reader.cancel();
-          });
-      }
-      read();
-    },
-
-    cancel() {
-      reader.cancel();
-    },
-  });
 
   responseHeaders.set('Content-Type', 'text/html');
   applyDocumentIsolationHeaders(responseHeaders);
   applyDocumentCacheHeaders(request, responseHeaders);
 
-  return new Response(body, {
+  return new Response(readable, {
     headers: responseHeaders,
     status: responseStatusCode,
   });
