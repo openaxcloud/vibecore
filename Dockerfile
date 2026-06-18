@@ -75,8 +75,9 @@ COPY . .
 
 # Install only if the base didn't already provide a linked dependency tree.
 # `pnpm fetch` creates node_modules/.pnpm without root .bin links, so checking
-# only for node_modules would skip the offline install and leave `remix` absent.
-RUN if [ ! -x /app/node_modules/.bin/remix ]; then \
+# only for node_modules would skip the offline install and leave the framework
+# CLI absent. RR7's root .bin is `react-router` (was `remix` pre-migration).
+RUN if [ ! -x /app/node_modules/.bin/react-router ]; then \
       pnpm install --offline --frozen-lockfile; \
     fi
 
@@ -124,7 +125,10 @@ EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
   CMD curl -fsS http://localhost:3000/health || exit 1
 
-CMD ["node", "./node_modules/@remix-run/serve/dist/cli.js", "./build/server/index.js"]
+# RR7 ships its server runner as @react-router/serve (the Remix v2
+# @remix-run/serve package was removed by the migration). Same CLI contract:
+# it serves ./build/server/index.js on $PORT and exposes the app's /health route.
+CMD ["node", "./node_modules/@react-router/serve/dist/cli.js", "./build/server/index.js"]
 
 
 # ---- development stage ----
