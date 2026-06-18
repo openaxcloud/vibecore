@@ -7225,6 +7225,47 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-accent-danger, #dc2626);
 }
 
+.bolt-header-overflow-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  text-align: left;
+  color: var(--vc-ide-text-secondary);
+  transition:
+    background-color var(--vc-ui-transition-hover),
+    color var(--vc-ui-transition-hover);
+}
+
+/* The static row (Appearance) pairs an icon+label group with a trailing control. */
+.bolt-header-overflow-item--static {
+  justify-content: space-between;
+
+  > span:first-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.bolt-header-overflow-item:not(.bolt-header-overflow-item--static):hover {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-header-overflow-item--danger:hover {
+  background: color-mix(in srgb, var(--vc-ide-accent-danger, #dc2626) 12%, var(--vc-ide-bg-hover));
+  color: var(--vc-ide-accent-danger, #dc2626);
+}
+
+.bolt-header-overflow-item--static {
+  cursor: default;
+}
+
 .bolt-project-collaboration-button {
   color: var(--vc-ide-text-secondary);
 }

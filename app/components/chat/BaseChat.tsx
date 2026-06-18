@@ -94,6 +94,7 @@ import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
 import { StickToBottom, useKeybindings, useStickToBottomContext } from '~/lib/hooks';
 import { ChatBox } from './ChatBox';
+import { HeaderOverflowMenu } from './HeaderOverflowMenu';
 import { modelListFromResponse } from './modelList';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
@@ -6880,44 +6881,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           />
                         </HeaderTip>
                       ) : null}
-                      <HeaderTip label="Copier la conversation">
-                        <button
-                          type="button"
-                          className="bolt-project-ide-icon-button"
-                          aria-label="Copier la conversation"
-                          onClick={() => void copyProjectConversation()}
-                        >
-                          <Copy size={14} strokeWidth={2} aria-hidden />
-                        </button>
-                      </HeaderTip>
-                      <HeaderTip label="Effacer l'historique">
-                        <button
-                          type="button"
-                          className="bolt-project-ide-icon-button bolt-project-ide-icon-button--danger"
-                          aria-label="Effacer l'historique"
-                          onClick={clearProjectConversation}
-                        >
-                          <Trash2 size={14} strokeWidth={2} aria-hidden />
-                        </button>
-                      </HeaderTip>
-                      <HeaderTip label="Exporter la conversation">
-                        <button
-                          type="button"
-                          className="bolt-project-ide-icon-button"
-                          aria-label="Exporter la conversation"
-                          onClick={exportProjectConversation}
-                        >
-                          <Download size={14} strokeWidth={2} aria-hidden />
-                        </button>
-                      </HeaderTip>
-                      <HeaderTip label="Switch light / dark theme">
-                        <ThemeSwitch
-                          size="lg"
-                          title="Switch light/dark theme"
-                          className="bolt-project-ide-icon-button"
-                          iconClassName="text-[14px]"
-                        />
-                      </HeaderTip>
                       <HeaderTip label="Conversation history">
                         <button
                           type="button"
@@ -6928,16 +6891,62 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           <span className="i-ph:clock" aria-hidden />
                         </button>
                       </HeaderTip>
-                      <HeaderTip label="Agent settings">
+                      {/*
+                       * Replit-clean header: the lower-frequency actions (copy,
+                       * export, settings, appearance, clear) collapse into a single
+                       * "…" overflow — none removed, all still reachable here. The
+                       * interactive popovers (presence, branches, share) stay inline
+                       * because they don't nest cleanly inside another menu.
+                       */}
+                      <HeaderOverflowMenu label="More agent actions">
                         <button
                           type="button"
-                          className="bolt-project-ide-icon-button"
+                          role="menuitem"
+                          className="bolt-header-overflow-item"
+                          aria-label="Copier la conversation"
+                          onClick={() => void copyProjectConversation()}
+                        >
+                          <Copy size={14} strokeWidth={2} aria-hidden />
+                          <span>Copy conversation</span>
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="bolt-header-overflow-item"
+                          aria-label="Exporter la conversation"
+                          onClick={exportProjectConversation}
+                        >
+                          <Download size={14} strokeWidth={2} aria-hidden />
+                          <span>Export conversation</span>
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="bolt-header-overflow-item"
                           aria-label="Agent settings"
                           onClick={() => openWorkspacePanel('settings')}
                         >
                           <span className="i-ph:sliders-horizontal" aria-hidden />
+                          <span>Agent settings</span>
                         </button>
-                      </HeaderTip>
+                        <div className="bolt-header-overflow-item bolt-header-overflow-item--static">
+                          <span className="flex items-center gap-2">
+                            <span className="i-ph:moon" aria-hidden />
+                            <span>Appearance</span>
+                          </span>
+                          <ThemeSwitch size="sm" title="Switch light/dark theme" />
+                        </div>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="bolt-header-overflow-item bolt-header-overflow-item--danger"
+                          aria-label="Effacer l'historique"
+                          onClick={clearProjectConversation}
+                        >
+                          <Trash2 size={14} strokeWidth={2} aria-hidden />
+                          <span>Clear history</span>
+                        </button>
+                      </HeaderOverflowMenu>
                       <HeaderTip label="Hide agent panel (Cmd+L)">
                         <button
                           type="button"
