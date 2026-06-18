@@ -551,6 +551,16 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               <div className="i-ph:paperclip text-xl"></div>
             </IconButton>
 
+            {props.projectIdeMode ? (
+              <SpeechRecognitionButton
+                isListening={props.isListening}
+                onStart={props.startListening}
+                onStop={props.stopListening}
+                disabled={props.isStreaming}
+                triggerVariant="icon"
+              />
+            ) : null}
+
             {props.projectIdeMode && props.agentMode && props.setAgentMode ? (
               <div
                 className="bolt-chatbox-mode-segmented"
@@ -647,20 +657,25 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                     </>
                   </IconButton>
 
-                  <SpeechRecognitionButton
-                    isListening={props.isListening}
-                    onStart={() => {
-                      props.startListening();
-                      setIsToolsMenuOpen(false);
-                    }}
-                    onStop={() => {
-                      props.stopListening();
-                      setIsToolsMenuOpen(false);
-                    }}
-                    disabled={props.isStreaming}
-                    triggerVariant="menu"
-                    triggerLabel={props.isListening ? 'Stop speech' : 'Speech'}
-                  />
+                  {/* In the IDE the mic is surfaced directly on the composer bar
+                      (Replit parity), so it's omitted from this menu to avoid a
+                      duplicate; the standalone composer keeps it here. */}
+                  {!props.projectIdeMode ? (
+                    <SpeechRecognitionButton
+                      isListening={props.isListening}
+                      onStart={() => {
+                        props.startListening();
+                        setIsToolsMenuOpen(false);
+                      }}
+                      onStop={() => {
+                        props.stopListening();
+                        setIsToolsMenuOpen(false);
+                      }}
+                      disabled={props.isStreaming}
+                      triggerVariant="menu"
+                      triggerLabel={props.isListening ? 'Stop speech' : 'Speech'}
+                    />
+                  ) : null}
 
                   {props.chatStarted && !props.projectIdeMode ? (
                     <IconButton
