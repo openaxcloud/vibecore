@@ -63,7 +63,10 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: {{ include "vibecore-platform.fullname" $ }}-cron-{{ kebabcase $name }}
+  # k8s caps CronJob names at 52 chars (it appends "-<timestamp>" to spawn Jobs,
+  # which must stay <= 63). "...-cron-object-storage-metering" is 55, so truncate
+  # to 52; this is a no-op for every other (shorter) cron name.
+  name: {{ printf "%s-cron-%s" (include "vibecore-platform.fullname" $) (kebabcase $name) | trunc 52 | trimSuffix "-" }}
   labels:
     app.kubernetes.io/name: cron-{{ kebabcase $name }}
     app.kubernetes.io/component: cron

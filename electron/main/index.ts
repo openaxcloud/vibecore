@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { createRequestHandler } from '@remix-run/node';
+import { createRequestHandler } from 'react-router';
 import electron, { app, BrowserWindow, protocol, session } from 'electron';
 import log from 'electron-log';
 import path from 'node:path';
