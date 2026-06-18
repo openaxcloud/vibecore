@@ -199,3 +199,27 @@ cards, `--ecode-accent` focus). Mono font: **resolved (2026-06-17)** — VibeCor
 uses **IBM Plex Mono** everywhere (editor, terminal, code blocks, `--vc-font-code`,
 the `@vibecore/editor` Monaco config, OG image), matching the source. IBM Plex Mono
 is loaded app-wide via the root `<head>` font link + the `index.scss` `@import`.
+
+## 12. Theme-consistency contract (REQUIRED — skill criterion)
+
+**Total theme consistency: no surface may render in the opposite theme.** When the
+active theme (`<html data-theme>` + `.dark` class) is **light, EVERY app-rendered
+surface must be light**; when **dark, every surface must be dark**. This holds
+uniformly across all three areas — the **marketing site**, the **user area /
+dashboard**, **and the IDE** (every panel, toolbar, tab bar, dock, panel header,
+status bar, modal, popover, dropdown, tooltip). Zero opposite-theme surfaces.
+(Browser chrome — OS/Safari address bar and bottom nav — is out of our control and
+exempt; only app-rendered surfaces count.)
+
+Compliance:
+- Style surfaces with theme-reactive tokens (`--bolt-elements-*` /
+  `bg-bolt-elements-background-depth-*`, `text-bolt-elements-textPrimary`,
+  `border-bolt-elements-borderColor`, or ecode `hsl(var(--…))`); they resolve per
+  `data-theme` automatically.
+- Never hardcode a single-theme color on a surface: no raw dark hex (`#0a0f1c`,
+  `#18181b`, …), no unconditional `bg-gray-900/950`, `bg-black`, `bg-slate-900`,
+  `bg-zinc-900`, or unconditional `text-white` on a panel. If a literal is
+  unavoidable, pair it (`bg-white dark:bg-…`, `text-gray-900 dark:text-white`).
+- Any `--bolt-elements-*` token used by app/IDE chrome MUST define BOTH a light
+  value (`:root[data-theme='light']`) and a dark value in `app/styles/variables.scss`.
+- Verify BOTH themes (light AND dark) at 390 / 768 / 1440 before marking done.
