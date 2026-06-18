@@ -409,7 +409,14 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             ref={props.textareaRef}
             aria-label={props.projectIdeMode ? 'Agent prompt' : 'Chat prompt'}
             className={classNames(
-              'block w-full pl-4 pt-4 pr-16 pb-14 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
+              'block w-full pl-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
+
+              /*
+               * Replit-style compact composer in the IDE: ~1 line at rest with a
+               * tighter button-bar reserve; the standalone/landing composer keeps
+               * the roomier sizing.
+               */
+              props.projectIdeMode ? 'pt-3 pb-10' : 'pt-4 pb-14',
               'transition-all duration-200',
               'hover:border-bolt-elements-focus',
             )}
