@@ -1,8 +1,10 @@
 import { Form, useActionData, useLoaderData } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import {
+  apiErrorMessage,
   apiRequest,
   formObject,
+  isApiResponse,
   json,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
@@ -20,12 +22,20 @@ export async function action({ request }: EnterpriseActionArgs) {
     return json({ error: 'Invitation token is required.' }, { status: 400 });
   }
 
-  const result = await apiRequest<{ organizationId: string; roleKey: string }>(request, '/invitations/accept', {
-    method: 'POST',
-    body: JSON.stringify({ token: body.token }),
-  });
+  try {
+    const result = await apiRequest<{ organizationId: string; roleKey: string }>(request, '/invitations/accept', {
+      method: 'POST',
+      body: JSON.stringify({ token: body.token }),
+    });
 
-  return json({ status: `Invitation accepted for ${result.organizationId} as ${result.roleKey}.` });
+    return json({ status: `Invitation accepted for ${result.organizationId} as ${result.roleKey}.` });
+  } catch (error) {
+    if (isApiResponse(error)) {
+      return json({ error: await apiErrorMessage(error, 'Failed to accept invitation.') }, { status: error.status });
+    }
+
+    return json({ error: 'Accepting invitations is temporarily unavailable. Please try again in a moment.' });
+  }
 }
 
 export default function AcceptInvitationPage() {

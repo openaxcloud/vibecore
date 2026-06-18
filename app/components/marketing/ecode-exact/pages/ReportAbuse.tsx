@@ -371,9 +371,17 @@ export default function ReportAbuse() {
                   <p className="text-[13px] text-muted-foreground mb-4">
                     For copyright infringement claims, please submit a formal DMCA takedown notice.
                   </p>
-                  <Button variant="outline" size="sm" className="w-full min-h-[44px]" data-testid="button-abuse-dmca">
-                    <FileText className="h-4 w-4 mr-2" />
-                    DMCA Process
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="w-full min-h-[44px]"
+                    data-testid="button-abuse-dmca"
+                  >
+                    <a href="/acceptable-use">
+                      <FileText className="h-4 w-4 mr-2" />
+                      DMCA Process
+                    </a>
                   </Button>
                 </CardContent>
               </Card>
@@ -387,13 +395,16 @@ export default function ReportAbuse() {
                     For urgent safety concerns or illegal activity, contact us immediately.
                   </p>
                   <Button
+                    asChild
                     variant="outline"
                     size="sm"
                     className="w-full min-h-[44px]"
                     data-testid="button-abuse-emergency"
                   >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    abuse@e-code.ai
+                    <a href="mailto:abuse@e-code.ai">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      abuse@e-code.ai
+                    </a>
                   </Button>
                 </CardContent>
               </Card>
@@ -418,7 +429,7 @@ export default function ReportAbuse() {
                   Terms of Service
                 </a>{' '}
                 and{' '}
-                <a href="/community-guidelines" className="text-primary hover:underline">
+                <a href="/acceptable-use" className="text-primary hover:underline">
                   Community Guidelines
                 </a>
                 .

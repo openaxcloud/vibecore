@@ -652,8 +652,15 @@ export class ActionRunner {
      * we exhaust the budget the original (broken) payload is written
      * anyway — the user can still edit it in place — and the failure is
      * surfaced through the workspace log and the patch-review banner.
+     *
+     * Like the JSON sanitizer above, this only runs on the authoritative
+     * non-streaming write. While streaming the content is partial by
+     * definition, so AST validation would fail on every truncated chunk and
+     * fire real self-repair LLM round-trips against incomplete code.
      */
-    payload = await this.#repairWithSelfRepairLoop(relativePath, payload, action.abortSignal);
+    if (!isStreaming) {
+      payload = await this.#repairWithSelfRepairLoop(relativePath, payload, action.abortSignal);
+    }
 
     try {
       await this.#runtime.writeFile(relativePath, payload);

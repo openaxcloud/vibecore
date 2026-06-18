@@ -75,7 +75,23 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       throw error;
     }
   } else {
-    await apiRequest(request, `/orgs/${organization.id}/domains`, { method: 'POST', body: JSON.stringify({ domain }) });
+    try {
+      await apiRequest(request, `/orgs/${organization.id}/domains`, {
+        method: 'POST',
+        body: JSON.stringify({ domain }),
+      });
+    } catch (error) {
+      /*
+       * The API validates the domain and rejects duplicates or invalid hosts. Surface that
+       * message inline instead of throwing to an error boundary.
+       */
+      if (error instanceof Response) {
+        const payload = (await error.json().catch(() => ({}))) as { error?: string };
+        return json({ error: payload.error ?? 'Unable to add domain. Check the value and try again.' });
+      }
+
+      throw error;
+    }
   }
 
   return redirect(`/projects/${projectId}/domains`);

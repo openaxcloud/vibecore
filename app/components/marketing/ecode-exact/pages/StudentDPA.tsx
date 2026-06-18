@@ -499,13 +499,13 @@ export default function StudentDpa() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button size="lg" asChild>
-                  <a href="/docs/E-Code-Student-DPA.pdf" download>
+                  <a href="mailto:legal@e-code.ai?subject=Request%20for%20Student%20DPA%20(PDF)">
                     <Download className="mr-2 h-5 w-5" />
                     Download PDF
                   </a>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
-                  <a href="/docs/E-Code-Student-DPA.docx" download>
+                  <a href="mailto:legal@e-code.ai?subject=Request%20for%20Student%20DPA%20(Word)">
                     <Download className="mr-2 h-5 w-5" />
                     Download Word
                   </a>
@@ -553,7 +553,7 @@ export default function StudentDpa() {
                 <h3 className="font-semibold mb-2">Resources</h3>
                 <p className="text-[13px] text-muted-foreground mb-4">Privacy guides and best practices</p>
                 <Button variant="outline" asChild className="w-full">
-                  <Link href="/education">View Resources</Link>
+                  <Link href="/help-center">View Resources</Link>
                 </Button>
               </CardContent>
             </Card>

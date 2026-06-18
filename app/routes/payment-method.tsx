@@ -35,7 +35,13 @@ export async function action({ request }: EnterpriseActionArgs) {
       );
     }
 
-    throw error;
+    /*
+     * Non-Response failures (e.g. AbortSignal.timeout or a hung api pod) would
+     * otherwise crash the page; surface a friendly message instead.
+     */
+    console.error('Failed to open Stripe customer portal:', error);
+
+    return json({ error: 'The Stripe customer portal is temporarily unavailable. Please try again in a moment.' });
   }
 }
 

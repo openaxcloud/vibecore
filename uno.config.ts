@@ -137,6 +137,7 @@ export default defineConfig({
         elements: {
           borderColor: 'var(--bolt-elements-borderColor)',
           borderColorActive: 'var(--bolt-elements-borderColorActive)',
+          focus: 'var(--bolt-elements-focus)',
           background: {
             depth: {
               1: 'var(--bolt-elements-bg-depth-1)',

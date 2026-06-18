@@ -28,7 +28,53 @@ export function useEcodeToast() {
 }
 
 export function useStaticTemplatesQuery<TData>() {
-  return { data: [] as TData, isLoading: false };
+  const [data, setData] = useState<TData>(() => [] as unknown as TData);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      setIsLoading(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+
+    async function loadTemplates() {
+      setIsLoading(true);
+
+      try {
+        const response = await fetch('/api/marketplace/templates', {
+          credentials: 'include',
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Template catalog request failed with ${response.status}`);
+        }
+
+        const payload = (await response.json()) as TData;
+
+        if (!controller.signal.aborted) {
+          setData(payload);
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          /* Keep the empty list so the consumer falls back to its default templates. */
+          setData([] as unknown as TData);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadTemplates();
+
+    return () => controller.abort();
+  }, []);
+
+  return { data, isLoading };
 }
 
 export async function apiRequest<TResponse = unknown>(

@@ -71,9 +71,17 @@ type IntegrationConnection = {
 type IdentityConnection = { provider: string; externalId: string; createdAt: string };
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  /*
+   * Each endpoint answers a different question; if one is unavailable the other
+   * should still render, so degrade each independently to an empty list.
+   */
   const [integration, identity] = await Promise.all([
-    apiRequest<{ connections: IntegrationConnection[] }>(request, '/api/account/connections'),
-    apiRequest<{ connections: IdentityConnection[] }>(request, '/auth/connections'),
+    apiRequest<{ connections: IntegrationConnection[] }>(request, '/api/account/connections').catch(() => ({
+      connections: [] as IntegrationConnection[],
+    })),
+    apiRequest<{ connections: IdentityConnection[] }>(request, '/auth/connections').catch(() => ({
+      connections: [] as IdentityConnection[],
+    })),
   ]);
 
   return {

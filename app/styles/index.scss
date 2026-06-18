@@ -223,6 +223,7 @@ html:has([data-ecode-static-shell]) body {
   --vc-ide-bg-panel: #0e1525;
   --vc-ide-bg-card: #1a2030;
   --vc-ide-bg-hover: #2b3245;
+  --vc-ide-bg-card-hover: var(--vc-ide-bg-hover);
   --vc-ide-bg-muted: #20283a;
   --vc-ide-bg-base: var(--vc-ide-bg-app);
   --vc-ide-bg-elevated: var(--vc-ide-bg-card);
@@ -461,6 +462,7 @@ html:has([data-ecode-static-shell]) body {
   --vc-ide-bg-panel: #ffffff;
   --vc-ide-bg-card: #eef2f7;
   --vc-ide-bg-hover: #e2e8f0;
+  --vc-ide-bg-card-hover: var(--vc-ide-bg-hover);
   --vc-ide-bg-muted: #e2e8f0;
   --vc-ide-bg-base: var(--vc-ide-bg-panel);
   --vc-ide-bg-elevated: var(--vc-ide-bg-panel);
@@ -649,6 +651,7 @@ html:has([data-ecode-static-shell]) body {
   --vc-ide-bg-panel: #0e1525;
   --vc-ide-bg-card: #1a2030;
   --vc-ide-bg-hover: #2b3245;
+  --vc-ide-bg-card-hover: var(--vc-ide-bg-hover);
   --vc-ide-bg-muted: #20283a;
   --vc-ide-bg-base: var(--vc-ide-bg-app);
   --vc-ide-bg-elevated: var(--vc-ide-bg-card);

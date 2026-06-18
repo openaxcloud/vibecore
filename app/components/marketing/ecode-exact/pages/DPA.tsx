@@ -243,18 +243,28 @@ export default function DPA() {
             </Card>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="flex items-center gap-2 min-h-[44px]" data-testid="button-dpa-download">
-                <Download className="h-4 w-4" />
-                Download PDF
+              <Button
+                size="lg"
+                asChild
+                className="flex items-center gap-2 min-h-[44px]"
+                data-testid="button-dpa-download"
+              >
+                <a href="mailto:legal@e-code.ai?subject=Request%20for%20Data%20Processing%20Agreement%20(DPA)">
+                  <Download className="h-4 w-4" />
+                  Download PDF
+                </a>
               </Button>
               <Button
                 size="lg"
                 variant="outline"
+                asChild
                 className="flex items-center gap-2 min-h-[44px]"
                 data-testid="button-dpa-contact-legal"
               >
-                <Mail className="h-4 w-4" />
-                Contact Legal
+                <a href="mailto:legal@e-code.ai?subject=DPA%20Inquiry">
+                  <Mail className="h-4 w-4" />
+                  Contact Legal
+                </a>
               </Button>
             </div>
 

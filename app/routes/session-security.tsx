@@ -1,9 +1,11 @@
 import { Form, useActionData, useLoaderData } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import {
+  apiErrorMessage,
   apiRequest,
   firstOrganizationOrNull,
   formObject,
+  isApiResponse,
   json,
   redirect,
   type EnterpriseActionArgs,
@@ -31,20 +33,31 @@ export async function action({ request }: EnterpriseActionArgs) {
     return json({ error: 'Organization ID is required.' }, { status: 400 });
   }
 
-  await apiRequest(request, `/orgs/${body.orgId}/enterprise-settings`, {
-    method: 'PATCH',
-    body: JSON.stringify({
-      sessionDurationMinutes: body.sessionDurationMinutes ? Number(body.sessionDurationMinutes) : undefined,
-      ipAllowlist: body.ipAllowlist
-        ? body.ipAllowlist
-            .split(',')
-            .map((item) => item.trim())
-            .filter(Boolean)
-        : undefined,
-    }),
-  });
+  try {
+    await apiRequest(request, `/orgs/${body.orgId}/enterprise-settings`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        sessionDurationMinutes: body.sessionDurationMinutes ? Number(body.sessionDurationMinutes) : undefined,
+        ipAllowlist: body.ipAllowlist
+          ? body.ipAllowlist
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : undefined,
+      }),
+    });
 
-  return json({ status: 'Session security policy saved.' });
+    return json({ status: 'Session security policy saved.' });
+  } catch (error) {
+    if (isApiResponse(error)) {
+      return json(
+        { error: await apiErrorMessage(error, 'Failed to save session security policy.') },
+        { status: error.status },
+      );
+    }
+
+    return json({ error: 'Saving session security policy is temporarily unavailable. Please try again in a moment.' });
+  }
 }
 
 export default function SessionSecurityPage() {

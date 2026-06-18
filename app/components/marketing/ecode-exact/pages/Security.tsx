@@ -205,7 +205,7 @@ export default function Security() {
             </p>
             <button
               className="px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 min-h-[44px]"
-              onClick={() => (window.location.href = '/trust-center')}
+              onClick={() => (window.location.href = '/security')}
               data-testid="button-security-trust-center"
             >
               Visit Trust Center

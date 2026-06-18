@@ -1,10 +1,27 @@
 import { Form, useActionData } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton } from '~/components/enterprise/EnterpriseFormPage';
-import { apiRequest, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
+import {
+  apiErrorMessage,
+  apiRequest,
+  isApiResponse,
+  json,
+  type EnterpriseActionArgs,
+} from '~/lib/enterprise-api.server';
 
 export async function action({ request }: EnterpriseActionArgs) {
-  const result = await apiRequest<{ codes: string[] }>(request, '/auth/recovery-codes', { method: 'POST' });
-  return json({ status: 'Recovery codes rotated.', codes: result.codes });
+  try {
+    const result = await apiRequest<{ codes: string[] }>(request, '/auth/recovery-codes', { method: 'POST' });
+    return json({ status: 'Recovery codes rotated.', codes: result.codes });
+  } catch (error) {
+    if (isApiResponse(error)) {
+      return json(
+        { error: await apiErrorMessage(error, 'Failed to rotate recovery codes.') },
+        { status: error.status },
+      );
+    }
+
+    return json({ error: 'Recovery codes are temporarily unavailable. Please try again in a moment.' });
+  }
 }
 
 export default function RecoveryCodesPage() {

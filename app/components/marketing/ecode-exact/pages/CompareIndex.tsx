@@ -1,5 +1,7 @@
-import { ArrowRight, Bot, Cloud, GitBranch, Rocket, Shield, Sparkles, Zap } from 'lucide-react';
+import { ArrowRight, Bot, Cloud, GitBranch, Rocket, Scale, Shield, Sparkles, Zap } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
+import { comparePages } from '~/components/marketing/EcodeMarketingPages';
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
@@ -13,29 +15,28 @@ import {
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 
-const comparisons = [
-  {
-    name: 'E-Code vs Replit',
-    icon: Sparkles,
-    blurb: 'Agentic full-stack builds, managed AI keys and effort-based credits — without per-user key setup.',
-  },
-  {
-    name: 'E-Code vs Cursor',
-    icon: Bot,
-    blurb: 'A complete cloud workspace — editor, terminal, preview, deploys — not just an AI editor on your machine.',
-  },
-  {
-    name: 'E-Code vs GitHub Codespaces',
-    icon: Cloud,
-    blurb: 'Instant AI app generation and one-click production deploys, with built-in databases and collaboration.',
-  },
-  {
-    name: 'E-Code vs Bolt',
-    icon: Zap,
-    blurb:
-      'Production-grade runtime, real deployments, teams, billing and enterprise controls on top of fast prototyping.',
-  },
-];
+/*
+ * Per-competitor card icons; falls back to a generic Scale icon for any slug
+ * not listed here so the card list can't drift from comparePages.
+ */
+const compareIcons: Record<string, LucideIcon> = {
+  'github-codespaces': Cloud,
+  glitch: Sparkles,
+  heroku: Zap,
+  codesandbox: Bot,
+  'aws-cloud9': Cloud,
+};
+
+/*
+ * Derive the comparison cards from comparePages so every card links to a real
+ * detail page (/compare/<slug>) and competitors without a page can't appear.
+ */
+const comparisons = Object.values(comparePages).map((page) => ({
+  slug: page.slug,
+  name: page.title,
+  icon: compareIcons[page.slug] ?? Scale,
+  blurb: page.description,
+}));
 
 const reasons = [
   {
@@ -74,7 +75,7 @@ export default function CompareIndex() {
             {comparisons.map((item) => {
               const Icon = item.icon;
               return (
-                <Card key={item.name} className="transition-colors hover:border-[var(--ecode-accent)]">
+                <Card key={item.slug} className="transition-colors hover:border-[var(--ecode-accent)]">
                   <CardHeader>
                     <div
                       className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-bolt-elements-background-depth-2"
@@ -87,7 +88,7 @@ export default function CompareIndex() {
                   </CardHeader>
                   <CardContent>
                     <a
-                      href="/compare"
+                      href={`/compare/${item.slug}`}
                       className="inline-flex items-center gap-1 text-sm font-medium"
                       style={{ color: 'var(--ecode-accent)' }}
                     >

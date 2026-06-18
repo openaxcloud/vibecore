@@ -1,9 +1,11 @@
 import type { MetaFunction } from 'react-router';
-import { Form, useLoaderData } from 'react-router';
+import { Form, useActionData, useLoaderData } from 'react-router';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
+  apiErrorMessage,
   apiRequest,
+  json,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
@@ -20,21 +22,38 @@ export const loader = (args: EnterpriseLoaderArgs) =>
 export const action = (args: EnterpriseActionArgs) =>
   projectAction(args, {
     default: async ({ request, projectId, body }) => {
-      await apiRequest(request, `/projects/${projectId}/settings`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          name: body.name,
-          description: body.description,
-          gitRepositoryUrl: body.gitRepositoryUrl || undefined,
-          gitDefaultBranch: body.gitDefaultBranch || undefined,
-        }),
-      });
+      try {
+        await apiRequest(request, `/projects/${projectId}/settings`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: body.name,
+            description: body.description,
+            gitRepositoryUrl: body.gitRepositoryUrl || undefined,
+            gitDefaultBranch: body.gitDefaultBranch || undefined,
+          }),
+        });
+      } catch (error) {
+        /*
+         * The API validates the project metadata and may reject invalid names or Git URLs.
+         * Surface that message inline instead of throwing to an error boundary.
+         */
+        if (error instanceof Response) {
+          const status = error.status;
+          const msg = await apiErrorMessage(error, 'Unable to save settings. Check the values and try again.');
+
+          return json({ error: msg }, { status });
+        }
+
+        throw error;
+      }
+
       return redirect(`/projects/${projectId}/settings`);
     },
   });
 
 export default function ProjectSettingsPage() {
   const { project } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>() as { error?: string } | undefined;
 
   return (
     <ProjectShell
@@ -46,6 +65,14 @@ export default function ProjectSettingsPage() {
         method="post"
         className="grid gap-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6"
       >
+        {actionData?.error ? (
+          <p
+            className="rounded-md border border-bolt-elements-icon-error bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-icon-error"
+            role="alert"
+          >
+            {actionData.error}
+          </p>
+        ) : null}
         <Field label="Project name" name="name" defaultValue={project.name} required />
         <Field label="Description" name="description" defaultValue={project.description ?? ''} />
         <Field label="Git repository URL" name="gitRepositoryUrl" defaultValue={project.gitRepositoryUrl ?? ''} />

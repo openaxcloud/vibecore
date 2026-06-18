@@ -67,7 +67,6 @@ import {
 } from 'react-icons/si';
 import { Form, Link, NavLink, useNavigate } from 'react-router';
 import { EcodeBrandMark } from '~/components/brand/EcodeBrandMark';
-import { ImpersonationBanner } from '~/components/dashboard/ImpersonationBanner';
 import { EcodeExactPublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import { Button } from '~/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/Card';
@@ -766,7 +765,6 @@ export function AppShell({
         <DesktopSidebar collapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
         <MobileSidebarDrawer open={drawerOpen} onClose={closeDrawer} />
         <section className="min-w-0">
-          <ImpersonationBanner />
           {!hideTopBar ? <TopBar onOpenDrawer={openDrawer} /> : null}
           <div className={classNames('mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8', contentClassName)}>
             {!hideHeader ? (

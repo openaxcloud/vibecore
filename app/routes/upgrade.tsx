@@ -41,7 +41,13 @@ export async function action({ request }: EnterpriseActionArgs) {
       );
     }
 
-    throw error;
+    /*
+     * Non-Response failures (e.g. AbortSignal.timeout or a hung api pod) would
+     * otherwise crash the page; surface a friendly message instead.
+     */
+    console.error('Failed to start checkout:', error);
+
+    return json({ error: 'Checkout is temporarily unavailable. Please try again later.' });
   }
 }
 

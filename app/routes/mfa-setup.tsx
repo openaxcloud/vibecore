@@ -48,7 +48,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   }
 }
 
-type MfaActionData = { error?: string; enabled?: boolean; codes?: string[] };
+type MfaActionData = { error?: string; enabled?: boolean; codes?: string[]; message?: string };
 
 export async function action({ request }: EnterpriseActionArgs) {
   const body = formObject(await request.formData()) as { intent?: string; password?: string; code?: string };
@@ -99,9 +99,22 @@ export async function action({ request }: EnterpriseActionArgs) {
     throw error;
   }
 
-  const recovery = await apiRequest<{ codes: string[] }>(request, '/auth/recovery-codes', { method: 'POST' });
+  /*
+   * MFA is now enabled regardless of whether the recovery-code mint succeeds —
+   * don't fail the whole flow if this last call errors. Surface a message
+   * pointing the user to /recovery-codes to generate them later.
+   */
+  try {
+    const recovery = await apiRequest<{ codes: string[] }>(request, '/auth/recovery-codes', { method: 'POST' });
 
-  return json<MfaActionData>({ enabled: true, codes: recovery.codes });
+    return json<MfaActionData>({ enabled: true, codes: recovery.codes });
+  } catch {
+    return json<MfaActionData>({
+      enabled: true,
+      message:
+        'Two-factor authentication is on, but we couldn’t generate recovery codes. Visit /recovery-codes to create them.',
+    });
+  }
 }
 
 function CopyButton({ value, label = 'Copy' }: { value: string; label?: string }) {
@@ -170,8 +183,8 @@ export default function MfaSetupPage() {
   const navigation = useNavigation();
   const isSubmitting = navigation.state === 'submitting';
 
-  // 1) Done — MFA just enabled: show recovery codes.
-  if (actionData?.enabled && actionData.codes) {
+  // 1) Done — MFA just enabled: show recovery codes (or a fallback if minting failed).
+  if (actionData?.enabled) {
     return (
       <EnterpriseFormPage
         title="Two-factor authentication is on"
@@ -181,13 +194,20 @@ export default function MfaSetupPage() {
           <div className="flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm font-medium text-green-600 dark:text-green-400">
             <ShieldCheck className="h-4 w-4" /> Two-factor authentication enabled
           </div>
-          <div>
-            <p className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Recovery codes</p>
-            <p className="mb-3 text-xs text-bolt-elements-textSecondary">
-              Store these in your password manager. Each can be used once if you lose access to your authenticator.
+          {actionData.codes ? (
+            <div>
+              <p className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Recovery codes</p>
+              <p className="mb-3 text-xs text-bolt-elements-textSecondary">
+                Store these in your password manager. Each can be used once if you lose access to your authenticator.
+              </p>
+              <RecoveryCodes codes={actionData.codes} />
+            </div>
+          ) : (
+            <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+              {actionData.message ??
+                'Two-factor authentication is on, but we couldn’t generate recovery codes. Visit /recovery-codes to create them.'}
             </p>
-            <RecoveryCodes codes={actionData.codes} />
-          </div>
+          )}
           <div className="flex flex-wrap gap-3">
             <Link
               to="/dashboard"

@@ -4,6 +4,7 @@ import { computed, map } from 'nanostores';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
 import type { ActionState } from '~/lib/runtime/action-runner';
+import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { WORK_DIR } from '~/utils/constants';
@@ -189,13 +190,16 @@ interface ShellCodeBlockProps {
 }
 
 function ShellCodeBlock({ classsName, code }: ShellCodeBlockProps) {
+  /* Follow the active app theme so shell previews aren't dark in light mode. */
+  const activeTheme = useStore(themeStore);
+
   return (
     <div
       className={classNames('text-xs', classsName)}
       dangerouslySetInnerHTML={{
         __html: shellHighlighter.codeToHtml(code, {
           lang: 'shell',
-          theme: 'dark-plus',
+          theme: activeTheme === 'light' ? 'light-plus' : 'dark-plus',
         }),
       }}
     ></div>

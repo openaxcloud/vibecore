@@ -15,6 +15,7 @@ import {
   useRouteError,
 } from 'react-router';
 import { LinkButton, PublicShell } from './components/dashboard/SaaSLayout';
+import { ImpersonationBanner } from './components/dashboard/ImpersonationBanner';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { installEditorPwaServiceWorker } from '@vibecore/editor';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
@@ -433,6 +434,13 @@ export default function App() {
 
   return (
     <AppShell>
+      {/*
+       * Mounted once at the app root so the impersonation indicator persists
+       * across every authenticated route (IDE, chat, project, dashboard). It
+       * self-checks via its own fetcher and renders nothing for normal
+       * sessions, so it's safe to render unconditionally here.
+       */}
+      <ImpersonationBanner />
       <AppErrorBoundary title="E-Code" boundaryId="app-root">
         <Outlet />
       </AppErrorBoundary>

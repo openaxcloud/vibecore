@@ -103,6 +103,15 @@ export async function action({ request }: EnterpriseActionArgs) {
             error: message,
             mfaRequired,
             email: typeof body.email === 'string' ? body.email : '',
+
+            /*
+             * The API re-verifies the password on the MFA-completion step, but
+             * the password input is uncontrolled and resets on re-render. Echo
+             * it back ONLY when MFA is required so the second submit can carry
+             * email + password + mfaCode together; otherwise the MFA login can
+             * never complete. Not exposed elsewhere (no logging, hidden input).
+             */
+            password: mfaRequired && typeof body.password === 'string' ? body.password : '',
             rememberMe,
           },
           { status: error.status },
@@ -147,7 +156,7 @@ export default function LoginPage() {
     | undefined;
 
   const loginActionData = actionData as
-    | { error?: string; mfaRequired?: boolean; email?: string; rememberMe?: boolean }
+    | { error?: string; mfaRequired?: boolean; email?: string; password?: string; rememberMe?: boolean }
     | undefined;
 
   const oauthErrorMessage = loaderData?.oauth
@@ -298,6 +307,14 @@ export default function LoginPage() {
           icon={<KeyRound className="h-4 w-4" />}
           hint={mfaRequired ? 'Enter your authenticator app code, or one of your one-time recovery codes.' : undefined}
         />
+
+        {/*
+         * The password field is uncontrolled and resets when the form re-renders
+         * with the MFA step. The API re-verifies the password alongside the MFA
+         * code, so carry the first-step password forward in a hidden input to
+         * complete MFA. Only present during the MFA step; never logged.
+         */}
+        {mfaRequired ? <input type="hidden" name="password" value={loginActionData?.password ?? ''} /> : null}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <label className="vc-auth-checkbox-label flex min-h-9 cursor-pointer items-center gap-2 text-[12px]">

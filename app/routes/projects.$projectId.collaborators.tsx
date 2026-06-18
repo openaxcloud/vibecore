@@ -1,10 +1,12 @@
 import { Users } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
-import { Form, useLoaderData, useNavigation } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
+  apiErrorMessage,
   apiRequest,
+  json,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
@@ -19,10 +21,27 @@ export const loader = (args: EnterpriseLoaderArgs) =>
 export const action = (args: EnterpriseActionArgs) =>
   projectAction(args, {
     default: async ({ request, projectId, body }) => {
-      await apiRequest(request, `/projects/${projectId}/collaborators`, {
-        method: 'POST',
-        body: JSON.stringify({ email: body.email, roleKey: body.roleKey ?? 'editor' }),
-      });
+      try {
+        await apiRequest(request, `/projects/${projectId}/collaborators`, {
+          method: 'POST',
+          body: JSON.stringify({ email: body.email, roleKey: body.roleKey ?? 'editor' }),
+        });
+      } catch (error) {
+        /*
+         * The API returns 404 USER_NOT_FOUND when the email isn't registered and 403
+         * COLLABORATOR_NOT_ORG_MEMBER when the user isn't part of the organization. Surface
+         * that message inline instead of throwing to an error boundary.
+         */
+        if (error instanceof Response) {
+          const status = error.status;
+          const msg = await apiErrorMessage(error, 'Unable to add collaborator. Check the email and try again.');
+
+          return json({ error: msg }, { status });
+        }
+
+        throw error;
+      }
+
       return redirect(`/projects/${projectId}/collaborators`);
     },
   });
@@ -31,6 +50,7 @@ export default function ProjectCollaboratorsPage() {
   const { project, data } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   const saving = navigation.state === 'submitting';
+  const actionData = useActionData<typeof action>() as { error?: string } | undefined;
 
   return (
     <ProjectShell
@@ -76,6 +96,14 @@ export default function ProjectCollaboratorsPage() {
           <Button type="submit" disabled={saving} aria-busy={saving}>
             {saving ? 'Adding…' : 'Add collaborator'}
           </Button>
+          {actionData?.error ? (
+            <p
+              className="rounded-md border border-bolt-elements-icon-error bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-icon-error"
+              role="alert"
+            >
+              {actionData.error}
+            </p>
+          ) : null}
         </Form>
       </div>
     </ProjectShell>

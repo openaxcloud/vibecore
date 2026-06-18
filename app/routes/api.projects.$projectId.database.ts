@@ -91,6 +91,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     const message = await apiErrorMessage(error, 'Database request failed');
     const status = error instanceof Response && error.status !== 500 ? error.status : 502;
 
-    throw json({ ok: false, error: message }, { status });
+    /* Return (not throw) so the fetcher receives the error in fetcher.data and the panel can surface it. */
+    return json({ ok: false, error: message, status }, { status });
   }
 }

@@ -14,11 +14,13 @@ import {
 } from 'lucide-react';
 import type React from 'react';
 import type { MetaFunction } from 'react-router';
-import { Form, useLoaderData, useNavigation, useSearchParams } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation, useSearchParams } from 'react-router';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
+  apiErrorMessage,
   apiRequest,
+  json,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
@@ -71,49 +73,73 @@ export const action = (args: EnterpriseActionArgs) =>
       const queryWorkspaceId = new URL(request.url).searchParams.get('workspace') ?? undefined;
       const workspaceId = body.workspaceId || queryWorkspaceId || undefined;
 
-      await apiRequest(request, `/projects/${projectId}/deployments`, {
-        method: 'POST',
-        body: JSON.stringify({
-          provider: body.provider || 'static',
-          environment: body.environment || 'preview',
-          buildCommand: body.buildCommand || 'npm run build',
-          outputDirectory: body.outputDirectory || 'dist',
-          framework: body.framework || undefined,
-          branch: body.branch || undefined,
-          customDomain: body.customDomain || undefined,
-          previewDeployment: body.previewDeployment === 'on',
-          envVars,
-          injectSecrets: (body.injectSecrets ?? '')
-            .split(',')
-            .map((secret) => secret.trim())
-            .filter(Boolean),
-          githubIntegration: body.repositoryUrl
-            ? { repositoryUrl: body.repositoryUrl, branch: body.branch || undefined }
-            : undefined,
-          workspaceId,
-        }),
-      });
+      try {
+        await apiRequest(request, `/projects/${projectId}/deployments`, {
+          method: 'POST',
+          body: JSON.stringify({
+            provider: body.provider || 'static',
+            environment: body.environment || 'preview',
+            buildCommand: body.buildCommand || 'npm run build',
+            outputDirectory: body.outputDirectory || 'dist',
+            framework: body.framework || undefined,
+            branch: body.branch || undefined,
+            customDomain: body.customDomain || undefined,
+            previewDeployment: body.previewDeployment === 'on',
+            envVars,
+            injectSecrets: (body.injectSecrets ?? '')
+              .split(',')
+              .map((secret) => secret.trim())
+              .filter(Boolean),
+            githubIntegration: body.repositoryUrl
+              ? { repositoryUrl: body.repositoryUrl, branch: body.branch || undefined }
+              : undefined,
+            workspaceId,
+          }),
+        });
+      } catch (error) {
+        return json({ error: await apiErrorMessage(error, 'Failed to start deployment') });
+      }
 
       const redirectQuery = workspaceId ? `?workspace=${encodeURIComponent(workspaceId)}` : '';
 
       return redirect(`/projects/${projectId}/deployments${redirectQuery}`);
     },
     cancel: async ({ request, projectId, body }) => {
-      await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/cancel`, { method: 'POST' });
+      try {
+        await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/cancel`, { method: 'POST' });
+      } catch (error) {
+        return json({ error: await apiErrorMessage(error, 'Failed to cancel deployment') });
+      }
+
       return redirect(`/projects/${projectId}/deployments`);
     },
     redeploy: async ({ request, projectId, body }) => {
-      await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/redeploy`, { method: 'POST' });
+      try {
+        await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/redeploy`, {
+          method: 'POST',
+        });
+      } catch (error) {
+        return json({ error: await apiErrorMessage(error, 'Failed to redeploy') });
+      }
+
       return redirect(`/projects/${projectId}/deployments`);
     },
     rollback: async ({ request, projectId, body }) => {
-      await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/rollback`, { method: 'POST' });
+      try {
+        await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/rollback`, {
+          method: 'POST',
+        });
+      } catch (error) {
+        return json({ error: await apiErrorMessage(error, 'Failed to roll back') });
+      }
+
       return redirect(`/projects/${projectId}/deployments`);
     },
   });
 
 export default function ProjectDeploymentsPage() {
   const { project, data } = useLoaderData<typeof loader>();
+  const actionData = useActionData<{ error?: string }>();
   const navigation = useNavigation();
   const busy = navigation.state !== 'idle';
   const latest = data.deployments[0];
@@ -133,6 +159,14 @@ export default function ProjectDeploymentsPage() {
       title="Deployments"
       description="Ship preview, staging and production releases with scoped secrets, quota checks and redacted logs."
     >
+      {actionData?.error ? (
+        <div
+          role="alert"
+          className="mb-6 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+        >
+          {actionData.error}
+        </div>
+      ) : null}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
         <section className="grid gap-4">
           <div className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md md:grid-cols-3">

@@ -23,28 +23,46 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     throw json({ error: 'No organization found' }, { status: 400 });
   }
 
-  const [membersResult, rolesResult] = await Promise.all([
-    apiRequest<{ memberships: Array<{ id: string; userId: string; roleKey: string }> }>(
-      request,
-      `/orgs/${organization.id}/memberships`,
-    ),
-    apiRequest<{ roles: Array<{ key: string; name: string; permissions: string[] }> }>(
-      request,
-      `/orgs/${organization.id}/roles`,
-    ),
-  ]);
+  try {
+    const [membersResult, rolesResult] = await Promise.all([
+      apiRequest<{ memberships: Array<{ id: string; userId: string; roleKey: string }> }>(
+        request,
+        `/orgs/${organization.id}/memberships`,
+      ),
+      apiRequest<{ roles: Array<{ key: string; name: string; permissions: string[] }> }>(
+        request,
+        `/orgs/${organization.id}/roles`,
+      ),
+    ]);
 
-  return json({
-    orgId: organization.id,
-    memberships: membersResult.memberships,
-    roles: [
-      { key: 'viewer', name: 'Viewer' },
-      { key: 'member', name: 'Member' },
-      { key: 'admin', name: 'Admin' },
-      { key: 'owner', name: 'Owner' },
-      ...rolesResult.roles.map((role) => ({ key: role.key, name: role.name })),
-    ],
-  });
+    return json({
+      forbidden: false as const,
+      orgId: organization.id,
+      memberships: membersResult.memberships,
+      roles: [
+        { key: 'viewer', name: 'Viewer' },
+        { key: 'member', name: 'Member' },
+        { key: 'admin', name: 'Admin' },
+        { key: 'owner', name: 'Owner' },
+        ...rolesResult.roles.map((role) => ({ key: role.key, name: role.name })),
+      ],
+    });
+  } catch (error) {
+    /*
+     * A member without manage permissions can still reach this route; show a
+     * friendly read-only state instead of crashing the loader.
+     */
+    if (isForbiddenApiResponse(error)) {
+      return json({
+        forbidden: true as const,
+        orgId: organization.id,
+        memberships: [] as Array<{ id: string; userId: string; roleKey: string }>,
+        roles: [] as Array<{ key: string; name: string }>,
+      });
+    }
+
+    throw error;
+  }
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
@@ -92,8 +110,21 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 export default function OrganizationMembersPage() {
-  const { orgId, memberships, roles } = useLoaderData<typeof loader>();
+  const { forbidden, orgId, memberships, roles } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
+
+  if (forbidden) {
+    return (
+      <AppShell
+        title="Organization members"
+        description="Manage members with backend-enforced roles and audit coverage."
+      >
+        <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+          Member management is available only to organization owners or member managers.
+        </p>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell title="Organization members" description="Manage members with backend-enforced roles and audit coverage.">

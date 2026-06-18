@@ -2,6 +2,7 @@
 :root[data-theme='light'] {
   --bolt-elements-borderColor: theme('colors.alpha.gray.10');
   --bolt-elements-borderColorActive: theme('colors.accent.600');
+  --bolt-elements-focus: theme('colors.accent.600');
 
   --bolt-elements-bg-depth-1: theme('colors.white');
   --bolt-elements-bg-depth-2: theme('colors.gray.50');
@@ -110,6 +111,7 @@
 :root[data-theme='dark'] {
   --bolt-elements-borderColor: theme('colors.alpha.white.10');
   --bolt-elements-borderColorActive: theme('colors.accent.500');
+  --bolt-elements-focus: theme('colors.accent.500');
 
   --bolt-elements-bg-depth-1: theme('colors.gray.950');
   --bolt-elements-bg-depth-2: theme('colors.gray.900');
