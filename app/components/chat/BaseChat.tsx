@@ -2432,6 +2432,52 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [handleInputChange, input, textareaRef],
     );
 
+    /*
+     * Agentic Git conflict resolution (Replit parity): the Git panel dispatches a
+     * `vibecore:agent-task` event when the user asks the agent to resolve merge
+     * conflicts. We compose a structured task into the agent composer (preserve
+     * BOTH sides, never lose work, git add each resolved file) and focus it — the
+     * user reviews and sends, so no merge/commit/push happens without confirmation
+     * (the agent then resolves using its existing shell + file-edit tools).
+     */
+    useEffect(() => {
+      if (!projectIdeMode) {
+        return undefined;
+      }
+
+      const handler = (event: Event) => {
+        const detail = (event as CustomEvent).detail as
+          | { kind?: string; files?: Array<string | { path?: string }>; branch?: string }
+          | undefined;
+
+        if (detail?.kind !== 'resolve-git-conflicts') {
+          return;
+        }
+
+        const files = Array.isArray(detail.files) ? detail.files : [];
+
+        const list = files
+          .map((file) => `- ${typeof file === 'string' ? file : (file?.path ?? '')}`.trim())
+          .filter((line) => line !== '-')
+          .join('\n');
+
+        const prompt = [
+          `Resolve the current Git merge conflicts in this workspace${detail.branch ? ` (branch ${detail.branch})` : ''}, preserving BOTH sides' intent — never discard either side's work.`,
+          '',
+          'Conflicted files:',
+          list || '- (run `git status` to list them)',
+          '',
+          'For each file: read the <<<<<<< / ======= / >>>>>>> conflict markers, merge both sides correctly, write the resolved file, then `git add` it. Do NOT push, and do NOT finish the merge or commit until I confirm.',
+        ].join('\n');
+
+        insertIntoComposer(prompt, { replace: true });
+      };
+
+      window.addEventListener('vibecore:agent-task', handler);
+
+      return () => window.removeEventListener('vibecore:agent-task', handler);
+    }, [projectIdeMode, insertIntoComposer]);
+
     const createSnapshotCommand = useCallback(async () => {
       if (!projectId) {
         return;

@@ -561,6 +561,26 @@ export function GitTab({ projectId }: GitTabProps) {
                   Resolve each file (keep current/incoming, or let the agent merge both), then commit to complete the
                   merge.
                 </p>
+                <button
+                  type="button"
+                  className="mb-3 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-white"
+                  style={{ background: 'var(--ecode-accent, #F26207)' }}
+                  data-testid="git-resolve-with-agent"
+                  onClick={() =>
+                    window.dispatchEvent(
+                      new CustomEvent('vibecore:agent-task', {
+                        detail: {
+                          kind: 'resolve-git-conflicts',
+                          files: conflicts.map((conflict) => String(conflict.path ?? conflict)),
+                          branch,
+                        },
+                      }),
+                    )
+                  }
+                >
+                  <span className="i-ph:sparkle" aria-hidden />
+                  Resolve conflicts with agent
+                </button>
                 <div className="grid gap-2">
                   {conflicts.map((conflict) => {
                     const path = String(conflict.path ?? conflict);
