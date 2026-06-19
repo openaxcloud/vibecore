@@ -746,6 +746,8 @@ model UsageEvent {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, type])
+  // Per-user usage reporting filters by userId over time; was a full-scan.
+  @@index([userId, createdAt])
 }
 
 model QuotaLedger {
@@ -1573,6 +1575,9 @@ model CreditLedger {
   @@index([walletId, createdAt])
   @@index([checkpointId])
   @@index([kind, expiresAt])
+  // Org-scoped credit-expiry sweep filters organizationId + kind + expiresAt
+  // together; the kind/expiresAt-only index wasn't org-scoped.
+  @@index([organizationId, kind, expiresAt])
 }
 
 enum CheckpointStatus {
@@ -1731,4 +1736,6 @@ model DatabaseRestore {
 
   @@index([databaseInstanceId, createdAt])
   @@index([status])
+  // "restores requested by user" lookups; was a full-scan (no FK on this column).
+  @@index([requestedByUserId])
 }

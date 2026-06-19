@@ -164,11 +164,16 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
               const finish = () => {
                 reply.raw.off('drain', finish);
                 reply.raw.off('close', finish);
+                reply.raw.off('error', finish);
                 resolve();
               };
 
               reply.raw.once('drain', finish);
               reply.raw.once('close', finish);
+              // Also settle on a socket 'error' — otherwise a write error that does
+              // not immediately emit 'close' would hang this await and stall the
+              // stream loop, leaking the upstream iterator.
+              reply.raw.once('error', finish);
             });
           }
 

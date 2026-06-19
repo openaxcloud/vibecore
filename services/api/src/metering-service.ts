@@ -35,20 +35,25 @@ async function charge(
   input: { organizationId: string; costCents: number; reason: string; shadow?: boolean; nowMs: number },
 ): Promise<MeterResult> {
   const cents = ceilCents(input.costCents);
+
   if (input.shadow || cents <= 0) {
     return { costCents: cents, fromPacks: 0, fromBalance: 0, shadow: Boolean(input.shadow) };
   }
+
   const { fromPacks, fromBalance } = await debitCredits(store, {
     organizationId: input.organizationId,
     amountCents: cents,
     reason: input.reason,
     nowMs: input.nowMs,
   });
+
   return { costCents: cents, fromPacks, fromBalance, shadow: false };
 }
 
-/** Meter a slice of workspace runtime. Also fills the long-declared-but-unmetered
- *  `workspaces.runtimeMinutes` quota. */
+/**
+ * Meter a slice of workspace runtime. Also fills the long-declared-but-unmetered
+ *  `workspaces.runtimeMinutes` quota.
+ */
 export async function meterWorkspaceCompute(
   store: ApiStore,
   input: {
@@ -69,6 +74,7 @@ export async function meterWorkspaceCompute(
     quantity: minutes,
     metadata: { projectId: input.projectId, computeUnits: units },
   });
+
   const result = await charge(store, {
     organizationId: input.organizationId,
     costCents: computeUnitsCents(units),
@@ -76,6 +82,7 @@ export async function meterWorkspaceCompute(
     shadow: input.shadow,
     nowMs: input.nowMs,
   });
+
   return { ...result, computeUnits: units, minutes };
 }
 
@@ -126,10 +133,12 @@ export async function meterAllObjectStorage(
 ): Promise<{ orgsMetered: number; totalBytes: number; shadow: boolean }> {
   const days = input.daysInPeriod && input.daysInPeriod > 0 ? input.daysInPeriod : 30;
   const rows = await store.aggregateStorageBytesByOrg();
+
   let totalBytes = 0;
 
   for (const row of rows) {
     totalBytes += row.bytes;
+
     // bytes held for one day → GiB-months charged today = (bytes/GiB) * (1 / period days).
     const gibMonths = row.bytes / BYTES_PER_GIB / days;
     await meterObjectStorage(store, {
@@ -187,6 +196,7 @@ export async function meterDeployment(
   },
 ): Promise<MeterResult> {
   let cost = 0;
+
   switch (input.kind) {
     case 'autoscale':
     case 'scheduled':
@@ -206,9 +216,19 @@ export async function meterDeployment(
   await store.recordUsageEvent({
     organizationId: input.organizationId,
     type: 'deployment.compute',
+
+    /*
+     * `quantity` here is a usage-event marker used to detect "metered exactly
+     * once" (sumUsage), NOT the billable amount — the real charge is `cost`,
+     * computed above via egressCents/autoscaleUsageCents/reservedVmCents. So the
+     * `?? 1` floor keeps a kind without computeUnits/egressGib (e.g. a $0 static
+     * deploy) recording a single marker event, which the idempotency guard relies
+     * on. Changing it to 0 does not affect billing and breaks that signal.
+     */
     quantity: Math.ceil(input.computeUnits ?? input.egressGib ?? 1),
     metadata: { kind: input.kind, requests: input.requests, reservedTier: input.reservedTier },
   });
+
   return charge(store, {
     organizationId: input.organizationId,
     costCents: cost,

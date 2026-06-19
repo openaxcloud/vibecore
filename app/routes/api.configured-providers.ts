@@ -29,7 +29,7 @@ export const loader: LoaderFunction = async ({ context, request }) => {
   }
 
   try {
-    const llmManager = LLMManager.getInstance(context?.cloudflare?.env as any);
+    const llmManager = LLMManager.getInstance((context?.cloudflare?.env ?? {}) as any);
     const configuredProviders: ConfiguredProvider[] = [];
 
     // Check every registered provider so cloud provider status matches the UI.

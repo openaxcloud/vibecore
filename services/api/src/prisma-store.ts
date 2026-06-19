@@ -1988,9 +1988,15 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listFeatureFlags(organizationId?: string) {
-    return (await this.prisma.featureFlag.findMany({ where: { organizationId: organizationId ?? null } })).map(
-      mapFeatureFlag,
-    );
+    return (
+      await this.prisma.featureFlag.findMany({
+        where: { organizationId: organizationId ?? null },
+        orderBy: { key: 'asc' },
+        // Bound the payload — an unbounded findMany on a misconfigured tenant could
+        // return an enormous list. 1000 flags is far beyond any real registry.
+        take: 1000,
+      })
+    ).map(mapFeatureFlag);
   }
 
   async findFeatureFlag(key: string, organizationId?: string) {
@@ -3134,7 +3140,9 @@ export class PrismaApiStore implements ApiStore {
   // --- Replit-parity: admin-owned provider/model registry -------------------
 
   async listProviderConfigs() {
-    return (await this.prisma.providerConfig.findMany({ orderBy: { provider: 'asc' } })).map(mapProviderConfig);
+    return (await this.prisma.providerConfig.findMany({ orderBy: { provider: 'asc' }, take: 1000 })).map(
+      mapProviderConfig,
+    );
   }
 
   async upsertProviderConfig(input: {
@@ -3177,6 +3185,7 @@ export class PrismaApiStore implements ApiStore {
         where: options?.enabledOnly ? { enabled: true, providerConfig: { enabled: true } } : {},
         orderBy: { modelId: 'asc' },
         include: { providerConfig: true },
+        take: 5000,
       })
     ).map(mapModelConfig);
   }

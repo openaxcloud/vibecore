@@ -1,8 +1,18 @@
-import type { LoaderFunction } from 'react-router';
+import { data as json, type LoaderFunction } from 'react-router';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
+import { readSessionToken } from '~/lib/enterprise-api.server';
 import { LLMManager } from '~/lib/modules/llm/manager';
 
 export const loader: LoaderFunction = async ({ context, request }) => {
+  /*
+   * Require an authenticated session — this returns credential material and has
+   * no business answering anonymous callers, even though it only ever echoes the
+   * caller's own cookie-scoped keys (server secrets are already excluded below).
+   */
+  if (!readSessionToken(request)) {
+    return json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   // Get API keys from cookie
   const cookieHeader = request.headers.get('Cookie');
   const apiKeysFromCookie = getApiKeysFromCookie(cookieHeader);
