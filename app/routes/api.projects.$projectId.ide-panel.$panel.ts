@@ -970,7 +970,16 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
   if (panel === 'snapshots') {
     if (intent === 'restore') {
-      await apiRequest(request, `/projects/${projectId}/snapshots/${body.snapshotId}/restore`, { method: 'POST' });
+      // Validate the id so a missing field never builds `/snapshots/undefined/restore`.
+      const snapshotId = (body.snapshotId ?? '').trim();
+
+      if (!snapshotId) {
+        throw json({ error: 'snapshotId is required for restore' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/projects/${projectId}/snapshots/${encodeURIComponent(snapshotId)}/restore`, {
+        method: 'POST',
+      });
     } else {
       await apiRequest(request, `/projects/${projectId}/snapshots`, {
         method: 'POST',
@@ -978,14 +987,15 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       });
     }
   } else if (panel === 'deployments') {
-    if (intent === 'cancel') {
-      await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/cancel`, { method: 'POST' });
-    } else if (intent === 'redeploy') {
-      await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/redeploy`, {
-        method: 'POST',
-      });
-    } else if (intent === 'rollback') {
-      await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/rollback`, {
+    if (intent === 'cancel' || intent === 'redeploy' || intent === 'rollback') {
+      // Validate the id so a missing field never builds `/deployments/undefined/<action>`.
+      const deploymentId = (body.deploymentId ?? '').trim();
+
+      if (!deploymentId) {
+        throw json({ error: `deploymentId is required for ${intent}` }, { status: 400 });
+      }
+
+      await apiRequest(request, `/projects/${projectId}/deployments/${encodeURIComponent(deploymentId)}/${intent}`, {
         method: 'POST',
       });
     } else {

@@ -28,17 +28,23 @@ export const PortDropdown = memo(
 
     // close dropdown if user clicks outside
     useEffect(() => {
+      if (!isDropdownOpen) {
+        return undefined;
+      }
+
+      /*
+       * Bind the outside-click listener only while open and remove it via the
+       * cleanup. The previous version also called removeEventListener on a
+       * DIFFERENT handler instance in an else branch (a no-op that never matched
+       * the bound listener) — dead code that obscured the actual lifecycle.
+       */
       const handleClickOutside = (event: MouseEvent) => {
         if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
           setIsDropdownOpen(false);
         }
       };
 
-      if (isDropdownOpen) {
-        window.addEventListener('mousedown', handleClickOutside);
-      } else {
-        window.removeEventListener('mousedown', handleClickOutside);
-      }
+      window.addEventListener('mousedown', handleClickOutside);
 
       return () => {
         window.removeEventListener('mousedown', handleClickOutside);

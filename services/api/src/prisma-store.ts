@@ -3028,12 +3028,35 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async decrementCreditPack(input: { id: string; cents: number }) {
-    return mapCreditPack(
-      await this.prisma.creditPack.update({
-        where: { id: input.id },
-        data: { remainingCents: { decrement: input.cents } },
-      }),
-    );
+    /*
+     * Never let remainingCents go negative. The old unconditional decrement could
+     * drive a pack below zero under a concurrent debit (two settlements racing the
+     * same pack), corrupting the org's credit accounting. Decrement only while the
+     * pack still holds enough; if a race left it short, consume whatever remains
+     * (clamp to 0). Both updateMany calls only move toward zero, so the worst case
+     * is a tiny over-consumption — never a negative balance.
+     */
+    const cents = Math.max(0, Math.ceil(input.cents));
+
+    const guarded = await this.prisma.creditPack.updateMany({
+      where: { id: input.id, remainingCents: { gte: cents } },
+      data: { remainingCents: { decrement: cents } },
+    });
+
+    if (guarded.count === 0) {
+      await this.prisma.creditPack.updateMany({
+        where: { id: input.id, remainingCents: { lt: cents } },
+        data: { remainingCents: 0 },
+      });
+    }
+
+    const pack = await this.prisma.creditPack.findUnique({ where: { id: input.id } });
+
+    if (!pack) {
+      throw Object.assign(new Error('Credit pack not found'), { statusCode: 404, code: 'CREDIT_PACK_NOT_FOUND' });
+    }
+
+    return mapCreditPack(pack);
   }
 
   // --- Replit-parity: effort-based checkpoints -------------------------------

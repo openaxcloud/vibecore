@@ -545,6 +545,8 @@ model WorkspaceSession {
   workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId])
+  // Presence-cleanup sweeps by userId (nullable); without this it full-scanned.
+  @@index([userId])
 }
 
 model WorkspacePort {
@@ -1381,6 +1383,8 @@ model UserConnection {
   @@unique([userId, provider, externalAccountId])
   @@index([userId, provider])
   @@index([status])
+  // Background token-health sweep cursors on lastHealthCheckAt; was a full-scan.
+  @@index([lastHealthCheckAt])
 }
 
 model ProjectConnectionLink {
@@ -1398,6 +1402,8 @@ model ProjectConnectionLink {
   @@unique([projectId, userConnectionId])
   @@index([projectId])
   @@index([userConnectionId])
+  // "who linked this" lookups + future user-offboarding scans; was a full-scan.
+  @@index([linkedByUserId])
 }
 
 model OrganizationOAuthAppOverride {

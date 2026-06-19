@@ -556,7 +556,11 @@ export const Preview = memo(
           }
         }
 
-        return bestMatch && bestMatch.score > 0 ? bestMatch.filePath : sourceFiles[0];
+        /*
+         * sourceFiles may be empty — return undefined explicitly so the caller's
+         * `!filePath` guard handles "no source" instead of leaking `undefined`.
+         */
+        return bestMatch && bestMatch.score > 0 ? bestMatch.filePath : (sourceFiles[0] ?? undefined);
       },
       [files],
     );

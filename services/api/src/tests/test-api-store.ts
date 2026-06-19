@@ -2210,7 +2210,8 @@ export class TestApiStore implements ApiStore {
     if (!pack) {
       throw new Error(`credit pack ${input.id} not found`);
     }
-    pack.remainingCents -= input.cents;
+    // Mirror the store: clamp at 0 so remainingCents never goes negative.
+    pack.remainingCents = Math.max(0, pack.remainingCents - Math.max(0, Math.ceil(input.cents)));
     return pack;
   }
 

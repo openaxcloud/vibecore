@@ -991,7 +991,16 @@ function DataTable({ rows }: { rows: JsonValue[] }) {
         </tbody>
       </table>
       {objects.length > 100 ? (
-        <p className="mt-3 text-xs text-bolt-elements-textSecondary">Showing first 100 of {objects.length} records.</p>
+        <div
+          role="status"
+          className="mt-3 flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-300"
+        >
+          <span className="i-ph:warning-circle text-sm" aria-hidden="true" />
+          <span>
+            Showing the first 100 of {objects.length} records — this view is truncated. Use search/filters to find rows
+            beyond the first 100.
+          </span>
+        </div>
       ) : null}
     </div>
   );

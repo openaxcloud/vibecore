@@ -270,7 +270,9 @@ export async function reportCheckpointPaygUsage(
 
   await stripe.reportUsage({
     subscriptionItemId: item.id,
-    quantity: Math.round(input.paygChargeCents),
+    // Round PAYG charges UP (was Math.round, asymmetric) so fractional cents are
+    // never lost to the platform; pairs with the metered-usage ceil in billing.
+    quantity: Math.ceil(input.paygChargeCents),
     idempotencyKey: `checkpoint:${input.checkpointId}`,
   });
 

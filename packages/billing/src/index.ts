@@ -553,7 +553,13 @@ export class StripeBillingClient {
     idempotencyKey?: string;
   }) {
     const fields: Record<string, string> = {
-      quantity: String(Math.max(0, Math.floor(input.quantity))),
+      /*
+       * Round metered usage UP, not down. Math.floor silently dropped the
+       * fractional remainder of every metered report (e.g. 4.9 units billed as
+       * 4) — systematic under-billing across all metered usage. Ceil is the
+       * conservative direction: the platform never charges less than was used.
+       */
+      quantity: String(Math.max(0, Math.ceil(input.quantity))),
       action: input.action ?? 'increment',
     };
     if (input.timestampSeconds) {

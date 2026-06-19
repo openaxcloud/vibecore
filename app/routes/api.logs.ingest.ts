@@ -77,17 +77,8 @@ function checkRateLimit(ip: string) {
   return true;
 }
 
-async function readPayload(request: Request) {
-  const contentType = request.headers.get('content-type') ?? '';
-
-  if (!contentType.includes('application/json')) {
-    throw new Response(JSON.stringify({ error: 'Expected application/json' }), {
-      status: 415,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  return request.json();
+function isJsonRequest(request: Request) {
+  return (request.headers.get('content-type') ?? '').includes('application/json');
 }
 
 function rememberLogs(logs: BufferedFrontendLog[]) {
@@ -122,15 +113,20 @@ export async function action({ request }: ActionFunctionArgs) {
     return json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
+  /*
+   * Return the 415 as a normal response instead of `throw new Response`. A thrown
+   * Response is mis-unwrapped by RR7 single-fetch (the intended 415 status was
+   * lost), so reject up front with a plain json() return.
+   */
+  if (!isJsonRequest(request)) {
+    return json({ error: 'Expected application/json' }, { status: 415 });
+  }
+
   let parsed: z.infer<typeof frontendLogBatchSchema>;
 
   try {
-    parsed = frontendLogBatchSchema.parse(await readPayload(request));
+    parsed = frontendLogBatchSchema.parse(await request.json());
   } catch (error) {
-    if (error instanceof Response) {
-      throw error;
-    }
-
     if (error instanceof z.ZodError) {
       return json({ error: 'Invalid log format', details: error.errors }, { status: 400 });
     }
