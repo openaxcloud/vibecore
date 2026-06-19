@@ -198,6 +198,19 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
 
     try {
       return await gateway.complete(body, abortController.signal);
+    } catch (error) {
+      /*
+       * Preserve the error's ACTUAL statusCode (403 AI_MODEL_PLAN_BLOCKED, 429,
+       * provider 4xx, …) instead of letting it surface as a generic Fastify 500.
+       * Mirrors the streaming + agent-runs branches.
+       */
+      const rawStatus = (error as { statusCode?: unknown }).statusCode;
+      const statusCode = typeof rawStatus === 'number' ? rawStatus : 500;
+
+      return reply.code(statusCode).send({
+        error: error instanceof Error ? error.message : 'Completion failed',
+        code: statusCode >= 400 && statusCode < 500 ? 'AI_COMPLETION_BAD_REQUEST' : 'AI_COMPLETION_FAILED',
+      });
     } finally {
       request.raw.off('close', onClientClose);
     }
