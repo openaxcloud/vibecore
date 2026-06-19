@@ -8138,7 +8138,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   );
 
-  app.delete('/api/keys/:keyId', async (request, reply) => {
+  app.delete(
+    '/api/keys/:keyId',
+    {
+      config: {
+        rateLimit: { max: Number(process.env.API_KEYS_DELETE_RATE_LIMIT_MAX ?? 20), timeWindow: '1 minute' },
+      },
+    },
+    async (request, reply) => {
     if (!request.currentUser) {
       return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
     }
@@ -8157,7 +8164,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { id: params.keyId, revoked: true };
-  });
+    },
+  );
 
   async function resolveActiveGithubAccessToken(request: any, reply: any): Promise<string | null> {
     if (!request.currentUser) {
@@ -12308,7 +12316,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
 
-  app.delete('/auth/me', async (request, reply) => {
+  app.delete(
+    '/auth/me',
+    { config: { rateLimit: { max: Number(process.env.AUTH_DELETE_ME_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' } } },
+    async (request, reply) => {
     parse(deleteAccountSchema, request.body);
 
     const userId = request.currentUser!.id;
@@ -12348,9 +12359,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     reply.clearCookie('session', authCookieOptions(isProduction));
 
     return { deleted };
-  });
+    },
+  );
 
-  app.post('/auth/refresh', async (request, reply) => {
+  app.post(
+    '/auth/refresh',
+    { config: { rateLimit: { max: Number(process.env.AUTH_REFRESH_RATE_LIMIT_MAX ?? 30), timeWindow: '1 minute' } } },
+    async (request, reply) => {
     /*
      * Session-management routes require a real login session. When the caller
      * authenticated via an API-key token there is no currentSession, so the old
@@ -12382,7 +12397,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       token,
       user: { id: request.currentUser!.id, email: request.currentUser!.email, name: request.currentUser!.name },
     };
-  });
+    },
+  );
 
   app.get('/auth/sessions', async (request) => ({ sessions: await store.listSessions(request.currentUser!.id) }));
   app.get('/auth/connections', async (request) => {
@@ -12395,7 +12411,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       })),
     };
   });
-  app.post('/auth/logout', async (request, reply) => {
+  app.post(
+    '/auth/logout',
+    { config: { rateLimit: { max: Number(process.env.AUTH_LOGOUT_RATE_LIMIT_MAX ?? 30), timeWindow: '1 minute' } } },
+    async (request, reply) => {
     if (!request.currentSession) {
       return reply.code(400).send({ error: 'No active session to log out', code: 'SESSION_REQUIRED' });
     }
@@ -12412,7 +12431,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await audit(request, store, { action: 'auth.session.logout', resourceType: 'session', resourceId: sessionId });
 
     return { revoked };
-  });
+    },
+  );
   app.delete('/auth/sessions/:sessionId', async (request) => {
     const { sessionId } = parse(sessionParams, request.params);
     const revoked = await store.revokeSession(request.currentUser!.id, sessionId);
@@ -12420,12 +12440,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { revoked };
   });
-  app.post('/auth/logout-all', async (request) => {
-    const revoked = await store.revokeAllSessions(request.currentUser!.id, request.currentSession?.id);
-    await audit(request, store, { action: 'auth.session.revoke_all', resourceType: 'session' });
+  app.post(
+    '/auth/logout-all',
+    { config: { rateLimit: { max: Number(process.env.AUTH_LOGOUT_ALL_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' } } },
+    async (request) => {
+      const revoked = await store.revokeAllSessions(request.currentUser!.id, request.currentSession?.id);
+      await audit(request, store, { action: 'auth.session.revoke_all', resourceType: 'session' });
 
-    return { revoked };
-  });
+      return { revoked };
+    },
+  );
   app.post('/auth/reauth', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     if (!request.currentSession) {
       return reply.code(400).send({ error: 'Re-auth requires an active session', code: 'SESSION_REQUIRED' });
