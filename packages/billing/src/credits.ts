@@ -154,24 +154,46 @@ export interface EstimateInput {
 }
 
 /**
- * Pre-flight reservation estimate. Applies the power-control multipliers so we
+ * Sum of the active power-control surcharges (each `multiplier − 1`). Additive,
+ * so combining boosts adds their deltas instead of compounding. A single boost
+ * yields exactly its documented Replit multiple once `1 + surcharge` is applied.
+ */
+export function powerBoostSurcharge(input: Pick<EstimateInput, 'highPowerModel' | 'extendedThinking' | 'turboMode'>): number {
+  let surcharge = 0;
+  if (input.highPowerModel) {
+    surcharge += HIGH_POWER_ESTIMATE_MULTIPLIER - 1;
+  }
+  if (input.extendedThinking) {
+    surcharge += EXTENDED_THINKING_ESTIMATE_MULTIPLIER - 1;
+  }
+  if (input.turboMode) {
+    surcharge += TURBO_ESTIMATE_MULTIPLIER - 1;
+  }
+  return surcharge;
+}
+
+/**
+ * Pre-flight reservation estimate. Applies the power-control surcharges so we
  * reserve enough credit before streaming. Intentionally conservative (estimate
  * high, reconcile down on settle).
  */
 export function estimateCheckpointCostCents(input: EstimateInput): number {
   let provider = Number.isFinite(input.baseProviderCents) ? Math.max(0, input.baseProviderCents) : 0;
   // Neutral baseline when the caller doesn't specify a tier (economy = ×1); the
-  // request normally passes the actual selected tier.
+  // request normally passes the actual selected tier. Build tier is the effort
+  // axis (how much work the checkpoint does) and genuinely scales token/compute,
+  // so it multiplies the base.
   provider *= BUILD_TIER_ESTIMATE_MULTIPLIER[input.buildTier ?? 'economy'] ?? 1;
-  if (input.highPowerModel) {
-    provider *= HIGH_POWER_ESTIMATE_MULTIPLIER;
-  }
-  if (input.extendedThinking) {
-    provider *= EXTENDED_THINKING_ESTIMATE_MULTIPLIER;
-  }
-  if (input.turboMode) {
-    provider *= TURBO_ESTIMATE_MULTIPLIER;
-  }
+  /*
+   * Power-control boosts are ADDITIVE surcharges, not compounding multipliers.
+   * Replit's effort-based model does not aggregate per-control costs into one
+   * stacked product (spec §2.A: "Per-role costs are NOT aggregated"): enabling
+   * High power + Extended thinking + Turbo together must not multiply to ~108×
+   * (the old `×4 × 2.5 × 6` bug surfaced ~$27/message). Each control alone still
+   * reproduces its documented Replit multiple — `1 + (mult − 1)` collapses to
+   * `mult` for a single boost — while several boosts sum their surcharges.
+   */
+  provider *= 1 + powerBoostSurcharge(input);
   return computeCreditCostCents({
     rawProviderCents: provider,
     computeCents: input.computeCents,

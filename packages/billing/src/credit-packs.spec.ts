@@ -26,7 +26,7 @@ describe('power-tier estimates', () => {
     expect(turbo).toBeGreaterThan(base);
   });
 
-  it('stacks tier × high-power × extended-thinking × turbo', () => {
+  it('adds boost surcharges instead of compounding them (no ~108× stack)', () => {
     const stacked = estimateCheckpointCostCents({
       baseProviderCents: 10,
       buildTier: 'power',
@@ -34,9 +34,15 @@ describe('power-tier estimates', () => {
       extendedThinking: true,
       turboMode: true,
     });
-    const expected =
-      10 * BUILD_TIER_ESTIMATE_MULTIPLIER.power * 4 * 2.5 * TURBO_ESTIMATE_MULTIPLIER;
+    // Additive: tier multiplies the base; boosts SUM their (multiplier − 1)
+    // surcharges (high-power +3, extended-thinking +1.5, turbo +5 → +9.5),
+    // never the old 4 × 2.5 × 6 = 60× product.
+    const surcharge = 4 - 1 + (2.5 - 1) + (TURBO_ESTIMATE_MULTIPLIER - 1);
+    const expected = 10 * BUILD_TIER_ESTIMATE_MULTIPLIER.power * (1 + surcharge);
     expect(stacked).toBe(computeCreditCostCents({ rawProviderCents: expected }));
+    // Guard against regression to compounding (which would be far larger).
+    const compounded = 10 * BUILD_TIER_ESTIMATE_MULTIPLIER.power * 4 * 2.5 * TURBO_ESTIMATE_MULTIPLIER;
+    expect(stacked).toBeLessThan(computeCreditCostCents({ rawProviderCents: compounded }));
   });
 });
 

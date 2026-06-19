@@ -51,14 +51,19 @@ describe('estimateCheckpointCostCents', () => {
     expect(high).toBeGreaterThan(base);
   });
 
-  it('stacks high-power and extended-thinking multipliers', () => {
+  it('adds high-power and extended-thinking surcharges (not compounding)', () => {
     const both = estimateCheckpointCostCents({
       baseProviderCents: 100,
       highPowerModel: true,
       extendedThinking: true,
     });
-    const expectedProvider = 100 * HIGH_POWER_ESTIMATE_MULTIPLIER * EXTENDED_THINKING_ESTIMATE_MULTIPLIER;
+    // Additive: surcharges sum (high-power +3, extended-thinking +1.5 → +4.5),
+    // not the old 4 × 2.5 = 10× product.
+    const surcharge = HIGH_POWER_ESTIMATE_MULTIPLIER - 1 + (EXTENDED_THINKING_ESTIMATE_MULTIPLIER - 1);
+    const expectedProvider = 100 * (1 + surcharge);
     expect(both).toBe(computeCreditCostCents({ rawProviderCents: expectedProvider }));
+    const compounded = 100 * HIGH_POWER_ESTIMATE_MULTIPLIER * EXTENDED_THINKING_ESTIMATE_MULTIPLIER;
+    expect(both).toBeLessThan(computeCreditCostCents({ rawProviderCents: compounded }));
   });
 });
 

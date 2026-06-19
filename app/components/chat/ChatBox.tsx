@@ -51,21 +51,30 @@ const POWER_ESTIMATE = {
 };
 
 function estimateAgentPowerCents(value: AgentPowerControlsValue): number {
-  let cents = POWER_ESTIMATE.baselineCents * (POWER_ESTIMATE.buildTier[value.buildTier] ?? 1);
+  /*
+   * Build tier is the effort axis and scales the base. The boosts are ADDITIVE
+   * surcharges (each `multiplier − 1`), never compounding multipliers — Replit
+   * does not aggregate per-control costs (the old `× highPower × thinking × turbo`
+   * product produced an aberrant ~$27/message). A single boost still reproduces
+   * its documented Replit multiple. Mirrors packages/billing `powerBoostSurcharge`.
+   */
+  const cents = POWER_ESTIMATE.baselineCents * (POWER_ESTIMATE.buildTier[value.buildTier] ?? 1);
+
+  let surcharge = 0;
 
   if (value.highPowerModel) {
-    cents *= POWER_ESTIMATE.highPower;
+    surcharge += POWER_ESTIMATE.highPower - 1;
   }
 
   if (value.extendedThinking) {
-    cents *= POWER_ESTIMATE.extendedThinking;
+    surcharge += POWER_ESTIMATE.extendedThinking - 1;
   }
 
   if (value.turboMode) {
-    cents *= POWER_ESTIMATE.turbo;
+    surcharge += POWER_ESTIMATE.turbo - 1;
   }
 
-  return Math.round(cents);
+  return Math.round(cents * (1 + surcharge));
 }
 
 interface ChatBoxProps {
