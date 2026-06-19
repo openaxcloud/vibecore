@@ -6914,18 +6914,36 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 /*
- * Narrow agent pane: condense the Agent/Assistant segmented to keep everything
- * on as few rows as possible without clipping (container query on the toolbar's
- * own width, so it reacts to the resizable pane, not the viewport).
+ * Narrow agent pane: progressively condense so everything stays on as few rows
+ * as possible without ever clipping (container query on the toolbar's own width,
+ * so it reacts to the resizable pane, not the viewport).
  */
-@container (max-width: 360px) {
+@container (max-width: 380px) {
+  .bolt-chatbox-toolbar {
+    gap: 6px;
+  }
+
   .bolt-chatbox-mode-segment {
     padding: 0 7px;
   }
 
   .bolt-chatbox-plan-button {
     min-width: 0;
+    gap: 2px;
     padding: 0 8px;
+  }
+}
+
+@container (max-width: 300px) {
+  /* Very narrow: tighten the segmented further. flex-wrap still guarantees no
+     clipping (controls flow to a second row) — this just keeps more on row 1. */
+  .bolt-chatbox-toolbar {
+    gap: 5px;
+  }
+
+  .bolt-chatbox-mode-segment {
+    padding: 0 6px;
+    font-size: 11px;
   }
 }
 
