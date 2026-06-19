@@ -16254,6 +16254,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           paygChargeCents,
         }).catch((error) => request.log?.warn?.({ err: error }, 'PAYG usage report failed (non-fatal)'));
 
+        /*
+         * Also record the overage as a tracking-only PAYG_CHARGE ledger entry so
+         * sumPaygSpendSince() — which drives budgetCapCents enforcement + the
+         * 50/80/100% spend alerts — is no longer permanently 0. This writes the
+         * ledger row WITHOUT debiting the wallet (the overage is billed to Stripe,
+         * not credits) and is deduped by checkpoint id. Non-fatal.
+         */
+        if (paygChargeCents > 0) {
+          await store
+            .recordPaygCharge({
+              organizationId: project.organizationId,
+              checkpointId: checkpoint.id,
+              cents: paygChargeCents,
+            })
+            .catch((error) => request.log?.warn?.({ err: error }, 'PAYG ledger record failed (non-fatal)'));
+        }
+
         // Usage-based spend alerts (50/80/100% of the budget cap). Only live when
         // billing is enabled (skip in SHADOW); fires once per rung per billing
         // period, de-duped via the wallet marker. Best-effort: never breaks the
@@ -17156,7 +17173,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         );
 
         const invoiceSubscriptionId = typeof object.subscription === 'string' ? object.subscription : undefined;
-        const subscriptionMatches = !invoiceSubscriptionId || invoiceSubscriptionId === existing?.externalId;
+        /*
+         * Require an EXPLICIT subscription-id match for the paid-recovery path.
+         * Previously `!invoiceSubscriptionId || …` let an invoice that carries NO
+         * subscription field flip the org's current subscription from PAST_DUE/UNPAID
+         * back to ACTIVE — so a payment confirmation for an unrelated one-off invoice
+         * could wrongly restore a failed subscription. (The payment_failed branch
+         * above deliberately keeps the permissive form for its own downgrade logic.)
+         */
+        const subscriptionMatches = !!invoiceSubscriptionId && invoiceSubscriptionId === existing?.externalId;
 
         if (
           existing &&
@@ -17384,6 +17409,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/admin/models/toggle', async (request) => {
     await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
     const body = parse(
       z.object({ provider: z.string().min(1), modelId: z.string().min(1), enabled: z.boolean() }),
       request.body ?? {},
@@ -17412,6 +17438,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/admin/providers/toggle', async (request) => {
     await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
     const body = parse(
       z.object({ provider: z.string().min(1), displayName: z.string().min(1), enabled: z.boolean() }),
       request.body ?? {},

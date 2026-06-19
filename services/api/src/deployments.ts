@@ -1117,7 +1117,13 @@ export async function runStaticBuild(options: RunStaticBuildOptions): Promise<Ru
     return { ok: false, logs: log.logs, error: 'BUILD_COMMAND_INVALID' };
   }
 
-  log.push('info', `Static deploy: running build (${split.command} ${split.args.map(shellLikeQuote).join(' ')})`);
+  log.push(
+    'info',
+    `Static deploy: running build (${redactDeploymentLog(
+      `${split.command} ${split.args.map(shellLikeQuote).join(' ')}`,
+      options.envVars,
+    )})`,
+  );
 
   const build = await runProcess({
     command: split.command,

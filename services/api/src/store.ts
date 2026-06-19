@@ -1354,6 +1354,13 @@ export interface ApiStore {
    * (dormant until BILLING_CREDITS_ENABLED).
    */
   sumPaygSpendSince(organizationId: string, sinceMs: number): Promise<number>;
+  /**
+   * Record a PAYG overage as a tracking-only PAYG_CHARGE ledger entry (negative
+   * deltaCents) WITHOUT touching the wallet balance — the overage is billed to
+   * Stripe, not the credit wallet. Deduped by checkpointId. This is what makes
+   * sumPaygSpendSince() (budget caps + spend alerts) non-zero.
+   */
+  recordPaygCharge(input: { organizationId: string; checkpointId: string; cents: number }): Promise<void>;
   /** Persist the spend-alert de-dup marker (highest rung sent this period). */
   markSpendAlert(input: { organizationId: string; pct: number; periodStartMs: number }): Promise<void>;
 

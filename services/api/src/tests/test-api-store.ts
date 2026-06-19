@@ -2266,6 +2266,40 @@ export class TestApiStore implements ApiStore {
     return total;
   }
 
+  async recordPaygCharge(input: { organizationId: string; checkpointId: string; cents: number }): Promise<void> {
+    const cents = Math.max(0, Math.ceil(input.cents));
+
+    if (cents <= 0) {
+      return;
+    }
+
+    // Tracking-only: writes a PAYG_CHARGE ledger row WITHOUT touching balanceCents
+    // (mirrors the store), deduped by checkpointId.
+    const wallet = await this.ensureCreditWallet(input.organizationId);
+
+    const existing = [...this.creditLedger.values()].find(
+      (e) => e.organizationId === input.organizationId && e.kind === 'PAYG_CHARGE' && e.checkpointId === input.checkpointId,
+    );
+
+    if (existing) {
+      return;
+    }
+
+    const entry: CreditLedgerRecord = {
+      id: id('credit'),
+      walletId: wallet.id,
+      organizationId: input.organizationId,
+      deltaCents: -cents,
+      kind: 'PAYG_CHARGE',
+      reason: 'PAYG overage (billed to Stripe metered usage)',
+      checkpointId: input.checkpointId,
+      expiresAt: undefined,
+      metadata: undefined,
+      createdAt: now(),
+    };
+    this.creditLedger.set(entry.id, entry);
+  }
+
   async markSpendAlert(input: { organizationId: string; pct: number; periodStartMs: number }): Promise<void> {
     const wallet = await this.ensureCreditWallet(input.organizationId);
     wallet.lastSpendAlertPct = input.pct;

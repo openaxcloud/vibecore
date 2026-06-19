@@ -2993,6 +2993,48 @@ export class PrismaApiStore implements ApiStore {
     return Math.abs(result._sum.deltaCents ?? 0);
   }
 
+  async recordPaygCharge(input: { organizationId: string; checkpointId: string; cents: number }): Promise<void> {
+    const cents = Math.max(0, Math.ceil(input.cents));
+
+    if (cents <= 0) {
+      return;
+    }
+
+    /*
+     * TRACKING-ONLY ledger entry. PAYG overage is billed to Stripe (real money),
+     * NOT drawn from the credit wallet — so unlike recordCreditEntry this writes a
+     * PAYG_CHARGE row WITHOUT touching balanceCents (debiting the wallet here would
+     * double-charge: Stripe + credits). sumPaygSpendSince() reads these rows to
+     * enforce budgetCapCents + fire spend alerts (which were dead at 0 before this).
+     * Deduped by (org, kind, checkpointId) so a re-settle never double-counts.
+     */
+    const wallet = await this.prisma.creditWallet.upsert({
+      where: { organizationId: input.organizationId },
+      update: {},
+      create: { organizationId: input.organizationId },
+    });
+
+    const existing = await this.prisma.creditLedger.findFirst({
+      where: { organizationId: input.organizationId, kind: 'PAYG_CHARGE', checkpointId: input.checkpointId },
+      select: { id: true },
+    });
+
+    if (existing) {
+      return;
+    }
+
+    await this.prisma.creditLedger.create({
+      data: {
+        walletId: wallet.id,
+        organizationId: input.organizationId,
+        deltaCents: -cents,
+        kind: 'PAYG_CHARGE',
+        reason: 'PAYG overage (billed to Stripe metered usage)',
+        checkpointId: input.checkpointId,
+      },
+    });
+  }
+
   async markSpendAlert(input: { organizationId: string; pct: number; periodStartMs: number }): Promise<void> {
     await this.prisma.creditWallet.update({
       where: { organizationId: input.organizationId },

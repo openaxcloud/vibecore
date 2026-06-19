@@ -17,7 +17,23 @@ const frontendLogSchema = z.object({
   sessionId: z.string().max(160).optional(),
   userId: z.number().optional(),
   stack: z.string().max(20_000).optional(),
-  metadata: z.record(z.unknown()).optional(),
+
+  /*
+   * Bound the serialized size. Every other field is capped, but an unbounded
+   * metadata object (huge or deeply nested) across the 100-log batch is a memory
+   * -exhaustion vector. 8 KB is ample for diagnostic context; oversized metadata
+   * is rejected (400) rather than buffered.
+   */
+  metadata: z
+    .record(z.unknown())
+    .refine((value) => {
+      try {
+        return JSON.stringify(value).length <= 8192;
+      } catch {
+        return false;
+      }
+    }, 'metadata exceeds the 8KB limit')
+    .optional(),
 });
 
 const frontendLogBatchSchema = z.object({
