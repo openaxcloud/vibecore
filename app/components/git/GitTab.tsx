@@ -399,6 +399,38 @@ export function GitTab({ projectId }: GitTabProps) {
           </div>
         )}
 
+        {conflicts.length > 0 ? (
+          <div
+            className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
+            role="alert"
+            data-testid="git-merge-conflict-banner"
+          >
+            <div className="flex items-center gap-2 font-semibold text-amber-600 dark:text-amber-400">
+              <span className="i-ph:warning-circle text-base" aria-hidden />
+              Resolve all conflicts to complete the merge.
+            </div>
+            <p className="mt-1 text-bolt-elements-textSecondary">
+              {conflicts.length} file{conflicts.length > 1 ? 's' : ''} still in conflict. Complete or abort the merge
+              before other Git actions.
+            </p>
+          </div>
+        ) : null}
+
+        {/*
+         * Branch sync visual (Replit-style): origin/<branch> → <branch> with the
+         * ahead/behind counts, surfaced at the top of the pane.
+         */}
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm">
+          <span className="i-ph:git-branch text-base text-bolt-elements-item-contentAccent" aria-hidden />
+          <code className="text-bolt-elements-textSecondary">origin/{branch}</code>
+          <span className="i-ph:arrow-right text-bolt-elements-textSecondary" aria-hidden />
+          <strong className="text-bolt-elements-textPrimary">{branch}</strong>
+          <span className="ml-auto flex items-center gap-3 text-xs text-bolt-elements-textSecondary">
+            <span title="Commits to pull">↓ {status?.behind ?? 0}</span>
+            <span title="Commits to push">↑ {status?.ahead ?? 0}</span>
+          </span>
+        </div>
+
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
           <div className="min-w-0">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
@@ -521,7 +553,14 @@ export function GitTab({ projectId }: GitTabProps) {
 
             {conflicts.length > 0 && (
               <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4">
-                <h3 className="mb-3 text-sm font-semibold text-red-500">Conflict resolution</h3>
+                <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-red-500">
+                  <span className="i-ph:warning text-base" aria-hidden />
+                  Conflicting Files ({conflicts.length})
+                </h3>
+                <p className="mb-3 text-xs text-bolt-elements-textSecondary">
+                  Resolve each file (keep current/incoming, or let the agent merge both), then commit to complete the
+                  merge.
+                </p>
                 <div className="grid gap-2">
                   {conflicts.map((conflict) => {
                     const path = String(conflict.path ?? conflict);
@@ -531,7 +570,10 @@ export function GitTab({ projectId }: GitTabProps) {
                         key={path}
                         className="grid gap-2 rounded-md border border-red-500/30 bg-bolt-elements-background-depth-1 p-3"
                       >
-                        <div className="text-sm font-medium text-bolt-elements-textPrimary">{path}</div>
+                        <div className="flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
+                          <span className="i-ph:warning text-red-500" aria-hidden />
+                          {path}
+                        </div>
                         <div className="flex flex-wrap gap-2">
                           <form onSubmit={submitAction}>
                             <input name="intent" value="resolve-conflict" type="hidden" />
