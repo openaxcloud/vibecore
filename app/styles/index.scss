@@ -6876,11 +6876,20 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-chatbox-toolbar {
+  /*
+   * Wrap at ANY width (not just mobile): the composer toolbar gained the
+   * Agent/Assistant segmented + mic, which overflow/clip in a narrow agent pane.
+   * flex-wrap lets controls flow to a second line instead of being cut off; the
+   * toolbar is also a container so the controls condense by PANE width (below),
+   * not viewport width.
+   */
+  container-type: inline-size;
   display: flex;
   min-height: 44px;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px 10px;
   border-top: 1px solid color-mix(in srgb, var(--vc-ide-border-subtle), transparent 22%);
   color: var(--vc-ide-text-secondary);
   font-size: 13px;
@@ -6892,11 +6901,32 @@ body :where(.lucide, svg[data-lucide]) {
   display: flex;
   min-width: 0;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
+}
+
+.bolt-chatbox-toolbar-primary {
+  flex: 1 1 auto;
 }
 
 .bolt-chatbox-toolbar-secondary {
   margin-left: auto;
+}
+
+/*
+ * Narrow agent pane: condense the Agent/Assistant segmented to keep everything
+ * on as few rows as possible without clipping (container query on the toolbar's
+ * own width, so it reacts to the resizable pane, not the viewport).
+ */
+@container (max-width: 360px) {
+  .bolt-chatbox-mode-segment {
+    padding: 0 7px;
+  }
+
+  .bolt-chatbox-plan-button {
+    min-width: 0;
+    padding: 0 8px;
+  }
 }
 
 .bolt-chatbox-toolbar-button {
