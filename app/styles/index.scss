@@ -6923,27 +6923,28 @@ body :where(.lucide, svg[data-lucide]) {
     gap: 6px;
   }
 
-  .bolt-chatbox-mode-segment {
-    padding: 0 7px;
-  }
-
-  .bolt-chatbox-plan-button {
+  .bolt-chatbox-mode-trigger {
     min-width: 0;
-    gap: 2px;
+    gap: 4px;
     padding: 0 8px;
   }
 }
 
 @container (max-width: 300px) {
-  /* Very narrow: tighten the segmented further. flex-wrap still guarantees no
+  /* Very narrow: tighten the mode trigger further. flex-wrap still guarantees no
      clipping (controls flow to a second row) — this just keeps more on row 1. */
   .bolt-chatbox-toolbar {
     gap: 5px;
   }
 
-  .bolt-chatbox-mode-segment {
+  .bolt-chatbox-mode-trigger {
     padding: 0 6px;
     font-size: 11px;
+  }
+
+  .bolt-chatbox-mode-trigger-label {
+    /* Hide the text label at the tightest width; the icon + caret still read. */
+    display: none;
   }
 }
 
@@ -6966,18 +6967,27 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-primary);
 }
 
-.bolt-chatbox-plan-button {
+/*
+ * Combined Agent/Plan/Assistant mode dropdown (replaces the old Agent/Assistant
+ * segmented control + standalone Plan toggle). Three-tab structure modelled on
+ * Replit's agent-mode popup; opens upward over the composer. ecode-accented.
+ */
+.bolt-chatbox-mode-dropdown {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.bolt-chatbox-mode-trigger {
   display: inline-flex;
   height: 32px;
-  min-width: 68px;
+  min-width: 84px;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
+  gap: 6px;
   flex: 0 0 auto;
   border: 1px solid var(--vc-ide-border-subtle);
   border-radius: 8px;
   background: var(--vc-ide-bg-card);
-  color: var(--vc-ide-text-secondary);
+  color: var(--vc-ide-text-primary);
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
@@ -6988,58 +6998,107 @@ body :where(.lucide, svg[data-lucide]) {
     color 120ms ease-out;
 }
 
-.bolt-chatbox-plan-button:hover,
-.bolt-chatbox-plan-button:focus-visible,
-.bolt-chatbox-plan-button[data-active='true'] {
-  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 52%, var(--vc-ide-border-subtle));
-  background: color-mix(in srgb, var(--vc-ide-accent-action) 16%, var(--vc-ide-bg-card));
-  color: var(--vc-ide-text-primary);
+.bolt-chatbox-mode-trigger:hover,
+.bolt-chatbox-mode-trigger[aria-expanded='true'] {
+  border-color: color-mix(in srgb, var(--ecode-accent) 52%, var(--vc-ide-border-subtle));
+  background: color-mix(in srgb, var(--ecode-accent) 14%, var(--vc-ide-bg-card));
 }
 
-.bolt-chatbox-plan-button:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
+.bolt-chatbox-mode-trigger:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ecode-accent) 55%, transparent);
   outline-offset: 2px;
 }
 
-/* Agent/Assistant mode, relocated from the old header tab row into the composer. */
-.bolt-chatbox-mode-segmented {
-  display: inline-flex;
-  height: 32px;
+.bolt-chatbox-mode-trigger-icon {
   flex: 0 0 auto;
-  align-items: stretch;
-  padding: 2px;
-  border: 1px solid var(--vc-ide-border-subtle);
-  border-radius: 8px;
-  background: var(--vc-ide-bg-card);
+  font-size: 15px;
+  color: var(--ecode-accent);
 }
 
-.bolt-chatbox-mode-segment {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
+.bolt-chatbox-mode-trigger-label {
+  flex: 0 0 auto;
+}
+
+.bolt-chatbox-mode-menu {
+  position: absolute;
+  z-index: 90;
+  bottom: calc(100% + 8px);
+  left: 0;
+  display: flex;
+  box-sizing: border-box;
+  width: min(300px, calc(100vw - 24px));
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-card);
+  box-shadow: var(--vc-ui-shadow-lg);
+  padding: 6px;
+}
+
+.bolt-chatbox-mode-menu-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
   color: var(--vc-ide-text-secondary);
+  padding: 8px 10px;
+  cursor: pointer;
   transition:
     background-color 120ms ease-out,
+    border-color 120ms ease-out,
     color 120ms ease-out;
 }
 
-.bolt-chatbox-mode-segment:hover {
+.bolt-chatbox-mode-menu-item:hover,
+.bolt-chatbox-mode-menu-item:focus-visible {
+  background: var(--vc-ide-bg-card-hover);
+  color: var(--vc-ide-text-primary);
+  outline: none;
+}
+
+.bolt-chatbox-mode-menu-item[data-active='true'] {
+  border-color: color-mix(in srgb, var(--ecode-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--ecode-accent) 12%, var(--vc-ide-bg-card));
   color: var(--vc-ide-text-primary);
 }
 
-.bolt-chatbox-mode-segment[data-active='true'] {
-  background: var(--ecode-accent, var(--vc-ide-accent-action));
-  color: #fff;
+.bolt-chatbox-mode-menu-item-icon {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  font-size: 16px;
+  color: var(--ecode-accent);
 }
 
-.bolt-chatbox-mode-segment:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
-  outline-offset: 2px;
+.bolt-chatbox-mode-menu-item-body {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bolt-chatbox-mode-menu-item-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.bolt-chatbox-mode-menu-item-desc {
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-chatbox-mode-menu-item-check {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--ecode-accent);
 }
 
 .bolt-chatbox-toolbar-info {

@@ -6,7 +6,18 @@ import { chatId } from '~/lib/persistence/useChatHistory';
 import { fetchSupabaseStats } from '~/lib/stores/supabase';
 import { classNames } from '~/utils/classNames';
 
-export function SupabaseConnection() {
+interface SupabaseConnectionProps {
+  /*
+   * 'bar' renders the standalone bordered toolbar button (default). 'menu'
+   * renders a full-width row that fits inside the "More composer & tools" menu.
+   */
+  triggerVariant?: 'bar' | 'menu';
+
+  /** Fired when the user opens the connection dialog (e.g. to close the parent menu). */
+  onOpen?: () => void;
+}
+
+export function SupabaseConnection({ triggerVariant = 'bar', onOpen }: SupabaseConnectionProps = {}) {
   const {
     connection: supabaseConn,
     connecting,
@@ -75,32 +86,56 @@ export function SupabaseConnection() {
     }
   }, [isConnected, supabaseConn.selectedProjectId, supabaseConn.token, supabaseConn.credentials]);
 
+  const openDialog = () => {
+    onOpen?.();
+    setIsDialogOpen(!isDialogOpen);
+  };
+
+  const supabaseIcon = (
+    <img
+      className="w-4 h-4"
+      height="20"
+      width="20"
+      crossOrigin="anonymous"
+      alt=""
+      aria-hidden
+      src="https://cdn.simpleicons.org/supabase"
+    />
+  );
+
   return (
     <div className="relative">
-      <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden mr-2 text-sm">
-        <Button
-          active
+      {triggerVariant === 'menu' ? (
+        <button
+          type="button"
           disabled={connecting}
-          onClick={() => setIsDialogOpen(!isDialogOpen)}
-          className="hover:bg-bolt-elements-item-backgroundActive !text-white flex items-center gap-2"
-          ariaLabel="Open Supabase connection"
-          tooltip="Supabase connection"
+          onClick={openDialog}
+          className="bolt-chatbox-tools-menu-item"
+          aria-label="Open Supabase connection"
         >
-          <img
-            className="w-4 h-4"
-            height="20"
-            width="20"
-            crossOrigin="anonymous"
-            alt=""
-            aria-hidden
-            src="https://cdn.simpleicons.org/supabase"
-          />
-          <span className="sr-only">Open Supabase connection</span>
-          {isConnected && supabaseConn.project && (
-            <span className="ml-1 text-xs max-w-[100px] truncate">{supabaseConn.project.name}</span>
-          )}
-        </Button>
-      </div>
+          {supabaseIcon}
+          <span>
+            {isConnected && supabaseConn.project ? `Supabase · ${supabaseConn.project.name}` : 'Open Supabase'}
+          </span>
+        </button>
+      ) : (
+        <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden mr-2 text-sm">
+          <Button
+            active
+            disabled={connecting}
+            onClick={openDialog}
+            className="hover:bg-bolt-elements-item-backgroundActive !text-white flex items-center gap-2"
+            ariaLabel="Open Supabase connection"
+            tooltip="Supabase connection"
+          >
+            {supabaseIcon}
+            <span className="sr-only">Open Supabase connection</span>
+            {isConnected && supabaseConn.project && (
+              <span className="ml-1 text-xs max-w-[100px] truncate">{supabaseConn.project.name}</span>
+            )}
+          </Button>
+        </div>
+      )}
 
       <DialogRoot open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         {isDialogOpen && (

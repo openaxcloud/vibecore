@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { ClientOnly } from 'remix-utils/client-only';
 import { AgentPowerControls, type AgentPowerControlsValue } from './AgentPowerControls';
 import { APIKeyManager } from './APIKeyManager';
+import { ChatBoxModeDropdown } from './ChatBoxModeDropdown';
 import { ComposerMentionsOverlay } from './ComposerMentionsOverlay';
 import { ComposerSlashOverlay } from './ComposerSlashOverlay';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
@@ -160,7 +161,14 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
   const providerList = Array.isArray(props.providerList) ? props.providerList : (PROVIDER_LIST as ProviderInfo[]);
 
   const hasComposerPayload = props.input.trim().length > 0 || props.uploadedFiles.length > 0;
-  const showSendButton = props.projectIdeMode ? !props.isStreaming : hasComposerPayload || props.isStreaming;
+
+  /*
+   * Replit parity: the Send button only appears once the user has something to
+   * send — typed input, an attachment, or an active voice capture — or while a
+   * response is streaming (so it can act as Stop). Hiding it otherwise frees
+   * space on the conversation wall. Previously the IDE composer always showed it.
+   */
+  const showSendButton = hasComposerPayload || props.isStreaming || props.isListening;
 
   const isSendButtonDisabled =
     !props.providerList || props.providerList.length === 0 || (!props.isStreaming && !hasComposerPayload);
@@ -175,9 +183,6 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
     : props.input.length === 0
       ? 'Type a prompt to enable AI prompt enhancement'
       : 'Enhance this prompt with AI before sending';
-  const planFirstTooltip = props.planFirstEnabled
-    ? 'Plan is on: the agent must propose a reviewable plan before edits or commands.'
-    : 'Plan is off: click to require a reviewable plan before edits or commands.';
 
   const [isToolsMenuOpen, setIsToolsMenuOpen] = React.useState(false);
   const toolsMenuRef = React.useRef<HTMLDivElement>(null);
@@ -269,10 +274,6 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
   const toggleModelSettings = () => {
     props.setIsModelSettingsCollapsed(!props.isModelSettingsCollapsed);
     setIsToolsMenuOpen(false);
-  };
-
-  const togglePlanFirst = () => {
-    props.onPlanFirstChange?.(!props.planFirstEnabled);
   };
 
   return (
@@ -570,57 +571,20 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               />
             ) : null}
 
-            {props.projectIdeMode && props.agentMode && props.setAgentMode ? (
-              <div
-                className="bolt-chatbox-mode-segmented"
-                role="tablist"
-                aria-label="Agent mode"
-                data-mode={props.agentMode}
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={props.agentMode === 'agent'}
-                  className="bolt-chatbox-mode-segment"
-                  data-active={props.agentMode === 'agent' ? 'true' : 'false'}
-                  title="Agent — runs the task end to end"
-                  onClick={() => props.setAgentMode?.('agent')}
-                >
-                  Agent
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={props.agentMode === 'assistant'}
-                  className="bolt-chatbox-mode-segment"
-                  data-active={props.agentMode === 'assistant' ? 'true' : 'false'}
-                  title="Assistant — answers and proposes scoped edits, waits for your go"
-                  onClick={() => props.setAgentMode?.('assistant')}
-                >
-                  Assistant
-                </button>
-              </div>
-            ) : null}
-
-            {props.projectIdeMode && props.onPlanFirstChange ? (
-              <button
-                type="button"
-                className="bolt-chatbox-plan-button"
-                data-active={props.planFirstEnabled ? 'true' : 'false'}
-                aria-pressed={props.planFirstEnabled ? 'true' : 'false'}
-                title={planFirstTooltip}
-                data-vc-tooltip={planFirstTooltip}
-                onClick={togglePlanFirst}
-              >
-                <span>Plan</span>
-                <span className="i-ph:caret-down text-xs" aria-hidden />
-              </button>
+            {props.projectIdeMode && props.agentMode && props.setAgentMode && props.onPlanFirstChange ? (
+              <ChatBoxModeDropdown
+                agentMode={props.agentMode}
+                setAgentMode={props.setAgentMode}
+                planFirstEnabled={props.planFirstEnabled ?? false}
+                onPlanFirstChange={props.onPlanFirstChange}
+                disabled={props.isStreaming}
+              />
             ) : null}
 
             <div ref={toolsMenuRef} className="bolt-chatbox-tools-menu-anchor">
               <IconButton
-                title="More composer tools"
-                tooltip="More composer tools"
+                title="More composer & tools"
+                tooltip="More composer & tools"
                 className={classNames('bolt-chatbox-toolbar-button', isToolsMenuOpen ? 'is-active' : undefined)}
                 ariaExpanded={isToolsMenuOpen}
                 ariaHasPopup="menu"
@@ -649,6 +613,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                     triggerVariant="menu"
                     triggerLabel="Fetch URL"
                   />
+                  <SupabaseConnection triggerVariant="menu" onOpen={() => setIsToolsMenuOpen(false)} />
                   <IconButton
                     title={enhancePromptTitle}
                     tooltip={enhancePromptTitle}
@@ -731,9 +696,6 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             >
               <div className="i-ph:info text-lg" />
             </IconButton>
-            <div className="bolt-chatbox-toolbar-supabase">
-              <SupabaseConnection />
-            </div>
             {props.projectIdeMode ? (
               <ClientOnly>
                 {() => (
