@@ -736,138 +736,205 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               );
 
               if (projectId) {
-                // Fire-and-log: failures here never crash the chat stream.
-                await recordChatUsage({
-                  projectId,
-                  provider: completionProvider,
-                  model: completionModel,
-                  inputTokens: cumulativeUsage.promptTokens,
-                  outputTokens: cumulativeUsage.completionTokens,
-                  finishReason: terminalFinishReason,
-                  cookieHeader: request.headers.get('Cookie') ?? undefined,
-                  source: 'remix-chat',
-                });
+                /*
+                 * Fire-and-log: a billing/quota write failure must never break the
+                 * data stream or abort the rest of onFinish (cleanup still runs).
+                 */
+                try {
+                  await recordChatUsage({
+                    projectId,
+                    provider: completionProvider,
+                    model: completionModel,
+                    inputTokens: cumulativeUsage.promptTokens,
+                    outputTokens: cumulativeUsage.completionTokens,
+                    finishReason: terminalFinishReason,
+                    cookieHeader: request.headers.get('Cookie') ?? undefined,
+                    source: 'remix-chat',
+                  });
+                } catch (error) {
+                  logger.error(`failed to record chat usage: ${error instanceof Error ? error.message : error}`);
+                }
               }
 
-              dataStream.writeMessageAnnotation({
-                type: 'usage',
-                value: {
-                  completionTokens: cumulativeUsage.completionTokens,
-                  promptTokens: cumulativeUsage.promptTokens,
-                  totalTokens: cumulativeUsage.totalTokens,
-                },
-              });
+              try {
+                dataStream.writeMessageAnnotation({
+                  type: 'usage',
+                  value: {
+                    completionTokens: cumulativeUsage.completionTokens,
+                    promptTokens: cumulativeUsage.promptTokens,
+                    totalTokens: cumulativeUsage.totalTokens,
+                  },
+                });
+              } catch (error) {
+                logger.warn(`failed to write usage annotation: ${error instanceof Error ? error.message : error}`);
+              }
             };
 
-            if (finishReason !== 'length') {
-              streamRecovery.stop();
-
-              await flushUsage(finishReason);
-
-              dataStream.writeData({
-                type: 'progress',
-                label: 'response',
-                status: 'complete',
-                order: progressCounter++,
-                message: 'Response Generated',
-              } satisfies ProgressAnnotation);
-              await new Promise((resolve) => setTimeout(resolve, 0));
-              await persistAgentMemoryCandidate(request, {
-                messages: processedMessages,
-                assistantText: content,
-                projectId,
-              });
-
-              // Release this request's MCP clients (idempotent with the abort handler).
-              await mcpService.close();
-
-              // stream.close();
-              return;
-            }
-
-            if (continuationSegments >= MAX_RESPONSE_SEGMENTS) {
-              /*
-               * Hard stop after MAX_RESPONSE_SEGMENTS continuations. End the
-               * stream cleanly with a truncation note rather than throwing (a
-               * throw here surfaces as a stream error to the client). Without
-               * this bound the 'length' continuation recursed forever.
-               */
-              streamRecovery.stop();
-              await flushUsage('length');
-              dataStream.writeData({
-                type: 'progress',
-                label: 'response',
-                status: 'complete',
-                order: progressCounter++,
-                message: 'Response truncated: maximum continuation segments reached',
-              } satisfies ProgressAnnotation);
-
-              await mcpService.close();
-
-              return;
-            }
+            // Release this request's MCP clients without ever throwing out of onFinish.
+            const safeCloseMcp = async () => {
+              try {
+                await mcpService.close();
+              } catch (error) {
+                logger.warn(`failed to close MCP clients: ${error instanceof Error ? error.message : error}`);
+              }
+            };
 
             /*
-             * A 'length' finish with no usable text (all budget consumed by
-             * reasoning/tool tokens) would push an empty assistant turn followed
-             * by CONTINUE_PROMPT — many providers error on empty assistant
-             * content, and at best it loops producing empty segments until the
-             * cap, burning quota for zero output. Treat it as a terminal response.
+             * onFinish runs the terminal cleanup for the stream (usage flush,
+             * memory persistence, MCP client release, and the 'length'
+             * continuation). ANY uncaught throw here corrupts the data stream and
+             * leaks the MCP stdio/HTTP clients + the recovery idle timer. Wrap the
+             * whole body so a failure degrades gracefully: stop recovery, release
+             * MCP best-effort, and surface a clean error progress annotation.
              */
-            if (content.trim().length === 0) {
-              streamRecovery.stop();
-              await flushUsage('length');
-              dataStream.writeData({
-                type: 'progress',
-                label: 'response',
-                status: 'complete',
-                order: progressCounter++,
-                message: 'Response truncated: model returned no further content',
-              } satisfies ProgressAnnotation);
+            try {
+              if (finishReason !== 'length') {
+                streamRecovery.stop();
 
-              await mcpService.close();
+                await flushUsage(finishReason);
+
+                dataStream.writeData({
+                  type: 'progress',
+                  label: 'response',
+                  status: 'complete',
+                  order: progressCounter++,
+                  message: 'Response Generated',
+                } satisfies ProgressAnnotation);
+                await new Promise((resolve) => setTimeout(resolve, 0));
+                await persistAgentMemoryCandidate(request, {
+                  messages: processedMessages,
+                  assistantText: content,
+                  projectId,
+                });
+
+                // Release this request's MCP clients (idempotent with the abort handler).
+                await safeCloseMcp();
+
+                // stream.close();
+                return;
+              }
+
+              if (continuationSegments >= MAX_RESPONSE_SEGMENTS) {
+                /*
+                 * Hard stop after MAX_RESPONSE_SEGMENTS continuations. End the
+                 * stream cleanly with a truncation note rather than throwing (a
+                 * throw here surfaces as a stream error to the client). Without
+                 * this bound the 'length' continuation recursed forever.
+                 */
+                streamRecovery.stop();
+                await flushUsage('length');
+                dataStream.writeData({
+                  type: 'progress',
+                  label: 'response',
+                  status: 'complete',
+                  order: progressCounter++,
+                  message: 'Response truncated: maximum continuation segments reached',
+                } satisfies ProgressAnnotation);
+
+                await safeCloseMcp();
+
+                return;
+              }
+
+              /*
+               * A 'length' finish with no usable text (all budget consumed by
+               * reasoning/tool tokens) would push an empty assistant turn followed
+               * by CONTINUE_PROMPT — many providers error on empty assistant
+               * content, and at best it loops producing empty segments until the
+               * cap, burning quota for zero output. Treat it as a terminal response.
+               */
+              if (content.trim().length === 0) {
+                streamRecovery.stop();
+                await flushUsage('length');
+                dataStream.writeData({
+                  type: 'progress',
+                  label: 'response',
+                  status: 'complete',
+                  order: progressCounter++,
+                  message: 'Response truncated: model returned no further content',
+                } satisfies ProgressAnnotation);
+
+                await safeCloseMcp();
+
+                return;
+              }
+
+              continuationSegments += 1;
+
+              const switchesLeft = MAX_RESPONSE_SEGMENTS - continuationSegments;
+
+              logger.info(
+                `Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} segments left)`,
+              );
+
+              const lastUserMessage = processedMessages.filter((x) => x.role == 'user').slice(-1)[0];
+              const { model, provider } = extractPropertiesFromMessage(lastUserMessage);
+              processedMessages.push({ id: generateId(), role: 'assistant', content });
+              processedMessages.push({
+                id: generateId(),
+                role: 'user',
+                content: `[Model: ${model}]\n\n[Provider: ${provider}]\n\n${CONTINUE_PROMPT}`,
+              });
+
+              /*
+               * The continuation streamText() can throw (provider error, aborted
+               * request, network). Unprotected, that exception escaped onFinish —
+               * corrupting the stream and leaking the MCP clients + recovery timer.
+               * On failure, stop recovery, release MCP, and emit a clean error note.
+               */
+              try {
+                const result = await streamText({
+                  messages: [...processedMessages],
+                  env: context.cloudflare?.env,
+                  options,
+                  apiKeys,
+                  files,
+                  providerSettings,
+                  promptId,
+                  contextOptimization,
+                  contextFiles: filteredFiles,
+                  chatMode,
+                  designScheme,
+                  summary,
+                  messageSliceId,
+                  abortSignal: request.signal,
+                  agentOrchestrationPlan: orchestrationPlan,
+                  agentOrchestrationContext,
+                  agentMemoryContext: agentMemory?.context,
+                });
+
+                result.mergeIntoDataStream(dataStream);
+              } catch (error) {
+                if (error instanceof Error && error.name === 'AbortError') {
+                  // Client went away mid-continuation — expected, just clean up.
+                  streamRecovery.stop();
+                  await safeCloseMcp();
+
+                  return;
+                }
+
+                logger.error(`continuation streamText failed: ${error instanceof Error ? error.message : error}`);
+                streamRecovery.stop();
+                await safeCloseMcp();
+                dataStream.writeData({
+                  type: 'progress',
+                  label: 'response',
+                  status: 'complete',
+                  order: progressCounter++,
+                  message: 'Response interrupted: continuation failed',
+                } satisfies ProgressAnnotation);
+              }
 
               return;
+            } catch (error) {
+              /*
+               * Last-resort guard for the whole onFinish body — never let a throw
+               * here tear down the data stream or leak resources.
+               */
+              logger.error(`onFinish failed: ${error instanceof Error ? error.message : error}`);
+              streamRecovery.stop();
+              await safeCloseMcp();
             }
-
-            continuationSegments += 1;
-
-            const switchesLeft = MAX_RESPONSE_SEGMENTS - continuationSegments;
-
-            logger.info(`Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} segments left)`);
-
-            const lastUserMessage = processedMessages.filter((x) => x.role == 'user').slice(-1)[0];
-            const { model, provider } = extractPropertiesFromMessage(lastUserMessage);
-            processedMessages.push({ id: generateId(), role: 'assistant', content });
-            processedMessages.push({
-              id: generateId(),
-              role: 'user',
-              content: `[Model: ${model}]\n\n[Provider: ${provider}]\n\n${CONTINUE_PROMPT}`,
-            });
-
-            const result = await streamText({
-              messages: [...processedMessages],
-              env: context.cloudflare?.env,
-              options,
-              apiKeys,
-              files,
-              providerSettings,
-              promptId,
-              contextOptimization,
-              contextFiles: filteredFiles,
-              chatMode,
-              designScheme,
-              summary,
-              messageSliceId,
-              abortSignal: request.signal,
-              agentOrchestrationPlan: orchestrationPlan,
-              agentOrchestrationContext,
-              agentMemoryContext: agentMemory?.context,
-            });
-
-            result.mergeIntoDataStream(dataStream);
-
-            return;
           },
         };
 

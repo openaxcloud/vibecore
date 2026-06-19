@@ -1,8 +1,30 @@
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import type { LoaderFunctionArgs } from 'react-router';
 import { data as json } from 'react-router';
+import { readSessionToken } from '~/lib/enterprise-api.server';
 
-export async function loader() {
+export async function loader({ request }: LoaderFunctionArgs) {
+  /*
+   * Require an authenticated session. When VIBECORE_EXPOSE_PLATFORM_GIT_INFO is
+   * enabled this loader returns the platform deployment's branch/commit/remote —
+   * a deployment-fingerprinting oracle. Gate it behind a signed-in session so an
+   * anonymous caller cannot probe it. (The disabled branch below already returns
+   * only inert placeholders, but we still require auth so the endpoint never
+   * leaks even its enabled/disabled state to unauthenticated clients.)
+   */
+  if (!readSessionToken(request)) {
+    return json(
+      {
+        branch: 'workspace',
+        commit: 'hidden',
+        isDirty: false,
+        lastCommit: undefined,
+      },
+      { status: 401 },
+    );
+  }
+
   if (process.env.VIBECORE_EXPOSE_PLATFORM_GIT_INFO !== 'true') {
     return json({
       branch: 'workspace',

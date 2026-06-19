@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildPreviewProxyApp } from './app.js';
+import {
+  buildPreviewProxyApp,
+  readCookie,
+  signPreviewTenantToken,
+  verifyPreviewTenantToken,
+} from './app.js';
 
 const fakeAgent = { baseUrl: 'http://workspace-agent.test', token: 'agent-token' };
 
@@ -318,6 +323,133 @@ describe('preview-proxy', () => {
       const response = await app.inject({ method: 'GET', url: '/main.js', headers: { host: 'app.e-code.ai' } });
       expect(response.statusCode).toBe(404);
       expect(calls).toHaveLength(0);
+      await app.close();
+    });
+  });
+
+  describe('per-tenant authorization (vc_preview)', () => {
+    const secret = 'tenant-secret';
+
+    it('readCookie extracts a named cookie and tolerates absence/garbage', () => {
+      expect(readCookie('a=1; vc_preview=tok; b=2', 'vc_preview')).toBe('tok');
+      expect(readCookie('vc_preview=tok', 'vc_preview')).toBe('tok');
+      expect(readCookie(undefined, 'vc_preview')).toBeUndefined();
+      expect(readCookie('a=1; b=2', 'vc_preview')).toBeUndefined();
+      expect(readCookie('; ;; junk', 'vc_preview')).toBeUndefined();
+    });
+
+    it('sign/verify round-trips an orgId and rejects tampering/expiry', () => {
+      const now = 1_000_000;
+      const token = signPreviewTenantToken('org_1', now + 60_000, secret);
+
+      expect(verifyPreviewTenantToken(token, secret, now)).toBe('org_1');
+      // expired
+      expect(verifyPreviewTenantToken(token, secret, now + 120_000)).toBeUndefined();
+      // wrong secret
+      expect(verifyPreviewTenantToken(token, 'other', now)).toBeUndefined();
+      // tampered signature
+      expect(verifyPreviewTenantToken(`${token}x`, secret, now)).toBeUndefined();
+      // malformed
+      expect(verifyPreviewTenantToken('not-a-token', secret, now)).toBeUndefined();
+      expect(verifyPreviewTenantToken(undefined, secret, now)).toBeUndefined();
+      expect(verifyPreviewTenantToken(token, undefined, now)).toBeUndefined();
+    });
+
+    it('throws on boot when enforcement is on but no tenant secret is set', async () => {
+      await expect(buildPreviewProxyApp({ enforceTenant: true, resolveAgent: async () => fakeAgent })).rejects.toThrow(
+        /PREVIEW_TENANT_SECRET is required/,
+      );
+    });
+
+    it('403s a preview request with no vc_preview cookie when enforcement is on', async () => {
+      const { fn: fetchImpl, calls } = recordingFetch(async () => new Response('hi', { status: 200 }));
+      const app = await buildPreviewProxyApp({ enforceTenant: true, tenantSecret: secret, fetchImpl });
+
+      const response = await app.inject({ method: 'GET', url: '/p/ws_1/3000/index.html' });
+      expect(response.statusCode).toBe(403);
+      expect(response.json().code).toBe('PREVIEW_TENANT_FORBIDDEN');
+      expect(calls).toHaveLength(0); // never resolved the agent
+      await app.close();
+    });
+
+    it('403s a preview request with an expired/forged cookie when enforcement is on', async () => {
+      const app = await buildPreviewProxyApp({ enforceTenant: true, tenantSecret: secret, resolveAgent: async () => fakeAgent });
+
+      const expired = signPreviewTenantToken('org_1', Date.now() - 1000, secret);
+      const response = await app.inject({
+        method: 'GET',
+        url: '/p/ws_1/3000/index.html',
+        headers: { cookie: `vc_preview=${expired}` },
+      });
+      expect(response.statusCode).toBe(403);
+      await app.close();
+    });
+
+    it('forwards the verified orgId to the resolver and proxies when the cookie is valid', async () => {
+      const seen: Array<string | undefined> = [];
+      const app = await buildPreviewProxyApp({
+        enforceTenant: true,
+        tenantSecret: secret,
+        resolveAgent: async (_workspaceId, orgId) => {
+          seen.push(orgId);
+
+          return fakeAgent;
+        },
+        fetchImpl: recordingFetch(async () => new Response('ok', { status: 200 })).fn,
+      });
+
+      const token = signPreviewTenantToken('org_42', Date.now() + 60_000, secret);
+      const response = await app.inject({
+        method: 'GET',
+        url: '/p/ws_1/3000/index.html',
+        headers: { cookie: `vc_preview=${token}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(seen).toEqual(['org_42']);
+      await app.close();
+    });
+
+    it('default resolver forwards orgId as a query param to workspace-manager', async () => {
+      const { fn: fetchImpl, calls } = recordingFetch(async () =>
+        new Response(JSON.stringify(fakeAgent), { status: 200, headers: { 'content-type': 'application/json' } }),
+      );
+      const app = await buildPreviewProxyApp({
+        enforceTenant: true,
+        tenantSecret: secret,
+        workspaceManagerUrl: 'http://workspace-manager.test',
+        proxySharedSecret: 'preview-secret',
+        fetchImpl,
+      });
+
+      const token = signPreviewTenantToken('org_99', Date.now() + 60_000, secret);
+      await app.inject({ method: 'GET', url: '/p/ws_1/3000/index.html', headers: { cookie: `vc_preview=${token}` } });
+
+      const agentCall = calls.find((c) => c.url.pathname.endsWith('/agent'));
+      expect(agentCall?.url.searchParams.get('orgId')).toBe('org_99');
+      await app.close();
+    });
+
+    it('leaves behaviour unchanged when enforcement is off (no cookie required)', async () => {
+      const app = await buildPreviewProxyApp({
+        tenantSecret: secret,
+        resolveAgent: async () => fakeAgent,
+        fetchImpl: recordingFetch(async () => new Response('ok', { status: 200 })).fn,
+      });
+
+      const response = await app.inject({ method: 'GET', url: '/p/ws_1/3000/index.html' });
+      expect(response.statusCode).toBe(200);
+      await app.close();
+    });
+
+    it('sets Referrer-Policy: no-referrer on proxied responses', async () => {
+      const app = await buildPreviewProxyApp({
+        resolveAgent: async () => fakeAgent,
+        fetchImpl: recordingFetch(async () => new Response('ok', { status: 200 })).fn,
+      });
+
+      const response = await app.inject({ method: 'GET', url: '/p/ws_1/3000/index.html' });
+      expect(response.headers['referrer-policy']).toBe('no-referrer');
       await app.close();
     });
   });

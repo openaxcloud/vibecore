@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Readable } from 'node:stream';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { INSPECTOR_SCRIPT } from './inspector-script.js';
@@ -16,8 +17,31 @@ export interface PreviewProxyOptions {
   proxySharedSecret?: string;
   isProduction?: boolean;
   fetchImpl?: typeof fetch;
-  resolveAgent?: (workspaceId: string) => Promise<{ baseUrl: string; token: string } | undefined>;
+  resolveAgent?: (workspaceId: string, orgId?: string) => Promise<{ baseUrl: string; token: string } | undefined>;
   requestTimeoutMs?: number;
+
+  /**
+   * Per-tenant preview authorization (default OFF). The preview is a
+   * cross-origin iframe, so the IDE's `vc_session` cookie (scoped to
+   * app.e-code.ai, no Domain attribute) is NEVER sent to the preview host — the
+   * proxy therefore cannot see who the requester is. To close the cross-tenant
+   * hole (anyone who learns a `workspaceId` can reach another tenant's preview)
+   * the app sets a SEPARATE HttpOnly cookie `vc_preview`, scoped to the shared
+   * parent domain (`Domain=.e-code.ai`) and HMAC-signed over the caller's orgId.
+   * When enforcement is on, the proxy reads + verifies that cookie, derives the
+   * orgId, and forwards it to workspace-manager which rejects (403) a workspace
+   * owned by a different org. The cookie is stripped before the upstream fetch
+   * (the dev server never receives it).
+   *
+   * This is a DARK-LAUNCH flag: shipped off so production behaviour is
+   * unchanged. Activation is a coordinated ops step (set the app cookie first,
+   * let it propagate, then flip enforcement) documented in the rollout notes —
+   * flipping it before the app emits `vc_preview` would 403 every preview.
+   */
+  enforceTenant?: boolean;
+
+  /** HMAC secret used to verify the `vc_preview` tenant cookie. */
+  tenantSecret?: string;
 
   /**
    * Inject the inspect-to-code bridge into proxied HTML so "Inspect to code"
@@ -98,6 +122,99 @@ export function parsePreviewHost(
   return { workspaceId: match[1], port: String(port) };
 }
 
+function base64url(input: Buffer | string): string {
+  return Buffer.from(input).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/*
+ * Mint a `vc_preview` tenant token. Format: `<orgId-b64url>.<expEpochMs>.<sig>`
+ * where sig = base64url(HMAC-SHA256(secret, `<orgId-b64url>.<expEpochMs>`)).
+ * Exported so the app (and tests) sign with the exact same scheme the proxy
+ * verifies — the single source of truth for the cookie wire format.
+ */
+export function signPreviewTenantToken(orgId: string, expiresAtMs: number, secret: string): string {
+  const payload = `${base64url(orgId)}.${Math.floor(expiresAtMs)}`;
+  const sig = base64url(createHmac('sha256', secret).update(payload).digest());
+
+  return `${payload}.${sig}`;
+}
+
+/*
+ * Verify a `vc_preview` token and return its orgId, or undefined if the token
+ * is absent, malformed, expired, or its signature does not match. Constant-time
+ * signature comparison; never throws.
+ */
+export function verifyPreviewTenantToken(
+  token: string | undefined,
+  secret: string | undefined,
+  nowMs: number,
+): string | undefined {
+  if (!token || !secret) {
+    return undefined;
+  }
+
+  const parts = token.split('.');
+
+  if (parts.length !== 3) {
+    return undefined;
+  }
+
+  const [orgB64, expRaw, sig] = parts;
+  const exp = Number(expRaw);
+
+  if (!Number.isInteger(exp) || exp <= nowMs) {
+    return undefined;
+  }
+
+  const expected = base64url(createHmac('sha256', secret).update(`${orgB64}.${expRaw}`).digest());
+  const sigBuf = Buffer.from(sig);
+  const expectedBuf = Buffer.from(expected);
+
+  if (sigBuf.length !== expectedBuf.length || !timingSafeEqual(sigBuf, expectedBuf)) {
+    return undefined;
+  }
+
+  try {
+    const orgId = Buffer.from(orgB64.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+
+    return orgId.length > 0 ? orgId : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/*
+ * Pull a single cookie value out of a raw Cookie header. Returns undefined when
+ * the header is absent or the named cookie is not present. Tolerant of the
+ * surrounding `; ` separators and missing values.
+ */
+export function readCookie(cookieHeader: string | undefined, name: string): string | undefined {
+  if (!cookieHeader) {
+    return undefined;
+  }
+
+  for (const part of cookieHeader.split(';')) {
+    const trimmed = part.trim();
+    const eq = trimmed.indexOf('=');
+
+    if (eq === -1) {
+      continue;
+    }
+
+    if (trimmed.slice(0, eq) === name) {
+      const raw = trimmed.slice(eq + 1);
+
+      try {
+        return decodeURIComponent(raw);
+      } catch {
+        return raw;
+      }
+    }
+  }
+
+  return undefined;
+}
+
 export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): Promise<FastifyInstance> {
   const isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
 
@@ -109,6 +226,13 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   const requestTimeoutMs = options.requestTimeoutMs ?? 30_000;
   const injectInspector = options.injectInspector ?? true;
   const previewDomain = options.previewDomain ?? process.env.PREVIEW_DOMAIN;
+  const enforceTenant = options.enforceTenant ?? process.env.PREVIEW_PROXY_ENFORCE_TENANT === 'true';
+  const tenantSecret = options.tenantSecret ?? process.env.PREVIEW_TENANT_SECRET;
+
+  if (enforceTenant && !tenantSecret) {
+    throw new Error('PREVIEW_TENANT_SECRET is required when PREVIEW_PROXY_ENFORCE_TENANT is enabled.');
+  }
+
   const app = Fastify({ logger: options.logger ?? false });
 
   /*
@@ -146,6 +270,17 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       reply.header('cross-origin-embedder-policy', 'credentialless');
     }
 
+    /*
+     * Strip the Referer on navigations OUT of the preview so the preview URL —
+     * which carries the `workspaceId` (a sensitive capability while per-tenant
+     * authz is not yet enforced) — is never leaked to third-party origins the
+     * proxied app links to or loads. Defence-in-depth against workspaceId
+     * exfiltration via the Referer header.
+     */
+    if (!reply.hasHeader('referrer-policy')) {
+      reply.header('referrer-policy', 'no-referrer');
+    }
+
     return payload;
   });
 
@@ -172,7 +307,28 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       return reply.code(400).send({ error: 'Invalid preview port', code: 'PREVIEW_PORT_INVALID' });
     }
 
-    const agent = await resolveAgent(params.workspaceId).catch(() => undefined);
+    /*
+     * Per-tenant authorization (dark-launched, see PreviewProxyOptions.enforceTenant).
+     * Derive the requester's orgId from the signed `vc_preview` cookie and pass it
+     * to the resolver, which forwards it to workspace-manager for an ownership
+     * check. When enforcement is on, a missing/invalid cookie is a hard 403 — we
+     * never fall back to the unauthenticated path that leaks cross-tenant previews.
+     */
+    let requesterOrgId: string | undefined;
+
+    if (enforceTenant) {
+      requesterOrgId = verifyPreviewTenantToken(
+        readCookie(request.headers.cookie, 'vc_preview'),
+        tenantSecret,
+        Date.now(),
+      );
+
+      if (!requesterOrgId) {
+        return reply.code(403).send({ error: 'Preview access denied', code: 'PREVIEW_TENANT_FORBIDDEN' });
+      }
+    }
+
+    const agent = await resolveAgent(params.workspaceId, requesterOrgId).catch(() => undefined);
 
     if (!agent) {
       return reply.code(404).send({ error: 'Workspace agent not reachable', code: 'PREVIEW_AGENT_NOT_FOUND' });
@@ -594,7 +750,7 @@ export function injectInspectorScript(html: string): string {
 }
 
 function defaultResolveAgent(options: PreviewProxyOptions, fetchImpl: typeof fetch) {
-  return async (workspaceId: string) => {
+  return async (workspaceId: string, orgId?: string) => {
     const managerUrl = options.workspaceManagerUrl;
     const secret = normalizeSharedSecret(options.proxySharedSecret);
 
@@ -602,8 +758,15 @@ function defaultResolveAgent(options: PreviewProxyOptions, fetchImpl: typeof fet
       return undefined;
     }
 
+    /*
+     * Forward the requester's orgId (derived from the verified vc_preview cookie)
+     * so workspace-manager can reject a workspace owned by a different org. Only
+     * sent when present; the manager treats it as the tenant to authorize against.
+     */
+    const orgQuery = orgId ? `?orgId=${encodeURIComponent(orgId)}` : '';
+
     const response = await fetchImpl(
-      `${managerUrl.replace(/\/$/, '')}/internal/workspaces/${encodeURIComponent(workspaceId)}/agent`,
+      `${managerUrl.replace(/\/$/, '')}/internal/workspaces/${encodeURIComponent(workspaceId)}/agent${orgQuery}`,
       {
         headers: { authorization: `Bearer ${secret}` },
 

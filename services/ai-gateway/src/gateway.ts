@@ -531,7 +531,18 @@ async function* providerStream(
     // common during provider incidents) often carries a body; throwing without
     // consuming it leaks the upstream connection until GC, exhausting sockets.
     await response.body?.cancel().catch(() => {});
-    throw Object.assign(new Error(`Provider stream failed: ${response.status}`), { statusCode: 502 });
+
+    /*
+     * Preserve the upstream status instead of masking every failure as a 502.
+     * A 401/403 (bad/blocked provider key) or 429 (rate limit) must surface as
+     * itself so the caller stops/raises-quota rather than treating it as a
+     * transient gateway error and retrying — which re-bills input and hammers a
+     * provider that already said "no". Map 4xx + 429 through verbatim; anything
+     * else (5xx, network) collapses to 502 Bad Gateway.
+     */
+    const upstreamStatus = response.status;
+    const statusCode = upstreamStatus === 429 || (upstreamStatus >= 400 && upstreamStatus < 500) ? upstreamStatus : 502;
+    throw Object.assign(new Error(`Provider stream failed: ${upstreamStatus}`), { statusCode, upstreamStatus });
   }
 
   const reader = response.body.getReader();
@@ -923,11 +934,26 @@ export class AiGateway {
         }
 
         /*
-         * No output yet — this failure is recoverable. Do NOT emit an error chunk
-         * now; a fallback provider may still succeed, and surfacing a premature
-         * `error` before a successful `delta`/`done` confuses the client. Keep the
-         * error and only report it below if every provider fails.
+         * No output yet, but only fall through to a fallback provider when the
+         * failure is actually retryable (5xx / 429 / network). A non-retryable
+         * client 4xx (400 malformed request, 401/403 auth/plan) will fail the same
+         * way on every provider — retrying just re-counts input tokens and re-bills
+         * the request N times. Surface it immediately instead.
          */
+        const upstreamStatus = (error as { upstreamStatus?: unknown }).upstreamStatus;
+        const isNonRetryable4xx =
+          typeof upstreamStatus === 'number' && upstreamStatus >= 400 && upstreamStatus < 500 && upstreamStatus !== 429;
+
+        if (isNonRetryable4xx) {
+          yield {
+            type: 'error',
+            provider: provider.id,
+            model: resolved.id,
+            error: error instanceof Error ? error.message : 'Provider stream failed',
+          };
+
+          return;
+        }
       }
     }
 

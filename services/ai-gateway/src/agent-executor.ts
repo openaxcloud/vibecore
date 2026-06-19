@@ -676,7 +676,16 @@ export async function* executeAgentRunStream(input: {
         active -= 1;
         wakeUp();
       }
-    })();
+    })().catch((error) => {
+      /*
+       * Backstop: the inner try/catch/finally handles stream + normalization
+       * errors and still decrements `active`. This only fires if the catch or
+       * finally block itself throws — without it that rejection would surface as
+       * an unhandledRejection and (with the process handler in server.ts) could
+       * crash the pod. `active` was already decremented in finally, so just log.
+       */
+      console.error('[agent-executor] lane task rejected unexpectedly', error);
+    });
   }
 
   while (active > 0 || queue.length > 0) {

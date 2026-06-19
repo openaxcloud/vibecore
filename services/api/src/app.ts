@@ -1018,6 +1018,15 @@ const adminFeatureFlagSchema = featureFlagSchema.extend({
 });
 
 const adminMaintenanceSchema = z.object({ enabled: z.boolean(), message: z.string().optional() });
+const adminLogsRedactSchema = z
+  .object({
+    organizationId: z.string().min(1).optional(),
+    actorUserId: z.string().min(1).optional(),
+    before: z.string().datetime().optional(),
+  })
+  .refine((value) => Boolean(value.organizationId || value.actorUserId), {
+    message: 'organizationId or actorUserId is required to scope the redaction',
+  });
 
 const adminAnnouncementSchema = z.object({
   message: z.string().min(1),
@@ -6403,17 +6412,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     { config: { rateLimit: { max: Number(process.env.CONTACT_SALES_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' } } },
     async (request, reply) => {
       const body = parse(contactSalesSchema, request.body);
-      await emailProvider.send({
-        to: process.env.SALES_EMAIL_TO ?? process.env.EMAIL_FROM ?? 'sales@vibecore.local',
-        subject: `E-Code sales request - ${body.company}`,
-        text: [
-          `Email: ${body.email}`,
-          `Company: ${body.company}`,
-          `Team size: ${body.teamSize ?? 'not provided'}`,
-          '',
-          body.requirements,
-        ].join('\n'),
-      });
+
+      /*
+       * The sales notification email is a best-effort side effect. An SMTP/webhook
+       * failure must not surface a 500 to a prospect filling out the form (matching
+       * /auth/register, which already degrades gracefully). Log and still return
+       * 202 so the lead isn't told the request failed; operators see the error.
+       */
+      try {
+        await emailProvider.send({
+          to: process.env.SALES_EMAIL_TO ?? process.env.EMAIL_FROM ?? 'sales@vibecore.local',
+          subject: `E-Code sales request - ${body.company}`,
+          text: [
+            `Email: ${body.email}`,
+            `Company: ${body.company}`,
+            `Team size: ${body.teamSize ?? 'not provided'}`,
+            '',
+            body.requirements,
+          ].join('\n'),
+        });
+      } catch (error) {
+        request.log.error({ err: error, company: body.company }, 'failed to send contact-sales email');
+      }
 
       return reply.code(202).send({ ok: true });
     },
@@ -8064,7 +8084,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { key, enabled };
   });
 
-  app.post('/api/keys', async (request, reply) => {
+  app.post(
+    '/api/keys',
+    {
+      /*
+       * Cap credential minting. Without a limit an authenticated session could
+       * mint unbounded long-lived API keys (DB bloat + a large credential
+       * blast-radius). Operators can lift it via API_KEYS_CREATE_RATE_LIMIT_MAX.
+       */
+      config: {
+        rateLimit: { max: Number(process.env.API_KEYS_CREATE_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' },
+      },
+    },
+    async (request, reply) => {
     if (!request.currentUser) {
       return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
     }
@@ -8103,7 +8135,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // `token` is the only time the plaintext key is ever returned.
     return reply.code(201).send({ key: { ...publicApiKey(created), token } });
-  });
+    },
+  );
 
   app.delete('/api/keys/:keyId', async (request, reply) => {
     if (!request.currentUser) {
@@ -18365,9 +18398,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/admin/logs/redact', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
-    await recordAdminAction(request, store, { action: 'admin.logs.redact', metadata: { requested: true } });
 
-    return { redacted: true };
+    const body = parse(adminLogsRedactSchema, request.body);
+
+    /*
+     * Previously a no-op that returned `{ redacted: true }` while leaving every
+     * audit-log row (incl. IP addresses + metadata) intact — a compliance liability
+     * because it looked successful. Perform the real redaction over the scoped
+     * AuditLog rows and report the actual count.
+     */
+    const { redacted } = await store.redactAuditLogs({
+      organizationId: body.organizationId,
+      actorUserId: body.actorUserId,
+      before: body.before,
+    });
+    await recordAdminAction(request, store, {
+      action: 'admin.logs.redact',
+      metadata: {
+        organizationId: body.organizationId,
+        actorUserId: body.actorUserId,
+        before: body.before,
+        redacted,
+      },
+    });
+
+    return { redacted };
   });
 
   app.post('/admin/abuse-events/:abuseEventId/resolve', async (request) => {

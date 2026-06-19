@@ -475,6 +475,12 @@ export async function executeAgentOrchestrationStream(input: {
    */
   const fetchSignal = input.signal ? AbortSignal.any([controller.signal, input.signal]) : controller.signal;
 
+  /*
+   * Hoisted so the finally can cancel it on ANY abnormal exit (error/timeout/abort),
+   * releasing the lock and closing the upstream SSE connection instead of leaking it.
+   */
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+
   try {
     const response = await fetcher(new URL('/v1/agent-runs/stream', endpoint).toString(), {
       method: 'POST',
@@ -496,7 +502,8 @@ export async function executeAgentOrchestrationStream(input: {
       throw new AgentExecutorError(`Sub-agent executor returned HTTP ${response.status}.`, 'http-error');
     }
 
-    const reader = response.body.getReader();
+    reader = response.body.getReader();
+
     const decoder = new TextDecoder();
 
     let buffer = '';
@@ -573,6 +580,14 @@ export async function executeAgentOrchestrationStream(input: {
   } finally {
     if (idleTimer) {
       clearTimeout(idleTimer);
+    }
+
+    /*
+     * Cancel the body reader so an early break/throw never leaks the upstream
+     * connection (no-op once the stream has already completed normally).
+     */
+    if (reader) {
+      void reader.cancel().catch(() => undefined);
     }
   }
 }

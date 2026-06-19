@@ -2782,4 +2782,44 @@ export class TestApiStore implements ApiStore {
   async listAdminAuditLogs() {
     return this.adminAuditLogs;
   }
+
+  async redactAuditLogs(input: { organizationId?: string; actorUserId?: string; before?: string }) {
+    if (!input.organizationId && !input.actorUserId) {
+      return { redacted: 0 };
+    }
+
+    const before = input.before ? new Date(input.before) : undefined;
+    const beforeMs = before && !Number.isNaN(before.getTime()) ? before.getTime() : undefined;
+
+    let redacted = 0;
+
+    for (const event of this.auditLogs) {
+      if (input.organizationId && event.organizationId !== input.organizationId) {
+        continue;
+      }
+
+      if (input.actorUserId && event.actorUserId !== input.actorUserId) {
+        continue;
+      }
+
+      if (beforeMs !== undefined) {
+        const createdAt = (event as AuditEvent & { createdAt?: string }).createdAt;
+        const createdMs = createdAt ? new Date(createdAt).getTime() : undefined;
+
+        if (createdMs === undefined || createdMs >= beforeMs) {
+          continue;
+        }
+      }
+
+      if (event.ipAddress == null) {
+        continue; // already redacted — keep the count truthful
+      }
+
+      event.ipAddress = undefined;
+      event.metadata = { redacted: true };
+      redacted += 1;
+    }
+
+    return { redacted };
+  }
 }

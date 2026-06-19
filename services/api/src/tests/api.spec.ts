@@ -1790,6 +1790,81 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('redacts scoped audit-log PII (no longer a no-op) and reports a real count', async () => {
+    process.env.PLATFORM_ADMIN_EMAILS = 'redact-admin@example.com';
+
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const admin = await register(app, { email: 'redact-admin@example.com', organizationName: 'Redact Admin Org' });
+    await verifyEmail(app, admin.verificationToken);
+
+    const customer = await register(app, { email: 'redact-customer@example.com', organizationName: 'Redact Customer Org' });
+
+    // Seed two audit rows carrying PII (ipAddress) for the customer org.
+    await store.recordAudit({
+      organizationId: customer.organization.id,
+      actorUserId: customer.user.id,
+      action: 'project.create',
+      resourceType: 'project',
+      ipAddress: '203.0.113.7',
+    });
+    await store.recordAudit({
+      organizationId: customer.organization.id,
+      actorUserId: customer.user.id,
+      action: 'project.delete',
+      resourceType: 'project',
+      ipAddress: '203.0.113.8',
+    });
+
+    await reauth(app, admin.token);
+    const setup = await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/setup',
+      headers: { authorization: `Bearer ${admin.token}` },
+    });
+    await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/verify',
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: { code: createTotpCode(setup.json().secret) },
+    });
+    await reauth(app, admin.token);
+
+    // A selector is mandatory — an unscoped request is rejected.
+    const unscoped = await app.inject({
+      method: 'POST',
+      url: '/admin/logs/redact',
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: {},
+    });
+    expect(unscoped.statusCode).toBe(400);
+
+    const redact = await app.inject({
+      method: 'POST',
+      url: '/admin/logs/redact',
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: { organizationId: customer.organization.id },
+    });
+    expect(redact.statusCode).toBe(200);
+    // At least the two PII rows we seeded (registration may add its own audit rows).
+    expect(redact.json().redacted).toBeGreaterThanOrEqual(2);
+
+    const rows = await store.listAuditLogs(customer.organization.id);
+    expect(rows.every((row) => row.ipAddress == null)).toBe(true);
+
+    // Idempotent: a second pass redacts nothing.
+    const again = await app.inject({
+      method: 'POST',
+      url: '/admin/logs/redact',
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: { organizationId: customer.organization.id },
+    });
+    expect(again.json().redacted).toBe(0);
+
+    delete process.env.PLATFORM_ADMIN_EMAILS;
+    await app.close();
+  });
+
   it('requires re-authentication and records admin audit logs for manual abuse events', async () => {
     process.env.PLATFORM_ADMIN_EMAILS = 'abuse-admin@example.com';
 

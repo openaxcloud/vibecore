@@ -1,5 +1,29 @@
 import { data as json } from 'react-router';
 import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
+import { readSessionToken } from '~/lib/enterprise-api.server';
+
+/*
+ * Same-origin CORS origin for the git proxy. The IDE's isomorphic-git client
+ * calls `/api/git-proxy/...` on its own origin, so the only legitimate CORS
+ * origin is the request's own origin. Returning `*` (the previous behaviour)
+ * made this an open cross-origin proxy that any site could drive to relay a
+ * caller's git Authorization/PAT. Echo the request Origin only when it equals
+ * the deployment origin; otherwise omit the header so a cross-origin page gets
+ * no usable response.
+ */
+function sameOriginCors(request: Request): string | undefined {
+  const origin = request.headers.get('origin');
+
+  if (!origin) {
+    return undefined;
+  }
+
+  try {
+    return origin === new URL(request.url).origin ? origin : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 // Allowed headers to forward to the target server
 const ALLOW_HEADERS = [
@@ -194,18 +218,34 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
       return json({ error: 'Invalid proxy URL format' }, { status: 400 });
     }
 
-    // Handle CORS preflight request
+    // Handle CORS preflight request (carries no session cookie — gate is below)
     if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        status: 200,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-          'Access-Control-Allow-Headers': ALLOW_HEADERS.join(', '),
-          'Access-Control-Expose-Headers': EXPOSE_HEADERS.join(', '),
-          'Access-Control-Max-Age': '86400',
-        },
-      });
+      const preflightHeaders: Record<string, string> = {
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': ALLOW_HEADERS.join(', '),
+        'Access-Control-Expose-Headers': EXPOSE_HEADERS.join(', '),
+        'Access-Control-Max-Age': '86400',
+        Vary: 'Origin',
+      };
+
+      const preflightOrigin = sameOriginCors(request);
+
+      if (preflightOrigin) {
+        preflightHeaders['Access-Control-Allow-Origin'] = preflightOrigin;
+      }
+
+      return new Response(null, { status: 200, headers: preflightHeaders });
+    }
+
+    /*
+     * Require an authenticated session. This proxy forwards to arbitrary public
+     * https git hosts AND relays the caller's Authorization header (a git PAT /
+     * Basic credential). Left unauthenticated it is a bandwidth-abuse vector and
+     * an anonymous credential relay. The IDE always calls it same-origin, so the
+     * session cookie is present.
+     */
+    if (!readSessionToken(request)) {
+      return json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Extract domain and remaining path
@@ -340,8 +380,14 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     // Create response headers
     const responseHeaders = new Headers();
 
-    // Add CORS headers
-    responseHeaders.set('Access-Control-Allow-Origin', '*');
+    // Add CORS headers — same-origin only (never `*`), no Allow-Credentials.
+    const responseOrigin = sameOriginCors(request);
+
+    if (responseOrigin) {
+      responseHeaders.set('Access-Control-Allow-Origin', responseOrigin);
+    }
+
+    responseHeaders.set('Vary', 'Origin');
     responseHeaders.set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
     responseHeaders.set('Access-Control-Allow-Headers', ALLOW_HEADERS.join(', '));
     responseHeaders.set('Access-Control-Expose-Headers', EXPOSE_HEADERS.join(', '));

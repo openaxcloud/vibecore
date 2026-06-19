@@ -1523,6 +1523,20 @@ export interface ApiStore {
   updateAbuseEvent(input: { abuseEventId: string; resolved?: boolean }): Promise<AbuseEventRecord>;
   recordAdminAudit(event: AdminAuditLogRecord): Promise<void>;
   listAdminAuditLogs(): Promise<AdminAuditLogRecord[]>;
+
+  /**
+   * Redact PII from stored {@link AuditLog} rows matching the given selector:
+   * nulls the `ipAddress` and replaces `metadata` with a redaction tombstone.
+   * At least one selector (organizationId or actorUserId) must be supplied so a
+   * caller cannot wipe the entire audit trail; `before` further bounds it to
+   * rows created strictly before that instant. Returns the number of rows
+   * actually redacted (idempotent — already-redacted rows are skipped).
+   */
+  redactAuditLogs(input: {
+    organizationId?: string;
+    actorUserId?: string;
+    before?: string;
+  }): Promise<{ redacted: number }>;
 }
 
 export function permissionsForRole(roleKey: string): PermissionKey[] {

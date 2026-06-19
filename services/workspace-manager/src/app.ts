@@ -220,6 +220,27 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     }
 
     /*
+     * Per-tenant authorization for the preview hot path. preview-proxy forwards
+     * the requester's orgId (from the verified vc_preview cookie) as ?orgId=;
+     * reject when it does not own this workspace so one tenant can never resolve
+     * another tenant's agent URL/token by guessing a workspaceId. Gated by
+     * WORKSPACE_MANAGER_ENFORCE_PREVIEW_TENANT so it stays inert until the
+     * coordinated rollout flips both services on together — until then a missing
+     * orgId param (the current preview-proxy build) preserves today's behaviour.
+     */
+    const requesterOrgId = (request.query as any)?.orgId as string | undefined;
+
+    if (process.env.WORKSPACE_MANAGER_ENFORCE_PREVIEW_TENANT === 'true') {
+      if (!requesterOrgId || requesterOrgId !== workspace.orgId) {
+        return reply.code(403).send({ error: 'Preview access denied', code: 'WORKSPACE_TENANT_FORBIDDEN' });
+      }
+    } else if (requesterOrgId && requesterOrgId !== workspace.orgId) {
+      // Enforcement off but a mismatching orgId was supplied — still deny; this
+      // can only happen once preview-proxy is sending the cookie-derived org.
+      return reply.code(403).send({ error: 'Preview access denied', code: 'WORKSPACE_TENANT_FORBIDDEN' });
+    }
+
+    /*
      * The standalone preview-proxy resolves the agent through this route on
      * every host-based preview request. A user actively testing their running
      * app via the preview URL (no IDE tab open to run the watch pollers) would

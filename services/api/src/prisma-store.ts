@@ -3717,6 +3717,42 @@ export class PrismaApiStore implements ApiStore {
     });
   }
 
+  async redactAuditLogs(input: { organizationId?: string; actorUserId?: string; before?: string }) {
+    const where: Record<string, unknown> = {
+      // Skip rows already redacted so the count reflects real work + the op is idempotent.
+      ipAddress: { not: null },
+    };
+
+    if (input.organizationId) {
+      where.organizationId = input.organizationId;
+    }
+
+    if (input.actorUserId) {
+      where.actorUserId = input.actorUserId;
+    }
+
+    if (input.before) {
+      const before = new Date(input.before);
+
+      if (!Number.isNaN(before.getTime())) {
+        where.createdAt = { lt: before };
+      }
+    }
+
+    // Guard against an unscoped wipe: a selector is mandatory at the route layer,
+    // but defend here too so a future caller can never null the whole trail.
+    if (!input.organizationId && !input.actorUserId) {
+      return { redacted: 0 };
+    }
+
+    const result = await this.prisma.auditLog.updateMany({
+      where: where as any,
+      data: { ipAddress: null, metadata: { redacted: true, redactedAt: new Date().toISOString() } as any },
+    });
+
+    return { redacted: result.count };
+  }
+
   async listAdminAuditLogs() {
     return (await this.prisma.adminAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 1000 })).map(
       (event): AdminAuditLogRecord => ({

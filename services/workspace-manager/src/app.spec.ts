@@ -203,6 +203,48 @@ describe('workspace-manager app', () => {
     await app.close();
   });
 
+  it('rejects an agent resolution whose orgId does not own the workspace', async () => {
+    process.env.WORKSPACE_RUNTIME_NAMESPACE = 'prod-workspaces';
+    process.env.PREVIEW_PROXY_SHARED_SECRET = 'preview-secret\n';
+    process.env.WORKSPACE_AGENT_URL_TEMPLATE = 'http://workspace-{workspaceId}.{namespace}.svc:8080';
+    delete process.env.WORKSPACE_MANAGER_ENFORCE_PREVIEW_TENANT;
+
+    const runtime = manager();
+    const app = buildWorkspaceManagerApp(runtime.manager);
+
+    await runtime.store.create({
+      id: 'ws_1',
+      orgId: 'org_1',
+      projectId: 'project_1',
+      plan: 'free',
+      status: 'RUNNING',
+      pvcName: 'pvc-ws_1',
+      podName: 'workspace-ws_1',
+      serviceName: 'workspace-ws_1',
+      agentTokenSecretName: 'agent-token-ws_1',
+    });
+
+    const headers = { authorization: 'Bearer preview-secret' };
+
+    // Matching org → 200, even with enforcement off.
+    const ownOrg = await app.inject({ method: 'GET', url: '/internal/workspaces/ws_1/agent?orgId=org_1', headers });
+    expect(ownOrg.statusCode).toBe(200);
+
+    // Mismatched org → 403 (cross-tenant denial), regardless of the flag.
+    const otherOrg = await app.inject({ method: 'GET', url: '/internal/workspaces/ws_1/agent?orgId=org_2', headers });
+    expect(otherOrg.statusCode).toBe(403);
+    expect(otherOrg.json().code).toBe('WORKSPACE_TENANT_FORBIDDEN');
+
+    // Enforcement on + no orgId supplied → 403 (fail closed).
+    process.env.WORKSPACE_MANAGER_ENFORCE_PREVIEW_TENANT = 'true';
+
+    const noOrg = await app.inject({ method: 'GET', url: '/internal/workspaces/ws_1/agent', headers });
+    expect(noOrg.statusCode).toBe(403);
+
+    delete process.env.WORKSPACE_MANAGER_ENFORCE_PREVIEW_TENANT;
+    await app.close();
+  });
+
   describe('database rollback k8s bridge (Phase 2)', () => {
     const cnpgCluster = {
       apiVersion: 'postgresql.cnpg.io/v1',

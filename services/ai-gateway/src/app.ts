@@ -174,6 +174,24 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
 
           result = await iterator.next();
         }
+      } catch (error) {
+        /*
+         * A provider error AFTER the first chunk (the 200 + SSE headers are already
+         * committed and cannot be unsent). Previously this propagated unhandled,
+         * tearing the connection with no signal — the client saw a silent
+         * truncation. Emit a terminal SSE error frame so the consumer can surface
+         * a real failure, then fall through to the finally for cleanup.
+         */
+        const message = error instanceof Error ? error.message : 'AI stream failed.';
+        request.log?.error?.({ err: error }, 'ai-gateway stream interrupted mid-flight');
+
+        if (!reply.raw.writableEnded) {
+          try {
+            reply.raw.write(`data: ${JSON.stringify({ error: message, code: 'AI_STREAM_INTERRUPTED' })}\n\n`);
+          } catch {
+            // socket already closed — nothing further to emit
+          }
+        }
       } finally {
         request.raw.off('close', onClientClose);
         await iterator.return?.(undefined);
