@@ -306,6 +306,13 @@ export async function executeAgentOrchestration(input: {
    * one shared rate-limit bucket.
    */
   rateLimitKey?: string;
+
+  /*
+   * Caller-supplied cancellation (e.g. the chat request's AbortSignal). Combined
+   * with the internal timeout so cancelling mid-run aborts the upstream fetch
+   * immediately instead of billing every lane until the timeout fires.
+   */
+  signal?: AbortSignal;
 }): Promise<AgentExecutionResponse> {
   if (!input.plan.enabled || input.plan.mode !== 'parallel-subagents') {
     throw new AgentExecutorError('Parallel sub-agent execution is not enabled for this request.', 'not-configured');
@@ -329,6 +336,14 @@ export async function executeAgentOrchestration(input: {
   const fetcher = input.fetchImpl ?? fetch;
   const token = getSubagentExecutorToken(input.env)?.trim();
 
+  /*
+   * Abort the upstream fetch when EITHER the internal timeout fires OR the caller
+   * cancels (e.g. the user stops the chat). Without the caller signal a cancelled
+   * chat leaves every lane streaming until the timeout, billing the org for work
+   * nobody is watching.
+   */
+  const fetchSignal = input.signal ? AbortSignal.any([controller.signal, input.signal]) : controller.signal;
+
   try {
     const response = await fetcher(new URL('/v1/agent-runs', endpoint).toString(), {
       method: 'POST',
@@ -346,7 +361,7 @@ export async function executeAgentOrchestration(input: {
         })),
         ...(input.rateLimitKey ? { rateLimitKey: input.rateLimitKey } : {}),
       }),
-      signal: controller.signal,
+      signal: fetchSignal,
     });
 
     if (!response.ok) {
@@ -406,6 +421,13 @@ export async function executeAgentOrchestrationStream(input: {
   timeoutMs?: number;
   fetchImpl?: typeof fetch;
   rateLimitKey?: string;
+
+  /*
+   * Caller-supplied cancellation (e.g. the chat request's AbortSignal). Combined
+   * with the idle timeout so cancelling mid-stream aborts the upstream SSE
+   * immediately instead of streaming every lane until the idle deadline.
+   */
+  signal?: AbortSignal;
   onEvent: (event: AgentLaneStreamEvent) => void;
 }): Promise<AgentExecutionResponse> {
   if (!input.plan.enabled || input.plan.mode !== 'parallel-subagents') {
@@ -445,6 +467,14 @@ export async function executeAgentOrchestrationStream(input: {
   const fetcher = input.fetchImpl ?? fetch;
   const token = getSubagentExecutorToken(input.env)?.trim();
 
+  /*
+   * Abort the upstream SSE when EITHER the idle timeout fires OR the caller
+   * cancels (e.g. the user stops the chat). Without the caller signal a cancelled
+   * chat leaves every lane streaming until the idle deadline, billing the org for
+   * work nobody is watching.
+   */
+  const fetchSignal = input.signal ? AbortSignal.any([controller.signal, input.signal]) : controller.signal;
+
   try {
     const response = await fetcher(new URL('/v1/agent-runs/stream', endpoint).toString(), {
       method: 'POST',
@@ -459,7 +489,7 @@ export async function executeAgentOrchestrationStream(input: {
         messages: input.messages.map((message) => ({ role: message.role, content: getTextContent(message) })),
         ...(input.rateLimitKey ? { rateLimitKey: input.rateLimitKey } : {}),
       }),
-      signal: controller.signal,
+      signal: fetchSignal,
     });
 
     if (!response.ok || !response.body) {

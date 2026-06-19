@@ -66,6 +66,22 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
   const terminalPanelRef = useRef<ImperativePanelHandle>(null);
   const terminalToggledByShortcut = useRef(false);
 
+  /*
+   * Stable React keys per pane index. Keying by raw array index unmounts the
+   * wrong Terminal when a non-last shell is closed (every higher pane shifts
+   * down), so each index gets a monotonic id that is reassigned on close.
+   */
+  const nextTerminalId = useRef(1);
+  const terminalIds = useRef<number[]>([0]);
+
+  const getTerminalId = useCallback((index: number) => {
+    while (terminalIds.current.length <= index) {
+      terminalIds.current.push(nextTerminalId.current++);
+    }
+
+    return terminalIds.current[index];
+  }, []);
+
   const initialUiState = useMemo(readTerminalUiState, []);
   const [activeTerminal, setActiveTerminal] = useState(initialUiState.activeTerminal);
   const [terminalCount, setTerminalCount] = useState(initialUiState.terminalCount);
@@ -125,6 +141,9 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
 
       // Remove the terminal from refs
       terminalRefs.current.delete(index);
+
+      // Drop the closed pane's stable id so surviving panes keep theirs
+      terminalIds.current.splice(index, 1);
 
       // Adjust terminal count and active terminal
       setTerminalCount(terminalCount - 1);
@@ -606,7 +625,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                 if (index == 0) {
                   return (
                     <Terminal
-                      key={`terminal-${index}`}
+                      key={`terminal-${getTerminalId(index)}`}
                       id={`terminal_${index}`}
                       className={classNames(
                         'bolt-terminal-viewport-frame h-full overflow-hidden modern-scrollbar-invert',
@@ -632,7 +651,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                 } else {
                   return (
                     <Terminal
-                      key={`terminal-${index}`}
+                      key={`terminal-${getTerminalId(index)}`}
                       id={`terminal_${index}`}
                       className={classNames('bolt-terminal-viewport-frame modern-scrollbar h-full overflow-hidden', {
                         hidden: !isActive,
@@ -658,7 +677,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
           </div>
           {Array.from({ length: terminalCount + 1 }, (_, index) => (
             <TerminalManager
-              key={`terminal-manager-${index}`}
+              key={`terminal-manager-${getTerminalId(index)}`}
               terminal={terminalRefs.current.get(index)?.getTerminal() || null}
               isActive={visibleTerminalIndexes.includes(index)}
             />

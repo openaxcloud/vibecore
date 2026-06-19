@@ -2581,14 +2581,16 @@ export class WorkbenchStore {
      * the whole sync with exponential backoff on transient errors — the file
      * writes here are idempotent so re-running is safe.
      *
-     * Budget: 6 attempts (~0.75+1.5+3+6+8 ≈ 19s) so the FIRST open of a brand-new
-     * project survives the gap between the pod reporting Ready and the agent
-     * actually serving /files. The old 4-attempt (~5s) budget could expire while
-     * a cold workspace was still warming, silently skipping the sync → empty
-     * node_modules → dead preview on first load.
+     * Budget: 8 attempts (~0.75+1.5+3+6+8+8+8 ≈ 35s) so the FIRST open of a
+     * brand-new project — or the reopen of an older project whose workspace pod
+     * was GC'd and must be re-provisioned cold — survives the gap between the pod
+     * reporting Ready and the agent actually serving /files. The earlier 6-attempt
+     * (~19s) budget could still expire on a slow cold/re-provision (sustained
+     * 502s), silently skipping the sync → empty node_modules → dead preview; the
+     * user is then directed to the "reinstall dependencies" recourse.
      */
     return withRuntimeRetry(() => this.#syncPreviewManifestFromRuntimeOnce(), {
-      attempts: 6,
+      attempts: 8,
       onRetry: (attempt, delayMs, error) => {
         const reason = error instanceof Error ? error.message : String(error);
         this.appendWorkspaceLog(

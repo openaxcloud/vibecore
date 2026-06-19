@@ -25,10 +25,26 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw new Response('Project not found', { status: 404 });
   }
 
-  const resolved = await apiRequest<ResolveProjectResponse>(
-    request,
-    `/projects/resolve?accountSlug=${encodeURIComponent(accountSlug)}&projectSlug=${encodeURIComponent(projectSlug)}`,
-  );
+  let resolved: ResolveProjectResponse;
+
+  try {
+    resolved = await apiRequest<ResolveProjectResponse>(
+      request,
+      `/projects/resolve?accountSlug=${encodeURIComponent(accountSlug)}&projectSlug=${encodeURIComponent(projectSlug)}`,
+    );
+  } catch (error) {
+    /* Re-throw genuine 404s and redirects so project-not-found still resolves correctly. */
+    if (error instanceof Response && error.status < 500) {
+      throw error;
+    }
+
+    /*
+     * Transient API failures (5xx, network/timeout) would otherwise surface as a bare thrown
+     * Response and crash the whole IDE page. Send the user to the dashboard instead so the
+     * readable account/project URL degrades gracefully and can be retried.
+     */
+    throw redirect('/dashboard');
+  }
 
   const url = new URL(request.url);
 

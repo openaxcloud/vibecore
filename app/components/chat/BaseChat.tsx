@@ -8828,10 +8828,24 @@ function ProjectIdeServicePanel({
         ) : null}
         {busy && !payload ? (
           <div
-            className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-sm text-bolt-elements-textSecondary"
+            className="flex flex-col gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-sm text-bolt-elements-textSecondary"
             role="status"
           >
-            Loading {title.toLowerCase()} from backend&hellip;
+            <span>Loading {title.toLowerCase()} from backend&hellip;</span>
+            {/*
+             * This load can hang when the workspace is still starting (or has no
+             * data for this panel, e.g. a project with no database) — don't leave
+             * the user on a dead-end spinner; offer a manual retry.
+             */}
+            {reload ? (
+              <button
+                type="button"
+                className="self-start rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+                onClick={() => void reload?.()}
+              >
+                Retry
+              </button>
+            ) : null}
           </div>
         ) : payload?.status === 'empty' && !error && !rendersEmptyStateActions ? (
           <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6 text-center text-sm text-bolt-elements-textSecondary">
@@ -11885,10 +11899,24 @@ function ProjectSettingsPanel({
         }),
       });
 
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        skipped?: string;
+      };
 
       if (!response.ok) {
         throw new Error(payload.error ?? 'Unable to save memory');
+      }
+
+      /*
+       * The API returns 202 (ok) with a {skipped} reason (quota_exceeded /
+       * too_short) when the write was NOT persisted — don't claim "saved".
+       */
+      if (response.status === 202 || payload.skipped) {
+        setMemoryError(`Memory not saved: ${payload.skipped ?? 'rejected by the server'}.`);
+        setSettingsNotice('Memory not saved.');
+
+        return;
       }
 
       setMemoryDraft('');

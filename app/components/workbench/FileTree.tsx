@@ -4,6 +4,10 @@ import { diffLines, type Change } from 'diff';
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { toast } from 'react-toastify';
 import { GitStatusBadge } from '~/components/git/GitStatusBadge';
+import {
+  isFileLocked as readFileLockedFromStorage,
+  isFolderLocked as readFolderLockedFromStorage,
+} from '~/lib/persistence/lockedFiles';
 import type { FileMap } from '~/lib/stores/files';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { FileHistory } from '~/types/actions';
@@ -17,6 +21,7 @@ import {
   type GitFileStatus,
   type OutlineSymbol,
 } from '~/utils/fileExplorerMetadata';
+import { getCurrentChatId } from '~/utils/fileLocks';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { path } from '~/utils/path';
 
@@ -1157,8 +1162,18 @@ function FileContextMenu({
 }
 
 function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativePath, onClick }: FolderProps) {
-  // Check if the folder is locked
-  const { isLocked } = workbenchStore.isFolderLocked(folder.fullPath);
+  /*
+   * Read the lock flag from the already-subscribed dirent rather than calling the
+   * side-effecting workbenchStore.isFolderLocked during render (it mutates the store
+   * via setKey when localStorage holds a not-yet-synced lock). Fall back to a
+   * non-mutating localStorage read when the in-memory dirent lacks the flag.
+   */
+  const dirent = workbenchStore.files.get()[folder.fullPath];
+
+  const isLocked =
+    dirent?.type === 'folder' && dirent.isLocked
+      ? true
+      : readFolderLockedFromStorage(getCurrentChatId(), folder.fullPath).locked;
 
   return (
     <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath} fullPath={folder.fullPath}>
@@ -1221,8 +1236,16 @@ function File({
 }: FileProps) {
   const { depth, name, fullPath } = file;
 
-  // Check if the file is locked
-  const { locked } = workbenchStore.isFileLocked(fullPath);
+  /*
+   * Read the lock flag from the already-subscribed dirent rather than calling the
+   * side-effecting workbenchStore.isFileLocked during render (it mutates the store
+   * via setKey when localStorage holds a not-yet-synced lock). Fall back to a
+   * non-mutating localStorage read when the in-memory dirent lacks the flag.
+   */
+  const dirent = workbenchStore.files.get()[fullPath];
+
+  const locked =
+    dirent?.type === 'file' && dirent.isLocked ? true : readFileLockedFromStorage(getCurrentChatId(), fullPath).locked;
 
   const fileModifications = fileHistory[fullPath];
 

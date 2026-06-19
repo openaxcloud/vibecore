@@ -486,6 +486,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                    * available here) so one project can't exhaust the global limit.
                    */
                   rateLimitKey: projectId,
+
+                  /*
+                   * Cancelling the chat must abort the upstream agent-run stream so
+                   * the org isn't billed for lanes nobody is watching.
+                   */
+                  signal: request.signal,
                   onEvent: (event) => {
                     if (event.type === 'lane-start') {
                       dataStream.writeMessageAnnotation({
@@ -523,6 +529,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   plan: orchestrationPlan,
                   messages: processedMessages,
                   rateLimitKey: projectId,
+                  signal: request.signal,
                 });
               }
 

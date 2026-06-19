@@ -21,6 +21,17 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
    */
   private _didResetMessages = new Set<string>();
 
+  /*
+   * Tracks messages whose last parse() fed the WRAPPED (auto-wrapped) input into
+   * the base parser. The base parser saves a per-message stream position, so the
+   * input mode must stay consistent across streaming chunks. If a later chunk
+   * would feed the raw input (e.g. every detected block's hash is already in the
+   * processed-set, so nothing re-wraps) while the prior chunk was wrapped, the
+   * saved position points into the wrong coordinate space and corrupts output.
+   * On such a mode flip we reset the message and re-parse in the current mode.
+   */
+  private _wrappedMessages = new Set<string>();
+
   // Optimized command pattern lookup
   private _commandPatternMap = new Map<string, RegExp>([
     ['npm', /^(npm|yarn|pnpm)\s+(install|run|start|build|dev|test|init|create|add|remove)/],
@@ -54,9 +65,17 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
      */
     if (!this._hasDetectedArtifacts(input)) {
       const enhancedInput = this._detectAndWrapCodeBlocks(messageId, input);
+      const wasWrapped = this._wrappedMessages.has(messageId);
 
-      if (enhancedInput !== input) {
+      /*
+       * Feed the wrapped coordinate space whenever this chunk produced a wrap OR a
+       * prior chunk did. Re-running the detection on the full input keeps the wrap
+       * stable even after dedup stops re-wrapping a block, so the base parser never
+       * mixes wrapped and unwrapped offsets across streaming chunks.
+       */
+      if (enhancedInput !== input || wasWrapped) {
         this.resetMessage(messageId);
+        this._wrappedMessages.add(messageId);
 
         // Returned value is the FULL re-parsed message — flag it so the caller replaces.
         this._didResetMessages.add(messageId);
@@ -572,6 +591,7 @@ ${content.trim()}
   reset() {
     super.reset();
     this._processedCodeBlocks.clear();
+    this._wrappedMessages.clear();
     this._artifactCounter = 0;
   }
 }

@@ -1,10 +1,12 @@
 import { Layers, RotateCcw } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
-import { Form, useLoaderData, useNavigation } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
+  apiErrorMessage,
   apiRequest,
+  json,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
@@ -21,14 +23,26 @@ export const loader = (args: EnterpriseLoaderArgs) =>
 export const action = (args: EnterpriseActionArgs) =>
   projectAction(args, {
     create: async ({ request, projectId, body }) => {
-      await apiRequest(request, `/projects/${projectId}/snapshots`, {
-        method: 'POST',
-        body: JSON.stringify({ label: body.label || 'Manual checkpoint', kind: 'manual', manifest: {} }),
-      });
+      try {
+        await apiRequest(request, `/projects/${projectId}/snapshots`, {
+          method: 'POST',
+          body: JSON.stringify({ label: body.label || 'Manual checkpoint', kind: 'manual', manifest: {} }),
+        });
+      } catch (error) {
+        /* Surface RBAC/validation/storage failures inline instead of throwing to the error boundary. */
+        const status = error instanceof Response ? error.status : 400;
+        return json({ error: await apiErrorMessage(error, 'Snapshot create failed.') }, { status });
+      }
       return redirect(`/projects/${projectId}/snapshots`);
     },
     restore: async ({ request, projectId, body }) => {
-      await apiRequest(request, `/projects/${projectId}/snapshots/${body.snapshotId}/restore`, { method: 'POST' });
+      try {
+        await apiRequest(request, `/projects/${projectId}/snapshots/${body.snapshotId}/restore`, { method: 'POST' });
+      } catch (error) {
+        /* A failed restore (409 SNAPSHOT_STORAGE_MISSING / CHECKSUM_MISMATCH) should show inline, not crash. */
+        const status = error instanceof Response ? error.status : 400;
+        return json({ error: await apiErrorMessage(error, 'Snapshot restore failed.') }, { status });
+      }
       return redirect(`/projects/${projectId}/snapshots`);
     },
   });
@@ -37,6 +51,7 @@ export default function ProjectSnapshotsPage() {
   const { project, data } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   const busy = navigation.state !== 'idle';
+  const actionData = useActionData<typeof action>() as { error?: string } | undefined;
 
   return (
     <ProjectShell
@@ -74,6 +89,11 @@ export default function ProjectSnapshotsPage() {
               {busy ? 'Working…' : 'Create snapshot'}
             </Button>
           </Form>
+          {actionData?.error ? (
+            <p className="text-sm text-red-500" role="alert">
+              {actionData.error}
+            </p>
+          ) : null}
           {data.snapshots.map((snapshot) => (
             <Form
               method="post"
