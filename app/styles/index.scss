@@ -6884,6 +6884,12 @@ body :where(.lucide, svg[data-lucide]) {
    * not viewport width.
    */
   container-type: inline-size;
+  /*
+   * Positioning context for the mode dropdown's popup: anchoring the popup here
+   * (the full-pane-width toolbar) instead of to the tiny trigger lets it span /
+   * cap to the PANE width and never overflow + clip in a narrow agent pane.
+   */
+  position: relative;
   display: flex;
   min-height: 44px;
   align-items: center;
@@ -6973,7 +6979,13 @@ body :where(.lucide, svg[data-lucide]) {
  * Replit's agent-mode popup; opens upward over the composer. ecode-accented.
  */
 .bolt-chatbox-mode-dropdown {
-  position: relative;
+  /*
+   * Intentionally NOT a positioning context. The popup below anchors to the
+   * toolbar (its query container) so it can size/cap to the pane width; making
+   * this tiny trigger wrapper `position: relative` would re-trap the popup and
+   * reintroduce the right-edge clipping in narrow panes.
+   */
+  position: static;
   flex: 0 0 auto;
 }
 
@@ -7023,10 +7035,18 @@ body :where(.lucide, svg[data-lucide]) {
   position: absolute;
   z-index: 90;
   bottom: calc(100% + 8px);
-  left: 0;
+  /*
+   * Anchored to the toolbar (the positioned ancestor), aligned just inside its
+   * left padding. Width is a comfortable 320px but CAPPED to the pane width
+   * (`100%` = toolbar width here) minus the 8px insets, so in a narrow agent
+   * pane the popup shrinks to fit instead of overflowing the right edge and
+   * being clipped. Descriptions wrap inside; never a horizontal scrollbar.
+   */
+  left: 8px;
   display: flex;
   box-sizing: border-box;
-  width: min(300px, calc(100vw - 24px));
+  width: 320px;
+  max-width: calc(100% - 16px);
   flex-direction: column;
   gap: 2px;
   border: 1px solid var(--vc-ide-border-visible);
