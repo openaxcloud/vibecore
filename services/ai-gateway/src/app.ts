@@ -399,11 +399,15 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
             const finish = () => {
               reply.raw.off('drain', finish);
               reply.raw.off('close', finish);
+              reply.raw.off('error', finish);
               resolve();
             };
 
             reply.raw.once('drain', finish);
             reply.raw.once('close', finish);
+            // Settle on a socket 'error' too (matches /chat/completions) so a
+            // write error that doesn't emit 'close' can't hang the run loop.
+            reply.raw.once('error', finish);
           });
         }
       }
