@@ -8837,15 +8837,13 @@ function ProjectIdeServicePanel({
              * data for this panel, e.g. a project with no database) — don't leave
              * the user on a dead-end spinner; offer a manual retry.
              */}
-            {reload ? (
-              <button
-                type="button"
-                className="self-start rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
-                onClick={() => void reload?.()}
-              >
-                Retry
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="self-start rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+              onClick={() => void loadPanel()}
+            >
+              Retry
+            </button>
           </div>
         ) : payload?.status === 'empty' && !error && !rendersEmptyStateActions ? (
           <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6 text-center text-sm text-bolt-elements-textSecondary">
