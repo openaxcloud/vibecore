@@ -168,6 +168,11 @@ export interface GitProvider {
     filePath: string;
     strategy: 'ours' | 'theirs';
   }): Promise<{ resolved: boolean; filePath: string; strategy: 'ours' | 'theirs' }>;
+  discard(input: {
+    projectId: string;
+    workspaceId?: string;
+    filePaths?: string[];
+  }): Promise<{ discarded: boolean; filePaths: string[] }>;
   logGraph(projectId: string, limit?: number, workspaceId?: string): Promise<GitCommitNode[]>;
   diff(projectId: string, filePath?: string, workspaceId?: string): Promise<string>;
   blame(input: {
@@ -1038,6 +1043,23 @@ export class GitCliProvider implements GitProvider {
       await this.git(input.projectId, ['add', '--', filePath], input.workspaceId);
 
       return { resolved: true, filePath, strategy: input.strategy };
+    });
+  }
+
+  async discard(input: { projectId: string; workspaceId?: string; filePaths?: string[] }) {
+    return withProjectLock(input.projectId, async () => {
+      const paths = (input.filePaths ?? []).map((path) => path.replace(/^\/+/, '')).filter(Boolean);
+
+      /*
+       * Revert tracked working-tree changes to HEAD. `git checkout -- <pathspec>`
+       * is broadly compatible; no pathspec discards every tracked change. Untracked
+       * files are intentionally NOT removed here (deleting them would be a more
+       * destructive operation than the user's "discard changes" intent implies).
+       */
+      const pathspec = paths.length ? paths : ['.'];
+      await this.git(input.projectId, ['checkout', '--', ...pathspec], input.workspaceId);
+
+      return { discarded: true, filePaths: paths };
     });
   }
 

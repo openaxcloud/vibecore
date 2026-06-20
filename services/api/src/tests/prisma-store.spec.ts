@@ -72,6 +72,10 @@ class TestGitProvider implements GitProvider {
     return { picked: true, output: 'Cherry-picked commit' };
   }
 
+  async discard(_input: { projectId: string; workspaceId?: string; filePaths?: string[] }) {
+    return { discarded: true, filePaths: [] as string[] };
+  }
+
   async resolveConflict(input: { filePath: string; strategy: 'ours' | 'theirs' }) {
     return { resolved: true, filePath: input.filePath, strategy: input.strategy };
   }

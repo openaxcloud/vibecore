@@ -776,6 +776,12 @@ const gitConflictResolutionSchema = z.object({
   workspaceId: workspaceIdField,
 });
 
+const gitDiscardSchema = z.object({
+  // Omitted/empty → discard ALL tracked working-tree changes.
+  filePaths: z.array(z.string().min(1)).max(1000).optional(),
+  workspaceId: workspaceIdField,
+});
+
 const gitDiffQuerySchema = z.object({ filePath: z.string().optional(), workspaceId: workspaceIdField });
 
 const gitBlameQuerySchema = z.object({
@@ -18958,6 +18964,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return result;
   });
+  app.post('/projects/:projectId/git/discard', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    const body = parse(gitDiscardSchema, request.body ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
+
+    const result = await gitProvider.discard({ projectId: project.id, workspaceId, filePaths: body.filePaths });
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'git.discard',
+      metadata: { count: body.filePaths?.length ?? 'all', workspaceId: body.workspaceId },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'git.discard',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { count: body.filePaths?.length ?? 'all', workspaceId: body.workspaceId },
+    });
+
+    return result;
+  });
+
   app.get('/projects/:projectId/git/diff', async (request) => {
     const project = await requireProject(
       request,

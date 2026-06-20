@@ -151,6 +151,9 @@ export function GitTab({ projectId }: GitTabProps) {
   const [error, setError] = useState<string | undefined>();
   const [staged, setStaged] = useState<Set<string>>(new Set());
   const [inspectFile, setInspectFile] = useState('');
+
+  // Discard confirmation target: a single file path, or 'all' for every change.
+  const [discardConfirm, setDiscardConfirm] = useState<{ all: boolean; path?: string } | null>(null);
   const loadRequestRef = useRef(0);
   const inspectionRequestRef = useRef(0);
 
@@ -298,6 +301,56 @@ export function GitTab({ projectId }: GitTabProps) {
         }
 
         form.reset();
+        setStaged(new Set());
+        toast.success(`Git ${intent.replace(/-/g, ' ')} completed`);
+        await loadPanel({ silent: true });
+      } catch (requestError) {
+        const message = requestError instanceof Error ? requestError.message : 'Git action failed';
+        setError(message);
+        toast.error(message);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [loadPanel, projectId, resolvedWorkspaceId],
+  );
+
+  /*
+   * Programmatic equivalent of submitAction for buttons that aren't a <form>
+   * submit (e.g. discard). Posts the same intent payload to the git panel action.
+   */
+  const runIntent = useCallback(
+    async (intent: string, fields: Record<string, string> = {}) => {
+      if (!projectId) {
+        return;
+      }
+
+      const formData = new FormData();
+      formData.set('intent', intent);
+
+      for (const [key, value] of Object.entries(fields)) {
+        formData.set(key, value);
+      }
+
+      if (resolvedWorkspaceId) {
+        formData.set('workspaceId', resolvedWorkspaceId);
+      }
+
+      setBusy(true);
+      setError(undefined);
+
+      try {
+        const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-panel/git`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = (await response.json().catch(() => ({}))) as { error?: string };
+
+        if (!response.ok) {
+          throw new Error(result.error ?? 'Git action failed');
+        }
+
         setStaged(new Set());
         toast.success(`Git ${intent.replace(/-/g, ' ')} completed`);
         await loadPanel({ silent: true });
@@ -501,6 +554,53 @@ export function GitTab({ projectId }: GitTabProps) {
           />
         ) : null}
 
+        {discardConfirm ? (
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
+            role="dialog"
+            aria-modal="true"
+            data-testid="git-discard-confirm"
+            onClick={() => setDiscardConfirm(null)}
+          >
+            <div
+              className="w-[min(420px,100%)] rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
+                <span className="i-ph:warning-circle text-base text-red-500" aria-hidden />
+                Discard changes?
+              </h3>
+              <p className="mt-2 text-sm text-bolt-elements-textSecondary">
+                {discardConfirm.all
+                  ? `This reverts all ${changedFiles.length} changed file${changedFiles.length > 1 ? 's' : ''} to the last commit. This cannot be undone.`
+                  : `This reverts ${discardConfirm.path} to the last commit. This cannot be undone.`}
+              </p>
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+                  onClick={() => setDiscardConfirm(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  data-testid="git-discard-confirm-button"
+                  disabled={busy}
+                  className="rounded-md bg-red-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60"
+                  onClick={() => {
+                    const target = discardConfirm;
+                    setDiscardConfirm(null);
+                    void runIntent('discard', target.all || !target.path ? {} : { filePaths: target.path });
+                  }}
+                >
+                  Discard {discardConfirm.all ? 'all' : 'file'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
           <section className="grid gap-4">
             <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
@@ -531,6 +631,15 @@ export function GitTab({ projectId }: GitTabProps) {
                         Clear
                       </button>
                     ) : null}
+                    <button
+                      type="button"
+                      data-testid="git-discard-all"
+                      disabled={busy}
+                      className="rounded-md border border-red-500/40 px-2.5 py-1 text-xs font-medium text-red-500 hover:bg-red-500/10 disabled:opacity-60"
+                      onClick={() => setDiscardConfirm({ all: true })}
+                    >
+                      Discard all
+                    </button>
                   </div>
                 ) : null}
               </div>
@@ -563,6 +672,18 @@ export function GitTab({ projectId }: GitTabProps) {
                       <span className="text-xs font-semibold text-bolt-elements-item-contentAccent">
                         {staged.has(path) ? 'Staged' : 'Stage'}
                       </span>
+                      <button
+                        type="button"
+                        aria-label={`Discard changes to ${path}`}
+                        title="Discard changes"
+                        data-testid="git-discard-file"
+                        disabled={busy}
+                        className="i-ph:arrow-counter-clockwise flex-shrink-0 text-base text-bolt-elements-textSecondary hover:text-red-500 disabled:opacity-60"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setDiscardConfirm({ all: false, path });
+                        }}
+                      />
                     </label>
                   );
                 })

@@ -2083,6 +2083,17 @@ export async function action({ request, params }: EnterpriseActionArgs) {
           workspaceId,
         }),
       });
+    } else if (intent === 'discard') {
+      // Comma-separated paths; empty → discard ALL tracked working-tree changes.
+      const filePaths = String(body.filePaths ?? '')
+        .split(',')
+        .map((path) => path.trim())
+        .filter(Boolean);
+
+      await apiRequest(request, `/projects/${projectId}/git/discard`, {
+        method: 'POST',
+        body: JSON.stringify({ filePaths: filePaths.length ? filePaths : undefined, workspaceId }),
+      });
     } else if (intent === 'pr') {
       await apiRequest(request, `/projects/${projectId}/git/pull-requests`, {
         method: 'POST',

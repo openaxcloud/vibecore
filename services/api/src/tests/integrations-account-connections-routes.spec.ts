@@ -42,6 +42,10 @@ class QuietGitProvider implements GitProvider {
   async cherryPick() {
     return { picked: true, output: '' };
   }
+  async discard(_input: { projectId: string; workspaceId?: string; filePaths?: string[] }) {
+    return { discarded: true, filePaths: [] as string[] };
+  }
+
   async resolveConflict(input: { filePath: string; strategy: 'ours' | 'theirs' }) {
     return { resolved: true, filePath: input.filePath, strategy: input.strategy };
   }
