@@ -7391,7 +7391,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return accountDeletionView(state, Date.now());
   });
 
-  app.post('/account/deletion', async (request, reply) => {
+  app.post('/account/deletion', { config: { rateLimit: { max: Number(process.env.ACCOUNT_DELETE_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' } } }, async (request, reply) => {
     if (!accountDeletionEnabled()) {
       return reply.code(404).send({ error: 'not_found' });
     }
@@ -7425,7 +7425,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return accountDeletionView(existing, nowMs);
   });
 
-  app.post('/account/deletion/cancel', async (request, reply) => {
+  app.post('/account/deletion/cancel', { config: { rateLimit: { max: Number(process.env.ACCOUNT_DELETE_CANCEL_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' } } }, async (request, reply) => {
     const userId = request.currentUser!.id;
     const user = await store.findUserById(userId);
     const state = readAccountDeletionState(user?.preferences);
@@ -7944,7 +7944,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
 
-  app.post('/api/account/connections/:userConnectionId/revoke', async (request, reply) => {
+  app.post('/api/account/connections/:userConnectionId/revoke', { config: { rateLimit: { max: Number(process.env.CONNECTION_REVOKE_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' } } }, async (request, reply) => {
     if (!request.currentUser) {
       return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
     }
@@ -8432,7 +8432,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * the existing /projects/:id/git/* endpoints, which already keep the
    * token server-side.
    */
-  app.post('/api/github-proxy', async (request, reply) => {
+  app.post('/api/github-proxy', { config: { rateLimit: { max: Number(process.env.GITHUB_PROXY_RATE_LIMIT_MAX ?? 30), timeWindow: '1 minute' } } }, async (request, reply) => {
     const body = request.body as
       | { method?: string; path?: string; query?: Record<string, string>; body?: unknown }
       | undefined;
@@ -9037,7 +9037,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return service.getUserConfig(request.currentUser!.id);
   });
 
-  app.put('/mcp/config', async (request) => {
+  app.put('/mcp/config', { config: { rateLimit: { max: Number(process.env.MCP_CONFIG_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' } } }, async (request) => {
     const body = parse(mcpUserConfigSchema, request.body);
     const service = requireMcpMarketplaceService(mcpMarketplace);
 
@@ -12587,7 +12587,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { enabled: false };
     },
   );
-  app.post('/auth/recovery-codes', async (request) => {
+  app.post('/auth/recovery-codes', { config: { rateLimit: { max: Number(process.env.RECOVERY_CODES_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' } } }, async (request) => {
     /*
      * Rotating recovery codes invalidates the old set and mints new ones — a
      * sensitive change that must require a recent re-auth, otherwise a hijacked
