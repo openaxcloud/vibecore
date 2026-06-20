@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { GitBranchSyncControls } from '~/components/git/GitBranchSyncControls';
+import { GitDiffView } from '~/components/git/GitDiffView';
 import { GitProviderConnectPanel } from '~/components/git/GitProviderConnectPanel';
 import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
 import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
@@ -510,6 +511,28 @@ export function GitTab({ projectId }: GitTabProps) {
                     Files changed in this workspace. Click a file to preview its diff, then stage it for commit.
                   </p>
                 </div>
+                {changedFiles.length ? (
+                  <div className="flex flex-shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      data-testid="git-stage-all"
+                      className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+                      onClick={() => setStaged(new Set(changedFiles.map((file) => String(file.path ?? file))))}
+                    >
+                      Stage all
+                    </button>
+                    {staged.size ? (
+                      <button
+                        type="button"
+                        data-testid="git-unstage-all"
+                        className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
+                        onClick={() => setStaged(new Set())}
+                      >
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
               {changedFiles.length ? (
                 changedFiles.map((file) => {
@@ -678,11 +701,7 @@ export function GitTab({ projectId }: GitTabProps) {
                   {inspection.error}
                 </div>
               )}
-              {inspection.diff ? (
-                <pre className="mb-3 max-h-56 overflow-auto whitespace-pre-wrap rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-xs text-bolt-elements-textPrimary">
-                  {inspection.diff}
-                </pre>
-              ) : null}
+              {inspection.diff ? <GitDiffView diff={inspection.diff} className="mb-3" /> : null}
               {inspection.blame.length ? (
                 <div className="max-h-64 overflow-auto rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
                   {inspection.blame.slice(0, 80).map((line) => (
