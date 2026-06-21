@@ -207,9 +207,10 @@ export async function runConnectorTokenHealthCheck(
      * Only 401 is an unambiguous revoked/expired credential. A 403 frequently
      * means rate-limit (GitHub returns 403 with x-ratelimit-remaining:0), scope,
      * or per-resource policy — NOT a dead token. Flipping a valid connection to
-     * needs_reconnect on a rate-limit 403/429 forced needless re-auth and noisy
-     * alerts. Treat rate-limited responses as transient (skip), and only 401 (or a
-     * non-rate-limited 403) as a credential failure.
+     * needs_reconnect on a 403 would force needless re-auth and noisy alerts, so we
+     * deliberately treat ALL 403s as non-credential: rate-limited responses are
+     * skipped as transient (below) and any other 403 falls through untouched. Only
+     * a 401 marks the connection needs_reconnect.
      */
     if (rateLimited) {
       await input.prisma.userConnection

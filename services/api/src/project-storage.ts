@@ -814,26 +814,38 @@ export class GitCliProvider implements GitProvider {
     return withProjectLock(projectId, async () => {
       const target = safeProjectPath(projectId);
       await mkdir(dirname(target), { recursive: true });
-      await execFile(
-        'git',
-        ['clone', '--depth=1', ...(input.branch ? ['--branch', input.branch] : []), input.repositoryUrl, target],
 
+      try {
+        await execFile(
+          'git',
+          ['clone', '--depth=1', ...(input.branch ? ['--branch', input.branch] : []), input.repositoryUrl, target],
+
+          /*
+           * Network clone: hard timeout + raised maxBuffer so a stalled or chatty
+           * remote can't hang the worker or overflow the 1MB default output buffer.
+           */
+          { env: this.gitEnv(), timeout: 120_000, maxBuffer: 64 * 1024 * 1024 },
+        );
+
+        const files = await walkFiles(target);
+
+        const defaultBranch =
+          input.branch ??
+          commandStdout(
+            await execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: target, env: this.gitEnv() }),
+          ).trim();
+
+        return { files, defaultBranch, remoteUrl: input.repositoryUrl };
+      } finally {
         /*
-         * Network clone: hard timeout + raised maxBuffer so a stalled or chatty
-         * remote can't hang the worker or overflow the 1MB default output buffer.
+         * The throwaway clone (including its full .git history) has been read into
+         * `files`; the caller copies those into the real project dir, so remove the
+         * temp dir here. Without this, every GitHub import permanently leaked a repo
+         * copy on the shared API pod's disk until /tmp filled and writes failed for
+         * all tenants (cross-tenant availability).
          */
-        { env: this.gitEnv(), timeout: 120_000, maxBuffer: 64 * 1024 * 1024 },
-      );
-
-      const files = await walkFiles(target);
-
-      const defaultBranch =
-        input.branch ??
-        commandStdout(
-          await execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: target, env: this.gitEnv() }),
-        ).trim();
-
-      return { files, defaultBranch, remoteUrl: input.repositoryUrl };
+        await rm(target, { recursive: true, force: true }).catch(() => {});
+      }
     });
   }
 

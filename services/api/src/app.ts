@@ -5272,6 +5272,18 @@ function normalizeRuntimeApiWebSocket(rawSocket: unknown) {
         candidate.addEventListener?.('close', listener);
       }
     },
+    onPong: (listener: () => void) => {
+      // Native pong (the browser's auto-reply to our ping); used for half-open
+      // liveness. No-op on implementations that don't surface it.
+      candidate.on?.('pong', listener as (message: Buffer) => void);
+    },
+    terminate: () => {
+      if (typeof candidate.terminate === 'function') {
+        candidate.terminate();
+      } else {
+        candidate.close?.();
+      }
+    },
   };
 }
 
@@ -15444,7 +15456,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * runtime sockets solved with a keepalive. Ping every 15s; ping frames are
      * invisible to the client's JSON message stream.
      */
+    /*
+     * Also detect HALF-OPEN sockets: if the previous ping got no pong by the next
+     * tick the peer is gone (dead TCP, no FIN/RST), so terminate to fire the close
+     * handler and release the presence row + broker subscription + this interval —
+     * otherwise they leak per dead client. Mirrors the runtime terminal liveness.
+     */
+    let awaitingPong = false;
+    client.onPong(() => {
+      awaitingPong = false;
+    });
     keepAlive = setInterval(() => {
+      if (awaitingPong) {
+        client.terminate();
+
+        return;
+      }
+
+      awaitingPong = true;
       client.ping();
     }, 15_000);
     (keepAlive as unknown as { unref?: () => void }).unref?.();

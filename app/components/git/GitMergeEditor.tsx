@@ -118,9 +118,22 @@ export function GitMergeEditor({
       return raw;
     }
 
-    return segments
-      .map((segment, index) => (segment.type === 'text' ? segment.text : resolveSide(segment, choices[index])))
-      .join('\n');
+    return (
+      segments
+        .map((segment, index) => ({
+          part: segment.type === 'text' ? segment.text : resolveSide(segment, choices[index]),
+          isConflict: segment.type === 'conflict',
+        }))
+        /*
+         * Drop a CONFLICT that resolved to empty (e.g. "accept current" where the
+         * current side was empty) so joining with '\n' doesn't inject a spurious
+         * blank line where the conflict block used to be. Genuinely-empty TEXT
+         * segments (real blank lines in the file) are preserved.
+         */
+        .filter((entry) => !(entry.isConflict && entry.part.length === 0))
+        .map((entry) => entry.part)
+        .join('\n')
+    );
   }, [segments, choices, rawMode, raw]);
 
   /*

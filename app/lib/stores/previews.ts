@@ -424,8 +424,18 @@ export class PreviewsStore {
             return;
           }
 
-          preview.ready = true;
-          this.previews.set([...previews]);
+          /*
+           * Re-read live state at write time: the preview may have been closed or
+           * replaced during the rAF delay, and re-setting the captured snapshot
+           * would resurrect the closed preview. Locate it by id again.
+           */
+          const current = this.previews.get();
+          const live = current.find((p) => this.getPreviewId(p.baseUrl) === previewId);
+
+          if (live) {
+            live.ready = true;
+            this.previews.set([...current]);
+          }
         });
       }
 

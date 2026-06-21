@@ -104,13 +104,22 @@ export const detectProjectType = async (
   return { type: '', setupCommand: '', followupMessage: '' };
 };
 
+/*
+ * Escape a path for a `filePath="..."` boltAction attribute. Mirrors
+ * projectCommands.escapeBoltActionAttribute (inlined to avoid a circular import,
+ * since projectCommands already imports from this module). Without it a path
+ * containing `"`/`&`/`<`/`>` broke out of the attribute → malformed artifact.
+ */
+const escapeBoltActionAttribute = (value: string): string =>
+  value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 export const filesToArtifacts = (files: { [path: string]: { content: string } }, id: string): string => {
   return `
 <boltArtifact id="${id}" title="User Updated Files">
 ${Object.keys(files)
   .map(
     (filePath) => `
-<boltAction type="file" filePath="${filePath}">
+<boltAction type="file" filePath="${escapeBoltActionAttribute(filePath)}">
 ${files[filePath].content}
 </boltAction>
 `,
