@@ -5067,10 +5067,7 @@ function connectorProviderFor(provider: string): ConnectorProvider | undefined {
   }
 }
 
-async function connectorCredentialsFor(
-  provider: string,
-  store: ApiStore,
-): Promise<ConnectorOAuthCredentials | null> {
+async function connectorCredentialsFor(provider: string, store: ApiStore): Promise<ConnectorOAuthCredentials | null> {
   /*
    * Admin-configured DB credentials (ConnectorCatalog, set via the admin
    * Integrations panel) take precedence over env vars — this is the self-service
@@ -14633,9 +14630,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const target = (await store.listCollaborationPresence(project.id)).find((p) => p.sessionId === sessionId);
 
     if (target && target.userId !== request.currentUser!.id) {
-      const role = await projectCollaborationRole(store, project.id, request.currentUser!.id);
+      /*
+       * Removing someone else's session requires write capability. Resolve it
+       * through requireProject('projects:write') rather than projectCollaborationRole
+       * alone — the latter only sees explicit ProjectCollaborator rows, so org
+       * owners/admins (who reach the project via org membership, not an explicit
+       * collaborator row) were wrongly 403'd and couldn't moderate stale sessions.
+       */
+      const canManage = await requireProject(request, store, project.id, 'projects:write')
+        .then(() => true)
+        .catch(() => false);
 
-      if (!role || isReadOnlyProjectRole(role)) {
+      if (!canManage) {
         return reply
           .code(403)
           .send({ error: "Cannot evict another collaborator's presence", code: 'PRESENCE_FORBIDDEN' });
@@ -17574,16 +17580,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const rows = await Promise.all(OAUTH_CONNECTOR_PROVIDERS.map((p) => store.getConnectorOAuthCatalog(p)));
 
     return {
-      connectors: rows.filter((c): c is NonNullable<typeof c> => Boolean(c)).map((c) => ({
-        provider: c.provider,
-        displayName: c.displayName,
-        enabled: c.enabled,
-        clientId: c.clientId ?? '',
-        hasSecret: Boolean(c.clientSecretEnc),
-        scopes: c.scopes,
-        authorizeUrl: c.authorizeUrl,
-        callbackUrl: `https://app.e-code.ai/integrations/oauth/${c.provider}/callback`,
-      })),
+      connectors: rows
+        .filter((c): c is NonNullable<typeof c> => Boolean(c))
+        .map((c) => ({
+          provider: c.provider,
+          displayName: c.displayName,
+          enabled: c.enabled,
+          clientId: c.clientId ?? '',
+          hasSecret: Boolean(c.clientSecretEnc),
+          scopes: c.scopes,
+          authorizeUrl: c.authorizeUrl,
+          callbackUrl: `https://app.e-code.ai/integrations/oauth/${c.provider}/callback`,
+        })),
     };
   });
 
@@ -18389,6 +18397,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const preferences = { ...(user.preferences ?? {}) };
     delete preferences.moderationStrikes;
     await store.updateUser({ userId, preferences });
+
+    /*
+     * Clearing strikes is the documented way to reverse a moderation consequence,
+     * so it must also lift the strike-induced ACCOUNT_BAN (the POST strikes path
+     * added the user to admin.suspendedUserIds at app.ts:18367). Without this the
+     * suspension orphaned the cleared strikes and the user stayed locked out.
+     */
+    await store.mutateSystemSettingIds('admin.suspendedUserIds', { remove: userId });
     await recordAdminAction(request, store, { action: 'admin.user.strikes_cleared', metadata: { userId } });
 
     return { cleared: true };

@@ -841,12 +841,28 @@ export class GitCliProvider implements GitProvider {
     const branch = await this.git(projectId, ['symbolic-ref', '--short', 'HEAD'], workspaceId).catch(() => 'main');
     const porcelain = await this.git(projectId, ['status', '--porcelain=v1', '-uall'], workspaceId);
     const statusLines = porcelain.split('\n').filter(Boolean);
-    const changedFiles = statusLines.map((line) => line.slice(3));
-    const fileStatuses = statusLines.map((line) => ({ path: line.slice(3), status: line.slice(0, 2).trim() || 'M' }));
+
+    /*
+     * Porcelain v1 emits rename/copy entries as "R  old -> new"; slicing at col 3
+     * would yield the literal "old -> new" as a single corrupt path that breaks
+     * any downstream per-file git op. Report the NEW path for those.
+     */
+    const statusPath = (line: string) => {
+      const raw = line.slice(3);
+      const arrow = raw.indexOf(' -> ');
+
+      return arrow >= 0 ? raw.slice(arrow + 4) : raw;
+    };
+
+    const changedFiles = statusLines.map(statusPath);
+    const fileStatuses = statusLines.map((line) => ({
+      path: statusPath(line),
+      status: line.slice(0, 2).trim() || 'M',
+    }));
 
     const conflicts = statusLines
       .filter((line) => ['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU'].includes(line.slice(0, 2)))
-      .map((line) => ({ path: line.slice(3), status: line.slice(0, 2) }));
+      .map((line) => ({ path: statusPath(line), status: line.slice(0, 2) }));
 
     const aheadBehind = await this.git(
       projectId,

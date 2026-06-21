@@ -456,9 +456,20 @@ export function EventLogsTab() {
         ]),
       ];
 
-      const csvContent = csvData
-        .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-        .join('\n');
+      /*
+       * Neutralise CSV formula injection: a cell starting with = + - @ (or a
+       * tab/CR) is executed as a formula by Excel/Sheets, and log fields can carry
+       * attacker-influenced text (provider errors, captured URLs). Prefix such
+       * cells with a single quote before the usual quote-escaping.
+       */
+      const sanitizeCsvCell = (value: unknown) => {
+        const str = String(value);
+        const escaped = (/^[=+\-@\t\r]/.test(str) ? `'${str}` : str).replace(/"/g, '""');
+
+        return `"${escaped}"`;
+      };
+
+      const csvContent = csvData.map((row) => row.map(sanitizeCsvCell).join(',')).join('\n');
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);

@@ -80,7 +80,21 @@ function checkRateLimit(ip: string) {
   const current = rateLimitStore.get(ip);
 
   if (!current || now > current.resetTime) {
+    /*
+     * Opportunistically evict expired buckets so the Map doesn't grow unbounded
+     * (one entry per distinct client IP) over the pod's lifetime. Bounded sweep
+     * only when the map is large, to keep the common path O(1).
+     */
+    if (rateLimitStore.size > 5000) {
+      for (const [key, entry] of rateLimitStore) {
+        if (now > entry.resetTime) {
+          rateLimitStore.delete(key);
+        }
+      }
+    }
+
     rateLimitStore.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+
     return true;
   }
 

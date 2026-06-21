@@ -162,10 +162,13 @@ export function Search() {
     let matcher: RegExp;
 
     try {
-      matcher = new RegExp(
-        isRegex ? searchQuery : searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-        caseSensitive ? 'g' : 'gi',
-      );
+      /*
+       * Multiline ('m') for regex mode so ^/$ anchors match per-line — matching the
+       * server search that produced these results; without it Replace all diverges
+       * from what was found.
+       */
+      const flags = (caseSensitive ? 'g' : 'gi') + (isRegex ? 'm' : '');
+      matcher = new RegExp(isRegex ? searchQuery : searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
     } catch {
       toast.error('Invalid regular expression');
       return;
