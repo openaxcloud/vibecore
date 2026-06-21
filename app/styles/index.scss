@@ -397,7 +397,15 @@ html:has([data-ecode-static-shell]) body {
   --vc-font-code:
     'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --vc-ide-font-mono: var(--vc-font-code);
-  --vc-type-interface-size: 12px;
+  /*
+   * Root interface font size — drives `html,body { font-size }`, so it is the rem
+   * base for the whole app shell (IDE + dashboard; marketing scope overrides to
+   * 16px separately). Was 12px, which scaled every rem-based size to 75% and made
+   * the UI render noticeably smaller than a standard IDE (Replit's chrome is ~13px).
+   * Lifted to 13px (Replit's base) for a comfortable, consistent density. Verified
+   * live (IDE + dashboard) that the uniform scale-up introduces no layout breakage.
+   */
+  --vc-type-interface-size: 13px;
   --vc-type-interface-compact-size: 11px;
   --vc-type-code-size: 12px;
   --vc-type-heading-size: 14px;
