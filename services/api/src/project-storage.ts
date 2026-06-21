@@ -121,6 +121,8 @@ export interface GitProvider {
     message: string;
     files: ProjectFile[];
     selectedFiles?: string[];
+    authorName?: string;
+    authorEmail?: string;
   }): Promise<{ sha: string; message: string }>;
   push(input: {
     projectId: string;
@@ -862,6 +864,8 @@ export class GitCliProvider implements GitProvider {
     message: string;
     files: ProjectFile[];
     selectedFiles?: string[];
+    authorName?: string;
+    authorEmail?: string;
   }) {
     return withProjectLock(input.projectId, async () => {
       await this.ensureRepository(input.projectId, input.workspaceId);
@@ -892,9 +896,17 @@ export class GitCliProvider implements GitProvider {
        * left staged by a prior operation — violating the "commit only these"
        * contract.
        */
+      /*
+       * Optional commit-author override (Replit-parity "commit as" selector).
+       * `--author="Name <email>"` is one argv entry (no shell), so even a value
+       * starting with "-" is part of the flag value, not a separate git option.
+       */
+      const authorArgs =
+        input.authorName && input.authorEmail ? [`--author=${input.authorName} <${input.authorEmail}>`] : [];
+
       const commitArgs = selectedFiles.length
-        ? ['commit', '-m', input.message, '--', ...selectedFiles]
-        : ['commit', '-m', input.message];
+        ? ['commit', '-m', input.message, ...authorArgs, '--', ...selectedFiles]
+        : ['commit', '-m', input.message, ...authorArgs];
 
       await this.git(input.projectId, commitArgs, input.workspaceId);
 

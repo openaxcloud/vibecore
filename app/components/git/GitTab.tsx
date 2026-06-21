@@ -153,6 +153,9 @@ export function GitTab({ projectId }: GitTabProps) {
   const [staged, setStaged] = useState<Set<string>>(new Set());
   const [inspectFile, setInspectFile] = useState('');
 
+  // When the panel last successfully loaded git state (Replit "last fetched Xago").
+  const [lastLoadedAt, setLastLoadedAt] = useState<string | undefined>();
+
   // Discard confirmation target: a single file path, or 'all' for every change.
   const [discardConfirm, setDiscardConfirm] = useState<{ all: boolean; path?: string } | null>(null);
 
@@ -246,6 +249,7 @@ export function GitTab({ projectId }: GitTabProps) {
         }
 
         setEnvelope(payload);
+        setLastLoadedAt(new Date().toISOString());
 
         if (payload.status === 'error' && payload.error) {
           setError(`[${payload.error.code}] ${payload.error.message}`);
@@ -599,6 +603,23 @@ export function GitTab({ projectId }: GitTabProps) {
           <span className="ml-auto flex items-center gap-3 text-xs text-bolt-elements-textSecondary">
             <span title="Commits to pull">↓ {status?.behind ?? 0}</span>
             <span title="Commits to push">↑ {status?.ahead ?? 0}</span>
+            {lastLoadedAt ? (
+              <span
+                className="hidden sm:inline"
+                title={`Git status last refreshed ${new Date(lastLoadedAt).toLocaleString()}`}
+              >
+                fetched {timeAgo(lastLoadedAt)}
+              </span>
+            ) : null}
+            <button
+              type="button"
+              data-testid="git-refresh"
+              disabled={loading}
+              onClick={() => void loadPanel()}
+              title="Refresh git status"
+              aria-label="Refresh git status"
+              className="i-ph:arrows-clockwise text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary disabled:opacity-50"
+            />
           </span>
         </div>
 
@@ -669,6 +690,32 @@ export function GitTab({ projectId }: GitTabProps) {
             onConnected={() => loadPanel({ silent: true })}
             onRemoteConfigured={() => loadPanel({ silent: true })}
           />
+        ) : null}
+
+        {hasRemote ? (
+          <details className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+            <summary className="cursor-pointer text-sm font-semibold text-bolt-elements-textPrimary">
+              Remote settings
+            </summary>
+            <form onSubmit={submitAction} className="mt-3 grid gap-2">
+              <input name="intent" value="configure-remote" type="hidden" />
+              <input name="branch" value={branch} type="hidden" />
+              <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="git-tab-remote-url">
+                Remote origin URL
+              </label>
+              <PanelInput
+                id="git-tab-remote-url"
+                name="remoteUrl"
+                key={project?.gitRepositoryUrl ?? ''}
+                defaultValue={project?.gitRepositoryUrl ?? ''}
+                placeholder="https://github.com/org/repo.git"
+                required
+              />
+              <PanelButton disabled={busy} variant="outline">
+                Update remote
+              </PanelButton>
+            </form>
+          </details>
         ) : null}
 
         {discardConfirm ? (
@@ -994,6 +1041,21 @@ export function GitTab({ projectId }: GitTabProps) {
                 placeholder={stagedFiles.length ? `Commit ${stagedFiles.length} staged files` : 'Commit message'}
               />
             </label>
+            <details className="text-xs text-bolt-elements-textSecondary">
+              <summary className="cursor-pointer">Commit as… (optional author override)</summary>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <PanelInput name="authorName" placeholder="Author name" aria-label="Commit author name" />
+                <PanelInput
+                  name="authorEmail"
+                  type="email"
+                  placeholder="author@example.com"
+                  aria-label="Commit author email"
+                />
+              </div>
+              <p className="mt-1 leading-4">
+                Both fields required to override; otherwise the repo default author is used.
+              </p>
+            </details>
             <PanelButton disabled={busy || stagedFiles.length === 0}>Commit changes</PanelButton>
           </form>
 

@@ -2040,7 +2040,13 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
       await apiRequest(request, `/projects/${projectId}/git/commit`, {
         method: 'POST',
-        body: JSON.stringify({ message: body.message || 'Update project files', files, workspaceId }),
+        body: JSON.stringify({
+          message: body.message || 'Update project files',
+          files,
+          workspaceId,
+          authorName: body.authorName?.trim() || undefined,
+          authorEmail: body.authorEmail?.trim() || undefined,
+        }),
       });
     } else if (intent === 'push') {
       await apiRequest(request, `/projects/${projectId}/git/push`, {

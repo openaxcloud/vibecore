@@ -122,7 +122,12 @@ import {
   createDefaultMcpMarketplaceService,
 } from './mcp-marketplace.js';
 import { PrismaApiStore } from './prisma-store.js';
-import { checkServiceShutdown, openCheckpoint, reportCheckpointPaygUsage, settleCheckpoint } from './credits-service.js';
+import {
+  checkServiceShutdown,
+  openCheckpoint,
+  reportCheckpointPaygUsage,
+  settleCheckpoint,
+} from './credits-service.js';
 import {
   DELETION_GRACE_PERIOD_DAYS,
   canCancelDeletion,
@@ -727,6 +732,10 @@ const gitWorkspaceQuerySchema = z.object({ workspaceId: workspaceIdField });
 const gitCommitSchema = z.object({
   message: z.string().min(1),
   files: z.array(z.string().min(1)).optional(),
+  // Optional commit-author override (Replit-parity "commit as" selector). Both
+  // must be present for the override to apply; otherwise the repo default is used.
+  authorName: z.string().trim().min(1).max(120).optional(),
+  authorEmail: z.string().trim().email().max(200).optional(),
   workspaceId: workspaceIdField,
 });
 
@@ -7400,58 +7409,70 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return accountDeletionView(state, Date.now());
   });
 
-  app.post('/account/deletion', { config: { rateLimit: { max: Number(process.env.ACCOUNT_DELETE_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' } } }, async (request, reply) => {
-    if (!accountDeletionEnabled()) {
-      return reply.code(404).send({ error: 'not_found' });
-    }
+  app.post(
+    '/account/deletion',
+    { config: { rateLimit: { max: Number(process.env.ACCOUNT_DELETE_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      if (!accountDeletionEnabled()) {
+        return reply.code(404).send({ error: 'not_found' });
+      }
 
-    const userId = request.currentUser!.id;
-    const user = await store.findUserById(userId);
-    if (!user) {
-      return reply.code(404).send({ error: 'not_found' });
-    }
+      const userId = request.currentUser!.id;
+      const user = await store.findUserById(userId);
+      if (!user) {
+        return reply.code(404).send({ error: 'not_found' });
+      }
 
-    const nowMs = Date.now();
-    const existing = readAccountDeletionState(user.preferences);
+      const nowMs = Date.now();
+      const existing = readAccountDeletionState(user.preferences);
 
-    // Idempotent: a second request while already in grace just echoes state.
-    if (deletionStatus({ ...existing, nowMs }) !== 'grace_period') {
-      const requestedAt = new Date(nowMs).toISOString();
-      await store.updateUser({
-        userId,
-        preferences: { ...(user.preferences ?? {}), accountDeletion: { requestedAt } },
-      });
-      await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { add: userId });
-      await audit(request, store, {
-        action: 'account.deletion_requested',
-        resourceType: 'user',
-        resourceId: userId,
-        metadata: { purgeDueAt: new Date(purgeDueAtMs(nowMs)).toISOString() },
-      });
-      return accountDeletionView({ requestedAtMs: nowMs, purgedAtMs: null }, nowMs);
-    }
+      // Idempotent: a second request while already in grace just echoes state.
+      if (deletionStatus({ ...existing, nowMs }) !== 'grace_period') {
+        const requestedAt = new Date(nowMs).toISOString();
+        await store.updateUser({
+          userId,
+          preferences: { ...(user.preferences ?? {}), accountDeletion: { requestedAt } },
+        });
+        await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { add: userId });
+        await audit(request, store, {
+          action: 'account.deletion_requested',
+          resourceType: 'user',
+          resourceId: userId,
+          metadata: { purgeDueAt: new Date(purgeDueAtMs(nowMs)).toISOString() },
+        });
+        return accountDeletionView({ requestedAtMs: nowMs, purgedAtMs: null }, nowMs);
+      }
 
-    return accountDeletionView(existing, nowMs);
-  });
+      return accountDeletionView(existing, nowMs);
+    },
+  );
 
-  app.post('/account/deletion/cancel', { config: { rateLimit: { max: Number(process.env.ACCOUNT_DELETE_CANCEL_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' } } }, async (request, reply) => {
-    const userId = request.currentUser!.id;
-    const user = await store.findUserById(userId);
-    const state = readAccountDeletionState(user?.preferences);
-    const nowMs = Date.now();
+  app.post(
+    '/account/deletion/cancel',
+    {
+      config: {
+        rateLimit: { max: Number(process.env.ACCOUNT_DELETE_CANCEL_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' },
+      },
+    },
+    async (request, reply) => {
+      const userId = request.currentUser!.id;
+      const user = await store.findUserById(userId);
+      const state = readAccountDeletionState(user?.preferences);
+      const nowMs = Date.now();
 
-    if (!canCancelDeletion({ ...state, nowMs })) {
-      return reply.code(409).send({ error: 'cannot_cancel', status: deletionStatus({ ...state, nowMs }) });
-    }
+      if (!canCancelDeletion({ ...state, nowMs })) {
+        return reply.code(409).send({ error: 'cannot_cancel', status: deletionStatus({ ...state, nowMs }) });
+      }
 
-    const preferences = { ...(user!.preferences ?? {}) };
-    delete preferences.accountDeletion;
-    await store.updateUser({ userId, preferences });
-    await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
-    await audit(request, store, { action: 'account.deletion_cancelled', resourceType: 'user', resourceId: userId });
+      const preferences = { ...(user!.preferences ?? {}) };
+      delete preferences.accountDeletion;
+      await store.updateUser({ userId, preferences });
+      await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+      await audit(request, store, { action: 'account.deletion_cancelled', resourceType: 'user', resourceId: userId });
 
-    return { status: 'none' as const, cancelled: true };
-  });
+      return { status: 'none' as const, cancelled: true };
+    },
+  );
 
   app.post('/agent-memory', async (request, reply) => {
     const body = parse(agentMemoryWriteSchema, request.body);
@@ -7953,49 +7974,57 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
 
-  app.post('/api/account/connections/:userConnectionId/revoke', { config: { rateLimit: { max: Number(process.env.CONNECTION_REVOKE_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' } } }, async (request, reply) => {
-    if (!request.currentUser) {
-      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
-    }
+  app.post(
+    '/api/account/connections/:userConnectionId/revoke',
+    {
+      config: {
+        rateLimit: { max: Number(process.env.CONNECTION_REVOKE_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' },
+      },
+    },
+    async (request, reply) => {
+      if (!request.currentUser) {
+        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      }
 
-    const params = parse(userConnectionIdParams, request.params);
-    const existing = await store.getUserConnectionById(params.userConnectionId);
+      const params = parse(userConnectionIdParams, request.params);
+      const existing = await store.getUserConnectionById(params.userConnectionId);
 
-    if (!existing || existing.userId !== request.currentUser.id) {
-      return reply.code(404).send({ error: 'Connection not found', code: 'CONNECTION_NOT_FOUND' });
-    }
+      if (!existing || existing.userId !== request.currentUser.id) {
+        return reply.code(404).send({ error: 'Connection not found', code: 'CONNECTION_NOT_FOUND' });
+      }
 
-    if (existing.status === 'revoked') {
+      if (existing.status === 'revoked') {
+        return {
+          userConnectionId: existing.id,
+          status: existing.status,
+          revokedAt: existing.revokedAt,
+        };
+      }
+
+      const updated = await store.markUserConnectionStatus({
+        id: existing.id,
+        status: 'revoked',
+        revokedAt: new Date(),
+        clearTokens: true,
+      });
+
+      await audit(request, store, {
+        action: `connector.oauth.${existing.provider}.revoke`,
+        resourceType: 'UserConnection',
+        resourceId: existing.id,
+        metadata: {
+          provider: existing.provider,
+          accountLabel: existing.externalAccountLabel,
+        },
+      });
+
       return {
         userConnectionId: existing.id,
-        status: existing.status,
-        revokedAt: existing.revokedAt,
+        status: updated?.status ?? 'revoked',
+        revokedAt: updated?.revokedAt ?? new Date().toISOString(),
       };
-    }
-
-    const updated = await store.markUserConnectionStatus({
-      id: existing.id,
-      status: 'revoked',
-      revokedAt: new Date(),
-      clearTokens: true,
-    });
-
-    await audit(request, store, {
-      action: `connector.oauth.${existing.provider}.revoke`,
-      resourceType: 'UserConnection',
-      resourceId: existing.id,
-      metadata: {
-        provider: existing.provider,
-        accountLabel: existing.externalAccountLabel,
-      },
-    });
-
-    return {
-      userConnectionId: existing.id,
-      status: updated?.status ?? 'revoked',
-      revokedAt: updated?.revokedAt ?? new Date().toISOString(),
-    };
-  });
+    },
+  );
 
   /*
    * Scoped API keys. The full secret (`vck_…`) is returned exactly once, at
@@ -8112,44 +8141,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
     },
     async (request, reply) => {
-    if (!request.currentUser) {
-      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
-    }
+      if (!request.currentUser) {
+        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      }
 
-    /*
-     * Minting a long-lived credential is itself a privileged write; an existing
-     * API-key session must hold 'admin' scope to create further keys.
-     */
-    if (request.apiKeyAuth && !request.apiKeyAuth.scopes.includes('admin')) {
-      return reply
-        .code(403)
-        .send({ error: "Creating API keys requires the 'admin' scope", code: 'API_KEY_SCOPE_INSUFFICIENT' });
-    }
+      /*
+       * Minting a long-lived credential is itself a privileged write; an existing
+       * API-key session must hold 'admin' scope to create further keys.
+       */
+      if (request.apiKeyAuth && !request.apiKeyAuth.scopes.includes('admin')) {
+        return reply
+          .code(403)
+          .send({ error: "Creating API keys requires the 'admin' scope", code: 'API_KEY_SCOPE_INSUFFICIENT' });
+      }
 
-    const body = parse(apiKeyCreateSchema, request.body);
-    const token = createOpaqueToken('vck');
-    const keyPrefix = token.slice(0, 12);
+      const body = parse(apiKeyCreateSchema, request.body);
+      const token = createOpaqueToken('vck');
+      const keyPrefix = token.slice(0, 12);
 
-    const expiresAt = body.expiresInDays ? new Date(Date.now() + body.expiresInDays * 24 * 60 * 60 * 1000) : undefined;
+      const expiresAt = body.expiresInDays
+        ? new Date(Date.now() + body.expiresInDays * 24 * 60 * 60 * 1000)
+        : undefined;
 
-    const created = await store.createApiKey({
-      userId: request.currentUser.id,
-      name: body.name,
-      keyHash: hashToken(token),
-      keyPrefix,
-      scopes: body.scopes,
-      expiresAt,
-    });
+      const created = await store.createApiKey({
+        userId: request.currentUser.id,
+        name: body.name,
+        keyHash: hashToken(token),
+        keyPrefix,
+        scopes: body.scopes,
+        expiresAt,
+      });
 
-    await audit(request, store, {
-      action: 'api_key.create',
-      resourceType: 'ApiKey',
-      resourceId: created.id,
-      metadata: { name: created.name, scopes: created.scopes },
-    });
+      await audit(request, store, {
+        action: 'api_key.create',
+        resourceType: 'ApiKey',
+        resourceId: created.id,
+        metadata: { name: created.name, scopes: created.scopes },
+      });
 
-    // `token` is the only time the plaintext key is ever returned.
-    return reply.code(201).send({ key: { ...publicApiKey(created), token } });
+      // `token` is the only time the plaintext key is ever returned.
+      return reply.code(201).send({ key: { ...publicApiKey(created), token } });
     },
   );
 
@@ -8161,24 +8192,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
     },
     async (request, reply) => {
-    if (!request.currentUser) {
-      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
-    }
+      if (!request.currentUser) {
+        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      }
 
-    const params = parse(apiKeyIdParams, request.params);
-    const deleted = await store.deleteApiKey({ id: params.keyId, userId: request.currentUser.id });
+      const params = parse(apiKeyIdParams, request.params);
+      const deleted = await store.deleteApiKey({ id: params.keyId, userId: request.currentUser.id });
 
-    if (!deleted) {
-      return reply.code(404).send({ error: 'API key not found', code: 'API_KEY_NOT_FOUND' });
-    }
+      if (!deleted) {
+        return reply.code(404).send({ error: 'API key not found', code: 'API_KEY_NOT_FOUND' });
+      }
 
-    await audit(request, store, {
-      action: 'api_key.revoke',
-      resourceType: 'ApiKey',
-      resourceId: params.keyId,
-    });
+      await audit(request, store, {
+        action: 'api_key.revoke',
+        resourceType: 'ApiKey',
+        resourceId: params.keyId,
+      });
 
-    return { id: params.keyId, revoked: true };
+      return { id: params.keyId, revoked: true };
     },
   );
 
@@ -8441,104 +8472,110 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * the existing /projects/:id/git/* endpoints, which already keep the
    * token server-side.
    */
-  app.post('/api/github-proxy', { config: { rateLimit: { max: Number(process.env.GITHUB_PROXY_RATE_LIMIT_MAX ?? 30), timeWindow: '1 minute' } } }, async (request, reply) => {
-    const body = request.body as
-      | { method?: string; path?: string; query?: Record<string, string>; body?: unknown }
-      | undefined;
+  app.post(
+    '/api/github-proxy',
+    { config: { rateLimit: { max: Number(process.env.GITHUB_PROXY_RATE_LIMIT_MAX ?? 30), timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = request.body as
+        | { method?: string; path?: string; query?: Record<string, string>; body?: unknown }
+        | undefined;
 
-    if (!body || typeof body.path !== 'string') {
-      return reply.code(400).send({ error: 'path is required', code: 'PROXY_BAD_REQUEST' });
-    }
-
-    const method = (body.method ?? 'GET').toUpperCase();
-
-    if (method !== 'GET' && method !== 'POST' && method !== 'PUT' && method !== 'PATCH' && method !== 'DELETE') {
-      return reply.code(400).send({ error: 'Unsupported HTTP method', code: 'PROXY_BAD_REQUEST' });
-    }
-
-    if (!body.path.startsWith('/')) {
-      return reply.code(400).send({ error: 'path must start with /', code: 'PROXY_BAD_REQUEST' });
-    }
-
-    if (body.path === '/__token__') {
-      const connections = await store.listUserConnectionsByUser(request.currentUser?.id ?? '', { provider: 'github' });
-      const active = connections.find((row) => row.status === 'active');
-
-      if (active) {
-        return reply.code(409).send({
-          token: null,
-          code: 'CONNECTOR_USE_BACKEND_GIT',
-          message:
-            'A server-side UserConnection is active; route git operations through /api/projects/:projectId/git/* instead of grabbing the token client-side.',
-        });
+      if (!body || typeof body.path !== 'string') {
+        return reply.code(400).send({ error: 'path is required', code: 'PROXY_BAD_REQUEST' });
       }
 
-      return reply.code(404).send({ token: null, code: 'CONNECTOR_NOT_LINKED' });
-    }
+      const method = (body.method ?? 'GET').toUpperCase();
 
-    const accessToken = await resolveActiveGithubAccessToken(request, reply);
+      if (method !== 'GET' && method !== 'POST' && method !== 'PUT' && method !== 'PATCH' && method !== 'DELETE') {
+        return reply.code(400).send({ error: 'Unsupported HTTP method', code: 'PROXY_BAD_REQUEST' });
+      }
 
-    if (!accessToken) {
-      return reply;
-    }
+      if (!body.path.startsWith('/')) {
+        return reply.code(400).send({ error: 'path must start with /', code: 'PROXY_BAD_REQUEST' });
+      }
 
-    let url: URL;
+      if (body.path === '/__token__') {
+        const connections = await store.listUserConnectionsByUser(request.currentUser?.id ?? '', {
+          provider: 'github',
+        });
+        const active = connections.find((row) => row.status === 'active');
 
-    try {
-      url = new URL(`https://api.github.com${body.path}`);
-    } catch {
-      return reply.code(400).send({ error: 'invalid path', code: 'PROXY_BAD_REQUEST' });
-    }
-
-    if (body.query) {
-      for (const [key, value] of Object.entries(body.query)) {
-        /*
-         * body.query is cast, not schema-validated; an object/array value would
-         * be coerced to "[object Object]"/comma-joined garbage. Require primitives.
-         */
-        if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
-          return reply.code(400).send({ error: 'query values must be primitive', code: 'PROXY_BAD_REQUEST' });
+        if (active) {
+          return reply.code(409).send({
+            token: null,
+            code: 'CONNECTOR_USE_BACKEND_GIT',
+            message:
+              'A server-side UserConnection is active; route git operations through /api/projects/:projectId/git/* instead of grabbing the token client-side.',
+          });
         }
 
-        url.searchParams.set(key, String(value));
+        return reply.code(404).send({ token: null, code: 'CONNECTOR_NOT_LINKED' });
       }
-    }
 
-    const response = await fetch(url, {
-      method,
-      headers: {
-        authorization: `token ${accessToken}`,
-        accept: 'application/vnd.github+json',
-        'user-agent': 'e-code-api',
-        'x-github-api-version': '2022-11-28',
-        ...(method !== 'GET' && body.body ? { 'content-type': 'application/json' } : {}),
-      },
-      body: method !== 'GET' && body.body ? JSON.stringify(body.body) : undefined,
-      signal: AbortSignal.timeout(15_000),
-    });
+      const accessToken = await resolveActiveGithubAccessToken(request, reply);
 
-    if (!response.ok) {
-      return handleGithubProviderResponse(request, reply, response, 'PROVIDER_API_FAILED');
-    }
+      if (!accessToken) {
+        return reply;
+      }
 
-    const contentType = response.headers.get('content-type') ?? '';
+      let url: URL;
 
-    if (contentType.includes('application/json')) {
       try {
-        return await response.json();
+        url = new URL(`https://api.github.com${body.path}`);
       } catch {
-        /*
-         * A 2xx with a truncated/invalid JSON body is a 502-class upstream
-         * condition, not an opaque internal 500.
-         */
-        return reply
-          .code(502)
-          .send({ error: 'GitHub returned a malformed JSON response', code: 'PROVIDER_RESPONSE_MALFORMED' });
+        return reply.code(400).send({ error: 'invalid path', code: 'PROXY_BAD_REQUEST' });
       }
-    }
 
-    return await response.text();
-  });
+      if (body.query) {
+        for (const [key, value] of Object.entries(body.query)) {
+          /*
+           * body.query is cast, not schema-validated; an object/array value would
+           * be coerced to "[object Object]"/comma-joined garbage. Require primitives.
+           */
+          if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
+            return reply.code(400).send({ error: 'query values must be primitive', code: 'PROXY_BAD_REQUEST' });
+          }
+
+          url.searchParams.set(key, String(value));
+        }
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          authorization: `token ${accessToken}`,
+          accept: 'application/vnd.github+json',
+          'user-agent': 'e-code-api',
+          'x-github-api-version': '2022-11-28',
+          ...(method !== 'GET' && body.body ? { 'content-type': 'application/json' } : {}),
+        },
+        body: method !== 'GET' && body.body ? JSON.stringify(body.body) : undefined,
+        signal: AbortSignal.timeout(15_000),
+      });
+
+      if (!response.ok) {
+        return handleGithubProviderResponse(request, reply, response, 'PROVIDER_API_FAILED');
+      }
+
+      const contentType = response.headers.get('content-type') ?? '';
+
+      if (contentType.includes('application/json')) {
+        try {
+          return await response.json();
+        } catch {
+          /*
+           * A 2xx with a truncated/invalid JSON body is a 502-class upstream
+           * condition, not an opaque internal 500.
+           */
+          return reply
+            .code(502)
+            .send({ error: 'GitHub returned a malformed JSON response', code: 'PROVIDER_RESPONSE_MALFORMED' });
+        }
+      }
+
+      return await response.text();
+    },
+  );
 
   app.post('/webhooks/github', async (request, reply) => {
     const signingSecret = process.env.INTEGRATION_GITHUB_WEBHOOK_SIGNING_SECRET;
@@ -9046,16 +9083,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return service.getUserConfig(request.currentUser!.id);
   });
 
-  app.put('/mcp/config', { config: { rateLimit: { max: Number(process.env.MCP_CONFIG_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' } } }, async (request) => {
-    const body = parse(mcpUserConfigSchema, request.body);
-    const service = requireMcpMarketplaceService(mcpMarketplace);
+  app.put(
+    '/mcp/config',
+    { config: { rateLimit: { max: Number(process.env.MCP_CONFIG_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' } } },
+    async (request) => {
+      const body = parse(mcpUserConfigSchema, request.body);
+      const service = requireMcpMarketplaceService(mcpMarketplace);
 
-    return service.saveUserConfig({
-      userId: request.currentUser!.id,
-      config: body.config,
-      maxLLMSteps: body.maxLLMSteps,
-    });
-  });
+      return service.saveUserConfig({
+        userId: request.currentUser!.id,
+        config: body.config,
+        maxLLMSteps: body.maxLLMSteps,
+      });
+    },
+  );
 
   app.patch('/agent-memory/:memoryId', async (request, reply) => {
     const { memoryId } = parse(agentMemoryParams, request.params);
@@ -10462,7 +10503,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (shutdown.shutdown) {
         return reply
           .code(402)
-          .send({ error: 'Service shutdown limit reached; workspace start is paused.', code: 'SERVICE_SHUTDOWN_LIMIT_REACHED' });
+          .send({
+            error: 'Service shutdown limit reached; workspace start is paused.',
+            code: 'SERVICE_SHUTDOWN_LIMIT_REACHED',
+          });
       }
     }
 
@@ -12335,45 +12379,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     '/auth/me',
     { config: { rateLimit: { max: Number(process.env.AUTH_DELETE_ME_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' } } },
     async (request, reply) => {
-    parse(deleteAccountSchema, request.body);
+      parse(deleteAccountSchema, request.body);
 
-    const userId = request.currentUser!.id;
-    const organizations = await store.listOrganizations(userId);
+      const userId = request.currentUser!.id;
+      const organizations = await store.listOrganizations(userId);
 
-    /*
-     * Don't let the sole owner self-delete and orphan an org that still has
-     * other members/resources — deleting the user cascade-removes the owner
-     * membership, leaving an org no one can administer. Mirror the LAST_OWNER
-     * guard on the explicit member-removal route.
-     */
-    for (const organization of organizations) {
-      const members = await store.listMembers(organization.id);
-      const owners = members.filter((member) => member.roleKey === 'owner');
-      const isSoleOwner = owners.length === 1 && owners[0].userId === userId;
+      /*
+       * Don't let the sole owner self-delete and orphan an org that still has
+       * other members/resources — deleting the user cascade-removes the owner
+       * membership, leaving an org no one can administer. Mirror the LAST_OWNER
+       * guard on the explicit member-removal route.
+       */
+      for (const organization of organizations) {
+        const members = await store.listMembers(organization.id);
+        const owners = members.filter((member) => member.roleKey === 'owner');
+        const isSoleOwner = owners.length === 1 && owners[0].userId === userId;
 
-      if (isSoleOwner && members.length > 1) {
-        return reply.code(409).send({
-          error:
-            'You are the sole owner of an organization with other members. Transfer ownership or delete the organization first.',
-          code: 'LAST_OWNER',
+        if (isSoleOwner && members.length > 1) {
+          return reply.code(409).send({
+            error:
+              'You are the sole owner of an organization with other members. Transfer ownership or delete the organization first.',
+            code: 'LAST_OWNER',
+            organizationId: organization.id,
+          });
+        }
+      }
+
+      for (const organization of organizations) {
+        await audit(request, store, {
           organizationId: organization.id,
+          action: 'auth.account.delete',
+          resourceType: 'user',
+          resourceId: userId,
         });
       }
-    }
 
-    for (const organization of organizations) {
-      await audit(request, store, {
-        organizationId: organization.id,
-        action: 'auth.account.delete',
-        resourceType: 'user',
-        resourceId: userId,
-      });
-    }
+      const deleted = await store.deleteUser(userId);
+      reply.clearCookie('session', authCookieOptions(isProduction));
 
-    const deleted = await store.deleteUser(userId);
-    reply.clearCookie('session', authCookieOptions(isProduction));
-
-    return { deleted };
+      return { deleted };
     },
   );
 
@@ -12381,37 +12425,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     '/auth/refresh',
     { config: { rateLimit: { max: Number(process.env.AUTH_REFRESH_RATE_LIMIT_MAX ?? 30), timeWindow: '1 minute' } } },
     async (request, reply) => {
-    /*
-     * Session-management routes require a real login session. When the caller
-     * authenticated via an API-key token there is no currentSession, so the old
-     * non-null assertion threw a TypeError -> opaque 500. Return a clean 400.
-     */
-    const currentSession = request.currentSession;
+      /*
+       * Session-management routes require a real login session. When the caller
+       * authenticated via an API-key token there is no currentSession, so the old
+       * non-null assertion threw a TypeError -> opaque 500. Return a clean 400.
+       */
+      const currentSession = request.currentSession;
 
-    if (!currentSession) {
-      return reply.code(400).send({ error: 'No active session to refresh', code: 'SESSION_REQUIRED' });
-    }
+      if (!currentSession) {
+        return reply.code(400).send({ error: 'No active session to refresh', code: 'SESSION_REQUIRED' });
+      }
 
-    const token = createOpaqueToken('session');
-    await createLoginSession({
-      store,
-      userId: request.currentUser!.id,
-      organizationId: orgIdFromRequest(request),
-      token,
-      request,
-    });
-    await store.revokeSession(request.currentUser!.id, currentSession.id);
-    reply.setCookie('session', token, authCookieOptions(isProduction));
-    await audit(request, store, {
-      action: 'auth.session.refresh',
-      resourceType: 'session',
-      resourceId: currentSession.id,
-    });
+      const token = createOpaqueToken('session');
+      await createLoginSession({
+        store,
+        userId: request.currentUser!.id,
+        organizationId: orgIdFromRequest(request),
+        token,
+        request,
+      });
+      await store.revokeSession(request.currentUser!.id, currentSession.id);
+      reply.setCookie('session', token, authCookieOptions(isProduction));
+      await audit(request, store, {
+        action: 'auth.session.refresh',
+        resourceType: 'session',
+        resourceId: currentSession.id,
+      });
 
-    return {
-      token,
-      user: { id: request.currentUser!.id, email: request.currentUser!.email, name: request.currentUser!.name },
-    };
+      return {
+        token,
+        user: { id: request.currentUser!.id, email: request.currentUser!.email, name: request.currentUser!.name },
+      };
     },
   );
 
@@ -12430,22 +12474,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     '/auth/logout',
     { config: { rateLimit: { max: Number(process.env.AUTH_LOGOUT_RATE_LIMIT_MAX ?? 30), timeWindow: '1 minute' } } },
     async (request, reply) => {
-    if (!request.currentSession) {
-      return reply.code(400).send({ error: 'No active session to log out', code: 'SESSION_REQUIRED' });
-    }
+      if (!request.currentSession) {
+        return reply.code(400).send({ error: 'No active session to log out', code: 'SESSION_REQUIRED' });
+      }
 
-    const sessionId = request.currentSession.id;
-    const revoked = await store.revokeSession(request.currentUser!.id, sessionId);
+      const sessionId = request.currentSession.id;
+      const revoked = await store.revokeSession(request.currentUser!.id, sessionId);
 
-    /*
-     * Also clear the session cookie so the browser doesn't keep sending a now
-     * -revoked token (matches DELETE /auth/me). Server-side revocation already
-     * makes it unusable; this removes the dead cookie too.
-     */
-    reply.clearCookie('session', authCookieOptions(isProduction));
-    await audit(request, store, { action: 'auth.session.logout', resourceType: 'session', resourceId: sessionId });
+      /*
+       * Also clear the session cookie so the browser doesn't keep sending a now
+       * -revoked token (matches DELETE /auth/me). Server-side revocation already
+       * makes it unusable; this removes the dead cookie too.
+       */
+      reply.clearCookie('session', authCookieOptions(isProduction));
+      await audit(request, store, { action: 'auth.session.logout', resourceType: 'session', resourceId: sessionId });
 
-    return { revoked };
+      return { revoked };
     },
   );
   app.delete('/auth/sessions/:sessionId', async (request) => {
@@ -12457,7 +12501,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.post(
     '/auth/logout-all',
-    { config: { rateLimit: { max: Number(process.env.AUTH_LOGOUT_ALL_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' } } },
+    {
+      config: { rateLimit: { max: Number(process.env.AUTH_LOGOUT_ALL_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' } },
+    },
     async (request) => {
       const revoked = await store.revokeAllSessions(request.currentUser!.id, request.currentSession?.id);
       await audit(request, store, { action: 'auth.session.revoke_all', resourceType: 'session' });
@@ -12596,24 +12642,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { enabled: false };
     },
   );
-  app.post('/auth/recovery-codes', { config: { rateLimit: { max: Number(process.env.RECOVERY_CODES_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' } } }, async (request) => {
-    /*
-     * Rotating recovery codes invalidates the old set and mints new ones — a
-     * sensitive change that must require a recent re-auth, otherwise a hijacked
-     * session could silently issue itself a fresh MFA bypass set.
-     */
-    await requireRecentReauth(request);
+  app.post(
+    '/auth/recovery-codes',
+    { config: { rateLimit: { max: Number(process.env.RECOVERY_CODES_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' } } },
+    async (request) => {
+      /*
+       * Rotating recovery codes invalidates the old set and mints new ones — a
+       * sensitive change that must require a recent re-auth, otherwise a hijacked
+       * session could silently issue itself a fresh MFA bypass set.
+       */
+      await requireRecentReauth(request);
 
-    const codes = createRecoveryCodes();
-    await store.setRecoveryCodes(request.currentUser!.id, codes.map(hashRecoveryCode));
-    await audit(request, store, {
-      action: 'auth.recovery_codes.rotate',
-      resourceType: 'user',
-      resourceId: request.currentUser!.id,
-    });
+      const codes = createRecoveryCodes();
+      await store.setRecoveryCodes(request.currentUser!.id, codes.map(hashRecoveryCode));
+      await audit(request, store, {
+        action: 'auth.recovery_codes.rotate',
+        resourceType: 'user',
+        resourceId: request.currentUser!.id,
+      });
 
-    return { codes };
-  });
+      return { codes };
+    },
+  );
 
   app.patch('/admin/users/:userId/platform-admin', async (request) => {
     const { userId } = parse(platformAdminParams, request.params);
@@ -16316,7 +16366,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                     paygSpentCents,
                     budgetCapCents: wallet.budgetCapCents,
                   });
-                  await emailProvider.send({ to: email, subject: content.subject, text: content.text, html: content.html });
+                  await emailProvider.send({
+                    to: email,
+                    subject: content.subject,
+                    text: content.text,
+                    html: content.html,
+                  });
                 }
 
                 await store.markSpendAlert({ organizationId: project.organizationId, pct, periodStartMs });
@@ -17447,7 +17502,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       outputCentsPerM: existing.outputCentsPerM,
       contextWindow: existing.contextWindow,
     });
-    await audit(request, store, { action: 'admin.model.toggle', resourceType: 'model', resourceId: body.modelId, metadata: { enabled: body.enabled } });
+    await audit(request, store, {
+      action: 'admin.model.toggle',
+      resourceType: 'model',
+      resourceId: body.modelId,
+      metadata: { enabled: body.enabled },
+    });
     return { model: updated };
   });
 
@@ -17463,7 +17523,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       displayName: body.displayName,
       enabled: body.enabled,
     });
-    await audit(request, store, { action: 'admin.provider.toggle', resourceType: 'provider', resourceId: body.provider, metadata: { enabled: body.enabled } });
+    await audit(request, store, {
+      action: 'admin.provider.toggle',
+      resourceType: 'provider',
+      resourceId: body.provider,
+      metadata: { enabled: body.enabled },
+    });
     return { provider: updated };
   });
 
@@ -17748,7 +17813,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const settings = await store.listSystemSettings();
     const pending = settings.find((setting) => setting.key === 'account.pendingDeletionUserIds');
-    const ids = Array.isArray(pending?.value) ? (pending!.value as unknown[]).filter((id): id is string => typeof id === 'string') : [];
+    const ids = Array.isArray(pending?.value)
+      ? (pending!.value as unknown[]).filter((id): id is string => typeof id === 'string')
+      : [];
     const nowMs = Date.now();
 
     const requests = await Promise.all(
@@ -18658,6 +18725,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       message: body.message,
       files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id, workspaceId),
       selectedFiles: body.files,
+      authorName: body.authorName,
+      authorEmail: body.authorEmail,
     });
     await store.recordProjectActivity({
       projectId: project.id,
@@ -19340,7 +19409,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
     const existing = await store.getDatabaseInstanceByProject(project.id);
 
     if (existing) {
@@ -19376,7 +19450,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
     const instance = await store.getDatabaseInstanceByProject(project.id);
 
     if (!instance) {
@@ -19429,7 +19508,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (deployShutdown.shutdown) {
       return reply
         .code(402)
-        .send({ error: 'Service shutdown limit reached; deployments are paused.', code: 'SERVICE_SHUTDOWN_LIMIT_REACHED' });
+        .send({
+          error: 'Service shutdown limit reached; deployments are paused.',
+          code: 'SERVICE_SHUTDOWN_LIMIT_REACHED',
+        });
     }
 
     const body = {
