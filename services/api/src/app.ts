@@ -10501,12 +10501,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       if (shutdown.shutdown) {
-        return reply
-          .code(402)
-          .send({
-            error: 'Service shutdown limit reached; workspace start is paused.',
-            code: 'SERVICE_SHUTDOWN_LIMIT_REACHED',
-          });
+        return reply.code(402).send({
+          error: 'Service shutdown limit reached; workspace start is paused.',
+          code: 'SERVICE_SHUTDOWN_LIMIT_REACHED',
+        });
       }
     }
 
@@ -18867,6 +18865,53 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { remote, project: updatedProject, workspace: updatedWorkspace };
   });
+  app.post('/projects/:projectId/git/remote/remove', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    if (!gitProvider.removeRemote) {
+      return reply
+        .code(501)
+        .send({ error: 'Git remote removal is not supported by this runtime.', code: 'GIT_REMOTE_UNSUPPORTED' });
+    }
+
+    const body = parse(z.object({ workspaceId: workspaceIdField }), request.body ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
+    await gitProvider.removeRemote({ projectId: project.id, workspaceId });
+
+    // Clear the stored remote so the pane returns to its no-remote state. An empty
+    // string (not null) keeps the existing `string` store type while making
+    // `Boolean(gitRepositoryUrl)` false.
+    let updatedWorkspace: WorkspaceRecord | undefined;
+
+    if (workspaceId) {
+      updatedWorkspace = await store.updateWorkspaceGitRepositoryUrl({ workspaceId, gitRepositoryUrl: null });
+    }
+
+    const updatedProject = workspaceId
+      ? project
+      : await store.updateProject({ projectId: project.id, gitRepositoryUrl: '' });
+
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'git.remote.remove',
+      metadata: { workspaceId: body.workspaceId },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'git.remote.remove',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { workspaceId: body.workspaceId },
+    });
+
+    return { removed: true, project: updatedProject, workspace: updatedWorkspace };
+  });
   app.get('/projects/:projectId/git/branches', async (request) => {
     const project = await requireProject(
       request,
@@ -19506,12 +19551,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     if (deployShutdown.shutdown) {
-      return reply
-        .code(402)
-        .send({
-          error: 'Service shutdown limit reached; deployments are paused.',
-          code: 'SERVICE_SHUTDOWN_LIMIT_REACHED',
-        });
+      return reply.code(402).send({
+        error: 'Service shutdown limit reached; deployments are paused.',
+        code: 'SERVICE_SHUTDOWN_LIMIT_REACHED',
+      });
     }
 
     const body = {

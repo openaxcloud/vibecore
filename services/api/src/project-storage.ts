@@ -139,6 +139,7 @@ export interface GitProvider {
     workspaceId?: string;
     remoteUrl: string;
   }): Promise<{ remote: string; remoteUrl: string }>;
+  removeRemote?(input: { projectId: string; workspaceId?: string }): Promise<{ removed: boolean }>;
   listBranches(projectId: string, workspaceId?: string): Promise<string[]>;
   checkoutBranch(input: {
     projectId: string;
@@ -973,6 +974,19 @@ export class GitCliProvider implements GitProvider {
       await this.git(input.projectId, args, input.workspaceId);
 
       return { remote: 'origin', remoteUrl: input.remoteUrl };
+    });
+  }
+
+  async removeRemote(input: { projectId: string; workspaceId?: string }) {
+    return withProjectLock(input.projectId, async () => {
+      const remotes = await this.git(input.projectId, ['remote'], input.workspaceId).catch(() => '');
+
+      if (remotes.split('\n').includes('origin')) {
+        // Tolerate an already-absent origin (idempotent disconnect).
+        await this.git(input.projectId, ['remote', 'remove', 'origin'], input.workspaceId).catch(() => undefined);
+      }
+
+      return { removed: true };
     });
   }
 

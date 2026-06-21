@@ -59,6 +59,7 @@ export function GitSettingsPanel({
   const [remoteUrl, setRemoteUrl] = useState(gitRepositoryUrl ?? '');
   const [branch, setBranch] = useState(defaultBranch ?? 'main');
   const [savingRemote, setSavingRemote] = useState(false);
+  const [removingRemote, setRemovingRemote] = useState(false);
 
   const authorStorageKey = useMemo(() => `vibecore:git:commit-author:${projectId}`, [projectId]);
   const [authorName, setAuthorName] = useState('');
@@ -228,6 +229,37 @@ export function GitSettingsPanel({
     [branch, onRemoteConfigured, projectId, remoteUrl, workspaceId],
   );
 
+  const disconnectRemote = useCallback(async () => {
+    setRemovingRemote(true);
+
+    try {
+      const form = new FormData();
+      form.set('intent', 'remove-remote');
+
+      if (workspaceId) {
+        form.set('workspaceId', workspaceId);
+      }
+
+      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-panel/git`, {
+        method: 'POST',
+        body: form,
+      });
+
+      if (!response.ok) {
+        const parsed = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(parsed.error ?? `Failed to remove remote (HTTP ${response.status})`);
+      }
+
+      setRemoteUrl('');
+      toast.success('Git remote removed');
+      void onRemoteConfigured?.();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to remove this Git remote.');
+    } finally {
+      setRemovingRemote(false);
+    }
+  }, [onRemoteConfigured, projectId, workspaceId]);
+
   const saveAuthor = useCallback(() => {
     try {
       const name = authorName.trim();
@@ -299,6 +331,17 @@ export function GitSettingsPanel({
             {savingRemote ? 'Saving…' : gitRepositoryUrl ? 'Update' : 'Create'}
           </button>
         </form>
+        {gitRepositoryUrl ? (
+          <button
+            type="button"
+            data-testid="git-remote-remove"
+            onClick={() => void disconnectRemote()}
+            disabled={removingRemote || busy}
+            className="justify-self-start text-xs font-medium text-red-500 hover:underline disabled:opacity-60"
+          >
+            {removingRemote ? 'Removing…' : 'Remove remote'}
+          </button>
+        ) : null}
       </section>
 
       {/* Connections */}

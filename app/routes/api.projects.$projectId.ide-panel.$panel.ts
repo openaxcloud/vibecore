@@ -2078,6 +2078,11 @@ export async function action({ request, params }: EnterpriseActionArgs) {
           workspaceId,
         }),
       });
+    } else if (intent === 'remove-remote') {
+      await apiRequest(request, `/projects/${projectId}/git/remote/remove`, {
+        method: 'POST',
+        body: JSON.stringify({ workspaceId }),
+      });
     } else if (intent === 'checkout-branch') {
       await apiRequest(request, `/projects/${projectId}/git/branches/checkout`, {
         method: 'POST',
