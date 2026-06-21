@@ -60,9 +60,7 @@ export interface TerminalSpawnOptions {
 // failure so we don't repeatedly pay the import cost when it isn't installed.
 // The specifier is hidden behind an indirect import so the build doesn't fail
 // when the module is absent — presence is a pure runtime concern.
-const importOptional = new Function('specifier', 'return import(specifier)') as (
-  specifier: string,
-) => Promise<any>;
+const importOptional = new Function('specifier', 'return import(specifier)') as (specifier: string) => Promise<any>;
 
 let ptyModulePromise: Promise<any | null> | undefined;
 
@@ -163,10 +161,7 @@ function createPtyBackend(
   };
 }
 
-function createPipeBackend(
-  options: TerminalSpawnOptions,
-  spec: { shell: string; args: string[] },
-): TerminalBackend {
+function createPipeBackend(options: TerminalSpawnOptions, spec: { shell: string; args: string[] }): TerminalBackend {
   // `detached: true` makes the child a process-group leader so we can deliver a
   // signal to the whole group (the shell + whatever it is currently running).
   const child: ChildProcess = spawn(spec.shell, spec.args, {
@@ -391,10 +386,7 @@ export class TerminalSessionManager {
     return this.sessions.has(id);
   }
 
-  async getOrCreate(
-    id: string,
-    spawn: { cols?: number; rows?: number } = {},
-  ): Promise<TerminalSession> {
+  async getOrCreate(id: string, spawn: { cols?: number; rows?: number } = {}): Promise<TerminalSession> {
     const existing = this.sessions.get(id);
 
     if (existing) {
@@ -411,6 +403,17 @@ export class TerminalSessionManager {
 
     if (inflight) {
       return inflight;
+    }
+
+    /*
+     * Reserve a slot against BOTH live sessions AND in-flight creations, atomically
+     * with the pending.set below (no await between). #create's own size check ran
+     * before its first await and ignored pending, so N concurrent distinct-id
+     * creations each passed a stale size check and blew past maxSessions. The
+     * .finally(pending.delete) rolls the reservation back if creation rejects.
+     */
+    if (this.sessions.size + this.pending.size >= this.maxSessions) {
+      throw new Error('Too many terminal sessions');
     }
 
     const creation = this.#create(id, spawn).finally(() => {

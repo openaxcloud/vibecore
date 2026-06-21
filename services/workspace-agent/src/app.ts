@@ -211,7 +211,9 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       await assertRealPathContained(root, start);
     }
 
-    return listTree(root, start);
+    // Map fs errors to proper status (a ?path pointing at a file → ENOTDIR → 400,
+    // a removed path → ENOENT → 404) instead of an opaque 500/502.
+    return await listTree(root, start).catch(rethrowFsError);
   });
   app.get('/files/read', async (request) => {
     const { path } = filePathSchema.parse(request.query);
@@ -738,6 +740,16 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
           session = created;
 
+          /*
+           * Apply the reattaching client's viewport: getOrCreate returns the
+           * EXISTING shared PTY on a reconnect, which keeps the PREVIOUS client's
+           * cols/rows — so without this the shell renders at a stale size until the
+           * next manual resize. Guard against 0/NaN from a client that omitted them.
+           */
+          if (Number.isFinite(cols) && Number.isFinite(rows) && cols > 0 && rows > 0) {
+            created.resize(cols, rows);
+          }
+
           // Repaint the screen for a reattaching client.
           sendOutput(created.scrollback());
 
@@ -999,6 +1011,10 @@ function rethrowFsError(error: unknown): never {
 
   if (code === 'EISDIR') {
     throw Object.assign(new Error('Path is a directory'), { statusCode: 400, code: 'EISDIR' });
+  }
+
+  if (code === 'ENOTDIR') {
+    throw Object.assign(new Error('Path is not a directory'), { statusCode: 400, code: 'ENOTDIR' });
   }
 
   /*
