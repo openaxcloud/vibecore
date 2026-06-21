@@ -782,6 +782,9 @@ const gitDiscardSchema = z.object({
   workspaceId: workspaceIdField,
 });
 
+const gitRestoreSchema = z.object({ sha: z.string().min(4).max(64), workspaceId: workspaceIdField });
+const gitCommitParams = z.object({ projectId: z.string().min(1), sha: z.string().min(4).max(64) });
+
 const gitDiffQuerySchema = z.object({ filePath: z.string().optional(), workspaceId: workspaceIdField });
 
 const gitBlameQuerySchema = z.object({
@@ -18988,6 +18991,52 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceType: 'project',
       resourceId: project.id,
       metadata: { count: body.filePaths?.length ?? 'all', workspaceId: body.workspaceId },
+    });
+
+    return result;
+  });
+
+  app.get('/projects/:projectId/git/commit/:sha', async (request) => {
+    const params = parse(gitCommitParams, request.params);
+    const project = await requireProject(request, store, params.projectId, 'projects:read');
+    const query = parse(gitWorkspaceQuerySchema, request.query ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, query.workspaceId);
+
+    if (!gitProvider.commitDetail) {
+      return { sha: params.sha, files: [], diff: '' };
+    }
+
+    return gitProvider.commitDetail(project.id, params.sha, workspaceId);
+  });
+
+  app.post('/projects/:projectId/git/restore', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    const body = parse(gitRestoreSchema, request.body ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
+
+    if (!gitProvider.restoreCommit) {
+      return reply.code(501).send({ error: 'Restore not supported', code: 'GIT_RESTORE_UNSUPPORTED' });
+    }
+
+    const result = await gitProvider.restoreCommit(project.id, body.sha, workspaceId);
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'git.restore',
+      metadata: { sha: body.sha, workspaceId: body.workspaceId },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'git.restore',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { sha: body.sha, workspaceId: body.workspaceId },
     });
 
     return result;

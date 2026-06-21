@@ -352,6 +352,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     try {
       const blameFile = url.searchParams.get('blameFile');
       const diffFile = url.searchParams.get('diffFile');
+      const commitSha = url.searchParams.get('commitSha');
       const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
 
       const workspacesResponse = await apiRequest<{ workspaces: Array<Record<string, unknown>> }>(
@@ -420,6 +421,11 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
             }))
           : Promise.resolve({ diff: '' }),
       ]);
+      const commitDetail = commitSha
+        ? await apiRequest(request, withWorkspace(`/projects/${projectId}/git/commit/${encodeURIComponent(commitSha)}`))
+            .then((detail) => ({ commitDetail: detail }))
+            .catch(() => ({ commitDetail: null }))
+        : { commitDetail: null };
 
       return json(
         panelEnvelope(panel, project.project, {
@@ -429,6 +435,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           ...(stashes as any),
           ...(blame as any),
           ...(diff as any),
+          ...(commitDetail as any),
           workspaces: workspaceList,
           activeWorkspaceId,
           primaryWorkspaceId,
@@ -2093,6 +2100,11 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       await apiRequest(request, `/projects/${projectId}/git/discard`, {
         method: 'POST',
         body: JSON.stringify({ filePaths: filePaths.length ? filePaths : undefined, workspaceId }),
+      });
+    } else if (intent === 'restore') {
+      await apiRequest(request, `/projects/${projectId}/git/restore`, {
+        method: 'POST',
+        body: JSON.stringify({ sha: body.sha, workspaceId }),
       });
     } else if (intent === 'pr') {
       await apiRequest(request, `/projects/${projectId}/git/pull-requests`, {

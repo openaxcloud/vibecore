@@ -173,6 +173,16 @@ export interface GitProvider {
     workspaceId?: string;
     filePaths?: string[];
   }): Promise<{ discarded: boolean; filePaths: string[] }>;
+  /*
+   * Optional (so lightweight test mocks need not implement them). The real
+   * project-storage provider always has them; routes guard for undefined.
+   */
+  commitDetail?(
+    projectId: string,
+    sha: string,
+    workspaceId?: string,
+  ): Promise<{ sha: string; files: Array<{ status: string; path: string }>; diff: string }>;
+  restoreCommit?(projectId: string, sha: string, workspaceId?: string): Promise<{ restored: boolean; sha: string }>;
   logGraph(projectId: string, limit?: number, workspaceId?: string): Promise<GitCommitNode[]>;
   diff(projectId: string, filePath?: string, workspaceId?: string): Promise<string>;
   blame(input: {
@@ -1043,6 +1053,54 @@ export class GitCliProvider implements GitProvider {
       await this.git(input.projectId, ['add', '--', filePath], input.workspaceId);
 
       return { resolved: true, filePath, strategy: input.strategy };
+    });
+  }
+
+  async commitDetail(projectId: string, sha: string, workspaceId?: string) {
+    // Strip to a safe revision token (hex sha / short sha) — never interpolate raw.
+    const rev = sha.replace(/[^a-zA-Z0-9]/g, '');
+
+    if (!rev) {
+      return { sha: '', files: [] as Array<{ status: string; path: string }>, diff: '' };
+    }
+
+    const namesOut = await this.git(
+      projectId,
+      ['diff-tree', '--no-commit-id', '--name-status', '-r', '-M', rev],
+      workspaceId,
+    ).catch(() => '');
+
+    const files = namesOut
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        const [status, ...rest] = line.split('\t');
+
+        return { status: (status ?? 'M').trim(), path: rest.join('\t') };
+      })
+      .filter((entry) => entry.path);
+
+    const diff = await this.git(projectId, ['show', '--format=', rev], workspaceId).catch(() => '');
+
+    return { sha: rev, files, diff };
+  }
+
+  async restoreCommit(projectId: string, sha: string, workspaceId?: string) {
+    const rev = sha.replace(/[^a-zA-Z0-9]/g, '');
+
+    if (!rev) {
+      throw Object.assign(new Error('Invalid commit'), { statusCode: 400, code: 'GIT_BAD_REVISION' });
+    }
+
+    return withProjectLock(projectId, async () => {
+      /*
+       * Restore every tracked file to its state at <sha> (Replit's "Restore All").
+       * `git checkout <sha> -- .` overwrites the working tree + index with that
+       * commit's content WITHOUT moving HEAD, so the user can review and commit.
+       */
+      await this.git(projectId, ['checkout', rev, '--', '.'], workspaceId);
+
+      return { restored: true, sha: rev };
     });
   }
 

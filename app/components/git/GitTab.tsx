@@ -154,6 +154,17 @@ export function GitTab({ projectId }: GitTabProps) {
 
   // Discard confirmation target: a single file path, or 'all' for every change.
   const [discardConfirm, setDiscardConfirm] = useState<{ all: boolean; path?: string } | null>(null);
+
+  // Selected commit detail (Replit-style: click a commit → files + diff + Restore).
+  const [commitDetail, setCommitDetail] = useState<{
+    sha: string;
+    files: Array<{ status: string; path: string }>;
+    diff: string;
+    loading: boolean;
+  } | null>(null);
+
+  const [restoreConfirm, setRestoreConfirm] = useState<string | null>(null);
+  const commitRequestRef = useRef(0);
   const loadRequestRef = useRef(0);
   const inspectionRequestRef = useRef(0);
 
@@ -419,6 +430,55 @@ export function GitTab({ projectId }: GitTabProps) {
     [inspectFile, projectId, resolvedWorkspaceId],
   );
 
+  const loadCommit = useCallback(
+    async (sha: string) => {
+      if (!sha || !projectId) {
+        return;
+      }
+
+      const requestId = ++commitRequestRef.current;
+      setCommitDetail({ sha, files: [], diff: '', loading: true });
+
+      try {
+        const params = new URLSearchParams({ commitSha: sha });
+
+        if (resolvedWorkspaceId) {
+          params.set('workspaceId', resolvedWorkspaceId);
+        }
+
+        const response = await fetch(
+          `/api/projects/${encodeURIComponent(projectId)}/ide-panel/git?${params.toString()}`,
+          { headers: { accept: 'application/json' } },
+        );
+
+        if (!response.ok) {
+          throw new Error(`Commit load failed with ${response.status}`);
+        }
+
+        const payload = (await response.json()) as Envelope;
+        const detail = ((payload.data ?? {}) as any).commitDetail;
+
+        if (requestId !== commitRequestRef.current) {
+          return;
+        }
+
+        setCommitDetail({
+          sha: detail?.sha ?? sha,
+          files: Array.isArray(detail?.files) ? detail.files : [],
+          diff: detail?.diff ?? '',
+          loading: false,
+        });
+      } catch {
+        if (requestId !== commitRequestRef.current) {
+          return;
+        }
+
+        setCommitDetail({ sha, files: [], diff: '', loading: false });
+      }
+    },
+    [projectId, resolvedWorkspaceId],
+  );
+
   function toggleFile(filePath: string) {
     setStaged((current) => {
       const next = new Set(current);
@@ -601,6 +661,57 @@ export function GitTab({ projectId }: GitTabProps) {
           </div>
         ) : null}
 
+        {restoreConfirm ? (
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
+            role="dialog"
+            aria-modal="true"
+            data-testid="git-restore-confirm"
+            onClick={() => setRestoreConfirm(null)}
+          >
+            <div
+              className="w-[min(440px,100%)] rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
+                <span
+                  className="i-ph:clock-counter-clockwise text-base text-bolt-elements-item-contentAccent"
+                  aria-hidden
+                />
+                Restore all files to this commit?
+              </h3>
+              <p className="mt-2 text-sm text-bolt-elements-textSecondary">
+                This overwrites your working tree with the contents of commit{' '}
+                <code className="text-bolt-elements-item-contentAccent">{restoreConfirm.slice(0, 8)}</code>. Uncommitted
+                changes will be lost. You can review and commit afterwards.
+              </p>
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+                  onClick={() => setRestoreConfirm(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  data-testid="git-restore-confirm-button"
+                  disabled={busy}
+                  className="rounded-md bg-bolt-elements-item-contentAccent px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                  onClick={() => {
+                    const sha = restoreConfirm;
+                    setRestoreConfirm(null);
+                    setCommitDetail(null);
+                    void runIntent('restore', { sha });
+                  }}
+                >
+                  Restore all
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
           <section className="grid gap-4">
             <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
@@ -768,9 +879,17 @@ export function GitTab({ projectId }: GitTabProps) {
               {commits.length ? (
                 <div className="grid gap-2">
                   {commits.map((commit, index) => (
-                    <div
+                    <button
+                      type="button"
                       key={commit.sha}
-                      className="grid grid-cols-[20px_76px_minmax(0,1fr)] gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm"
+                      data-testid="git-commit-row"
+                      onClick={() => void loadCommit(commit.sha)}
+                      className={classNames(
+                        'grid w-full grid-cols-[20px_76px_minmax(0,1fr)] gap-3 rounded-md border bg-bolt-elements-background-depth-1 px-3 py-2 text-left text-sm hover:border-bolt-elements-item-contentAccent',
+                        commitDetail?.sha && commit.sha.startsWith(commitDetail.sha)
+                          ? 'border-bolt-elements-item-contentAccent'
+                          : 'border-bolt-elements-borderColor',
+                      )}
                     >
                       <div className="relative flex justify-center">
                         <span className="mt-1 h-2.5 w-2.5 rounded-full bg-bolt-elements-item-contentAccent" />
@@ -786,7 +905,7 @@ export function GitTab({ projectId }: GitTabProps) {
                           {commit.author ? ` - ${commit.author}` : ''}
                         </div>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               ) : (
@@ -794,6 +913,54 @@ export function GitTab({ projectId }: GitTabProps) {
                   No commits yet. Make your first commit.
                 </div>
               )}
+
+              {commitDetail ? (
+                <div
+                  className="mt-3 rounded-md border border-bolt-elements-item-contentAccent/40 bg-bolt-elements-background-depth-1 p-3"
+                  data-testid="git-commit-detail"
+                >
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
+                      <code className="text-xs text-bolt-elements-item-contentAccent">
+                        {commitDetail.sha.slice(0, 8)}
+                      </code>
+                      <span>
+                        {commitDetail.loading
+                          ? 'Loading…'
+                          : `${commitDetail.files.length} changed file${commitDetail.files.length === 1 ? '' : 's'}`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        data-testid="git-restore-commit"
+                        disabled={busy || commitDetail.loading}
+                        className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
+                        onClick={() => setRestoreConfirm(commitDetail.sha)}
+                      >
+                        Restore all
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Close commit detail"
+                        className="i-ph:x text-base text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+                        onClick={() => setCommitDetail(null)}
+                      />
+                    </div>
+                  </div>
+                  {commitDetail.files.length ? (
+                    <div className="mb-2 grid gap-1">
+                      {commitDetail.files.map((file) => (
+                        <div key={file.path} className="flex items-center gap-2 text-xs">
+                          <GitStatusBadge status={file.status || 'M'} />
+                          <code className="truncate text-bolt-elements-textSecondary">{file.path}</code>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {commitDetail.diff ? <GitDiffView diff={commitDetail.diff} /> : null}
+                </div>
+              ) : null}
             </div>
 
             <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
