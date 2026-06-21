@@ -40,6 +40,14 @@ async function readPayload(request: Request) {
     return {};
   }
 
+  /*
+   * Cap the stored payload size; an oversized body is recorded truncated
+   * (matching the parse-failure branch) rather than parsed and held whole.
+   */
+  if (text.length > 20_000) {
+    return { raw: text.slice(0, 20_000), truncated: true };
+  }
+
   try {
     return JSON.parse(text) as unknown;
   } catch {

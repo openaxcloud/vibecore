@@ -183,7 +183,11 @@ export interface GitProvider {
     workspaceId?: string,
   ): Promise<{ sha: string; files: Array<{ status: string; path: string }>; diff: string }>;
   restoreCommit?(projectId: string, sha: string, workspaceId?: string): Promise<{ restored: boolean; sha: string }>;
-  conflictFile?(projectId: string, filePath: string, workspaceId?: string): Promise<{ filePath: string; content: string }>;
+  conflictFile?(
+    projectId: string,
+    filePath: string,
+    workspaceId?: string,
+  ): Promise<{ filePath: string; content: string }>;
   markResolved?(input: {
     projectId: string;
     workspaceId?: string;
@@ -1146,6 +1150,16 @@ export class GitCliProvider implements GitProvider {
        * files are intentionally NOT removed here (deleting them would be a more
        * destructive operation than the user's "discard changes" intent implies).
        */
+      /*
+       * Key the discard-all fallback on whether filePaths was SUPPLIED, not on the
+       * post-sanitization count: a caller that passes e.g. ['/'] (which sanitizes to
+       * empty) means "these paths", not "everything". Treat a provided-but-empty list
+       * as a no-op so a targeted discard can never revert the whole working tree.
+       */
+      if (input.filePaths !== undefined && paths.length === 0) {
+        return { discarded: true, filePaths: [] };
+      }
+
       const pathspec = paths.length ? paths : ['.'];
       await this.git(input.projectId, ['checkout', '--', ...pathspec], input.workspaceId);
 

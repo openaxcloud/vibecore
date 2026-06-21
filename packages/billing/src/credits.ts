@@ -158,7 +158,9 @@ export interface EstimateInput {
  * so combining boosts adds their deltas instead of compounding. A single boost
  * yields exactly its documented Replit multiple once `1 + surcharge` is applied.
  */
-export function powerBoostSurcharge(input: Pick<EstimateInput, 'highPowerModel' | 'extendedThinking' | 'turboMode'>): number {
+export function powerBoostSurcharge(
+  input: Pick<EstimateInput, 'highPowerModel' | 'extendedThinking' | 'turboMode'>,
+): number {
   let surcharge = 0;
   if (input.highPowerModel) {
     surcharge += HIGH_POWER_ESTIMATE_MULTIPLIER - 1;
@@ -323,7 +325,8 @@ export function paygAlertThresholdCrossed(paygSpentCents: number, budgetCapCents
   if (!Number.isFinite(budgetCapCents) || budgetCapCents <= 0) {
     return null;
   }
-  const ratio = Math.max(0, paygSpentCents) / budgetCapCents;
+  const spent = Number.isFinite(paygSpentCents) ? Math.max(0, paygSpentCents) : 0;
+  const ratio = spent / budgetCapCents;
   let crossed: number | null = null;
   for (const threshold of PAYG_ALERT_THRESHOLDS) {
     if (ratio >= threshold) {

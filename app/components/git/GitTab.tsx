@@ -273,9 +273,15 @@ export function GitTab({ projectId }: GitTabProps) {
      * staged paths/blame/diff belong to the previous workspace's working tree.
      */
     inspectionRequestRef.current += 1;
+    commitRequestRef.current += 1;
+    mergeRequestRef.current += 1;
     setStaged(new Set());
     setInspectFile('');
     setInspection({ loading: false, blame: [], diff: '' });
+    setCommitDetail(null);
+    setRestoreConfirm(null);
+    setMergeFile(null);
+    setMergeContent(null);
   }, [currentWorkspaceId]);
 
   useEffect(() => {

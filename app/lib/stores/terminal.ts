@@ -101,10 +101,16 @@ export class TerminalStore {
      * its remote PTY kept the default 80x24 and wrapped/truncated output. Resize
      * it too, alongside the user-spawned shells.
      */
-    this.#boltTerminal.process?.resize(cols, rows);
+    /*
+     * resize() is fire-and-forget and may return a rejected promise when a remote
+     * PTY socket is not OPEN (mid-reconnect). Swallow it so a resize during a flap
+     * never surfaces as an unhandled rejection. Promise.resolve tolerates the
+     * `void | Promise<void>` return of the RuntimeContract resize signature.
+     */
+    void Promise.resolve(this.#boltTerminal.process?.resize(cols, rows)).catch(() => {});
 
     for (const { process } of this.#terminals) {
-      process.resize(cols, rows);
+      void Promise.resolve(process.resize(cols, rows)).catch(() => {});
     }
   }
 

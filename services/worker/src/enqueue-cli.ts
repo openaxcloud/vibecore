@@ -69,6 +69,14 @@ export async function enqueue(parsed: Parsed): Promise<string> {
     throw new Error('REDIS_URL is required to enqueue');
   }
   const connection = new Redis(url, { maxRetriesPerRequest: null, lazyConnect: true });
+
+  /*
+   * An ioredis 'error' event with no listener is rethrown as an uncaught
+   * exception (see startWorkers in index.ts). Swallow it so a Redis fault
+   * surfaces as the queue.add() rejection handled below, not a process crash.
+   */
+  connection.on('error', () => {});
+
   const queue = new Queue(parsed.queue, { connection });
   try {
     /*
@@ -98,7 +106,8 @@ export async function enqueue(parsed: Parsed): Promise<string> {
 }
 
 const invokedDirectly =
-  typeof process.argv[1] === 'string' && (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith('/enqueue-cli.js'));
+  typeof process.argv[1] === 'string' &&
+  (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith('/enqueue-cli.js'));
 
 if (invokedDirectly) {
   try {
@@ -107,7 +116,9 @@ if (invokedDirectly) {
     process.stdout.write(`${JSON.stringify({ event: 'enqueued', queue: parsed.queue, job: parsed.job, id })}\n`);
     process.exit(0);
   } catch (error) {
-    process.stderr.write(`${JSON.stringify({ event: 'enqueue.failed', error: error instanceof Error ? error.message : String(error) })}\n`);
+    process.stderr.write(
+      `${JSON.stringify({ event: 'enqueue.failed', error: error instanceof Error ? error.message : String(error) })}\n`,
+    );
     process.exit(1);
   }
 }
