@@ -1132,7 +1132,7 @@ export function GitTab({ projectId }: GitTabProps) {
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
             <div className="mb-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
               <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
-                Blame and diff file
+                Inspect file (diff + blame)
                 <PanelInput
                   value={inspectFile}
                   onChange={(event) => setInspectFile(event.target.value)}
@@ -1146,7 +1146,7 @@ export function GitTab({ projectId }: GitTabProps) {
                   onClick={() => void loadInspection()}
                   disabled={!inspectFile || inspection.loading}
                 >
-                  {inspection.loading ? 'Loading...' : 'Load blame'}
+                  {inspection.loading ? 'Loading...' : 'Inspect'}
                 </button>
               </div>
             </div>
@@ -1155,24 +1155,11 @@ export function GitTab({ projectId }: GitTabProps) {
                 {inspection.error}
               </div>
             )}
-            {inspection.diff ? <GitDiffView diff={inspection.diff} className="mb-3" /> : null}
-            {inspection.blame.length ? (
-              <div className="max-h-64 overflow-auto rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
-                {inspection.blame.slice(0, 80).map((line) => (
-                  <div
-                    key={`${line.sha}-${line.line}`}
-                    className="grid grid-cols-[48px_92px_110px_minmax(0,1fr)] gap-2 border-b border-bolt-elements-borderColor px-3 py-1.5 text-xs last:border-b-0"
-                  >
-                    <span className="text-bolt-elements-textSecondary">{line.line}</span>
-                    <code className="truncate text-bolt-elements-textSecondary">{String(line.sha).slice(0, 8)}</code>
-                    <span className="truncate text-bolt-elements-textSecondary">{line.author}</span>
-                    <code className="truncate text-bolt-elements-textPrimary">{line.content}</code>
-                  </div>
-                ))}
-              </div>
+            {inspection.diff || inspection.blame.length ? (
+              <GitDiffView diff={inspection.diff} blame={inspection.blame} />
             ) : (
               <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 text-sm text-bolt-elements-textSecondary">
-                Select a changed file or enter a path to load inline blame.
+                Select a changed file or enter a path to view its diff and blame.
               </div>
             )}
           </div>
