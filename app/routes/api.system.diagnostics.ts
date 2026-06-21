@@ -77,6 +77,7 @@ export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs & {
       headers: {
         Accept: 'application/vnd.github.v3+json',
       },
+      signal: AbortSignal.timeout(15000),
     });
 
     githubApiStatus = {

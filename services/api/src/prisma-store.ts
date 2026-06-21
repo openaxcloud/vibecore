@@ -3212,7 +3212,9 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listAdminCreditWallets() {
-    return (await this.prisma.creditWallet.findMany({ orderBy: { updatedAt: 'desc' }, take: 500 })).map(mapCreditWallet);
+    return (await this.prisma.creditWallet.findMany({ orderBy: { updatedAt: 'desc' }, take: 500 })).map(
+      mapCreditWallet,
+    );
   }
 
   async listAdminAgentCheckpoints(options?: { take?: number }) {
@@ -3844,7 +3846,7 @@ export class PrismaApiStore implements ApiStore {
       where: { key: roleKey },
       create: {
         key: roleKey,
-        name: roleKey[0]?.toUpperCase() + roleKey.slice(1),
+        name: roleKey.charAt(0).toUpperCase() + roleKey.slice(1),
         system: Object.hasOwn(rolePermissions, roleKey),
       },
       update: {},
@@ -3854,7 +3856,7 @@ export class PrismaApiStore implements ApiStore {
   private async ensurePlan(planKey: PlanKey) {
     return this.prisma.plan.upsert({
       where: { key: planKey },
-      create: { key: planKey, name: planKey[0]?.toUpperCase() + planKey.slice(1), monthlyCents: 0, limits: {} },
+      create: { key: planKey, name: planKey.charAt(0).toUpperCase() + planKey.slice(1), monthlyCents: 0, limits: {} },
       update: {},
     });
   }

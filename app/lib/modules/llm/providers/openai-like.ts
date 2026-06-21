@@ -100,7 +100,8 @@ export default class OpenAILikeProvider extends BaseProvider {
           continue;
         }
 
-        const limit = limitStr ? parseInt(limitStr.trim(), 10) : 8000;
+        const parsedLimit = limitStr ? parseInt(limitStr.trim(), 10) : NaN;
+        const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 8000;
         const modelName = modelPath.trim();
 
         // Generate a readable label from the model path

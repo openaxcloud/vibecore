@@ -199,7 +199,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
         }
       } finally {
         request.raw.off('close', onClientClose);
-        await iterator.return?.(undefined);
+        await iterator.return?.(undefined).catch(() => {});
       }
 
       if (!reply.raw.writableEnded) {
