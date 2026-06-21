@@ -5067,7 +5067,38 @@ function connectorProviderFor(provider: string): ConnectorProvider | undefined {
   }
 }
 
-function connectorCredentialsFor(provider: string): ConnectorOAuthCredentials | null {
+async function connectorCredentialsFor(
+  provider: string,
+  store: ApiStore,
+): Promise<ConnectorOAuthCredentials | null> {
+  /*
+   * Admin-configured DB credentials (ConnectorCatalog, set via the admin
+   * Integrations panel) take precedence over env vars — this is the self-service
+   * path so operators can wire OAuth apps without redeploying. Falls back to the
+   * INTEGRATION_<P>_CLIENT_ID/SECRET env resolvers when the DB row is not
+   * enabled/populated.
+   */
+  try {
+    const cat = await store.getConnectorOAuthCatalog(provider);
+
+    if (cat?.enabled && cat.clientId && cat.clientSecretEnc) {
+      const clientSecret = decryptJson<{ value: string }>(cat.clientSecretEnc).value;
+
+      if (clientSecret) {
+        return {
+          clientId: cat.clientId,
+          clientSecret,
+          scopes: cat.scopes && cat.scopes.length > 0 ? cat.scopes : [],
+          redirectUri:
+            process.env[`${provider.toUpperCase()}_REDIRECT_URI`] ??
+            `https://app.e-code.ai/integrations/oauth/${provider}/callback`,
+        };
+      }
+    }
+  } catch {
+    // Fall through to env-based credentials if the DB row is unreadable/undecryptable.
+  }
+
   switch (provider) {
     case 'github':
       return resolveGithubCredentials();
@@ -7637,7 +7668,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         organizationId = orgs[0].id;
       }
 
-      const credentials = connectorCredentialsFor(params.provider);
+      const credentials = await connectorCredentialsFor(params.provider, store);
 
       if (!credentials) {
         return reply.code(503).send({
@@ -7727,7 +7758,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         await requireProject(request, store, context.projectId, 'projects:write');
       }
 
-      const credentials = connectorCredentialsFor(params.provider);
+      const credentials = await connectorCredentialsFor(params.provider, store);
 
       if (!credentials) {
         return reply.code(503).send({
@@ -17528,6 +17559,61 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { enabled: body.enabled },
     });
     return { provider: updated };
+  });
+
+  /*
+   * Admin self-service OAuth provider config (GitHub/GitLab/Bitbucket). Lets an
+   * operator wire the OAuth apps' client_id/secret from the admin UI instead of
+   * env vars; the connect flow reads these via connectorCredentialsFor (DB-first).
+   * The secret is WRITE-ONLY here — never returned, only `hasSecret` is exposed.
+   */
+  const OAUTH_CONNECTOR_PROVIDERS = ['github', 'gitlab', 'bitbucket'] as const;
+
+  app.get('/admin/connectors/oauth', async (request) => {
+    await requirePlatformAdmin(request);
+    const rows = await Promise.all(OAUTH_CONNECTOR_PROVIDERS.map((p) => store.getConnectorOAuthCatalog(p)));
+
+    return {
+      connectors: rows.filter((c): c is NonNullable<typeof c> => Boolean(c)).map((c) => ({
+        provider: c.provider,
+        displayName: c.displayName,
+        enabled: c.enabled,
+        clientId: c.clientId ?? '',
+        hasSecret: Boolean(c.clientSecretEnc),
+        scopes: c.scopes,
+        authorizeUrl: c.authorizeUrl,
+        callbackUrl: `https://app.e-code.ai/integrations/oauth/${c.provider}/callback`,
+      })),
+    };
+  });
+
+  app.post('/admin/connectors/oauth', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+    const body = parse(
+      z.object({
+        provider: z.enum(OAUTH_CONNECTOR_PROVIDERS),
+        clientId: z.string().trim().optional(),
+        clientSecret: z.string().optional(),
+        enabled: z.boolean().optional(),
+      }),
+      request.body ?? {},
+    );
+    const hasNewSecret = typeof body.clientSecret === 'string' && body.clientSecret.length > 0;
+    const updated = await store.upsertConnectorOAuthConfig({
+      provider: body.provider,
+      ...(body.clientId !== undefined ? { clientId: body.clientId.length > 0 ? body.clientId : null } : {}),
+      ...(hasNewSecret ? { clientSecretEnc: encryptJson({ value: body.clientSecret }) } : {}),
+      ...(body.enabled !== undefined ? { enabled: body.enabled } : {}),
+    });
+    await audit(request, store, {
+      action: 'admin.connector.oauth.configure',
+      resourceType: 'connector',
+      resourceId: body.provider,
+      metadata: { enabled: updated.enabled, hasClientId: Boolean(updated.clientId), secretUpdated: hasNewSecret },
+    });
+
+    return { connector: updated };
   });
 
   app.get('/admin/wallets', async (request) => {

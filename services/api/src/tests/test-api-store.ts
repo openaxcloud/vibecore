@@ -2411,6 +2411,58 @@ export class TestApiStore implements ApiStore {
     return config;
   }
 
+  readonly connectorOAuthConfigs = new Map<
+    string,
+    {
+      provider: string;
+      displayName: string;
+      authType: string;
+      enabled: boolean;
+      clientId: string | null;
+      clientSecretEnc: string | null;
+      scopes: string[];
+      authorizeUrl: string | null;
+    }
+  >();
+
+  async getConnectorOAuthCatalog(provider: string) {
+    return (
+      this.connectorOAuthConfigs.get(provider) ?? {
+        provider,
+        displayName: provider,
+        authType: 'oauth',
+        enabled: false,
+        clientId: null,
+        clientSecretEnc: null,
+        scopes: [],
+        authorizeUrl: null,
+      }
+    );
+  }
+
+  async upsertConnectorOAuthConfig(input: {
+    provider: string;
+    clientId?: string | null;
+    clientSecretEnc?: string | null;
+    enabled?: boolean;
+  }) {
+    const existing = await this.getConnectorOAuthCatalog(input.provider);
+    const next = {
+      ...existing,
+      ...(input.clientId !== undefined ? { clientId: input.clientId } : {}),
+      ...(input.clientSecretEnc !== undefined ? { clientSecretEnc: input.clientSecretEnc } : {}),
+      ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
+    };
+    this.connectorOAuthConfigs.set(input.provider, next);
+
+    return {
+      provider: next.provider,
+      enabled: next.enabled,
+      clientId: next.clientId,
+      hasSecret: Boolean(next.clientSecretEnc),
+    };
+  }
+
   async listAdminCreditWallets() {
     return [...this.creditWallets.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }

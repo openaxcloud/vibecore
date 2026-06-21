@@ -3211,6 +3211,57 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  /*
+   * Admin-owned OAuth credentials for a connector (GitHub/GitLab/Bitbucket),
+   * stored on the seeded ConnectorCatalog row. Returns the raw row incl. the
+   * encrypted secret so the caller (the OAuth resolver) can decrypt it; the admin
+   * API masks it before sending to the browser.
+   */
+  async getConnectorOAuthCatalog(provider: string) {
+    const row = await this.prisma.connectorCatalog.findUnique({ where: { provider } });
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      provider: row.provider,
+      displayName: row.displayName,
+      authType: row.authType,
+      enabled: row.enabled,
+      clientId: row.defaultClientId,
+      clientSecretEnc: row.defaultClientSecretEnc,
+      scopes: row.defaultScopes,
+      authorizeUrl: row.authorizeUrl,
+    };
+  }
+
+  /*
+   * Set a connector's admin-configured OAuth credentials. The row is seeded
+   * (seed-connector-catalog.ts) so this is always an update; the secret arrives
+   * already encrypted (encryptJson) from the route and is never logged.
+   */
+  async upsertConnectorOAuthConfig(input: {
+    provider: string;
+    clientId?: string | null;
+    clientSecretEnc?: string | null;
+    enabled?: boolean;
+  }) {
+    const data = {
+      ...(input.clientId !== undefined ? { defaultClientId: input.clientId } : {}),
+      ...(input.clientSecretEnc !== undefined ? { defaultClientSecretEnc: input.clientSecretEnc } : {}),
+      ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
+    };
+    const row = await this.prisma.connectorCatalog.update({ where: { provider: input.provider }, data });
+
+    return {
+      provider: row.provider,
+      enabled: row.enabled,
+      clientId: row.defaultClientId,
+      hasSecret: Boolean(row.defaultClientSecretEnc),
+    };
+  }
+
   async listAdminCreditWallets() {
     return (await this.prisma.creditWallet.findMany({ orderBy: { updatedAt: 'desc' }, take: 500 })).map(
       mapCreditWallet,

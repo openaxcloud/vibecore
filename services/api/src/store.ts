@@ -1409,6 +1409,22 @@ export interface ApiStore {
     baseUrl?: string;
     byokAllowed?: boolean;
   }): Promise<ProviderConfigRecord>;
+  getConnectorOAuthCatalog(provider: string): Promise<{
+    provider: string;
+    displayName: string;
+    authType: string;
+    enabled: boolean;
+    clientId: string | null;
+    clientSecretEnc: string | null;
+    scopes: string[];
+    authorizeUrl: string | null;
+  } | null>;
+  upsertConnectorOAuthConfig(input: {
+    provider: string;
+    clientId?: string | null;
+    clientSecretEnc?: string | null;
+    enabled?: boolean;
+  }): Promise<{ provider: string; enabled: boolean; clientId: string | null; hasSecret: boolean }>;
   listModelConfigs(options?: { enabledOnly?: boolean }): Promise<ModelConfigRecord[]>;
   // Admin-wide listings for the supervision console.
   listAdminCreditWallets(): Promise<CreditWalletRecord[]>;
