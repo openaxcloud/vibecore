@@ -76,6 +76,18 @@ class TestWorkspaceStore implements WorkspaceStore {
   async listNonDeleted() {
     return [...this.workspaces.values()].filter((workspace) => workspace.status !== 'DELETED');
   }
+
+  async claimMeterWindow(workspaceId: string, expected: string | undefined, next: string) {
+    const existing = this.workspaces.get(workspaceId);
+
+    if (!existing || (existing.lastMeteredAt ?? undefined) !== (expected ?? undefined)) {
+      return false;
+    }
+
+    this.workspaces.set(workspaceId, { ...existing, lastMeteredAt: next });
+
+    return true;
+  }
 }
 
 /*
@@ -297,6 +309,26 @@ describe('WorkspaceManager', () => {
         process.env.INTERNAL_API_SHARED_SECRET = prevSecret;
       }
     }
+  });
+
+  it('claimMeterWindow is a cross-replica compare-and-set — only one claim wins', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    await manager.startWorkspace(input);
+
+    const t0 = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    await store.update(input.workspaceId, { lastMeteredAt: t0 });
+
+    const t1 = new Date().toISOString();
+    // Two manager replicas read the SAME lastMeteredAt (t0) and both try to claim
+    // the stop window. The CAS must let exactly one through.
+    const replicaA = await store.claimMeterWindow(input.workspaceId, t0, t1);
+    const replicaB = await store.claimMeterWindow(input.workspaceId, t0, t1);
+
+    expect(replicaA).toBe(true); // first replica claims → it meters
+    expect(replicaB).toBe(false); // second sees the advanced marker → loses → skips metering
+    expect((await store.get(input.workspaceId))?.lastMeteredAt).toBe(t1);
   });
 
   it('does not delete a workspace re-provisioned since the GC snapshot (TOCTOU)', async () => {

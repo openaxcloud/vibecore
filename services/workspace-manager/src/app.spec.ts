@@ -42,6 +42,18 @@ class TestWorkspaceStore implements WorkspaceStore {
   async listNonDeleted() {
     return [...this.workspaces.values()].filter((workspace) => workspace.status !== 'DELETED');
   }
+
+  async claimMeterWindow(workspaceId: string, expected: string | undefined, next: string) {
+    const existing = this.workspaces.get(workspaceId);
+
+    if (!existing || (existing.lastMeteredAt ?? undefined) !== (expected ?? undefined)) {
+      return false;
+    }
+
+    this.workspaces.set(workspaceId, { ...existing, lastMeteredAt: next });
+
+    return true;
+  }
 }
 
 class TestK8sClient implements WorkspaceK8sClient {

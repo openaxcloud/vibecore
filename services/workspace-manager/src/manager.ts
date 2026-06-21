@@ -55,6 +55,15 @@ export interface WorkspaceStore {
    * O(lifetime-count) waste. Stores push the filter into the query.
    */
   listNonDeleted(): Promise<WorkspaceRecord[]>;
+
+  /*
+   * Atomic compare-and-set of the metering marker: advance lastMeteredAt to
+   * `next` only if it currently equals `expected`. Returns true if this caller
+   * won the claim. Used so only ONE GC replica meters a given stop window —
+   * #gcInFlight only serializes within a process, but two manager replicas can
+   * each run GC on the same dead-pod row and otherwise double-bill the window.
+   */
+  claimMeterWindow(workspaceId: string, expected: string | undefined, next: string): Promise<boolean>;
 }
 
 export interface EventBus {
@@ -85,6 +94,20 @@ export class JsonWorkspaceStore implements WorkspaceStore {
     workspaces.set(workspaceId, updated);
     await this.write(workspaces);
     return updated;
+  }
+
+  async claimMeterWindow(workspaceId: string, expected: string | undefined, next: string) {
+    const workspaces = await this.read();
+    const existing = workspaces.get(workspaceId);
+
+    if (!existing || (existing.lastMeteredAt ?? undefined) !== (expected ?? undefined)) {
+      return false;
+    }
+
+    workspaces.set(workspaceId, { ...existing, lastMeteredAt: next });
+    await this.write(workspaces);
+
+    return true;
   }
 
   async get(workspaceId: string) {
@@ -577,18 +600,31 @@ export class WorkspaceManager {
         return;
       }
 
+      /*
+       * Claim the window via a compare-and-set BEFORE posting, so only one of the
+       * two GC replicas meters it: advance lastMeteredAt to endMs only if it still
+       * equals what we read. The losing replica's claim returns false and it skips
+       * the POST — no cross-replica double-bill. (Conservative: if the POST then
+       * fails we under-meter this window rather than risk double-charging.)
+       */
+      const claimed = await this.store.claimMeterWindow(
+        workspace.id,
+        workspace.lastMeteredAt,
+        new Date(endMs).toISOString(),
+      );
+
+      if (!claimed) {
+        return;
+      }
+
       const compute = PLAN_METER_COMPUTE[workspace.plan] ?? PLAN_METER_COMPUTE.free;
-      const ok = await postWorkspaceComputeMetering({
+      await postWorkspaceComputeMetering({
         organizationId: workspace.orgId,
         projectId: workspace.projectId,
         cpuMillicores: compute.cpuMillicores,
         ramMb: compute.ramMb,
         seconds,
       });
-
-      if (ok) {
-        await this.store.update(workspace.id, { lastMeteredAt: new Date(endMs).toISOString() }).catch(() => {});
-      }
     } catch {
       // metering must never break GC
     }

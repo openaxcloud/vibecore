@@ -162,6 +162,21 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     }
   }
 
+  async claimMeterWindow(workspaceId: string, expected: string | undefined, next: string): Promise<boolean> {
+    /*
+     * Atomic compare-and-set across the two manager replicas: advance
+     * lastMeteredAt to `next` only if it still equals the value we read. The DB
+     * applies this as a single conditional UPDATE, so exactly one replica's
+     * updateMany matches a row — that caller meters the window, the loser skips it.
+     */
+    const result = await this.prisma.workspaceRuntime.updateMany({
+      where: { id: workspaceId, lastMeteredAt: expected ? new Date(expected) : null },
+      data: { lastMeteredAt: new Date(next) },
+    });
+
+    return result.count === 1;
+  }
+
   async get(workspaceId: string): Promise<WorkspaceRecord | undefined> {
     const row = (await this.prisma.workspaceRuntime.findUnique({
       where: { id: workspaceId },
