@@ -115,7 +115,7 @@ function PanelInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={classNames(
-        'h-9 min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm outline-none focus:border-bolt-elements-focus',
+        'h-[34px] min-w-0 rounded-[6px] border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-[13px] outline-none focus:border-bolt-elements-focus',
         props.className,
       )}
     />
@@ -132,7 +132,7 @@ function PanelButton({
       {...props}
       type={props.type ?? 'submit'}
       className={classNames(
-        'inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium disabled:opacity-60',
+        'inline-flex h-[34px] items-center justify-center rounded-[6px] px-3 text-[13px] font-medium disabled:opacity-60',
         variant === 'outline'
           ? 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3'
           : 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover',
@@ -711,7 +711,7 @@ export function GitTab({ projectId }: GitTabProps) {
               className="w-[min(420px,100%)] rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-xl"
               onClick={(event) => event.stopPropagation()}
             >
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
+              <h3 className="flex items-center gap-2 text-[13px] font-semibold text-bolt-elements-textPrimary">
                 <span className="i-ph:warning-circle text-base text-red-500" aria-hidden />
                 Discard changes?
               </h3>
@@ -758,7 +758,7 @@ export function GitTab({ projectId }: GitTabProps) {
               className="w-[min(440px,100%)] rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-xl"
               onClick={(event) => event.stopPropagation()}
             >
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
+              <h3 className="flex items-center gap-2 text-[13px] font-semibold text-bolt-elements-textPrimary">
                 <span
                   className="i-ph:clock-counter-clockwise text-base text-bolt-elements-item-contentAccent"
                   aria-hidden
@@ -814,7 +814,7 @@ export function GitTab({ projectId }: GitTabProps) {
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Working tree</h3>
+                <h3 className="text-[13px] font-semibold text-bolt-elements-textPrimary">Working tree</h3>
                 <p className="mt-1 text-xs text-bolt-elements-textSecondary">
                   Files changed in this workspace. Click a file to preview its diff, then stage it for commit.
                 </p>
@@ -999,7 +999,7 @@ export function GitTab({ projectId }: GitTabProps) {
           )}
 
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-            <h3 className="mb-3 text-sm font-semibold text-bolt-elements-textPrimary">Staged</h3>
+            <h3 className="mb-3 text-[13px] font-semibold text-bolt-elements-textPrimary">Staged</h3>
             {stagedFiles.length ? (
               <div className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
                 {stagedFiles.map((file) => (
@@ -1060,7 +1060,7 @@ export function GitTab({ projectId }: GitTabProps) {
           </form>
 
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-            <h3 className="mb-3 text-sm font-semibold text-bolt-elements-textPrimary">Commit graph</h3>
+            <h3 className="mb-3 text-[13px] font-semibold text-bolt-elements-textPrimary">Commit graph</h3>
             {commits.length ? (
               <div className="grid gap-2">
                 {commits.map((commit, index) => (
@@ -1105,7 +1105,7 @@ export function GitTab({ projectId }: GitTabProps) {
                 data-testid="git-commit-detail"
               >
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
+                  <div className="flex items-center gap-2 text-[13px] font-semibold text-bolt-elements-textPrimary">
                     <code className="text-xs text-bolt-elements-item-contentAccent">
                       {commitDetail.sha.slice(0, 8)}
                     </code>
@@ -1183,7 +1183,7 @@ export function GitTab({ projectId }: GitTabProps) {
             )}
           </div>
           <details className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-            <summary className="cursor-pointer text-sm font-semibold text-bolt-elements-textPrimary">
+            <summary className="cursor-pointer text-[13px] font-semibold text-bolt-elements-textPrimary">
               Branch actions
             </summary>
             <div className="mt-3 grid gap-3">
@@ -1214,7 +1214,7 @@ export function GitTab({ projectId }: GitTabProps) {
 
           {stashes.length ? (
             <div className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Stashes</h3>
+              <h3 className="text-[13px] font-semibold text-bolt-elements-textPrimary">Stashes</h3>
               {stashes.map((stash) => (
                 <div
                   key={stash.id}

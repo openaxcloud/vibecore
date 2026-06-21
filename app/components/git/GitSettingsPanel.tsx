@@ -277,8 +277,12 @@ export function GitSettingsPanel({
     }
   }, [authorEmail, authorName, authorStorageKey]);
 
+  /*
+   * Fixed px (not rem) so the Git settings keep IDE density despite the ecode
+   * app-wide responsive root-font scaling.
+   */
   const inputClass =
-    'h-9 w-full min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus';
+    'h-[34px] w-full min-w-0 rounded-[6px] border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-[13px] text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus';
 
   const isLaunching = state.phase === 'launching';
 
