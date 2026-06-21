@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ProviderInfo } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -8,7 +8,18 @@ export function usePromptEnhancer() {
   const [enhancingPrompt, setEnhancingPrompt] = useState(false);
   const [promptEnhanced, setPromptEnhanced] = useState(false);
 
+  /*
+   * Pending deferred flush of the enhanced text; cleared on reset / re-enhance so
+   * a late setInput can't clobber the user's freshly-typed input.
+   */
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
   const resetEnhancer = () => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = undefined;
+    }
+
     setEnhancingPrompt(false);
     setPromptEnhanced(false);
   };
@@ -20,6 +31,11 @@ export function usePromptEnhancer() {
     provider: ProviderInfo,
     apiKeys?: Record<string, string>,
   ) => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = undefined;
+    }
+
     setEnhancingPrompt(true);
     setPromptEnhanced(false);
 
@@ -105,7 +121,8 @@ export function usePromptEnhancer() {
           setEnhancingPrompt(false);
           setPromptEnhanced(true);
 
-          setTimeout(() => {
+          flushTimerRef.current = setTimeout(() => {
+            flushTimerRef.current = undefined;
             setInput(_input);
           });
         }

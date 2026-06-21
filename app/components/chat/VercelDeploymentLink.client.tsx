@@ -11,6 +11,12 @@ export function VercelDeploymentLink() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    /*
+     * Guard against stale setState after the chat/token changes or the component
+     * unmounts mid-fetch (several awaited Vercel API hops below).
+     */
+    let cancelled = false;
+
     async function fetchProjectData() {
       if (!connection.token || !currentChatId) {
         return;
@@ -69,11 +75,17 @@ export function VercelDeploymentLink() {
               );
 
               if (cleanUrl) {
-                setDeploymentUrl(`https://${cleanUrl}`);
+                if (!cancelled) {
+                  setDeploymentUrl(`https://${cleanUrl}`);
+                }
+
                 return;
               } else {
                 // If no clean URL found, use the first alias
-                setDeploymentUrl(`https://${projectDetails.targets.production.alias[0]}`);
+                if (!cancelled) {
+                  setDeploymentUrl(`https://${projectDetails.targets.production.alias[0]}`);
+                }
+
                 return;
               }
             }
@@ -95,7 +107,10 @@ export function VercelDeploymentLink() {
             const deploymentsData = (await deploymentsResponse.json()) as any;
 
             if (deploymentsData.deployments && deploymentsData.deployments.length > 0) {
-              setDeploymentUrl(`https://${deploymentsData.deployments[0].url}`);
+              if (!cancelled) {
+                setDeploymentUrl(`https://${deploymentsData.deployments[0].url}`);
+              }
+
               return;
             }
           }
@@ -112,19 +127,25 @@ export function VercelDeploymentLink() {
 
         const data = await fallbackResponse.json();
 
-        if ((data as { deploy?: { url?: string } }).deploy?.url) {
+        if (!cancelled && (data as { deploy?: { url?: string } }).deploy?.url) {
           setDeploymentUrl((data as { deploy: { url: string } }).deploy.url);
-        } else if ((data as { project?: { url?: string } }).project?.url) {
+        } else if (!cancelled && (data as { project?: { url?: string } }).project?.url) {
           setDeploymentUrl((data as { project: { url: string } }).project.url);
         }
       } catch (err) {
         console.error('Error fetching Vercel deployment:', err);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     }
 
     fetchProjectData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [connection.token, currentChatId]);
 
   if (!deploymentUrl) {

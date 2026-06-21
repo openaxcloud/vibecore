@@ -637,6 +637,19 @@ export async function* executeAgentRunStream(input: {
 
   let active = roles.length;
 
+  /*
+   * Chain an internal abort to input.signal so an early consumer break (client
+   * disconnect → generator .return()) tears down the still-running paid lane
+   * streams instead of letting them bill into a dead queue. AbortSignal.any
+   * (Node 20+) merges both; the fallback degrades to input.signal's behaviour.
+   */
+  const lanesAbort = new AbortController();
+
+  const laneSignal = input.signal
+    ? ((AbortSignal as { any?: (signals: AbortSignal[]) => AbortSignal }).any?.([input.signal, lanesAbort.signal]) ??
+      input.signal)
+    : lanesAbort.signal;
+
   for (const role of roles) {
     void (async () => {
       let content = '';
@@ -651,7 +664,7 @@ export async function* executeAgentRunStream(input: {
             messages: buildRoleMessages(input.request, role),
             maxTokens: input.request.maxTokens ?? defaultAgentMaxTokens,
           },
-          input.signal,
+          laneSignal,
         )) {
           if (chunk.type === 'delta' && chunk.content) {
             content += chunk.content;
@@ -688,15 +701,24 @@ export async function* executeAgentRunStream(input: {
     });
   }
 
-  while (active > 0 || queue.length > 0) {
-    if (queue.length === 0) {
-      await new Promise<void>((resolve) => {
-        wake = resolve;
-      });
-      continue;
-    }
+  try {
+    while (active > 0 || queue.length > 0) {
+      if (queue.length === 0) {
+        await new Promise<void>((resolve) => {
+          wake = resolve;
+        });
+        continue;
+      }
 
-    yield queue.shift()!;
+      yield queue.shift()!;
+    }
+  } finally {
+    /*
+     * Consumer broke early (client disconnect / writableEnded) → tear down any
+     * still-running paid provider streams. On normal completion this is a no-op
+     * (active === 0, no in-flight streams).
+     */
+    lanesAbort.abort();
   }
 
   // Re-order results to the requested role order (lanes finish out of order).

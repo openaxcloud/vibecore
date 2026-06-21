@@ -39,10 +39,13 @@ function resolveInClusterKubeconfigArgs(): string[] {
 
   const port = process.env.KUBERNETES_SERVICE_PORT_HTTPS || process.env.KUBERNETES_SERVICE_PORT || '443';
   const hostForUrl = host.includes(':') ? `[${host}]` : host; // bracket IPv6 literals
+
   const kubeconfig = {
     apiVersion: 'v1',
     kind: 'Config',
-    clusters: [{ name: 'in-cluster', cluster: { server: `https://${hostForUrl}:${port}`, 'certificate-authority': caFile } }],
+    clusters: [
+      { name: 'in-cluster', cluster: { server: `https://${hostForUrl}:${port}`, 'certificate-authority': caFile } },
+    ],
     users: [{ name: 'in-cluster', user: { tokenFile } }],
     contexts: [{ name: 'in-cluster', context: { cluster: 'in-cluster', user: 'in-cluster' } }],
     'current-context': 'in-cluster',
@@ -55,8 +58,10 @@ function resolveInClusterKubeconfigArgs(): string[] {
 
     return ['--kubeconfig', path];
   } catch {
-    // If we can't materialize the kubeconfig, fall back to kubectl's own
-    // resolution rather than crashing the client constructor.
+    /*
+     * If we can't materialize the kubeconfig, fall back to kubectl's own
+     * resolution rather than crashing the client constructor.
+     */
     return [];
   }
 }
@@ -74,12 +79,14 @@ const KUBECTL_REQUEST_TIMEOUT = process.env.KUBECTL_REQUEST_TIMEOUT || '25s';
 
 export type WorkspacePlan = 'free' | 'pro' | 'team' | 'enterprise';
 
-// Platform-owned pod env names that user project env/secrets must never override.
-// Platform/agent-control env names user project env/secrets must never set. Beyond
-// the two the pod spec injects, the workspace-agent reads these resource-limit /
-// control vars and falls back to in-agent defaults when unset — so a user env var
-// would be the ONLY value, letting a tenant raise their own process/file/output
-// caps and timeouts (resource abuse). Reserve the agent-control namespace.
+/*
+ * Platform-owned pod env names that user project env/secrets must never override.
+ * Platform/agent-control env names user project env/secrets must never set. Beyond
+ * the two the pod spec injects, the workspace-agent reads these resource-limit /
+ * control vars and falls back to in-agent defaults when unset — so a user env var
+ * would be the ONLY value, letting a tenant raise their own process/file/output
+ * caps and timeouts (resource abuse). Reserve the agent-control namespace.
+ */
 const RESERVED_WORKSPACE_ENV = new Set([
   'WORKSPACE_ROOT',
   'WORKSPACE_AGENT_TOKEN_SECRET',
@@ -90,6 +97,7 @@ const RESERVED_WORKSPACE_ENV = new Set([
   'WORKSPACE_COMMAND_TIMEOUT_MS',
   'WORKSPACE_STREAM_TIMEOUT_MS',
   'WORKSPACE_DISABLE_SANDBOX_SCHEDULING',
+
   /*
    * The agent's bootstrap/runtime vars (set by the runtime image, not by the
    * manager). A tenant project env var of the same name would be injected into
@@ -288,6 +296,7 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
           ports: [{ containerPort: 8080, name: 'agent' }],
           env: [
             { name: 'WORKSPACE_ROOT', value: '/workspace' },
+
             /*
              * WORKSPACE_ID is platform-reserved (the agent reads its identity from
              * process.env.WORKSPACE_ID), so it is filtered out of the manager/user
@@ -301,6 +310,7 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
               name: 'WORKSPACE_AGENT_TOKEN_SECRET',
               valueFrom: { secretKeyRef: { name: input.agentTokenSecretName, key: 'tokenSecret' } },
             },
+
             /*
              * Strip platform-reserved names from user-supplied env/secrets so a
              * project variable named WORKSPACE_AGENT_TOKEN_SECRET / WORKSPACE_ROOT
@@ -328,6 +338,7 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
             requests: { cpu: resources.cpuRequest, memory: resources.memoryRequest },
             limits: { cpu: resources.cpuLimit, memory: resources.memoryLimit },
           },
+
           /*
            * Readiness gates traffic (safe to flap); keep it responsive but allow
            * a 3s timeout so a momentarily busy agent isn't marked NotReady.
@@ -339,6 +350,7 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
             timeoutSeconds: 3,
             failureThreshold: 3,
           },
+
           /*
            * Liveness uses a TCP socket check, NOT httpGet /health. Verified live:
            * a heavy `npm install` (full React/Vite app) pegs the pod's CPU, and
@@ -395,6 +407,7 @@ export function workspaceResourceQuota(namespace: string): K8sObject {
         'requests.memory': '500Gi',
         'limits.cpu': '1000',
         'limits.memory': '2Ti',
+
         /*
          * Keep requests.storage IN SYNC with the Helm chart's authoritative
          * value (infra/helm/workspaces-runtime/values.yaml resourceQuota.requestsStorage,
@@ -440,10 +453,12 @@ export const WORKSPACE_CONTAINER_MAX_DISK_GB = 100;
 
 function resolveWorkspaceResources(input: WorkspaceRuntimeInput) {
   const plan = planResources[input.plan];
+
   const cpuMillicores = clampPositive(
     positiveInteger(input.resourceLimits?.cpuMillicores),
     WORKSPACE_CONTAINER_MAX_CPU_MILLICORES,
   );
+
   const ramMb = clampPositive(positiveInteger(input.resourceLimits?.ramMb), WORKSPACE_CONTAINER_MAX_RAM_MB);
   const storageGb = clampPositive(positiveInteger(input.resourceLimits?.storageGb), WORKSPACE_CONTAINER_MAX_DISK_GB);
 
@@ -576,9 +591,11 @@ export function managerAndPreviewIngressNetworkPolicy(namespace: string, platfor
 }
 
 export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
-  // Connection flags (e.g. --kubeconfig <in-cluster config>) prepended to every
-  // kubectl call so it authenticates with the pod's service account instead of
-  // defaulting to localhost:8080. Empty outside a pod (local dev / tests).
+  /*
+   * Connection flags (e.g. --kubeconfig <in-cluster config>) prepended to every
+   * kubectl call so it authenticates with the pod's service account instead of
+   * defaulting to localhost:8080. Empty outside a pod (local dev / tests).
+   */
   private readonly configArgs: string[];
 
   constructor(readonly kubectl = process.env.KUBECTL_BIN ?? 'kubectl') {
@@ -626,9 +643,11 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
     return this.getResource('pod', namespace, name);
   }
 
-  // Generic single-resource read; returns undefined when the object is genuinely
-  // absent. Used to make apply idempotent for immutable resources like PVCs that
-  // must not be re-applied with a changed spec.
+  /*
+   * Generic single-resource read; returns undefined when the object is genuinely
+   * absent. Used to make apply idempotent for immutable resources like PVCs that
+   * must not be re-applied with a changed spec.
+   */
   async get(kind: string, namespace: string, name: string) {
     return this.getResource(kind, namespace, name);
   }
@@ -644,26 +663,51 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
   private async getResource(kind: string, namespace: string, name: string): Promise<K8sObject | undefined> {
     const { stdout } = await execFile(
       this.kubectl,
-      [...this.configArgs, 'get', kind, name, '-n', namespace, '-o', 'json', `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`],
+      [
+        ...this.configArgs,
+        'get',
+        kind,
+        name,
+        '-n',
+        namespace,
+        '-o',
+        'json',
+        `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`,
+      ],
       { timeout: KUBECTL_TIMEOUT_MS },
-    ).catch(
-      (error: any) => {
-        const stderr = String(error?.stderr ?? '');
+    ).catch((error: any) => {
+      const stderr = String(error?.stderr ?? '');
 
-        if (error?.code === 1 && /\bNotFound\b|not found/i.test(stderr)) {
-          return { stdout: '' };
-        }
+      if (error?.code === 1 && /\bNotFound\b|not found/i.test(stderr)) {
+        return { stdout: '' };
+      }
 
-        throw error;
-      },
-    );
+      throw error;
+    });
 
-    return stdout ? (JSON.parse(stdout) as K8sObject) : undefined;
+    if (!stdout) {
+      return undefined;
+    }
+
+    try {
+      return JSON.parse(stdout) as K8sObject;
+    } catch (parseError) {
+      /*
+       * Truncated/non-blank-but-malformed kubectl output → surface a labelled
+       * error instead of a raw SyntaxError callers can't attribute.
+       */
+      throw Object.assign(new Error(`kubectl get ${kind}/${name} returned unparseable JSON`), {
+        code: 'KUBECTL_BAD_JSON',
+        cause: parseError,
+      });
+    }
   }
 
   async *streamPodLogs(namespace: string, name: string) {
-    // Bump maxBuffer well above Node's 1MB default: 500 tail lines of a verbose
-    // workspace can exceed 1MB, which would otherwise throw ENOBUFS and 500.
+    /*
+     * Bump maxBuffer well above Node's 1MB default: 500 tail lines of a verbose
+     * workspace can exceed 1MB, which would otherwise throw ENOBUFS and 500.
+     */
     const { stdout } = await execFile(
       this.kubectl,
       [...this.configArgs, 'logs', name, '-n', namespace, '--tail=500', `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`],

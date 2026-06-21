@@ -1,6 +1,6 @@
 import { Readable } from 'node:stream';
-import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { verifyConnectorAccessToken, type ConnectorErrorBody } from '@vibecore/connector-sdk';
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 
 export interface ConnectionResolverInput {
   userConnectionId: string;
@@ -33,12 +33,14 @@ export interface ConnectionStatusUpdate {
 
 export interface ConnectorProxyOptions {
   logger?: boolean;
+
   /**
    * Shared secret used to verify HMAC access tokens minted by the API
    * service. Required at runtime — the constructor throws if missing,
    * matching the behaviour of the rest of the platform services.
    */
   accessTokenSecret: string;
+
   /**
    * Resolves a userConnectionId to a provider key + decrypted access
    * token, enforcing the ACL chain (workspace-to-project binding,
@@ -47,6 +49,7 @@ export interface ConnectorProxyOptions {
    * Prisma directly; tests pass a stub.
    */
   resolveConnection: (input: ConnectionResolverInput) => Promise<ConnectionResolution>;
+
   /**
    * Called when the upstream provider returns 401/403, so the API
    * service can mark UserConnection.status=needs_reconnect and emit a
@@ -54,6 +57,7 @@ export interface ConnectorProxyOptions {
    * returns the structured error to the caller.
    */
   reportConnectionFailure?: (update: ConnectionStatusUpdate) => Promise<void>;
+
   /**
    * Optional fetch override used to forward to the upstream provider.
    * Tests inject a stub; production uses the global fetch.
@@ -139,6 +143,7 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
     }
 
     const params = request.params as { userConnectionId: string; '*': string };
+
     const resolution = await options.resolveConnection({
       userConnectionId: params.userConnectionId,
       workspaceId: tokenVerification.payload.workspaceId,
@@ -176,6 +181,7 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
      */
     const upstreamUrl = `${upstream.baseUrl}${upstreamPath}${queryString}`;
     const baseUrl = new URL(upstream.baseUrl);
+
     let resolvedUrl: URL;
 
     try {
@@ -197,6 +203,7 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
         code: 'CONNECTOR_PATH_TRAVERSAL',
       });
     }
+
     const headers = buildUpstreamHeaders(request, resolution.accessToken, upstream.auth, upstream.defaultAccept);
     const body = shouldStreamBody(request.method) ? (request.raw as unknown as ReadableStream<Uint8Array>) : undefined;
 
@@ -218,6 +225,7 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
         headers,
         body,
         signal: controller.signal,
+
         /*
          * Do NOT follow redirects: a provider open-redirect/parameter-reflection
          * endpoint could 3xx us to an internal address — redirect-based SSRF.
@@ -261,9 +269,11 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
 
     reply.status(upstreamResponse.status);
 
-    // undici decodes gzip/deflate/br, so the body we forward is decoded but
-    // content-length still reflects the compressed size — drop it (and the
-    // content-encoding) so a decoded body isn't truncated to the compressed length.
+    /*
+     * undici decodes gzip/deflate/br, so the body we forward is decoded but
+     * content-length still reflects the compressed size — drop it (and the
+     * content-encoding) so a decoded body isn't truncated to the compressed length.
+     */
     const upstreamWasEncoded = upstreamResponse.headers.has('content-encoding');
 
     upstreamResponse.headers.forEach((value, name) => {
@@ -290,6 +300,7 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
 
     const contentLength = Number(upstreamResponse.headers.get('content-length') ?? '0');
     const MAX_BUFFER_BYTES = 1024 * 1024;
+
     // Absolute cap on the streamed body phase (slow-loris upstream guard).
     const BODY_MAX_DURATION_MS = Number(process.env.CONNECTOR_PROXY_BODY_TIMEOUT_MS) || 300_000;
 
@@ -311,7 +322,20 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
       !upstreamWasEncoded && Number.isFinite(contentLength) && contentLength > 0 && contentLength <= MAX_BUFFER_BYTES;
 
     if (shouldBufferResponse) {
-      return reply.send(Buffer.from(await upstreamResponse.arrayBuffer()));
+      /*
+       * Bound the body phase here too: the connect timeout was already cleared
+       * once headers arrived, so a slow-loris upstream that honestly advertises a
+       * small Content-Length then stalls the bytes would pin arrayBuffer() (and
+       * this reply) open indefinitely. Mirror the streaming branch's deadline.
+       */
+      const bufferDeadline = setTimeout(() => controller.abort(), BODY_MAX_DURATION_MS);
+      bufferDeadline.unref?.();
+
+      try {
+        return reply.send(Buffer.from(await upstreamResponse.arrayBuffer()));
+      } finally {
+        clearTimeout(bufferDeadline);
+      }
     }
 
     /*
