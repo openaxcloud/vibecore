@@ -145,7 +145,7 @@ function PanelButton({
 }
 
 export function GitTab({ projectId }: GitTabProps) {
-  const { currentWorkspaceId, primaryWorkspaceId: contextPrimaryWorkspaceId } = useCurrentWorkspace();
+  const { currentWorkspaceId } = useCurrentWorkspace();
   const [envelope, setEnvelope] = useState<Envelope | undefined>();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -201,9 +201,7 @@ export function GitTab({ projectId }: GitTabProps) {
   const commits = data.commits ?? [];
   const stashes = data.stashes ?? [];
   const hasRemote = Boolean(project?.gitRepositoryUrl);
-  const workspaces: GitWorkspaceSummary[] = data.workspaces ?? [];
   const activeWorkspaceId = data.activeWorkspaceId;
-  const primaryWorkspaceId = contextPrimaryWorkspaceId ?? data.primaryWorkspaceId;
   const resolvedWorkspaceId = currentWorkspaceId ?? activeWorkspaceId;
 
   const loadPanel = useCallback(
@@ -562,9 +560,6 @@ export function GitTab({ projectId }: GitTabProps) {
     );
   }
 
-  const selectedWorkspace = workspaces.find((workspace) => workspace.id === resolvedWorkspaceId);
-  const selectedWorkspaceLabel = selectedWorkspace?.name ?? selectedWorkspace?.id;
-
   return (
     <div className="h-full overflow-auto">
       <div className="grid gap-4 p-4">
@@ -624,37 +619,23 @@ export function GitTab({ projectId }: GitTabProps) {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+          {/*
+           * Branch bar. In the IDE you are already inside the active workspace, so
+           * the workspace identity (name/status/primary) and the duplicate
+           * ahead/behind (shown in the sync row above) and remote URL (in Remote
+           * settings) were redundant clutter — dropped. Keep only what's specific
+           * to git here: current branch + working-tree change count.
+           */}
           <div className="min-w-0">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-              Workspace repository
+              Branch
             </div>
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm text-bolt-elements-textSecondary">
-              <span className="i-ph:terminal-window text-base text-bolt-elements-item-contentAccent" aria-hidden />
-              <strong className="truncate text-bolt-elements-textPrimary">
-                {selectedWorkspaceLabel ?? 'Project workspace'}
-              </strong>
-              {selectedWorkspace?.status ? (
-                <span className="rounded bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs uppercase tracking-wide">
-                  {selectedWorkspace.status.toLowerCase()}
-                </span>
-              ) : null}
-              {resolvedWorkspaceId && primaryWorkspaceId === resolvedWorkspaceId ? (
-                <span className="rounded bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs uppercase tracking-wide">
-                  primary
-                </span>
-              ) : null}
-            </div>
-            <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 text-sm text-bolt-elements-textSecondary">
               <span className="i-ph:git-branch text-base text-bolt-elements-item-contentAccent" aria-hidden />
               <strong className="truncate text-bolt-elements-textPrimary">{branch}</strong>
-              <span>{status?.ahead ?? 0} ahead</span>
-              <span>{status?.behind ?? 0} behind</span>
               <span>{changedFiles.length} changed</span>
               {conflicts.length ? <span className="text-red-500">{conflicts.length} conflicts</span> : null}
             </div>
-            {project?.gitRepositoryUrl ? (
-              <div className="mt-1 truncate text-xs text-bolt-elements-textSecondary">{project.gitRepositoryUrl}</div>
-            ) : null}
           </div>
           <form onSubmit={submitAction} className="flex min-w-[min(220px,100%)] max-w-full gap-2">
             <input name="intent" value="checkout-branch" type="hidden" />
@@ -1256,20 +1237,12 @@ export function GitTab({ projectId }: GitTabProps) {
             </div>
           ) : null}
 
-          <form
-            onSubmit={submitAction}
-            className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
-          >
-            <input name="intent" value="cherry-pick" type="hidden" />
-            <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="git-tab-cherry-pick">
-              Cherry-pick SHA
-            </label>
-            <PanelInput id="git-tab-cherry-pick" name="sha" placeholder="abc1234" required />
-            <PanelButton disabled={busy} variant="outline">
-              Cherry-pick
-            </PanelButton>
-          </form>
-
+          {/*
+           * Cherry-pick removed from the pane (keep/cut audit): Replit omits it, and
+           * for a vibe-coding/IDE audience it's a niche power-user op that added
+           * clutter without real value. The server-side /git/cherry-pick route stays
+           * (callable, tested) so nothing is lost for advanced/automation use.
+           */}
           <form
             onSubmit={submitAction}
             className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
