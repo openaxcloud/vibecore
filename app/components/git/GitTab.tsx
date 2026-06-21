@@ -4,6 +4,7 @@ import { GitBranchSyncControls } from '~/components/git/GitBranchSyncControls';
 import { GitDiffView } from '~/components/git/GitDiffView';
 import { GitMergeEditor } from '~/components/git/GitMergeEditor';
 import { GitProviderConnectPanel } from '~/components/git/GitProviderConnectPanel';
+import { GitSettingsPanel } from '~/components/git/GitSettingsPanel';
 import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
 import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
 import { classNames } from '~/utils/classNames';
@@ -156,6 +157,9 @@ export function GitTab({ projectId }: GitTabProps) {
   // When the panel last successfully loaded git state (Replit "last fetched Xago").
   const [lastLoadedAt, setLastLoadedAt] = useState<string | undefined>();
 
+  // Settings sub-pane (⚙): Remote / Connections / Commit author, like Replit.
+  const [showSettings, setShowSettings] = useState(false);
+
   // Discard confirmation target: a single file path, or 'all' for every change.
   const [discardConfirm, setDiscardConfirm] = useState<{ all: boolean; path?: string } | null>(null);
 
@@ -201,6 +205,23 @@ export function GitTab({ projectId }: GitTabProps) {
   const commits = data.commits ?? [];
   const stashes = data.stashes ?? [];
   const hasRemote = Boolean(project?.gitRepositoryUrl);
+
+  /*
+   * Default commit author saved in Settings (⚙ → Commit author); prefills the
+   * commit form. Re-read when the settings pane toggles so a save is picked up.
+   */
+  const commitAuthorDefault = useMemo<{ name?: string; email?: string }>(() => {
+    if (typeof window === 'undefined' || !projectId) {
+      return {};
+    }
+
+    try {
+      return JSON.parse(localStorage.getItem(`vibecore:git:commit-author:${projectId}`) ?? '{}');
+    } catch {
+      return {};
+    }
+  }, [projectId, showSettings]);
+
   const activeWorkspaceId = data.activeWorkspaceId;
   const resolvedWorkspaceId = currentWorkspaceId ?? activeWorkspaceId;
 
@@ -615,8 +636,32 @@ export function GitTab({ projectId }: GitTabProps) {
               aria-label="Refresh git status"
               className="i-ph:arrows-clockwise text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary disabled:opacity-50"
             />
+            <button
+              type="button"
+              data-testid="git-settings-toggle"
+              aria-pressed={showSettings}
+              onClick={() => setShowSettings((value) => !value)}
+              title="Git settings"
+              aria-label="Git settings"
+              className={classNames(
+                'i-ph:gear text-sm hover:text-bolt-elements-textPrimary',
+                showSettings ? 'text-bolt-elements-item-contentAccent' : 'text-bolt-elements-textSecondary',
+              )}
+            />
           </span>
         </div>
+
+        {showSettings && project?.id ? (
+          <GitSettingsPanel
+            projectId={project.id}
+            gitRepositoryUrl={project.gitRepositoryUrl}
+            defaultBranch={project.gitDefaultBranch}
+            workspaceId={resolvedWorkspaceId}
+            busy={busy}
+            onClose={() => setShowSettings(false)}
+            onRemoteConfigured={() => loadPanel({ silent: true })}
+          />
+        ) : null}
 
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
           {/*
@@ -1025,10 +1070,18 @@ export function GitTab({ projectId }: GitTabProps) {
             <details className="text-xs text-bolt-elements-textSecondary">
               <summary className="cursor-pointer">Commit as… (optional author override)</summary>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                <PanelInput name="authorName" placeholder="Author name" aria-label="Commit author name" />
+                <PanelInput
+                  name="authorName"
+                  key={`name-${commitAuthorDefault.name ?? ''}`}
+                  defaultValue={commitAuthorDefault.name ?? ''}
+                  placeholder="Author name"
+                  aria-label="Commit author name"
+                />
                 <PanelInput
                   name="authorEmail"
                   type="email"
+                  key={`email-${commitAuthorDefault.email ?? ''}`}
+                  defaultValue={commitAuthorDefault.email ?? ''}
                   placeholder="author@example.com"
                   aria-label="Commit author email"
                 />
