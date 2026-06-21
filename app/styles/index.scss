@@ -400,12 +400,12 @@ html:has([data-ecode-static-shell]) body {
   /*
    * Root interface font size — drives `html,body { font-size }`, so it is the rem
    * base for the whole app shell (IDE + dashboard; marketing scope overrides to
-   * 16px separately). Was 12px, which scaled every rem-based size to 75% and made
-   * the UI render noticeably smaller than a standard IDE (Replit's chrome is ~13px).
-   * Lifted to 13px (Replit's base) for a comfortable, consistent density. Verified
-   * live (IDE + dashboard) that the uniform scale-up introduces no layout breakage.
+   * 16px separately). Was 12px (75% rem → everything rendered too small). Measured
+   * Replit's own IDE: 16px root. Lifted 12→13→14px in verified steps toward that
+   * (14px confirmed live on IDE+dashboard with no layout breakage); a further step
+   * to ~16px (Replit-exact) is gated on broader multi-screen verification.
    */
-  --vc-type-interface-size: 13px;
+  --vc-type-interface-size: 14px;
   --vc-type-interface-compact-size: 11px;
   --vc-type-code-size: 12px;
   --vc-type-heading-size: 14px;
@@ -7355,10 +7355,11 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-ide-tab {
+  // Matched to Replit's IDE tab chrome (measured): 28px tall, 13px text, 6px radius.
   min-height: 28px;
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--vc-ide-text-muted);
-  font-size: 12px;
+  font-size: 13px;
   padding: 0 8px;
 }
 
