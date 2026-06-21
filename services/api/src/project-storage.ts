@@ -183,6 +183,13 @@ export interface GitProvider {
     workspaceId?: string,
   ): Promise<{ sha: string; files: Array<{ status: string; path: string }>; diff: string }>;
   restoreCommit?(projectId: string, sha: string, workspaceId?: string): Promise<{ restored: boolean; sha: string }>;
+  conflictFile?(projectId: string, filePath: string, workspaceId?: string): Promise<{ filePath: string; content: string }>;
+  markResolved?(input: {
+    projectId: string;
+    workspaceId?: string;
+    filePath: string;
+    content: string;
+  }): Promise<{ resolved: boolean; filePath: string }>;
   logGraph(projectId: string, limit?: number, workspaceId?: string): Promise<GitCommitNode[]>;
   diff(projectId: string, filePath?: string, workspaceId?: string): Promise<string>;
   blame(input: {
@@ -1101,6 +1108,31 @@ export class GitCliProvider implements GitProvider {
       await this.git(projectId, ['checkout', rev, '--', '.'], workspaceId);
 
       return { restored: true, sha: rev };
+    });
+  }
+
+  async conflictFile(projectId: string, filePath: string, workspaceId?: string) {
+    const clean = filePath.replace(/^\/+/, '');
+    const target = safeWorkspacePath(projectId, workspaceId, clean);
+    // The working-tree file carries the <<<<<<< / ======= / >>>>>>> conflict
+    // markers during an unresolved merge; surface it verbatim for the editor.
+    const content = await readFile(target, 'utf8').catch(() => '');
+
+    return { filePath: clean, content };
+  }
+
+  async markResolved(input: { projectId: string; workspaceId?: string; filePath: string; content: string }) {
+    return withProjectLock(input.projectId, async () => {
+      const clean = input.filePath.replace(/^\/+/, '');
+      const target = safeWorkspacePath(input.projectId, input.workspaceId, clean);
+
+      // Write the user's merged content (markers removed) then stage it so the
+      // merge can be completed by a normal commit.
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, input.content, 'utf8');
+      await this.git(input.projectId, ['add', '--', clean], input.workspaceId);
+
+      return { resolved: true, filePath: clean };
     });
   }
 

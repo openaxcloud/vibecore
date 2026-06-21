@@ -1,0 +1,240 @@
+import { useMemo, useState } from 'react';
+import { classNames } from '~/utils/classNames';
+
+/*
+ * Lightweight per-hunk 3-way merge resolver (Replit-parity #8). Parses a working
+ * -tree file that still carries Git conflict markers into text + conflict segments,
+ * lets the user accept current/incoming/both per hunk (or hand-edit the raw text),
+ * then emits the marker-free resolved content for `mark-resolved` (write + git add).
+ * Not a full Monaco merge editor — a focused, dependency-free resolver.
+ */
+type Choice = 'ours' | 'theirs' | 'both' | undefined;
+
+type Segment = { type: 'text'; text: string } | { type: 'conflict'; ours: string; theirs: string; base?: string };
+
+function parseConflicts(content: string): Segment[] {
+  const lines = content.split('\n');
+  const segments: Segment[] = [];
+
+  let text: string[] = [];
+  let mode: 'normal' | 'ours' | 'base' | 'theirs' = 'normal';
+  let ours: string[] = [];
+  let base: string[] = [];
+  let theirs: string[] = [];
+
+  const flushText = () => {
+    if (text.length) {
+      segments.push({ type: 'text', text: text.join('\n') });
+      text = [];
+    }
+  };
+
+  for (const line of lines) {
+    if (mode === 'normal' && line.startsWith('<<<<<<<')) {
+      flushText();
+      mode = 'ours';
+      ours = [];
+      base = [];
+      theirs = [];
+      continue;
+    }
+
+    if (mode === 'ours' && line.startsWith('|||||||')) {
+      mode = 'base';
+      continue;
+    }
+
+    if ((mode === 'ours' || mode === 'base') && line.startsWith('=======')) {
+      mode = 'theirs';
+      continue;
+    }
+
+    if (mode === 'theirs' && line.startsWith('>>>>>>>')) {
+      segments.push({ type: 'conflict', ours: ours.join('\n'), theirs: theirs.join('\n'), base: base.join('\n') });
+      mode = 'normal';
+      continue;
+    }
+
+    if (mode === 'ours') {
+      ours.push(line);
+    } else if (mode === 'base') {
+      base.push(line);
+    } else if (mode === 'theirs') {
+      theirs.push(line);
+    } else {
+      text.push(line);
+    }
+  }
+
+  flushText();
+
+  return segments;
+}
+
+function resolveSide(segment: Extract<Segment, { type: 'conflict' }>, choice: Choice): string {
+  if (choice === 'ours') {
+    return segment.ours;
+  }
+
+  if (choice === 'theirs') {
+    return segment.theirs;
+  }
+
+  if (choice === 'both') {
+    return [segment.ours, segment.theirs].filter((side) => side.length).join('\n');
+  }
+
+  return '';
+}
+
+export function GitMergeEditor({
+  filePath,
+  content,
+  busy,
+  onResolve,
+  onCancel,
+}: {
+  filePath: string;
+  content: string;
+  busy?: boolean;
+  onResolve: (resolved: string) => void;
+  onCancel: () => void;
+}) {
+  const segments = useMemo(() => parseConflicts(content), [content]);
+
+  const conflictIndexes = useMemo(
+    () => segments.map((segment, index) => (segment.type === 'conflict' ? index : -1)).filter((index) => index >= 0),
+    [segments],
+  );
+
+  const [choices, setChoices] = useState<Record<number, Choice>>({});
+  const [rawMode, setRawMode] = useState(false);
+  const [raw, setRaw] = useState(content);
+
+  const allChosen = conflictIndexes.every((index) => choices[index]);
+
+  const composed = useMemo(() => {
+    if (rawMode) {
+      return raw;
+    }
+
+    return segments
+      .map((segment, index) => (segment.type === 'text' ? segment.text : resolveSide(segment, choices[index])))
+      .join('\n');
+  }, [segments, choices, rawMode, raw]);
+
+  const stillHasMarkers = /^(<{7}|={7}|>{7})/m.test(composed);
+
+  return (
+    <div
+      className="rounded-md border border-amber-500/40 bg-bolt-elements-background-depth-1 p-3"
+      data-testid="git-merge-editor"
+    >
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
+          <span className="i-ph:git-merge text-base text-amber-500" aria-hidden />
+          <code className="truncate text-xs text-bolt-elements-textSecondary">{filePath}</code>
+          <span className="text-xs text-bolt-elements-textSecondary">
+            {conflictIndexes.length} conflict{conflictIndexes.length === 1 ? '' : 's'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
+            onClick={() => {
+              setRaw(composed);
+              setRawMode((value) => !value);
+            }}
+          >
+            {rawMode ? 'Hunk view' : 'Edit raw'}
+          </button>
+          <button
+            type="button"
+            aria-label="Close merge editor"
+            className="i-ph:x text-base text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+            onClick={onCancel}
+          />
+        </div>
+      </div>
+
+      {rawMode ? (
+        <textarea
+          value={raw}
+          onChange={(event) => setRaw(event.target.value)}
+          spellCheck={false}
+          className="h-64 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 font-mono text-xs text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+        />
+      ) : (
+        <div className="max-h-72 overflow-auto rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 font-mono text-xs">
+          {segments.map((segment, index) =>
+            segment.type === 'text' ? (
+              <pre key={index} className="whitespace-pre-wrap px-3 py-1 text-bolt-elements-textSecondary">
+                {segment.text || ' '}
+              </pre>
+            ) : (
+              <div key={index} className="my-1 border-y border-amber-500/30">
+                <div className="flex flex-wrap items-center gap-1.5 bg-amber-500/10 px-3 py-1">
+                  {(['ours', 'theirs', 'both'] as const).map((side) => (
+                    <button
+                      key={side}
+                      type="button"
+                      className={classNames(
+                        'rounded px-2 py-0.5 text-[11px] font-medium',
+                        choices[index] === side
+                          ? 'bg-bolt-elements-item-contentAccent text-white'
+                          : 'border border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3',
+                      )}
+                      onClick={() => setChoices((current) => ({ ...current, [index]: side }))}
+                    >
+                      {side === 'ours' ? 'Accept current' : side === 'theirs' ? 'Accept incoming' : 'Accept both'}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 divide-x divide-bolt-elements-borderColor">
+                  <pre
+                    className={classNames(
+                      'whitespace-pre-wrap px-3 py-1',
+                      choices[index] === 'theirs' ? 'opacity-40' : 'bg-green-500/10 text-green-600 dark:text-green-300',
+                    )}
+                  >
+                    {segment.ours || ' '}
+                  </pre>
+                  <pre
+                    className={classNames(
+                      'whitespace-pre-wrap px-3 py-1',
+                      choices[index] === 'ours' ? 'opacity-40' : 'bg-blue-500/10 text-blue-600 dark:text-blue-300',
+                    )}
+                  >
+                    {segment.theirs || ' '}
+                  </pre>
+                </div>
+              </div>
+            ),
+          )}
+        </div>
+      )}
+
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <span className="text-xs text-bolt-elements-textSecondary">
+          {rawMode
+            ? stillHasMarkers
+              ? 'Remove all conflict markers before resolving.'
+              : 'Ready to mark resolved.'
+            : allChosen
+              ? 'All conflicts chosen.'
+              : `Choose a side for each conflict (${conflictIndexes.filter((index) => choices[index]).length}/${conflictIndexes.length}).`}
+        </span>
+        <button
+          type="button"
+          data-testid="git-mark-resolved"
+          disabled={busy || stillHasMarkers || (!rawMode && !allChosen)}
+          className="rounded-md bg-green-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-600 disabled:opacity-60"
+          onClick={() => onResolve(composed)}
+        >
+          Mark resolved
+        </button>
+      </div>
+    </div>
+  );
+}

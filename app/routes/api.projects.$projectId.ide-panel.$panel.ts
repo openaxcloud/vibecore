@@ -353,6 +353,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       const blameFile = url.searchParams.get('blameFile');
       const diffFile = url.searchParams.get('diffFile');
       const commitSha = url.searchParams.get('commitSha');
+      const conflictFile = url.searchParams.get('conflictFile');
       const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
 
       const workspacesResponse = await apiRequest<{ workspaces: Array<Record<string, unknown>> }>(
@@ -426,6 +427,14 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
             .then((detail) => ({ commitDetail: detail }))
             .catch(() => ({ commitDetail: null }))
         : { commitDetail: null };
+      const conflictContent = conflictFile
+        ? await apiRequest(
+            request,
+            withWorkspace(`/projects/${projectId}/git/conflict-file?filePath=${encodeURIComponent(conflictFile)}`),
+          )
+            .then((detail) => ({ conflictContent: detail }))
+            .catch(() => ({ conflictContent: null }))
+        : { conflictContent: null };
 
       return json(
         panelEnvelope(panel, project.project, {
@@ -436,6 +445,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           ...(blame as any),
           ...(diff as any),
           ...(commitDetail as any),
+          ...(conflictContent as any),
           workspaces: workspaceList,
           activeWorkspaceId,
           primaryWorkspaceId,
@@ -2105,6 +2115,11 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       await apiRequest(request, `/projects/${projectId}/git/restore`, {
         method: 'POST',
         body: JSON.stringify({ sha: body.sha, workspaceId }),
+      });
+    } else if (intent === 'mark-resolved') {
+      await apiRequest(request, `/projects/${projectId}/git/conflicts/mark-resolved`, {
+        method: 'POST',
+        body: JSON.stringify({ filePath: body.filePath, content: body.content ?? '', workspaceId }),
       });
     } else if (intent === 'pr') {
       await apiRequest(request, `/projects/${projectId}/git/pull-requests`, {

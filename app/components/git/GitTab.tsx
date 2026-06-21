@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { GitBranchSyncControls } from '~/components/git/GitBranchSyncControls';
 import { GitDiffView } from '~/components/git/GitDiffView';
+import { GitMergeEditor } from '~/components/git/GitMergeEditor';
 import { GitProviderConnectPanel } from '~/components/git/GitProviderConnectPanel';
 import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
 import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
@@ -164,7 +165,12 @@ export function GitTab({ projectId }: GitTabProps) {
   } | null>(null);
 
   const [restoreConfirm, setRestoreConfirm] = useState<string | null>(null);
+
+  // Inline merge editor: the conflict file currently open + its marker content.
+  const [mergeFile, setMergeFile] = useState<string | null>(null);
+  const [mergeContent, setMergeContent] = useState<{ content: string; loading: boolean } | null>(null);
   const commitRequestRef = useRef(0);
+  const mergeRequestRef = useRef(0);
   const loadRequestRef = useRef(0);
   const inspectionRequestRef = useRef(0);
 
@@ -474,6 +480,51 @@ export function GitTab({ projectId }: GitTabProps) {
         }
 
         setCommitDetail({ sha, files: [], diff: '', loading: false });
+      }
+    },
+    [projectId, resolvedWorkspaceId],
+  );
+
+  const loadConflictFile = useCallback(
+    async (path: string) => {
+      if (!path || !projectId) {
+        return;
+      }
+
+      const requestId = ++mergeRequestRef.current;
+      setMergeFile(path);
+      setMergeContent({ content: '', loading: true });
+
+      try {
+        const params = new URLSearchParams({ conflictFile: path });
+
+        if (resolvedWorkspaceId) {
+          params.set('workspaceId', resolvedWorkspaceId);
+        }
+
+        const response = await fetch(
+          `/api/projects/${encodeURIComponent(projectId)}/ide-panel/git?${params.toString()}`,
+          { headers: { accept: 'application/json' } },
+        );
+
+        if (!response.ok) {
+          throw new Error(`Conflict load failed with ${response.status}`);
+        }
+
+        const payload = (await response.json()) as Envelope;
+        const detail = ((payload.data ?? {}) as any).conflictContent;
+
+        if (requestId !== mergeRequestRef.current) {
+          return;
+        }
+
+        setMergeContent({ content: detail?.content ?? '', loading: false });
+      } catch {
+        if (requestId !== mergeRequestRef.current) {
+          return;
+        }
+
+        setMergeContent({ content: '', loading: false });
       }
     },
     [projectId, resolvedWorkspaceId],
@@ -866,7 +917,34 @@ export function GitTab({ projectId }: GitTabProps) {
                               Keep incoming
                             </PanelButton>
                           </form>
+                          <button
+                            type="button"
+                            data-testid="git-resolve-inline"
+                            disabled={busy}
+                            className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-item-contentAccent/50 px-3 text-sm font-medium text-bolt-elements-item-contentAccent hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
+                            onClick={() => (mergeFile === path ? setMergeFile(null) : void loadConflictFile(path))}
+                          >
+                            {mergeFile === path ? 'Hide editor' : 'Resolve inline'}
+                          </button>
                         </div>
+                        {mergeFile === path ? (
+                          mergeContent?.loading ? (
+                            <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 text-xs text-bolt-elements-textSecondary">
+                              Loading conflict…
+                            </div>
+                          ) : (
+                            <GitMergeEditor
+                              filePath={path}
+                              content={mergeContent?.content ?? ''}
+                              busy={busy}
+                              onCancel={() => setMergeFile(null)}
+                              onResolve={(resolved) => {
+                                setMergeFile(null);
+                                void runIntent('mark-resolved', { filePath: path, content: resolved });
+                              }}
+                            />
+                          )
+                        ) : null}
                       </div>
                     );
                   })}

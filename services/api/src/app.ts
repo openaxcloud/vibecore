@@ -784,6 +784,12 @@ const gitDiscardSchema = z.object({
 
 const gitRestoreSchema = z.object({ sha: z.string().min(4).max(64), workspaceId: workspaceIdField });
 const gitCommitParams = z.object({ projectId: z.string().min(1), sha: z.string().min(4).max(64) });
+const gitConflictFileQuerySchema = z.object({ filePath: z.string().min(1), workspaceId: workspaceIdField });
+const gitMarkResolvedSchema = z.object({
+  filePath: z.string().min(1),
+  content: z.string().max(5_000_000),
+  workspaceId: workspaceIdField,
+});
 
 const gitDiffQuerySchema = z.object({ filePath: z.string().optional(), workspaceId: workspaceIdField });
 
@@ -19037,6 +19043,62 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceType: 'project',
       resourceId: project.id,
       metadata: { sha: body.sha, workspaceId: body.workspaceId },
+    });
+
+    return result;
+  });
+
+  app.get('/projects/:projectId/git/conflict-file', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    const query = parse(gitConflictFileQuerySchema, request.query ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, query.workspaceId);
+
+    if (!gitProvider.conflictFile) {
+      return { filePath: query.filePath, content: '' };
+    }
+
+    return gitProvider.conflictFile(project.id, query.filePath, workspaceId);
+  });
+
+  app.post('/projects/:projectId/git/conflicts/mark-resolved', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    const body = parse(gitMarkResolvedSchema, request.body ?? {});
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
+
+    if (!gitProvider.markResolved) {
+      return reply.code(501).send({ error: 'Mark resolved not supported', code: 'GIT_MARK_RESOLVED_UNSUPPORTED' });
+    }
+
+    const result = await gitProvider.markResolved({
+      projectId: project.id,
+      workspaceId,
+      filePath: body.filePath,
+      content: body.content,
+    });
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'git.conflict.mark_resolved',
+      metadata: { filePath: body.filePath, workspaceId: body.workspaceId },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'git.conflict.mark_resolved',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { filePath: body.filePath, workspaceId: body.workspaceId },
     });
 
     return result;
