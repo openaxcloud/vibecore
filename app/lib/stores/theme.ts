@@ -96,7 +96,11 @@ export function themeIsDark() {
   return themeStore.get() === 'dark';
 }
 
-export const DEFAULT_THEME = 'dark';
+/*
+ * Default to light (matches Replit's IDE). Users who toggle persist their choice
+ * in localStorage, which takes precedence over this default.
+ */
+export const DEFAULT_THEME: Theme = 'light';
 
 export const themeStore = atom<Theme>(initStore());
 

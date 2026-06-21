@@ -165,7 +165,8 @@ const inlineThemeCode = stripIndents`
     let theme = publicMarketingRoute ? 'light' : localStorage.getItem('bolt_theme');
 
     if (theme !== 'dark' && theme !== 'light') {
-      theme = 'dark';
+      // Default to light (matches Replit); a persisted bolt_theme overrides this.
+      theme = 'light';
     }
 
     const root = document.querySelector('html');

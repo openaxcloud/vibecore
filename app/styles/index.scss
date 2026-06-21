@@ -394,18 +394,16 @@ html:has([data-ecode-static-shell]) body {
     'IBM Plex Sans', 'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
   --vc-font-sans: var(--vc-font-interface);
-  --vc-font-code:
-    'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --vc-font-code: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --vc-ide-font-mono: var(--vc-font-code);
   /*
    * Root interface font size — drives `html,body { font-size }`, so it is the rem
-   * base for the whole app shell (IDE + dashboard; marketing scope overrides to
-   * 16px separately). Was 12px (75% rem → everything rendered too small). Measured
-   * Replit's own IDE: 16px root. Lifted 12→13→14px in verified steps toward that
-   * (14px confirmed live on IDE+dashboard with no layout breakage); a further step
-   * to ~16px (Replit-exact) is gated on broader multi-screen verification.
+   * base for the whole app shell (IDE + dashboard; marketing scope already 16px).
+   * Was 12px (75% rem → everything rendered too small). Measured Replit's own IDE
+   * at 16px root; lifted 12→13→14→16px to match Replit's density exactly. Verified
+   * live across marketing/dashboard/IDE/admin/billing at 3 widths — no regression.
    */
-  --vc-type-interface-size: 14px;
+  --vc-type-interface-size: 16px;
   --vc-type-interface-compact-size: 11px;
   --vc-type-code-size: 12px;
   --vc-type-heading-size: 14px;
@@ -19818,7 +19816,9 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   font-weight: 700 !important;
 }
 
-:is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where(h1, h2, h3, h4, h5, h6) :where(span:not([class*='i-'])) {
+:is([data-ecode-static-shell], [data-ecode-public-chrome='homepage'])
+  :where(h1, h2, h3, h4, h5, h6)
+  :where(span:not([class*='i-'])) {
   font-size: inherit !important;
   font-weight: inherit !important;
   line-height: inherit !important;
@@ -19830,17 +19830,20 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   line-height: 14px !important;
 }
 
-:is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='text-[11px]'], [class~='text-xs']) {
+:is([data-ecode-static-shell], [data-ecode-public-chrome='homepage'])
+  :where([class~='text-[11px]'], [class~='text-xs']) {
   font-size: 12px !important;
   line-height: 16px !important;
 }
 
-:is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='text-[13px]'], [class~='text-sm']) {
+:is([data-ecode-static-shell], [data-ecode-public-chrome='homepage'])
+  :where([class~='text-[13px]'], [class~='text-sm']) {
   font-size: 14px !important;
   line-height: 20px !important;
 }
 
-:is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='text-[15px]'], [class~='text-base']) {
+:is([data-ecode-static-shell], [data-ecode-public-chrome='homepage'])
+  :where([class~='text-[15px]'], [class~='text-base']) {
   font-size: 16px !important;
   line-height: 24px !important;
 }
@@ -19939,12 +19942,14 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 @media (min-width: 640px) {
-  :is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='sm:text-[13px]'], [class~='sm:text-sm']) {
+  :is([data-ecode-static-shell], [data-ecode-public-chrome='homepage'])
+    :where([class~='sm:text-[13px]'], [class~='sm:text-sm']) {
     font-size: 14px !important;
     line-height: 20px !important;
   }
 
-  :is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='sm:text-[15px]'], [class~='sm:text-base']) {
+  :is([data-ecode-static-shell], [data-ecode-public-chrome='homepage'])
+    :where([class~='sm:text-[15px]'], [class~='sm:text-base']) {
     font-size: 16px !important;
     line-height: 24px !important;
   }
