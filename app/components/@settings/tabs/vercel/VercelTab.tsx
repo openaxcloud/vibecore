@@ -193,11 +193,15 @@ export default function VercelTab() {
   useEffect(() => {
     const fetchProjects = async () => {
       if (connection.user) {
-        // Use server-side API if we have a connected user
+        /*
+         * Pass null when no client token is present so the store routes
+         * through /api/vercel-proxy (UserConnection-backed). The legacy
+         * direct-fetch path still kicks in when the builder has not yet
+         * reconnected through the new ConnectorApiKeyConnectButton.
+         */
         try {
-          await fetchVercelStatsViaAPI(connection.token);
+          await fetchVercelStatsViaAPI(connection.token || null);
         } catch {
-          // Fallback to direct API if server-side fails and we have a token
           if (connection.token) {
             await fetchVercelStats(connection.token);
           }

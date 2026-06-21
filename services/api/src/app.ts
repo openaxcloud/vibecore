@@ -6303,6 +6303,202 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return await response.text();
   });
 
+  /*
+   * Generic helpers reused by the Vercel/Supabase/Netlify/GitLab proxy
+   * routes below. They mirror resolveActiveGithubAccessToken +
+   * handleGithubProviderResponse but switch on a provider string so we
+   * don't have to duplicate the decryption + needs_reconnect bookkeeping
+   * per provider. The GitHub helpers are kept untouched to avoid
+   * regressing the Phase 1 paths.
+   */
+  async function resolveActiveConnectorAccessToken(
+    request: any,
+    reply: any,
+    provider: string,
+    displayName: string,
+  ): Promise<string | null> {
+    if (!request.currentUser) {
+      reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+
+      return null;
+    }
+
+    const connections = await store.listUserConnectionsByUser(request.currentUser.id, { provider });
+    const active = connections.find((row) => row.status === 'active');
+
+    if (!active) {
+      reply.code(401).send({
+        error: `${displayName} is not connected for this account.`,
+        code: 'CONNECTOR_NOT_LINKED',
+      });
+
+      return null;
+    }
+
+    if (!active.accessTokenEncrypted) {
+      reply.code(503).send({
+        error: `${displayName} token unavailable`,
+        code: 'CONNECTOR_TOKEN_UNAVAILABLE',
+      });
+
+      return null;
+    }
+
+    try {
+      const decrypted = decryptJson<{ value: string }>(active.accessTokenEncrypted);
+
+      return decrypted.value;
+    } catch {
+      reply.code(503).send({
+        error: `${displayName} token could not be decrypted`,
+        code: 'CONNECTOR_TOKEN_DECRYPT_FAILED',
+      });
+
+      return null;
+    }
+  }
+
+  async function handleConnectorProviderResponse(
+    request: any,
+    reply: any,
+    response: Response,
+    provider: string,
+    displayName: string,
+  ) {
+    if (response.status === 401 || response.status === 403) {
+      const connections = await store.listUserConnectionsByUser(request.currentUser?.id ?? '', { provider });
+      const active = connections.find((row) => row.status === 'active');
+
+      if (active) {
+        await store.markUserConnectionStatus({ id: active.id, status: 'needs_reconnect' });
+        await audit(request, store, {
+          action: `connector.${provider}.needs_reconnect`,
+          resourceType: 'UserConnection',
+          resourceId: active.id,
+          metadata: { reason: 'token_expired_or_revoked', upstreamStatus: response.status },
+        });
+      }
+
+      return reply.code(401).send({
+        error: `${displayName} rejected the stored access token`,
+        code: 'CONNECTOR_NEEDS_RECONNECT',
+        upstreamStatus: response.status,
+      });
+    }
+
+    return reply.code(502).send({
+      error: `${displayName} upstream returned HTTP ${response.status}`,
+      code: 'PROVIDER_API_FAILED',
+      upstreamStatus: response.status,
+    });
+  }
+
+  /*
+   * Vercel: UserConnection-backed routes. /api/vercel-user returns the
+   * authenticated account; /api/vercel-proxy is a thin forwarder used by
+   * the Settings tab to list projects, deployments, etc. without ever
+   * shipping the access token to the browser. Mirrors /api/github-user
+   * + /api/github-proxy.
+   */
+  app.get('/api/vercel-user', async (request, reply) => {
+    const accessToken = await resolveActiveConnectorAccessToken(request, reply, 'vercel', 'Vercel');
+
+    if (!accessToken) {
+      return reply;
+    }
+
+    const response = await fetch('https://api.vercel.com/v2/user', {
+      method: 'GET',
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        accept: 'application/json',
+        'user-agent': 'e-code-api',
+      },
+    });
+
+    if (!response.ok) {
+      return handleConnectorProviderResponse(request, reply, response, 'vercel', 'Vercel');
+    }
+
+    type VercelUser = {
+      id?: string;
+      uid?: string;
+      username?: string;
+      email?: string;
+      name?: string | null;
+      avatar?: string | null;
+    };
+    type VercelUserPayload = { user?: VercelUser } & VercelUser;
+
+    const payload = (await response.json()) as VercelUserPayload;
+    const inner = payload.user ?? payload;
+
+    return {
+      id: inner.id ?? inner.uid ?? null,
+      username: inner.username ?? null,
+      email: inner.email ?? null,
+      name: inner.name ?? null,
+      avatar: inner.avatar ?? null,
+    };
+  });
+
+  app.post('/api/vercel-proxy', async (request, reply) => {
+    const body = request.body as
+      | { method?: string; path?: string; query?: Record<string, string>; body?: unknown }
+      | undefined;
+
+    if (!body || typeof body.path !== 'string') {
+      return reply.code(400).send({ error: 'path is required', code: 'PROXY_BAD_REQUEST' });
+    }
+
+    const method = (body.method ?? 'GET').toUpperCase();
+
+    if (method !== 'GET' && method !== 'POST' && method !== 'PUT' && method !== 'PATCH' && method !== 'DELETE') {
+      return reply.code(400).send({ error: 'Unsupported HTTP method', code: 'PROXY_BAD_REQUEST' });
+    }
+
+    if (!body.path.startsWith('/')) {
+      return reply.code(400).send({ error: 'path must start with /', code: 'PROXY_BAD_REQUEST' });
+    }
+
+    const accessToken = await resolveActiveConnectorAccessToken(request, reply, 'vercel', 'Vercel');
+
+    if (!accessToken) {
+      return reply;
+    }
+
+    const url = new URL(`https://api.vercel.com${body.path}`);
+
+    if (body.query) {
+      for (const [key, value] of Object.entries(body.query)) {
+        url.searchParams.set(key, String(value));
+      }
+    }
+
+    const response = await fetch(url, {
+      method,
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        accept: 'application/json',
+        'user-agent': 'e-code-api',
+        ...(method !== 'GET' && body.body ? { 'content-type': 'application/json' } : {}),
+      },
+      body: method !== 'GET' && body.body ? JSON.stringify(body.body) : undefined,
+    });
+
+    if (!response.ok) {
+      return handleConnectorProviderResponse(request, reply, response, 'vercel', 'Vercel');
+    }
+
+    const contentType = response.headers.get('content-type') ?? '';
+
+    if (contentType.includes('application/json')) {
+      return await response.json();
+    }
+
+    return await response.text();
+  });
+
   app.post('/webhooks/github', async (request, reply) => {
     const signingSecret = process.env.INTEGRATION_GITHUB_WEBHOOK_SIGNING_SECRET;
 

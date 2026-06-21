@@ -1,7 +1,7 @@
 import { atom } from 'nanostores';
 import { toast } from 'react-toastify';
 import { logStore } from './logs';
-import type { VercelConnection } from '~/types/vercel';
+import type { VercelConnection, VercelProject } from '~/types/vercel';
 
 // Auto-connect using environment variable
 const envToken = import.meta.env?.VITE_VERCEL_ACCESS_TOKEN;
@@ -130,65 +130,173 @@ export async function autoConnectVercel() {
   }
 }
 
-export function initializeVercelConnection() {
-  // Auto-connect using environment variable if available
-  const envToken = import.meta.env?.VITE_VERCEL_ACCESS_TOKEN;
+/*
+ * Phase 2 server-backed initializer. Calls /api/vercel-user, which
+ * routes through the API service's UserConnection-backed proxy. On
+ * 200 we hydrate the connection user from the server (the token never
+ * reaches the browser) and trigger a stats refresh. On 401 we fall
+ * back to the legacy env-token auto-connect so existing builders are
+ * not stranded.
+ */
+export async function initializeVercelConnection() {
+  try {
+    const response = await fetch('/api/vercel-user', { method: 'GET' });
 
-  if (envToken && !vercelConnection.get().token) {
-    updateVercelConnection({ token: envToken });
-    fetchVercelStats(envToken).catch(console.error);
+    if (response.ok) {
+      const profile = (await response.json()) as {
+        id: string | null;
+        username: string | null;
+        email: string | null;
+        name: string | null;
+        avatar: string | null;
+      };
+
+      if (profile.id) {
+        updateVercelConnection({
+          user: {
+            id: profile.id,
+            username: profile.username ?? '',
+            email: profile.email ?? '',
+            name: profile.name ?? '',
+            avatar: profile.avatar ?? undefined,
+          } as VercelConnection['user'],
+          token: '',
+        });
+
+        await fetchVercelStats(null);
+
+        return;
+      }
+    }
+  } catch (error) {
+    console.error('Vercel server-backed initialize failed:', error);
+  }
+
+  /*
+   * Legacy fallback: env-token auto-connect for builders who have not
+   * yet reconnected through the new ConnectorApiKeyConnectButton.
+   */
+  const envTokenLocal = import.meta.env?.VITE_VERCEL_ACCESS_TOKEN;
+
+  if (envTokenLocal && !vercelConnection.get().token) {
+    updateVercelConnection({ token: envTokenLocal });
+    fetchVercelStats(envTokenLocal).catch(console.error);
   }
 }
 
-export const fetchVercelStatsViaAPI = fetchVercelStats;
+export const fetchVercelStatsViaAPI = (token: string | null) => fetchVercelStats(token);
 
-export async function fetchVercelStats(token: string) {
+async function fetchProjectsAndDeploymentsViaServer(): Promise<VercelProject[] | null> {
+  const projectsResponse = await fetch('/api/vercel-proxy', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ method: 'GET', path: '/v9/projects' }),
+  });
+
+  if (projectsResponse.status === 401) {
+    return null;
+  }
+
+  if (!projectsResponse.ok) {
+    throw new Error(`Failed to fetch projects via server proxy: ${projectsResponse.status}`);
+  }
+
+  const projectsData = (await projectsResponse.json()) as { projects?: VercelProject[] };
+  const projects = projectsData.projects ?? [];
+
+  return Promise.all(
+    projects.map(async (project) => {
+      try {
+        const deploymentsResponse = await fetch('/api/vercel-proxy', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            method: 'GET',
+            path: '/v6/deployments',
+            query: { projectId: project.id, limit: '1' },
+          }),
+        });
+
+        if (deploymentsResponse.ok) {
+          const deploymentsData = (await deploymentsResponse.json()) as {
+            deployments?: VercelProject['latestDeployments'];
+          };
+          return { ...project, latestDeployments: deploymentsData.deployments ?? [] };
+        }
+
+        return project;
+      } catch (error) {
+        console.error(`Error fetching deployments for project ${project.id}:`, error);
+        return project;
+      }
+    }),
+  );
+}
+
+async function fetchProjectsAndDeploymentsViaToken(token: string): Promise<VercelProject[]> {
+  const projectsResponse = await fetch('https://api.vercel.com/v9/projects', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!projectsResponse.ok) {
+    throw new Error(`Failed to fetch projects: ${projectsResponse.status}`);
+  }
+
+  const projectsData = (await projectsResponse.json()) as { projects?: VercelProject[] };
+  const projects = projectsData.projects ?? [];
+
+  return Promise.all(
+    projects.map(async (project) => {
+      try {
+        const deploymentsResponse = await fetch(
+          `https://api.vercel.com/v6/deployments?projectId=${project.id}&limit=1`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        );
+
+        if (deploymentsResponse.ok) {
+          const deploymentsData = (await deploymentsResponse.json()) as {
+            deployments?: VercelProject['latestDeployments'];
+          };
+          return { ...project, latestDeployments: deploymentsData.deployments ?? [] };
+        }
+
+        return project;
+      } catch (error) {
+        console.error(`Error fetching deployments for project ${project.id}:`, error);
+        return project;
+      }
+    }),
+  );
+}
+
+/*
+ * Pass null to route through /api/vercel-proxy (the UserConnection-
+ * backed path); pass a bearer token to keep the legacy direct fetch
+ * working for builders who have not yet reconnected.
+ */
+export async function fetchVercelStats(token: string | null) {
   try {
     isFetchingStats.set(true);
 
-    const projectsResponse = await fetch('https://api.vercel.com/v9/projects', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    let projectsWithDeployments: VercelProject[] | null = null;
 
-    if (!projectsResponse.ok) {
-      throw new Error(`Failed to fetch projects: ${projectsResponse.status}`);
+    if (!token) {
+      projectsWithDeployments = await fetchProjectsAndDeploymentsViaServer();
+
+      if (!projectsWithDeployments) {
+        return;
+      }
+    } else {
+      projectsWithDeployments = await fetchProjectsAndDeploymentsViaToken(token);
     }
-
-    const projectsData = (await projectsResponse.json()) as any;
-    const projects = projectsData.projects || [];
-
-    // Fetch latest deployment for each project
-    const projectsWithDeployments = await Promise.all(
-      projects.map(async (project: any) => {
-        try {
-          const deploymentsResponse = await fetch(
-            `https://api.vercel.com/v6/deployments?projectId=${project.id}&limit=1`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-            },
-          );
-
-          if (deploymentsResponse.ok) {
-            const deploymentsData = (await deploymentsResponse.json()) as any;
-            return {
-              ...project,
-              latestDeployments: deploymentsData.deployments || [],
-            };
-          }
-
-          return project;
-        } catch (error) {
-          console.error(`Error fetching deployments for project ${project.id}:`, error);
-          return project;
-        }
-      }),
-    );
 
     const currentState = vercelConnection.get();
     updateVercelConnection({
