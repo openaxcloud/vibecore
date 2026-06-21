@@ -153,7 +153,7 @@ createRoot(document.getElementById('root')!).render(
     {
       path: 'src/data/portfolio.ts',
       content: `export const profile = {
-  name: '${name}',
+  name: ${JSON.stringify(name)},
   role: 'Product-minded full-stack engineer',
   location: 'Remote / Global',
   email: 'hello@example.com',

@@ -17799,9 +17799,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const { userId } = parse(adminUserParams, request.params);
 
-    // Don't let an admin suspend the last remaining administrator (incl. self).
-    await assertNotLastPlatformAdmin(store, userId);
-    await store.mutateSystemSettingIds('admin.suspendedUserIds', { add: userId });
+    /*
+     * Don't let an admin suspend the last remaining administrator (incl. self).
+     * Serialize the check + mutation (like the platform-admin revoke path) so two
+     * concurrent suspends can't each pass the last-admin check and lock everyone out.
+     */
+    await store.withSerializedMutation('platform-admin', async () => {
+      await assertNotLastPlatformAdmin(store, userId);
+      await store.mutateSystemSettingIds('admin.suspendedUserIds', { add: userId });
+    });
     await store.revokeAllSessions(userId);
     await recordAdminAction(request, store, { action: 'admin.user.suspend', metadata: { userId } });
 
@@ -18369,10 +18375,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const view = strikeView(records, nowMs);
 
-    // Enforce an account ban with the existing suspension machinery.
+    // Enforce an account ban with the existing suspension machinery. Serialize the
+    // last-admin check + suspension (like the revoke/suspend paths) so concurrent
+    // ban-level strikes can't both pass the check and leave zero admins.
     if (view.consequence === 'ACCOUNT_BAN') {
-      await assertNotLastPlatformAdmin(store, userId);
-      await store.mutateSystemSettingIds('admin.suspendedUserIds', { add: userId });
+      await store.withSerializedMutation('platform-admin', async () => {
+        await assertNotLastPlatformAdmin(store, userId);
+        await store.mutateSystemSettingIds('admin.suspendedUserIds', { add: userId });
+      });
       await store.revokeAllSessions(userId);
     }
 

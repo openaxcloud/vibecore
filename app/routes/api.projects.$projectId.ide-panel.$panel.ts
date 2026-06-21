@@ -1430,7 +1430,19 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         }),
       });
     } else if (intent === 'restore-backup') {
-      await apiRequest(request, `/projects/${projectId}/snapshots/${body.snapshotId}/restore`, { method: 'POST' });
+      /*
+       * Validate + encode the id (matching the 'snapshots' panel restore) so a
+       * missing/`/`-bearing value can't build `/snapshots//restore` or alter the path.
+       */
+      const snapshotId = (body.snapshotId ?? '').trim();
+
+      if (!snapshotId) {
+        throw json({ error: 'snapshotId is required for restore-backup' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/projects/${projectId}/snapshots/${encodeURIComponent(snapshotId)}/restore`, {
+        method: 'POST',
+      });
     } else if (intent === 'query') {
       const queryResult = await apiRequest(request, `/projects/${projectId}/databases/query`, {
         method: 'POST',

@@ -92,8 +92,18 @@ function decodeHtmlEntities(content: string) {
 }
 
 function cleanHighlightedCodeMarkup(content: string) {
+  /*
+   * Only treat content as syntax-highlighter output when it carries an ACTUAL
+   * highlighter signature — a shiki/hljs/prism class or shiki's inline `color:`
+   * style. The old check keyed off a generic Tailwind `text-*` className, so
+   * ordinary JSX/TS source like `<span className="text-red-500">x</span><br/>`
+   * was mistaken for highlighted markup and had its real tags stripped on write
+   * (file-content corruption). Real highlighters never emit Tailwind `text-*`.
+   */
   const looksLikeHighlightedSource =
-    /&nbsp;|<br\s*\/?>/i.test(content) && /<span\s+className=["'][^"']*text-[^"']*["']/i.test(content);
+    /&nbsp;|<br\s*\/?>/i.test(content) &&
+    (/(?:class|className)=["'][^"']*\b(?:shiki|hljs|token|highlight)\b/i.test(content) ||
+      /<span\b[^>]*\bstyle=["'][^"']*color\s*:/i.test(content));
 
   if (!looksLikeHighlightedSource) {
     return content;

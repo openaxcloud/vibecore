@@ -123,7 +123,11 @@ export function GitMergeEditor({
       .join('\n');
   }, [segments, choices, rawMode, raw]);
 
-  const stillHasMarkers = /^(<{7}|={7}|>{7})/m.test(composed);
+  /*
+   * Include the diff3 base marker (|||||||) git emits under merge.conflictStyle=diff3,
+   * not just <<<<<<< / ======= / >>>>>>>, so a leftover base marker also blocks resolve.
+   */
+  const stillHasMarkers = /^(<{7}|\|{7}|={7}|>{7})/m.test(composed);
 
   return (
     <div

@@ -28,6 +28,7 @@ import {
 } from '~/lib/chat/chat-branches';
 import {
   getProjectIdeMemory,
+  getProjectIdeMemorySync,
   saveProjectIdeMemory,
   subscribeProjectIdeMemory,
   type ProjectIdeMemory,
@@ -109,7 +110,11 @@ export function useProjectChatBranches(projectId: string | undefined): UseProjec
         return undefined;
       }
 
-      const current = readConversations(memory);
+      /*
+       * Read the authoritative cache at mutation time, not the lagging React
+       * `memory` snapshot, so rapid successive branch ops don't lost-update.
+       */
+      const current = readConversations(getProjectIdeMemorySync(projectId) ?? memory);
       const source = current.find((conversation) => conversation.id === sourceId);
 
       if (!source) {
@@ -142,7 +147,11 @@ export function useProjectChatBranches(projectId: string | undefined): UseProjec
         return false;
       }
 
-      const current = readConversations(memory);
+      /*
+       * Read the authoritative cache at mutation time, not the lagging React
+       * `memory` snapshot, so rapid successive branch ops don't lost-update.
+       */
+      const current = readConversations(getProjectIdeMemorySync(projectId) ?? memory);
       const target = current.find((conversation) => conversation.id === conversationId);
 
       if (!target) {
@@ -156,9 +165,10 @@ export function useProjectChatBranches(projectId: string | undefined): UseProjec
        * active thread to conversations[] — so switching away DISCARDED the active
        * messages (data loss) whenever the active thread wasn't already archived.
        */
-      const activeMessages = memory?.chat?.messages ?? [];
+      const liveMemory = getProjectIdeMemorySync(projectId) ?? memory;
+      const activeMessages = liveMemory?.chat?.messages ?? [];
       const lastActiveId = activeMessages.length > 0 ? activeMessages[activeMessages.length - 1]?.id : undefined;
-      const activeId = memory?.chat?.id;
+      const activeId = liveMemory?.chat?.id;
       const activeAlreadyArchived = activeId ? current.some((conversation) => conversation.id === activeId) : false;
 
       const deriveTitle = (messages: typeof activeMessages): string | undefined => {
@@ -216,7 +226,11 @@ export function useProjectChatBranches(projectId: string | undefined): UseProjec
         return;
       }
 
-      const current = readConversations(memory);
+      /*
+       * Read the authoritative cache at mutation time, not the lagging React
+       * `memory` snapshot, so rapid successive branch ops don't lost-update.
+       */
+      const current = readConversations(getProjectIdeMemorySync(projectId) ?? memory);
 
       const next = current.map((conversation) =>
         conversation.id === conversationId
@@ -235,7 +249,11 @@ export function useProjectChatBranches(projectId: string | undefined): UseProjec
         return;
       }
 
-      const current = readConversations(memory);
+      /*
+       * Read the authoritative cache at mutation time, not the lagging React
+       * `memory` snapshot, so rapid successive branch ops don't lost-update.
+       */
+      const current = readConversations(getProjectIdeMemorySync(projectId) ?? memory);
       const next = pruneBranch(current, conversationId);
 
       await saveProjectIdeMemory(projectId, { chat: { conversations: next } });

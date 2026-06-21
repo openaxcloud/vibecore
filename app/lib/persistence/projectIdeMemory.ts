@@ -307,6 +307,16 @@ export function getProjectIdeMemoryStorageKey(projectId: string, workspaceId?: s
   return `${PROJECT_IDE_MEMORY_STORAGE_PREFIX}:${scopeKey(projectId, workspaceId)}`;
 }
 
+/**
+ * Synchronous read of the authoritative in-memory cache (the same map every
+ * save/merge updates). Callers that mutate-then-save should read from here at
+ * mutation time rather than closing over a lagging React state snapshot — the
+ * latter causes lost updates when two mutations are dispatched before a re-render.
+ */
+export function getProjectIdeMemorySync(projectId: string, workspaceId?: string): ProjectIdeMemory | undefined {
+  return memoryCache.get(scopeKey(projectId, workspaceId));
+}
+
 function storageKeyForScope(scope: string) {
   return `${PROJECT_IDE_MEMORY_STORAGE_PREFIX}:${scope}`;
 }
