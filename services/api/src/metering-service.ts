@@ -135,9 +135,24 @@ export async function meterAllObjectStorage(
   const rows = await store.aggregateStorageBytesByOrg();
 
   let totalBytes = 0;
+  let orgsMetered = 0;
+
+  // UTC midnight of the current day — the idempotency window for the daily sweep.
+  const dayStartMs = Math.floor(input.nowMs / 86_400_000) * 86_400_000;
 
   for (const row of rows) {
     totalBytes += row.bytes;
+
+    /*
+     * Idempotent per (org, UTC-day): skip orgs already metered for storage today so
+     * a duplicate run (pod restart mid-sweep, double-schedule, manual re-trigger of
+     * POST /internal/metering/object-storage) can't double-record the usage event
+     * or double-charge the day's GiB-months. meterObjectStorage records a
+     * storage.objectGiBMonths event, which is what we check for here.
+     */
+    if (await store.hasUsageEventSince(row.organizationId, 'storage.objectGiBMonths', dayStartMs)) {
+      continue;
+    }
 
     // bytes held for one day → GiB-months charged today = (bytes/GiB) * (1 / period days).
     const gibMonths = row.bytes / BYTES_PER_GIB / days;
@@ -147,9 +162,10 @@ export async function meterAllObjectStorage(
       shadow: input.shadow,
       nowMs: input.nowMs,
     });
+    orgsMetered += 1;
   }
 
-  return { orgsMetered: rows.length, totalBytes, shadow: Boolean(input.shadow) };
+  return { orgsMetered, totalBytes, shadow: Boolean(input.shadow) };
 }
 
 /** Meter database compute by active hours. */

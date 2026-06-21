@@ -3510,6 +3510,14 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async hasUsageEventSince(organizationId: string, type: string, sinceMs: number) {
+    const count = await this.prisma.usageEvent.count({
+      where: { organizationId, type, createdAt: { gte: new Date(sinceMs) } },
+    });
+
+    return count > 0;
+  }
+
   async listUsageEvents(organizationId: string, options: { take?: number } = {}) {
     return (
       await this.prisma.usageEvent.findMany({

@@ -1483,6 +1483,8 @@ export interface ApiStore {
     metadata?: unknown;
   }): Promise<UsageEventRecord>;
   listUsageEvents(organizationId: string, options?: { take?: number }): Promise<UsageEventRecord[]>;
+  /** True if a usage event of `type` was recorded for the org at/after `sinceMs` — used to dedup the daily storage meter. */
+  hasUsageEventSince(organizationId: string, type: string, sinceMs: number): Promise<boolean>;
   sumUsage(organizationId: string, type: string, since?: Date): Promise<number>;
   createQuotaOverride(input: {
     organizationId: string;

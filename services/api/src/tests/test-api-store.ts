@@ -2278,7 +2278,8 @@ export class TestApiStore implements ApiStore {
     const wallet = await this.ensureCreditWallet(input.organizationId);
 
     const existing = [...this.creditLedger.values()].find(
-      (e) => e.organizationId === input.organizationId && e.kind === 'PAYG_CHARGE' && e.checkpointId === input.checkpointId,
+      (e) =>
+        e.organizationId === input.organizationId && e.kind === 'PAYG_CHARGE' && e.checkpointId === input.checkpointId,
     );
 
     if (existing) {
@@ -2651,6 +2652,15 @@ export class TestApiStore implements ApiStore {
 
   async listUsageEvents(organizationId: string) {
     return [...this.usageEvents.values()].filter((event) => event.organizationId === organizationId);
+  }
+
+  async hasUsageEventSince(organizationId: string, type: string, sinceMs: number) {
+    return [...this.usageEvents.values()].some(
+      (event) =>
+        event.organizationId === organizationId &&
+        event.type === type &&
+        new Date(event.createdAt).getTime() >= sinceMs,
+    );
   }
 
   async sumUsage(organizationId: string, type: string, since?: Date) {

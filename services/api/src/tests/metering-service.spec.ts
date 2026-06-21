@@ -40,6 +40,30 @@ describe('meterAllObjectStorage (daily sweep)', () => {
     expect(result.orgsMetered).toBe(0);
     expect(result.totalBytes).toBe(0);
   });
+
+  it('is idempotent within the UTC day — a second run does not double-meter', async () => {
+    const store = new TestApiStore();
+    const project = await store.createProject({ organizationId: 'org_1', name: 'p', slug: 'p' });
+    const GIB = 1024 ** 3;
+    await store.putProjectStorageObject({
+      projectId: project.id,
+      key: 'k1',
+      kind: 'snapshot',
+      contentBase64: '',
+      byteLength: 60 * GIB,
+      contentHash: 'h1',
+    });
+
+    // Real clock so the recorded usage event's createdAt shares the dedup day window.
+    const t = Date.now();
+    const first = await meterAllObjectStorage(store, { shadow: true, nowMs: t, daysInPeriod: 30 });
+    expect(first.orgsMetered).toBe(1);
+
+    // Same UTC day → org already metered for storage → skipped, no second event.
+    const second = await meterAllObjectStorage(store, { shadow: true, nowMs: t, daysInPeriod: 30 });
+    expect(second.orgsMetered).toBe(0);
+    expect((await store.listUsageEvents('org_1')).filter((e) => e.type === 'storage.objectGiBMonths').length).toBe(1);
+  });
 });
 
 describe('meterWorkspaceCompute', () => {
