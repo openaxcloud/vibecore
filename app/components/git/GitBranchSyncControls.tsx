@@ -1,54 +1,102 @@
 import type { FormEventHandler } from 'react';
 import { classNames } from '~/utils/classNames';
 
-type GitSyncIntent = 'pull' | 'push';
-
 interface GitBranchSyncControlsProps {
   branch: string;
   busy?: boolean;
   idPrefix: string;
   onSubmit: FormEventHandler<HTMLFormElement>;
+
+  /** Repo origin URL (shown as a compact link, Replit-style). */
+  repoUrl?: string | null;
+
+  /** Human "last fetched Xago" string; omitted when never loaded. */
+  lastFetched?: string;
+
+  /** Refresh git status (the ↻ in the Remote Updates header). */
+  onRefresh?: () => void;
+  loading?: boolean;
 }
 
-const syncActions: Array<{
-  intent: GitSyncIntent;
-  label: string;
-  buttonLabel: string;
-  description: string;
-  inputTitle: string;
-}> = [
-  {
-    intent: 'pull',
-    label: 'Local branch',
-    buttonLabel: 'Pull',
-    description: 'Pull remote updates into this workspace branch.',
-    inputTitle: 'Local branch that receives updates from the remote.',
-  },
-  {
-    intent: 'push',
-    label: 'Remote branch',
-    buttonLabel: 'Push',
-    description: 'Push local commits to this remote branch.',
-    inputTitle: 'Remote branch that receives commits from this workspace.',
-  },
-];
+function shortRepoLabel(url: string) {
+  // org/repo from an https or ssh git URL, without the trailing ".git".
+  const cleaned = url
+    .replace(/\.git$/, '')
+    .replace(/^git@[^:]+:/, '')
+    .replace(/^https?:\/\/[^/]+\//, '');
 
-export function GitBranchSyncControls({ branch, busy = false, idPrefix, onSubmit }: GitBranchSyncControlsProps) {
+  const parts = cleaned.split('/').filter(Boolean);
+
+  return parts.slice(-2).join('/') || cleaned;
+}
+
+/*
+ * "Remote Updates" section, matched to Replit's clean/compact layout: a header
+ * with the repo link, the `origin/<branch> • upstream` line + "last fetched Xago"
+ * + refresh, one full-width "Sync Changes" button, and compact Pull / Push
+ * buttons side-by-side. Deliberately NO branch text inputs and NO verbose
+ * per-action descriptions — pull/push use the current branch implicitly, exactly
+ * like Replit. ecode orange is kept only for the primary Sync Changes accent.
+ */
+export function GitBranchSyncControls({
+  branch,
+  busy = false,
+  idPrefix,
+  onSubmit,
+  repoUrl,
+  lastFetched,
+  onRefresh,
+  loading = false,
+}: GitBranchSyncControlsProps) {
+  const secondaryButton = classNames(
+    'inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-bolt-elements-borderColor',
+    'text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60',
+    'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus focus:ring-offset-1 focus:ring-offset-bolt-elements-background-depth-2',
+  );
+
   return (
     <section
-      className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
+      className="grid gap-2.5 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
       aria-labelledby={`${idPrefix}-sync-heading`}
     >
-      <div>
+      <div className="flex items-center justify-between gap-2">
         <h3 id={`${idPrefix}-sync-heading`} className="text-sm font-semibold text-bolt-elements-textPrimary">
-          Sync branches
+          Remote Updates
         </h3>
-        <p className="mt-1 text-xs leading-5 text-bolt-elements-textSecondary">
-          Sync (pull then push), or run pull / push individually.
-        </p>
+        {repoUrl ? (
+          <a
+            href={repoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-w-0 items-center gap-1 truncate text-xs text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+            title={repoUrl}
+          >
+            <span className="i-ph:github-logo text-sm" aria-hidden />
+            <span className="truncate">{shortRepoLabel(repoUrl)}</span>
+          </a>
+        ) : null}
       </div>
 
-      {/* Replit-style combined Sync Changes: pull remote updates then push local commits. */}
+      <div className="flex items-center justify-between gap-2 text-xs text-bolt-elements-textSecondary">
+        <code className="truncate">
+          origin/{branch} <span className="text-bolt-elements-textTertiary">• upstream</span>
+        </code>
+        <span className="flex shrink-0 items-center gap-2">
+          {lastFetched ? <span className="hidden sm:inline">last fetched {lastFetched}</span> : null}
+          {onRefresh ? (
+            <button
+              type="button"
+              data-testid="git-refresh"
+              disabled={loading}
+              onClick={onRefresh}
+              title="Refresh git status"
+              aria-label="Refresh git status"
+              className="i-ph:arrows-clockwise text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary disabled:opacity-50"
+            />
+          ) : null}
+        </span>
+      </div>
+
       <form onSubmit={onSubmit}>
         <input name="intent" value="sync" type="hidden" />
         <input name="branch" value={branch} type="hidden" />
@@ -67,42 +115,24 @@ export function GitBranchSyncControls({ branch, busy = false, idPrefix, onSubmit
         </button>
       </form>
 
-      {syncActions.map((action) => {
-        const inputId = `${idPrefix}-${action.intent}-branch`;
-        const descriptionId = `${inputId}-description`;
-
-        return (
-          <form key={action.intent} onSubmit={onSubmit} className="grid gap-1.5">
-            <input name="intent" value={action.intent} type="hidden" />
-            <label className="grid gap-0.5 text-xs font-medium text-bolt-elements-textSecondary" htmlFor={inputId}>
-              <span className="text-bolt-elements-textPrimary">{action.label}</span>
-              <span id={descriptionId} className="font-normal leading-4 text-bolt-elements-textSecondary">
-                {action.description}
-              </span>
-            </label>
-            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-              <input
-                id={inputId}
-                name="branch"
-                defaultValue={branch}
-                aria-describedby={descriptionId}
-                title={action.inputTitle}
-                className="h-9 min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
-              />
-              <button
-                type="submit"
-                disabled={busy}
-                className={classNames(
-                  'inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60',
-                  'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus focus:ring-offset-2 focus:ring-offset-bolt-elements-background-depth-2',
-                )}
-              >
-                {action.buttonLabel}
-              </button>
-            </div>
-          </form>
-        );
-      })}
+      <div className="grid grid-cols-2 gap-2">
+        <form onSubmit={onSubmit}>
+          <input name="intent" value="pull" type="hidden" />
+          <input name="branch" value={branch} type="hidden" />
+          <button type="submit" disabled={busy} className={secondaryButton}>
+            <span className="i-ph:arrow-down text-sm" aria-hidden />
+            Pull
+          </button>
+        </form>
+        <form onSubmit={onSubmit}>
+          <input name="intent" value="push" type="hidden" />
+          <input name="branch" value={branch} type="hidden" />
+          <button type="submit" disabled={busy} className={secondaryButton}>
+            <span className="i-ph:arrow-up text-sm" aria-hidden />
+            Push
+          </button>
+        </form>
+      </div>
     </section>
   );
 }

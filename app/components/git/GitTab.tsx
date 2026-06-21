@@ -606,50 +606,6 @@ export function GitTab({ projectId }: GitTabProps) {
           </div>
         ) : null}
 
-        {/*
-         * Branch sync visual (Replit-style): origin/<branch> → <branch> with the
-         * ahead/behind counts, surfaced at the top of the pane.
-         */}
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm">
-          <span className="i-ph:git-branch text-base text-bolt-elements-item-contentAccent" aria-hidden />
-          <code className="text-bolt-elements-textSecondary">origin/{branch}</code>
-          <span className="i-ph:arrow-right text-bolt-elements-textSecondary" aria-hidden />
-          <strong className="text-bolt-elements-textPrimary">{branch}</strong>
-          <span className="ml-auto flex items-center gap-3 text-xs text-bolt-elements-textSecondary">
-            <span title="Commits to pull">↓ {status?.behind ?? 0}</span>
-            <span title="Commits to push">↑ {status?.ahead ?? 0}</span>
-            {lastLoadedAt ? (
-              <span
-                className="hidden sm:inline"
-                title={`Git status last refreshed ${new Date(lastLoadedAt).toLocaleString()}`}
-              >
-                fetched {timeAgo(lastLoadedAt)}
-              </span>
-            ) : null}
-            <button
-              type="button"
-              data-testid="git-refresh"
-              disabled={loading}
-              onClick={() => void loadPanel()}
-              title="Refresh git status"
-              aria-label="Refresh git status"
-              className="i-ph:arrows-clockwise text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary disabled:opacity-50"
-            />
-            <button
-              type="button"
-              data-testid="git-settings-toggle"
-              aria-pressed={showSettings}
-              onClick={() => setShowSettings((value) => !value)}
-              title="Git settings"
-              aria-label="Git settings"
-              className={classNames(
-                'i-ph:gear text-sm hover:text-bolt-elements-textPrimary',
-                showSettings ? 'text-bolt-elements-item-contentAccent' : 'text-bolt-elements-textSecondary',
-              )}
-            />
-          </span>
-        </div>
-
         {showSettings && project?.id ? (
           <GitSettingsPanel
             projectId={project.id}
@@ -681,28 +637,42 @@ export function GitTab({ projectId }: GitTabProps) {
               {conflicts.length ? <span className="text-red-500">{conflicts.length} conflicts</span> : null}
             </div>
           </div>
-          <form onSubmit={submitAction} className="flex min-w-[min(220px,100%)] max-w-full gap-2">
-            <input name="intent" value="checkout-branch" type="hidden" />
-            <label className="sr-only" htmlFor="ide-git-tab-branch-switch">
-              Switch branch
-            </label>
-            <select
-              id="ide-git-tab-branch-switch"
-              name="branch"
-              key={branch}
-              defaultValue={branch}
-              className="h-9 min-w-0 flex-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
-            >
-              {[branch, ...branches.filter((item: string) => item !== branch)].map((item: string) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-            <PanelButton disabled={busy} variant="outline">
-              Switch
-            </PanelButton>
-          </form>
+          <div className="flex min-w-[min(240px,100%)] items-center gap-2">
+            <form onSubmit={submitAction} className="flex min-w-0 flex-1 gap-2">
+              <input name="intent" value="checkout-branch" type="hidden" />
+              <label className="sr-only" htmlFor="ide-git-tab-branch-switch">
+                Switch branch
+              </label>
+              <select
+                id="ide-git-tab-branch-switch"
+                name="branch"
+                key={branch}
+                defaultValue={branch}
+                className="h-9 min-w-0 flex-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+              >
+                {[branch, ...branches.filter((item: string) => item !== branch)].map((item: string) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+              <PanelButton disabled={busy} variant="outline">
+                Switch
+              </PanelButton>
+            </form>
+            <button
+              type="button"
+              data-testid="git-settings-toggle"
+              aria-pressed={showSettings}
+              onClick={() => setShowSettings((value) => !value)}
+              title="Git settings"
+              aria-label="Git settings"
+              className={classNames(
+                'i-ph:gear shrink-0 text-base hover:text-bolt-elements-textPrimary',
+                showSettings ? 'text-bolt-elements-item-contentAccent' : 'text-bolt-elements-textSecondary',
+              )}
+            />
+          </div>
         </div>
 
         {/*
@@ -828,7 +798,18 @@ export function GitTab({ projectId }: GitTabProps) {
         ) : null}
 
         <div className="mx-auto grid w-full max-w-3xl gap-4">
-          <GitBranchSyncControls branch={branch} busy={busy} idPrefix="git-tab" onSubmit={submitAction} />
+          {hasRemote ? (
+            <GitBranchSyncControls
+              branch={branch}
+              busy={busy}
+              idPrefix="git-tab"
+              onSubmit={submitAction}
+              repoUrl={project?.gitRepositoryUrl}
+              lastFetched={lastLoadedAt ? timeAgo(lastLoadedAt) : undefined}
+              onRefresh={() => void loadPanel()}
+              loading={loading}
+            />
+          ) : null}
 
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
