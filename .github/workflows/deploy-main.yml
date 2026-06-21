@@ -33,6 +33,11 @@ on:
       short_sha:
         description: Override image tag to build/deploy (defaults to the pushed commit)
         required: false
+      force_tiers:
+        description: >-
+          Force which tiers to build (comma list of web/runtime/wsagent, or 'all'),
+          bypassing path detection. For validating conditional builds via dispatch.
+        required: false
 
 permissions:
   contents: read
@@ -62,6 +67,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so the change-detection step can diff this push against
+          # its `before` SHA (or HEAD~1 on workflow_dispatch).
+          fetch-depth: 0
 
       - name: Resolve image tag
         id: tag
@@ -87,6 +96,75 @@ jobs:
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           echo "Deploying image tag: ${SHORT_SHA}"
 
+      # Decide which image tiers actually need rebuilding from the changed paths.
+      # CONSERVATIVE: default every tier to TRUE and only flip to false when we are
+      # confident its inputs are untouched, so any doubt (no resolvable base, shared
+      # package/lockfile/Dockerfile/workflow change, dispatch with no diff) rebuilds
+      # everything — i.e. worst case is exactly today's behaviour, never a stale or
+      # missing image. A skipped tier keeps its current image via `helm --reuse-values`.
+      - name: Detect changed tiers
+        id: tiers
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          FORCE_TIERS: ${{ inputs.force_tiers }}
+        run: |
+          set -euo pipefail
+          RUNTIME=true; WEB=true; WSAGENT=true
+
+          # Manual override (dispatch only) to validate conditional builds without a
+          # real push. e.g. force_tiers=web exercises the web-only skip path live.
+          if [ -n "${FORCE_TIERS:-}" ]; then
+            if [ "${FORCE_TIERS}" = "all" ]; then
+              RUNTIME=true; WEB=true; WSAGENT=true
+            else
+              RUNTIME=false; WEB=false; WSAGENT=false
+              case ",${FORCE_TIERS}," in *,web,*) WEB=true;; esac
+              case ",${FORCE_TIERS}," in *,runtime,*) RUNTIME=true;; esac
+              case ",${FORCE_TIERS}," in *,wsagent,*) WSAGENT=true;; esac
+            fi
+            echo "FORCE_TIERS=${FORCE_TIERS} -> runtime=${RUNTIME} web=${WEB} wsagent=${WSAGENT}"
+            {
+              echo "runtime=${RUNTIME}"; echo "web=${WEB}"; echo "wsagent=${WSAGENT}"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          BASE=""
+          if printf '%s' "${BEFORE_SHA:-}" | grep -Eq '^[0-9a-f]{40}$' && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            BASE="${BEFORE_SHA}"            # push event: diff against the pushed-from SHA
+          elif git rev-parse --verify -q HEAD~1 >/dev/null 2>&1; then
+            BASE="$(git rev-parse HEAD~1)"  # dispatch / shallow fallback: diff the last commit
+          fi
+
+          if [ -n "${BASE}" ]; then
+            CHANGED="$(git diff --name-only "${BASE}" HEAD || true)"
+            echo "Changed files since ${BASE}:"; printf '%s\n' "${CHANGED}"
+
+            # Shared inputs that feed EVERY tier -> rebuild all (don't try to be clever).
+            if printf '%s\n' "${CHANGED}" | grep -Eq '^(packages/|pnpm-lock\.yaml|package\.json|pnpm-workspace\.yaml|Dockerfile|infra/docker/|infra/cloudbuild/cloudbuild\.yaml|\.github/workflows/deploy-main\.yml)'; then
+              echo "Shared/base input changed -> build ALL tiers"
+            else
+              RUNTIME=false; WEB=false; WSAGENT=false
+              printf '%s\n' "${CHANGED}" | grep -Eq '^(services/(api|workspace-manager|preview-proxy|ai-gateway|worker)/|infra/cloudbuild/runtime-tier\.yaml)' && RUNTIME=true || true
+              printf '%s\n' "${CHANGED}" | grep -Eq '^(app/|electron/|vite\.config|uno\.config|tsconfig|infra/cloudbuild/single-web\.yaml)' && WEB=true || true
+              printf '%s\n' "${CHANGED}" | grep -Eq '^(services/workspace-agent/|infra/cloudbuild/workspace-agent\.yaml)' && WSAGENT=true || true
+
+              # If nothing tier-specific matched (docs/CI-only push), still roll web+runtime
+              # as a safe no-op-ish default rather than deploying nothing unexpectedly.
+              if [ "${RUNTIME}" = false ] && [ "${WEB}" = false ] && [ "${WSAGENT}" = false ]; then
+                echo "No tier-specific change detected -> default to web+runtime"
+                RUNTIME=true; WEB=true
+              fi
+            fi
+          else
+            echo "No resolvable base SHA -> build ALL tiers"
+          fi
+
+          echo "runtime=${RUNTIME}" >> "$GITHUB_OUTPUT"
+          echo "web=${WEB}" >> "$GITHUB_OUTPUT"
+          echo "wsagent=${WSAGENT}" >> "$GITHUB_OUTPUT"
+          echo "Tiers to build -> runtime=${RUNTIME} web=${WEB} wsagent=${WSAGENT}"
+
       - name: Authenticate to Google Cloud (Workload Identity Federation)
         uses: google-github-actions/auth@v2
         with:
@@ -102,6 +180,7 @@ jobs:
       # Builds the deps base image first; publishes deps:<sha> + deps:latest so
       # the web build below can pin _DEPS_TAG to this commit. Blocking call.
       - name: Build runtime tier (Cloud Build)
+        if: steps.tiers.outputs.runtime == 'true'
         run: |
           set -euo pipefail
           echo "::group::gcloud builds submit — runtime-tier"
@@ -119,9 +198,18 @@ jobs:
       # Runs only after the runtime build above succeeds (sequential — single
       # worker slot). Pins _DEPS_TAG to this commit's freshly built deps image.
       - name: Build web tier (Cloud Build)
+        if: steps.tiers.outputs.web == 'true'
         run: |
           set -euo pipefail
-          echo "::group::gcloud builds submit — single-web"
+          # Pin the web build's deps base to THIS commit only when the runtime tier
+          # was rebuilt (which publishes deps:<sha>); otherwise fall back to deps:latest
+          # so a web-only deploy still builds against a valid, existing base image.
+          if [ "${{ steps.tiers.outputs.runtime }}" = "true" ]; then
+            DEPS_TAG="${SHORT_SHA}"
+          else
+            DEPS_TAG="latest"
+          fi
+          echo "::group::gcloud builds submit — single-web (deps:${DEPS_TAG})"
           # VITE_RUNTIME_MODE *and* VITE_RUNTIME_API_BASE_URL are inlined into
           # the client bundle at vite build time — they must be Cloud Build
           # substitutions -> Docker build args, not runtime configmap values
@@ -137,7 +225,7 @@ jobs:
             --project="${GCP_PROJECT_ID}" \
             --region="${GAR_LOCATION}" \
             --config=infra/cloudbuild/single-web.yaml \
-            --substitutions=_DEPS_TAG="${SHORT_SHA}",_SHORT_SHA="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true \
+            --substitutions=_DEPS_TAG="${DEPS_TAG}",_SHORT_SHA="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true \
             --machine-type=e2-highcpu-8 \
             --timeout=1800s \
             .
@@ -152,6 +240,7 @@ jobs:
       # image until they are reprovisioned (reopen / GC), which is expected.
       # Blocking on purpose: shipping a broken agent image should fail the deploy.
       - name: Build workspace-agent (Cloud Build)
+        if: steps.tiers.outputs.wsagent == 'true'
         run: |
           set -euo pipefail
           echo "::group::gcloud builds submit — workspace-agent"
@@ -203,19 +292,35 @@ jobs:
       - name: Helm upgrade (web + runtime image tags)
         run: |
           set -euo pipefail
+          # Only --set the imageTag of a tier we actually rebuilt this run; a skipped
+          # tier keeps its currently-deployed tag via --reuse-values. This is what
+          # makes conditional builds safe: we NEVER point a Deployment at an image
+          # tag that wasn't published, so there is no ImagePullBackOff / atomic
+          # rollback risk. previewUrlTemplate is always re-asserted (configmap value
+          # that --reuse-values would otherwise freeze).
+          SETS=( --set "platformEnv.runtime.previewUrlTemplate=https://{workspaceId}-{port}.preview.e-code.ai/" )
+          if [ "${{ steps.tiers.outputs.web }}" = "true" ]; then
+            SETS+=( --set "services.web.imageTag=${SHORT_SHA}" )
+          fi
+          if [ "${{ steps.tiers.outputs.runtime }}" = "true" ]; then
+            SETS+=(
+              --set "services.api.imageTag=${SHORT_SHA}"
+              --set "services.workspaceManager.imageTag=${SHORT_SHA}"
+              --set "services.previewProxy.imageTag=${SHORT_SHA}"
+              --set "services.aiGateway.imageTag=${SHORT_SHA}"
+              --set "services.worker.imageTag=${SHORT_SHA}"
+            )
+          fi
+          if [ "${{ steps.tiers.outputs.wsagent }}" = "true" ]; then
+            SETS+=( --set "platformEnv.runtime.workspaceAgentImage=${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPO}/workspace-agent:sha-${SHORT_SHA}" )
+          fi
+          echo "helm --set args: ${SETS[*]}"
           helm upgrade "${HELM_RELEASE}" infra/helm/platform \
             --namespace "${HELM_NAMESPACE}" \
             --reuse-values \
             --atomic \
             --timeout 10m \
-            --set services.web.imageTag="${SHORT_SHA}" \
-            --set services.api.imageTag="${SHORT_SHA}" \
-            --set services.workspaceManager.imageTag="${SHORT_SHA}" \
-            --set services.previewProxy.imageTag="${SHORT_SHA}" \
-            --set services.aiGateway.imageTag="${SHORT_SHA}" \
-            --set services.worker.imageTag="${SHORT_SHA}" \
-            --set platformEnv.runtime.workspaceAgentImage="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPO}/workspace-agent:sha-${SHORT_SHA}" \
-            --set platformEnv.runtime.previewUrlTemplate='https://{workspaceId}-{port}.preview.e-code.ai/'
+            "${SETS[@]}"
 
       - name: Verify rollout
         run: |
