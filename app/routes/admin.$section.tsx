@@ -165,6 +165,13 @@ const adminSections: Record<string, AdminSectionConfig> = {
     endpoint: '/admin/models',
     primaryKey: 'models',
   },
+  'oauth-providers': {
+    title: 'OAuth providers',
+    description:
+      'Git provider OAuth apps (GitHub/GitLab/Bitbucket). Set each app’s client id/secret so users can Connect — no env vars or redeploy needed.',
+    endpoint: '/admin/connectors/oauth',
+    primaryKey: 'connectors',
+  },
   wallets: {
     title: 'Credit wallets',
     description: 'Per-organization credit balances, budget caps and service-shutdown limits.',
@@ -207,6 +214,7 @@ const navItems = [
   'costs',
   'providers',
   'models',
+  'oauth-providers',
   'wallets',
   'checkpoints',
   'stripe-health',
@@ -354,6 +362,30 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json({ ok: true, rowId: key, message: `Flag ${enabled ? 'enabled' : 'disabled'}.` });
     }
 
+    if (intent === 'connector-oauth') {
+      const provider = String(form.get('provider') ?? '');
+      const secret = String(form.get('clientSecret') ?? '');
+
+      const body: Record<string, unknown> = {
+        provider,
+        clientId: String(form.get('clientId') ?? ''),
+        enabled: String(form.get('enabled')) === 'true',
+      };
+
+      // Only send the secret when the admin typed a new one — blank keeps the stored one.
+      if (secret) {
+        body.clientSecret = secret;
+      }
+
+      await apiRequest(request, '/admin/connectors/oauth', {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify(body),
+      });
+
+      return json({ ok: true, rowId: provider, message: `${provider} OAuth credentials saved.` });
+    }
+
     if (!userId) {
       return json({ ok: false, error: 'Missing user.' }, { status: 400 });
     }
@@ -439,7 +471,10 @@ export default function AdminSectionPage() {
           {section === 'providers' ? <ToggleListPanel payload={payload} kind="providers" /> : null}
           {section === 'models' ? <ToggleListPanel payload={payload} kind="models" /> : null}
           {section === 'feature-flags' ? <ToggleListPanel payload={payload} kind="feature-flags" /> : null}
-          {!['overview', 'health', 'users', 'providers', 'models', 'feature-flags'].includes(section) ? (
+          {section === 'oauth-providers' ? <OauthProvidersPanel payload={payload} /> : null}
+          {!['overview', 'health', 'users', 'providers', 'models', 'feature-flags', 'oauth-providers'].includes(
+            section,
+          ) ? (
             <DataPanel config={config} payload={payload} />
           ) : null}
         </div>
@@ -808,6 +843,131 @@ function ToggleListPanel({ payload, kind }: { payload: Record<string, JsonValue>
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+/*
+ * Self-service OAuth provider config (GitHub/GitLab/Bitbucket). The admin enters
+ * their password once (step-up), then sets each provider's client id/secret and
+ * enable flag. The secret is write-only — the loader only reports `hasSecret`, so
+ * a blank secret field keeps the stored one.
+ */
+function OauthProvidersPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const connectors = (Array.isArray(payload.connectors) ? payload.connectors : []) as Array<Record<string, JsonValue>>;
+
+  const [password, setPassword] = useState('');
+
+  return (
+    <div className="grid gap-4">
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+        <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Confirm changes with your password</h3>
+        <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+          Enter your password once, then save each provider. Sent only with the action.
+        </p>
+        <input
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="current-password"
+          placeholder="Your password"
+          data-testid="admin-reauth-password"
+          className="mt-3 w-full max-w-sm rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
+        />
+      </div>
+
+      <div className="grid gap-4">
+        {connectors.map((connector) => (
+          <OauthProviderCard key={String(connector.provider)} connector={connector} password={password} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OauthProviderCard({ connector, password }: { connector: Record<string, JsonValue>; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const provider = String(connector.provider ?? '');
+  const hasSecret = connector.hasSecret === true;
+  const callbackUrl = String(connector.callbackUrl ?? '');
+  const scopes = Array.isArray(connector.scopes) ? connector.scopes.join(' ') : '';
+
+  const [clientId, setClientId] = useState(String(connector.clientId ?? ''));
+  const [clientSecret, setClientSecret] = useState('');
+  const [enabled, setEnabled] = useState(connector.enabled === true);
+
+  const inputClass =
+    'mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive';
+
+  const save = () => {
+    fetcher.submit(
+      { intent: 'connector-oauth', provider, clientId, clientSecret, enabled: String(enabled), password },
+      { method: 'post' },
+    );
+    setClientSecret('');
+  };
+
+  return (
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
+          {String(connector.displayName ?? provider)}
+        </h3>
+        <label className="inline-flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
+          <input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} />
+          Enabled
+        </label>
+      </div>
+
+      <div className="mt-3 grid gap-3">
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Client ID
+          <input
+            value={clientId}
+            onChange={(event) => setClientId(event.target.value)}
+            placeholder="OAuth app client id"
+            data-testid={`oauth-clientid-${provider}`}
+            className={inputClass}
+          />
+        </label>
+
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Client Secret {hasSecret ? <span className="text-emerald-400">• configured</span> : null}
+          <input
+            type="password"
+            value={clientSecret}
+            onChange={(event) => setClientSecret(event.target.value)}
+            placeholder={hasSecret ? '•••••••• (leave blank to keep current)' : 'OAuth app client secret'}
+            autoComplete="new-password"
+            data-testid={`oauth-secret-${provider}`}
+            className={inputClass}
+          />
+        </label>
+
+        <div className="rounded-md bg-bolt-elements-background-depth-1 p-2 text-xs text-bolt-elements-textSecondary">
+          <div>Set this Callback URL in the provider’s OAuth app:</div>
+          <code className="break-all text-bolt-elements-textPrimary">{callbackUrl}</code>
+          {scopes ? (
+            <div className="mt-1">
+              Scopes: <code className="break-all">{scopes}</code>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          type="button"
+          disabled={busy || !password}
+          onClick={save}
+          className="inline-flex items-center rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy ? 'Saving…' : 'Save'}
+        </button>
+        {fetcher.data?.message ? <span className="text-xs text-emerald-400">{fetcher.data.message}</span> : null}
+        {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
       </div>
     </div>
   );
