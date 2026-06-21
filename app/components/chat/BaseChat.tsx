@@ -156,8 +156,19 @@ function resolveProjectThemePreference(preference: unknown): Theme {
     return preference;
   }
 
-  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  /*
+   * 'system' / unset → respect the user's persisted toggle if they have one, else
+   * the app default (light, matching Replit). We intentionally do NOT follow the OS
+   * color-scheme: it made the IDE dark on dark-mode machines and persisted that to
+   * bolt_theme, flipping the whole app to dark and overriding both the light default
+   * and an explicit light toggle.
+   */
+  if (typeof localStorage !== 'undefined') {
+    const persisted = localStorage.getItem(kTheme);
+
+    if (persisted === 'dark' || persisted === 'light') {
+      return persisted;
+    }
   }
 
   return DEFAULT_THEME;
