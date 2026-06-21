@@ -2052,6 +2052,17 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         method: 'POST',
         body: JSON.stringify({ branch: body.branch || 'main', workspaceId }),
       });
+    } else if (intent === 'sync') {
+      // Replit-style "Sync Changes": pull remote updates, then push local commits.
+      const branchName = body.branch || 'main';
+      await apiRequest(request, `/projects/${projectId}/git/pull`, {
+        method: 'POST',
+        body: JSON.stringify({ branch: branchName, workspaceId }),
+      });
+      await apiRequest(request, `/projects/${projectId}/git/push`, {
+        method: 'POST',
+        body: JSON.stringify({ branch: branchName, workspaceId }),
+      });
     } else if (intent === 'configure-remote') {
       await apiRequest(request, `/projects/${projectId}/git/remote`, {
         method: 'POST',

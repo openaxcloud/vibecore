@@ -44,9 +44,28 @@ export function GitBranchSyncControls({ branch, busy = false, idPrefix, onSubmit
           Sync branches
         </h3>
         <p className="mt-1 text-xs leading-5 text-bolt-elements-textSecondary">
-          Pull updates into your local branch, or push commits to a remote branch.
+          Sync (pull then push), or run pull / push individually.
         </p>
       </div>
+
+      {/* Replit-style combined Sync Changes: pull remote updates then push local commits. */}
+      <form onSubmit={onSubmit}>
+        <input name="intent" value="sync" type="hidden" />
+        <input name="branch" value={branch} type="hidden" />
+        <button
+          type="submit"
+          disabled={busy}
+          data-testid="git-sync-changes"
+          className={classNames(
+            'inline-flex h-9 w-full items-center justify-center gap-2 rounded-md text-sm font-semibold text-white disabled:opacity-60',
+            'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus focus:ring-offset-2 focus:ring-offset-bolt-elements-background-depth-2',
+          )}
+          style={{ background: 'var(--ecode-accent, #F26207)' }}
+        >
+          <span className="i-ph:arrows-clockwise text-base" aria-hidden />
+          Sync Changes
+        </button>
+      </form>
 
       {syncActions.map((action) => {
         const inputId = `${idPrefix}-${action.intent}-branch`;
