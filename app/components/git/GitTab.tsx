@@ -3,7 +3,6 @@ import { toast } from 'react-toastify';
 import { GitBranchSyncControls } from '~/components/git/GitBranchSyncControls';
 import { GitDiffView } from '~/components/git/GitDiffView';
 import { GitMergeEditor } from '~/components/git/GitMergeEditor';
-import { GitProviderConnectPanel } from '~/components/git/GitProviderConnectPanel';
 import { GitSettingsPanel } from '~/components/git/GitSettingsPanel';
 import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
 import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
@@ -706,42 +705,28 @@ export function GitTab({ projectId }: GitTabProps) {
           </form>
         </div>
 
-        {!hasRemote && project?.id ? (
-          <GitProviderConnectPanel
-            projectId={project.id}
-            gitRepositoryUrl={project.gitRepositoryUrl}
-            defaultBranch={project.gitDefaultBranch}
-            workspaceId={resolvedWorkspaceId}
-            busy={busy}
-            onConnected={() => loadPanel({ silent: true })}
-            onRemoteConfigured={() => loadPanel({ silent: true })}
-          />
-        ) : null}
-
-        {hasRemote ? (
-          <details className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-            <summary className="cursor-pointer text-sm font-semibold text-bolt-elements-textPrimary">
-              Remote settings
-            </summary>
-            <form onSubmit={submitAction} className="mt-3 grid gap-2">
-              <input name="intent" value="configure-remote" type="hidden" />
-              <input name="branch" value={branch} type="hidden" />
-              <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="git-tab-remote-url">
-                Remote origin URL
-              </label>
-              <PanelInput
-                id="git-tab-remote-url"
-                name="remoteUrl"
-                key={project?.gitRepositoryUrl ?? ''}
-                defaultValue={project?.gitRepositoryUrl ?? ''}
-                placeholder="https://github.com/org/repo.git"
-                required
-              />
-              <PanelButton disabled={busy} variant="outline">
-                Update remote
-              </PanelButton>
-            </form>
-          </details>
+        {/*
+         * No bulky inline connect panel in the main pane (kept it Replit-clean):
+         * all provider connection + remote-URL management lives in the ⚙ Settings
+         * sub-pane (Connections + Remote sections). When there's no remote, show a
+         * single discreet line that opens Settings.
+         */}
+        {!hasRemote ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textSecondary">
+            <span className="flex items-center gap-2">
+              <span className="i-ph:plugs text-bolt-elements-textTertiary" aria-hidden />
+              No remote connected
+            </span>
+            <button
+              type="button"
+              data-testid="git-connect-cta"
+              onClick={() => setShowSettings(true)}
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 text-xs font-medium text-bolt-elements-item-contentAccent hover:bg-bolt-elements-background-depth-3"
+            >
+              <span className="i-ph:gear text-sm" aria-hidden />
+              Connect in Settings
+            </button>
+          </div>
         ) : null}
 
         {discardConfirm ? (
