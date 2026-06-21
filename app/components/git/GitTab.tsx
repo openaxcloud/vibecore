@@ -763,485 +763,477 @@ export function GitTab({ projectId }: GitTabProps) {
           </div>
         ) : null}
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="grid gap-4">
-            <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Working tree</h3>
-                  <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-                    Files changed in this workspace. Click a file to preview its diff, then stage it for commit.
-                  </p>
-                </div>
-                {changedFiles.length ? (
-                  <div className="flex flex-shrink-0 items-center gap-2">
-                    <button
-                      type="button"
-                      data-testid="git-stage-all"
-                      className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
-                      onClick={() => setStaged(new Set(changedFiles.map((file) => String(file.path ?? file))))}
-                    >
-                      Stage all
-                    </button>
-                    {staged.size ? (
-                      <button
-                        type="button"
-                        data-testid="git-unstage-all"
-                        className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
-                        onClick={() => setStaged(new Set())}
-                      >
-                        Clear
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      data-testid="git-discard-all"
-                      disabled={busy}
-                      className="rounded-md border border-red-500/40 px-2.5 py-1 text-xs font-medium text-red-500 hover:bg-red-500/10 disabled:opacity-60"
-                      onClick={() => setDiscardConfirm({ all: true })}
-                    >
-                      Discard all
-                    </button>
-                  </div>
-                ) : null}
+        <div className="mx-auto grid w-full max-w-3xl gap-4">
+          <GitBranchSyncControls branch={branch} busy={busy} idPrefix="git-tab" onSubmit={submitAction} />
+
+          <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Working tree</h3>
+                <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+                  Files changed in this workspace. Click a file to preview its diff, then stage it for commit.
+                </p>
               </div>
               {changedFiles.length ? (
-                changedFiles.map((file) => {
-                  const path = String(file.path ?? file);
-
-                  return (
-                    <label
-                      key={path}
-                      className="mb-2 flex items-center gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm last:mb-0"
-                    >
-                      <input
-                        type="checkbox"
-                        aria-label={`Stage ${path}`}
-                        checked={staged.has(path)}
-                        onChange={() => toggleFile(path)}
-                      />
-                      <button
-                        type="button"
-                        className="min-w-0 flex-1 truncate text-left text-bolt-elements-textPrimary hover:text-bolt-elements-item-contentAccent"
-                        onClick={() => {
-                          setInspectFile(path);
-                          void loadInspection(path);
-                        }}
-                      >
-                        {path}
-                      </button>
-                      <GitStatusBadge status={file.status ?? 'M'} />
-                      <span className="text-xs font-semibold text-bolt-elements-item-contentAccent">
-                        {staged.has(path) ? 'Staged' : 'Stage'}
-                      </span>
-                      <button
-                        type="button"
-                        aria-label={`Discard changes to ${path}`}
-                        title="Discard changes"
-                        data-testid="git-discard-file"
-                        disabled={busy}
-                        className="i-ph:arrow-counter-clockwise flex-shrink-0 text-base text-bolt-elements-textSecondary hover:text-red-500 disabled:opacity-60"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          setDiscardConfirm({ all: false, path });
-                        }}
-                      />
-                    </label>
-                  );
-                })
-              ) : (
-                <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 text-sm text-bolt-elements-textSecondary">
-                  No changed files.
-                </div>
-              )}
-              {changedFiles.length ? <GitStatusLegend className="mt-3 bg-bolt-elements-background-depth-1" /> : null}
-            </div>
-
-            {conflicts.length > 0 && (
-              <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4">
-                <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-red-500">
-                  <span className="i-ph:warning text-base" aria-hidden />
-                  Conflicting Files ({conflicts.length})
-                </h3>
-                <p className="mb-3 text-xs text-bolt-elements-textSecondary">
-                  Resolve each file (keep current/incoming, or let the agent merge both), then commit to complete the
-                  merge.
-                </p>
-                <button
-                  type="button"
-                  className="mb-3 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-white"
-                  style={{ background: 'var(--ecode-accent, #F26207)' }}
-                  data-testid="git-resolve-with-agent"
-                  onClick={() =>
-                    window.dispatchEvent(
-                      new CustomEvent('vibecore:agent-task', {
-                        detail: {
-                          kind: 'resolve-git-conflicts',
-                          files: conflicts.map((conflict) => String(conflict.path ?? conflict)),
-                          branch,
-                        },
-                      }),
-                    )
-                  }
-                >
-                  <span className="i-ph:sparkle" aria-hidden />
-                  Resolve conflicts with agent
-                </button>
-                <div className="grid gap-2">
-                  {conflicts.map((conflict) => {
-                    const path = String(conflict.path ?? conflict);
-
-                    return (
-                      <div
-                        key={path}
-                        className="grid gap-2 rounded-md border border-red-500/30 bg-bolt-elements-background-depth-1 p-3"
-                      >
-                        <div className="flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
-                          <span className="i-ph:warning text-red-500" aria-hidden />
-                          {path}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <form onSubmit={submitAction}>
-                            <input name="intent" value="resolve-conflict" type="hidden" />
-                            <input name="filePath" value={path} type="hidden" />
-                            <input name="strategy" value="ours" type="hidden" />
-                            <PanelButton disabled={busy} variant="outline">
-                              Keep current
-                            </PanelButton>
-                          </form>
-                          <form onSubmit={submitAction}>
-                            <input name="intent" value="resolve-conflict" type="hidden" />
-                            <input name="filePath" value={path} type="hidden" />
-                            <input name="strategy" value="theirs" type="hidden" />
-                            <PanelButton disabled={busy} variant="outline">
-                              Keep incoming
-                            </PanelButton>
-                          </form>
-                          <button
-                            type="button"
-                            data-testid="git-resolve-inline"
-                            disabled={busy}
-                            className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-item-contentAccent/50 px-3 text-sm font-medium text-bolt-elements-item-contentAccent hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
-                            onClick={() => (mergeFile === path ? setMergeFile(null) : void loadConflictFile(path))}
-                          >
-                            {mergeFile === path ? 'Hide editor' : 'Resolve inline'}
-                          </button>
-                        </div>
-                        {mergeFile === path ? (
-                          mergeContent?.loading ? (
-                            <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 text-xs text-bolt-elements-textSecondary">
-                              Loading conflict…
-                            </div>
-                          ) : (
-                            <GitMergeEditor
-                              filePath={path}
-                              content={mergeContent?.content ?? ''}
-                              busy={busy}
-                              onCancel={() => setMergeFile(null)}
-                              onResolve={(resolved) => {
-                                setMergeFile(null);
-                                void runIntent('mark-resolved', { filePath: path, content: resolved });
-                              }}
-                            />
-                          )
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="mb-3 text-sm font-semibold text-bolt-elements-textPrimary">Commit graph</h3>
-              {commits.length ? (
-                <div className="grid gap-2">
-                  {commits.map((commit, index) => (
+                <div className="flex flex-shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    data-testid="git-stage-all"
+                    className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+                    onClick={() => setStaged(new Set(changedFiles.map((file) => String(file.path ?? file))))}
+                  >
+                    Stage all
+                  </button>
+                  {staged.size ? (
                     <button
                       type="button"
-                      key={commit.sha}
-                      data-testid="git-commit-row"
-                      onClick={() => void loadCommit(commit.sha)}
-                      className={classNames(
-                        'grid w-full grid-cols-[20px_76px_minmax(0,1fr)] gap-3 rounded-md border bg-bolt-elements-background-depth-1 px-3 py-2 text-left text-sm hover:border-bolt-elements-item-contentAccent',
-                        commitDetail?.sha && commit.sha.startsWith(commitDetail.sha)
-                          ? 'border-bolt-elements-item-contentAccent'
-                          : 'border-bolt-elements-borderColor',
-                      )}
+                      data-testid="git-unstage-all"
+                      className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
+                      onClick={() => setStaged(new Set())}
                     >
-                      <div className="relative flex justify-center">
-                        <span className="mt-1 h-2.5 w-2.5 rounded-full bg-bolt-elements-item-contentAccent" />
-                        {index < commits.length - 1 && (
-                          <span className="absolute top-4 h-8 w-px bg-bolt-elements-borderColor" />
-                        )}
-                      </div>
-                      <code className="text-xs text-bolt-elements-textSecondary">{commit.shortSha}</code>
-                      <div className="min-w-0">
-                        <div className="truncate font-medium text-bolt-elements-textPrimary">{commit.message}</div>
-                        <div className="truncate text-xs text-bolt-elements-textSecondary">
-                          {timeAgo(commit.date)} {commit.refs ? `- ${commit.refs}` : ''}
-                          {commit.author ? ` - ${commit.author}` : ''}
-                        </div>
-                      </div>
+                      Clear
                     </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 text-sm text-bolt-elements-textSecondary">
-                  No commits yet. Make your first commit.
-                </div>
-              )}
-
-              {commitDetail ? (
-                <div
-                  className="mt-3 rounded-md border border-bolt-elements-item-contentAccent/40 bg-bolt-elements-background-depth-1 p-3"
-                  data-testid="git-commit-detail"
-                >
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
-                      <code className="text-xs text-bolt-elements-item-contentAccent">
-                        {commitDetail.sha.slice(0, 8)}
-                      </code>
-                      <span>
-                        {commitDetail.loading
-                          ? 'Loading…'
-                          : `${commitDetail.files.length} changed file${commitDetail.files.length === 1 ? '' : 's'}`}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        data-testid="git-restore-commit"
-                        disabled={busy || commitDetail.loading}
-                        className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
-                        onClick={() => setRestoreConfirm(commitDetail.sha)}
-                      >
-                        Restore all
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Close commit detail"
-                        className="i-ph:x text-base text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
-                        onClick={() => setCommitDetail(null)}
-                      />
-                    </div>
-                  </div>
-                  {commitDetail.files.length ? (
-                    <div className="mb-2 grid gap-1">
-                      {commitDetail.files.map((file) => (
-                        <div key={file.path} className="flex items-center gap-2 text-xs">
-                          <GitStatusBadge status={file.status || 'M'} />
-                          <code className="truncate text-bolt-elements-textSecondary">{file.path}</code>
-                        </div>
-                      ))}
-                    </div>
                   ) : null}
-                  {commitDetail.diff ? <GitDiffView diff={commitDetail.diff} /> : null}
+                  <button
+                    type="button"
+                    data-testid="git-discard-all"
+                    disabled={busy}
+                    className="rounded-md border border-red-500/40 px-2.5 py-1 text-xs font-medium text-red-500 hover:bg-red-500/10 disabled:opacity-60"
+                    onClick={() => setDiscardConfirm({ all: true })}
+                  >
+                    Discard all
+                  </button>
                 </div>
               ) : null}
             </div>
+            {changedFiles.length ? (
+              changedFiles.map((file) => {
+                const path = String(file.path ?? file);
 
-            <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <div className="mb-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
-                <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
-                  Blame and diff file
-                  <PanelInput
-                    value={inspectFile}
-                    onChange={(event) => setInspectFile(event.target.value)}
-                    placeholder="src/App.tsx"
-                  />
-                </label>
-                <div className="flex items-end">
-                  <button
-                    type="button"
-                    className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
-                    onClick={() => void loadInspection()}
-                    disabled={!inspectFile || inspection.loading}
-                  >
-                    {inspection.loading ? 'Loading...' : 'Load blame'}
-                  </button>
-                </div>
-              </div>
-              {inspection.error && (
-                <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500">
-                  {inspection.error}
-                </div>
-              )}
-              {inspection.diff ? <GitDiffView diff={inspection.diff} className="mb-3" /> : null}
-              {inspection.blame.length ? (
-                <div className="max-h-64 overflow-auto rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
-                  {inspection.blame.slice(0, 80).map((line) => (
-                    <div
-                      key={`${line.sha}-${line.line}`}
-                      className="grid grid-cols-[48px_92px_110px_minmax(0,1fr)] gap-2 border-b border-bolt-elements-borderColor px-3 py-1.5 text-xs last:border-b-0"
-                    >
-                      <span className="text-bolt-elements-textSecondary">{line.line}</span>
-                      <code className="truncate text-bolt-elements-textSecondary">{String(line.sha).slice(0, 8)}</code>
-                      <span className="truncate text-bolt-elements-textSecondary">{line.author}</span>
-                      <code className="truncate text-bolt-elements-textPrimary">{line.content}</code>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 text-sm text-bolt-elements-textSecondary">
-                  Select a changed file or enter a path to load inline blame.
-                </div>
-              )}
-            </div>
-          </section>
-
-          <aside className="grid content-start gap-3">
-            <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="mb-3 text-sm font-semibold text-bolt-elements-textPrimary">Staged</h3>
-              {stagedFiles.length ? (
-                <div className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
-                  {stagedFiles.map((file) => (
-                    <div
-                      key={file}
-                      className="border-b border-bolt-elements-borderColor px-3 py-2 text-xs text-bolt-elements-textPrimary last:border-b-0"
-                    >
-                      <div className="truncate font-medium">{file}</div>
-                      <div className="text-bolt-elements-textSecondary">Ready for commit</div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-sm text-bolt-elements-textSecondary">
-                  Select files above to stage changes.
-                </div>
-              )}
-            </div>
-
-            <form
-              onSubmit={submitAction}
-              className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
-            >
-              <input name="intent" value="commit" type="hidden" />
-              <input name="stagedFiles" value={stagedFiles.join(',')} type="hidden" />
-              <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
-                Commit message
-                <textarea
-                  name="message"
-                  className="min-h-24 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
-                  placeholder={stagedFiles.length ? `Commit ${stagedFiles.length} staged files` : 'Commit message'}
-                />
-              </label>
-              <PanelButton disabled={busy || stagedFiles.length === 0}>Commit changes</PanelButton>
-            </form>
-
-            <GitBranchSyncControls branch={branch} busy={busy} idPrefix="git-tab" onSubmit={submitAction} />
-
-            <details className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-              <summary className="cursor-pointer text-sm font-semibold text-bolt-elements-textPrimary">
-                Branch actions
-              </summary>
-              <div className="mt-3 grid gap-3">
-                <form onSubmit={submitAction} className="grid gap-2">
-                  <input name="intent" value="create-branch" type="hidden" />
-                  <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="git-tab-new-branch">
-                    Create branch
-                  </label>
-                  <PanelInput id="git-tab-new-branch" name="branch" placeholder="feature/billing-flow" required />
-                  <PanelInput name="startPoint" defaultValue={branch} aria-label="Start point" />
-                  <PanelButton disabled={busy} variant="outline">
-                    Create and switch
-                  </PanelButton>
-                </form>
-
-                <form onSubmit={submitAction} className="grid gap-2">
-                  <input name="intent" value="stash" type="hidden" />
+                return (
                   <label
-                    className="text-xs font-medium text-bolt-elements-textSecondary"
-                    htmlFor="git-tab-stash-message"
+                    key={path}
+                    className="mb-2 flex items-center gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm last:mb-0"
                   >
-                    Stash message
+                    <input
+                      type="checkbox"
+                      aria-label={`Stage ${path}`}
+                      checked={staged.has(path)}
+                      onChange={() => toggleFile(path)}
+                    />
+                    <button
+                      type="button"
+                      className="min-w-0 flex-1 truncate text-left text-bolt-elements-textPrimary hover:text-bolt-elements-item-contentAccent"
+                      onClick={() => {
+                        setInspectFile(path);
+                        void loadInspection(path);
+                      }}
+                    >
+                      {path}
+                    </button>
+                    <GitStatusBadge status={file.status ?? 'M'} />
+                    <span className="text-xs font-semibold text-bolt-elements-item-contentAccent">
+                      {staged.has(path) ? 'Staged' : 'Stage'}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Discard changes to ${path}`}
+                      title="Discard changes"
+                      data-testid="git-discard-file"
+                      disabled={busy}
+                      className="i-ph:arrow-counter-clockwise flex-shrink-0 text-base text-bolt-elements-textSecondary hover:text-red-500 disabled:opacity-60"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        setDiscardConfirm({ all: false, path });
+                      }}
+                    />
                   </label>
-                  <PanelInput id="git-tab-stash-message" name="message" placeholder="WIP before rebase" />
-                  <PanelButton disabled={busy || changedFiles.length === 0} variant="outline">
-                    Stash changes
-                  </PanelButton>
-                </form>
+                );
+              })
+            ) : (
+              <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 text-sm text-bolt-elements-textSecondary">
+                No changed files.
               </div>
-            </details>
+            )}
+            {changedFiles.length ? <GitStatusLegend className="mt-3 bg-bolt-elements-background-depth-1" /> : null}
+          </div>
 
-            {stashes.length ? (
-              <div className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-                <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Stashes</h3>
-                {stashes.map((stash) => (
-                  <div
-                    key={stash.id}
-                    className="grid gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2"
-                  >
-                    <div className="text-xs font-semibold text-bolt-elements-textPrimary">{stash.id}</div>
-                    <div className="text-xs text-bolt-elements-textSecondary">{stash.message}</div>
-                    <div className="flex gap-2">
-                      <form onSubmit={submitAction}>
-                        <input name="intent" value="apply-stash" type="hidden" />
-                        <input name="stashRef" value={stash.id} type="hidden" />
-                        <PanelButton disabled={busy} variant="outline">
-                          Apply
-                        </PanelButton>
-                      </form>
-                      <form onSubmit={submitAction}>
-                        <input name="intent" value="pop-stash" type="hidden" />
-                        <input name="stashRef" value={stash.id} type="hidden" />
-                        <PanelButton disabled={busy} variant="outline">
-                          Pop
-                        </PanelButton>
-                      </form>
+          {conflicts.length > 0 && (
+            <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4">
+              <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-red-500">
+                <span className="i-ph:warning text-base" aria-hidden />
+                Conflicting Files ({conflicts.length})
+              </h3>
+              <p className="mb-3 text-xs text-bolt-elements-textSecondary">
+                Resolve each file (keep current/incoming, or let the agent merge both), then commit to complete the
+                merge.
+              </p>
+              <button
+                type="button"
+                className="mb-3 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-white"
+                style={{ background: 'var(--ecode-accent, #F26207)' }}
+                data-testid="git-resolve-with-agent"
+                onClick={() =>
+                  window.dispatchEvent(
+                    new CustomEvent('vibecore:agent-task', {
+                      detail: {
+                        kind: 'resolve-git-conflicts',
+                        files: conflicts.map((conflict) => String(conflict.path ?? conflict)),
+                        branch,
+                      },
+                    }),
+                  )
+                }
+              >
+                <span className="i-ph:sparkle" aria-hidden />
+                Resolve conflicts with agent
+              </button>
+              <div className="grid gap-2">
+                {conflicts.map((conflict) => {
+                  const path = String(conflict.path ?? conflict);
+
+                  return (
+                    <div
+                      key={path}
+                      className="grid gap-2 rounded-md border border-red-500/30 bg-bolt-elements-background-depth-1 p-3"
+                    >
+                      <div className="flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
+                        <span className="i-ph:warning text-red-500" aria-hidden />
+                        {path}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <form onSubmit={submitAction}>
+                          <input name="intent" value="resolve-conflict" type="hidden" />
+                          <input name="filePath" value={path} type="hidden" />
+                          <input name="strategy" value="ours" type="hidden" />
+                          <PanelButton disabled={busy} variant="outline">
+                            Keep current
+                          </PanelButton>
+                        </form>
+                        <form onSubmit={submitAction}>
+                          <input name="intent" value="resolve-conflict" type="hidden" />
+                          <input name="filePath" value={path} type="hidden" />
+                          <input name="strategy" value="theirs" type="hidden" />
+                          <PanelButton disabled={busy} variant="outline">
+                            Keep incoming
+                          </PanelButton>
+                        </form>
+                        <button
+                          type="button"
+                          data-testid="git-resolve-inline"
+                          disabled={busy}
+                          className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-item-contentAccent/50 px-3 text-sm font-medium text-bolt-elements-item-contentAccent hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
+                          onClick={() => (mergeFile === path ? setMergeFile(null) : void loadConflictFile(path))}
+                        >
+                          {mergeFile === path ? 'Hide editor' : 'Resolve inline'}
+                        </button>
+                      </div>
+                      {mergeFile === path ? (
+                        mergeContent?.loading ? (
+                          <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 text-xs text-bolt-elements-textSecondary">
+                            Loading conflict…
+                          </div>
+                        ) : (
+                          <GitMergeEditor
+                            filePath={path}
+                            content={mergeContent?.content ?? ''}
+                            busy={busy}
+                            onCancel={() => setMergeFile(null)}
+                            onResolve={(resolved) => {
+                              setMergeFile(null);
+                              void runIntent('mark-resolved', { filePath: path, content: resolved });
+                            }}
+                          />
+                        )
+                      ) : null}
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+            <h3 className="mb-3 text-sm font-semibold text-bolt-elements-textPrimary">Staged</h3>
+            {stagedFiles.length ? (
+              <div className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
+                {stagedFiles.map((file) => (
+                  <div
+                    key={file}
+                    className="border-b border-bolt-elements-borderColor px-3 py-2 text-xs text-bolt-elements-textPrimary last:border-b-0"
+                  >
+                    <div className="truncate font-medium">{file}</div>
+                    <div className="text-bolt-elements-textSecondary">Ready for commit</div>
                   </div>
                 ))}
               </div>
-            ) : null}
-
-            <form
-              onSubmit={submitAction}
-              className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
-            >
-              <input name="intent" value="cherry-pick" type="hidden" />
-              <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="git-tab-cherry-pick">
-                Cherry-pick SHA
-              </label>
-              <PanelInput id="git-tab-cherry-pick" name="sha" placeholder="abc1234" required />
-              <PanelButton disabled={busy} variant="outline">
-                Cherry-pick
-              </PanelButton>
-            </form>
-
-            <form
-              onSubmit={submitAction}
-              className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
-            >
-              <input name="intent" value="pr" type="hidden" />
-              <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="git-tab-pr-title">
-                Pull request title
-              </label>
-              <PanelInput id="git-tab-pr-title" name="title" placeholder="Project update" />
-              <div className="grid grid-cols-2 gap-2">
-                <PanelInput name="sourceBranch" defaultValue={branch} aria-label="Source branch" />
-                <PanelInput
-                  name="targetBranch"
-                  defaultValue={project?.gitDefaultBranch ?? 'main'}
-                  aria-label="Target branch"
-                />
+            ) : (
+              <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-sm text-bolt-elements-textSecondary">
+                Select files above to stage changes.
               </div>
+            )}
+          </div>
+
+          <form
+            onSubmit={submitAction}
+            className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
+          >
+            <input name="intent" value="commit" type="hidden" />
+            <input name="stagedFiles" value={stagedFiles.join(',')} type="hidden" />
+            <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
+              Commit message
               <textarea
-                name="body"
-                className="min-h-20 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
-                placeholder="Summary, tests, rollout notes"
-                aria-label="Pull request description"
+                name="message"
+                className="min-h-24 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+                placeholder={stagedFiles.length ? `Commit ${stagedFiles.length} staged files` : 'Commit message'}
               />
-              <PanelButton disabled={busy || !hasRemote} variant="outline">
-                Create GitHub PR
-              </PanelButton>
-              {!hasRemote && (
-                <p className="text-xs text-bolt-elements-textSecondary">
-                  Configure a GitHub remote before creating a pull request.
-                </p>
-              )}
-            </form>
-          </aside>
+            </label>
+            <PanelButton disabled={busy || stagedFiles.length === 0}>Commit changes</PanelButton>
+          </form>
+
+          <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+            <h3 className="mb-3 text-sm font-semibold text-bolt-elements-textPrimary">Commit graph</h3>
+            {commits.length ? (
+              <div className="grid gap-2">
+                {commits.map((commit, index) => (
+                  <button
+                    type="button"
+                    key={commit.sha}
+                    data-testid="git-commit-row"
+                    onClick={() => void loadCommit(commit.sha)}
+                    className={classNames(
+                      'grid w-full grid-cols-[20px_76px_minmax(0,1fr)] gap-3 rounded-md border bg-bolt-elements-background-depth-1 px-3 py-2 text-left text-sm hover:border-bolt-elements-item-contentAccent',
+                      commitDetail?.sha && commit.sha.startsWith(commitDetail.sha)
+                        ? 'border-bolt-elements-item-contentAccent'
+                        : 'border-bolt-elements-borderColor',
+                    )}
+                  >
+                    <div className="relative flex justify-center">
+                      <span className="mt-1 h-2.5 w-2.5 rounded-full bg-bolt-elements-item-contentAccent" />
+                      {index < commits.length - 1 && (
+                        <span className="absolute top-4 h-8 w-px bg-bolt-elements-borderColor" />
+                      )}
+                    </div>
+                    <code className="text-xs text-bolt-elements-textSecondary">{commit.shortSha}</code>
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-bolt-elements-textPrimary">{commit.message}</div>
+                      <div className="truncate text-xs text-bolt-elements-textSecondary">
+                        {timeAgo(commit.date)} {commit.refs ? `- ${commit.refs}` : ''}
+                        {commit.author ? ` - ${commit.author}` : ''}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 text-sm text-bolt-elements-textSecondary">
+                No commits yet. Make your first commit.
+              </div>
+            )}
+
+            {commitDetail ? (
+              <div
+                className="mt-3 rounded-md border border-bolt-elements-item-contentAccent/40 bg-bolt-elements-background-depth-1 p-3"
+                data-testid="git-commit-detail"
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
+                    <code className="text-xs text-bolt-elements-item-contentAccent">
+                      {commitDetail.sha.slice(0, 8)}
+                    </code>
+                    <span>
+                      {commitDetail.loading
+                        ? 'Loading…'
+                        : `${commitDetail.files.length} changed file${commitDetail.files.length === 1 ? '' : 's'}`}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      data-testid="git-restore-commit"
+                      disabled={busy || commitDetail.loading}
+                      className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
+                      onClick={() => setRestoreConfirm(commitDetail.sha)}
+                    >
+                      Restore all
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Close commit detail"
+                      className="i-ph:x text-base text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+                      onClick={() => setCommitDetail(null)}
+                    />
+                  </div>
+                </div>
+                {commitDetail.files.length ? (
+                  <div className="mb-2 grid gap-1">
+                    {commitDetail.files.map((file) => (
+                      <div key={file.path} className="flex items-center gap-2 text-xs">
+                        <GitStatusBadge status={file.status || 'M'} />
+                        <code className="truncate text-bolt-elements-textSecondary">{file.path}</code>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {commitDetail.diff ? <GitDiffView diff={commitDetail.diff} /> : null}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+            <div className="mb-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
+              <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
+                Blame and diff file
+                <PanelInput
+                  value={inspectFile}
+                  onChange={(event) => setInspectFile(event.target.value)}
+                  placeholder="src/App.tsx"
+                />
+              </label>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
+                  onClick={() => void loadInspection()}
+                  disabled={!inspectFile || inspection.loading}
+                >
+                  {inspection.loading ? 'Loading...' : 'Load blame'}
+                </button>
+              </div>
+            </div>
+            {inspection.error && (
+              <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500">
+                {inspection.error}
+              </div>
+            )}
+            {inspection.diff ? <GitDiffView diff={inspection.diff} className="mb-3" /> : null}
+            {inspection.blame.length ? (
+              <div className="max-h-64 overflow-auto rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
+                {inspection.blame.slice(0, 80).map((line) => (
+                  <div
+                    key={`${line.sha}-${line.line}`}
+                    className="grid grid-cols-[48px_92px_110px_minmax(0,1fr)] gap-2 border-b border-bolt-elements-borderColor px-3 py-1.5 text-xs last:border-b-0"
+                  >
+                    <span className="text-bolt-elements-textSecondary">{line.line}</span>
+                    <code className="truncate text-bolt-elements-textSecondary">{String(line.sha).slice(0, 8)}</code>
+                    <span className="truncate text-bolt-elements-textSecondary">{line.author}</span>
+                    <code className="truncate text-bolt-elements-textPrimary">{line.content}</code>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 text-sm text-bolt-elements-textSecondary">
+                Select a changed file or enter a path to load inline blame.
+              </div>
+            )}
+          </div>
+          <details className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+            <summary className="cursor-pointer text-sm font-semibold text-bolt-elements-textPrimary">
+              Branch actions
+            </summary>
+            <div className="mt-3 grid gap-3">
+              <form onSubmit={submitAction} className="grid gap-2">
+                <input name="intent" value="create-branch" type="hidden" />
+                <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="git-tab-new-branch">
+                  Create branch
+                </label>
+                <PanelInput id="git-tab-new-branch" name="branch" placeholder="feature/billing-flow" required />
+                <PanelInput name="startPoint" defaultValue={branch} aria-label="Start point" />
+                <PanelButton disabled={busy} variant="outline">
+                  Create and switch
+                </PanelButton>
+              </form>
+
+              <form onSubmit={submitAction} className="grid gap-2">
+                <input name="intent" value="stash" type="hidden" />
+                <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="git-tab-stash-message">
+                  Stash message
+                </label>
+                <PanelInput id="git-tab-stash-message" name="message" placeholder="WIP before rebase" />
+                <PanelButton disabled={busy || changedFiles.length === 0} variant="outline">
+                  Stash changes
+                </PanelButton>
+              </form>
+            </div>
+          </details>
+
+          {stashes.length ? (
+            <div className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Stashes</h3>
+              {stashes.map((stash) => (
+                <div
+                  key={stash.id}
+                  className="grid gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2"
+                >
+                  <div className="text-xs font-semibold text-bolt-elements-textPrimary">{stash.id}</div>
+                  <div className="text-xs text-bolt-elements-textSecondary">{stash.message}</div>
+                  <div className="flex gap-2">
+                    <form onSubmit={submitAction}>
+                      <input name="intent" value="apply-stash" type="hidden" />
+                      <input name="stashRef" value={stash.id} type="hidden" />
+                      <PanelButton disabled={busy} variant="outline">
+                        Apply
+                      </PanelButton>
+                    </form>
+                    <form onSubmit={submitAction}>
+                      <input name="intent" value="pop-stash" type="hidden" />
+                      <input name="stashRef" value={stash.id} type="hidden" />
+                      <PanelButton disabled={busy} variant="outline">
+                        Pop
+                      </PanelButton>
+                    </form>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          <form
+            onSubmit={submitAction}
+            className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
+          >
+            <input name="intent" value="cherry-pick" type="hidden" />
+            <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="git-tab-cherry-pick">
+              Cherry-pick SHA
+            </label>
+            <PanelInput id="git-tab-cherry-pick" name="sha" placeholder="abc1234" required />
+            <PanelButton disabled={busy} variant="outline">
+              Cherry-pick
+            </PanelButton>
+          </form>
+
+          <form
+            onSubmit={submitAction}
+            className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
+          >
+            <input name="intent" value="pr" type="hidden" />
+            <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="git-tab-pr-title">
+              Pull request title
+            </label>
+            <PanelInput id="git-tab-pr-title" name="title" placeholder="Project update" />
+            <div className="grid grid-cols-2 gap-2">
+              <PanelInput name="sourceBranch" defaultValue={branch} aria-label="Source branch" />
+              <PanelInput
+                name="targetBranch"
+                defaultValue={project?.gitDefaultBranch ?? 'main'}
+                aria-label="Target branch"
+              />
+            </div>
+            <textarea
+              name="body"
+              className="min-h-20 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+              placeholder="Summary, tests, rollout notes"
+              aria-label="Pull request description"
+            />
+            <PanelButton disabled={busy || !hasRemote} variant="outline">
+              Create GitHub PR
+            </PanelButton>
+            {!hasRemote && (
+              <p className="text-xs text-bolt-elements-textSecondary">
+                Configure a GitHub remote before creating a pull request.
+              </p>
+            )}
+          </form>
         </div>
       </div>
     </div>

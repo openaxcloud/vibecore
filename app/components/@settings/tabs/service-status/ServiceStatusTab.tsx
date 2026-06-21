@@ -38,11 +38,19 @@ export default function ServiceStatusTab() {
           };
         }
       }),
-    ).then((results) => {
-      if (!cancelled) {
-        setStatuses(results);
-      }
-    });
+    )
+      .then((results) => {
+        if (!cancelled) {
+          setStatuses(results);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to fetch service statuses:', error);
+
+        if (!cancelled) {
+          setStatuses([]);
+        }
+      });
 
     return () => {
       cancelled = true;

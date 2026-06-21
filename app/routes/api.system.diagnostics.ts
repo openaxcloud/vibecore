@@ -97,6 +97,7 @@ export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs & {
   try {
     const netlifyResponse = await fetch('https://api.netlify.com/api/v1/', {
       method: 'GET',
+      signal: AbortSignal.timeout(15000),
     });
 
     netlifyApiStatus = {
