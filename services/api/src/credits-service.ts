@@ -137,14 +137,28 @@ export async function debitCredits(
 
   let fromBalance = 0;
   if (plan.remainingFromBalance > 0) {
-    await store.recordCreditEntry({
-      organizationId: input.organizationId,
-      deltaCents: -plan.remainingFromBalance,
-      kind: 'CONSUMPTION',
-      reason: input.reason,
-      checkpointId: input.checkpointId,
-    });
-    fromBalance = plan.remainingFromBalance;
+    /*
+     * Cap the wallet draw at the REAL balance: the uncovered remainder must overflow
+     * into pay-as-you-go (billed via Stripe), not silently drive the wallet negative.
+     * Previously the entire non-pack amount was recorded as a balance debit, so the
+     * settle path's paygChargeCents (creditCents - fromPacks - fromBalance) was
+     * ~always 0 — PAYG usage was never reported to Stripe and budget-cap / spend
+     * alerts (which read sumPaygSpendSince) stayed permanently dead.
+     */
+    const wallet = await store.getCreditWallet(input.organizationId);
+    const balanceCents = Math.max(0, wallet?.balanceCents ?? 0);
+    const drawFromBalance = Math.min(plan.remainingFromBalance, balanceCents);
+
+    if (drawFromBalance > 0) {
+      await store.recordCreditEntry({
+        organizationId: input.organizationId,
+        deltaCents: -drawFromBalance,
+        kind: 'CONSUMPTION',
+        reason: input.reason,
+        checkpointId: input.checkpointId,
+      });
+      fromBalance = drawFromBalance;
+    }
   }
 
   return { fromPacks: plan.packDebits.reduce((acc, d) => acc + d.cents, 0), fromBalance };
@@ -280,11 +294,13 @@ export async function reportCheckpointPaygUsage(
 }
 
 /** Convenience: estimate the reservation cost for the agent UI cost preview. */
-export function estimateRequestCents(input: {
-  baseProviderCents: number;
-  computeCents?: number;
-  margin?: number;
-} & CheckpointPowerControls): number {
+export function estimateRequestCents(
+  input: {
+    baseProviderCents: number;
+    computeCents?: number;
+    margin?: number;
+  } & CheckpointPowerControls,
+): number {
   return estimateCheckpointCostCents(input);
 }
 

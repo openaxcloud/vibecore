@@ -157,6 +157,29 @@ describe('settleCheckpoint', () => {
     expect(settled?.creditCents).toBe(130);
   });
 
+  it('caps the wallet draw at the real balance and overflows the rest to PAYG', async () => {
+    const store = new TestApiStore();
+    // Balance is only 50¢ but the checkpoint costs 130¢ and there are no packs.
+    await store.recordCreditEntry({ organizationId: 'org_1', deltaCents: 50, kind: 'GRANT', reason: 'grant' });
+    const cp = await openCheckpoint(store, { organizationId: 'org_1' });
+
+    const result = await settleCheckpoint(store, {
+      checkpointId: cp.id,
+      organizationId: 'org_1',
+      rawProviderCents: 100, // ×1.3 = 130
+      nowMs: NOW,
+    });
+
+    expect(result.creditCents).toBe(130);
+    expect(result.fromPacks).toBe(0);
+    // Draw is clamped to the 50¢ balance, not the full 130¢…
+    expect(result.fromBalance).toBe(50);
+    // …so the wallet lands at exactly 0 instead of going negative…
+    expect((await store.getCreditWallet('org_1'))?.balanceCents).toBe(0);
+    // …and the uncovered 80¢ becomes the PAYG overage (creditCents - fromPacks - fromBalance).
+    expect(result.creditCents - result.fromPacks - result.fromBalance).toBe(80);
+  });
+
   it('consumes packs earliest-first before touching the balance', async () => {
     const store = new TestApiStore();
     await store.recordCreditEntry({ organizationId: 'org_1', deltaCents: 1000, kind: 'GRANT', reason: 'grant' });

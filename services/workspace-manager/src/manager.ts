@@ -250,6 +250,14 @@ export class WorkspaceManager {
       ...baseRecord,
       error: undefined,
       lastActiveAt: new Date().toISOString(),
+      /*
+       * Reset the metering marker on reopen too. The previous session's stop meter
+       * advanced lastMeteredAt to the OLD lastActiveAt; without resetting it here,
+       * the next stop meters startMs=lastMeteredAt(old end) → endMs=new lastActiveAt,
+       * billing the entire STOPPED window (pod deleted, zero compute) as reserved
+       * compute. Start the meter fresh from the re-provision moment.
+       */
+      lastMeteredAt: new Date().toISOString(),
     };
     const existing = await this.store.get(input.workspaceId);
     let record;
@@ -579,9 +587,7 @@ export class WorkspaceManager {
       });
 
       if (ok) {
-        await this.store
-          .update(workspace.id, { lastMeteredAt: new Date(endMs).toISOString() })
-          .catch(() => {});
+        await this.store.update(workspace.id, { lastMeteredAt: new Date(endMs).toISOString() }).catch(() => {});
       }
     } catch {
       // metering must never break GC
