@@ -188,6 +188,22 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     }),
   );
   app.delete('/workspaces/:workspaceId', async (request) => manager.deleteWorkspace(runtimeNamespace(), (request.params as any).workspaceId));
+  /*
+   * Fork a workspace's durable snapshot into a new id (Replit-style instant
+   * duplicate). 501 when no snapshot store is configured, 404 when the source has
+   * no snapshot. The api owns creating the target workspace record + pod.
+   */
+  app.post('/workspaces/:workspaceId/fork', async (request, reply) => {
+    const body = z.object({ targetWorkspaceId: z.string().min(1) }).parse(request.body ?? {});
+
+    try {
+      return await manager.forkWorkspaceSnapshot((request.params as any).workspaceId, body.targetWorkspaceId);
+    } catch (error) {
+      const statusCode = (error as { statusCode?: number }).statusCode ?? 500;
+
+      return reply.code(statusCode).send({ error: error instanceof Error ? error.message : 'fork failed' });
+    }
+  });
   app.post('/workspaces/gc', async (request) => {
     const body = z.object({ namespace: z.string().default('workspaces'), inactiveMs: z.number().default(30 * 60_000), deleteMs: z.number().default(24 * 60 * 60_000) }).parse(request.body ?? {});
     // GC against the manager's own namespace (single source of truth), not a

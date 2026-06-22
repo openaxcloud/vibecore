@@ -126,6 +126,60 @@ describe('workspace-manager app', () => {
     await app.close();
   });
 
+  it('forks a workspace snapshot into a new id (501 without store, 404 without source snapshot)', async () => {
+    const store = new TestWorkspaceStore();
+    const k8s = new TestK8sClient();
+
+    // No snapshot store configured → fork is unavailable (501).
+    const noStore = buildWorkspaceManagerApp(new WorkspaceManager(store, k8s, new TestEventBus(), 'agent-secret'));
+    const unavailable = await noStore.inject({
+      method: 'POST',
+      url: '/workspaces/src_ws/fork',
+      payload: { targetWorkspaceId: 'dst_ws' },
+    });
+    expect(unavailable.statusCode).toBe(501);
+    await noStore.close();
+
+    // With a store: forking a source that has no snapshot is a 404; once a
+    // snapshot exists the fork succeeds and the target becomes independently
+    // restorable.
+    const snapshots = new Map<string, Buffer>();
+    const snapshotStore = {
+      async saveStream(id: string, archive: any) {
+        const chunks: Buffer[] = [];
+        for await (const c of archive) chunks.push(Buffer.from(c));
+        snapshots.set(id, Buffer.concat(chunks));
+      },
+      async restoreStream(id: string) {
+        const v = snapshots.get(id);
+        return v ? (await import('node:stream')).Readable.from(v) : undefined;
+      },
+      async has(id: string) {
+        return snapshots.has(id);
+      },
+      async fork(src: string, dst: string) {
+        if (!snapshots.has(src)) throw new Error(`Cannot fork: no snapshot for source workspace ${src}`);
+        snapshots.set(dst, Buffer.from(snapshots.get(src)!));
+      },
+      async remove(id: string) {
+        snapshots.delete(id);
+      },
+    };
+    const mgr = new WorkspaceManager(store, k8s, new TestEventBus(), 'agent-secret', snapshotStore as any);
+    const app = buildWorkspaceManagerApp(mgr);
+
+    const missing = await app.inject({ method: 'POST', url: '/workspaces/src_ws/fork', payload: { targetWorkspaceId: 'dst_ws' } });
+    expect(missing.statusCode).toBe(404);
+
+    await snapshotStore.saveStream('src_ws', (await import('node:stream')).Readable.from(Buffer.from('snap')));
+    const forked = await app.inject({ method: 'POST', url: '/workspaces/src_ws/fork', payload: { targetWorkspaceId: 'dst_ws' } });
+    expect(forked.statusCode).toBe(200);
+    expect(forked.json()).toEqual({ forked: true });
+    expect(await snapshotStore.has('dst_ws')).toBe(true);
+
+    await app.close();
+  });
+
   it('returns 404 (not 500) when acting on a workspace it has no record of', async () => {
     process.env.WORKSPACE_RUNTIME_NAMESPACE = 'prod-workspaces';
     const runtime = manager();

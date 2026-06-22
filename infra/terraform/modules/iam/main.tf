@@ -64,3 +64,32 @@ resource "google_project_iam_member" "platform_secret_accessor" {
   role    = "roles/secretmanager.secretAccessor"
   member  = "serviceAccount:${google_service_account.platform_workload.email}"
 }
+
+# --- Workspace snapshot storage (Workload Identity) --------------------------
+# Re-introduces a workspace-manager GSA, but ONLY for the snapshot store and ONLY
+# when enabled (the earlier GSA was removed as dead config; the manager still
+# uses in-cluster RBAC for the kube-apiserver). Account id stays <=30 chars.
+resource "google_service_account" "workspace_manager_snapshots" {
+  count        = var.enable_workspace_snapshot_wi ? 1 : 0
+  account_id   = "${var.name_prefix}-wsmgr-snap"
+  display_name = "VibeCore workspace-manager snapshot storage"
+}
+
+# objectAdmin (not project-wide) on just the snapshots bucket: read/write/delete
+# the workspace archive blobs, nothing else.
+resource "google_storage_bucket_iam_member" "workspace_manager_snapshots" {
+  count  = var.enable_workspace_snapshot_wi ? 1 : 0
+  bucket = var.snapshots_bucket_name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.workspace_manager_snapshots[0].email}"
+}
+
+# Let the workspace-manager Kubernetes SA impersonate the GSA via Workload
+# Identity. The KSA must be annotated iam.gke.io/gcp-service-account=<gsa email>
+# (set global.workloadIdentity.workspaceManager in helm values to this output).
+resource "google_service_account_iam_member" "workspace_manager_snapshots_wi" {
+  count              = var.enable_workspace_snapshot_wi ? 1 : 0
+  service_account_id = google_service_account.workspace_manager_snapshots[0].name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[${var.workspace_manager_namespace}/${var.workspace_manager_ksa}]"
+}

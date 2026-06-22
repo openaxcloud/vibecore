@@ -1,7 +1,7 @@
 import { deriveWorkspaceSecret, signAgentToken, type WorkspaceEvent } from '@vibecore/workspace-sdk';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { Readable } from 'node:stream';
+import { Readable, Transform } from 'node:stream';
 import {
   workspaceAgentSecret,
   workspacePod,
@@ -183,6 +183,38 @@ async function postWorkspaceComputeMetering(body: {
         ...(secret ? { authorization: `Bearer ${secret}` } : {}),
       },
       body: JSON.stringify({ kind: 'compute', ...body }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    await response.body?.cancel().catch(() => {});
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+/*
+ * Best-effort POST of a snapshot-storage metering event (durable bytes archived
+ * to object storage). Mirrors postWorkspaceComputeMetering: never throws, shares
+ * the same internal ingest + auth. The api turns bytes into storage units.
+ */
+async function postWorkspaceStorageMetering(body: {
+  organizationId: string;
+  projectId: string;
+  bytes: number;
+}): Promise<boolean> {
+  const baseUrl = process.env.API_INTERNAL_URL ?? process.env.API_URL;
+  const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
+  if (!baseUrl) {
+    return false;
+  }
+  try {
+    const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/internal/metering`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+      },
+      body: JSON.stringify({ kind: 'snapshot_storage', ...body }),
       signal: AbortSignal.timeout(15_000),
     });
     await response.body?.cancel().catch(() => {});
@@ -428,7 +460,7 @@ export class WorkspaceManager {
     // reachable (before the pod is torn down). Best-effort — the PVC keeps the
     // data regardless, so this never blocks the stop.
     if (workspace.status === 'RUNNING') {
-      await this.snapshotToStore(workspaceId, namespace);
+      await this.snapshotToStore(workspaceId, namespace, { orgId: workspace.orgId, projectId: workspace.projectId });
     }
 
     await this.k8s.delete('Pod', namespace, workspace.podName);
@@ -624,6 +656,27 @@ export class WorkspaceManager {
     return this.k8s.streamPodLogs(namespace, workspace.podName);
   }
 
+  /**
+   * Clone a workspace's snapshot into a new workspace id — the durable half of
+   * "duplicate project" / templates (Replit-style instant fork). The caller (api)
+   * provisions the new workspace record + pod with the target id; this seeds its
+   * snapshot so the first start rehydrates the copied filesystem. Requires a
+   * snapshot store and an existing source snapshot.
+   */
+  async forkWorkspaceSnapshot(sourceWorkspaceId: string, targetWorkspaceId: string): Promise<{ forked: boolean }> {
+    if (!this.snapshotStore) {
+      throw Object.assign(new Error('snapshot store not configured'), { statusCode: 501 });
+    }
+
+    try {
+      await this.snapshotStore.fork(sourceWorkspaceId, targetWorkspaceId);
+    } catch (error) {
+      throw Object.assign(new Error(error instanceof Error ? error.message : 'fork failed'), { statusCode: 404 });
+    }
+
+    return { forked: true };
+  }
+
   issueAgentToken(workspaceId: string, expiresInMs = 60_000) {
     // Sign with the same per-workspace derived key that the pod verifies against,
     // so the platform root secret is never used directly for tenant-facing tokens.
@@ -763,7 +816,11 @@ export class WorkspaceManager {
    * best-effort: the PVC still holds the data, so a snapshot failure must never
    * block the stop. Returns whether a snapshot was written.
    */
-  private async snapshotToStore(workspaceId: string, namespace: string): Promise<boolean> {
+  private async snapshotToStore(
+    workspaceId: string,
+    namespace: string,
+    meta?: { orgId: string; projectId: string },
+  ): Promise<boolean> {
     if (!this.snapshotStore) {
       return false;
     }
@@ -780,7 +837,25 @@ export class WorkspaceManager {
         throw new Error(`agent archive responded ${response.status}`);
       }
 
-      await this.snapshotStore.saveStream(workspaceId, Readable.fromWeb(response.body as Parameters<typeof Readable.fromWeb>[0]));
+      // Count the archived bytes as they stream through so we can meter durable
+      // snapshot storage without a second pass over the (large) blob.
+      let bytes = 0;
+      const counting = new Transform({
+        transform(chunk, _enc, cb) {
+          bytes += chunk.length;
+          cb(null, chunk);
+        },
+      });
+      const source = Readable.fromWeb(response.body as Parameters<typeof Readable.fromWeb>[0]);
+
+      await this.snapshotStore.saveStream(workspaceId, source.pipe(counting));
+
+      // Best-effort storage metering — never block or fail the stop over it.
+      if (meta) {
+        void postWorkspaceStorageMetering({ organizationId: meta.orgId, projectId: meta.projectId, bytes }).catch(
+          () => false,
+        );
+      }
 
       return true;
     } catch (error) {

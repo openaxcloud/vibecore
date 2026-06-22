@@ -332,9 +332,18 @@ describe('WorkspaceManager', () => {
     const scratch = await mkdtemp(join(tmpdir(), 'mgr-snap-'));
     const store = new FilesystemSnapshotStore(join(scratch, 'snapshots'));
 
+    const prevApi = process.env.API_URL;
+    process.env.API_URL = 'http://api.internal';
+
     const posted: string[] = [];
+    const metering: any[] = [];
     const fakeFetch = vi.fn(async (url: any, init: any) => {
       const href = String(url);
+
+      if (href.endsWith('/internal/metering')) {
+        metering.push(JSON.parse(init?.body ?? '{}'));
+        return { ok: true, body: { cancel: async () => {} } } as any;
+      }
 
       if (href.endsWith('/health')) {
         return new Response('ok', { status: 200 });
@@ -377,6 +386,10 @@ describe('WorkspaceManager', () => {
       }
       expect(Buffer.concat(chunks).toString()).toBe('TAR-BYTES-FOR-WS1');
 
+      // Stop also metered the durable snapshot bytes to billing.
+      const storageMeter = metering.find((m) => m.kind === 'snapshot_storage');
+      expect(storageMeter).toMatchObject({ organizationId: 'org_1', projectId: 'project_1', bytes: 17 });
+
       // Next start pushed the stored snapshot back into the agent's importer.
       await manager.restartWorkspace(input);
       expect(posted).toContain(`http://workspace-${input.workspaceId}.workspaces.svc.cluster.local:8080/snapshots/archive`);
@@ -386,6 +399,11 @@ describe('WorkspaceManager', () => {
       expect(await store.has(input.workspaceId)).toBe(false);
     } finally {
       globalThis.fetch = prevFetch;
+      if (prevApi === undefined) {
+        delete process.env.API_URL;
+      } else {
+        process.env.API_URL = prevApi;
+      }
       await rm(scratch, { recursive: true, force: true });
     }
   });
