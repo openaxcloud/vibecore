@@ -101,6 +101,23 @@ Recommendation: start with **A** (snapshot/restore) to unlock fork + ephemeral c
 with bounded effort, keep PVC as the hot path, and only pursue **B** if cold-start
 latency at scale demands it.
 
+**Started (foundational seam):** `services/workspace-manager/src/snapshot-store.ts`
+defines `WorkspaceSnapshotStore` (`save`/`restore`/`has`/`fork`/`remove`) — the
+storage-agnostic contract Replit's GCS+margarine model sits behind — with a
+dependency-free `FilesystemSnapshotStore` reference impl and full unit tests
+(`snapshot-store.spec.ts`: round-trip, latest-wins, independent fork, traversal
+guard). The PVC becomes a hot cache rather than the source of truth, and `fork`
+is the primitive behind "duplicate project" / templates.
+
+**Remaining integration (the multi-week part):**
+1. Agent-side `POST /snapshots/export` (tar `/workspace` → stream) and
+   `POST /snapshots/import` (stream → `/workspace`) endpoints on workspace-agent.
+2. `GcsSnapshotStore implements WorkspaceSnapshotStore` (tar + bucket upload/download).
+3. Manager lifecycle wiring behind a flag: on `stopWorkspace` export → `save`; on
+   `startWorkspace`, if `has(id)` and the PVC is fresh, `restore` before marking
+   ready; on fork-create, `fork` then provision. on `deleteWorkspace`, `remove`.
+4. Decide retention/GC of snapshots vs PVCs and metering of snapshot storage.
+
 ## Suggested order
 1. #1 preview enforcement (small; closes a real cross-tenant hole) — needs infra secret.
 2. #2 isolation tests (safe; locks the invariants).
