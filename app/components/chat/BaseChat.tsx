@@ -108,7 +108,7 @@ import {
 } from '~/lib/persistence/projectIdeMemory';
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
-import { useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
 import {
   type CompactPreviewRunState,
@@ -2565,6 +2565,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, []);
 
     const useMobileIde = layout.isMobile || layout.isTablet;
+    const navigate = useNavigate();
     const [clientHydrated, setClientHydrated] = useState(false);
 
     const [mobilePanel, setMobilePanel] = useState<
@@ -7383,7 +7384,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <header className="bolt-mobile-ecode-header" data-testid="mobile-ide-header">
             <div className="bolt-mobile-ecode-header-inner">
               <div className="bolt-mobile-ecode-header-side">
-                <button type="button" aria-label="Back" data-testid="button-back" onClick={() => window.history.back()}>
+                <button
+                  type="button"
+                  aria-label="Back to dashboard"
+                  data-testid="button-back"
+                  onClick={() => navigate('/dashboard')}
+                >
                   <span className="i-ph:arrow-left" aria-hidden />
                 </button>
                 <button
