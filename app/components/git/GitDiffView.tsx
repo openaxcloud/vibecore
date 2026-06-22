@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { parseUnifiedDiff } from './parse-unified-diff';
 import { classNames } from '~/utils/classNames';
 
 type BlameLine = { sha: string; line: number; author?: string; content?: string };
@@ -9,81 +10,8 @@ type BlameLine = { sha: string; line: number; author?: string; content?: string 
  * unified output once (memoized) into rows with old/new line gutters; hunk headers
  * (@@) and file-meta lines (diff/index/---/+++/rename/…) get their own styling.
  * Frontend-only: the diff text already arrives from /projects/:id/git/diff.
+ * The parser lives in ./parse-unified-diff so it can be unit-tested directly.
  */
-type DiffRowType = 'hunk' | 'add' | 'remove' | 'context' | 'meta';
-
-interface DiffRow {
-  type: DiffRowType;
-  oldNo?: number;
-  newNo?: number;
-  text: string;
-}
-
-const META_PREFIXES = [
-  'diff ',
-  'index ',
-  '--- ',
-  '+++ ',
-  'new file',
-  'deleted file',
-  'old mode',
-  'new mode',
-  'similarity ',
-  'rename ',
-  'copy ',
-  'Binary files',
-  '\\',
-];
-
-function parseUnifiedDiff(diff: string): DiffRow[] {
-  const rows: DiffRow[] = [];
-
-  let oldNo = 0;
-  let newNo = 0;
-
-  for (const raw of diff.split('\n')) {
-    if (raw.startsWith('@@')) {
-      const match = /@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(raw);
-
-      if (match) {
-        oldNo = Number(match[1]);
-        newNo = Number(match[2]);
-      }
-
-      rows.push({ type: 'hunk', text: raw });
-      continue;
-    }
-
-    if (META_PREFIXES.some((prefix) => raw.startsWith(prefix))) {
-      rows.push({ type: 'meta', text: raw });
-      continue;
-    }
-
-    if (raw.startsWith('+')) {
-      rows.push({ type: 'add', newNo, text: raw.slice(1) });
-      newNo += 1;
-      continue;
-    }
-
-    if (raw.startsWith('-')) {
-      rows.push({ type: 'remove', oldNo, text: raw.slice(1) });
-      oldNo += 1;
-      continue;
-    }
-
-    // Context line (leading space) or a trailing blank line inside the diff.
-    rows.push({ type: 'context', oldNo, newNo, text: raw.startsWith(' ') ? raw.slice(1) : raw });
-    oldNo += 1;
-    newNo += 1;
-  }
-
-  // Drop a single trailing empty context row produced by the final newline.
-  if (rows.length && rows[rows.length - 1].type === 'context' && rows[rows.length - 1].text === '') {
-    rows.pop();
-  }
-
-  return rows;
-}
 
 export function GitDiffView({ diff, blame, className }: { diff: string; blame?: BlameLine[]; className?: string }) {
   const rows = useMemo(() => parseUnifiedDiff(diff), [diff]);

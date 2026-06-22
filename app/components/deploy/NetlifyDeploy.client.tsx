@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react';
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { BOLT_DEPLOY_OUTPUT_DIRECTORIES, DEFAULT_DEPLOY_BUILD_COMMAND, formatBuildFailureOutput } from './deployUtils';
+import { pollNetlifyDeploy, type NetlifyDeployStatus } from './netlify-deploy-poll';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import type { ActionCallbackData } from '~/lib/runtime/message-parser';
@@ -143,12 +144,16 @@ export function useNetlifyDeploy() {
 
       const maxAttempts = 120; // ~2 minutes timeout (1s between polls)
 
-      let attempts = 0;
-      let deploymentStatus;
-      let deployFailedError: string | null = null;
-
-      while (attempts < maxAttempts) {
-        try {
+      /*
+       * Poll the deploy status until it reaches a terminal state, times out, or
+       * exhausts its attempts. The helper guarantees every iteration — including
+       * ones where the status fetch fails or the user is offline — advances
+       * toward maxAttempts, so a persistently erroring status endpoint can never
+       * spin this loop forever (it terminates as a timeout instead).
+       */
+      const pollResult = await pollNetlifyDeploy({
+        maxAttempts,
+        fetchStatus: async () => {
           const statusResponse = await fetch(
             `https://api.netlify.com/api/v1/sites/${data.site.id}/deploys/${data.deploy.id}`,
             {
@@ -162,39 +167,20 @@ export function useNetlifyDeploy() {
             throw new Error(`Deployment status check failed (HTTP ${statusResponse.status})`);
           }
 
-          deploymentStatus = (await statusResponse.json()) as any;
+          return (await statusResponse.json()) as NetlifyDeployStatus;
+        },
+      });
 
-          if (deploymentStatus.state === 'ready' || deploymentStatus.state === 'uploaded') {
-            break;
-          }
-
-          if (deploymentStatus.state === 'error') {
-            /*
-             * Capture the real failure and break so it isn't swallowed by this
-             * loop's own catch (which would degrade it into a generic timeout).
-             */
-            deployFailedError = 'Deployment failed: ' + (deploymentStatus.error_message || 'Unknown error');
-            break;
-          }
-
-          attempts++;
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        } catch (error) {
-          console.error('Status check error:', error);
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-        }
-      }
-
-      if (deployFailedError) {
+      if (pollResult.outcome === 'error') {
         // Notify that deployment failed
         deployArtifact.runner.handleDeployAction('deploying', 'failed', {
-          error: deployFailedError,
+          error: pollResult.error,
           source: 'netlify',
         });
-        throw new Error(deployFailedError);
+        throw new Error(pollResult.error);
       }
 
-      if (attempts >= maxAttempts) {
+      if (pollResult.outcome === 'timeout') {
         // Notify that deployment timed out
         deployArtifact.runner.handleDeployAction('deploying', 'failed', {
           error: 'Deployment timed out',
@@ -202,6 +188,8 @@ export function useNetlifyDeploy() {
         });
         throw new Error('Deployment timed out');
       }
+
+      const deploymentStatus = pollResult.status;
 
       // Store the site ID if it's a new site
       if (data.site) {

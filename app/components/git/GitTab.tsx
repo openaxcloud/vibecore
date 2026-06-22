@@ -5,7 +5,7 @@ import {
   shouldRefreshOnFilesChange,
   shouldRefreshOnVisibility,
 } from './git-autorefresh';
-import { findUnserializableStagedFiles } from './git-staged-files';
+import { findUnserializableStagedFiles, pathBreaksCommaSerialization } from './git-staged-files';
 import { GitBranchSyncControls } from '~/components/git/GitBranchSyncControls';
 import { GitDiffView } from '~/components/git/GitDiffView';
 import { GitMergeEditor } from '~/components/git/GitMergeEditor';
@@ -813,6 +813,23 @@ export function GitTab({ projectId }: GitTabProps) {
                   className="rounded-md bg-red-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60"
                   onClick={() => {
                     const target = discardConfirm;
+
+                    /*
+                     * The action route parses `filePaths` with `split(',')`, so a single
+                     * path containing a comma would be mis-split into bogus paths: the
+                     * real changed file is never discarded yet the user still sees a
+                     * success toast. Refuse rather than revert the wrong files. (The
+                     * commit path has the same guard via findUnserializableStagedFiles.)
+                     */
+                    if (!target.all && target.path && pathBreaksCommaSerialization(target.path)) {
+                      const message = `Cannot discard a file whose path contains a comma: ${target.path}`;
+                      setDiscardConfirm(null);
+                      setError(message);
+                      toast.error(message);
+
+                      return;
+                    }
+
                     setDiscardConfirm(null);
                     void runIntent('discard', target.all || !target.path ? {} : { filePaths: target.path });
                   }}

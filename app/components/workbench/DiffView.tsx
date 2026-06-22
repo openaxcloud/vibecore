@@ -395,6 +395,33 @@ const processChanges = (beforeCode: string, afterCode: string) => {
   }
 };
 
+/*
+ * Compute additions/deletions for the diff-stat badges from jsdiff `diffLines`
+ * output. jsdiff line chunks end with a trailing newline, so a naive
+ * `value.split('\n').length` yields a spurious empty final segment and inflates
+ * the count by one per chunk (a single-line edit would report +2/-2). Prefer the
+ * chunk's own `count`, falling back to a trailing-newline-stripped split. This
+ * mirrors the already-fixed computation in Workbench.client.tsx.
+ */
+export function computeDiffStat(changes: Change[]): { additions: number; deletions: number } {
+  return changes.reduce(
+    (acc: { additions: number; deletions: number }, change: Change) => {
+      const lineCount = change.count ?? change.value.replace(/\n$/, '').split('\n').length;
+
+      if (change.added) {
+        acc.additions += lineCount;
+      }
+
+      if (change.removed) {
+        acc.deletions += lineCount;
+      }
+
+      return acc;
+    },
+    { additions: 0, deletions: 0 },
+  );
+}
+
 const lineNumberStyles =
   'w-9 shrink-0 pl-2 py-1 text-left font-mono text-bolt-elements-textTertiary border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-1';
 const lineContentStyles =
@@ -582,20 +609,7 @@ const FileInfo = memo(
         ignoreCase: false,
       });
 
-      return changes.reduce(
-        (acc: { additions: number; deletions: number }, change: Change) => {
-          if (change.added) {
-            acc.additions += change.value.split('\n').length;
-          }
-
-          if (change.removed) {
-            acc.deletions += change.value.split('\n').length;
-          }
-
-          return acc;
-        },
-        { additions: 0, deletions: 0 },
-      );
+      return computeDiffStat(changes);
     }, [hasChanges, beforeCode, afterCode]);
 
     const showStats = additions > 0 || deletions > 0;

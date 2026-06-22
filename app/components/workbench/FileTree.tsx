@@ -2,10 +2,10 @@ import { useStore } from '@nanostores/react';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import type { WorkspaceStatus } from '@vibecore/runtime-contract';
-import { diffLines, type Change } from 'diff';
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { toast } from 'react-toastify';
 import { resolveCopyContent } from './file-tree-copy';
+import { computeFileDiffStats } from './file-tree-diff-stats';
 import { resolveEmptyExplorerState } from './file-tree-empty-state';
 import { toRuntimeRelativePath } from './search-replace';
 import { GitStatusBadge } from '~/components/git/GitStatusBadge';
@@ -1298,41 +1298,7 @@ function File({
 
   const fileModifications = fileHistory[fullPath];
 
-  const { additions, deletions } = useMemo(() => {
-    if (!fileModifications?.originalContent) {
-      return { additions: 0, deletions: 0 };
-    }
-
-    const normalizedOriginal = fileModifications.originalContent.replace(/\r\n/g, '\n');
-
-    const normalizedCurrent =
-      fileModifications.versions[fileModifications.versions.length - 1]?.content?.replace(/\r\n/g, '\n') || '';
-
-    if (normalizedOriginal === normalizedCurrent) {
-      return { additions: 0, deletions: 0 };
-    }
-
-    const changes = diffLines(normalizedOriginal, normalizedCurrent, {
-      newlineIsToken: false,
-      ignoreWhitespace: true,
-      ignoreCase: false,
-    });
-
-    return changes.reduce(
-      (acc: { additions: number; deletions: number }, change: Change) => {
-        if (change.added) {
-          acc.additions += change.value.split('\n').length;
-        }
-
-        if (change.removed) {
-          acc.deletions += change.value.split('\n').length;
-        }
-
-        return acc;
-      },
-      { additions: 0, deletions: 0 },
-    );
-  }, [fileModifications]);
+  const { additions, deletions } = useMemo(() => computeFileDiffStats(fileModifications), [fileModifications]);
 
   const showStats = additions > 0 || deletions > 0;
 

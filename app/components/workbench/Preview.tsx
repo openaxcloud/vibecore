@@ -121,6 +121,30 @@ export function shouldShowStartupOverlay(input: {
   );
 }
 
+/*
+ * Inspector message types that the Inspector component owns exclusively. The
+ * Inspector applies offsetRect() to translate the iframe-local rect into page
+ * coordinates and calls onElementSelect for these. Preview's own postMessage
+ * handler must NOT react to them — doing so would store the raw, un-offset rect
+ * and run the selection side-effects twice per event (last-writer-wins on the
+ * wrong coordinates).
+ */
+const INSPECTOR_MESSAGE_TYPES_OWNED_BY_INSPECTOR = new Set(['INSPECTOR_CLICK', 'INSPECTOR_HOVER', 'INSPECTOR_LEAVE']);
+
+/**
+ * Whether Preview's own window `message` handler should process a given message
+ * type. Inspector selection/hover events are owned solely by the Inspector
+ * component (which offsets coordinates), so Preview must skip them to avoid the
+ * double-handling / un-offset-rect bug.
+ */
+export function shouldPreviewHandleInspectorMessage(messageType: unknown): boolean {
+  if (typeof messageType !== 'string') {
+    return false;
+  }
+
+  return !INSPECTOR_MESSAGE_TYPES_OWNED_BY_INSPECTOR.has(messageType);
+}
+
 function resolvePreviewBootProgress(input: {
   workspaceReady: boolean;
   previewsLength: number;
@@ -549,6 +573,10 @@ export const Preview = memo(
         setSelectedPreviewElement(element);
         setDevToolsOpen(true);
         setActiveDevToolsTab('elements');
+
+        void navigator.clipboard?.writeText(element.displayText ?? '').catch(() => {
+          // Selection must keep working even when the browser blocks clipboard access.
+        });
       },
       [setSelectedElement],
     );
@@ -1587,6 +1615,16 @@ export const Preview = memo(
           return;
         }
 
+        /*
+         * Inspector selection/hover events (INSPECTOR_CLICK / HOVER / LEAVE) are
+         * owned exclusively by the Inspector component, which offsets the rect
+         * into page coordinates. Skip them here to avoid double-handling and
+         * storing un-offset coordinates.
+         */
+        if (!shouldPreviewHandleInspectorMessage(event.data.type)) {
+          return;
+        }
+
         if (event.data.type === 'INSPECTOR_READY') {
           if (iframeRef.current?.contentWindow) {
             iframeRef.current.contentWindow.postMessage(
@@ -1597,21 +1635,6 @@ export const Preview = memo(
               '*',
             );
           }
-        } else if (event.data.type === 'INSPECTOR_CLICK') {
-          const element = event.data.elementInfo;
-
-          if (!element) {
-            return;
-          }
-
-          setSelectedElement?.(element);
-          setSelectedPreviewElement(element);
-          setDevToolsOpen(true);
-          setActiveDevToolsTab('elements');
-
-          void navigator.clipboard?.writeText(element.displayText ?? '').catch(() => {
-            // Selection must keep working even when the browser blocks clipboard access.
-          });
         } else if (event.data.type === 'PREVIEW_ERROR') {
           const filename = event.data.filename ? ` (${event.data.filename}:${event.data.lineno ?? '?'})` : '';
           const message = `Preview error: ${event.data.message ?? 'unknown'}${filename}`;

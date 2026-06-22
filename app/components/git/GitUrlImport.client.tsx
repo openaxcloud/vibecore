@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
 import { ClientOnly } from 'remix-utils/client-only';
+import { decodeClonedFiles } from './decode-cloned-files';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { Chat } from '~/components/chat/Chat.client';
 import { LoadingOverlay } from '~/components/ui/LoadingOverlay';
@@ -61,18 +62,8 @@ export function GitUrlImport() {
 
         if (importChat) {
           const filePaths = Object.keys(data).filter((filePath) => !ig.ignores(filePath));
-          const textDecoder = new TextDecoder('utf-8');
 
-          const fileContents = filePaths
-            .map((filePath) => {
-              const { data: content, encoding } = data[filePath];
-              return {
-                path: filePath,
-                content:
-                  encoding === 'utf8' ? content : content instanceof Uint8Array ? textDecoder.decode(content) : '',
-              };
-            })
-            .filter((f) => f.content);
+          const fileContents = decodeClonedFiles(filePaths, data);
 
           const commands = await detectProjectCommands(fileContents);
           const commandsMessage = createCommandsMessage(commands);

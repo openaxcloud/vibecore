@@ -87,6 +87,20 @@ function resolveSide(segment: Extract<Segment, { type: 'conflict' }>, choice: Ch
   return '';
 }
 
+/*
+ * Decide what to seed the raw textarea with when the user toggles into "Edit raw".
+ *
+ * If every conflict already has a chosen side, `composed` is a faithful, marker-free
+ * rendering of the resolution and is the right thing to hand-edit. But if ANY conflict
+ * is still unresolved, `composed` has silently dropped those conflict blocks entirely
+ * (resolveSide() returns '' and the empty-conflict filter removes them) — seeding from
+ * it would make the conflicting code vanish. In that case seed from the original
+ * `content` so the user edits the real conflicting text with markers intact.
+ */
+export function seedRawText(content: string, composed: string, allChosen: boolean): string {
+  return allChosen ? composed : content;
+}
+
 export function GitMergeEditor({
   filePath,
   content,
@@ -160,7 +174,16 @@ export function GitMergeEditor({
             type="button"
             className="rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
             onClick={() => {
-              setRaw(composed);
+              /*
+               * Only seed the raw textarea from `composed` when every conflict has a
+               * chosen side; otherwise seed from the original `content` so unresolved
+               * conflict blocks (which `composed` drops) are not silently stripped.
+               * Re-entering hunk view should not re-seed — keep raw edits.
+               */
+              if (!rawMode) {
+                setRaw(seedRawText(content, composed, allChosen));
+              }
+
               setRawMode((value) => !value);
             }}
           >
