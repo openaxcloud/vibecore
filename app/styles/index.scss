@@ -18898,8 +18898,22 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     display: none !important;
   }
 
+  /*
+   * Pin the agent composer 10px above the mobile/tablet bottom nav.
+   *
+   * The bottom nav is `position: fixed; bottom: 0` and already clears the
+   * safe-area inset via its own padding, so its pill top sits at
+   * `safe-area + nav-height` above the viewport bottom. The composer is a
+   * sticky child of the scroll container, whose bottom edge sits `safe-area`
+   * above the viewport bottom (root padding-bottom). The safe-area therefore
+   * cancels out between the two, so anchoring the composer to
+   * `nav-height + 10px` yields a constant 10px gap on every device — notched
+   * or not, phone or tablet. Using `--vc-mobile-shell-bottom` here (which adds
+   * the safe-area a second time) was double-counting the inset and produced the
+   * dead space above the dock on notched screens.
+   */
   .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer {
-    bottom: calc(var(--vc-mobile-shell-bottom) + 8px) !important;
+    bottom: calc(var(--mobile-nav-height) + 10px) !important;
     z-index: 50;
     margin-bottom: 0 !important;
     padding-bottom: 8px;
