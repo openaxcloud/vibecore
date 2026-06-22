@@ -11627,8 +11627,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const pendingMessages: string[] = [];
+    let upstreamOpened = false;
 
     upstream.addEventListener('open', () => {
+      upstreamOpened = true;
+
       for (const message of pendingMessages.splice(0)) {
         upstream.send(message);
       }
@@ -11656,14 +11659,44 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         app.log.warn({ err: error }, 'runtime socket relay failed');
       }
     });
-    upstream.addEventListener('close', () => client.close());
+    upstream.addEventListener('close', () => {
+      /*
+       * If the upstream never OPENED, the workspace agent was unreachable — the
+       * runtime isn't started (stopped/crashed/GC'd). Tell the client explicitly
+       * with a WORKSPACE_NOT_STARTED code so it surfaces a "click Run" state and
+       * STOPS reconnecting, instead of an endless "[terminal reconnected]" flap
+       * against a dead agent. A drop AFTER the socket opened is a normal transient
+       * close → the client reconnects (bounded) as before.
+       */
+      if (!upstreamOpened) {
+        try {
+          client.send(
+            JSON.stringify({
+              type: 'error',
+              error: { message: 'Workspace is not running. Click Run to start it.', code: 'WORKSPACE_NOT_STARTED' },
+              timestamp: new Date().toISOString(),
+            }),
+          );
+        } catch {
+          // Downstream already gone.
+        }
+      }
+
+      client.close();
+    });
     upstream.addEventListener('error', () => {
       /*
        * Guard client.send: the upstream usually errors BECAUSE the connection is
        * tearing down, at which point the downstream client socket is often already
        * CLOSING/CLOSED — an unguarded send then throws synchronously in this
-       * listener and, with no process-level handler, crashes the whole API.
+       * listener and, with no process-level handler, crashes the whole API. When
+       * the upstream never opened, the close handler (above) sends the actionable
+       * WORKSPACE_NOT_STARTED instead, so skip the generic error in that case.
        */
+      if (!upstreamOpened) {
+        return;
+      }
+
       try {
         client.send(
           JSON.stringify({

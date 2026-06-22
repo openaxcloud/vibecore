@@ -407,6 +407,9 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     let reconnectAttempts = 0;
     let stableTimer: ReturnType<typeof setTimeout> | undefined;
     let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+    let halted = false;
+    // Bound the reconnect so a workspace that stays unreachable can't flap forever.
+    const MAX_RECONNECT_ATTEMPTS = 8;
 
     let socket = await this.#openSocket(terminalPath, {
       terminalId,
@@ -415,20 +418,81 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
     const queue = new AsyncQueue<CommandEvent>();
 
+    /*
+     * Permanently stop the reconnect lifecycle (distinct from `stopped`, the user
+     * closing the terminal): clear all timers and surface a final message. Used
+     * when the API reports the workspace isn't started, or after the bounded
+     * reconnect budget is exhausted — so we never flap "[terminal reconnected]"
+     * endlessly against a dead/not-started agent.
+     */
+    const haltReconnect = (message: string) => {
+      if (halted) {
+        return;
+      }
+
+      halted = true;
+
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = undefined;
+      }
+
+      if (stableTimer) {
+        clearTimeout(stableTimer);
+        stableTimer = undefined;
+      }
+
+      if (heartbeatTimer) {
+        clearInterval(heartbeatTimer);
+        heartbeatTimer = undefined;
+      }
+
+      queue.push({ type: 'stdout', data: message, timestamp: now() });
+    };
+
     const onMessage = (event: { data: string }) => {
       /*
        * The socket only ever carries JSON CommandEvents. Guard against a malformed or
        * non-JSON frame so a single bad message can't throw out of the listener and
        * restart the reconnect loop.
        */
+      let parsed: CommandEvent;
+
       try {
-        queue.push(JSON.parse(event.data));
+        parsed = JSON.parse(event.data) as CommandEvent;
       } catch {
         // Ignore frames that aren't valid CommandEvent JSON.
+        return;
       }
+
+      /*
+       * The API emits this when the workspace runtime isn't started (its upstream to
+       * the agent never opened). Halt instead of reconnecting into an endless
+       * "[terminal reconnected]" flap — the user must click Run / reopen.
+       */
+      if (
+        (parsed as { type?: string }).type === 'error' &&
+        (parsed as { error?: { code?: string } }).error?.code === 'WORKSPACE_NOT_STARTED'
+      ) {
+        haltReconnect('\r\n\x1b[33m[workspace not running — click Run to start it]\x1b[0m\r\n');
+        return;
+      }
+
+      queue.push(parsed);
     };
     const scheduleReconnect = () => {
-      if (stopped || reconnectTimer) {
+      if (stopped || halted || reconnectTimer) {
+        return;
+      }
+
+      /*
+       * Bound the reconnect: a workspace that stays unreachable (crashed/stopped
+       * mid-session, network gone) must not flap forever. The stableTimer resets
+       * reconnectAttempts once a connection holds for ~5s, so an occasional drop on
+       * a healthy terminal never trips this — only a sustained failure does.
+       */
+      if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+        haltReconnect('\r\n\x1b[33m[terminal disconnected — reload or click Run to reconnect]\x1b[0m\r\n');
         return;
       }
 
@@ -493,7 +557,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       }, 5_000);
     };
     const reconnect = async () => {
-      if (stopped) {
+      if (stopped || halted) {
         return;
       }
 
@@ -506,11 +570,11 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         });
 
         /*
-         * The terminal may have been stopped while #openSocket was in flight. The stop
-         * handler already ran against the previous socket reference, so binding this one
-         * would leak it (and its heartbeat) forever.
+         * The terminal may have been stopped/halted while #openSocket was in flight.
+         * The stop handler already ran against the previous socket reference, so
+         * binding this one would leak it (and its heartbeat) forever.
          */
-        if (stopped) {
+        if (stopped || halted) {
           opened.close();
           return;
         }

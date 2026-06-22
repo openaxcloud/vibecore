@@ -206,6 +206,43 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     }
   });
 
+  it('halts the terminal reconnect loop when the API reports WORKSPACE_NOT_STARTED', async () => {
+    vi.useFakeTimers();
+    FakeWebSocket.instances = [];
+    FakeWebSocket.failNextOpenCount = 0;
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token-notstarted',
+      workspaceId: 'ws-1',
+      fetchImpl: createFetchMock() as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    try {
+      await adapter.openTerminal();
+      expect(FakeWebSocket.instances).toHaveLength(1);
+
+      // The API signals the runtime isn't started, then closes the socket.
+      const socket = FakeWebSocket.instances.at(-1)!;
+      socket.emit('message', {
+        data: JSON.stringify({
+          type: 'error',
+          error: { message: 'Workspace is not running. Click Run to start it.', code: 'WORKSPACE_NOT_STARTED' },
+        }),
+      });
+      socket.emit('close', {});
+
+      // Well past the max 10s backoff: NO reconnect is attempted (no new socket) —
+      // the endless "[terminal reconnected]" flap is gone.
+      await vi.advanceTimersByTimeAsync(60_000);
+      await Promise.resolve();
+      expect(FakeWebSocket.instances).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('uses exponential backoff for repeated watch and terminal WebSocket reconnect failures', async () => {
     vi.useFakeTimers();
     FakeWebSocket.instances = [];
