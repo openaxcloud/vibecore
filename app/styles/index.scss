@@ -4077,7 +4077,8 @@ body :where(.lucide, svg[data-lucide]) {
   font-weight: 700;
 }
 
-@media (min-width: 768px) and (max-width: 1199px) {
+@media (min-width: 768px) and (max-width: 1199px),
+  (min-width: 768px) and (max-width: 1366px) and (any-pointer: coarse) {
   .bolt-mobile-replit-panel-tab {
     width: 48px;
     min-width: 48px;
@@ -17440,7 +17441,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 }
 
-@media (min-width: 768px) and (max-width: 1199px) {
+@media (min-width: 768px) and (max-width: 1199px),
+  (min-width: 768px) and (max-width: 1366px) and (any-pointer: coarse) {
   .bolt-project-statusbar-mobile {
     right: 14px;
     bottom: calc(86px + env(safe-area-inset-bottom, 0px));
@@ -17464,7 +17466,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 }
 
-@media (max-width: 1199px) {
+@media (max-width: 1199px), (max-width: 1366px) and (any-pointer: coarse) {
   .bolt-project-topbar {
     display: none !important;
   }
