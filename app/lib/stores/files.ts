@@ -849,6 +849,21 @@ export class FilesStore {
       return;
     }
 
+    /*
+     * The WorkbenchStore constructs this store with the ID-less module-singleton
+     * runtime adapter and starts the watch BEFORE ProjectWorkspaceProvider
+     * configures the project-scoped adapter. watchFiles() on that unconfigured
+     * adapter throws "Remote workspace has not been started" and the retry below
+     * would flood for the whole session. Skip until a real workspace is bound;
+     * setRuntime() re-runs #init() once configureRuntime() wires the project adapter.
+     */
+    if (this.#runtime.hasWorkspaceId?.() === false) {
+      this.#stopWatchingFiles?.();
+      this.#stopWatchingFiles = undefined;
+
+      return;
+    }
+
     try {
       this.#stopWatchingFiles?.();
       this.#stopWatchingFiles = await this.#runtime.watchFiles([WORK_DIR], (change) => this.#processFileChange(change));

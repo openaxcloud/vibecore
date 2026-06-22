@@ -235,6 +235,21 @@ export class PreviewsStore {
   async #init() {
     const generation = ++this.#initGeneration;
 
+    /*
+     * The WorkbenchStore constructs this store with the ID-less module-singleton
+     * runtime adapter and calls #init() eagerly, BEFORE ProjectWorkspaceProvider
+     * configures the project-scoped adapter. Watching that unconfigured adapter
+     * throws "Remote workspace has not been started" and floods a misleading
+     * reconnect loop on every page. Skip until a real workspace is bound;
+     * setRuntime() re-runs #init() once configureRuntime() wires the project adapter.
+     */
+    if (this.#runtime.hasWorkspaceId?.() === false) {
+      this.#stopWatchingPorts?.();
+      this.#stopWatchingPorts = undefined;
+
+      return;
+    }
+
     try {
       this.#stopWatchingPorts?.();
       this.#stopWatchingPorts = undefined;

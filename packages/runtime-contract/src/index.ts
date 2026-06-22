@@ -157,6 +157,16 @@ export interface RuntimeAdapter {
   readonly workdir: string;
   readonly capabilities: RuntimeCapability[];
 
+  /**
+   * Whether this adapter is bound to a workspace yet. The remote adapter created
+   * as the module singleton (before ProjectWorkspaceProvider.configureRuntime
+   * wires the project-scoped adapter) has no workspace id, so starting a file/
+   * port watch on it throws "Remote workspace has not been started". Stores probe
+   * this to skip watching until a real workspace is configured. Optional —
+   * runtimes that are always workspace-bound (WebContainer) may omit it.
+   */
+  hasWorkspaceId?(): boolean;
+
   boot(): Promise<void>;
   startWorkspace(session?: Partial<WorkspaceSession>): Promise<WorkspaceSession>;
   stopWorkspace(workspaceId?: string): Promise<void>;
@@ -212,7 +222,10 @@ export function normalizeShellCommand(command: string): string {
   let escape = false;
 
   const flushUnquoted = () => {
-    normalized += unquoted.replace(HEAD_TAIL_OBSOLETE, (_match, utility: string, count: string) => `${utility} -n ${count}`);
+    normalized += unquoted.replace(
+      HEAD_TAIL_OBSOLETE,
+      (_match, utility: string, count: string) => `${utility} -n ${count}`,
+    );
     unquoted = '';
   };
 
@@ -223,6 +236,7 @@ export function normalizeShellCommand(command: string): string {
       } else {
         unquoted += char;
       }
+
       escape = false;
       continue;
     }
@@ -233,6 +247,7 @@ export function normalizeShellCommand(command: string): string {
       } else {
         unquoted += char;
       }
+
       escape = true;
       continue;
     }
@@ -339,6 +354,7 @@ export function normalizeShellCommandArgs(command: string, args: string[] = []):
 
   const normalizedArgs = [...args];
   normalizedArgs[commandFlagIndex + 1] = normalizedCommand;
+
   return normalizedArgs;
 }
 
