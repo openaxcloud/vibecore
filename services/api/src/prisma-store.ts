@@ -3014,25 +3014,32 @@ export class PrismaApiStore implements ApiStore {
       create: { organizationId: input.organizationId },
     });
 
-    const existing = await this.prisma.creditLedger.findFirst({
-      where: { organizationId: input.organizationId, kind: 'PAYG_CHARGE', checkpointId: input.checkpointId },
-      select: { id: true },
-    });
+    /*
+     * Atomic dedup: insert and let the partial unique index
+     * (organizationId, checkpointId) WHERE kind='PAYG_CHARGE' reject a duplicate
+     * with P2002. The old find-then-create was a non-atomic TOCTOU — two concurrent
+     * settlements of the same checkpoint both passed the existence check and both
+     * inserted, inflating sumPaygSpendSince (false budget-cap trips + dup alerts).
+     * Mirrors recordStripeEvent's P2002-as-already-recorded dedup.
+     */
+    try {
+      await this.prisma.creditLedger.create({
+        data: {
+          walletId: wallet.id,
+          organizationId: input.organizationId,
+          deltaCents: -cents,
+          kind: 'PAYG_CHARGE',
+          reason: 'PAYG overage (billed to Stripe metered usage)',
+          checkpointId: input.checkpointId,
+        },
+      });
+    } catch (error) {
+      if ((error as { code?: string } | null)?.code === 'P2002') {
+        return;
+      }
 
-    if (existing) {
-      return;
+      throw error;
     }
-
-    await this.prisma.creditLedger.create({
-      data: {
-        walletId: wallet.id,
-        organizationId: input.organizationId,
-        deltaCents: -cents,
-        kind: 'PAYG_CHARGE',
-        reason: 'PAYG overage (billed to Stripe metered usage)',
-        checkpointId: input.checkpointId,
-      },
-    });
   }
 
   async markSpendAlert(input: { organizationId: string; pct: number; periodStartMs: number }): Promise<void> {

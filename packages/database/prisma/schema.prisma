@@ -1578,6 +1578,10 @@ model CreditLedger {
   // Org-scoped credit-expiry sweep filters organizationId + kind + expiresAt
   // together; the kind/expiresAt-only index wasn't org-scoped.
   @@index([organizationId, kind, expiresAt])
+  // NOTE: a PARTIAL UNIQUE index "CreditLedger_org_checkpoint_payg_key" on
+  // (organizationId, checkpointId) WHERE kind='PAYG_CHARGE' is defined in raw SQL
+  // (migration 0045) — Prisma's schema can't express a WHERE-filtered unique index.
+  // It backs recordPaygCharge's atomic create+catch-P2002 dedup. Do not drop it.
 }
 
 enum CheckpointStatus {

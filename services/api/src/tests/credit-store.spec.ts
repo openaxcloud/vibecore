@@ -41,6 +41,20 @@ describe('credit wallet store', () => {
     const cleared = await store.updateCreditWalletSettings({ organizationId: 'org_2', budgetCapCents: null });
     expect(cleared.budgetCapCents).toBeUndefined();
   });
+
+  it('recordPaygCharge is idempotent per (org, checkpointId) — re-settle never double-counts', async () => {
+    const store = new TestApiStore();
+    const since = 0;
+
+    await store.recordPaygCharge({ organizationId: 'org_p', checkpointId: 'cp_1', cents: 250 });
+    // A retried / concurrent settle of the SAME checkpoint must not add a second row.
+    await store.recordPaygCharge({ organizationId: 'org_p', checkpointId: 'cp_1', cents: 250 });
+    // A different checkpoint is a distinct charge.
+    await store.recordPaygCharge({ organizationId: 'org_p', checkpointId: 'cp_2', cents: 100 });
+
+    // 250 (cp_1, once) + 100 (cp_2) = 350, NOT 600.
+    expect(await store.sumPaygSpendSince('org_p', since)).toBe(350);
+  });
 });
 
 describe('credit pack store', () => {
