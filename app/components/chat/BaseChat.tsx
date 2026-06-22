@@ -66,6 +66,7 @@ import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
 import { buildGitStatusMap } from '~/utils/fileExplorerMetadata';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
+import { GenerateAppCta } from '~/components/chat/GenerateAppCta';
 import { GitTab } from '~/components/git/GitTab';
 import StarterTemplates from './StarterTemplates';
 import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
@@ -5972,6 +5973,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     ))}
                   </div>
                 )}
+              {projectIdeMode && (
+                <GenerateAppCta
+                  files={projectFiles}
+                  hasMessages={(messages?.length ?? 0) > 0}
+                  isGenerating={isAgentRunning}
+                  onGenerate={(prompt) => handleProjectAgentSendMessage({} as React.UIEvent, prompt)}
+                />
+              )}
               <ChatBox
                 isModelSettingsCollapsed={isModelSettingsCollapsed}
                 setIsModelSettingsCollapsed={setIsModelSettingsCollapsed}
