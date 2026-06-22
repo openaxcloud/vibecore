@@ -195,6 +195,17 @@ export class FilesStore {
      */
     const deletedPrefixes = [...this.#deletedPaths].map((path) => `${path}/`);
 
+    /*
+     * In remote-kubernetes mode listFiles() returns the tree WITHOUT content (the
+     * API's /files route + the agent's /files/tree strip content; content is read
+     * lazily per file via readFile). So node.content is undefined here. Capture the
+     * current map so we can PRESERVE content already hydrated from project storage
+     * (ProjectWorkspaceProvider loads it before this reload) instead of hard-
+     * replacing every file with an empty string — which blanked the editor for
+     * every file in production.
+     */
+    const currentFiles = this.files.get();
+
     let fileCount = 0;
 
     const visit = (node: FileNode) => {
@@ -211,11 +222,19 @@ export class FilesStore {
         return;
       }
 
-      nextFiles[workbenchPath] = {
-        type: 'file',
-        content: node.content ?? '',
-        isBinary: node.encoding === 'base64' || node.encoding === 'binary',
-      };
+      const existing = currentFiles[workbenchPath];
+
+      if (node.content === undefined && existing?.type === 'file' && existing.content) {
+        // Tree-only reload (remote): keep the already-hydrated content/flags.
+        nextFiles[workbenchPath] = existing;
+      } else {
+        nextFiles[workbenchPath] = {
+          type: 'file',
+          content: node.content ?? '',
+          isBinary: node.encoding === 'base64' || node.encoding === 'binary',
+        };
+      }
+
       fileCount++;
     };
 
