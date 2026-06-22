@@ -99,7 +99,9 @@ export class GitHubApiServiceClass {
     let page = 1;
     let hasMore = true;
 
-    while (hasMore) {
+    const maxPages = 50; // Hard cap (5000 repos) to prevent a runaway/hung pagination loop
+
+    while (hasMore && page <= maxPages) {
       const repos = await this._makeRequestInternal<GitHubRepoInfo[]>(
         `/user/repos?per_page=100&page=${page}&sort=updated`,
       );
@@ -175,10 +177,17 @@ export class GitHubApiServiceClass {
   }
 
   /**
-   * Get issues count using Link header pagination info
+   * Get issues count, excluding pull requests.
+   *
+   * GitHub's REST issues endpoint (`/repos/{owner}/{repo}/issues`) treats pull
+   * requests as issues, so the Link-header pagination trick would double-count
+   * every PR. The search API supports an explicit `is:issue` qualifier and
+   * returns an exact `total_count`, giving a PR-excluded total.
    */
   private async _getRepositoryIssuesCount(owner: string, repo: string): Promise<number> {
-    const response = await fetch(`${this._baseURL}/repos/${owner}/${repo}/issues?state=all&per_page=1`, {
+    const query = encodeURIComponent(`repo:${owner}/${repo} is:issue`);
+
+    const response = await fetch(`${this._baseURL}/search/issues?q=${query}&per_page=1`, {
       headers: {
         Accept: 'application/vnd.github.v3+json',
         Authorization: `${this._config.tokenType === 'classic' ? 'token' : 'Bearer'} ${this._config.token}`,
@@ -190,16 +199,9 @@ export class GitHubApiServiceClass {
       return 0;
     }
 
-    const linkHeader = response.headers.get('Link');
+    const data: any = await response.json().catch(() => null);
 
-    if (linkHeader) {
-      const match = linkHeader.match(/page=(\d+)>; rel="last"/);
-      return match ? parseInt(match[1], 10) : 1;
-    }
-
-    const data = await response.json();
-
-    return Array.isArray(data) ? data.length : 0;
+    return data && typeof data.total_count === 'number' ? data.total_count : 0;
   }
 
   /**

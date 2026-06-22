@@ -21,15 +21,30 @@ const mockListeners = new Map<string, Set<(memory: ProjectIdeMemory) => void>>()
 function applyMockPatch(projectId: string, patch: ProjectIdeMemory) {
   const previous = mockState.get(projectId) ?? {};
 
+  /*
+   * Mirror the real `mergeProjectIdeMemory` semantics that the bug depends on:
+   * `conversations` is replaced wholesale (`patch ?? existing`), and `messages`
+   * are replaced when `clearMessages` is set, otherwise appended/kept. Without
+   * modelling this faithfully a regression test for the switch-away data-loss
+   * bug would be vacuous.
+   */
+  const clearMessages = patch.chat?.clearMessages;
+
+  const mergedMessages = clearMessages
+    ? (patch.chat?.messages ?? [])
+    : (patch.chat?.messages ?? previous.chat?.messages);
+
   const merged: ProjectIdeMemory = {
     ...previous,
     ...patch,
     chat: {
       ...previous.chat,
       ...patch.chat,
+      messages: mergedMessages,
       conversations: patch.chat?.conversations ?? previous.chat?.conversations,
     },
   };
+  delete merged.chat?.clearMessages;
   mockState.set(projectId, merged);
 
   for (const listener of mockListeners.get(projectId) ?? []) {
@@ -147,6 +162,86 @@ describe('useProjectChatBranches', () => {
 
     const child = result.current.conversations.find((conversation) => conversation.id === 'child');
     expect(child?.title).toBe('Keep me');
+  });
+
+  it('switchTo() syncs grown messages from an already-archived active thread before switching away', async () => {
+    /*
+     * Reproduces the data-loss bug: after a prior switchTo(), chat.id equals an
+     * already-archived conversation (branch-a). The user keeps chatting on it,
+     * so chat.messages grows beyond what branch-a's conversation entry holds.
+     * Switching to branch-b must write those grown messages back into branch-a,
+     * not drop them.
+     */
+    const grownMessages = [userMessage('u1', 'hi'), assistantMessage('a1', 'hello'), userMessage('u2', 'more please')];
+
+    mockState.set('proj-1', {
+      chat: {
+        id: 'branch-a',
+
+        // Active thread carries the grown messages...
+        messages: grownMessages,
+        conversations: [
+          // ...but branch-a's stored entry is stale (only the first two messages).
+          { id: 'branch-a', messages: [userMessage('u1', 'hi'), assistantMessage('a1', 'hello')] },
+          { id: 'branch-b', messages: [userMessage('b1', 'other branch')] },
+        ],
+      },
+    });
+
+    const { result } = renderHook(() => useProjectChatBranches('proj-1'));
+    await waitFor(() => expect(result.current.conversations.length).toBe(2));
+
+    let switched = false;
+    await act(async () => {
+      switched = await result.current.switchTo('branch-b');
+    });
+
+    expect(switched).toBe(true);
+
+    await waitFor(() => {
+      const branchA = result.current.conversations.find((conversation) => conversation.id === 'branch-a');
+      expect(branchA?.messages.map((message) => message.id)).toEqual(['u1', 'a1', 'u2']);
+    });
+
+    // The active thread is now branch-b's messages.
+    const persisted = mockState.get('proj-1');
+    expect(persisted?.chat?.id).toBe('branch-b');
+    expect(persisted?.chat?.messages?.map((message) => message.id)).toEqual(['b1']);
+
+    // And we can switch back to branch-a and recover the grown messages.
+    await act(async () => {
+      await result.current.switchTo('branch-a');
+    });
+
+    await waitFor(() => {
+      const after = mockState.get('proj-1');
+      expect(after?.chat?.id).toBe('branch-a');
+      expect(after?.chat?.messages?.map((message) => message.id)).toEqual(['u1', 'a1', 'u2']);
+    });
+  });
+
+  it('switchTo() archives a never-before-archived active thread (no data loss)', async () => {
+    const activeMessages = [userMessage('u1', 'fresh thread'), assistantMessage('a1', 'reply')];
+
+    mockState.set('proj-1', {
+      chat: {
+        id: 'live-thread',
+        messages: activeMessages,
+        conversations: [{ id: 'branch-b', messages: [userMessage('b1', 'other branch')] }],
+      },
+    });
+
+    const { result } = renderHook(() => useProjectChatBranches('proj-1'));
+    await waitFor(() => expect(result.current.conversations.length).toBe(1));
+
+    await act(async () => {
+      await result.current.switchTo('branch-b');
+    });
+
+    await waitFor(() => {
+      const archived = result.current.conversations.find((conversation) => conversation.id === 'live-thread');
+      expect(archived?.messages.map((message) => message.id)).toEqual(['u1', 'a1']);
+    });
   });
 
   it('remove() prunes the target conversation and its descendants', async () => {

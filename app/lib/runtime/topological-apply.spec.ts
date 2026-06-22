@@ -106,4 +106,46 @@ describe('topologicallySortFileActions', () => {
     expect(result.cyclic).toBe(false);
     expect(result.ordered.map((a) => a.filePath)).toEqual(['src/lib.ts', 'src/app.ts']);
   });
+
+  it('keeps every action when two inputs normalise to the same key', () => {
+    /*
+     * Regression: two pending proposals targeting the same path used to
+     * collapse into a single node — one of the two ids was silently
+     * dropped from `ordered`, so an accepted patch never got applied,
+     * while the non-cyclic count guard still passed.
+     */
+    const inputs = [
+      { filePath: 'src/dup.ts', content: 'export const v = 1;', id: 'first' },
+      { filePath: './src/dup.ts', content: 'export const v = 2;', id: 'second' },
+    ];
+
+    const result = topologicallySortFileActions(inputs);
+
+    expect(result.cyclic).toBe(false);
+
+    // Both distinct action objects (and their ids) must survive, no duplicates.
+    expect(result.ordered).toHaveLength(2);
+    expect(result.ordered.map((a) => a.id).sort()).toEqual(['first', 'second']);
+  });
+
+  it('preserves duplicate-key actions alongside a real import edge', () => {
+    const inputs = [
+      { filePath: 'src/app.ts', content: "import './dup';\nexport const app = 1;", id: 'app' },
+      { filePath: 'src/dup.ts', content: 'export const v = 1;', id: 'dup-a' },
+      { filePath: './src/dup.ts', content: 'export const v = 2;', id: 'dup-b' },
+    ];
+
+    const result = topologicallySortFileActions(inputs);
+
+    expect(result.cyclic).toBe(false);
+    expect(result.ordered).toHaveLength(3);
+
+    // All three ids survive — none silently dropped.
+    expect(result.ordered.map((a) => a.id).sort()).toEqual(['app', 'dup-a', 'dup-b']);
+
+    // The collapsed dependency (dup) still lands before its importer (app).
+    const ids = result.ordered.map((a) => a.id);
+    expect(ids.indexOf('app')).toBeGreaterThan(ids.indexOf('dup-a'));
+    expect(ids.indexOf('app')).toBeGreaterThan(ids.indexOf('dup-b'));
+  });
 });

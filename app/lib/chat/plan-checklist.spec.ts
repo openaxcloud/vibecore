@@ -157,4 +157,45 @@ describe('extractAndStripPlanChecklist', () => {
     const result = extractAndStripPlanChecklist('- [ ] One\n- [ ] Two');
     expect(result?.remainingText).toBe('');
   });
+
+  it('does not swallow indented prose separated from the plan by a blank line', () => {
+    const source = [
+      '## Plan',
+      '- [x] Implement the feature',
+      '- [ ] Document it',
+      '',
+      '    const example = doTheThing();',
+      '    console.log(example);',
+      '',
+      'That snippet shows the new API.',
+    ].join('\n');
+
+    const result = extractAndStripPlanChecklist(source);
+    expect(result).toBeDefined();
+    expect(result!.plan.items).toHaveLength(2);
+
+    /*
+     * The blank-line gap ends the plan block: the indented code block and the
+     * following paragraph must survive in the rendered body, not be stripped.
+     */
+    expect(result!.remainingText).toContain('const example = doTheThing();');
+    expect(result!.remainingText).toContain('console.log(example);');
+    expect(result!.remainingText).toContain('That snippet shows the new API.');
+
+    // And it must not have leaked into an item's result note.
+    expect(result!.plan.items.some((item) => item.result?.includes('const example'))).toBe(false);
+  });
+
+  it('still absorbs indented notes that immediately follow the last item', () => {
+    const source = [
+      '- [x] Built the runner',
+      '  Generated 3 files',
+      '',
+      '  Indented prose after a gap should be kept.',
+    ].join('\n');
+
+    const result = extractAndStripPlanChecklist(source);
+    expect(result?.plan.items[0].result).toBe('Generated 3 files');
+    expect(result?.remainingText).toContain('Indented prose after a gap should be kept.');
+  });
 });

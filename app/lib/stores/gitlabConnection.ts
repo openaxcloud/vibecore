@@ -278,10 +278,14 @@ class GitLabConnectionStore {
     } catch (error) {
       console.error('Failed to auto-connect to GitLab:', error);
 
-      // Log more detailed error information
+      /*
+       * Never log token material (even a partial prefix). GitLab PATs have known
+       * fixed-length prefixes, so the first 10 chars materially reduce the token's
+       * secrecy if captured from the browser console (extensions, screen-share,
+       * error-reporting). Log only the error message.
+       */
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('GitLab auto-connect error details:', {
-        token: envToken.substring(0, 10) + '...', // Log first 10 chars for debugging
         error: errorMessage,
       });
 

@@ -1,8 +1,8 @@
-import { generateId } from 'ai';
 import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { buildFilteredSettingsExport } from '~/lib/hooks/buildFilteredSettingsExport';
 import { useIndexedDB } from '~/lib/hooks/useIndexedDB';
+import { validateImportedChat } from '~/lib/hooks/validateImportedChat';
 import { getAllChats } from '~/lib/persistence/chats';
 import { ImportExportService } from '~/lib/services/importExportService';
 
@@ -592,53 +592,35 @@ export function useDataOperations({
         // Step 3: Validate each chat object
         showProgress('Validating chat data', 60);
 
-        const validatedChats = importedData.chats.map((chat: any) => {
-          if (!chat.id || !Array.isArray(chat.messages)) {
-            throw new Error('Invalid chat format: missing required fields');
-          }
+        /*
+         * Validate+normalize PER CHAT and skip invalid records instead of
+         * throwing from a single map(). Previously one malformed chat (missing
+         * id / non-array messages, or any message lacking role/content) threw
+         * synchronously here, before the IndexedDB write loop ever ran, so the
+         * whole import aborted and NOT A SINGLE chat was imported. A user
+         * importing 500 chats lost all of them because one legacy/partial chat
+         * lacked a role on one message. Now valid chats still import.
+         */
+        let invalidChats = 0;
 
-          // Ensure each message has required fields
-          const validatedMessages = chat.messages.map((msg: any) => {
-            /*
-             * content can legitimately be an empty string (e.g. an assistant
-             * message carrying only tool/function calls), so only reject
-             * genuinely-missing content — not falsy-but-valid values.
-             */
-            if (!msg.role || msg.content === undefined || msg.content === null) {
-              throw new Error('Invalid message format: missing required fields');
+        const validatedChats = importedData.chats.reduce(
+          (acc: ReturnType<typeof validateImportedChat>[], chat: any) => {
+            const validated = validateImportedChat(chat);
+
+            if (validated) {
+              acc.push(validated);
+            } else {
+              invalidChats++;
             }
 
-            return {
-              id: msg.id || generateId(),
-              role: msg.role,
-              content: msg.content,
-              name: msg.name,
-              function_call: msg.function_call,
-              timestamp: msg.timestamp || Date.now(),
+            return acc;
+          },
+          [] as ReturnType<typeof validateImportedChat>[],
+        );
 
-              /*
-               * Preserve structured message data on import so an exported chat
-               * round-trips losslessly (tool calls, reasoning/parts, attachments).
-               */
-              ...(msg.annotations !== undefined ? { annotations: msg.annotations } : {}),
-              ...(msg.parts !== undefined ? { parts: msg.parts } : {}),
-              ...(msg.experimental_attachments !== undefined
-                ? { experimental_attachments: msg.experimental_attachments }
-                : {}),
-              ...(msg.toolInvocations !== undefined ? { toolInvocations: msg.toolInvocations } : {}),
-              ...(msg.createdAt !== undefined ? { createdAt: msg.createdAt } : {}),
-            };
-          });
-
-          return {
-            id: chat.id,
-            description: chat.description || '',
-            messages: validatedMessages,
-            timestamp: chat.timestamp || new Date().toISOString(),
-            urlId: chat.urlId || null,
-            metadata: chat.metadata || null,
-          };
-        });
+        if (invalidChats > 0) {
+          console.warn(`Skipped ${invalidChats} invalid chat(s) during import (missing required fields)`);
+        }
 
         // Step 4: Save current chats for potential undo
         showProgress('Preparing database transaction', 70);
@@ -705,10 +687,17 @@ export function useDataOperations({
         // Dismiss progress toast before showing success toast
         toast.dismiss('progress-toast');
 
-        toast.success(`${validatedChats.length} chats imported successfully`, {
-          position: 'bottom-right',
-          autoClose: 3000,
-        });
+        const importedCount = validatedChats.length - skipped;
+
+        toast.success(
+          invalidChats > 0
+            ? `${importedCount} chats imported successfully (${invalidChats} invalid chat(s) skipped)`
+            : `${importedCount} chats imported successfully`,
+          {
+            position: 'bottom-right',
+            autoClose: 3000,
+          },
+        );
 
         if (onReloadChats) {
           onReloadChats();

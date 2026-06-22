@@ -30,7 +30,7 @@ function foldIpv4MappedIpv6(host: string): string | undefined {
 }
 
 function isLoopback(host: string): boolean {
-  return host === 'localhost' || host === '::1' || host === '::' || /^127\./.test(host) || host.endsWith('.localhost');
+  return host === 'localhost' || host === '::1' || /^127\./.test(host) || host.endsWith('.localhost');
 }
 
 /**
@@ -79,6 +79,7 @@ export function isBlockedProviderBaseUrl(rawUrl: string, allowPrivate = false): 
 
     if (
       candidate === '0.0.0.0' ||
+      candidate === '::' ||
       /^0\./.test(candidate) ||
       /^10\./.test(candidate) ||
       /^192\.168\./.test(candidate) ||

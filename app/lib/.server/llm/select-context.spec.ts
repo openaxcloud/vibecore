@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FileMap } from './constants';
-import { getFilePaths } from './select-context';
+import { getFilePaths, selectContextBufferFiles } from './select-context';
 
 describe('getFilePaths', () => {
   it('does not throw on the bare /home/project root entry (regression: ignore() rejects absolute paths)', () => {
@@ -36,5 +36,50 @@ describe('getFilePaths', () => {
 
     expect(() => getFilePaths(files)).not.toThrow();
     expect(getFilePaths(files)).toContain('/home/project/index.html');
+  });
+});
+
+describe('selectContextBufferFiles', () => {
+  const files: FileMap = {
+    '/home/project/src/App.tsx': { type: 'file', content: 'app', isBinary: false },
+    '/home/project/src/index.ts': { type: 'file', content: 'index', isBinary: false },
+  } as unknown as FileMap;
+
+  it('selects files listed in a well-formed codeContext.files array', () => {
+    const { contextFiles, currentFiles } = selectContextBufferFiles(files, ['src/App.tsx']);
+
+    expect(currentFiles).toEqual(['src/App.tsx']);
+    expect(Object.keys(contextFiles)).toEqual(['src/App.tsx']);
+    expect(contextFiles['src/App.tsx']).toBe(files['/home/project/src/App.tsx']);
+  });
+
+  it('does not throw when codeContext.files is undefined (regression: deserialized annotation missing files)', () => {
+    /*
+     * Previously `const codeContextFiles: string[] = codeContext.files;` was
+     * dereferenced with `.includes()` and no array guard. A corrupted/older
+     * annotation whose `files` is undefined threw a TypeError that aborted the
+     * whole context-optimization pass for the turn.
+     */
+    let result: ReturnType<typeof selectContextBufferFiles> | undefined;
+
+    expect(() => {
+      result = selectContextBufferFiles(files, undefined);
+    }).not.toThrow();
+
+    expect(result?.contextFiles).toEqual({});
+    expect(result?.currentFiles).toEqual([]);
+  });
+
+  it('does not throw when codeContext.files is a non-array value', () => {
+    for (const bad of [null, 'src/App.tsx', 42, { 0: 'src/App.tsx' }] as unknown[]) {
+      let result: ReturnType<typeof selectContextBufferFiles> | undefined;
+
+      expect(() => {
+        result = selectContextBufferFiles(files, bad);
+      }).not.toThrow();
+
+      expect(result?.contextFiles).toEqual({});
+      expect(result?.currentFiles).toEqual([]);
+    }
   });
 });

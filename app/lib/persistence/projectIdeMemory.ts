@@ -289,8 +289,28 @@ function mergeProjectIdeMemory(existing: ProjectIdeMemory, patch: ProjectIdeMemo
   };
 }
 
-function memoryForServerSave(memory: ProjectIdeMemory, patch: ProjectIdeMemory): ProjectIdeMemory {
-  if (!patch.chat?.clearMessages) {
+/**
+ * Build the to-PUT payload, re-attaching the chat REPLACE flag.
+ *
+ * `mergeProjectIdeMemory` strips `chat.clearMessages` from the cached `memory`
+ * (the server only honours it on the wire), so we re-add it here when the
+ * current patch carries it. Crucially we also OR-in any `clearMessages` already
+ * sitting in a *pending* dirty payload for the same scope: rapid-fire saves are
+ * coalesced into a single PUT inside the 1.5 s debounce window, and a later
+ * ordinary chat-scope save (e.g. `{ chat: { pendingPrompt: null } }`) must not
+ * silently drop the REPLACE semantics of an earlier authoritative chat replace
+ * (rewind / message-delete). Without this stickiness the coalesced PUT omits
+ * `clearMessages`, the server union-merges instead of replacing, and the
+ * messages a rewind removed resurrect on the next reload.
+ */
+function memoryForServerSave(
+  memory: ProjectIdeMemory,
+  patch: ProjectIdeMemory,
+  pendingClearMessages?: boolean,
+): ProjectIdeMemory {
+  const clearMessages = patch.chat?.clearMessages || pendingClearMessages;
+
+  if (!clearMessages) {
     return memory;
   }
 
@@ -679,7 +699,15 @@ export function saveProjectIdeMemory(projectId: string, patch: ProjectIdeMemory,
 
   const existing = memoryCache.get(id) ?? {};
   const next = mergeProjectIdeMemory(existing, patch);
-  const dirty = memoryForServerSave(next, patch);
+
+  /*
+   * Make the chat REPLACE flag sticky across the debounce window: if an earlier
+   * coalesced save already queued `clearMessages` for this scope, carry it onto
+   * the new dirty payload so a follow-up ordinary chat save can't downgrade the
+   * pending PUT from a replace to a union-merge (data-loss on rewind/delete).
+   */
+  const pendingClearMessages = pendingDirty.get(id)?.chat?.clearMessages;
+  const dirty = memoryForServerSave(next, patch, pendingClearMessages);
   memoryCache.set(id, next);
   writeLocalProjectIdeMemory(id, next);
   pendingDirty.set(id, dirty);
@@ -853,9 +881,19 @@ async function persistWithRetry(scope: string): Promise<void> {
            */
           const merged = mergeProjectIdeMemory(serverMemory, dirty);
           memoryCache.set(scope, merged);
-          pendingDirty.set(scope, merged);
           writeLocalProjectIdeMemory(scope, merged);
           notifyCrossTabListeners(scope, merged);
+
+          /*
+           * `mergeProjectIdeMemory` strips `chat.clearMessages` (the server only
+           * honours it on the wire). If the original `dirty` was an authoritative
+           * chat replace (rewind / message-delete), re-attach the flag to the
+           * re-PUT payload so the conflict retry still REPLACES the message list
+           * instead of silently downgrading to a union-merge — otherwise losing a
+           * version race to another tab resurrects the removed messages. The cache
+           * keeps the flag-free `merged` so local reads aren't polluted.
+           */
+          pendingDirty.set(scope, memoryForServerSave(merged, dirty));
         }
 
         const conflictError = new Error('IDE state was modified by another session');

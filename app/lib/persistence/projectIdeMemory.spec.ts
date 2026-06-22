@@ -580,6 +580,53 @@ describe('project IDE memory save debouncing', () => {
 
     await expect(observed).resolves.toMatch(/Failed to save project IDE memory/);
   });
+
+  it('keeps the chat REPLACE flag on the coalesced PUT when a later ordinary save lands in the debounce window', async () => {
+    /*
+     * Bug 1 regression — an authoritative chat replace (clearMessages: true,
+     * e.g. after a rewind that produced a SHORTER list) followed within the
+     * debounce window by an ordinary chat save (pendingPrompt: null) must NOT
+     * downgrade the coalesced PUT from a REPLACE to a union-merge, otherwise
+     * the rewound messages resurrect on reload.
+     */
+    const fetchMock = vi.fn(async (_url: unknown, _init: { body: string }) => ({
+      ok: true,
+      json: async () => ({ ideState: null }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const projectId = 'project-debounce-clear-sticky';
+
+    // First save: authoritative rewind/replace.
+    void saveProjectIdeMemory(projectId, {
+      chat: {
+        id: `project:${projectId}`,
+        messages: [{ id: 'u1', role: 'user', content: 'kept after rewind' }],
+        clearMessages: true,
+      },
+    });
+
+    // Second save inside the window: ordinary chat-scope save, no clearMessages.
+    void saveProjectIdeMemory(projectId, {
+      chat: { pendingPrompt: null },
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const call = fetchMock.mock.calls[0];
+
+    if (!call) {
+      throw new Error('expected a recorded fetch call');
+    }
+
+    const body = JSON.parse(call[1].body) as { state: { chat?: { clearMessages?: boolean; pendingPrompt?: unknown } } };
+    expect(body.state.chat?.clearMessages).toBe(true);
+    expect(body.state.chat?.pendingPrompt).toBeNull();
+  });
 });
 
 /*
@@ -701,5 +748,73 @@ describe('project IDE memory ETag / If-Match', () => {
     const restored = await getProjectIdeMemory(projectId);
     expect(restored.ui?.agentWidth).toBe(800);
     expect(restored.ui?.terminalBottomHeight).toBe(222);
+  });
+
+  it('carries the chat REPLACE flag onto the re-PUT after a 412 conflict', async () => {
+    /*
+     * Bug 2 regression — when an authoritative chat replace (clearMessages:
+     * true) loses a version race, the 412 recovery re-merges against the
+     * server state. `mergeProjectIdeMemory` strips clearMessages, so without
+     * the fix the re-PUT body would union-merge and the rewound messages
+     * would survive. Assert the second PUT still carries clearMessages.
+     */
+    const putBodies: Array<{ chat?: { clearMessages?: boolean; messages?: Array<{ id?: string }> } }> = [];
+
+    const fetchMock = vi.fn(
+      async (_url: unknown, init?: { method?: string; headers?: Record<string, string>; body?: string }) => {
+        if (!init || (init.method ?? 'GET').toUpperCase() === 'GET') {
+          return {
+            ok: true,
+            status: 200,
+            headers: makeHeaders({ etag: '"3"' }),
+            json: async () => ({ ideState: { state: { chat: { messages: [] } }, version: 3 } }),
+          };
+        }
+
+        putBodies.push((JSON.parse(init.body ?? '{}') as { state: (typeof putBodies)[number] }).state);
+
+        if (putBodies.length === 1) {
+          return {
+            ok: false,
+            status: 412,
+            headers: makeHeaders({ etag: '"5"' }),
+            json: async () => ({
+              // Server has a STALE, longer message list from a concurrent session.
+              ideState: { state: { chat: { messages: [{ id: 'stale1' }, { id: 'stale2' }] } }, version: 5 },
+            }),
+          };
+        }
+
+        return {
+          ok: true,
+          status: 200,
+          headers: makeHeaders({ etag: '"6"' }),
+          clone() {
+            return this;
+          },
+          json: async () => ({ ideState: { state: { chat: { messages: [{ id: 'u1' }] } }, version: 6 } }),
+        };
+      },
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const projectId = 'project-etag-412-clear';
+
+    await getProjectIdeMemory(projectId);
+
+    // Authoritative rewind: replace the list with a single message.
+    await saveProjectIdeMemory(projectId, {
+      chat: {
+        id: `project:${projectId}`,
+        messages: [{ id: 'u1', role: 'user', content: 'survivor' }],
+        clearMessages: true,
+      },
+    });
+
+    expect(putBodies).toHaveLength(2);
+    expect(putBodies[0].chat?.clearMessages).toBe(true);
+
+    // The re-PUT after the 412 must still REPLACE, not union-merge.
+    expect(putBodies[1].chat?.clearMessages).toBe(true);
   });
 });

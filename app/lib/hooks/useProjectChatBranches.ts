@@ -193,6 +193,33 @@ export function useProjectChatBranches(projectId: string | undefined): UseProjec
       const baseConversations = archiveEntry ? [...current, archiveEntry] : current;
 
       const nextConversations: BranchedConversation[] = baseConversations.map((conversation) => {
+        /*
+         * Sync the OUTGOING active thread's current messages back into its
+         * matching conversation entry. After a previous switchTo(), chat.id
+         * equals an already-archived conversation's id; the user then keeps
+         * chatting, growing chat.messages, but the conversation entry still
+         * holds the stale (shorter) message list. If we don't write the grown
+         * messages back here, the upcoming clearMessages save replaces
+         * chat.messages with the target's and the conversations[] entry is
+         * never updated — so every message added on the active branch is lost.
+         * We must do this even when activeAlreadyArchived is true (archiveEntry
+         * is undefined in that case), since that's exactly when the entry exists
+         * but is out of date.
+         */
+        if (
+          activeId &&
+          conversation.id === activeId &&
+          conversation.id !== conversationId &&
+          activeMessages.length > 0
+        ) {
+          return {
+            ...conversation,
+            messages: activeMessages,
+            updatedAt: new Date().toISOString(),
+            ...(lastActiveId ? { archivedFromMessageId: lastActiveId } : {}),
+          };
+        }
+
         if (conversation.id !== conversationId) {
           return conversation;
         }

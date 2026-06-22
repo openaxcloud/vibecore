@@ -225,24 +225,32 @@ export function extractAndStripPlanChecklist(source: string): ExtractedPlan | un
    * Expand forward to absorb indented follow-up notes attached to the
    * last item. Stop on the first non-indented non-blank line that isn't
    * a checkbox.
+   *
+   * A blank line separates the plan block from any following prose, so an
+   * indented line is only treated as a follow-up note when no blank line
+   * has intervened since the last absorbed checkbox/note. Otherwise an
+   * indented code block, blockquote, or paragraph written after the plan
+   * would be swallowed into the plan region and stripped from the body.
    */
   let endIdx = lastCheckboxIdx;
+  let sawBlankGap = false;
 
   for (let i = lastCheckboxIdx + 1; i < lines.length; i += 1) {
     const raw = lines[i];
     const trimmed = raw.trim();
 
     if (trimmed === '') {
-      endIdx = i;
+      sawBlankGap = true;
       continue;
     }
 
     if (CHECKBOX_LINE.test(trimmed)) {
       endIdx = i;
+      sawBlankGap = false;
       continue;
     }
 
-    if (/^\s/.test(raw)) {
+    if (/^\s/.test(raw) && !sawBlankGap) {
       endIdx = i;
       continue;
     }

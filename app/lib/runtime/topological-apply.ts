@@ -154,12 +154,27 @@ export function topologicallySortFileActions<T extends TopologicalFileAction>(
   }
 
   const known = new Set<string>();
-  const byPath = new Map<string, T>();
+
+  /*
+   * Two input actions can normalise to the same graph key (e.g. two
+   * pending proposals targeting the same relativePath, or `src/a.ts`
+   * vs `./src/a.ts`). The import graph collapses them into a single
+   * node, but every original action must still be emitted exactly once
+   * so its caller-side id is applied — hence a multimap keyed by path.
+   */
+  const byPath = new Map<string, T[]>();
 
   for (const action of actions) {
     const key = normaliseKey(action.filePath);
     known.add(key);
-    byPath.set(key, action);
+
+    const existing = byPath.get(key);
+
+    if (existing) {
+      existing.push(action);
+    } else {
+      byPath.set(key, [action]);
+    }
   }
 
   /*
@@ -209,9 +224,13 @@ export function topologicallySortFileActions<T extends TopologicalFileAction>(
   const ordered: T[] = [];
   const ready: string[] = [];
 
-  for (const action of actions) {
-    const key = normaliseKey(action.filePath);
-
+  /*
+   * Seed the queue with every unique key (in stable first-seen order)
+   * that has no remaining dependencies. Iterating `byPath` keeps the
+   * input order while visiting each collapsed node exactly once, so a
+   * path shared by multiple actions is never enqueued twice.
+   */
+  for (const key of byPath.keys()) {
     if ((remainingDeps.get(key)?.size ?? 0) === 0) {
       ready.push(key);
     }
@@ -219,9 +238,8 @@ export function topologicallySortFileActions<T extends TopologicalFileAction>(
 
   while (ready.length > 0) {
     const key = ready.shift()!;
-    const action = byPath.get(key);
 
-    if (action) {
+    for (const action of byPath.get(key) ?? []) {
       ordered.push(action);
     }
 

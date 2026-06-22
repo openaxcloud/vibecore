@@ -70,13 +70,22 @@ const defaultState: SupabaseConnectionState = {
   project: undefined,
 };
 
-function parseSavedConnection(raw: string | null): SupabaseConnectionState {
+export function parseSavedConnection(raw: string | null): SupabaseConnectionState {
   if (!raw) {
     return { ...defaultState };
   }
 
   try {
-    return JSON.parse(raw) as SupabaseConnectionState;
+    const parsed = JSON.parse(raw);
+
+    /*
+     * JSON.parse succeeds for valid-but-wrong shapes (e.g. the literal "null",
+     * "42", or an array). Returning those would make `initialState` a non-object
+     * and crash the module at import time (e.g. `initialState.token` throws on null).
+     */
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as SupabaseConnectionState)
+      : { ...defaultState };
   } catch {
     // Corrupt localStorage must not crash module initialization.
     return { ...defaultState };

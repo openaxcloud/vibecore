@@ -678,6 +678,18 @@ export class ActionRunner {
       payload = await this.#repairWithSelfRepairLoop(relativePath, payload, action.abortSignal);
     }
 
+    /*
+     * If the user hit Stop while we were sanitizing / self-repairing, do not
+     * commit the (possibly broken, un-validated best-effort) payload to the
+     * workspace. The aborted self-repair loop returns the initial payload as a
+     * fallback, and writing it here would persist corrupt content for a
+     * generation the user explicitly cancelled.
+     */
+    if (action.abortSignal.aborted) {
+      logger.debug(`Skipping write of ${relativePath}; action was aborted`);
+      return;
+    }
+
     try {
       await this.#runtime.writeFile(relativePath, payload);
       logger.debug(`File written ${relativePath}`);
@@ -709,6 +721,19 @@ export class ActionRunner {
     let lastError: HunkValidationError = validation;
 
     for (let attempt = 1; attempt <= SELF_REPAIR_MAX_ATTEMPTS; attempt += 1) {
+      /*
+       * Honor Stop mid self-repair. callSelfRepairEndpoint rejects with an
+       * AbortError that the catch below swallows, and the inter-attempt
+       * setTimeout delay is not abortable — so without this guard the loop
+       * keeps spinning and ultimately returns a best-effort broken payload to
+       * be written. Bail out to the original sanitized payload instead; the
+       * caller (#runFileAction) skips the write entirely when aborted.
+       */
+      if (signal?.aborted) {
+        workspaceEvents.emit('agent:self-repair:progress', { filePath: relativePath, status: null });
+        return initialPayload;
+      }
+
       workspaceEvents.emit('agent:self-repair:progress', {
         filePath: relativePath,
         status: {

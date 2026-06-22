@@ -136,19 +136,9 @@ export async function selectContext(props: {
   const contextFiles: FileMap = {};
 
   if (codeContext?.type === 'codeContext') {
-    const codeContextFiles: string[] = codeContext.files;
-    Object.keys(files || {}).forEach((path) => {
-      let relativePath = path;
-
-      if (path.startsWith('/home/project/')) {
-        relativePath = path.replace('/home/project/', '');
-      }
-
-      if (codeContextFiles.includes(relativePath)) {
-        contextFiles[relativePath] = files[path];
-        currrentFiles.push(relativePath);
-      }
-    });
+    const selected = selectContextBufferFiles(files || {}, codeContext.files);
+    Object.assign(contextFiles, selected.contextFiles);
+    currrentFiles.push(...selected.currentFiles);
     context = createFilesContext(contextFiles);
   }
 
@@ -336,6 +326,40 @@ export async function selectContext(props: {
   return filteredFiles;
 
   // generateText({
+}
+
+/**
+ * Build the prior context buffer from a persisted `codeContext` annotation.
+ *
+ * `extractCurrentContext` returns the annotation cast as `any` (it comes from
+ * deserialized message annotations), so `codeContext.files` is untrusted: a
+ * corrupted or older-shaped annotation can carry `undefined`/a non-array value.
+ * Calling `.includes()` on that threw a TypeError that propagated out of
+ * `selectContext` and aborted the whole context-optimization pass for the turn.
+ * Guard with `Array.isArray` and treat anything else as an empty selection.
+ */
+export function selectContextBufferFiles(
+  files: FileMap,
+  codeContextFilesRaw: unknown,
+): { contextFiles: FileMap; currentFiles: string[] } {
+  const codeContextFiles: string[] = Array.isArray(codeContextFilesRaw) ? codeContextFilesRaw : [];
+  const contextFiles: FileMap = {};
+  const currentFiles: string[] = [];
+
+  Object.keys(files || {}).forEach((path) => {
+    let relativePath = path;
+
+    if (path.startsWith('/home/project/')) {
+      relativePath = path.replace('/home/project/', '');
+    }
+
+    if (codeContextFiles.includes(relativePath)) {
+      contextFiles[relativePath] = files[path];
+      currentFiles.push(relativePath);
+    }
+  });
+
+  return { contextFiles, currentFiles };
 }
 
 export function getFilePaths(files: FileMap) {

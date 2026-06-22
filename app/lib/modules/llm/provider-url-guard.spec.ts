@@ -21,6 +21,15 @@ describe('isBlockedProviderBaseUrl', () => {
   it('allows loopback (local providers like Ollama / LM Studio)', () => {
     expect(isBlockedProviderBaseUrl('http://localhost:11434/v1')).toBe(false);
     expect(isBlockedProviderBaseUrl('http://127.0.0.1:1234/v1')).toBe(false);
+    expect(isBlockedProviderBaseUrl('http://[::1]:11434/v1')).toBe(false);
+  });
+
+  it('blocks the IPv6 unspecified address :: like 0.0.0.0 (not treated as loopback)', () => {
+    expect(isBlockedProviderBaseUrl('http://[::]/v1')).toBe(true);
+    expect(isBlockedProviderBaseUrl('http://[::]:11434/v1')).toBe(true);
+
+    // mirrors the existing 0.0.0.0 handling: blocked by default
+    expect(isBlockedProviderBaseUrl('http://0.0.0.0/v1')).toBe(true);
   });
 
   it('allows public endpoints', () => {

@@ -401,6 +401,77 @@ describe('ActionRunner self-repair retry loop', () => {
     expect(clearing).toBeDefined();
   });
 
+  it('aborts the self-repair loop and skips the write when Stop is hit mid-repair', async () => {
+    // Initial validation fails, so we enter the self-repair loop.
+    validateAndFormatHunkMock
+      .mockResolvedValueOnce({ kind: 'error', language: 'tsx', message: 'parse error 0' })
+      .mockResolvedValueOnce({ kind: 'error', language: 'tsx', message: 'parse error 1' })
+      .mockResolvedValueOnce({ kind: 'error', language: 'tsx', message: 'parse error 2' });
+
+    const writeFile = vi.fn().mockResolvedValue(undefined);
+
+    const runner = new ActionRunner(
+      createRuntime({ writeFile } as Partial<RuntimeAdapter>),
+      () => createShell() as any,
+    );
+
+    /*
+     * The self-repair endpoint stands in for an in-flight LLM call. We abort the
+     * action while it's pending, which rejects with an AbortError (swallowed by
+     * the loop's catch) and flips abortSignal.aborted before the next iteration.
+     */
+    fetchMock.mockImplementationOnce(async () => {
+      // User hits Stop while this self-repair request is in flight.
+      runner.abortAll();
+      throw new DOMException('aborted', 'AbortError');
+    });
+
+    runner.addAction(fileAction);
+    await runner.runAction(fileAction, false);
+
+    /*
+     * Only the first attempt fired before the abort; the loop did not spin the
+     * remaining attempts (no inter-attempt sleep, no second fetch).
+     */
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Crucially, the aborted generation never wrote the broken payload.
+    expect(writeFile).not.toHaveBeenCalled();
+
+    // The progress banner is cleared on the way out.
+    expect(progressEvents.some((event) => event.status === null)).toBe(true);
+  });
+
+  it('skips the write when the action is aborted before the self-repair loop runs', async () => {
+    /*
+     * Validation passes (no repair needed), but the action is aborted before the
+     * final write — the write must still be skipped.
+     */
+    validateAndFormatHunkMock.mockResolvedValueOnce({ kind: 'skipped' });
+
+    const writeFile = vi.fn().mockResolvedValue(undefined);
+
+    /*
+     * createDirectory is our seam: abort once the file action has begun running,
+     * before #runtime.writeFile is reached. fileAction writes to 'src/App.tsx',
+     * so a directory is created first.
+     */
+    const runner = new ActionRunner(
+      createRuntime({
+        writeFile,
+        createDirectory: vi.fn().mockImplementation(async () => {
+          runner.abortAll();
+        }),
+      } as Partial<RuntimeAdapter>),
+      () => createShell() as any,
+    );
+
+    runner.addAction(fileAction);
+    await runner.runAction(fileAction, false);
+
+    expect(writeFile).not.toHaveBeenCalled();
+  });
+
   it('falls back to the last payload when the self-repair endpoint errors', async () => {
     validateAndFormatHunkMock
       .mockResolvedValueOnce({ kind: 'error', language: 'tsx', message: 'parse error' })

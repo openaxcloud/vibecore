@@ -646,20 +646,40 @@ export class ImportExportService {
     }
   }
 
-  /**
-   * Redact credential-bearing entries from a key/value map before it is written
-   * into an exported settings file. Matches common secret key shapes so new
-   * credential keys are covered without an explicit allowlist.
-   */
-  private static _redactSecrets(source: Record<string, any>): Record<string, any> {
-    const secretPattern = /(apikey|api_key|token|secret|password|credential|private[-_]?key|client[-_]?secret)/i;
-    const result: Record<string, any> = {};
+  /** Key shapes that identify a credential-bearing value anywhere in the tree. */
+  private static readonly _secretKeyPattern =
+    /(apikey|api_key|token|secret|password|credential|private[-_]?key|client[-_]?secret)/i;
 
-    for (const [key, value] of Object.entries(source ?? {})) {
-      result[key] = secretPattern.test(key) ? '[REDACTED]' : value;
+  /**
+   * Redact credential-bearing entries from a value before it is written into an
+   * exported settings file. Matches common secret key shapes so new credential
+   * keys are covered without an explicit allowlist, and recurses into nested
+   * objects/arrays so secrets stashed under a non-secret-named key (e.g.
+   * `netlify_connection.token`, `provider_settings.*.apiKey`) are caught too.
+   * Without the recursion the entire `netlify_connection` blob — including its
+   * plaintext deploy `token` — was copied verbatim into the backup file.
+   */
+  private static _redactSecrets(source: any, depth = 0): any {
+    // Bound recursion to defend against pathological/cyclic-ish nesting.
+    if (depth > 20) {
+      return source;
     }
 
-    return result;
+    if (Array.isArray(source)) {
+      return source.map((item) => this._redactSecrets(item, depth + 1));
+    }
+
+    if (source !== null && typeof source === 'object') {
+      const result: Record<string, any> = {};
+
+      for (const [key, value] of Object.entries(source)) {
+        result[key] = this._secretKeyPattern.test(key) ? '[REDACTED]' : this._redactSecrets(value, depth + 1);
+      }
+
+      return result;
+    }
+
+    return source;
   }
 
   /**

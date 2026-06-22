@@ -1,15 +1,9 @@
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import type { LanguageModelV1 } from 'ai';
+import { parseAndValidateBedrockConfig, type AWSBedRockConfig } from './amazon-bedrock-config';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
-
-interface AWSBedRockConfig {
-  region: string;
-  accessKeyId: string;
-  secretAccessKey: string;
-  sessionToken?: string;
-}
 
 export default class AmazonBedrockProvider extends BaseProvider {
   name = 'AmazonBedrock';
@@ -65,30 +59,7 @@ export default class AmazonBedrockProvider extends BaseProvider {
   ];
 
   private _parseAndValidateConfig(apiKey: string): AWSBedRockConfig {
-    let parsedConfig: AWSBedRockConfig;
-
-    try {
-      parsedConfig = JSON.parse(apiKey);
-    } catch {
-      throw new Error(
-        'Invalid AWS Bedrock configuration format. Please provide a valid JSON string containing region, accessKeyId, and secretAccessKey.',
-      );
-    }
-
-    const { region, accessKeyId, secretAccessKey, sessionToken } = parsedConfig;
-
-    if (!region || !accessKeyId || !secretAccessKey) {
-      throw new Error(
-        'Missing required AWS credentials. Configuration must include region, accessKeyId, and secretAccessKey.',
-      );
-    }
-
-    return {
-      region,
-      accessKeyId,
-      secretAccessKey,
-      ...(sessionToken && { sessionToken }),
-    };
+    return parseAndValidateBedrockConfig(apiKey);
   }
 
   getModelInstance(options: {

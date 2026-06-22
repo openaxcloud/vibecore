@@ -44,13 +44,120 @@ async function collectNodes(
       continue;
     }
 
-    if (options.excludeFile?.(node.name) || node.encoding === 'binary') {
+    if (options.excludeFile?.(node.name) || node.encoding === 'binary' || node.encoding === 'base64') {
       continue;
     }
 
-    const content = node.content ?? (await runtime.readFile(node.path)).content;
+    /*
+     * Tree nodes from the workspace-agent carry no `encoding` field, so the
+     * guard above can't catch binary assets. Detect them by extension before
+     * we even attempt a read.
+     */
+    if (isBinaryFilePath(node.path)) {
+      continue;
+    }
+
+    let content = node.content;
+
+    if (content === undefined) {
+      const read = await runtime.readFile(node.path);
+
+      /*
+       * readFile returns binary files as base64 with `encoding: 'base64'`.
+       * Writing that base64 string as if it were UTF-8 source corrupts the
+       * asset in the deploy file map, so skip it.
+       */
+      if (read.encoding === 'base64') {
+        continue;
+      }
+
+      content = read.content;
+    }
+
     files[toOutputPath(node.path, options.stripPrefix)] = content;
   }
+}
+
+/**
+ * Extensions whose contents are binary and must never be written into a
+ * text-only deploy file map. The workspace-agent file tree carries no
+ * `encoding` field, so extension detection is the only signal available
+ * before reading a file.
+ */
+const BINARY_FILE_EXTENSIONS = new Set([
+  // Images
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'bmp',
+  'ico',
+  'icns',
+  'webp',
+  'avif',
+  'tiff',
+  'tif',
+  'heic',
+  'heif',
+
+  // Vector/binary fonts
+  'woff',
+  'woff2',
+  'ttf',
+  'otf',
+  'eot',
+
+  // Media
+  'mp3',
+  'wav',
+  'ogg',
+  'flac',
+  'aac',
+  'm4a',
+  'mp4',
+  'webm',
+  'mov',
+  'avi',
+  'mkv',
+
+  // Archives & binaries
+  'zip',
+  'gz',
+  'tar',
+  'tgz',
+  'bz2',
+  '7z',
+  'rar',
+  'wasm',
+  'pdf',
+  'exe',
+  'dll',
+  'so',
+  'dylib',
+  'class',
+  'jar',
+  'bin',
+  'dat',
+
+  // Documents that are zip/binary containers
+  'doc',
+  'docx',
+  'xls',
+  'xlsx',
+  'ppt',
+  'pptx',
+]);
+
+export function isBinaryFilePath(path: string): boolean {
+  const lastSlash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+  const name = lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
+  const dot = name.lastIndexOf('.');
+
+  if (dot <= 0) {
+    return false;
+  }
+
+  return BINARY_FILE_EXTENSIONS.has(name.slice(dot + 1).toLowerCase());
 }
 
 function toOutputPath(path: string, stripPrefix?: string) {
