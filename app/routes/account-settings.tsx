@@ -18,6 +18,18 @@ interface CurrentUser {
   timezone?: string;
 }
 
+/**
+ * Errors that must NOT be rendered inline and must instead be re-thrown so the
+ * framework handles them: redirect responses (3xx — e.g. the `/login?returnTo=…`
+ * re-auth redirect apiRequest throws when the session expired mid-session, or the
+ * MFA-required redirect) and server errors (5xx — handled by the route error
+ * boundary). A 3xx redirect has no JSON body, so passing it to apiErrorMessage
+ * would surface a dead-end generic error instead of sending the user to re-auth.
+ */
+export function shouldRethrowActionError(error: unknown): error is Response {
+  return error instanceof Response && (error.status >= 500 || (error.status >= 300 && error.status < 400));
+}
+
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const { user } = await apiRequest<{ user?: CurrentUser }>(request, '/auth/me');
 
@@ -52,7 +64,14 @@ export async function action({ request }: EnterpriseActionArgs) {
   try {
     await apiRequest(request, '/auth/me', { method: 'PATCH', body: JSON.stringify(payload) });
   } catch (error) {
-    if (error instanceof Response && error.status >= 500) {
+    /*
+     * apiRequest throws a react-router redirect() Response (3xx with a Location header) when the
+     * session expired (401) or MFA is required (403) on a page navigation. Re-throw it so the
+     * browser follows the re-auth redirect instead of swallowing it into a body-less inline error
+     * (a 302 has no JSON body, so apiErrorMessage would fall back to a dead-end generic message).
+     * Server errors (5xx) are re-thrown to the route error boundary; everything else surfaces inline.
+     */
+    if (shouldRethrowActionError(error)) {
       throw error;
     }
 

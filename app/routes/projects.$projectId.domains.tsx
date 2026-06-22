@@ -24,6 +24,19 @@ type Project = { id: string; name: string; description?: string };
 
 export const meta: MetaFunction = () => [{ title: 'Custom domains - E-Code' }];
 
+/**
+ * apiRequest throws a react-router `redirect()` Response (a 3xx with a Location
+ * header and no JSON body) when the session expired (401) or MFA is required
+ * (403) on a page navigation. Such a redirect is `instanceof Response`, so the
+ * inline `error.json()` branches below would otherwise swallow it into a
+ * body-less generic error and leave the user on a dead-end page. Detect it here
+ * so the catch blocks can re-throw it and let the browser follow the re-auth
+ * redirect.
+ */
+export function isReauthRedirect(error: unknown): error is Response {
+  return error instanceof Response && error.status >= 300 && error.status < 400;
+}
+
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   const projectId = params.projectId;
 
@@ -63,6 +76,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         method: 'POST',
       });
     } catch (error) {
+      if (isReauthRedirect(error)) {
+        throw error;
+      }
+
       /*
        * The API performs a real DNS TXT lookup and returns 422 with a human-readable message when the
        * record isn't visible yet. Surface that message inline instead of throwing to an error boundary.
@@ -81,6 +98,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         body: JSON.stringify({ domain }),
       });
     } catch (error) {
+      if (isReauthRedirect(error)) {
+        throw error;
+      }
+
       /*
        * The API validates the domain and rejects duplicates or invalid hosts. Surface that
        * message inline instead of throwing to an error boundary.

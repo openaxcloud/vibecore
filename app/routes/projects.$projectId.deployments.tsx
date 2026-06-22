@@ -63,6 +63,17 @@ const providers = [
   { id: 'docker', name: 'Custom Dockerfile', detail: 'Enterprise isolated builder only.', icon: ShieldCheck },
 ];
 
+/**
+ * True when `error` is a react-router redirect Response (3xx with a Location
+ * header). apiRequest throws one of these when the session expired (401) or MFA
+ * is required (403) on a page-navigation route, so the action must re-throw it
+ * to let the browser follow the re-auth redirect instead of converting a
+ * body-less redirect into a generic inline "Failed to …" banner.
+ */
+export function isReauthRedirect(error: unknown): error is Response {
+  return error instanceof Response && error.status >= 300 && error.status < 400;
+}
+
 export const meta: MetaFunction = () => [{ title: 'Project deployments - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<DeploymentsData>(args, (projectId) => `/projects/${projectId}/deployments`);
@@ -116,6 +127,10 @@ export const action = (args: EnterpriseActionArgs) =>
           }),
         });
       } catch (error) {
+        if (isReauthRedirect(error)) {
+          throw error;
+        }
+
         return json({ error: await apiErrorMessage(error, 'Failed to start deployment') });
       }
 
@@ -127,6 +142,10 @@ export const action = (args: EnterpriseActionArgs) =>
       try {
         await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/cancel`, { method: 'POST' });
       } catch (error) {
+        if (isReauthRedirect(error)) {
+          throw error;
+        }
+
         return json({ error: await apiErrorMessage(error, 'Failed to cancel deployment') });
       }
 
@@ -143,6 +162,10 @@ export const action = (args: EnterpriseActionArgs) =>
           signal: AbortSignal.timeout(DEPLOY_REQUEST_TIMEOUT_MS),
         });
       } catch (error) {
+        if (isReauthRedirect(error)) {
+          throw error;
+        }
+
         return json({ error: await apiErrorMessage(error, 'Failed to redeploy') });
       }
 
@@ -156,6 +179,10 @@ export const action = (args: EnterpriseActionArgs) =>
           method: 'POST',
         });
       } catch (error) {
+        if (isReauthRedirect(error)) {
+          throw error;
+        }
+
         return json({ error: await apiErrorMessage(error, 'Failed to roll back') });
       }
 

@@ -36,15 +36,18 @@ export const action = (args: EnterpriseActionArgs) =>
         /*
          * The API validates the project metadata and may reject invalid names or Git URLs.
          * Surface that message inline instead of throwing to an error boundary.
+         * `apiRequest` may throw a redirect Response (e.g. to /login on 401 or the MFA re-auth path
+         * on 403); let those propagate so the sign-in/MFA redirect actually happens instead of being
+         * swallowed into a broken 3xx json() and a generic inline error on a still-broken form.
          */
-        if (error instanceof Response) {
-          const status = error.status;
-          const msg = await apiErrorMessage(error, 'Unable to save settings. Check the values and try again.');
-
-          return json({ error: msg }, { status });
+        if (error instanceof Response && error.status >= 300 && error.status < 400) {
+          throw error;
         }
 
-        throw error;
+        const status = error instanceof Response ? error.status : 400;
+        const msg = await apiErrorMessage(error, 'Unable to save settings. Check the values and try again.');
+
+        return json({ error: msg }, { status });
       }
 
       return redirect(`/projects/${projectId}/settings`);

@@ -17,6 +17,18 @@ type SnapshotsData = {
   snapshots: Array<{ id: string; label?: string; kind: string; byteLength?: number; createdAt?: string }>;
 };
 
+/**
+ * True when `error` is a react-router redirect Response (3xx with a Location
+ * header). apiRequest throws one of these when the session expired (401) or MFA
+ * is required (403) on a page-navigation route, so the snapshot create/restore
+ * actions must re-throw it to let the browser follow the login/MFA redirect
+ * instead of swallowing a body-less redirect into an inline "Snapshot … failed."
+ * banner.
+ */
+export function isReauthRedirect(error: unknown): error is Response {
+  return error instanceof Response && error.status >= 300 && error.status < 400;
+}
+
 export const meta: MetaFunction = () => [{ title: 'Project snapshots - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<SnapshotsData>(args, (projectId) => `/projects/${projectId}/snapshots`);
@@ -29,8 +41,14 @@ export const action = (args: EnterpriseActionArgs) =>
           body: JSON.stringify({ label: body.label || 'Manual checkpoint', kind: 'manual', manifest: {} }),
         });
       } catch (error) {
+        /* Let login/MFA re-auth redirects (302 → /login?returnTo=…) propagate instead of swallowing them. */
+        if (isReauthRedirect(error)) {
+          throw error;
+        }
+
         /* Surface RBAC/validation/storage failures inline instead of throwing to the error boundary. */
         const status = error instanceof Response ? error.status : 400;
+
         return json({ error: await apiErrorMessage(error, 'Snapshot create failed.') }, { status });
       }
       return redirect(`/projects/${projectId}/snapshots`);
@@ -39,8 +57,14 @@ export const action = (args: EnterpriseActionArgs) =>
       try {
         await apiRequest(request, `/projects/${projectId}/snapshots/${body.snapshotId}/restore`, { method: 'POST' });
       } catch (error) {
+        /* Let login/MFA re-auth redirects (302 → /login?returnTo=…) propagate instead of swallowing them. */
+        if (isReauthRedirect(error)) {
+          throw error;
+        }
+
         /* A failed restore (409 SNAPSHOT_STORAGE_MISSING / CHECKSUM_MISMATCH) should show inline, not crash. */
         const status = error instanceof Response ? error.status : 400;
+
         return json({ error: await apiErrorMessage(error, 'Snapshot restore failed.') }, { status });
       }
       return redirect(`/projects/${projectId}/snapshots`);

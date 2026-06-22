@@ -107,6 +107,51 @@ describe('POST /api/agent/self-repair', () => {
     expect(call.promptId).toBe('self-repair');
   });
 
+  it('prepends [Model:]/[Provider:] tags so streamText routes to the active model', async () => {
+    streamTextMock.mockResolvedValueOnce({ text: Promise.resolve('corrected file body') });
+
+    const action = await loadAction();
+
+    const response = await action(
+      actionArgs(
+        makeRequest({
+          body: JSON.stringify({
+            prompt: 'fix this hunk',
+            model: 'claude-3-5-sonnet-latest',
+            provider: 'Anthropic',
+          }),
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+
+    const call = streamTextMock.mock.calls[0][0];
+
+    /*
+     * MODEL_REGEX is anchored to the start; the Provider tag follows. Both are
+     * double-newline terminated so extractPropertiesFromMessage can strip them.
+     */
+    expect(call.messages).toEqual([
+      {
+        id: 'self-repair',
+        role: 'user',
+        content: '[Model: claude-3-5-sonnet-latest]\n\n[Provider: Anthropic]\n\nfix this hunk',
+      },
+    ]);
+  });
+
+  it('leaves the prompt untagged when no model/provider is supplied', async () => {
+    streamTextMock.mockResolvedValueOnce({ text: Promise.resolve('ok') });
+
+    const action = await loadAction();
+
+    await action(actionArgs(makeRequest({ body: JSON.stringify({ prompt: 'fix this hunk' }) })));
+
+    const call = streamTextMock.mock.calls[0][0];
+    expect(call.messages).toEqual([{ id: 'self-repair', role: 'user', content: 'fix this hunk' }]);
+  });
+
   it('returns 502 when the LLM call rejects', async () => {
     streamTextMock.mockRejectedValueOnce(new Error('provider quota exhausted'));
 

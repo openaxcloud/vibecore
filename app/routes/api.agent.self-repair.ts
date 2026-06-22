@@ -1,5 +1,6 @@
 import { type ActionFunctionArgs } from 'react-router';
 
+import { buildSelfRepairMessageContent } from './api.agent.self-repair.message';
 import { streamText, type Messages } from '~/lib/.server/llm/stream-text';
 import { requireWebSession } from '~/lib/.server/require-session';
 import type { IProviderSetting } from '~/types/model';
@@ -63,10 +64,10 @@ export async function action({ context, request }: ActionFunctionArgs) {
   // Gate the platform's managed provider keys behind a valid session.
   await requireWebSession(request);
 
-  let body: { prompt?: unknown };
+  let body: { prompt?: unknown; model?: unknown; provider?: unknown };
 
   try {
-    body = (await request.json()) as { prompt?: unknown };
+    body = (await request.json()) as { prompt?: unknown; model?: unknown; provider?: unknown };
   } catch {
     return json({ error: 'Invalid JSON body' }, 400);
   }
@@ -74,6 +75,16 @@ export async function action({ context, request }: ActionFunctionArgs) {
   if (typeof body.prompt !== 'string' || body.prompt.length === 0) {
     return json({ error: 'Body must include a non-empty string `prompt`' }, 400);
   }
+
+  /*
+   * Pin self-repair to the same model/provider that generated the file. The
+   * caller forwards the active model/provider; we encode them as `[Model:]` /
+   * `[Provider:]` tags so streamText routes there instead of the gateway
+   * DEFAULT_MODEL/DEFAULT_PROVIDER (which can lack the user's only credential
+   * and 502, or quietly repair on a weaker model). Absent values => unchanged.
+   */
+  const model = typeof body.model === 'string' ? body.model : null;
+  const provider = typeof body.provider === 'string' ? body.provider : null;
 
   if (body.prompt.length > MAX_PROMPT_BYTES) {
     return json({ error: `Prompt exceeds the ${MAX_PROMPT_BYTES}-byte self-repair budget` }, 413);
@@ -92,7 +103,9 @@ export async function action({ context, request }: ActionFunctionArgs) {
     return json({ error: 'Invalid apiKeys / providers cookie payload' }, 400);
   }
 
-  const messages: Messages = [{ id: 'self-repair', role: 'user', content: body.prompt }];
+  const messages: Messages = [
+    { id: 'self-repair', role: 'user', content: buildSelfRepairMessageContent(body.prompt, model, provider) },
+  ];
 
   try {
     const result = await streamText({

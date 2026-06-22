@@ -5,23 +5,89 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import {
-  contentTypeForProjectFile,
-  normalizeProjectFilePath,
-  readProjectFileFromZipBase64,
-} from '~/lib/project-file-route';
+import { contentTypeForProjectFile, normalizeProjectFilePath } from '~/lib/project-file-route';
 
-interface ProjectExportResponse {
-  archive?: {
-    base64?: string;
-    byteLength?: number;
-    storageKey?: string;
-  };
+interface RuntimeFileReadResponse {
+  path?: string;
+  content?: string;
+  encoding?: 'utf8' | 'base64';
 }
 
 interface ProjectFileWriteResponse {
   ok: true;
   path: string;
+}
+
+export interface ProjectFileWritePayload {
+  content: string;
+  encoding: 'utf8' | 'base64';
+}
+
+/*
+ * Decode the runtime read response into raw bytes. Binary files are returned as
+ * {content:<base64>, encoding:'base64'} (api commit 1029075b); decoding the
+ * base64 back to bytes keeps reads lossless. Text files (encoding omitted or
+ * 'utf8') are encoded as utf8.
+ */
+export function decodeRuntimeFileContent(file: RuntimeFileReadResponse): Uint8Array {
+  const content = file.content ?? '';
+
+  if (file.encoding === 'base64') {
+    const binary = atob(content);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    return bytes;
+  }
+
+  return new TextEncoder().encode(content);
+}
+
+/*
+ * Parse the incoming PUT body into a write payload the runtime understands.
+ *
+ * The legacy/default contract is a raw request body interpreted as utf8 text.
+ * That round-trips binary files (images, fonts, compiled assets) through a JS
+ * string, which is lossy for non-UTF-8 bytes and silently corrupts the file on
+ * save. So when the client sends application/json we accept an explicit
+ * {content, encoding} envelope and forward the encoding to the runtime write
+ * endpoint, which decodes base64 back to real bytes. Anything else falls back
+ * to the historical raw-text behaviour.
+ */
+export async function parseProjectFileWriteBody(
+  rawBody: string,
+  contentType: string | null,
+): Promise<ProjectFileWritePayload> {
+  if (contentType && contentType.toLowerCase().includes('application/json')) {
+    let parsed: unknown;
+
+    try {
+      parsed = JSON.parse(rawBody);
+    } catch {
+      throw json({ ok: false, error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    if (!parsed || typeof parsed !== 'object') {
+      throw json({ ok: false, error: 'Invalid file write body' }, { status: 400 });
+    }
+
+    const { content, encoding } = parsed as { content?: unknown; encoding?: unknown };
+
+    if (typeof content !== 'string') {
+      throw json({ ok: false, error: 'File content is required' }, { status: 400 });
+    }
+
+    if (encoding !== undefined && encoding !== 'utf8' && encoding !== 'base64') {
+      throw json({ ok: false, error: 'Unsupported content encoding' }, { status: 400 });
+    }
+
+    return { content, encoding: encoding === 'base64' ? 'base64' : 'utf8' };
+  }
+
+  return { content: rawBody, encoding: 'utf8' };
 }
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
@@ -36,45 +102,54 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     throw json({ ok: false, error: normalizedPath.error }, { status: 400 });
   }
 
-  let exported: ProjectExportResponse;
+  let file: RuntimeFileReadResponse;
 
   try {
-    exported = await apiRequest<ProjectExportResponse>(
+    /*
+     * Read the single requested file from the running workspace instead of
+     * exporting and unzipping the FULL project archive per read. The old
+     * /projects/:id/export/zip path transferred and decompressed the entire
+     * workspace for one file and, bounded by the 30s apiRequest timeout, timed
+     * out on large projects. This mirrors the write path below, which already
+     * targets the runtime workspace.
+     */
+    file = await apiRequest<RuntimeFileReadResponse>(
       request,
-      `/projects/${encodeURIComponent(projectId)}/export/zip`,
+      `/api/runtime/workspaces/${encodeURIComponent(projectId)}/files/read?path=${encodeURIComponent(
+        normalizedPath.path,
+      )}`,
     );
   } catch (error) {
+    const status = error instanceof Response ? error.status : 502;
+
+    if (status === 404) {
+      throw json(
+        {
+          ok: false,
+          error: 'Project file not found',
+          path: normalizedPath.path,
+        },
+        { status: 404 },
+      );
+    }
+
     const message = await apiErrorMessage(error, 'Project file read failed');
-    const status = error instanceof Response && error.status !== 500 ? error.status : 502;
+    const normalizedStatus = error instanceof Response && error.status !== 500 ? error.status : 502;
 
     throw json(
       {
         ok: false,
         error: message,
-        code: status === 401 || status === 403 ? 'PROJECT_FILE_AUTH_REQUIRED' : 'PROJECT_FILE_READ_UNAVAILABLE',
+        code:
+          normalizedStatus === 401 || normalizedStatus === 403
+            ? 'PROJECT_FILE_AUTH_REQUIRED'
+            : 'PROJECT_FILE_READ_UNAVAILABLE',
       },
-      { status },
+      { status: normalizedStatus },
     );
   }
 
-  const base64Archive = exported.archive?.base64;
-
-  if (!base64Archive) {
-    throw json({ ok: false, error: 'Project export did not return an archive' }, { status: 502 });
-  }
-
-  const file = await readProjectFileFromZipBase64(base64Archive, normalizedPath.path);
-
-  if (!file) {
-    throw json(
-      {
-        ok: false,
-        error: 'Project file not found',
-        path: normalizedPath.path,
-      },
-      { status: 404 },
-    );
-  }
+  const bytes = decodeRuntimeFileContent(file);
 
   /*
    * Project files are attacker-controlled content served from the app's own
@@ -84,10 +159,10 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
    * be rendered as an active document. The IDE reads the body via fetch(), which
    * is unaffected by Content-Disposition.
    */
-  return new Response(file.bytes, {
+  return new Response(bytes, {
     headers: {
       'cache-control': 'no-store',
-      'content-length': String(file.sizeBytes),
+      'content-length': String(bytes.byteLength),
       'content-type': contentTypeForProjectFile(normalizedPath.path),
       'content-disposition': 'attachment',
       'x-content-type-options': 'nosniff',
@@ -113,12 +188,17 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     throw json({ ok: false, error: normalizedPath.error }, { status: 400 });
   }
 
-  const content = await request.text();
+  const rawBody = await request.text();
+  const payload = await parseProjectFileWriteBody(rawBody, request.headers.get('content-type'));
 
   try {
     await apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(projectId)}/files/write`, {
       method: 'PUT',
-      body: JSON.stringify({ path: normalizedPath.path, content }),
+      body: JSON.stringify({
+        path: normalizedPath.path,
+        content: payload.content,
+        encoding: payload.encoding,
+      }),
     });
   } catch (error) {
     const message = await apiErrorMessage(error, 'Project file write failed');

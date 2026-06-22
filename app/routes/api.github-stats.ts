@@ -47,6 +47,77 @@ async function githubPaginated<T>(token: string, path: string): Promise<T[]> {
   return items;
 }
 
+/*
+ * Cap how many repositories we compute expensive per-repo metrics for. Each repo
+ * fans out into 4 separate GitHub fetches (branches/contributors/issues/pulls), so
+ * an account that can see thousands of repos would otherwise launch many thousands
+ * of outbound api.github.com requests in one loader call. The repos are fetched
+ * `sort=updated`, so the first N are the most recently active — the ones whose
+ * aggregate metrics matter for a stats summary.
+ */
+export const MAX_METRIC_REPOS = 25;
+
+/*
+ * Bound the concurrency of the per-repo metric fan-out instead of launching every
+ * chain at once. Keeps outbound socket/rate pressure on api.github.com sane.
+ */
+export const METRICS_CONCURRENCY = 5;
+
+/**
+ * Run `mapper` over `items` with at most `concurrency` in-flight at a time,
+ * settling every result the same way `Promise.allSettled` would (never rejects).
+ */
+export async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = new Array(items.length);
+  const limit = Math.max(1, Math.floor(concurrency));
+
+  let nextIndex = 0;
+
+  async function worker() {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+
+      if (index >= items.length) {
+        return;
+      }
+
+      try {
+        results[index] = { status: 'fulfilled', value: await mapper(items[index]) };
+      } catch (reason) {
+        results[index] = { status: 'rejected', reason };
+      }
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
+  await Promise.all(workers);
+
+  return results;
+}
+
+/**
+ * Map a GitHub events feed into the recentActivity shape, tolerating events whose
+ * `repo` field is absent or null (e.g. some org/sponsorship/member events, or
+ * events on deleted repos). Reading `.name` on an undefined `repo` would otherwise
+ * throw and fail the entire stats response.
+ */
+export function mapRecentActivity(
+  events: any[],
+): { id: any; type: any; repo: { name: string; url: string }; created_at: any; payload: any }[] {
+  return (Array.isArray(events) ? events : []).slice(0, 10).map((event) => ({
+    id: event.id,
+    type: event.type,
+    repo: event.repo ? { name: event.repo.name ?? '', url: event.repo.url ?? '' } : { name: '', url: '' },
+    created_at: event.created_at,
+    payload: event.payload || {},
+  }));
+}
+
 async function githubCount(token: string, path: string): Promise<number> {
   const separator = path.includes('?') ? '&' : '?';
 
@@ -131,14 +202,16 @@ async function githubStatsLoader({ request }: { request: Request; context?: unkn
       githubPaginated<any>(githubToken, '/gists'),
     ]);
 
-    const repoMetrics = await Promise.allSettled(
-      allRepos.map(async (repo) => ({
+    const repoMetrics = await mapWithConcurrency(
+      allRepos.slice(0, MAX_METRIC_REPOS),
+      METRICS_CONCURRENCY,
+      async (repo) => ({
         fullName: repo.full_name,
         branches: await githubCount(githubToken, `/repos/${repo.full_name}/branches`),
         contributors: await githubCount(githubToken, `/repos/${repo.full_name}/contributors`),
         issues: await githubCount(githubToken, `/repos/${repo.full_name}/issues?state=all`),
         pullRequests: await githubCount(githubToken, `/repos/${repo.full_name}/pulls?state=all`),
-      })),
+      }),
     );
 
     const metricsByRepo = new Map(
@@ -203,16 +276,7 @@ async function githubStatsLoader({ request }: { request: Request; context?: unkn
         languages_url: repo.languages_url || '',
       })),
       organizations: organizationsResult.status === 'fulfilled' ? organizationsResult.value : [],
-      recentActivity:
-        recentActivityResult.status === 'fulfilled'
-          ? recentActivityResult.value.slice(0, 10).map((event) => ({
-              id: event.id,
-              type: event.type,
-              repo: { name: event.repo.name, url: event.repo.url },
-              created_at: event.created_at,
-              payload: event.payload || {},
-            }))
-          : [],
+      recentActivity: recentActivityResult.status === 'fulfilled' ? mapRecentActivity(recentActivityResult.value) : [],
       languages: Object.fromEntries(languageStats.entries()),
       totalGists: gists.length || user.public_gists || 0,
       publicRepos,

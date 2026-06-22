@@ -15,6 +15,31 @@ import { projectAction, projectPageLoader } from '~/lib/project-route.server';
 
 type CollaboratorsData = { collaborators: Array<{ id: string; userId: string; roleKey: string; createdAt?: string }> };
 
+/**
+ * Decide how to handle an error thrown while adding a collaborator.
+ *
+ * - A redirect Response (3xx) means the session expired (401 → /login) or MFA enrollment is
+ *   required (403 MFA_REQUIRED → /mfa-setup); it must be re-thrown so the browser follows the
+ *   re-auth navigation rather than rendering it as an inline error.
+ * - A non-redirect Response (e.g. 404 USER_NOT_FOUND, 403 COLLABORATOR_NOT_ORG_MEMBER) is
+ *   surfaced inline as a friendly message.
+ * - Anything else is re-thrown to the error boundary.
+ */
+export async function handleCollaboratorActionError(error: unknown) {
+  if (error instanceof Response && error.status >= 300 && error.status < 400) {
+    throw error;
+  }
+
+  if (error instanceof Response) {
+    const status = error.status;
+    const msg = await apiErrorMessage(error, 'Unable to add collaborator. Check the email and try again.');
+
+    return json({ error: msg }, { status });
+  }
+
+  throw error;
+}
+
 export const meta: MetaFunction = () => [{ title: 'Project collaborators - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<CollaboratorsData>(args, (projectId) => `/projects/${projectId}/collaborators`);
@@ -27,19 +52,7 @@ export const action = (args: EnterpriseActionArgs) =>
           body: JSON.stringify({ email: body.email, roleKey: body.roleKey ?? 'editor' }),
         });
       } catch (error) {
-        /*
-         * The API returns 404 USER_NOT_FOUND when the email isn't registered and 403
-         * COLLABORATOR_NOT_ORG_MEMBER when the user isn't part of the organization. Surface
-         * that message inline instead of throwing to an error boundary.
-         */
-        if (error instanceof Response) {
-          const status = error.status;
-          const msg = await apiErrorMessage(error, 'Unable to add collaborator. Check the email and try again.');
-
-          return json({ error: msg }, { status });
-        }
-
-        throw error;
+        return handleCollaboratorActionError(error);
       }
 
       return redirect(`/projects/${projectId}/collaborators`);
