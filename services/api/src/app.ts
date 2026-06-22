@@ -10620,27 +10620,64 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
     const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId);
 
-    const managerWorkspace = await managerRequest<any>('/workspaces/start', {
-      method: 'POST',
-      body: JSON.stringify({
-        namespace: runtimeNamespace(),
-        orgId: authorized.organizationId ?? 'unknown-org',
-        projectId: authorized.projectId,
-        workspaceId: authorized.workspaceId,
-        image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
+    let managerWorkspace: any;
+
+    try {
+      managerWorkspace = await managerRequest<any>('/workspaces/start', {
+        method: 'POST',
+        body: JSON.stringify({
+          namespace: runtimeNamespace(),
+          orgId: authorized.organizationId ?? 'unknown-org',
+          projectId: authorized.projectId,
+          workspaceId: authorized.workspaceId,
+          image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
+          plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
+          resourceLimits: state
+            ? {
+                cpuMillicores: state.limits['workspace.cpuMillicores'],
+                ramMb: state.limits['workspace.ramMb'],
+                storageGb: state.limits['storage.gb'],
+              }
+            : undefined,
+          env,
+          allowedSecretKeys,
+          allowedSecrets,
+        }),
+      });
+    } catch (error) {
+      /*
+       * Cold-start root cause: the manager's start blocks on pod readiness
+       * (waitForReadiness 180s + waitForAgentReachable 45s) which far exceeds the
+       * api->manager request timeout. A timeout (WORKSPACE_MANAGER_UNAVAILABLE) or a
+       * manager 5xx here does NOT mean the start failed — the manager keeps
+       * provisioning the pod to RUNNING. Previously this threw a 502 that surfaced as
+       * a 'crashed runtime' on essentially every cold provision AND left the record
+       * STARTING with no response. Instead, leave the record STARTING (it genuinely
+       * is) and return a 'starting' session so the IDE polls /status until RUNNING.
+       *
+       * A deterministic manager error (4xx: validation/auth/not-found/conflict) is a
+       * real failure — reconcile the record to FAILED so the active-workspace slot is
+       * released (no quota lock), then rethrow so the user sees the real error.
+       */
+      const errorCode = (error as { code?: string } | undefined)?.code;
+      const managerStatus = (error as { managerStatus?: number } | undefined)?.managerStatus;
+      const transientProvisioning =
+        errorCode === 'WORKSPACE_MANAGER_UNAVAILABLE' ||
+        (errorCode === 'WORKSPACE_MANAGER_REQUEST_FAILED' && (managerStatus === undefined || managerStatus >= 500));
+
+      if (!transientProvisioning) {
+        await store
+          .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
+          .catch(() => undefined);
+        throw error;
+      }
+
+      metrics.increment('workspace_cold_start_pending_total', {
         plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
-        resourceLimits: state
-          ? {
-              cpuMillicores: state.limits['workspace.cpuMillicores'],
-              ramMb: state.limits['workspace.ramMb'],
-              storageGb: state.limits['storage.gb'],
-            }
-          : undefined,
-        env,
-        allowedSecretKeys,
-        allowedSecrets,
-      }),
-    });
+      });
+
+      return runtimeSession(authorized.workspaceId, 'starting', { provisioning: true });
+    }
     metrics.increment('workspace_starts_total', {
       plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
     });
