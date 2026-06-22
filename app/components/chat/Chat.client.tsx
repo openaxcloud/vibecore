@@ -19,6 +19,7 @@ import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { countWorkspaceFiles, resolvePendingPrompt } from '~/lib/runtime/pending-generation';
 import { computeRewindTruncation } from '~/utils/chat-rewind';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
@@ -242,6 +243,15 @@ export const ChatImpl = memo(
 
     const backendTranscriptHydratedRef = useRef(false);
 
+    /*
+     * Tracks an in-flight initial project generation (the queued pendingPrompt) so
+     * onFinish/onError can decide whether to clear it. The prompt is the project's
+     * only retry handle, so it is cleared ONLY once the agent has actually written a
+     * file; a failed/empty/errored attempt keeps it so generation retries on the
+     * next open instead of leaving the project stuck with just its seeded README.
+     */
+    const pendingGenerationRef = useRef<{ promptId: string; baselineFileCount: number } | null>(null);
+
     const ensureProjectAiConversation = useCallback(async () => {
       if (!projectIdeMode || !projectId) {
         return undefined;
@@ -405,6 +415,13 @@ export const ChatImpl = memo(
          */
         workbenchStore.abortAllActions();
         handleError(e, 'chat');
+
+        /*
+         * A failed generation must not consume the project's queued prompt — drop
+         * the in-flight marker but leave pendingPrompt in storage so the initial
+         * app generation retries on the next open instead of stranding an empty project.
+         */
+        pendingGenerationRef.current = null;
         window.setTimeout(() => {
           const snapshot = latestMessagesRef.current;
 
@@ -431,6 +448,35 @@ export const ChatImpl = memo(
             void persistMessageHistory(snapshot);
           }
         }, 0);
+
+        const generation = pendingGenerationRef.current;
+
+        if (generation && projectId) {
+          /*
+           * Resolve the queued initial-generation prompt. Let the streamed file
+           * writes flush into the workbench file map, then clear the prompt ONLY if
+           * the agent actually produced a file; if nothing was written (empty or
+           * truncated response) keep it so generation retries on the next open.
+           * Erring toward keep is safe — a redundant retry beats a stranded project.
+           */
+          window.setTimeout(() => {
+            if (pendingGenerationRef.current?.promptId !== generation.promptId) {
+              return;
+            }
+
+            pendingGenerationRef.current = null;
+
+            const resolution = resolvePendingPrompt({
+              baselineFileCount: generation.baselineFileCount,
+              finalFileCount: countWorkspaceFiles(workbenchStore.files.get()),
+              errored: false,
+            });
+
+            if (resolution === 'clear') {
+              void saveProjectIdeMemory(projectId, { chat: { pendingPrompt: null } });
+            }
+          }, 1500);
+        }
 
         if (usage) {
           console.log('Token usage:', usage);
@@ -770,15 +816,21 @@ export const ChatImpl = memo(
           }
 
           runAnimation();
+
+          /*
+           * Mark the generation in-flight with the current file count as a baseline
+           * instead of clearing the prompt now. onFinish clears pendingPrompt once
+           * the agent has written at least one file; a failed/empty attempt leaves it
+           * in storage so generation retries on the next open (no stranded project).
+           */
+          pendingGenerationRef.current = {
+            promptId: pendingPrompt.id,
+            baselineFileCount: countWorkspaceFiles(workbenchStore.files.get()),
+          };
+
           append({
             role: 'user',
             content: `[Model: ${selectedModel}]\n\n[Provider: ${selectedProvider.name}]\n\n${prompt}`,
-          });
-
-          void saveProjectIdeMemory(projectId, {
-            chat: {
-              pendingPrompt: null,
-            },
           });
         })
         .catch((error) => {
