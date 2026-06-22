@@ -269,20 +269,36 @@ export class WorkspaceManager {
      * it to STARTING and clearing any prior failure so a fresh pod/PVC/Service
      * is provisioned below. This also makes restartWorkspace (stop→start) work.
      */
+    const existing = await this.store.get(input.workspaceId);
+
+    /*
+     * Reopening a workspace that is still RUNNING (the api always POSTs
+     * /workspaces/start on every project reopen, even when already RUNNING) would
+     * otherwise blindly stamp lastMeteredAt=now below, jumping the marker past the
+     * entire un-metered RUNNING window (metering only happens at stop, never
+     * periodically) — a user who keeps an IDE open for hours and reopens it is
+     * never charged for that compute. Capture the window first: #meterRuntimeOnStop
+     * is idempotent (claimMeterWindow CAS) and advances the marker to the current
+     * lastActiveAt, so the fresh now-stamp below no longer discards anything.
+     */
+    if (existing && existing.status === 'RUNNING') {
+      await this.#meterRuntimeOnStop(existing);
+    }
+
     const resetUpdate = {
       ...baseRecord,
       error: undefined,
       lastActiveAt: new Date().toISOString(),
       /*
        * Reset the metering marker on reopen too. The previous session's stop meter
-       * advanced lastMeteredAt to the OLD lastActiveAt; without resetting it here,
-       * the next stop meters startMs=lastMeteredAt(old end) → endMs=new lastActiveAt,
-       * billing the entire STOPPED window (pod deleted, zero compute) as reserved
-       * compute. Start the meter fresh from the re-provision moment.
+       * (or the RUNNING-reopen meter just above) advanced lastMeteredAt to the OLD
+       * lastActiveAt; without resetting it here, the next stop meters
+       * startMs=lastMeteredAt(old end) → endMs=new lastActiveAt, billing the entire
+       * STOPPED window (pod deleted, zero compute) as reserved compute. Start the
+       * meter fresh from the re-provision moment.
        */
       lastMeteredAt: new Date().toISOString(),
     };
-    const existing = await this.store.get(input.workspaceId);
     let record;
 
     if (existing) {
@@ -437,6 +453,19 @@ export class WorkspaceManager {
       return workspace;
     }
 
+    /*
+     * Meter the active-runtime window on EVERY stop transition, not just the GC
+     * path. Runtime compute is metered only at stop (never periodically), so a
+     * user-facing stop (api POST /workspaces/:id/stop), a restart (stop→start),
+     * and the GC STOPPED→delete sweep must all capture marker→lastActiveAt here —
+     * otherwise the active window of any explicitly stopped/restarted workspace
+     * (the common case) is silently dropped from billing. #meterRuntimeOnStop is
+     * idempotent via claimMeterWindow's CAS: the GC paths that already metered
+     * before calling stopWorkspace advanced the marker, so this re-meter sees a
+     * zero-length window and is a no-op rather than a double-charge.
+     */
+    await this.#meterRuntimeOnStop(workspace);
+
     await this.k8s.delete('Pod', namespace, workspace.podName);
     const stopped = await this.store.update(workspaceId, { status: 'STOPPED' });
     // Drop the throttle marker so a later reopen (same deterministic id) touches
@@ -549,16 +578,16 @@ export class WorkspaceManager {
           const pod = await this.k8s.getPod(namespace, workspace.podName);
 
           if (!pod) {
-            // The pod died externally; meter the runtime it consumed before reconciling.
-            await this.#meterRuntimeOnStop(workspace);
+            // The pod died externally; stopWorkspace meters the consumed runtime
+            // window (post-guard) before flipping the row to STOPPED.
             await this.stopWorkspace(namespace, workspace.id, guard);
             continue;
           }
         }
 
         if (workspace.status === 'RUNNING' && inactiveFor > inactiveMs) {
-          // Meter the active runtime window (marker→lastActiveAt) before stopping.
-          await this.#meterRuntimeOnStop(workspace);
+          // stopWorkspace meters the active runtime window (marker→lastActiveAt),
+          // post-guard, before flipping to STOPPED.
           await this.stopWorkspace(namespace, workspace.id, guard);
         } else if (workspace.status === 'STOPPED' && inactiveFor > deleteMs) {
           await this.deleteWorkspace(namespace, workspace.id, guard);

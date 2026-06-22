@@ -125,9 +125,12 @@ export async function runConnectorTokenHealthCheck(
     where: {
       status: 'active',
       forAgentUse: true,
-      // Drive the sweep off a dedicated lastHealthCheckAt cursor, NOT the
-      // user-facing lastUsedAt — reusing lastUsedAt overwrote it every 30 min,
-      // so "last used" became meaningless and real-usage ordering was lost.
+
+      /*
+       * Drive the sweep off a dedicated lastHealthCheckAt cursor, NOT the
+       * user-facing lastUsedAt — reusing lastUsedAt overwrote it every 30 min,
+       * so "last used" became meaningless and real-usage ordering was lost.
+       */
       OR: [{ lastHealthCheckAt: null }, { lastHealthCheckAt: { lt: cutoff } }],
       provider: { in: Object.keys(PROVIDER_PING_TARGETS) },
     },
@@ -172,9 +175,12 @@ export async function runConnectorTokenHealthCheck(
           accept: 'application/vnd.github+json',
           'x-github-api-version': '2022-11-28',
         },
-        // The candidates are checked serially; without a timeout a single hung
-        // provider connection stalls the whole sweep (and the worker tick)
-        // indefinitely. Treat a slow/hung call as unreachable and move on.
+
+        /*
+         * The candidates are checked serially; without a timeout a single hung
+         * provider connection stalls the whole sweep (and the worker tick)
+         * indefinitely. Treat a slow/hung call as unreachable and move on.
+         */
         signal: AbortSignal.timeout(10_000),
       });
     } catch {
@@ -193,9 +199,11 @@ export async function runConnectorTokenHealthCheck(
       continue;
     }
 
-    // This check only inspects the status code; the body is never read, so drain
-    // it once here to release the connection on every branch below instead of
-    // leaking a socket per scanned connection.
+    /*
+     * This check only inspects the status code; the body is never read, so drain
+     * it once here to release the connection on every branch below instead of
+     * leaking a socket per scanned connection.
+     */
     const rateLimited =
       response.status === 429 ||
       response.headers.get('x-ratelimit-remaining') === '0' ||
@@ -290,6 +298,29 @@ export interface ConnectorReconnectionNotifierInput {
 export interface ConnectorReconnectionNotifierResult {
   scanned: number;
   notified: number;
+
+  /**
+   * Alerts that could not be notified because the connection's user has no org
+   * membership to scope the SIEM audit row against. These are intentionally left
+   * with notifiedAt null so a later sweep retries them once a membership exists.
+   */
+  skipped: number;
+}
+
+/**
+ * Resolve the organization that should own the SIEM audit row for a reconnect
+ * alert. SIEM webhook delivery is org-scoped, so an audit row written with no
+ * organizationId can never be matched by any webhook — the notification would be
+ * silently dropped while the alert is stamped "notified" and never retried.
+ *
+ * Returns the user's first membership org, or `null` when the user has no
+ * membership (personal account / membership removed). Callers must treat a null
+ * result as "do not notify yet" rather than writing an unmatched audit row.
+ */
+export function resolveReconnectAlertOrganizationId(
+  memberships: Array<{ organizationId: string }> | null | undefined,
+): string | null {
+  return memberships?.[0]?.organizationId ?? null;
 }
 
 export const DEFAULT_NOTIFIER_MAX_ALERTS = 100;
@@ -308,6 +339,7 @@ export async function runConnectorReconnectionNotifier(
   });
 
   let notified = 0;
+  let skipped = 0;
 
   for (const alert of alerts) {
     if (!alert.userConnection) {
@@ -343,7 +375,21 @@ export async function runConnectorReconnectionNotifier(
      * never matches, so reconnect notifications silently never reach SIEM. The
      * connector is user-scoped; use the user's first membership as the owning org.
      */
-    const organizationId = alert.userConnection.user?.memberships?.[0]?.organizationId;
+    const organizationId = resolveReconnectAlertOrganizationId(alert.userConnection.user?.memberships);
+
+    if (organizationId === null) {
+      /*
+       * The user has no org membership, so there is no org to scope the SIEM
+       * audit row against. Writing the row with a null organizationId would make
+       * it unmatchable by any (org-scoped) webhook delivery query — the
+       * notification would be silently lost while the alert is marked notified.
+       * Skip without stamping notifiedAt so a later sweep retries once the user
+       * regains a membership.
+       */
+      skipped += 1;
+
+      continue;
+    }
 
     try {
       await input.prisma.auditLog.create({
@@ -375,5 +421,6 @@ export async function runConnectorReconnectionNotifier(
   return {
     scanned: alerts.length,
     notified,
+    skipped,
   };
 }

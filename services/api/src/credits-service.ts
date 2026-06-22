@@ -49,9 +49,11 @@ export async function openCheckpoint(
 export async function availableCreditsCents(store: ApiStore, organizationId: string, nowMs: number): Promise<number> {
   const wallet = await store.ensureCreditWallet(organizationId);
   const packs = await store.listCreditPacks(organizationId, { activeOnly: true });
+
   const packTotal = packs
     .filter((p) => new Date(p.expiresAt).getTime() > nowMs)
     .reduce((acc, p) => acc + Math.max(0, p.remainingCents), 0);
+
   return wallet.balanceCents + packTotal;
 }
 
@@ -65,6 +67,7 @@ export async function gateCheckpoint(
 ): Promise<CreditGateDecision> {
   const wallet = await store.ensureCreditWallet(input.organizationId);
   const available = await availableCreditsCents(store, input.organizationId, input.nowMs);
+
   return evaluateCreditGate({
     balanceCents: available,
     estimatedCents: input.estimatedCents,
@@ -124,6 +127,7 @@ export async function debitCredits(
   input: { organizationId: string; amountCents: number; reason: string; checkpointId?: string; nowMs: number },
 ): Promise<DebitResult> {
   const amount = Number.isFinite(input.amountCents) ? Math.max(0, Math.ceil(input.amountCents)) : 0;
+
   if (amount <= 0) {
     return { fromPacks: 0, fromBalance: 0 };
   }
@@ -136,6 +140,7 @@ export async function debitCredits(
   }
 
   let fromBalance = 0;
+
   if (plan.remainingFromBalance > 0) {
     /*
      * Cap the wallet draw at the REAL balance: the uncovered remainder must overflow
@@ -150,14 +155,40 @@ export async function debitCredits(
     const drawFromBalance = Math.min(plan.remainingFromBalance, balanceCents);
 
     if (drawFromBalance > 0) {
-      await store.recordCreditEntry({
+      /*
+       * The balance read above is a STALE snapshot — recordCreditEntry applies an
+       * UNCONDITIONAL atomic `increment: deltaCents` with no `balanceCents >= draw`
+       * guard. Two settlements for the same org racing here both read balance=N and
+       * both draw up to N, driving the wallet to roughly -N (over-spend). Since the
+       * debit cannot be made conditional at the store layer from here, use the
+       * post-mutation balance the entry RETURNS to detect any over-draw and
+       * immediately record a compensating reversal that clamps the wallet back to
+       * exactly 0. Net effect: the wallet never settles negative, and the part that
+       * could not actually be covered by the balance (overdraw) is excluded from
+       * fromBalance so it correctly overflows into PAYG (billed via Stripe) instead
+       * of being silently lost. Mirrors decrementCreditPack's clamp-to-0 invariant.
+       */
+      const { balanceCents: postBalance } = await store.recordCreditEntry({
         organizationId: input.organizationId,
         deltaCents: -drawFromBalance,
         kind: 'CONSUMPTION',
         reason: input.reason,
         checkpointId: input.checkpointId,
       });
-      fromBalance = drawFromBalance;
+
+      const overdraw = postBalance < 0 ? -postBalance : 0;
+
+      if (overdraw > 0) {
+        await store.recordCreditEntry({
+          organizationId: input.organizationId,
+          deltaCents: overdraw,
+          kind: 'CONSUMPTION',
+          reason: `${input.reason} (overdraw reversal)`,
+          checkpointId: input.checkpointId,
+        });
+      }
+
+      fromBalance = Math.max(0, drawFromBalance - overdraw);
     }
   }
 
@@ -225,8 +256,10 @@ export async function settleCheckpoint(
   return { creditCents, fromPacks, fromBalance, shadow: false };
 }
 
-/** Minimal Stripe surface needed to report PAYG metered usage (keeps this
- * module decoupled from the concrete StripeBillingClient + easy to unit-test). */
+/**
+ * Minimal Stripe surface needed to report PAYG metered usage (keeps this
+ * module decoupled from the concrete StripeBillingClient + easy to unit-test).
+ */
 export interface PaygStripeClient {
   getSubscription(
     subscriptionId: string,
@@ -284,8 +317,11 @@ export async function reportCheckpointPaygUsage(
 
   await stripe.reportUsage({
     subscriptionItemId: item.id,
-    // Round PAYG charges UP (was Math.round, asymmetric) so fractional cents are
-    // never lost to the platform; pairs with the metered-usage ceil in billing.
+
+    /*
+     * Round PAYG charges UP (was Math.round, asymmetric) so fractional cents are
+     * never lost to the platform; pairs with the metered-usage ceil in billing.
+     */
     quantity: Math.ceil(input.paygChargeCents),
     idempotencyKey: `checkpoint:${input.checkpointId}`,
   });
@@ -332,11 +368,13 @@ export async function applyPlanGrant(
   }
 
   const wallet = await store.ensureCreditWallet(input.organizationId);
+
   let expired = 0;
 
   if (config.rollover) {
     // Pro: keep at most one period of unused balance before topping up.
     const rolloverCap = config.monthlyCreditCents * creditRolloverMonths(input.planKey);
+
     if (wallet.balanceCents > rolloverCap) {
       expired = wallet.balanceCents - rolloverCap;
       await store.recordCreditEntry({

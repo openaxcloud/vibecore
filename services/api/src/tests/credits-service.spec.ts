@@ -3,6 +3,7 @@ import {
   applyPlanGrant,
   availableCreditsCents,
   checkServiceShutdown,
+  debitCredits,
   gateCheckpoint,
   openCheckpoint,
   reportCheckpointPaygUsage,
@@ -27,6 +28,7 @@ describe('checkServiceShutdown (Replit-parity service-shutdown limit)', () => {
 
   it('is inert in SHADOW (flag off): never shuts down even with zero credits + cap set', async () => {
     delete process.env.BILLING_CREDITS_ENABLED;
+
     const store = new TestApiStore();
     await store.updateCreditWalletSettings({ organizationId: 'org_1', serviceShutdownCents: 1000 });
     expect((await checkServiceShutdown(store, { organizationId: 'org_1', nowMs: NOW })).shutdown).toBe(false);
@@ -34,14 +36,17 @@ describe('checkServiceShutdown (Replit-parity service-shutdown limit)', () => {
 
   it('shuts down when flag on + cap set + credits exhausted', async () => {
     process.env.BILLING_CREDITS_ENABLED = 'true';
+
     const store = new TestApiStore();
     await store.updateCreditWalletSettings({ organizationId: 'org_1', serviceShutdownCents: 1000 });
+
     // no grants → available = 0
     expect((await checkServiceShutdown(store, { organizationId: 'org_1', nowMs: NOW })).shutdown).toBe(true);
   });
 
   it('does not shut down when credits remain', async () => {
     process.env.BILLING_CREDITS_ENABLED = 'true';
+
     const store = new TestApiStore();
     await store.updateCreditWalletSettings({ organizationId: 'org_1', serviceShutdownCents: 1000 });
     await store.recordCreditEntry({ organizationId: 'org_1', deltaCents: 500, kind: 'GRANT', reason: 'grant' });
@@ -50,6 +55,7 @@ describe('checkServiceShutdown (Replit-parity service-shutdown limit)', () => {
 
   it('does not shut down when no cap is configured', async () => {
     process.env.BILLING_CREDITS_ENABLED = 'true';
+
     const store = new TestApiStore();
     expect((await checkServiceShutdown(store, { organizationId: 'org_1', nowMs: NOW })).shutdown).toBe(false);
   });
@@ -61,10 +67,13 @@ describe('reportCheckpointPaygUsage (Replit-parity PAYG draw-down, SHADOW-safe)'
 
   afterEach(() => {
     process.env.BILLING_CREDITS_ENABLED = originalFlag ?? '';
+
     if (originalFlag === undefined) {
       delete process.env.BILLING_CREDITS_ENABLED;
     }
+
     process.env.STRIPE_PAYG_AI_PRICE_ID = originalPrice ?? '';
+
     if (originalPrice === undefined) {
       delete process.env.STRIPE_PAYG_AI_PRICE_ID;
     }
@@ -81,7 +90,9 @@ describe('reportCheckpointPaygUsage (Replit-parity PAYG draw-down, SHADOW-safe)'
   it('is a no-op in SHADOW (flag off)', async () => {
     delete process.env.BILLING_CREDITS_ENABLED;
     process.env.STRIPE_PAYG_AI_PRICE_ID = 'price_payg';
+
     const s = stripe('price_payg');
+
     const out = await reportCheckpointPaygUsage(storeWithSub('sub_1'), s, {
       organizationId: 'org_1',
       checkpointId: 'cp_1',
@@ -95,7 +106,9 @@ describe('reportCheckpointPaygUsage (Replit-parity PAYG draw-down, SHADOW-safe)'
   it('reports the overage with a checkpoint-id idempotency key when fully configured', async () => {
     process.env.BILLING_CREDITS_ENABLED = 'true';
     process.env.STRIPE_PAYG_AI_PRICE_ID = 'price_payg';
+
     const s = stripe('price_payg');
+
     const out = await reportCheckpointPaygUsage(storeWithSub('sub_1'), s, {
       organizationId: 'org_1',
       checkpointId: 'cp_42',
@@ -112,6 +125,7 @@ describe('reportCheckpointPaygUsage (Replit-parity PAYG draw-down, SHADOW-safe)'
   it('no-ops when there is no overage', async () => {
     process.env.BILLING_CREDITS_ENABLED = 'true';
     process.env.STRIPE_PAYG_AI_PRICE_ID = 'price_payg';
+
     const out = await reportCheckpointPaygUsage(storeWithSub('sub_1'), stripe('price_payg'), {
       organizationId: 'org_1',
       checkpointId: 'cp_1',
@@ -124,6 +138,7 @@ describe('reportCheckpointPaygUsage (Replit-parity PAYG draw-down, SHADOW-safe)'
   it('no-ops when the subscription has no matching metered item', async () => {
     process.env.BILLING_CREDITS_ENABLED = 'true';
     process.env.STRIPE_PAYG_AI_PRICE_ID = 'price_payg';
+
     const out = await reportCheckpointPaygUsage(storeWithSub('sub_1'), stripe('price_OTHER'), {
       organizationId: 'org_1',
       checkpointId: 'cp_1',
@@ -138,6 +153,7 @@ describe('settleCheckpoint', () => {
   it('debits the wallet balance when there are no packs', async () => {
     const store = new TestApiStore();
     await store.recordCreditEntry({ organizationId: 'org_1', deltaCents: 2500, kind: 'GRANT', reason: 'grant' });
+
     const cp = await openCheckpoint(store, { organizationId: 'org_1' });
 
     const result = await settleCheckpoint(store, {
@@ -159,8 +175,10 @@ describe('settleCheckpoint', () => {
 
   it('caps the wallet draw at the real balance and overflows the rest to PAYG', async () => {
     const store = new TestApiStore();
+
     // Balance is only 50¢ but the checkpoint costs 130¢ and there are no packs.
     await store.recordCreditEntry({ organizationId: 'org_1', deltaCents: 50, kind: 'GRANT', reason: 'grant' });
+
     const cp = await openCheckpoint(store, { organizationId: 'org_1' });
 
     const result = await settleCheckpoint(store, {
@@ -172,10 +190,13 @@ describe('settleCheckpoint', () => {
 
     expect(result.creditCents).toBe(130);
     expect(result.fromPacks).toBe(0);
+
     // Draw is clamped to the 50¢ balance, not the full 130¢…
     expect(result.fromBalance).toBe(50);
+
     // …so the wallet lands at exactly 0 instead of going negative…
     expect((await store.getCreditWallet('org_1'))?.balanceCents).toBe(0);
+
     // …and the uncovered 80¢ becomes the PAYG overage (creditCents - fromPacks - fromBalance).
     expect(result.creditCents - result.fromPacks - result.fromBalance).toBe(80);
   });
@@ -183,6 +204,7 @@ describe('settleCheckpoint', () => {
   it('consumes packs earliest-first before touching the balance', async () => {
     const store = new TestApiStore();
     await store.recordCreditEntry({ organizationId: 'org_1', deltaCents: 1000, kind: 'GRANT', reason: 'grant' });
+
     const earlyPack = await store.createCreditPack({
       organizationId: 'org_1',
       purchasedCents: 80,
@@ -193,6 +215,7 @@ describe('settleCheckpoint', () => {
       purchasedCents: 1000,
       expiresAt: new Date(NOW + 100 * 24 * 3600 * 1000),
     });
+
     const cp = await openCheckpoint(store, { organizationId: 'org_1' });
 
     const result = await settleCheckpoint(store, {
@@ -212,6 +235,7 @@ describe('settleCheckpoint', () => {
   it('shadow mode records cost but debits nothing', async () => {
     const store = new TestApiStore();
     await store.recordCreditEntry({ organizationId: 'org_1', deltaCents: 500, kind: 'GRANT', reason: 'grant' });
+
     const cp = await openCheckpoint(store, { organizationId: 'org_1' });
 
     const result = await settleCheckpoint(store, {
@@ -243,6 +267,7 @@ describe('applyPlanGrant', () => {
 
   it('grants Pro monthly ($100) and rolls over one period (caps balance)', async () => {
     const store = new TestApiStore();
+
     // 12000 balance, Pro grant 10000, rollover cap = 1×10000 → expire 2000, then +10000.
     await store.recordCreditEntry({ organizationId: 'org_1', deltaCents: 12_000, kind: 'GRANT', reason: 'old' });
 
@@ -268,6 +293,7 @@ describe('gateCheckpoint', () => {
     await store.createCreditPack({ organizationId: 'org_1', purchasedCents: 200, expiresAt: future() });
 
     expect(await availableCreditsCents(store, 'org_1', NOW)).toBe(300);
+
     const decision = await gateCheckpoint(store, { organizationId: 'org_1', estimatedCents: 250, nowMs: NOW });
     expect(decision).toEqual({ ok: true, mode: 'credits' });
   });
@@ -275,6 +301,7 @@ describe('gateCheckpoint', () => {
   it('blocks when short and PAYG disabled', async () => {
     const store = new TestApiStore();
     await store.recordCreditEntry({ organizationId: 'org_1', deltaCents: 50, kind: 'GRANT', reason: 'grant' });
+
     const decision = await gateCheckpoint(store, { organizationId: 'org_1', estimatedCents: 250, nowMs: NOW });
     expect(decision).toEqual({ ok: false, mode: 'blocked', reason: 'insufficient_credits' });
   });
@@ -282,6 +309,7 @@ describe('gateCheckpoint', () => {
   it('allows PAYG overage under the Usage Limit', async () => {
     const store = new TestApiStore();
     await store.updateCreditWalletSettings({ organizationId: 'org_1', budgetCapCents: 5000 });
+
     const decision = await gateCheckpoint(store, {
       organizationId: 'org_1',
       estimatedCents: 250,
@@ -289,5 +317,67 @@ describe('gateCheckpoint', () => {
       nowMs: NOW,
     });
     expect(decision).toEqual({ ok: true, mode: 'payg' });
+  });
+});
+
+describe('debitCredits (concurrent wallet-balance over-spend guard)', () => {
+  it('never settles the wallet negative when the balance read is stale (race)', async () => {
+    const store = new TestApiStore();
+
+    // Real balance is 100; both racing settles see this same snapshot.
+    await store.recordCreditEntry({ organizationId: 'org_1', deltaCents: 100, kind: 'GRANT', reason: 'grant' });
+
+    /*
+     * Simulate the race: the stale read still reports 100 even after a sibling
+     * settlement has already drained the wallet to 0.
+     */
+    const real = store.getCreditWallet.bind(store);
+    vi.spyOn(store, 'getCreditWallet').mockImplementation(async (orgId: string) => {
+      const wallet = await real(orgId);
+
+      return wallet ? { ...wallet, balanceCents: 100 } : wallet;
+    });
+
+    // First debit drains the wallet to 0 (covered).
+    const first = await debitCredits(store, {
+      organizationId: 'org_1',
+      amountCents: 100,
+      reason: 'agent checkpoint',
+      nowMs: NOW,
+    });
+    expect(first.fromBalance).toBe(100);
+
+    // Second concurrent debit reads the SAME stale balance=100 and would over-draw.
+    const second = await debitCredits(store, {
+      organizationId: 'org_1',
+      amountCents: 100,
+      reason: 'agent checkpoint',
+      nowMs: NOW,
+    });
+
+    const wallet = await real('org_1');
+
+    // Clamp-to-0 invariant: the wallet is never driven negative.
+    expect(wallet?.balanceCents).toBe(0);
+
+    // The uncovered remainder is excluded from fromBalance so it overflows to PAYG.
+    expect(second.fromBalance).toBe(0);
+  });
+
+  it('draws the real balance and reports no over-draw on the happy path', async () => {
+    const store = new TestApiStore();
+    await store.recordCreditEntry({ organizationId: 'org_1', deltaCents: 500, kind: 'GRANT', reason: 'grant' });
+
+    const result = await debitCredits(store, {
+      organizationId: 'org_1',
+      amountCents: 200,
+      reason: 'agent checkpoint',
+      nowMs: NOW,
+    });
+
+    expect(result.fromBalance).toBe(200);
+
+    const wallet = await store.getCreditWallet('org_1');
+    expect(wallet?.balanceCents).toBe(300);
   });
 });

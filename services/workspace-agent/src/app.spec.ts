@@ -1,7 +1,7 @@
-import { signAgentToken } from '@vibecore/workspace-sdk';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { signAgentToken } from '@vibecore/workspace-sdk';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
 import { buildWorkspaceAgentApp, detectPortsFromOutput, type ProcessRecord } from './app.js';
@@ -75,6 +75,7 @@ describe('workspace-agent', () => {
 
   it('blocks path traversal', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+
     const response = await app.inject({
       method: 'POST',
       url: '/files/write',
@@ -84,8 +85,46 @@ describe('workspace-agent', () => {
     expect(response.statusCode).toBeGreaterThanOrEqual(400);
   });
 
+  it('sizes base64 writes by decoded bytes, not the encoded string length', async () => {
+    /*
+     * Regression: assertContentSize used Buffer.byteLength of the base64 STRING,
+     * which is ~4/3 the decoded bytes actually written. A binary file well under
+     * the limit was false-rejected with 413 once its base64 payload crossed it.
+     */
+    const maxFileBytes = 1_200;
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId, maxFileBytes });
+    const headers = { authorization: `Bearer ${token}` };
+
+    // 1000 decoded bytes -> ~1336 base64 chars: under the byte cap, over the string cap.
+    const bytes = Buffer.alloc(1_000, 0xab);
+    const base64 = bytes.toString('base64');
+    expect(Buffer.byteLength(base64)).toBeGreaterThan(maxFileBytes);
+
+    const ok = await app.inject({
+      method: 'POST',
+      url: '/files/write',
+      headers,
+      payload: { path: 'assets/blob.bin', content: base64, encoding: 'base64' },
+    });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json()).toMatchObject({ bytes: 1_000 });
+
+    // A payload whose DECODED size exceeds the cap is still rejected.
+    const tooBig = Buffer.alloc(maxFileBytes + 1, 0xcd).toString('base64');
+
+    const rejected = await app.inject({
+      method: 'POST',
+      url: '/files/write',
+      headers,
+      payload: { path: 'assets/big.bin', content: tooBig, encoding: 'base64' },
+    });
+    expect(rejected.statusCode).toBe(413);
+    expect(rejected.json()).toMatchObject({ code: 'FILE_TOO_LARGE' });
+  });
+
   it('runs commands with bounded output', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId, maxOutputBytes: 128 });
+
     const response = await app.inject({
       method: 'POST',
       url: '/commands/run',
@@ -98,6 +137,7 @@ describe('workspace-agent', () => {
   it('normalizes shell pipeline shorthand before spawning workspace commands', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId, commandTimeoutMs: 2_000 });
     const headers = { authorization: `Bearer ${token}` };
+
     const runningCommand = app.inject({
       method: 'POST',
       url: '/commands/run',
@@ -127,7 +167,9 @@ describe('workspace-agent', () => {
     const record = (id: string, command: string, output?: string): ProcessRecord =>
       ({ id, command, output, startedAt: new Date(0).toISOString(), process: {} as never }) satisfies ProcessRecord;
 
-    const fromUrl = detectPortsFromOutput(new Map([['a', record('a', 'node server.js', 'Local: http://localhost:4173')]]));
+    const fromUrl = detectPortsFromOutput(
+      new Map([['a', record('a', 'node server.js', 'Local: http://localhost:4173')]]),
+    );
     expect(fromUrl).toEqual([{ port: 4173, processId: 'a' }]);
 
     const fromFlag = detectPortsFromOutput(new Map([['b', record('b', 'serve --port 8080')]]));
@@ -146,6 +188,7 @@ describe('workspace-agent', () => {
 
   it('exposes the /ports endpoint with a well-formed port list', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId, commandTimeoutMs: 2_000 });
+
     const response = await app.inject({
       method: 'GET',
       url: '/ports',
@@ -165,6 +208,7 @@ describe('workspace-agent', () => {
 
   it('blocks abuse command patterns before execution', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+
     const response = await app.inject({
       method: 'POST',
       url: '/commands/run',
@@ -176,6 +220,7 @@ describe('workspace-agent', () => {
 
   it('exposes Prometheus-compatible workspace metrics', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+
     const response = await app.inject({
       method: 'GET',
       url: '/metrics',
@@ -191,7 +236,9 @@ describe('workspace-agent', () => {
   it('streams terminal WebSocket input and command output', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId, commandTimeoutMs: 2_000 });
     await app.listen({ host: '127.0.0.1', port: 0 });
+
     const address = app.server.address();
+
     if (!address || typeof address === 'string') {
       throw new Error('Workspace agent did not bind to a TCP port');
     }
@@ -209,6 +256,66 @@ describe('workspace-agent', () => {
       socket.send(`${process.execPath} -e "console.log('terminal-critical-path')"\n`);
 
       await expect.poll(() => messages.join(''), { timeout: 5_000 }).toContain('terminal-critical-path');
+    } finally {
+      socket.close();
+      await app.close();
+    }
+  });
+
+  it('preserves multibyte UTF-8 split across chunk boundaries in /commands/stream', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId, commandTimeoutMs: 5_000 });
+    await app.listen({ host: '127.0.0.1', port: 0 });
+
+    const address = app.server.address();
+
+    if (!address || typeof address === 'string') {
+      throw new Error('Workspace agent did not bind to a TCP port');
+    }
+
+    /*
+     * Emit a string rich in multibyte UTF-8 (emoji, CJK, accents, box-drawing —
+     * the glyphs that pervade npm/Vite/build logs) one BYTE at a time so every
+     * multibyte sequence is guaranteed to straddle a stdout chunk boundary. With
+     * chunk.toString('utf8') this mangled into U+FFFD; the StringDecoder buffers
+     * the incomplete tail and reassembles it intact.
+     */
+    const marker = '✓ 安装 café ▓▓ 🚀';
+
+    const program = [
+      'const s = Buffer.from(process.argv[1], "utf8");',
+      'let i = 0;',
+      'const tick = () => {',
+      '  if (i >= s.length) { process.exit(0); return; }',
+      '  process.stdout.write(Buffer.from([s[i++]]), () => setTimeout(tick, 1));',
+      '};',
+      'tick();',
+    ].join('');
+
+    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/commands/stream?token=${encodeURIComponent(token)}`);
+    const stdout: string[] = [];
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        socket.addEventListener('open', () => resolve(), { once: true });
+        socket.addEventListener('error', () => reject(new Error('command-stream WebSocket failed to open')), {
+          once: true,
+        });
+      });
+
+      socket.addEventListener('message', (event) => {
+        const frame = JSON.parse(String(event.data)) as { type?: string; data?: string };
+
+        if (frame.type === 'stdout' && typeof frame.data === 'string') {
+          stdout.push(frame.data);
+        }
+      });
+
+      socket.send(
+        JSON.stringify({ type: 'hello', payload: { command: process.execPath, args: ['-e', program, marker] } }),
+      );
+
+      await expect.poll(() => stdout.join(''), { timeout: 8_000 }).toContain(marker);
+      expect(stdout.join('')).not.toContain('�');
     } finally {
       socket.close();
       await app.close();

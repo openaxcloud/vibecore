@@ -37,6 +37,12 @@ function resolveStore(): WorkspaceStore {
 const app = buildWorkspaceManagerApp(
   new WorkspaceManager(resolveStore(), new KubectlWorkspaceK8sClient(), new StructuredLogEventBus(), process.env.WORKSPACE_AGENT_TOKEN_SECRET),
 );
-const port = Number(process.env.WORKSPACE_MANAGER_PORT ?? 3010);
+// NaN-safe: `?? 3010` only covers an undefined env var, so a non-numeric
+// WORKSPACE_MANAGER_PORT (config typo, or a shadowing k8s service-link value like
+// `tcp://10.0.0.1:3010`) would make Number(...) NaN, which app.listen coerces to
+// port 0 and binds an arbitrary ephemeral port — the Service targetPort 3010 then
+// has no listener. Mirror the manager.ts timeout-parse convention.
+const parsedPort = Number(process.env.WORKSPACE_MANAGER_PORT);
+const port = Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 3010;
 
 await app.listen({ host: '0.0.0.0', port });

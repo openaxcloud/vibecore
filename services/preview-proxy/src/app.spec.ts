@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildPreviewProxyApp,
+  computeHostPreviewSubpath,
   readCookie,
   signPreviewTenantToken,
   verifyPreviewTenantToken,
@@ -406,6 +407,44 @@ describe('preview-proxy', () => {
       expect(response.statusCode).toBe(404);
       expect(calls).toHaveLength(0);
       await app.close();
+    });
+
+    it('rejects encoded-slash (%2f) dot-segment traversal instead of forwarding it upstream', async () => {
+      const { fn: fetchImpl, calls } = recordingFetch(async () => new Response('SHOULD NOT FORWARD', { status: 200 }));
+      const app = await buildPreviewProxyApp({ fetchImpl, previewDomain, resolveAgent: async () => fakeAgent });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/..%2f..%2fcommands/run',
+        headers: { host: host(5173) },
+      });
+
+      // Decoded + normalized, the path escapes /preview/5173/ → rejected, never forwarded.
+      expect(response.statusCode).toBe(400);
+      expect(response.json()).toMatchObject({ code: 'PREVIEW_PATH_INVALID' });
+      expect(calls).toHaveLength(0);
+      await app.close();
+    });
+  });
+
+  describe('computeHostPreviewSubpath', () => {
+    const ws = 'ws-81ab929b9800a908';
+
+    it('decodes encoded slashes so dot-segments normalize like the path-based route', () => {
+      expect(computeHostPreviewSubpath('/..%2f..%2fcommands/run', ws, '5173')).toBe('../../commands/run');
+    });
+
+    it('strips a self-referential /p/<ws>/<port> prefix', () => {
+      expect(computeHostPreviewSubpath(`/p/${ws}/5173/assets/app.js`, ws, '5173')).toBe('assets/app.js');
+      expect(computeHostPreviewSubpath(`/p/${ws}/5173`, ws, '5173')).toBe('');
+    });
+
+    it('forwards a different /p/<a>/<b> route verbatim (no self-prefix collision)', () => {
+      expect(computeHostPreviewSubpath('/p/products/8080', ws, '5173')).toBe('p/products/8080');
+    });
+
+    it('falls back to the raw value on a malformed percent-escape', () => {
+      expect(computeHostPreviewSubpath('/bad%path', ws, '5173')).toBe('bad%path');
     });
   });
 

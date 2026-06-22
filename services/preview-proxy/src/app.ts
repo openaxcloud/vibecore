@@ -110,6 +110,46 @@ const REPORTER_MARKER = 'data-vibecore-reporter';
 type PreviewRouteParams = { workspaceId: string; port: string; '*'?: string };
 
 /*
+ * Compute the wildcard subpath for host-based preview routing, matching the
+ * normalization Fastify already applies to the path-based `*` wildcard param.
+ *
+ * The raw request path is still percent-encoded here (the onRequest hook runs
+ * before route matching), so an encoded slash (`%2f`) would otherwise survive
+ * as a single path segment and slip past the dot-segment `expectedPrefix`
+ * guard in handlePreviewRequest — letting `..%2f..%2fcommands/run` escape the
+ * `/preview/<port>/` prefix and reach the agent's privileged endpoints WITH
+ * its bearer token. Decode first (so `%2f` -> `/`) so `new URL` normalizes the
+ * `..` segments and the guard rejects the request exactly as it does for the
+ * path-based route. Also strip a leading self-prefix (`p/<ws>/<port>`) carried
+ * by the path-based iframe template so we don't forward it upstream.
+ */
+export function computeHostPreviewSubpath(rawPath: string, workspaceId: string, port: string): string {
+  let sub = rawPath.replace(/^\/+/, '');
+
+  /*
+   * decodeURIComponent throws on malformed escapes (e.g. a bare `%`); fall back
+   * to the raw value in that case — the downstream URL/prefix check rejects it.
+   */
+  try {
+    sub = decodeURIComponent(sub);
+  } catch {
+    // keep the raw (still-encoded) sub; the prefix guard will reject if unsafe
+  }
+
+  const selfPrefix = `p/${workspaceId}/${port}`;
+
+  if (sub === selfPrefix) {
+    return '';
+  }
+
+  if (sub.startsWith(`${selfPrefix}/`)) {
+    return sub.slice(selfPrefix.length + 1);
+  }
+
+  return sub;
+}
+
+/*
  * Derive the workspace id + port from a per-preview Host header
  * (`<workspaceId>-<port>.<previewDomain>`). The workspace id itself contains
  * hyphens (`ws-<hex>`), so we split on the LAST hyphen of the leftmost label:
@@ -761,15 +801,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         return; // proxy-served endpoints take precedence over host proxying
       }
 
-      let sub = path.replace(/^\/+/, '');
-
-      const selfPrefix = `p/${parsed.workspaceId}/${parsed.port}`;
-
-      if (sub === selfPrefix) {
-        sub = '';
-      } else if (sub.startsWith(`${selfPrefix}/`)) {
-        sub = sub.slice(selfPrefix.length + 1);
-      }
+      const sub = computeHostPreviewSubpath(path, parsed.workspaceId, parsed.port);
 
       (request as FastifyRequest<{ Params: PreviewRouteParams }>).params = {
         workspaceId: parsed.workspaceId,

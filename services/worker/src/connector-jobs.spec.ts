@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
 import { encryptJson } from '@vibecore/security';
+import { describe, expect, it, vi } from 'vitest';
 import {
+  resolveReconnectAlertOrganizationId,
   runConnectorReconnectionNotifier,
   runConnectorTokenHealthCheck,
 } from './connector-jobs.js';
@@ -15,6 +16,7 @@ interface RecordedConnection {
   lastUsedAt: Date | null;
   lastHealthCheckAt?: Date | null;
   externalAccountLabel: string;
+  user?: { memberships?: Array<{ organizationId: string }> };
 }
 
 interface RecordedAlert {
@@ -34,10 +36,12 @@ interface RecordedAuditLog {
   metadata?: Record<string, unknown>;
 }
 
-function buildRecorder(initial: {
-  connections?: RecordedConnection[];
-  alerts?: RecordedAlert[];
-} = {}) {
+function buildRecorder(
+  initial: {
+    connections?: RecordedConnection[];
+    alerts?: RecordedAlert[];
+  } = {},
+) {
   const state = {
     connections: [...(initial.connections ?? [])],
     alerts: [...(initial.alerts ?? [])],
@@ -52,9 +56,17 @@ function buildRecorder(initial: {
 
         return state.connections
           .filter((row) => {
-            if (where?.status && row.status !== where.status) return false;
-            if (where?.forAgentUse !== undefined && row.forAgentUse !== where.forAgentUse) return false;
-            if (allowedProviders.length > 0 && !allowedProviders.includes(row.provider)) return false;
+            if (where?.status && row.status !== where.status) {
+              return false;
+            }
+
+            if (where?.forAgentUse !== undefined && row.forAgentUse !== where.forAgentUse) {
+              return false;
+            }
+
+            if (allowedProviders.length > 0 && !allowedProviders.includes(row.provider)) {
+              return false;
+            }
 
             if (stalenessCutoff && row.lastHealthCheckAt && row.lastHealthCheckAt >= stalenessCutoff) {
               return false;
@@ -100,8 +112,13 @@ function buildRecorder(initial: {
       findMany: async ({ where, take }: any) => {
         return state.alerts
           .filter((alert) => {
-            if (where?.resolvedAt === null && alert.resolvedAt !== null) return false;
-            if (where?.notifiedAt === null && alert.notifiedAt !== null) return false;
+            if (where?.resolvedAt === null && alert.resolvedAt !== null) {
+              return false;
+            }
+
+            if (where?.notifiedAt === null && alert.notifiedAt !== null) {
+              return false;
+            }
 
             return true;
           })
@@ -134,6 +151,7 @@ function buildRecorder(initial: {
 describe('runConnectorTokenHealthCheck', () => {
   it('marks a connection as needs_reconnect and creates an alert on 401 from the provider', async () => {
     const encrypted = encryptJson({ value: 'revoked-token' });
+
     const { prisma, state } = buildRecorder({
       connections: [
         {
@@ -168,6 +186,7 @@ describe('runConnectorTokenHealthCheck', () => {
 
   it('updates lastHealthCheckAt (not lastUsedAt) and leaves status alone on a 200 response', async () => {
     const encrypted = encryptJson({ value: 'live-token' });
+
     const { prisma, state } = buildRecorder({
       connections: [
         {
@@ -184,10 +203,14 @@ describe('runConnectorTokenHealthCheck', () => {
     });
 
     const now = new Date('2030-01-02T12:00:00Z');
-    const fetchImpl = vi.fn(async () => new Response('{}', {
-      status: 200,
-      headers: { 'content-type': 'application/json' },
-    })) as unknown as typeof fetch;
+
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response('{}', {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+    ) as unknown as typeof fetch;
 
     process.env.ENCRYPTION_SECRET = process.env.ENCRYPTION_SECRET ?? 'connector-jobs-spec-secret';
 
@@ -195,6 +218,7 @@ describe('runConnectorTokenHealthCheck', () => {
 
     expect(result.flaggedReconnect).toBe(0);
     expect(state.connections[0].status).toBe('active');
+
     // The health-check sweep now writes its own cursor, leaving user-facing lastUsedAt untouched.
     expect(state.connections[0].lastHealthCheckAt).toEqual(now);
     expect(state.connections[0].lastUsedAt).toBeNull();
@@ -202,6 +226,7 @@ describe('runConnectorTokenHealthCheck', () => {
 
   it('counts unreachable when the upstream fetch throws', async () => {
     const encrypted = encryptJson({ value: 'transient-token' });
+
     const { prisma } = buildRecorder({
       connections: [
         {
@@ -254,6 +279,7 @@ describe('runConnectorTokenHealthCheck', () => {
 
   it('does not create a duplicate alert when one is already open for the connection', async () => {
     const encrypted = encryptJson({ value: 'dup-token' });
+
     const { prisma, state } = buildRecorder({
       connections: [
         {
@@ -299,6 +325,7 @@ describe('runConnectorReconnectionNotifier', () => {
       accessTokenEncrypted: null,
       lastUsedAt: null,
       externalAccountLabel: 'octocat',
+      user: { memberships: [{ organizationId: 'org_1' }] },
     };
     const { prisma, state } = buildRecorder({
       alerts: [
@@ -322,11 +349,68 @@ describe('runConnectorReconnectionNotifier', () => {
     expect(state.auditLogs).toHaveLength(1);
     expect(state.auditLogs[0].action).toBe('connector.oauth.github.needs_reconnect.notify');
     expect(state.auditLogs[0].resourceId).toBe(connection.id);
+    expect((state.auditLogs[0] as { organizationId?: string }).organizationId).toBe('org_1');
+  });
+
+  it('skips an alert (leaving notifiedAt null, no audit row) when the user has no org membership', async () => {
+    const connection: RecordedConnection = {
+      id: 'uconn_no_org',
+      provider: 'github',
+      userId: 'user_no_org',
+      status: 'needs_reconnect',
+      forAgentUse: true,
+      accessTokenEncrypted: null,
+      lastUsedAt: null,
+      externalAccountLabel: 'octocat',
+      user: { memberships: [] },
+    };
+    const { prisma, state } = buildRecorder({
+      alerts: [
+        {
+          id: 'alrt_no_org',
+          userConnectionId: connection.id,
+          reason: 'token_revoked',
+          detectedAt: new Date('2030-01-01T00:00:00Z'),
+          resolvedAt: null,
+          notifiedAt: null,
+          userConnection: connection,
+        },
+      ],
+    });
+
+    const now = new Date('2030-01-02T00:00:00Z');
+    const result = await runConnectorReconnectionNotifier({ prisma: prisma as any, now });
+
+    expect(result.notified).toBe(0);
+    expect(result.skipped).toBe(1);
+
+    // No unmatchable audit row was written.
+    expect(state.auditLogs).toHaveLength(0);
+
+    // Left open so a later sweep retries once the user regains a membership.
+    expect(state.alerts[0].notifiedAt).toBeNull();
   });
 
   it('returns 0 when there is no open unnotified alert', async () => {
     const { prisma } = buildRecorder();
     const result = await runConnectorReconnectionNotifier({ prisma: prisma as any });
     expect(result.notified).toBe(0);
+  });
+});
+
+describe('resolveReconnectAlertOrganizationId', () => {
+  it('returns the first membership organizationId', () => {
+    expect(resolveReconnectAlertOrganizationId([{ organizationId: 'org_a' }, { organizationId: 'org_b' }])).toBe(
+      'org_a',
+    );
+  });
+
+  it('returns null for an empty membership list', () => {
+    expect(resolveReconnectAlertOrganizationId([])).toBeNull();
+  });
+
+  it('returns null when memberships is undefined or null', () => {
+    expect(resolveReconnectAlertOrganizationId(undefined)).toBeNull();
+    expect(resolveReconnectAlertOrganizationId(null)).toBeNull();
   });
 });

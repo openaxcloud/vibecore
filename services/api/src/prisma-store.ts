@@ -324,8 +324,20 @@ export class PrismaApiStore implements ApiStore {
       await this.prisma.user.delete({ where: { id: userId } });
 
       return true;
-    } catch {
-      return false;
+    } catch (error) {
+      /*
+       * Only a genuine not-found (P2025 — the row was already gone) is a benign
+       * `false` that callers treat as a no-op. Every other failure mode (FK
+       * violation P2003 from undeleted child rows, connection error, deadlock)
+       * means erasure is BLOCKED, not absent: collapsing those into `false`
+       * would let GDPR/data-deletion breakage stay invisible in production.
+       * Rethrow so the failure is observable to callers and operators.
+       */
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        return false;
+      }
+
+      throw error;
     }
   }
 
@@ -3767,7 +3779,44 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listAdminUsers() {
-    return (await this.prisma.user.findMany({ orderBy: { createdAt: 'desc' }, take: 500 })).map(mapUser);
+    /*
+     * The admin console only needs the newest 500 users, but this same list is
+     * the SOLE input to the last-platform-admin lockout guard
+     * (assertNotLastPlatformAdmin). Platform admins are typically the OLDEST
+     * accounts (first signups), so on any deployment with >500 users they fall
+     * outside the newest-500 window — the guard's target lookup then misses and
+     * returns early, letting the last admin be removed/suspended (zero-admin
+     * lockout). To keep the cap for the console yet make the guard sound, union
+     * the capped newest-500 page with the (small, complete) set of platform
+     * admins, de-duplicating by id.
+     */
+    const [recent, admins] = await Promise.all([
+      this.prisma.user.findMany({ orderBy: { createdAt: 'desc' }, take: 500 }),
+      this.prisma.user.findMany({ where: { platformAdmin: true } }),
+    ]);
+    const byId = new Map<string, (typeof recent)[number]>();
+
+    for (const user of recent) {
+      byId.set(user.id, user);
+    }
+
+    for (const user of admins) {
+      byId.set(user.id, user);
+    }
+
+    return [...byId.values()].map(mapUser);
+  }
+
+  /*
+   * Complete set of platform administrators, never capped. Use this (not the
+   * take-bounded listAdminUsers) whenever the zero-admin invariant must hold.
+   */
+  async listPlatformAdmins() {
+    return (await this.prisma.user.findMany({ where: { platformAdmin: true } })).map(mapUser);
+  }
+
+  async countPlatformAdmins() {
+    return this.prisma.user.count({ where: { platformAdmin: true } });
   }
 
   async listAdminOrganizations() {

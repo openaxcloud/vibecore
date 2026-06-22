@@ -4,6 +4,7 @@ import { createReadStream } from 'node:fs';
 import { lstat, mkdir, readdir, readFile, readlink, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, relative, resolve, sep } from 'node:path';
 import { Readable } from 'node:stream';
+import { StringDecoder } from 'node:string_decoder';
 import websocket from '@fastify/websocket';
 import { createPrometheusRegistry } from '@vibecore/observability';
 import { normalizeShellCommandArgs } from '@vibecore/runtime-contract';
@@ -41,7 +42,7 @@ export interface ProcessRecord {
 const safePathString = z
   .string()
   .min(1)
-  // eslint-disable-next-line no-control-regex
+
   .refine((value) => !/[\u0000-\u001f\u007f]/.test(value), { message: 'Path contains control characters' });
 
 const filePathSchema = z.object({ path: safePathString });
@@ -212,8 +213,10 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       await assertRealPathContained(root, start);
     }
 
-    // Map fs errors to proper status (a ?path pointing at a file → ENOTDIR → 400,
-    // a removed path → ENOENT → 404) instead of an opaque 500/502.
+    /*
+     * Map fs errors to proper status (a ?path pointing at a file → ENOTDIR → 400,
+     * a removed path → ENOENT → 404) instead of an opaque 500/502.
+     */
     return await listTree(root, start).catch(rethrowFsError);
   });
   app.get('/files/read', async (request) => {
@@ -270,7 +273,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
   app.post('/files/write', async (request) => {
     const body = writeSchema.parse(request.body);
-    assertContentSize(body.content, maxFileBytes);
+    assertContentSize(body.content, maxFileBytes, body.encoding);
 
     const safePath = resolveWorkspacePath(root, body.path);
 
@@ -302,7 +305,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     }
 
     const content = body.content ?? '';
-    assertContentSize(content, maxFileBytes);
+    assertContentSize(content, maxFileBytes, body.encoding);
 
     // Check containment before mkdir so a symlink can't make mkdir create dirs outside root.
     await assertRealPathContained(root, safePath);
@@ -344,7 +347,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const body = z.object({ files: z.array(writeSchema) }).parse(request.body);
 
     for (const file of body.files) {
-      assertContentSize(file.content, maxFileBytes);
+      assertContentSize(file.content, maxFileBytes, file.encoding);
 
       const safePath = resolveWorkspacePath(root, file.path);
 
@@ -483,7 +486,6 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     }
 
     if (!response) {
-      // eslint-disable-next-line no-console
       console.error(
         JSON.stringify({
           level: 'error',
@@ -542,7 +544,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const body = snapshotSchema.parse(request.body);
 
     for (const file of body.files) {
-      assertContentSize(file.content, maxFileBytes);
+      assertContentSize(file.content, maxFileBytes, file.encoding);
 
       const safePath = resolveWorkspacePath(root, file.path);
 
@@ -1147,8 +1149,18 @@ function clampTerminalDimension(value: unknown, fallback: number): number {
   return Math.min(Math.floor(numeric), 1000);
 }
 
-function assertContentSize(content: string, maxFileBytes: number) {
-  if (Buffer.byteLength(content) > maxFileBytes) {
+function assertContentSize(content: string, maxFileBytes: number, encoding?: 'utf8' | 'base64') {
+  /*
+   * Measure the DECODED byte length, not the length of the (base64) string.
+   * A base64 payload is ~4/3 larger than the bytes actually written to disk via
+   * decodeWriteContent, so checking Buffer.byteLength(content) false-rejected
+   * in-limit binary writes/restores (a ~1.5MiB image base64-encodes to >2MiB and
+   * tripped the 2MiB cap) with a spurious 413 FILE_TOO_LARGE.
+   */
+  const byteLength =
+    encoding === 'base64' ? decodeWriteContent(content, encoding).byteLength : Buffer.byteLength(content);
+
+  if (byteLength > maxFileBytes) {
     throw Object.assign(new Error('File is too large'), { statusCode: 413, code: 'FILE_TOO_LARGE' });
   }
 }
@@ -1617,8 +1629,26 @@ async function runCommandStream(
     drainTimer.unref?.();
   };
 
-  const send = (type: 'stdout' | 'stderr', chunk: Buffer) => {
-    const data = chunk.toString('utf8');
+  /*
+   * Decode through a StringDecoder per stream, not chunk.toString('utf8'): a
+   * multi-byte UTF-8 sequence (emoji/CJK/accented chars/box-drawing/spinner
+   * glyphs — pervasive in npm install / Vite / build output, which is exactly
+   * what flows through /commands/stream) that straddles a chunk boundary would
+   * otherwise be split and decoded into U+FFFD replacement chars, permanently
+   * mangling the rendered log. The decoder buffers the incomplete tail across
+   * chunks. stdout and stderr each get their own decoder so an incomplete tail
+   * on one stream can't corrupt the other. Mirrors terminal-session.ts.
+   */
+  const decoders: Record<'stdout' | 'stderr', StringDecoder> = {
+    stdout: new StringDecoder('utf8'),
+    stderr: new StringDecoder('utf8'),
+  };
+
+  const emit = (type: 'stdout' | 'stderr', data: string) => {
+    if (!data) {
+      return;
+    }
+
     record.output = `${record.output ?? ''}${data}`.slice(-options.maxOutputBytes);
 
     /*
@@ -1640,6 +1670,16 @@ async function runCommandStream(
     }
   };
 
+  const send = (type: 'stdout' | 'stderr', chunk: Buffer) => {
+    emit(type, decoders[type].write(chunk));
+  };
+
+  // Flush any incomplete multi-byte tail buffered in the decoders when the child exits.
+  const flushDecoders = () => {
+    emit('stdout', decoders.stdout.end());
+    emit('stderr', decoders.stderr.end());
+  };
+
   child.stdout.on('data', (chunk) => send('stdout', chunk));
   child.stderr.on('data', (chunk) => send('stderr', chunk));
 
@@ -1647,6 +1687,8 @@ async function runCommandStream(
   child.stdout.on('error', () => {});
   child.stderr.on('error', () => {});
   child.on('close', () => {
+    flushDecoders();
+
     if (drainTimer) {
       clearInterval(drainTimer);
       drainTimer = undefined;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createDatabaseClient } from '@vibecore/database';
+import { Prisma, createDatabaseClient } from '@vibecore/database';
 import { buildApiApp } from '../app.js';
 import type { EmailProvider } from '../email.js';
 import { PrismaApiStore } from '../prisma-store.js';
@@ -96,6 +96,142 @@ class TestGitProvider implements GitProvider {
     return { url: 'https://github.example/pull/1', number: 1 };
   }
 }
+
+/*
+ * Minimal in-memory fake of the Prisma `user` delegate so the lockout-guard and
+ * deletion fixes can be unit-tested without a live database. Only the methods
+ * the store calls are implemented.
+ */
+function fakeUserDelegate(rows: Array<{ id: string; createdAt: Date; platformAdmin: boolean }>) {
+  return {
+    async findMany(args?: {
+      where?: { platformAdmin?: boolean };
+      orderBy?: { createdAt?: 'asc' | 'desc' };
+      take?: number;
+    }) {
+      let result = rows.slice();
+
+      if (args?.where?.platformAdmin !== undefined) {
+        result = result.filter((row) => row.platformAdmin === args.where!.platformAdmin);
+      }
+
+      if (args?.orderBy?.createdAt === 'desc') {
+        result = result.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      }
+
+      if (typeof args?.take === 'number') {
+        result = result.slice(0, args.take);
+      }
+
+      return result;
+    },
+    async count(args?: { where?: { platformAdmin?: boolean } }) {
+      if (args?.where?.platformAdmin !== undefined) {
+        return rows.filter((row) => row.platformAdmin === args.where!.platformAdmin).length;
+      }
+
+      return rows.length;
+    },
+  };
+}
+
+describe('PrismaApiStore.listAdminUsers / platform-admin lockout guard', () => {
+  it('includes platform admins that fall outside the newest-500 window', async () => {
+    const base = Date.now();
+    const rows: Array<{ id: string; createdAt: Date; platformAdmin: boolean }> = [];
+
+    // Oldest account is the sole platform admin (a typical first signup).
+    rows.push({ id: 'admin-1', createdAt: new Date(base), platformAdmin: true });
+
+    // 600 newer non-admin accounts push the admin out of the take:500 page.
+    for (let index = 1; index <= 600; index += 1) {
+      rows.push({ id: `user-${index}`, createdAt: new Date(base + index * 1000), platformAdmin: false });
+    }
+
+    const store = new PrismaApiStore({ user: fakeUserDelegate(rows) } as never);
+    const listed = await store.listAdminUsers();
+
+    expect(listed.find((user) => user.id === 'admin-1')?.platformAdmin).toBe(true);
+    expect(listed.filter((user) => user.platformAdmin).length).toBe(1);
+  });
+
+  it('does not duplicate an admin that is also within the newest-500 window', async () => {
+    const base = Date.now();
+    const rows = [
+      { id: 'admin-recent', createdAt: new Date(base + 10_000), platformAdmin: true },
+      { id: 'user-old', createdAt: new Date(base), platformAdmin: false },
+    ];
+
+    const store = new PrismaApiStore({ user: fakeUserDelegate(rows) } as never);
+    const listed = await store.listAdminUsers();
+
+    expect(listed.filter((user) => user.id === 'admin-recent')).toHaveLength(1);
+  });
+
+  it('listPlatformAdmins / countPlatformAdmins return the complete uncapped admin set', async () => {
+    const base = Date.now();
+    const rows: Array<{ id: string; createdAt: Date; platformAdmin: boolean }> = [
+      { id: 'admin-1', createdAt: new Date(base), platformAdmin: true },
+      { id: 'admin-2', createdAt: new Date(base + 1000), platformAdmin: true },
+    ];
+
+    for (let index = 0; index < 700; index += 1) {
+      rows.push({ id: `user-${index}`, createdAt: new Date(base + 100_000 + index), platformAdmin: false });
+    }
+
+    const store = new PrismaApiStore({ user: fakeUserDelegate(rows) } as never);
+
+    expect(await store.countPlatformAdmins()).toBe(2);
+    expect((await store.listPlatformAdmins()).map((user) => user.id).sort()).toEqual(['admin-1', 'admin-2']);
+  });
+});
+
+describe('PrismaApiStore.deleteUser error surfacing', () => {
+  it('returns false for a genuine not-found (P2025) deletion', async () => {
+    const store = new PrismaApiStore({
+      user: {
+        async delete() {
+          throw new Prisma.PrismaClientKnownRequestError('not found', {
+            code: 'P2025',
+            clientVersion: 'test',
+          });
+        },
+      },
+    } as never);
+
+    expect(await store.deleteUser('missing')).toBe(false);
+  });
+
+  it('rethrows a blocked deletion (FK violation P2003) instead of swallowing it', async () => {
+    const store = new PrismaApiStore({
+      user: {
+        async delete() {
+          throw new Prisma.PrismaClientKnownRequestError('fk violation', {
+            code: 'P2003',
+            clientVersion: 'test',
+          });
+        },
+      },
+    } as never);
+
+    await expect(store.deleteUser('blocked')).rejects.toMatchObject({ code: 'P2003' });
+  });
+
+  it('returns true on a successful deletion', async () => {
+    let called = false;
+    const store = new PrismaApiStore({
+      user: {
+        async delete() {
+          called = true;
+          return {};
+        },
+      },
+    } as never);
+
+    expect(await store.deleteUser('ok')).toBe(true);
+    expect(called).toBe(true);
+  });
+});
 
 const runPrismaTests = (await canReachDatabase()) ? describe : describe.skip;
 

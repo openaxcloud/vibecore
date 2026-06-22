@@ -317,6 +317,162 @@ describe('WorkspaceManager', () => {
     }
   });
 
+  it('meters the active runtime window on an explicit user stop (not just GC)', async () => {
+    const prevFetch = globalThis.fetch;
+    const prevApi = process.env.API_URL;
+    const prevSecret = process.env.INTERNAL_API_SHARED_SECRET;
+    process.env.API_URL = 'http://api.internal';
+    process.env.INTERNAL_API_SHARED_SECRET = 'internal-secret';
+
+    const calls: Array<{ url: string; body: any }> = [];
+    globalThis.fetch = vi.fn(async (url: any, init: any) => {
+      calls.push({ url: String(url), body: JSON.parse(init?.body ?? '{}') });
+      return { ok: true, body: { cancel: async () => {} } } as any;
+    }) as any;
+
+    try {
+      const k8s = new TestWorkspaceK8sClient();
+      const store = new TestWorkspaceStore();
+      const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+      await manager.startWorkspace(input);
+      const meteredFrom = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      const activeUntil = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      await store.update(input.workspaceId, {
+        status: 'RUNNING',
+        lastMeteredAt: meteredFrom,
+        lastActiveAt: activeUntil,
+      });
+
+      // The user-facing api stop route (POST /workspaces/:id/stop) calls this with
+      // no guard. Before the fix it flipped the row to STOPPED without ever
+      // metering, silently dropping the active window from billing.
+      const stopped = await manager.stopWorkspace('workspaces', input.workspaceId);
+      expect(stopped.status).toBe('STOPPED');
+
+      const meterCall = calls.find((call) => call.url.endsWith('/internal/metering'));
+      expect(meterCall).toBeTruthy();
+      // 2h marker → 1h lastActiveAt = ~3600s of reserved 'pro' compute (500m/1Gi).
+      expect(meterCall!.body.seconds).toBe(3600);
+      expect(meterCall!.body.cpuMillicores).toBe(500);
+      expect(meterCall!.body.ramMb).toBe(1024);
+      expect((await store.get(input.workspaceId))?.lastMeteredAt).toBe(activeUntil);
+    } finally {
+      globalThis.fetch = prevFetch;
+      if (prevApi === undefined) {
+        delete process.env.API_URL;
+      } else {
+        process.env.API_URL = prevApi;
+      }
+      if (prevSecret === undefined) {
+        delete process.env.INTERNAL_API_SHARED_SECRET;
+      } else {
+        process.env.INTERNAL_API_SHARED_SECRET = prevSecret;
+      }
+    }
+  });
+
+  it('meters the un-metered RUNNING window when a live workspace is reopened (no marker jump)', async () => {
+    const prevFetch = globalThis.fetch;
+    const prevApi = process.env.API_URL;
+    const prevSecret = process.env.INTERNAL_API_SHARED_SECRET;
+    process.env.API_URL = 'http://api.internal';
+    process.env.INTERNAL_API_SHARED_SECRET = 'internal-secret';
+
+    const calls: Array<{ url: string; body: any }> = [];
+    globalThis.fetch = vi.fn(async (url: any, init: any) => {
+      const parsed = String(url);
+
+      if (parsed.endsWith('/internal/metering')) {
+        calls.push({ url: parsed, body: JSON.parse(init?.body ?? '{}') });
+      }
+
+      return { ok: true, body: { cancel: async () => {} } } as any;
+    }) as any;
+
+    try {
+      const k8s = new TestWorkspaceK8sClient();
+      const store = new TestWorkspaceStore();
+      const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+      await manager.startWorkspace(input);
+      // A workspace that has been RUNNING and accumulating un-metered compute: the
+      // marker sits 2h back, lastActiveAt 1h back (a long-open IDE). The api always
+      // re-POSTs /workspaces/start on reopen even though it is still RUNNING.
+      const meteredFrom = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      const activeUntil = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      await store.update(input.workspaceId, {
+        status: 'RUNNING',
+        lastMeteredAt: meteredFrom,
+        lastActiveAt: activeUntil,
+      });
+
+      // Reopen the live RUNNING workspace.
+      const reopened = await manager.startWorkspace(input);
+      expect(reopened.status).toBe('RUNNING');
+
+      // The prior un-metered 2h→1h window (~3600s) must be billed BEFORE the marker
+      // is reset to now — otherwise that compute is silently lost.
+      const meterCall = calls.find((call) => call.url.endsWith('/internal/metering'));
+      expect(meterCall).toBeTruthy();
+      expect(meterCall!.body.seconds).toBe(3600);
+
+      // And the marker is now freshly stamped at ~now so the STOPPED-gap reasoning
+      // still holds for the next stop.
+      const markerAge = Date.now() - new Date((await store.get(input.workspaceId))!.lastMeteredAt!).getTime();
+      expect(markerAge).toBeLessThan(60_000);
+    } finally {
+      globalThis.fetch = prevFetch;
+      if (prevApi === undefined) {
+        delete process.env.API_URL;
+      } else {
+        process.env.API_URL = prevApi;
+      }
+      if (prevSecret === undefined) {
+        delete process.env.INTERNAL_API_SHARED_SECRET;
+      } else {
+        process.env.INTERNAL_API_SHARED_SECRET = prevSecret;
+      }
+    }
+  });
+
+  it('does not re-meter a STOPPED→start reopen (no live window to capture)', async () => {
+    const prevFetch = globalThis.fetch;
+    const prevApi = process.env.API_URL;
+    process.env.API_URL = 'http://api.internal';
+
+    const calls: string[] = [];
+    globalThis.fetch = vi.fn(async (url: any) => {
+      calls.push(String(url));
+      return { ok: true, body: { cancel: async () => {} } } as any;
+    }) as any;
+
+    try {
+      const k8s = new TestWorkspaceK8sClient();
+      const store = new TestWorkspaceStore();
+      const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+      await manager.startWorkspace(input);
+      // stopWorkspace meters once (its own window), advancing the marker to
+      // lastActiveAt; reopening a STOPPED row must NOT meter again — the existing
+      // RUNNING-only guard skips the pre-reset meter.
+      await manager.stopWorkspace('workspaces', input.workspaceId);
+      const meterCountAfterStop = calls.filter((url) => url.endsWith('/internal/metering')).length;
+
+      await manager.startWorkspace(input);
+      const meterCountAfterReopen = calls.filter((url) => url.endsWith('/internal/metering')).length;
+
+      expect(meterCountAfterReopen).toBe(meterCountAfterStop);
+    } finally {
+      globalThis.fetch = prevFetch;
+      if (prevApi === undefined) {
+        delete process.env.API_URL;
+      } else {
+        process.env.API_URL = prevApi;
+      }
+    }
+  });
+
   it('claimMeterWindow is a cross-replica compare-and-set — only one claim wins', async () => {
     const k8s = new TestWorkspaceK8sClient();
     const store = new TestWorkspaceStore();

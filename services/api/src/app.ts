@@ -71,6 +71,8 @@ import {
   type AgentMemoryScope,
   type AgentMemoryType,
 } from './agent-memory.js';
+import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
+import { shouldRecordDeploymentUsage } from './deployment-billing.js';
 import {
   assertDeploymentRequestAllowed,
   buildDeploymentUrl,
@@ -858,7 +860,19 @@ const runtimeWorkspaceSchema = z.object({
   metadata: z.record(z.unknown()).optional(),
 });
 
-const runtimeFileWriteSchema = z.object({ path: z.string().min(1), content: z.string() });
+const runtimeFileWriteSchema = z.object({
+  path: z.string().min(1),
+  content: z.string(),
+
+  /*
+   * Optional content encoding. The read path returns binary files as
+   * {content:<base64>, encoding:'base64'} (commit 1029075b). A read-modify-write
+   * of a binary file (editor save in REMOTE mode, copy/duplicate) must be able
+   * to echo that encoding back so the agent decodes the base64 to real bytes
+   * instead of writing the base64 STRING as utf8 text and corrupting the file.
+   */
+  encoding: z.enum(['utf8', 'base64']).optional(),
+});
 
 const runtimeFileCreateSchema = runtimeFileWriteSchema
   .partial({ content: true })
@@ -11748,14 +11762,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           .send({ error: 'Workspace has too many files to export', code: 'RUNTIME_EXPORT_TOO_MANY_FILES' });
       }
 
-      const content = await agentFileContent(authorized.workspaceId, file.path);
-      exportBytes += Buffer.byteLength(content);
+      /*
+       * Read via agentFileRead so we keep the `encoding` field: after commit
+       * 1029075b the agent returns binary files as {content:<base64>,
+       * encoding:'base64'}. agentFileContent drops encoding, so the text-only
+       * path would zip.file() the base64 STRING as literal utf8 — corrupting
+       * every image/font/.ico/wasm in the export. Decode base64 entries to real
+       * bytes (via {base64:true}); store text entries as utf8.
+       */
+      const fileRead = await agentFileRead(authorized.workspaceId, file.path);
+      const isBase64 = fileRead.encoding === 'base64';
+
+      exportBytes += isBase64 ? Math.floor((fileRead.content.length * 3) / 4) : Buffer.byteLength(fileRead.content);
 
       if (exportBytes > MAX_EXPORT_BYTES) {
         return reply.code(413).send({ error: 'Workspace is too large to export', code: 'RUNTIME_EXPORT_TOO_LARGE' });
       }
 
-      zip.file(file.path, content);
+      if (isBase64) {
+        zip.file(file.path, fileRead.content, { base64: true });
+      } else {
+        zip.file(file.path, fileRead.content);
+      }
     }
 
     return reply.header('content-type', 'application/zip').send(await zip.generateAsync({ type: 'nodebuffer' }));
@@ -15531,6 +15559,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     collaborationPresenceOwners.set(presenceOwnerKey, client);
 
     /*
+     * The owner map is per-replica and can't see a reconnect that landed on
+     * another api replica under the same stable sessionId. Track the updatedAt
+     * of the last presence write THIS connection made; on close we compare it to
+     * the persisted row so a stale close can't delete a row a newer (possibly
+     * cross-replica) connection just upserted. Every upsert bumps updatedAt.
+     */
+    let ownPresenceUpdatedAt = presence.updatedAt;
+
+    /*
      * Register cleanup BEFORE any further setup (ready-send, handlers, keepalive).
      * Previously onClose was the LAST thing registered, so a throw during setup
      * (e.g. client.send failing, or a store read) closed the socket with the
@@ -15563,6 +15600,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           }
 
           collaborationPresenceOwners.delete(presenceOwnerKey);
+
+          /*
+           * Cross-replica guard: a reconnect on ANOTHER api replica under the
+           * same sessionId is invisible to this replica's owner map. Re-read the
+           * persisted row and only delete when its updatedAt still matches the
+           * last write THIS connection made — a newer (greater) updatedAt means
+           * another connection owns it now, so deleting would evict a live user
+           * and broadcast a false presence.leave.
+           */
+          const persistedRow = (await store.listCollaborationPresence(project.id)).find(
+            (row) => row.sessionId === sessionId,
+          );
+
+          if (!shouldRetirePresenceRow(persistedRow?.updatedAt, ownPresenceUpdatedAt)) {
+            return;
+          }
+
           await store.removeCollaborationPresence(project.id, sessionId);
           collaborationBroker.publish(project.id, { type: 'presence.leave', sessionId }, client);
         } catch (error) {
@@ -15644,6 +15698,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             mode: isReadOnlyProjectRole(role) ? 'read-only' : body.mode,
             terminalAccess: isReadOnlyProjectRole(role) ? false : body.terminalAccess,
           });
+          ownPresenceUpdatedAt = updated.updatedAt;
           collaborationBroker.publish(project.id, { type: 'presence.update', presence: updated }, client);
 
           return;
@@ -20213,10 +20268,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     /*
-     * Don't bill a failed build against the deployment quota — repeated build
-     * failures would otherwise exhaust a user's plan with zero successful deploys.
+     * Bill against the PERSISTED status, not the locally-computed `status`. The
+     * static build runs outside the org lock, so a concurrent cancel can flip
+     * the row to CANCELED while the build ran; the final updateDeployment then
+     * no-ops (monotonic guard keeps it CANCELED). Keying on the local 'READY'
+     * here would consume deployment quota for a build that serves nothing.
+     * Don't bill FAILED either (repeated failures would exhaust a plan).
      */
-    if (status !== 'FAILED') {
+    if (shouldRecordDeploymentUsage(ready.status)) {
       await recordUsage(request, project.organizationId, 'deployments.count');
     }
 
@@ -20441,6 +20500,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             level: 'info',
             message: `Static deploy: snapshot stored at ${staticDeploymentSnapshotDir(redeploy.id)}`,
           });
+
+          /*
+           * Mirror the create handler: the static build runs outside any lock, so
+           * a concurrent POST /deployments/:id/cancel can flip this redeploy to
+           * CANCELED while it ran. The serve path 404s a canceled deploy, but the
+           * snapshot we just wrote would otherwise linger on disk forever —
+           * discard it when the redeploy was canceled mid-build.
+           */
+          const ownerStatus = await store.getDeploymentOwnerStatus(redeploy.id).catch(() => undefined);
+
+          if (ownerStatus?.status === 'CANCELED') {
+            await removeStaticDeploymentSnapshot(redeploy.id).catch(() => undefined);
+            rebuildLogs.push({
+              timestamp: new Date().toISOString(),
+              level: 'info',
+              message: 'Static deploy: deployment was canceled mid-build; snapshot discarded.',
+            });
+          }
         } catch (error) {
           staticBuildFailed = true;
           await removeStaticDeploymentSnapshot(redeploy.id).catch(() => undefined);
@@ -20512,8 +20589,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       finishedAt: redeployStatus === 'BUILDING' ? undefined : new Date().toISOString(),
     });
 
-    // A failed rebuild shouldn't consume deployment quota (see create handler).
-    if (redeployStatus !== 'FAILED') {
+    /*
+     * Bill against the PERSISTED status (see create handler): a rebuild canceled
+     * mid-build has its final READY update no-op'd by the monotonic guard (row
+     * stays CANCELED), so keying on the local redeployStatus would consume quota
+     * for a redeploy that serves nothing. Failed rebuilds aren't billed either.
+     */
+    if (shouldRecordDeploymentUsage(ready.status)) {
       await recordUsage(request, project.organizationId, 'deployments.count');
     }
 
