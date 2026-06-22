@@ -1,5 +1,5 @@
 import { signAgentToken } from '@vibecore/workspace-sdk';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -51,6 +51,55 @@ describe('workspace-agent', () => {
     const read = await app.inject({ method: 'GET', url: '/files/read?path=does/not/exist.ts', headers });
     expect(read.statusCode).toBe(404);
     expect(read.json()).toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('exports and re-imports the whole workspace as a streamed tar archive', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const headers = { authorization: `Bearer ${token}` };
+
+    await mkdir(join(root, 'src'), { recursive: true });
+    await writeFile(join(root, 'index.js'), 'console.log(1)\n');
+    await writeFile(join(root, 'src/app.ts'), 'export const x = 1\n');
+
+    const exported = await app.inject({ method: 'GET', url: '/snapshots/archive', headers });
+    expect(exported.statusCode).toBe(200);
+    expect(exported.headers['content-type']).toContain('application/gzip');
+    const archive = exported.rawPayload;
+    expect(archive.length).toBeGreaterThan(0);
+
+    // Restore into a fresh, independent workspace (new root + its own identity).
+    const root2 = await mkdtemp(join(tmpdir(), 'workspace-agent-restore-'));
+    const ws2 = 'workspace_2';
+    const token2 = signAgentToken({ workspaceId: ws2, expiresAt: Date.now() + 60_000, secret: tokenSecret });
+    const app2 = buildWorkspaceAgentApp({ workspaceRoot: root2, tokenSecret, workspaceId: ws2 });
+
+    try {
+      const imported = await app2.inject({
+        method: 'POST',
+        url: '/snapshots/archive',
+        headers: { authorization: `Bearer ${token2}`, 'content-type': 'application/gzip' },
+        payload: archive,
+      });
+      expect(imported.statusCode).toBe(200);
+      expect(imported.json()).toEqual({ imported: true });
+
+      expect(await readFile(join(root2, 'index.js'), 'utf8')).toBe('console.log(1)\n');
+      expect(await readFile(join(root2, 'src/app.ts'), 'utf8')).toBe('export const x = 1\n');
+    } finally {
+      await rm(root2, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects an archive import that is not a stream', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    // application/json body is buffered (not a stream) → 415 from the handler.
+    const response = await app.inject({
+      method: 'POST',
+      url: '/snapshots/archive',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      payload: { not: 'a-stream' },
+    });
+    expect(response.statusCode).toBe(415);
   });
 
   it('blocks path traversal', async () => {

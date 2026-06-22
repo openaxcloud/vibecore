@@ -162,6 +162,17 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     done(null, body);
   });
 
+  /*
+   * Stream archive uploads (tar.gz of the whole workspace) through untouched
+   * instead of buffering them like every other body. A real workspace archive
+   * (node_modules, build output) dwarfs maxFileBytes, so buffering would OOM the
+   * agent or trip bodyLimit. A passthrough parser hands the raw request stream to
+   * the /snapshots/archive handler, which pipes it straight into `tar -x`.
+   */
+  app.addContentTypeParser(['application/gzip', 'application/x-gtar', 'application/octet-stream'], (_request, payload, done) => {
+    done(null, payload);
+  });
+
   app.addHook('onRequest', async (request, reply) => {
     if (request.url === '/health') {
       return;
@@ -538,6 +549,80 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     }
 
     return { restoredFiles: body.files.length };
+  });
+
+  /*
+   * Stream the entire workspace out as a gzipped tar — the export half of the
+   * compute/storage decoupling (docs/replit-parity-isolation.md). The manager
+   * calls this on stop and pipes the bytes into a snapshot store (GCS), so the
+   * PVC becomes a hot cache rather than the source of truth. Streaming (vs the
+   * JSON /snapshots/create) keeps a node_modules-sized workspace off the heap.
+   */
+  app.get('/snapshots/archive', async (_request, reply) => {
+    // `.` (not root) so the archive holds workspace-relative paths, and restore
+    // into any target dir reproduces the tree without an absolute-path prefix.
+    const child = spawn('tar', ['-czf', '-', '-C', root, '.'], { stdio: ['ignore', 'pipe', 'pipe'] });
+
+    child.stderr.resume(); // drain so tar never blocks on a full stderr pipe
+
+    /*
+     * If tar itself fails (e.g. binary missing), surface a 500 rather than a
+     * silently truncated archive. Once we've started streaming we can't change
+     * the status code, so a mid-stream failure destroys the response instead.
+     */
+    child.once('error', () => {
+      if (!reply.sent) {
+        reply.code(500).send({ error: 'snapshot export failed' });
+      }
+    });
+
+    reply.header('content-type', 'application/gzip');
+    reply.header('content-disposition', 'attachment; filename="workspace.tar.gz"');
+
+    return reply.send(child.stdout);
+  });
+
+  /*
+   * Import a gzipped tar produced by /snapshots/archive back into the workspace —
+   * the restore half. The body is the raw archive stream (see the passthrough
+   * content-type parser above); pipe it straight into `tar -x`. Used on start to
+   * rehydrate an ephemeral volume from a stored snapshot, and to materialise a
+   * fork.
+   */
+  app.post('/snapshots/archive', async (request, reply) => {
+    const payload = request.body as NodeJS.ReadableStream | undefined;
+
+    if (!payload || typeof (payload as Readable).pipe !== 'function') {
+      return reply.code(415).send({ error: 'expected a gzipped tar stream' });
+    }
+
+    // `--no-same-owner` so files are owned by the agent's uid (1000), not the
+    // archived uids; `-p` would restore perms but ownership must stay in-sandbox.
+    const child = spawn('tar', ['-xzf', '-', '-C', root, '--no-same-owner'], { stdio: ['pipe', 'ignore', 'pipe'] });
+    const stderr: Buffer[] = [];
+
+    child.stderr.on('data', (chunk: Buffer) => stderr.push(chunk));
+
+    const done = new Promise<number>((resolveExit, rejectExit) => {
+      child.once('error', rejectExit);
+      child.once('close', resolveExit);
+    });
+
+    (payload as Readable).pipe(child.stdin);
+
+    let code: number;
+
+    try {
+      code = await done;
+    } catch {
+      return reply.code(500).send({ error: 'snapshot import failed' });
+    }
+
+    if (code !== 0) {
+      return reply.code(500).send({ error: 'snapshot import failed', detail: Buffer.concat(stderr).toString().slice(0, 512) });
+    }
+
+    return { imported: true };
   });
 
   app.get('/metrics', async (_request, reply) => {
