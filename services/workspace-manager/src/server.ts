@@ -3,6 +3,7 @@ import { KubectlWorkspaceK8sClient } from '@vibecore/k8s-client';
 import { buildWorkspaceManagerApp } from './app.js';
 import { JsonWorkspaceStore, StructuredLogEventBus, WorkspaceManager, type WorkspaceStore } from './manager.js';
 import { PrismaWorkspaceStore } from './prisma-store.js';
+import { FilesystemSnapshotStore, type WorkspaceSnapshotStore } from './snapshot-store.js';
 
 if (!process.env.WORKSPACE_AGENT_TOKEN_SECRET) {
   throw new Error('WORKSPACE_AGENT_TOKEN_SECRET is required');
@@ -34,8 +35,32 @@ function resolveStore(): WorkspaceStore {
   return new JsonWorkspaceStore();
 }
 
+/*
+ * Optional snapshot store (compute/storage decoupling — see
+ * docs/replit-parity-isolation.md). Off unless configured, so the default stays
+ * unchanged PVC-only behaviour. WORKSPACE_SNAPSHOT_DIR points at a (shared/RWX)
+ * volume — the same-node/NFS path. A GCS-backed ObjectStorageSnapshotStore is a
+ * drop-in here once a bucket + ObjectStorageClient adapter are provisioned.
+ */
+function resolveSnapshotStore(): WorkspaceSnapshotStore | undefined {
+  const dir = process.env.WORKSPACE_SNAPSHOT_DIR?.trim();
+
+  if (dir) {
+    console.log(JSON.stringify({ level: 'info', service: 'workspace-manager', event: 'snapshot-store.selected', kind: 'filesystem', dir }));
+    return new FilesystemSnapshotStore(dir);
+  }
+
+  return undefined;
+}
+
 const app = buildWorkspaceManagerApp(
-  new WorkspaceManager(resolveStore(), new KubectlWorkspaceK8sClient(), new StructuredLogEventBus(), process.env.WORKSPACE_AGENT_TOKEN_SECRET),
+  new WorkspaceManager(
+    resolveStore(),
+    new KubectlWorkspaceK8sClient(),
+    new StructuredLogEventBus(),
+    process.env.WORKSPACE_AGENT_TOKEN_SECRET,
+    resolveSnapshotStore(),
+  ),
 );
 const port = Number(process.env.WORKSPACE_MANAGER_PORT ?? 3010);
 
