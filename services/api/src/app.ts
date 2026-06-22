@@ -10858,9 +10858,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     } catch (restartError) {
       /*
-       * If we claimed an active slot above (flipped to STARTING) but the manager
-       * restart failed, reset to FAILED so the slot isn't leaked (stuck STARTING
-       * would count against workspaces.active forever).
+       * Same cold-start race as /start: the manager's restart (stop→start) blocks on
+       * pod readiness (waitForReadiness + waitForAgentReachable, ~225s) past our
+       * api->manager request timeout. A timeout (WORKSPACE_MANAGER_UNAVAILABLE) or a
+       * manager 5xx does NOT mean the restart failed — the pod still comes up RUNNING.
+       * Previously this marked a healthy, still-provisioning workspace FAILED and
+       * surfaced a false 502 'crashed runtime' on the user's Restart action. Treat it
+       * as transient: leave the record STARTING (it genuinely is) and return a
+       * 'starting' session so the IDE polls /status until RUNNING.
+       */
+      const errorCode = (restartError as { code?: string } | undefined)?.code;
+      const managerStatus = (restartError as { managerStatus?: number } | undefined)?.managerStatus;
+      const transientProvisioning =
+        errorCode === 'WORKSPACE_MANAGER_UNAVAILABLE' ||
+        (errorCode === 'WORKSPACE_MANAGER_REQUEST_FAILED' && (managerStatus === undefined || managerStatus >= 500));
+
+      if (transientProvisioning) {
+        metrics.increment('workspace_cold_start_pending_total', {
+          plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
+        });
+
+        return runtimeSession(authorized.workspaceId, 'starting', { provisioning: true });
+      }
+
+      /*
+       * Deterministic restart failure (4xx). If we claimed an active slot above
+       * (flipped to STARTING), reset to FAILED so the slot isn't leaked (a stuck
+       * STARTING would count against workspaces.active forever), then rethrow.
        */
       if (restartOrgId && !restartCountsAsActive) {
         await store
