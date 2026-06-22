@@ -748,6 +748,13 @@ export function DesktopCodeEditor({
   const ownedWorkspaceModelsRef = useRef<Set<string>>(new Set());
   const envMaskDecorationsRef = useRef<string[]>([]);
 
+  // Set while we programmatically push an external/agent-streamed value into the
+  // Monaco model via setValue(). Monaco fires onDidChangeModelContent
+  // synchronously for setValue, so without this guard each programmatic update
+  // would re-fire onChange — collapsing the user's selection, polluting the undo
+  // stack, and scheduling redundant autosaves while an agent is writing.
+  const isApplyingExternalRef = useRef(false);
+
   useEffect(() => {
     onChangeRef.current = onChange;
     onSaveRef.current = onSave;
@@ -866,6 +873,10 @@ export function DesktopCodeEditor({
 
       editorRef.current = editor;
       const disposable = editor.onDidChangeModelContent(() => {
+        if (isApplyingExternalRef.current) {
+          return;
+        }
+
         onChangeRef.current?.({ value: editor.getValue(), source: 'monaco' });
       });
       editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
@@ -962,7 +973,13 @@ export function DesktopCodeEditor({
     const model = editor.getModel();
 
     if (model && model.getValue() !== value) {
-      model.setValue(value);
+      isApplyingExternalRef.current = true;
+
+      try {
+        model.setValue(value);
+      } finally {
+        isApplyingExternalRef.current = false;
+      }
     }
 
     editor.updateOptions({

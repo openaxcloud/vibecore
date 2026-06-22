@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
 import type { FileChange, FileNode, RuntimeAdapter } from '@vibecore/runtime-contract';
 import { map, type MapStore } from 'nanostores';
+import { resolveContentlessCreate } from './files.watch-create';
 import {
   addLockedFile,
   removeLockedFile,
@@ -1025,6 +1026,17 @@ export class FilesStore {
   #processFileChange(change: FileChange) {
     const sanitizedPath = this.#toWorkbenchPath(change.path).replace(/\/+$/g, '');
 
+    /*
+     * The remote watch emits `emit('.', 'update')` on connect as a "refresh your
+     * tree" signal (services/api/src/app.ts). #toWorkbenchPath('.') resolves to
+     * WORK_DIR itself, so without this guard the 'update' case below would inject a
+     * phantom empty file dirent at the project root. Treat the root signal as a
+     * no-op mutation (the periodic create/delete diffs carry the real changes).
+     */
+    if (change.path === '.' || sanitizedPath === WORK_DIR) {
+      return;
+    }
+
     if (change.type === 'delete') {
       const existing = this.files.get()[sanitizedPath];
       this.files.setKey(sanitizedPath, undefined);
@@ -1037,7 +1049,19 @@ export class FilesStore {
     }
 
     if (change.type === 'create' && change.content === undefined) {
-      this.files.setKey(sanitizedPath, { type: 'folder' });
+      /*
+       * The runtime re-created this path, so it genuinely exists again — clear it
+       * (and any deleted-folder ancestor) from #deletedPaths now, BEFORE the early
+       * return, so a previously-deleted path the runtime recreates isn't re-wiped
+       * by the next reload/#cleanupDeletedFiles.
+       */
+      if (this.#deletedPaths.size > 0) {
+        this.#clearDeletedPathForCreate(sanitizedPath);
+        this.#persistDeletedPaths();
+      }
+
+      this.#registerContentlessCreate(sanitizedPath);
+
       return;
     }
 
@@ -1090,6 +1114,45 @@ export class FilesStore {
       this.#clearDeletedPathForCreate(sanitizedPath);
       this.#persistDeletedPaths();
     }
+  }
+
+  /*
+   * Resolve a content-less 'create' (remote watch can't tell us file vs folder) by
+   * lazily reading the path: a successful read => real file (register with the
+   * fetched content so it's openable and counted in #size); a failed read => the
+   * path is a directory (register a folder). Skips paths already tracked so it
+   * never clobbers an existing file's content/lock flags.
+   */
+  #registerContentlessCreate(sanitizedPath: string) {
+    if (this.files.get()[sanitizedPath]) {
+      return;
+    }
+
+    const relativePath = this.#toRuntimePath(sanitizedPath);
+
+    void this.#runtime
+      .readFile(relativePath)
+      .then((read) => resolveContentlessCreate(read))
+      .catch(() => resolveContentlessCreate(undefined))
+      .then((resolved) => {
+        // Re-check: a delete/rename may have landed while the read was in flight.
+        if (this.files.get()[sanitizedPath]) {
+          return;
+        }
+
+        if (resolved.type === 'folder') {
+          this.files.setKey(sanitizedPath, { type: 'folder' });
+
+          return;
+        }
+
+        this.files.setKey(sanitizedPath, {
+          type: 'file',
+          content: resolved.content,
+          isBinary: resolved.isBinary,
+        });
+        this.#size++;
+      });
   }
 
   #decodeFileContent(buffer?: Uint8Array) {

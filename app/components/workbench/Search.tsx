@@ -1,7 +1,7 @@
 import type { FileSearchOptions } from '@vibecore/runtime-contract';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { computeReplacement, needsContentHydration, toRuntimeRelativePath } from './search-replace';
+import { computeReplacement, hasUnsavedEdits, needsContentHydration, toRuntimeRelativePath } from './search-replace';
 import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
@@ -187,6 +187,7 @@ export function Search() {
 
     try {
       const files = workbenchStore.files.get();
+      const unsavedFiles = workbenchStore.unsavedFiles.get();
 
       const targetPaths = [
         ...new Set(searchResults.map((result) => resolveWorkbenchPath(result.path)).filter(Boolean)),
@@ -195,11 +196,25 @@ export function Search() {
       let replacementCount = 0;
       let lockedSkipped = 0;
       let unreadableSkipped = 0;
+      let unsavedSkipped = 0;
 
       for (const filePath of targetPaths) {
         const entry = files[filePath];
 
         if (entry?.type !== 'file' || entry.isBinary) {
+          continue;
+        }
+
+        /*
+         * Never clobber unsaved editor edits. Replace All computes against the
+         * files-store (on-disk) copy and writes back through writeFileContent,
+         * which clears the dirty flag and resets the open editor document. If
+         * the user has the file open with unsaved changes, that on-disk copy is
+         * stale and the write would silently destroy their in-progress work, so
+         * we skip+warn (same treatment as locked files) and let them save first.
+         */
+        if (hasUnsavedEdits(unsavedFiles, filePath)) {
+          unsavedSkipped += 1;
           continue;
         }
 
@@ -244,6 +259,9 @@ export function Search() {
 
       const skippedNotes = [
         lockedSkipped > 0 ? `${lockedSkipped} locked file${lockedSkipped === 1 ? '' : 's'} skipped` : undefined,
+        unsavedSkipped > 0
+          ? `${unsavedSkipped} file${unsavedSkipped === 1 ? '' : 's'} with unsaved edits skipped — save first`
+          : undefined,
         unreadableSkipped > 0
           ? `${unreadableSkipped} unreadable file${unreadableSkipped === 1 ? '' : 's'} skipped`
           : undefined,

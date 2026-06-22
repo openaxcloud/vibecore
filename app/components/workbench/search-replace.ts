@@ -55,3 +55,21 @@ export function toRuntimeRelativePath(filePath: string, workdir: string = WORK_D
 export function needsContentHydration(content: string): boolean {
   return content.length === 0;
 }
+
+/**
+ * Whether a file targeted by Replace All currently holds unsaved editor edits.
+ *
+ * Replace All computes its substitution against the files-store (on-disk) copy
+ * and writes the result back through `writeFileContent`, which clears the dirty
+ * flag and resets the editor document. If the user has the file open with
+ * unsaved edits, that on-disk copy is stale and the write would silently
+ * destroy their in-progress changes. We therefore detect the dirty state up
+ * front and skip such files (mirroring how locked files are skipped) so no
+ * unsaved work is ever clobbered without the user's knowledge.
+ *
+ * Pure so it can be unit-tested without a store: pass the dirty set and the
+ * resolved absolute path.
+ */
+export function hasUnsavedEdits(unsavedFiles: Set<string>, filePath: string): boolean {
+  return unsavedFiles.has(filePath);
+}

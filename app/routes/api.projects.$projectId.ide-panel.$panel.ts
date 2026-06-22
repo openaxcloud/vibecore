@@ -836,9 +836,11 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       ]);
 
       const orgs = (organizations as any)?.organizations ?? [];
+      const projectOrgId = (project.project as any)?.organizationId;
+      const billingOrg = orgs.find((o: any) => o?.id === projectOrgId) ?? orgs[0];
 
-      const billing = orgs[0]?.id
-        ? await apiRequest(request, `/orgs/${orgs[0].id}/billing`).catch((error) => ({
+      const billing = billingOrg?.id
+        ? await apiRequest(request, `/orgs/${billingOrg.id}/billing`).catch((error) => ({
             error: panelErrorMessage(error),
           }))
         : { error: 'No organization available for billing.' };

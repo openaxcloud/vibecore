@@ -58,6 +58,16 @@ export type ProjectLoaderData = {
   projectApiError?: string;
 };
 
+/*
+ * `apiRequest` signals login/MFA navigations by throwing a redirect `Response`
+ * (3xx). React Router only navigates when a loader throws such a Response, so
+ * the IDE loader must re-throw these instead of folding them into its soft
+ * error shell.
+ */
+export function isRedirectResponse(error: unknown): error is Response {
+  return error instanceof Response && error.status >= 300 && error.status < 400;
+}
+
 export async function loadProjectIdeData(request: Request, projectId: string) {
   if (!projectId) {
     throw new Response('Project not found', { status: 404 });
@@ -121,6 +131,17 @@ export async function loadProjectIdeData(request: Request, projectId: string) {
       primaryWorkspaceId,
     });
   } catch (error) {
+    /*
+     * `apiRequest` throws redirect Responses (login on 401, MFA on 403) for page
+     * navigations. React Router navigates only when a loader *throws* such a
+     * Response, so re-throw any 3xx here instead of swallowing it into the soft
+     * shell below — otherwise a logged-out user renders broken IDE chrome rather
+     * than being sent to /login.
+     */
+    if (isRedirectResponse(error)) {
+      throw error;
+    }
+
     const message = await apiErrorMessage(error, 'Project API unavailable');
 
     return json<ProjectLoaderData>({

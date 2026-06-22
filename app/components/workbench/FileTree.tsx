@@ -5,12 +5,15 @@ import type { WorkspaceStatus } from '@vibecore/runtime-contract';
 import { diffLines, type Change } from 'diff';
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { toast } from 'react-toastify';
+import { resolveCopyContent } from './file-tree-copy';
 import { resolveEmptyExplorerState } from './file-tree-empty-state';
+import { toRuntimeRelativePath } from './search-replace';
 import { GitStatusBadge } from '~/components/git/GitStatusBadge';
 import {
   isFileLocked as readFileLockedFromStorage,
   isFolderLocked as readFolderLockedFromStorage,
 } from '~/lib/persistence/lockedFiles';
+import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import type { FileMap } from '~/lib/stores/files';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { FileHistory } from '~/types/actions';
@@ -29,30 +32,6 @@ import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { path } from '~/utils/path';
 
 const logger = createScopedLogger('FileTree');
-
-/*
- * Audit v3 (C): binary files are held in the workbench store as a base64
- * *string* (`{ content: <base64>, isBinary: true }`). `createFile` only
- * treats content as binary when it's a `Uint8Array`; a base64 string is
- * written verbatim, corrupting the copy. Rename/duplicate of an image, font,
- * etc. therefore destroyed the file. Decode binary content back to bytes so
- * `createFile`'s binary path re-encodes and writes it correctly. Browser-
- * native (no Buffer dependency).
- */
-function base64ToUint8Array(base64: string): Uint8Array {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-
-  return bytes;
-}
-
-function contentForCopy(entry: { content: string; isBinary?: boolean }): string | Uint8Array {
-  return entry.isBinary ? base64ToUint8Array(entry.content) : entry.content;
-}
 
 const NODE_BASE_PADDING_LEFT = 0;
 const NODE_PADDING_LEFT = 6;
@@ -710,6 +689,23 @@ function FileContextMenu({
   const [isDragging, setIsDragging] = useState(false);
   const depth = useMemo(() => fullPath.split('/').length, [fullPath]);
   const fileName = useMemo(() => path.basename(fullPath), [fullPath]);
+  const runtimeAdapter = useRuntimeAdapter();
+
+  /*
+   * Resolve the bytes to copy for a rename/duplicate. In remote-kubernetes mode
+   * the tree is loaded with content stripped, so an unopened file's store entry
+   * has content === '' (a placeholder, not a real empty file). Copying that
+   * placeholder writes an EMPTY file — and rename then deletes the original,
+   * destroying the only real copy. Hydrate the true on-disk content from the
+   * runtime first (same as Search's Replace All) so the copy is faithful.
+   */
+  const resolveContentForCopy = useCallback(
+    (entryPath: string, entry: { content: string; isBinary?: boolean }) =>
+      resolveCopyContent(entry, async () =>
+        runtimeAdapter.readFile(toRuntimeRelativePath(entryPath, runtimeAdapter.workdir)),
+      ),
+    [runtimeAdapter],
+  );
 
   const isFolder = useMemo(() => {
     const files = workbenchStore.files.get();
@@ -923,7 +919,7 @@ function FileContextMenu({
           if (entry?.type === 'folder') {
             await workbenchStore.createFolder(renamedPath);
           } else if (entry?.type === 'file') {
-            await workbenchStore.createFile(renamedPath, contentForCopy(entry));
+            await workbenchStore.createFile(renamedPath, await resolveContentForCopy(entryPath, entry));
           }
         }
 
@@ -935,7 +931,13 @@ function FileContextMenu({
           throw new Error('File content not available');
         }
 
-        await workbenchStore.createFile(nextPath, contentForCopy(entry));
+        /*
+         * Hydrate BEFORE the delete: if the runtime read throws, resolveContentForCopy
+         * rejects and we land in catch without ever creating an empty copy or deleting
+         * the original — so a transient runtime error can never lose the file.
+         */
+        const copyContent = await resolveContentForCopy(fullPath, entry);
+        await workbenchStore.createFile(nextPath, copyContent);
         await workbenchStore.deleteFile(fullPath);
       }
 
@@ -981,7 +983,7 @@ function FileContextMenu({
           if (entry?.type === 'folder') {
             await workbenchStore.createFolder(copiedPath);
           } else if (entry?.type === 'file') {
-            await workbenchStore.createFile(copiedPath, contentForCopy(entry));
+            await workbenchStore.createFile(copiedPath, await resolveContentForCopy(entryPath, entry));
           }
         }
       } else {
@@ -991,7 +993,7 @@ function FileContextMenu({
           throw new Error('File content not available');
         }
 
-        await workbenchStore.createFile(duplicatePath, contentForCopy(entry));
+        await workbenchStore.createFile(duplicatePath, await resolveContentForCopy(fullPath, entry));
       }
 
       toast.success(`${isFolder ? 'Folder' : 'File'} duplicated`);

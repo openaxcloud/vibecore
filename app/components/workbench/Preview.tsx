@@ -22,6 +22,7 @@ import { toast } from 'react-toastify';
 import { Inspector, type ElementInfo } from './Inspector';
 import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
+import { evaluatePreviewReadyEdge, resolvePreviewAddress, type PreviewReadyEdgeState } from './preview-address';
 import { decidePreviewLoadOutcome, shouldRunPreviewBootLoop } from './preview-frame-recovery';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
@@ -836,13 +837,22 @@ export const Preview = memo(
      * by the port watcher; activePreview?.ready in deps catches the flip) and
      * reload once on the false → true edge.
      */
-    const wasPreviewReadyRef = useRef<boolean | undefined>(undefined);
+    const wasPreviewReadyRef = useRef<PreviewReadyEdgeState>({ key: undefined, ready: undefined });
     useEffect(() => {
-      const ready = activePreview?.ready;
-      const wasReady = wasPreviewReadyRef.current;
-      wasPreviewReadyRef.current = ready;
+      /*
+       * Track readiness per active preview identity (baseUrl). A single shared boolean
+       * leaks the false → true edge across unrelated ports: switching to a different,
+       * already-ready port whose previously-seen state was false would otherwise trigger
+       * a spurious full reload of the freshly-selected iframe.
+       */
+      const { next, shouldReload } = evaluatePreviewReadyEdge(
+        wasPreviewReadyRef.current,
+        activePreview?.baseUrl,
+        activePreview?.ready,
+      );
+      wasPreviewReadyRef.current = next;
 
-      if (activePreview && ready === true && wasReady === false) {
+      if (shouldReload) {
         reloadPreview('runtime:ready');
       }
     }, [activePreview, activePreview?.ready, reloadPreview]);
@@ -1003,36 +1013,39 @@ export const Preview = memo(
         return;
       }
 
-      const rawAddress = addressInput.trim() || '/';
+      const isHttpUrl = /^https?:\/\//i.test(addressInput.trim() || '/');
+      const resolution = resolvePreviewAddress(addressInput, activePreview.baseUrl);
 
-      if (/^https?:\/\//i.test(rawAddress)) {
-        try {
-          const parsedUrl = new URL(rawAddress);
-          const activeOrigin = new URL(activePreview.baseUrl);
+      if (!resolution.iframeUrl) {
+        /*
+         * Malformed absolute URL: re-sync the address bar to the current path so the
+         * input never strands the user on un-parseable text.
+         */
+        setAddressInput(`${activePreview.baseUrl}${displayPath.startsWith('/') ? displayPath : `/${displayPath}`}`);
+        inputRef.current?.blur();
 
-          if (parsedUrl.origin === activeOrigin.origin) {
-            const targetPath = `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}` || '/';
-            setIframeUrl(`${activePreview.baseUrl}${targetPath}`);
-            setDisplayPath(targetPath);
-            setAddressInput(`${activePreview.baseUrl}${targetPath}`);
-          } else {
-            setIframeUrl(rawAddress);
-            setDisplayPath(rawAddress);
-            setAddressInput(rawAddress);
-          }
-        } catch {
-          setAddressInput(`${activePreview.baseUrl}${displayPath.startsWith('/') ? displayPath : `/${displayPath}`}`);
-        }
-      } else {
-        const targetPath = rawAddress.startsWith('/') ? rawAddress : `/${rawAddress}`;
-        setIframeUrl(`${activePreview.baseUrl}${targetPath}`);
-        setDisplayPath(targetPath);
-        setAddressInput(`${activePreview.baseUrl}${targetPath}`);
+        return;
+      }
+
+      setIframeUrl(resolution.iframeUrl);
+      setAddressInput(resolution.addressInput);
+
+      /*
+       * Only persist same-origin paths. resolvePreviewAddress returns
+       * displayPath === undefined for cross-origin navigations so the full external
+       * URL never leaks into the persisted previewPath and corrupts the restored
+       * address after a reload.
+       */
+      if (resolution.displayPath !== undefined) {
+        setDisplayPath(resolution.displayPath);
+      }
+
+      if (!isHttpUrl) {
         setPreviewNetworkEvents((events) =>
           [
             {
               method: 'GET',
-              url: `${activePreview.baseUrl}${targetPath}`,
+              url: resolution.iframeUrl,
               status: 'navigated',
               source: 'address-bar',
             },

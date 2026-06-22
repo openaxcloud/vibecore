@@ -1936,6 +1936,34 @@ export class WorkbenchStore {
       return 'rejected';
     }
 
+    /*
+     * Enforce the file lock on the review-and-accept path, just like the editor,
+     * Search, formatCurrentDocument, and the non-streaming AI write do. Without
+     * this a user who locked a file to protect it could have it silently
+     * overwritten on disk by clicking Accept / Accept-all, defeating the lock
+     * feature for the entire agent-patch journey.
+     */
+    if (this.isFileLocked(proposal.filePath).locked) {
+      const message = `${proposal.relativePath} is locked; the AI patch was not applied. Unlock it first.`;
+      this.agentPatchProposals.setKey(proposalId, {
+        ...proposal,
+        status: 'failed',
+        updatedAt: new Date().toISOString(),
+        error: message,
+      });
+      this.#syncAgentPatchProposalToServer(proposalId);
+      this.actionAlert.set({
+        type: 'warning',
+        title: 'File locked',
+        description: message,
+        content: message,
+        source: 'preview',
+      });
+      this.appendWorkspaceLog(`AI patch blocked (locked): ${proposal.relativePath}`);
+
+      return 'ignored';
+    }
+
     this.agentPatchProposals.setKey(proposalId, {
       ...proposal,
       status: 'applying',

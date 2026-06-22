@@ -12,6 +12,13 @@ import type { FileMap } from '~/lib/stores/files';
 
 const { loadRuntimeFiles } = vi.hoisted(() => ({ loadRuntimeFiles: vi.fn(() => Promise.resolve()) }));
 
+vi.mock('~/lib/runtime/RuntimeAdapterProvider', () => ({
+  useRuntimeAdapter: () => ({
+    workdir: '/home/project',
+    readFile: vi.fn(() => Promise.resolve({ content: '', encoding: 'utf8' as const })),
+  }),
+}));
+
 vi.mock('~/lib/stores/workbench', () => ({
   workbenchStore: {
     createFile: vi.fn(),

@@ -2,6 +2,7 @@ import type { RuntimeAdapter, TerminalSession } from '@vibecore/runtime-contract
 import { atom } from 'nanostores';
 import { withResolvers } from './promises';
 import { runSettlingReady } from './shell-init';
+import { bindTerminalInput } from './shell-input-binding';
 import { normalizeShellCommand } from './shell-normalizer';
 import { stripInternalOscMarkers } from './terminal-output';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
@@ -79,7 +80,7 @@ export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITermin
     }
   })();
 
-  terminal.onData((data) => {
+  bindTerminalInput(terminal, (data) => {
     if (isInteractive) {
       session.write(data);
 
@@ -189,7 +190,7 @@ export class BoltShell {
       this.#pushOutput(undefined);
     })();
 
-    terminal.onData((data) => {
+    bindTerminalInput(terminal, (data) => {
       if (isInteractive) {
         session.write(data);
       }

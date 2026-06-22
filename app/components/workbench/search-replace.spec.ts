@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeReplacement, needsContentHydration, toRuntimeRelativePath } from './search-replace';
+import { computeReplacement, hasUnsavedEdits, needsContentHydration, toRuntimeRelativePath } from './search-replace';
 
 describe('computeReplacement', () => {
   it('counts and substitutes every literal match', () => {
@@ -41,6 +41,30 @@ describe('needsContentHydration', () => {
 
   it('does not flag non-empty content', () => {
     expect(needsContentHydration('const a = 1;')).toBe(false);
+  });
+});
+
+describe('hasUnsavedEdits', () => {
+  it('flags a file present in the dirty set so Replace All skips it', () => {
+    /*
+     * Regression guard: Replace All writes the on-disk copy back through
+     * writeFileContent, which would clobber unsaved editor edits. A file with
+     * unsaved changes must be detected so the component skips it instead of
+     * silently destroying the user's in-progress work.
+     */
+    const unsaved = new Set(['/home/project/src/a.ts']);
+
+    expect(hasUnsavedEdits(unsaved, '/home/project/src/a.ts')).toBe(true);
+  });
+
+  it('does not flag a file absent from the dirty set', () => {
+    const unsaved = new Set(['/home/project/src/a.ts']);
+
+    expect(hasUnsavedEdits(unsaved, '/home/project/src/b.ts')).toBe(false);
+  });
+
+  it('does not flag anything when nothing is dirty', () => {
+    expect(hasUnsavedEdits(new Set<string>(), '/home/project/src/a.ts')).toBe(false);
   });
 });
 

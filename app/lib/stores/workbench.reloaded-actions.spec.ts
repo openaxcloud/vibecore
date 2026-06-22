@@ -6,8 +6,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WorkbenchStore } from './workbench';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
 
-const { runtimeAdapterMock, runtimeFiles } = vi.hoisted(() => {
+const { runtimeAdapterMock, runtimeFiles, lockedFiles } = vi.hoisted(() => {
   const runtimeFiles = new Map<string, string>();
+  const lockedFiles = new Set<string>();
 
   const fileNodes = () =>
     [...runtimeFiles.entries()].map(([filePath, content]) => ({
@@ -20,6 +21,7 @@ const { runtimeAdapterMock, runtimeFiles } = vi.hoisted(() => {
 
   return {
     runtimeFiles,
+    lockedFiles,
     runtimeAdapterMock: {
       workdir: '/home/project',
       mode: 'test',
@@ -104,8 +106,8 @@ vi.mock('./files', async () => {
         return this.files.get()[filePath];
       }
 
-      isFileLocked() {
-        return { locked: false as const };
+      isFileLocked(filePath: string) {
+        return lockedFiles.has(filePath) ? { locked: true as const } : { locked: false as const };
       }
 
       async saveFile(filePath: string, content: string) {
@@ -211,6 +213,7 @@ function actionStatus(store: WorkbenchStore, actionId: string) {
 describe('WorkbenchStore reloaded and review-first actions', () => {
   beforeEach(() => {
     runtimeFiles.clear();
+    lockedFiles.clear();
     runtimeAdapterMock.listFiles.mockClear();
     runtimeAdapterMock.readFile.mockClear();
     runtimeAdapterMock.writeFile.mockClear();
@@ -276,6 +279,41 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
     expect(store.workspaceLogs.get()).toContain(
       'AI command skipped until reviewed file changes are accepted or rejected.',
     );
+  });
+
+  it('does not overwrite a locked file when an agent patch proposal is accepted', async () => {
+    runtimeFiles.set('src/App.tsx', 'export default function App() { return <h1>Protected</h1>; }\n');
+    lockedFiles.add('/home/project/src/App.tsx');
+
+    const store = new WorkbenchStore();
+    const artifact = artifactData();
+    const file = fileAction();
+
+    store.setAgentPatchReviewRequired(true);
+    store.addArtifact(artifact);
+    store.addAction(file);
+    store.runAction(file);
+
+    await vi.waitFor(() => {
+      expect(store.agentPatchProposals.get()['artifact-1:file-1']?.status).toBe('pending');
+    });
+
+    runtimeAdapterMock.writeFile.mockClear();
+    runtimeAdapterMock.createFile.mockClear();
+
+    const result = await store.acceptAgentPatchProposal('artifact-1:file-1');
+
+    expect(result).toBe('ignored');
+    expect(store.agentPatchProposals.get()['artifact-1:file-1']).toMatchObject({
+      status: 'failed',
+      error: expect.stringContaining('locked'),
+    });
+
+    /* The protected on-disk content must be untouched, and no write attempted. */
+    expect(runtimeFiles.get('src/App.tsx')).toBe('export default function App() { return <h1>Protected</h1>; }\n');
+    expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalled();
+    expect(runtimeAdapterMock.createFile).not.toHaveBeenCalled();
+    expect(store.actionAlert.get()?.title).toBe('File locked');
   });
 
   it('does not persist a truncated package.json after the file runner rejects it', async () => {
