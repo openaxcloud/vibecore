@@ -178,10 +178,33 @@ const inlineThemeCode = stripIndents`
       root?.setAttribute('data-ecode-public-chrome', 'homepage');
       root && (root.style.fontSize = '16px');
     }
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0a0f1c' : '#f6f8fb');
-    document
-      .querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
-      ?.setAttribute('content', theme === 'dark' ? 'black-translucent' : 'default');
+    refreshChromeMeta('theme-color', theme === 'dark' ? '#0a0f1c' : '#f6f8fb');
+    refreshChromeMeta('apple-mobile-web-app-status-bar-style', theme === 'dark' ? 'black-translucent' : 'default');
+  }
+
+  /*
+   * iOS Safari only tints the address bar / bottom toolbar when the theme-color
+   * meta node is (re)parsed, so we remove + re-insert it instead of mutating
+   * content in place. Keep this in sync with applyThemeToDocument in
+   * app/lib/stores/theme.ts.
+   */
+  function refreshChromeMeta(name, content) {
+    var head = document.head;
+
+    if (!head) {
+      return;
+    }
+
+    var existing = head.querySelectorAll('meta[name="' + name + '"]');
+
+    for (var i = 0; i < existing.length; i++) {
+      existing[i].remove();
+    }
+
+    var meta = document.createElement('meta');
+    meta.setAttribute('name', name);
+    meta.setAttribute('content', content);
+    head.appendChild(meta);
   }
 `;
 
