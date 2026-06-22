@@ -134,6 +134,15 @@ data:
   # (`/main.js`, `/@vite/client` — the Vite/CRA default) load correctly instead
   # of 404ing because the path prefix `/p/<ws>/<port>/` is dropped.
   PREVIEW_DOMAIN: {{ .Values.global.previewDomain | quote }}
+  {{- if .Values.global.previewCookieDomain }}
+  # Parent domain the signed `vc_preview` tenant cookie is scoped to (e.g.
+  # e-code.ai), so it is sent to BOTH the IDE host and the *.preview.<domain>
+  # host and the proxy can enforce per-org preview ownership. The web app sets
+  # the cookie; preview-proxy auto-enforces once PREVIEW_TENANT_SECRET (in the
+  # operator-provided secret) is present. Leave unset to keep legacy
+  # unauthenticated previews. See docs/replit-parity-isolation.md.
+  PREVIEW_COOKIE_DOMAIN: {{ .Values.global.previewCookieDomain | quote }}
+  {{- end }}
 
   {{- if .Values.platformEnv.email.httpEndpoint }}
   EMAIL_HTTP_ENDPOINT: {{ .Values.platformEnv.email.httpEndpoint | quote }}

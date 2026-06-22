@@ -4,6 +4,12 @@ global:
   imageTag: latest
   appDomain: staging.example.com
   previewDomain: preview.staging.example.com
+  # Parent domain the signed vc_preview tenant cookie is scoped to (e.g.
+  # example.com). Set this AND PREVIEW_TENANT_SECRET (in the existing secret) to
+  # turn on per-org preview authorization; leave empty for legacy unauthenticated
+  # previews. Roll out the web app first so the cookie propagates, THEN add the
+  # secret to flip enforcement (see docs/replit-parity-isolation.md).
+  previewCookieDomain: ''
   # Optional additional public hosts. Leave empty when not needed (staging).
   # In production these split the marketing landing, raw API, and workspace
   # manager onto their own subdomains so each can be reached without sharing
@@ -27,6 +33,11 @@ global:
     previewProxy: ''
 
 secrets:
+  # Operator-provided Secret mounted (via envFrom) on every pod. In addition to
+  # DB/OAuth/etc. credentials, add PREVIEW_TENANT_SECRET here (a random shared
+  # secret) to enable per-org preview authorization: the web app signs the
+  # vc_preview cookie with it and preview-proxy verifies it. Must be paired with
+  # global.previewCookieDomain. See docs/replit-parity-isolation.md.
   existingSecret: vibecore-platform-secrets
 
 # Non-secret env values injected via ConfigMap (templates/configmap.yaml).

@@ -47,10 +47,14 @@ workspace-manager and cannot be recovered from a derived key.
 - `.env.example` documents `PREVIEW_TENANT_SECRET`, `PREVIEW_COOKIE_DOMAIN`,
   `PREVIEW_PROXY_ENFORCE_TENANT`.
 
-**Remaining (ops):** add the shared `PREVIEW_TENANT_SECRET` to the helm secret for
-BOTH the web app and preview-proxy, set `PREVIEW_COOKIE_DOMAIN` on the web app. Roll
-out web first (so `vc_preview` propagates), then provision the proxy secret to flip
-enforcement on.
+**Helm wired:** `global.previewCookieDomain` now renders `PREVIEW_COOKIE_DOMAIN` into
+the platform ConfigMap (mounted on every pod), and `values.yaml` documents adding
+`PREVIEW_TENANT_SECRET` to the operator's existing Secret. Both default empty (legacy
+previews).
+
+**Remaining (ops, one-time):** set `global.previewCookieDomain` to the parent domain
+and add `PREVIEW_TENANT_SECRET` to the existing Secret. Roll out web first (so
+`vc_preview` propagates), then provision the secret to flip enforcement on.
 
 ### #1b — original notes
 **Problem:** preview routing (`<workspaceId>-<port>.preview.e-code.ai`) does **not**
@@ -110,12 +114,18 @@ guard). The PVC becomes a hot cache rather than the source of truth, and `fork`
 is the primitive behind "duplicate project" / templates.
 
 **Remaining integration (the multi-week part):**
-1. Agent-side `POST /snapshots/export` (tar `/workspace` → stream) and
-   `POST /snapshots/import` (stream → `/workspace`) endpoints on workspace-agent.
+1. ✅ DONE — Agent streaming archive endpoints: `GET /snapshots/archive` (tar.gz of
+   `/workspace` → stream) and `POST /snapshots/archive` (stream → `/workspace`) on
+   workspace-agent. Tested (export→import round-trip, 415 on non-stream).
 2. `GcsSnapshotStore implements WorkspaceSnapshotStore` (tar + bucket upload/download).
-3. Manager lifecycle wiring behind a flag: on `stopWorkspace` export → `save`; on
-   `startWorkspace`, if `has(id)` and the PVC is fresh, `restore` before marking
-   ready; on fork-create, `fork` then provision. on `deleteWorkspace`, `remove`.
+   NOTE: the production path is stream-based (agent archive ↔ GCS blob), so the store
+   should grow `saveStream(id, Readable)` / `restoreStream(id): Readable | undefined`
+   alongside the dir-based reference impl. FilesystemSnapshotStore is the same-node /
+   test analogue.
+3. Manager lifecycle wiring behind a flag: on `stopWorkspace`, call agent
+   `GET /snapshots/archive` → `saveStream`; on `startWorkspace`, if `has(id)` and the
+   PVC is fresh, `restoreStream` → agent `POST /snapshots/archive` before marking
+   ready; on fork-create, `fork` then provision; on `deleteWorkspace`, `remove`.
 4. Decide retention/GC of snapshots vs PVCs and metering of snapshot storage.
 
 ## Suggested order
