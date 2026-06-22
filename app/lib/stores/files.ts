@@ -784,7 +784,10 @@ export class FilesStore {
       });
 
       if (this.#runtime.mode === 'remote-kubernetes') {
-        const remoteContent = await this.#runtime.readFile(relativePath).catch(() => oldContent);
+        const remoteContent = await this.#runtime
+          .readFile(relativePath)
+          .then((result) => result.content)
+          .catch(() => oldContent);
 
         if (remoteContent !== oldContent) {
           throw new Error(`Remote file changed since it was loaded: ${filePath}`);

@@ -268,11 +268,23 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     return this.#listFiles(webcontainer, this.#toRuntimePath(path));
   }
 
-  async readFile(path: string): Promise<string> {
+  async readFile(path: string): Promise<{ content: string; encoding?: 'utf8' | 'base64' }> {
     const webcontainer = await this.#getWebContainer();
-    const content = await webcontainer.fs.readFile(this.#toRuntimePath(path), 'utf-8');
 
-    return typeof content === 'string' ? content : new TextDecoder().decode(content);
+    /*
+     * Read raw bytes (not 'utf-8') so binary assets (images/fonts/wasm) survive
+     * the round-trip. utf8-decoding binary lossily corrupts it. Classify by
+     * content: text → utf8 string, binary → base64, mirroring the file-tree
+     * read path and the remote adapter so consumers handle both identically.
+     */
+    const raw = await webcontainer.fs.readFile(this.#toRuntimePath(path));
+    const bytes = typeof raw === 'string' ? new TextEncoder().encode(raw) : raw;
+
+    if (isUtf8(bytes)) {
+      return { content: new TextDecoder().decode(bytes), encoding: 'utf8' };
+    }
+
+    return { content: toBase64(bytes), encoding: 'base64' };
   }
 
   async writeFile(path: string, content: string): Promise<void> {

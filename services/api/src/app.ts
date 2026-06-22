@@ -9406,8 +9406,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
   };
 
+  const agentFileRead = async (workspaceId: string, path: string) => {
+    return agentRequest<{ content: string; encoding?: 'utf8' | 'base64' }>(
+      workspaceId,
+      `/files/read?path=${encodeURIComponent(path)}`,
+    );
+  };
+
+  /*
+   * Text-only convenience used by AI tools / search / lockfile reads, which all
+   * operate on string content. The runtime read route uses agentFileRead so it
+   * can forward the `encoding` field and keep binary files lossless.
+   */
   const agentFileContent = async (workspaceId: string, path: string) => {
-    const file = await agentRequest<{ content: string }>(workspaceId, `/files/read?path=${encodeURIComponent(path)}`);
+    const file = await agentFileRead(workspaceId, path);
+
     return file.content;
   };
 
@@ -11141,8 +11154,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const { path } = parse(z.object({ path: z.string().min(1) }), request.query);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+    const file = await agentFileRead(authorized.workspaceId, path);
 
-    return { path, content: await agentFileContent(authorized.workspaceId, path) };
+    return { path, content: file.content, encoding: file.encoding };
   });
   app.put('/api/runtime/workspaces/:workspaceId/files/write', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);

@@ -41,7 +41,27 @@ describe('workspace-agent', () => {
     expect(write.statusCode).toBe(200);
 
     const read = await app.inject({ method: 'GET', url: '/files/read?path=src/index.ts', headers });
-    expect(read.json()).toMatchObject({ content: 'export const ok = true;' });
+    expect(read.json()).toMatchObject({ content: 'export const ok = true;', encoding: 'utf8' });
+  });
+
+  it('reads a binary file back as lossless base64 (no utf8 corruption)', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const headers = { authorization: `Bearer ${token}` };
+    const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0xfe, 0x01]);
+    const pngBase64 = pngBytes.toString('base64');
+
+    const write = await app.inject({
+      method: 'POST',
+      url: '/files/write',
+      headers,
+      payload: { path: 'assets/logo.png', content: pngBase64, encoding: 'base64' },
+    });
+    expect(write.statusCode).toBe(200);
+
+    const read = await app.inject({ method: 'GET', url: '/files/read?path=assets/logo.png', headers });
+    const body = read.json();
+    expect(body.encoding).toBe('base64');
+    expect(Array.from(Buffer.from(body.content, 'base64'))).toEqual(Array.from(pngBytes));
   });
 
   it('returns 404 (not 500) when reading a missing file', async () => {

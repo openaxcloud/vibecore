@@ -255,13 +255,14 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     );
   }
 
-  async readFile(path: string): Promise<string> {
-    const result = await this.#request<{ content: string }>(
+  async readFile(path: string): Promise<{ content: string; encoding?: 'utf8' | 'base64' }> {
+    const result = await this.#request<{ content: string; encoding?: 'utf8' | 'base64' }>(
       `/workspaces/${this.#requireWorkspaceId()}/files/read?path=${encodeURIComponent(path)}`,
       {},
       { retryReads: true },
     );
-    return result.content;
+
+    return { content: result.content, encoding: result.encoding };
   }
 
   async writeFile(path: string, content: string): Promise<void> {

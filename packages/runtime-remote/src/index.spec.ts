@@ -92,7 +92,7 @@ function createFetchMock() {
     }
 
     if (url.includes('/files/read')) {
-      return Response.json({ content: 'hello' });
+      return Response.json({ content: 'hello', encoding: 'utf8' });
     }
 
     if (url.endsWith('/files/write') || url.endsWith('/patch')) {
@@ -160,7 +160,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     ]);
     await adapter.writeFile('a.ts', 'hello');
 
-    expect(await adapter.readFile('a.ts')).toBe('hello');
+    expect(await adapter.readFile('a.ts')).toEqual({ content: 'hello', encoding: 'utf8' });
     await expect(adapter.getPreviewUrl(5173)).resolves.toEqual({
       port: 5173,
       ready: true,
@@ -472,8 +472,40 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
       WebSocketImpl: FakeWebSocket,
     });
 
-    await expect(adapter.readFile('src/App.tsx')).resolves.toBe('recovered');
+    await expect(adapter.readFile('src/App.tsx')).resolves.toMatchObject({ content: 'recovered' });
     expect(readAttempts).toBe(3);
+  });
+
+  it('forwards the agent encoding so binary reads are base64 and text reads are utf8', async () => {
+    const pngBase64 = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff]).toString('base64');
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+
+      if (url.includes('/files/read') && url.includes('logo.png')) {
+        return Response.json({ content: pngBase64, encoding: 'base64' });
+      }
+
+      if (url.includes('/files/read')) {
+        return Response.json({ content: 'export default null;', encoding: 'utf8' });
+      }
+
+      return Response.json([]);
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token-bin',
+      workspaceId: 'ws-1',
+      fetchImpl: fetchMock as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    await expect(adapter.readFile('assets/logo.png')).resolves.toEqual({ content: pngBase64, encoding: 'base64' });
+    await expect(adapter.readFile('src/App.tsx')).resolves.toEqual({
+      content: 'export default null;',
+      encoding: 'utf8',
+    });
   });
 
   it('does not retry a non-transient read failure (4xx surfaces immediately)', async () => {
@@ -537,7 +569,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
       WebSocketImpl: FakeWebSocket,
     });
 
-    await expect(adapter.readFile('src/App.tsx')).resolves.toBe('recovered');
+    await expect(adapter.readFile('src/App.tsx')).resolves.toMatchObject({ content: 'recovered' });
     expect(invalidateAuthToken).toHaveBeenCalledTimes(1);
     expect(attempts).toBe(2);
   });

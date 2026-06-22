@@ -48,7 +48,7 @@ async function collectNodes(
       continue;
     }
 
-    const content = node.content ?? (await runtime.readFile(node.path));
+    const content = node.content ?? (await runtime.readFile(node.path)).content;
     files[toOutputPath(node.path, options.stripPrefix)] = content;
   }
 }

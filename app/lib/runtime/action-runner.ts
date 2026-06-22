@@ -824,7 +824,7 @@ export class ActionRunner {
   async getFileHistory(filePath: string): Promise<FileHistory | null> {
     try {
       const historyPath = this.#getHistoryPath(filePath);
-      const content = await this.#runtime.readFile(historyPath);
+      const { content } = await this.#runtime.readFile(historyPath);
 
       return JSON.parse(content);
     } catch (error) {

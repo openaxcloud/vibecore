@@ -201,16 +201,30 @@ const getFs = (
   record: MutableRefObject<Record<string, { data: any; encoding?: string }>>,
 ) => ({
   promises: {
-    readFile: async (path: string, _options: any) => {
+    readFile: async (path: string, options: any) => {
       const relativePath = toRuntimePath(runtime, path);
 
-      try {
-        const result = await runtime.readFile(relativePath);
+      const { content, encoding } = await runtime.readFile(relativePath);
 
-        return result;
-      } catch (error) {
-        throw error;
+      /*
+       * Reconstruct the real bytes. The runtime returns base64 for binary blobs
+       * (which is exactly what git objects, packfiles and binary assets are) and
+       * utf8 for text. Decoding base64-as-utf8 here would corrupt every binary
+       * file git touches, so resolve to the true bytes first.
+       */
+      const bytes = encoding === 'base64' ? Buffer.from(content, 'base64') : Buffer.from(content, 'utf8');
+
+      /*
+       * isomorphic-git asks for a utf8 string (options.encoding === 'utf8') or,
+       * with no encoding, the raw bytes as a Uint8Array. Honor that contract.
+       */
+      const requested = typeof options === 'string' ? options : options?.encoding;
+
+      if (requested === 'utf8' || requested === 'utf-8') {
+        return bytes.toString('utf8');
       }
+
+      return new Uint8Array(bytes);
     },
     writeFile: async (path: string, data: any, options: any = {}) => {
       const relativePath = toRuntimePath(runtime, path);

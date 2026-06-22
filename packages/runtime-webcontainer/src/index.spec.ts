@@ -126,7 +126,7 @@ describe('WebContainerRuntimeAdapter', () => {
     await adapter.startWorkspace();
     await adapter.writeFile('src/App.tsx', 'export default function App() {}');
 
-    expect(await adapter.readFile('src/App.tsx')).toContain('App');
+    expect((await adapter.readFile('src/App.tsx')).content).toContain('App');
     expect(await adapter.listFiles('.')).toEqual([expect.objectContaining({ path: 'src', type: 'directory' })]);
 
     webcontainer.emitPort(5173, 'open', 'https://5173.local-credentialless.webcontainer-api.io');
@@ -189,7 +189,12 @@ describe('WebContainerRuntimeAdapter', () => {
     // and not a UTF-8-mangled version.
     const restored = (await webcontainer.fs.readFile('logo.png')) as Uint8Array;
     expect(Array.from(restored)).toEqual(Array.from(pngBytes));
-    expect(await adapter.readFile('readme.txt')).toBe('hello');
+    expect(await adapter.readFile('readme.txt')).toEqual({ content: 'hello', encoding: 'utf8' });
+
+    // readFile() must base64-encode the binary blob, not utf8-mangle it.
+    const readBinary = await adapter.readFile('logo.png');
+    expect(readBinary.encoding).toBe('base64');
+    expect(Array.from(Buffer.from(readBinary.content, 'base64'))).toEqual(Array.from(pngBytes));
   });
 
   it('imports real zip archives into the workspace filesystem', async () => {
@@ -202,7 +207,7 @@ describe('WebContainerRuntimeAdapter', () => {
 
     await adapter.importZip(await zip.generateAsync({ type: 'uint8array' }));
 
-    expect(await adapter.readFile('index.html')).toContain('preview smoke');
-    expect(await adapter.readFile('src/App.tsx')).toContain('App');
+    expect((await adapter.readFile('index.html')).content).toContain('preview smoke');
+    expect((await adapter.readFile('src/App.tsx')).content).toContain('App');
   });
 });

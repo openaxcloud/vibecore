@@ -174,7 +174,13 @@ export interface RuntimeAdapter {
   getWorkspaceStatus(workspaceId?: string): Promise<WorkspaceSession>;
 
   listFiles(path?: string): Promise<FileNode[]>;
-  readFile(path: string): Promise<string>;
+  /**
+   * Read a file's content. Binary files (images/fonts/wasm) come back base64-
+   * encoded with `encoding: 'base64'`; text comes back as utf8 (encoding 'utf8'
+   * or omitted). Callers that only handle text take `.content`; callers that
+   * hydrate a file-store entry must set `isBinary` from `encoding === 'base64'`.
+   */
+  readFile(path: string): Promise<{ content: string; encoding?: 'utf8' | 'base64' }>;
   writeFile(path: string, content: string): Promise<void>;
   createFile(path: string, content?: string): Promise<void>;
   createDirectory(path: string): Promise<void>;

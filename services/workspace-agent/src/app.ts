@@ -11,6 +11,7 @@ import { detectCommandAbuse, requireProductionSecret } from '@vibecore/security'
 import { verifyAgentToken } from '@vibecore/workspace-sdk';
 import Fastify, { type FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { isBinaryBuffer } from './binary-detection.js';
 import { TerminalSessionManager, type TerminalSession } from './terminal-session.js';
 
 export interface WorkspaceAgentOptions {
@@ -251,7 +252,20 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       throw Object.assign(new Error('Path is not a regular file'), { statusCode: 400, code: 'EINVAL' });
     }
 
-    return { path, content: await readFile(realPath, 'utf8').catch(rethrowFsError), size: fileStat.size };
+    /*
+     * Read the raw bytes (NOT utf8) so binary files (images/fonts/wasm) survive
+     * the round-trip. utf8-decoding a binary buffer replaces every invalid byte
+     * sequence with U+FFFD, irreversibly corrupting it. Detect binary git-style
+     * (a NUL byte in the first ~8KB) and base64-encode those; text stays utf8 so
+     * the common code-read path is byte-identical to before.
+     */
+    const buffer = await readFile(realPath).catch(rethrowFsError);
+
+    if (isBinaryBuffer(buffer)) {
+      return { path, content: buffer.toString('base64'), encoding: 'base64' as const, size: fileStat.size };
+    }
+
+    return { path, content: buffer.toString('utf8'), encoding: 'utf8' as const, size: fileStat.size };
   });
 
   app.post('/files/write', async (request) => {

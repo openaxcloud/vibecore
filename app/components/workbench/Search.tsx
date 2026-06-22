@@ -226,7 +226,7 @@ export function Search() {
 
         if (needsContentHydration(content)) {
           try {
-            content = await runtimeAdapter.readFile(toRuntimeRelativePath(filePath, runtimeAdapter.workdir));
+            content = (await runtimeAdapter.readFile(toRuntimeRelativePath(filePath, runtimeAdapter.workdir))).content;
           } catch (readError) {
             console.error('Failed to read file for replace:', filePath, readError);
             unreadableSkipped += 1;

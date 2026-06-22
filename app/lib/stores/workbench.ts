@@ -1035,7 +1035,11 @@ export class WorkbenchStore {
     if (packageJsonEntry && packageJsonEntry[1]?.type === 'file' && !packageJsonEntry[1].content) {
       const cwd = this.#runtimeCwdForPackageJson(packageJsonEntry[0]);
       const relPath = cwd ? `${cwd}/package.json` : 'package.json';
-      const content = await this.#runtime.readFile(relPath).catch(() => undefined);
+
+      const content = await this.#runtime
+        .readFile(relPath)
+        .then((result) => result.content)
+        .catch(() => undefined);
 
       if (content) {
         packageJsonEntry = [packageJsonEntry[0], { ...packageJsonEntry[1], content } as (typeof packageJsonEntry)[1]];
@@ -1306,7 +1310,7 @@ export class WorkbenchStore {
       let content: string;
 
       try {
-        content = await this.#runtime.readFile(relativePath);
+        content = (await this.#runtime.readFile(relativePath)).content;
       } catch {
         // Absent (the common case) or unreadable — nothing to repair.
         continue;

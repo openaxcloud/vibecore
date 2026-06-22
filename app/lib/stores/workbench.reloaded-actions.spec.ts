@@ -24,7 +24,10 @@ const { runtimeAdapterMock, runtimeFiles } = vi.hoisted(() => {
       workdir: '/home/project',
       mode: 'test',
       listFiles: vi.fn(async () => fileNodes()),
-      readFile: vi.fn(async (filePath: string) => runtimeFiles.get(filePath) ?? ''),
+      readFile: vi.fn(async (filePath: string) => ({
+        content: runtimeFiles.get(filePath) ?? '',
+        encoding: 'utf8' as const,
+      })),
       writeFile: vi.fn(async (filePath: string, content: string) => {
         runtimeFiles.set(filePath, content);
       }),

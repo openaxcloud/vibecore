@@ -17,7 +17,7 @@ function makeRuntime(nodes: Array<{ type: 'file' | 'directory'; name: string; pa
     mode: 'remote-kubernetes' as const,
     hasWorkspaceId: () => true,
     listFiles: vi.fn(async () => nodes),
-    readFile: vi.fn(async () => ''),
+    readFile: vi.fn(async () => ({ content: '', encoding: 'utf8' as const })),
     watchFiles: vi.fn(async () => () => {}),
     watchPorts: vi.fn(async () => () => {}),
   } as unknown as ConstructorParameters<typeof FilesStore>[0];

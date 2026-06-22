@@ -53,7 +53,10 @@ async function main() {
   assert(session.status === 'running', `workspace did not start as running: ${session.status}`);
 
   await adapter.writeFile('src/index.js', 'console.log("hello from real kubernetes")\n');
-  assert((await adapter.readFile('src/index.js')).includes('real kubernetes'), 'readFile did not return written content');
+  assert(
+    (await adapter.readFile('src/index.js')).content.includes('real kubernetes'),
+    'readFile did not return written content',
+  );
 
   await adapter.createDirectory('notes');
   await adapter.createFile('notes/check.txt', 'adapter-e2e\n');
@@ -88,7 +91,10 @@ async function main() {
   const zip = await adapter.exportZip();
   assert(zip.byteLength > 0, 'exportZip returned an empty archive');
   await adapter.importZip(zip, 'imported');
-  assert((await adapter.readFile('imported/src/index.js')).includes('real kubernetes'), 'importZip did not restore exported file');
+  assert(
+    (await adapter.readFile('imported/src/index.js')).content.includes('real kubernetes'),
+    'importZip did not restore exported file',
+  );
 
   await adapter.stopWorkspace();
 

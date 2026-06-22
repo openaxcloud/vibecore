@@ -48,7 +48,7 @@ async function main() {
   portForward = await startPortForward(session.id);
 
   await adapter.writeFile('src/index.js', 'console.log("runtime-api-kubernetes")\n');
-  const content = await adapter.readFile('src/index.js');
+  const { content } = await adapter.readFile('src/index.js');
   assert(content.includes('runtime-api-kubernetes'), 'readFile did not return content written through the API runtime');
 
   await adapter.createFile('README.md', '# Runtime API Kubernetes\n');
@@ -87,7 +87,10 @@ async function main() {
   const zip = await adapter.exportZip();
   assert(zip.byteLength > 0, 'exportZip returned an empty zip');
   await adapter.importZip(zip, 'imported');
-  assert((await adapter.readFile('imported/src/index.js')).includes('runtime-api-kubernetes'), 'importZip did not restore src/index.js');
+  assert(
+    (await adapter.readFile('imported/src/index.js')).content.includes('runtime-api-kubernetes'),
+    'importZip did not restore src/index.js',
+  );
 
   await adapter.stopWorkspace();
   portForward?.kill();
