@@ -19,6 +19,21 @@ const REASON_LABEL: Record<ConnectionFailureReason, string> = {
   timeout: 'The provider did not respond in time.',
 };
 
+const GENERIC_REASON_LABEL = 'The connection could not be completed.';
+
+/*
+ * Resolve a failure reason to a human-readable label. The upstream
+ * data-part filter (isConnectorDataPart) only checks that `kind` is a
+ * string, so `reason` is not validated against ConnectionFailureReason.
+ * An agent/proxy emitting an unknown or undefined reason would
+ * otherwise produce `undefined`, which React renders as nothing —
+ * leaving the diagnostic card blank. Fall back to a generic label so
+ * the note always explains that the connection failed.
+ */
+export function reasonLabel(reason: ConnectionFailureReason | string | undefined): string {
+  return (reason != null && REASON_LABEL[reason as ConnectionFailureReason]) || GENERIC_REASON_LABEL;
+}
+
 export interface ConnectionFailedNoteProps {
   payload: ConnectionFailedMessage;
 }
@@ -32,7 +47,7 @@ export function ConnectionFailedNote({ payload }: ConnectionFailedNoteProps) {
           {payload.providerDisplayName} connection could not be completed.
         </p>
         <p className="text-xs text-bolt-elements-textSecondary mt-0.5 break-words">
-          {REASON_LABEL[payload.reason]}
+          {reasonLabel(payload.reason)}
           {payload.detail ? ` ${payload.detail}` : ''}
         </p>
       </div>

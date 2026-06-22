@@ -16,7 +16,17 @@ export const ImportFolderButton: React.FC<ImportFolderButtonProps> = ({ classNam
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const allFiles = Array.from(e.target.files || []);
+    const input = e.target;
+    const allFiles = Array.from(input.files || []);
+
+    /*
+     * Reset the input value up-front so that re-selecting the exact same folder always
+     * re-fires the `change` event, even when this handler bails out via an early return
+     * below (no valid files / too many files / no text files). If we only cleared the
+     * value in `finally`, those early returns would leave the previous FileList in place
+     * and picking the same folder again would silently do nothing.
+     */
+    input.value = '';
 
     const filteredFiles = allFiles.filter((file) => {
       const path = file.webkitRelativePath.split('/').slice(1).join('/');
@@ -100,7 +110,11 @@ export const ImportFolderButton: React.FC<ImportFolderButtonProps> = ({ classNam
     } finally {
       setIsLoading(false);
       toast.dismiss(loadingToast);
-      e.target.value = ''; // Reset file input
+
+      /*
+       * Input value was already reset at the top of the handler so re-selecting the
+       * same folder always re-triggers onChange; nothing more to clear here.
+       */
     }
   };
 

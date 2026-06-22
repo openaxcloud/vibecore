@@ -1,5 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { useEffect } from 'react';
+import { toast } from 'react-toastify';
+import { refreshSupabaseProjects } from './SupabaseConnection.helpers';
 import { Dialog, DialogRoot, DialogClose, DialogTitle, DialogButton } from '~/components/ui/Dialog';
 import { useSupabaseConnection } from '~/lib/hooks/useSupabaseConnection';
 import { chatId } from '~/lib/persistence/useChatHistory';
@@ -263,7 +265,11 @@ export function SupabaseConnection({ triggerVariant = 'bar', onOpen }: SupabaseC
                       </button>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => fetchSupabaseStats(supabaseConn.token)}
+                          onClick={() =>
+                            refreshSupabaseProjects(fetchSupabaseStats, supabaseConn.token, {
+                              onError: () => toast.error('Failed to refresh projects'),
+                            })
+                          }
                           className="px-2 py-1 rounded-md text-xs bg-[#F0F0F0] dark:bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary hover:bg-[#E5E5E5] dark:hover:bg-bolt-elements-background-depth-4 flex items-center gap-1"
                           title="Refresh projects list"
                         >

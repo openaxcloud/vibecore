@@ -3,9 +3,10 @@ import {
   projectModelSelectionFromMetadata,
   projectModelSelectionFromParams,
   projectModelSelectionFromValues,
+  providerByName,
   providerForModel,
 } from './projectModelSelection';
-import { DEFAULT_MODEL, DEFAULT_PROVIDER } from '~/utils/constants';
+import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 
 describe('project model selection', () => {
   it('restores a valid persisted project provider/model pair', () => {
@@ -25,12 +26,46 @@ describe('project model selection', () => {
     expect(selection?.provider.name).toBe(providerForModel(DEFAULT_MODEL)?.name);
   });
 
-  it('falls back safely when persisted metadata names an unknown model', () => {
+  it('keeps a persisted dynamic model when its provider resolves but it is not in staticModels', () => {
+    /*
+     * A runtime-fetched (dynamic) model that no provider lists in `staticModels`. As long as the
+     * persisted provider resolves, the selection must be preserved across reloads instead of being
+     * silently reset to DEFAULT_MODEL.
+     */
     const selection = projectModelSelectionFromMetadata({
-      selectedModel: 'not-a-real-model',
+      selectedModel: 'some-runtime-fetched-model:latest',
       selectedProvider: 'OpenAI',
     });
 
+    expect(selection?.model).toBe('some-runtime-fetched-model:latest');
+    expect(selection?.provider.name).toBe('OpenAI');
+  });
+
+  it('preserves persisted selection for providers that expose no static models', () => {
+    const dynamicOnlyProvider = PROVIDER_LIST.find((provider) => (provider.staticModels?.length ?? 0) === 0);
+
+    // Skip if the current build registers no dynamic-only provider (e.g. Ollama, LMStudio).
+    if (!dynamicOnlyProvider) {
+      return;
+    }
+
+    const selection = projectModelSelectionFromMetadata({
+      selectedModel: 'llama-something-pulled-at-runtime',
+      selectedProvider: dynamicOnlyProvider.name,
+    });
+
+    expect(selection?.model).toBe('llama-something-pulled-at-runtime');
+    expect(selection?.provider.name).toBe(dynamicOnlyProvider.name);
+  });
+
+  it('falls back safely when no provider can be resolved for the persisted model', () => {
+    // Unknown model name with no resolvable provider hint -> safe DEFAULT fallback.
+    const selection = projectModelSelectionFromMetadata({
+      selectedModel: 'not-a-real-model',
+      selectedProvider: 'NotARealProvider',
+    });
+
+    expect(providerByName('NotARealProvider')).toBeUndefined();
     expect(selection?.model).toBe(DEFAULT_MODEL);
     expect(selection?.provider.name).toBe(DEFAULT_PROVIDER.name);
   });

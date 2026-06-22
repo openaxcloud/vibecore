@@ -112,19 +112,18 @@ export const MermaidBlock = memo(({ code, className }: MermaidBlockProps) => {
         className="bolt-mermaid-block-canvas"
         role="img"
         aria-label="Mermaid diagram"
-        dangerouslySetInnerHTML={svg ? { __html: svg } : undefined}
-      >
-        {!svg && status === 'rendering' ? <span className="bolt-mermaid-block-status">Rendering diagram…</span> : null}
-        {status === 'error' ? (
-          <div className="bolt-mermaid-block-error" role="alert">
-            <p>
-              <span className="i-ph:warning" aria-hidden /> Failed to render Mermaid diagram.
-            </p>
-            <p>{errorMessage}</p>
-            <pre>{code}</pre>
-          </div>
-        ) : null}
-      </div>
+        dangerouslySetInnerHTML={{ __html: svg ?? '' }}
+      />
+      {!svg && status === 'rendering' ? <span className="bolt-mermaid-block-status">Rendering diagram…</span> : null}
+      {status === 'error' ? (
+        <div className="bolt-mermaid-block-error" role="alert">
+          <p>
+            <span className="i-ph:warning" aria-hidden /> Failed to render Mermaid diagram.
+          </p>
+          <p>{errorMessage}</p>
+          <pre>{code}</pre>
+        </div>
+      ) : null}
     </div>
   );
 });

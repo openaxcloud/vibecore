@@ -273,6 +273,20 @@ interface ToolCallsListProps {
   theme: Theme;
 }
 
+/**
+ * Resolve which tool-call id the global Cmd/Ctrl+Enter / +Backspace shortcut should target.
+ *
+ * The shortcut is unambiguous only when exactly one tool call is pending approval. When two or
+ * more calls are pending concurrently there is no way to know which prompt the user is looking at,
+ * and silently approving/rejecting the first-keyed one is a data-affecting mistake. In that case we
+ * return `null` so the keyboard handler is a no-op and the user must click the intended button.
+ *
+ * `pendingIds` is the list of tool-call ids currently awaiting a decision (i.e. in the `call` state).
+ */
+export function resolveShortcutTargetId(pendingIds: string[]): string | null {
+  return pendingIds.length === 1 ? pendingIds[0] : null;
+}
+
 const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResult }: ToolCallsListProps) => {
   const [expanded, setExpanded] = useState<{ [id: string]: boolean }>({});
 
@@ -299,11 +313,12 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
         return;
       }
 
-      if (Object.keys(expanded).length === 0) {
-        return;
-      }
-
-      const openId = Object.keys(expanded).find((id) => expanded[id]);
+      /*
+       * Only fire the global shortcut when a single tool call is pending approval. With multiple
+       * concurrent prompts there is no reliable way to tell which one the user means, so we require
+       * an explicit button click instead of guessing the first-keyed id.
+       */
+      const openId = resolveShortcutTargetId(Object.keys(expanded).filter((id) => expanded[id]));
 
       if (!openId) {
         return;
@@ -331,6 +346,14 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [expanded, addToolResult, isMac]);
+
+  /*
+   * The global keyboard shortcut only acts when a single tool call is pending; otherwise it would
+   * ambiguously target the first-keyed call. Hide the per-button shortcut hint when it is inactive
+   * so the affordance never lies about what Cmd/Ctrl+Enter will do.
+   */
+  const pendingCount = toolInvocations.filter((inv) => inv.toolInvocation.state === 'call').length;
+  const shortcutActive = pendingCount === 1;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
@@ -379,7 +402,10 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
                         })
                       }
                     >
-                      Cancel <span className="opacity-70 text-xs ml-1">{isMac ? '⌘⌫' : 'Ctrl+Backspace'}</span>
+                      Cancel{' '}
+                      {shortcutActive && (
+                        <span className="opacity-70 text-xs ml-1">{isMac ? '⌘⌫' : 'Ctrl+Backspace'}</span>
+                      )}
                     </button>
                     <button
                       className={classNames(
@@ -395,7 +421,8 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
                         })
                       }
                     >
-                      Run tool <span className="opacity-70 text-xs ml-1">{isMac ? '⌘↵' : 'Ctrl+Enter'}</span>
+                      Run tool{' '}
+                      {shortcutActive && <span className="opacity-70 text-xs ml-1">{isMac ? '⌘↵' : 'Ctrl+Enter'}</span>}
                     </button>
                   </div>
                 </div>

@@ -63,13 +63,21 @@ export function projectModelSelectionFromValues(
   }
 
   const requestedProvider = providerByName(requestedProviderValue?.trim()) ?? providerForModel(requestedModel);
-  const fallbackSelection = fallbackProjectModelSelection();
-  const provider = (requestedProvider ?? fallbackSelection.provider) as ProviderInfo;
-  const modelKnownForProvider = provider.staticModels?.some((model) => model.name === requestedModel) ?? false;
 
+  // When we cannot resolve any provider for the requested model, fall back to the default selection.
+  if (!requestedProvider) {
+    return fallbackProjectModelSelection();
+  }
+
+  /*
+   * A provider was resolved. The requested model may be a runtime-fetched dynamic model that is not
+   * listed in `staticModels` (e.g. Ollama, OpenRouter, Together, LMStudio, openai-like all expose no
+   * or partial static catalogs and fetch their models at runtime). Keep the persisted selection as-is
+   * rather than discarding it back to DEFAULT_MODEL on every project reload.
+   */
   return {
-    model: modelKnownForProvider ? requestedModel : fallbackSelection.model,
-    provider: modelKnownForProvider ? provider : fallbackSelection.provider,
+    model: requestedModel,
+    provider: requestedProvider as ProviderInfo,
   };
 }
 

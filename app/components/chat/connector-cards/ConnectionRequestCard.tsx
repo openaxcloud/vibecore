@@ -1,7 +1,33 @@
 import { useCallback, useState } from 'react';
 import { Button } from '~/components/ui/Button';
-import type { ConnectionRequestMessage } from '~/lib/chat/connector-messages';
+import type {
+  ConnectionRequestMessage,
+  ConnectionRequestScopeDescription,
+  ExistingAccountConnection,
+} from '~/lib/chat/connector-messages';
 import { useConnectorPopup } from '~/lib/chat/use-connector-popup';
+
+/*
+ * The only validation between the agent stream and this component (in
+ * AssistantMessage / isConnectorDataPart) checks that `payload.kind` is a
+ * string — it does NOT guarantee that `scopes` / `existingAccountConnections`
+ * are present. A connection_request part that survives chat persistence,
+ * import, or a future/edge producer can therefore arrive with these fields
+ * undefined. Since there is no error boundary around the message list, a
+ * naive `payload.scopes.length` read would throw and blank the entire
+ * transcript. These accessors normalize the optional arrays to a safe value.
+ */
+export function getRequestedScopes(
+  payload: Pick<ConnectionRequestMessage, 'scopes'>,
+): ConnectionRequestScopeDescription[] {
+  return Array.isArray(payload.scopes) ? payload.scopes : [];
+}
+
+export function getExistingAccountConnections(
+  payload: Pick<ConnectionRequestMessage, 'existingAccountConnections'>,
+): ExistingAccountConnection[] {
+  return Array.isArray(payload.existingAccountConnections) ? payload.existingAccountConnections : [];
+}
 
 /*
  * Inline card rendered inside an assistant message when the agent emits
@@ -162,7 +188,9 @@ export function ConnectionRequestCard({ payload, projectId, onResolved, onFailed
   }
 
   const isLaunching = state.phase === 'launching';
-  const hasExisting = (payload.existingAccountConnections?.length ?? 0) > 0;
+  const scopes = getRequestedScopes(payload);
+  const existingConnections = getExistingAccountConnections(payload);
+  const hasExisting = existingConnections.length > 0;
 
   return (
     <div className="my-2 rounded-lg border border-bolt-elements-borderColor p-4 bg-bolt-elements-background-depth-1">
@@ -179,13 +207,13 @@ export function ConnectionRequestCard({ payload, projectId, onResolved, onFailed
           <p className="text-sm font-medium text-bolt-elements-textPrimary">Connect {payload.providerDisplayName}</p>
           <p className="text-xs text-bolt-elements-textSecondary mt-1">{payload.reason}</p>
 
-          {payload.scopes.length > 0 ? (
+          {scopes.length > 0 ? (
             <details className="mt-2">
               <summary className="cursor-pointer text-xs text-bolt-elements-textSecondary">
-                Requested permissions ({payload.scopes.length})
+                Requested permissions ({scopes.length})
               </summary>
               <ul className="mt-2 space-y-1">
-                {payload.scopes.map((scope) => (
+                {scopes.map((scope) => (
                   <li key={scope.scope} className="text-xs text-bolt-elements-textSecondary break-words">
                     <span className="font-mono mr-2 break-all">{scope.scope}</span>
                     <span className="text-bolt-elements-textTertiary">
@@ -201,7 +229,7 @@ export function ConnectionRequestCard({ payload, projectId, onResolved, onFailed
           {hasExisting ? (
             <div className="mt-3 space-y-2">
               <p className="text-xs text-bolt-elements-textSecondary">Use an existing connection:</p>
-              {payload.existingAccountConnections!.map((existing) => (
+              {existingConnections.map((existing) => (
                 <div
                   key={existing.userConnectionId}
                   className="flex items-center justify-between gap-3 rounded border border-bolt-elements-borderColor p-2"

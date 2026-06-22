@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Button } from '~/components/ui/Button';
-import type { SecretRequestMessage } from '~/lib/chat/connector-messages';
+import type { SecretRequestField, SecretRequestMessage } from '~/lib/chat/connector-messages';
 
 /*
  * Inline card rendered when the agent emits a secret_request data
@@ -23,6 +23,37 @@ export interface SecretRequestCardProps {
   onProvided?: () => void;
 }
 
+/*
+ * The upstream filter (AssistantMessage.tsx) only validates that the
+ * connector part's `kind` is a string — it never validates `fields`. A
+ * secret_request part that survives chat persistence, import, or a
+ * future/edge producer can therefore arrive with `fields` undefined or
+ * non-array. Since there is no error boundary around the message list, a
+ * naive `payload.fields.map(...)` read would throw and blank the entire
+ * transcript. This accessor normalizes the optional array to a safe value.
+ */
+export function getSecretFields(payload: Pick<SecretRequestMessage, 'fields'>): SecretRequestField[] {
+  return Array.isArray(payload.fields) ? payload.fields : [];
+}
+
+/*
+ * The secrets store (projects.$projectId.secrets.tsx) persists `value` as a
+ * raw scalar string and the runtime injects it verbatim as an environment
+ * variable. The common single-field case (e.g. an API key) must therefore be
+ * stored as the raw value, NOT a JSON-encoded object — otherwise the app
+ * receives the literal string `{"OPENAI_API_KEY":"sk-..."}` instead of the
+ * key. Only when a request genuinely collects more than one field do we
+ * JSON-pack the map under a single secretKey; consumers of such a secret must
+ * `JSON.parse` it to recover the individual values.
+ */
+export function buildSecretValue(fields: SecretRequestField[], values: Record<string, string>): string {
+  if (fields.length === 1) {
+    return values[fields[0].name] ?? '';
+  }
+
+  return JSON.stringify(values);
+}
+
 export function SecretRequestCard({ payload, projectId, onProvided }: SecretRequestCardProps) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -37,7 +68,9 @@ export function SecretRequestCard({ payload, projectId, onProvided }: SecretRequ
       return;
     }
 
-    for (const field of payload.fields) {
+    const fields = getSecretFields(payload);
+
+    for (const field of fields) {
       if (field.required && !values[field.name]?.trim()) {
         setError(`${field.label} is required.`);
         return;
@@ -50,7 +83,7 @@ export function SecretRequestCard({ payload, projectId, onProvided }: SecretRequ
       const response = await fetch(`/api/projects/${projectId}/secrets`, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ key: payload.secretKey, value: JSON.stringify(values) }),
+        body: JSON.stringify({ key: payload.secretKey, value: buildSecretValue(fields, values) }),
       });
 
       if (!response.ok) {
@@ -86,7 +119,7 @@ export function SecretRequestCard({ payload, projectId, onProvided }: SecretRequ
       <p className="text-xs text-bolt-elements-textSecondary mt-1">{payload.description}</p>
 
       <div className="mt-3 space-y-3">
-        {payload.fields.map((field) => (
+        {getSecretFields(payload).map((field) => (
           <label key={field.name} className="block">
             <span className="text-xs text-bolt-elements-textSecondary">
               {field.label}

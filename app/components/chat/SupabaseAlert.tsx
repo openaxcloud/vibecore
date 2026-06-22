@@ -11,6 +11,30 @@ interface Props {
   postMessage: (message: string) => void;
 }
 
+/**
+ * Strip comments and reformat SQL for display. The exact same text returned
+ * here is what gets executed against the database, so the SQL the user reviews
+ * in the expandable preview is byte-for-byte what runs (see executeSupabaseAction
+ * call site below).
+ */
+export function cleanSqlContent(content: string) {
+  if (!content) {
+    return '';
+  }
+
+  let cleaned = content.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  cleaned = cleaned.replace(/(--).*$/gm, '').replace(/(#).*$/gm, '');
+
+  const statements = cleaned
+    .split(';')
+    .map((stmt) => stmt.trim())
+    .filter((stmt) => stmt.length > 0)
+    .join(';\n\n');
+
+  return statements;
+}
+
 export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
   const { content } = alert;
   const connection = useStore(supabaseConnection);
@@ -73,24 +97,6 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
     } finally {
       setIsExecuting(false);
     }
-  };
-
-  const cleanSqlContent = (content: string) => {
-    if (!content) {
-      return '';
-    }
-
-    let cleaned = content.replace(/\/\*[\s\S]*?\*\//g, '');
-
-    cleaned = cleaned.replace(/(--).*$/gm, '').replace(/(#).*$/gm, '');
-
-    const statements = cleaned
-      .split(';')
-      .map((stmt) => stmt.trim())
-      .filter((stmt) => stmt.length > 0)
-      .join(';\n\n');
-
-    return statements;
   };
 
   return (
@@ -173,7 +179,7 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
               </button>
             ) : (
               <button
-                onClick={() => executeSupabaseAction(content)}
+                onClick={() => executeSupabaseAction(cleanSqlContent(content))}
                 disabled={isExecuting}
                 className={classNames(
                   `px-3 py-2 rounded-md text-sm font-medium`,

@@ -4,6 +4,28 @@ import { useEffect, useState } from 'react';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { vercelConnection } from '~/lib/stores/vercel';
 
+/**
+ * Pure helper that extracts a deployment URL from the /api/vercel-deploy
+ * fallback response body. Returns the deploy URL when present, otherwise the
+ * project URL, otherwise null. Kept separate so it can be unit-tested without a
+ * DOM/fetch environment.
+ */
+export function parseDeploymentResponse(data: unknown): string | null {
+  const deployUrl = (data as { deploy?: { url?: string } } | null)?.deploy?.url;
+
+  if (typeof deployUrl === 'string') {
+    return deployUrl;
+  }
+
+  const projectUrl = (data as { project?: { url?: string } } | null)?.project?.url;
+
+  if (typeof projectUrl === 'string') {
+    return projectUrl;
+  }
+
+  return null;
+}
+
 export function VercelDeploymentLink() {
   const connection = useStore(vercelConnection);
   const currentChatId = useStore(chatId);
@@ -125,12 +147,19 @@ export function VercelDeploymentLink() {
           headers: { 'x-vercel-token': connection.token },
         });
 
-        const data = await fallbackResponse.json();
+        /*
+         * Guard against a non-2xx fallback response: calling .json() on an error
+         * body (often non-JSON) throws and is only console.error'd, so the link
+         * silently never appears. Bail out cleanly instead.
+         */
+        if (!fallbackResponse.ok) {
+          return;
+        }
 
-        if (!cancelled && (data as { deploy?: { url?: string } }).deploy?.url) {
-          setDeploymentUrl((data as { deploy: { url: string } }).deploy.url);
-        } else if (!cancelled && (data as { project?: { url?: string } }).project?.url) {
-          setDeploymentUrl((data as { project: { url: string } }).project.url);
+        const deploymentUrl = parseDeploymentResponse(await fallbackResponse.json());
+
+        if (!cancelled && deploymentUrl) {
+          setDeploymentUrl(deploymentUrl);
         }
       } catch (err) {
         console.error('Error fetching Vercel deployment:', err);

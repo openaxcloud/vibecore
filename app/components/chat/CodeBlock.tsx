@@ -49,11 +49,27 @@ export const CodeBlock = memo(
 
       logger.trace(`Language = ${effectiveLanguage}`);
 
+      /*
+       * Guard against out-of-order async resolution. During streaming the `code` prop changes on
+       * nearly every token, firing overlapping codeToHtml() calls whose latency varies. Without this
+       * flag an earlier (stale) invocation could resolve after a later one and overwrite the final
+       * code with outdated/truncated highlighted HTML.
+       */
+      let cancelled = false;
+
       const processCode = async () => {
-        setHTML(await codeToHtml(code, { lang: effectiveLanguage, theme: effectiveTheme }));
+        const highlighted = await codeToHtml(code, { lang: effectiveLanguage, theme: effectiveTheme });
+
+        if (!cancelled) {
+          setHTML(highlighted);
+        }
       };
 
       processCode();
+
+      return () => {
+        cancelled = true;
+      };
     }, [code, language, effectiveTheme]);
 
     return (
