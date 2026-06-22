@@ -19,6 +19,33 @@ export const DEPLOY_REQUEST_TIMEOUT_MS = 610_000;
 export const DEPLOY_POLL_INTERVAL_MS = 4000;
 
 /**
+ * Build the `?workspace=…` suffix to carry the active workspace across a
+ * deploy/redeploy/cancel/rollback redirect.
+ *
+ * Every action redirects back to the deployments panel, but only the default
+ * deploy handler used to preserve the workspace — redeploy/cancel/rollback
+ * dropped it, so the next NEW deploy from the wizard submitted an empty
+ * `workspaceId` and the backend scoped the build to the project root. Prefer the
+ * hidden-input value (`bodyWorkspaceId`), then fall back to the current URL's
+ * `?workspace=` query, mirroring how the deploy POST resolves the workspace.
+ * Returns '' (no suffix) when neither is present so legacy non-workspace
+ * projects redirect to the bare path.
+ */
+export function deploymentsRedirectQuery(requestUrl: string, bodyWorkspaceId: string | null | undefined): string {
+  let queryWorkspaceId: string | null = null;
+
+  try {
+    queryWorkspaceId = new URL(requestUrl).searchParams.get('workspace');
+  } catch {
+    queryWorkspaceId = null;
+  }
+
+  const workspaceId = (bodyWorkspaceId || queryWorkspaceId || '').trim();
+
+  return workspaceId ? `?workspace=${encodeURIComponent(workspaceId)}` : '';
+}
+
+/**
  * Statuses that are still in flight — the backend GET loader reconciles these to
  * a terminal state, but only if the client keeps polling. Compared
  * case-insensitively because providers/hooks have historically persisted mixed

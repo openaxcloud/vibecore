@@ -18,25 +18,25 @@ export default function Contact() {
       icon: Mail,
       title: 'Sales',
       description: 'Talk to our team about plans, pricing, and enterprise rollouts.',
-      email: 'sales@vibecore.dev',
+      email: 'sales@e-code.ai',
     },
     {
       icon: MessageCircle,
       title: 'Support',
       description: 'Get help with your projects, workspaces, and account.',
-      email: 'support@vibecore.dev',
+      email: 'support@e-code.ai',
     },
     {
       icon: Newspaper,
       title: 'Press',
       description: 'Media inquiries, brand assets, and company information.',
-      email: 'press@vibecore.dev',
+      email: 'press@e-code.ai',
     },
     {
       icon: ShieldCheck,
       title: 'Security',
       description: 'Report a vulnerability or ask about our security practices.',
-      email: 'security@vibecore.dev',
+      email: 'security@e-code.ai',
     },
   ];
 
@@ -175,8 +175,8 @@ export default function Contact() {
             <h2 className="text-3xl font-bold mb-4">Visit Us</h2>
             <p className="text-[15px] text-muted-foreground max-w-2xl mx-auto">
               E-Code is a remote-first company with team members around the world. For partnership or in-person
-              inquiries, reach out to <span className="font-medium text-foreground">hello@vibecore.dev</span> and we
-              will point you to the right person.
+              inquiries, reach out to <span className="font-medium text-foreground">hello@e-code.ai</span> and we will
+              point you to the right person.
             </p>
           </div>
         </section>

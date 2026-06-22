@@ -30,10 +30,20 @@ export const action = (args: EnterpriseActionArgs) =>
         });
       } catch (error) {
         /*
+         * apiRequest throws a react-router redirect() Response (3xx with a Location header) when
+         * the session expired (401) or MFA is required (403). Re-throw it so the browser follows
+         * the re-auth redirect instead of rendering it as a body-less inline error.
+         */
+        if (error instanceof Response && error.status >= 300 && error.status < 400) {
+          throw error;
+        }
+
+        /*
          * The API validates the key against /^[A-Z0-9_]+$/ (400), enforces RBAC (403) and may fail
          * with 500. Surface the message inline instead of throwing to an error boundary.
          */
         const status = error instanceof Response ? error.status : 400;
+
         return json({ error: await apiErrorMessage(error, 'Failed to save variable') }, { status });
       }
       return redirect(`/projects/${projectId}/env`);
@@ -45,6 +55,15 @@ export const action = (args: EnterpriseActionArgs) =>
           body: JSON.stringify({ key: body.key }),
         });
       } catch (error) {
+        /*
+         * apiRequest throws a react-router redirect() Response (3xx with a Location header) when
+         * the session expired (401) or MFA is required (403). Re-throw it so the browser follows
+         * the re-auth redirect instead of rendering it as a body-less inline error.
+         */
+        if (error instanceof Response && error.status >= 300 && error.status < 400) {
+          throw error;
+        }
+
         /*
          * The API enforces RBAC (403) and returns 404 when the key no longer
          * exists. Surface the message inline instead of throwing to an error

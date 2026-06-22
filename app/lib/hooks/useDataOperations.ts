@@ -1,6 +1,7 @@
 import { generateId } from 'ai';
 import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { buildFilteredSettingsExport } from '~/lib/hooks/buildFilteredSettingsExport';
 import { useIndexedDB } from '~/lib/hooks/useIndexedDB';
 import { getAllChats } from '~/lib/persistence/chats';
 import { ImportExportService } from '~/lib/services/importExportService';
@@ -177,16 +178,14 @@ export function useDataOperations({
         // Step 2: Filter settings by category
         showProgress('Filtering selected categories', 40);
 
-        const filteredSettings: Record<string, any> = {
-          exportDate: allSettings.exportDate,
-        };
-
-        // Add selected categories to filtered settings
-        categoryIds.forEach((category) => {
-          if (allSettings[category]) {
-            filteredSettings[category] = allSettings[category];
-          }
-        });
+        /*
+         * Carry the v2 `_meta.version` marker into the partial export so that
+         * ImportExportService.importSettings routes it through the comprehensive
+         * parser. Without `_meta`, re-import falls back to the legacy parser,
+         * which JSON-stringifies the `providers` object straight into the
+         * `providers` cookie and corrupts it (silent, un-importable export).
+         */
+        const filteredSettings = buildFilteredSettingsExport(allSettings, categoryIds);
 
         // Step 3: Create blob
         showProgress('Creating file', 60);

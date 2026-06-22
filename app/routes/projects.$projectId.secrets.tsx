@@ -31,8 +31,15 @@ export const action = (args: EnterpriseActionArgs) =>
         /*
          * The API validates the key against /^[A-Z0-9_]+$/ (400), enforces RBAC (403) and may fail
          * with 500. Surface the message inline instead of throwing to an error boundary.
+         * `apiRequest` may throw a redirect Response (e.g. to /login on 401/MFA-403); let those
+         * propagate so the sign-in redirect actually happens instead of becoming a broken 3xx json().
          */
+        if (error instanceof Response && error.status >= 300 && error.status < 400) {
+          throw error;
+        }
+
         const status = error instanceof Response ? error.status : 400;
+
         return json({ error: await apiErrorMessage(error, 'Failed to save secret') }, { status });
       }
 
@@ -45,8 +52,17 @@ export const action = (args: EnterpriseActionArgs) =>
           body: JSON.stringify({ key: body.key }),
         });
       } catch (error) {
-        /* Mirror the upsert path: surface RBAC/not-found/server errors inline instead of an error boundary. */
+        /*
+         * Mirror the upsert path: surface RBAC/not-found/server errors inline instead of an error
+         * boundary, but let redirect Responses (401/MFA-403 re-auth) propagate so the user is
+         * actually sent to sign in rather than seeing a broken inline error.
+         */
+        if (error instanceof Response && error.status >= 300 && error.status < 400) {
+          throw error;
+        }
+
         const status = error instanceof Response ? error.status : 400;
+
         return json({ error: await apiErrorMessage(error, 'Failed to delete secret') }, { status });
       }
 

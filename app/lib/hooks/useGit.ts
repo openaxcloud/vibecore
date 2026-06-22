@@ -4,6 +4,7 @@ import http from 'isomorphic-git/http/web';
 import Cookies from 'js-cookie';
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { toast } from 'react-toastify';
+import { encodeGitWriteContent } from './git-fs-encoding';
 import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 
 const lookupSavedPassword = (url: string) => {
@@ -234,11 +235,13 @@ const getFs = (
       }
 
       try {
-        if (data instanceof Uint8Array) {
-          await runtime.writeFile(relativePath, new TextDecoder().decode(data));
-        } else {
-          await runtime.writeFile(relativePath, String(data));
-        }
+        /*
+         * Persist binary working-tree files (Uint8Array from git checkout)
+         * losslessly. Decoding arbitrary bytes via TextDecoder replaced every
+         * invalid/multi-byte sequence with U+FFFD and corrupted images, fonts,
+         * .pdf and packfiles; latin1 preserves the byte identity instead.
+         */
+        await runtime.writeFile(relativePath, encodeGitWriteContent(data));
       } catch (error) {
         throw error;
       }

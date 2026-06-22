@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEPLOY_POLL_INTERVAL_MS,
   DEPLOY_REQUEST_TIMEOUT_MS,
+  deploymentsRedirectQuery,
   isActiveDeploymentStatus,
   shouldPollDeployments,
 } from './projects.$projectId.deployments.view';
@@ -64,6 +65,48 @@ describe('shouldPollDeployments', () => {
     expect(shouldPollDeployments([])).toBe(false);
     expect(shouldPollDeployments(null)).toBe(false);
     expect(shouldPollDeployments(undefined)).toBe(false);
+  });
+});
+
+describe('deploymentsRedirectQuery', () => {
+  it('prefers the submitted (hidden-input) workspaceId', () => {
+    expect(deploymentsRedirectQuery('https://e-code.ai/projects/p1/deployments?workspace=ws-url', 'ws-body')).toBe(
+      '?workspace=ws-body',
+    );
+  });
+
+  it('falls back to the URL ?workspace= query when no body workspaceId', () => {
+    /*
+     * Regression: redeploy/cancel/rollback redirected to the bare path and
+     * dropped ?workspace=, so the next NEW deploy submitted an empty workspaceId
+     * and the backend scoped the build to the project root. The inline-action
+     * forms POST to the current URL, so the query must be recovered from it.
+     */
+    expect(deploymentsRedirectQuery('https://e-code.ai/projects/p1/deployments?workspace=ws-1', '')).toBe(
+      '?workspace=ws-1',
+    );
+    expect(deploymentsRedirectQuery('https://e-code.ai/projects/p1/deployments?workspace=ws-2', null)).toBe(
+      '?workspace=ws-2',
+    );
+    expect(deploymentsRedirectQuery('https://e-code.ai/projects/p1/deployments?workspace=ws-3', undefined)).toBe(
+      '?workspace=ws-3',
+    );
+  });
+
+  it('returns an empty suffix when no workspace is present anywhere', () => {
+    expect(deploymentsRedirectQuery('https://e-code.ai/projects/p1/deployments', '')).toBe('');
+    expect(deploymentsRedirectQuery('https://e-code.ai/projects/p1/deployments', undefined)).toBe('');
+  });
+
+  it('url-encodes the workspace id', () => {
+    expect(deploymentsRedirectQuery('https://e-code.ai/projects/p1/deployments', 'ws a/b')).toBe(
+      `?workspace=${encodeURIComponent('ws a/b')}`,
+    );
+  });
+
+  it('does not throw on a malformed request url', () => {
+    expect(deploymentsRedirectQuery('not a url', '')).toBe('');
+    expect(deploymentsRedirectQuery('not a url', 'ws-body')).toBe('?workspace=ws-body');
   });
 });
 

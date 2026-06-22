@@ -75,8 +75,17 @@ export function spendUsageState(
     return { tone: 'none', pct: 0 };
   }
 
-  const pct = Math.min(100, Math.max(0, Math.round((spentCents / capCents) * 100)));
-  const tone: SpendTone = pct >= 100 ? 'reached' : pct >= 80 ? 'critical' : pct >= 50 ? 'warn' : 'ok';
+  /*
+   * Derive the tone from the *raw* ratio using the same `>=` thresholds the
+   * server enforces (evaluateSpendLimits: `spent >= cap`). Rounding first made
+   * the UI claim 'limit reached / services paused' across the whole 99.5–99.99%
+   * band (Math.round(99.5%) → 100) while the server had not actually paused
+   * anything, and similarly mis-fired 'critical'/'warn' a half-percent early.
+   * The rounded `pct` is used only for the bar width and the displayed label.
+   */
+  const ratio = spentCents / capCents;
+  const tone: SpendTone = ratio >= 1 ? 'reached' : ratio >= 0.8 ? 'critical' : ratio >= 0.5 ? 'warn' : 'ok';
+  const pct = Math.min(100, Math.max(0, Math.round(ratio * 100)));
 
   return { tone, pct };
 }
@@ -186,6 +195,24 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     if (budgetCapCents != null && (!Number.isFinite(budgetCapCents) || budgetCapCents < 0)) {
       return json({ error: 'Enter a valid spend limit in dollars (or leave blank for no cap).' }, { status: 400 });
+    }
+
+    /*
+     * Reject a literal $0 cap. The server treats `spent >= budgetCapCents` so a
+     * 0 cap silently blocks ALL pay-as-you-go spend, yet the billing UI renders
+     * cap<=0 as 'uncapped / no limit set' — a direct contradiction. There is no
+     * UI affordance for 0: 'no cap' is the blank field (→ null) and the
+     * documented minimum is $0.01 (restrict to credits). Force the user to pick
+     * one instead of POSTing a value the page then misreports.
+     */
+    if (budgetCapCents === 0) {
+      return json(
+        {
+          error:
+            'A $0 cap blocks all usage-based spend. Leave blank for no cap, or enter $0.01 to restrict to credits.',
+        },
+        { status: 400 },
+      );
     }
 
     try {

@@ -19,6 +19,7 @@ import { Form, useActionData, useLoaderData, useNavigation, useRevalidator, useS
 import {
   DEPLOY_POLL_INTERVAL_MS,
   DEPLOY_REQUEST_TIMEOUT_MS,
+  deploymentsRedirectQuery,
   shouldPollDeployments,
 } from './projects.$projectId.deployments.view';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
@@ -118,7 +119,7 @@ export const action = (args: EnterpriseActionArgs) =>
         return json({ error: await apiErrorMessage(error, 'Failed to start deployment') });
       }
 
-      const redirectQuery = workspaceId ? `?workspace=${encodeURIComponent(workspaceId)}` : '';
+      const redirectQuery = deploymentsRedirectQuery(request.url, workspaceId);
 
       return redirect(`/projects/${projectId}/deployments${redirectQuery}`);
     },
@@ -129,7 +130,9 @@ export const action = (args: EnterpriseActionArgs) =>
         return json({ error: await apiErrorMessage(error, 'Failed to cancel deployment') });
       }
 
-      return redirect(`/projects/${projectId}/deployments`);
+      const redirectQuery = deploymentsRedirectQuery(request.url, body.workspaceId);
+
+      return redirect(`/projects/${projectId}/deployments${redirectQuery}`);
     },
     redeploy: async ({ request, projectId, body }) => {
       try {
@@ -143,7 +146,9 @@ export const action = (args: EnterpriseActionArgs) =>
         return json({ error: await apiErrorMessage(error, 'Failed to redeploy') });
       }
 
-      return redirect(`/projects/${projectId}/deployments`);
+      const redirectQuery = deploymentsRedirectQuery(request.url, body.workspaceId);
+
+      return redirect(`/projects/${projectId}/deployments${redirectQuery}`);
     },
     rollback: async ({ request, projectId, body }) => {
       try {
@@ -154,7 +159,9 @@ export const action = (args: EnterpriseActionArgs) =>
         return json({ error: await apiErrorMessage(error, 'Failed to roll back') });
       }
 
-      return redirect(`/projects/${projectId}/deployments`);
+      const redirectQuery = deploymentsRedirectQuery(request.url, body.workspaceId);
+
+      return redirect(`/projects/${projectId}/deployments${redirectQuery}`);
     },
   });
 
@@ -238,7 +245,7 @@ export default function ProjectDeploymentsPage() {
             <div className="divide-y divide-bolt-elements-borderColor">
               {data.deployments.length ? (
                 data.deployments.map((deployment) => (
-                  <DeploymentRow key={deployment.id} deployment={deployment} busy={busy} />
+                  <DeploymentRow key={deployment.id} deployment={deployment} busy={busy} workspaceId={workspaceId} />
                 ))
               ) : (
                 <div className="grid place-items-center gap-3 px-5 py-14 text-center">
@@ -339,7 +346,15 @@ export default function ProjectDeploymentsPage() {
   );
 }
 
-function DeploymentRow({ deployment, busy }: { deployment: Deployment; busy: boolean }) {
+function DeploymentRow({
+  deployment,
+  busy,
+  workspaceId,
+}: {
+  deployment: Deployment;
+  busy: boolean;
+  workspaceId: string;
+}) {
   const ready = deployment.status === 'READY';
 
   return (
@@ -381,13 +396,31 @@ function DeploymentRow({ deployment, busy }: { deployment: Deployment; busy: boo
             Open
           </a>
         ) : null}
-        <InlineAction intent="redeploy" deploymentId={deployment.id} disabled={busy} icon={RotateCcw}>
+        <InlineAction
+          intent="redeploy"
+          deploymentId={deployment.id}
+          workspaceId={workspaceId}
+          disabled={busy}
+          icon={RotateCcw}
+        >
           Redeploy
         </InlineAction>
-        <InlineAction intent="rollback" deploymentId={deployment.id} disabled={busy || !ready} icon={History}>
+        <InlineAction
+          intent="rollback"
+          deploymentId={deployment.id}
+          workspaceId={workspaceId}
+          disabled={busy || !ready}
+          icon={History}
+        >
           Rollback
         </InlineAction>
-        <InlineAction intent="cancel" deploymentId={deployment.id} disabled={busy || ready} icon={Ban}>
+        <InlineAction
+          intent="cancel"
+          deploymentId={deployment.id}
+          workspaceId={workspaceId}
+          disabled={busy || ready}
+          icon={Ban}
+        >
           Cancel
         </InlineAction>
       </div>
@@ -398,12 +431,14 @@ function DeploymentRow({ deployment, busy }: { deployment: Deployment; busy: boo
 function InlineAction({
   intent,
   deploymentId,
+  workspaceId,
   disabled,
   icon,
   children,
 }: {
   intent: string;
   deploymentId: string;
+  workspaceId: string;
   disabled?: boolean;
   icon: LucideIcon;
   children: React.ReactNode;
@@ -432,6 +467,7 @@ function InlineAction({
     >
       <input type="hidden" name="intent" value={intent} />
       <input type="hidden" name="deploymentId" value={deploymentId} />
+      <input type="hidden" name="workspaceId" value={workspaceId} />
       <Button type="submit" variant="outline" size="sm" disabled={disabled} className="gap-2">
         <ActionIcon className="h-3.5 w-3.5" aria-hidden />
         {children}

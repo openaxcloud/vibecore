@@ -5,6 +5,7 @@ import {
   shouldRefreshOnFilesChange,
   shouldRefreshOnVisibility,
 } from './git-autorefresh';
+import { findUnserializableStagedFiles } from './git-staged-files';
 import { GitBranchSyncControls } from '~/components/git/GitBranchSyncControls';
 import { GitDiffView } from '~/components/git/GitDiffView';
 import { GitMergeEditor } from '~/components/git/GitMergeEditor';
@@ -369,6 +370,7 @@ export function GitTab({ projectId }: GitTabProps) {
   }, [loadPanel]);
 
   const stagedFiles = useMemo(() => Array.from(staged), [staged]);
+  const unserializableStagedFiles = useMemo(() => findUnserializableStagedFiles(stagedFiles), [stagedFiles]);
 
   const submitAction = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
@@ -381,6 +383,24 @@ export function GitTab({ projectId }: GitTabProps) {
       const form = event.currentTarget;
       const formData = new FormData(form);
       const intent = String(formData.get('intent') ?? 'default');
+
+      /*
+       * The action route parses staged paths with `split(',')`, so a path
+       * containing a comma would be mis-split and silently dropped from the
+       * commit while still reporting success. Refuse rather than lose the
+       * change.
+       */
+      if (intent === 'commit') {
+        const unserializable = findUnserializableStagedFiles(stagedFiles);
+
+        if (unserializable.length) {
+          const message = `Cannot commit files whose path contains a comma: ${unserializable.join(', ')}`;
+          setError(message);
+          toast.error(message);
+
+          return;
+        }
+      }
 
       if (resolvedWorkspaceId) {
         formData.set('workspaceId', resolvedWorkspaceId);
@@ -415,7 +435,7 @@ export function GitTab({ projectId }: GitTabProps) {
         setBusy(false);
       }
     },
-    [loadPanel, projectId, resolvedWorkspaceId],
+    [loadPanel, projectId, resolvedWorkspaceId, stagedFiles],
   );
 
   /*
@@ -1114,7 +1134,15 @@ export function GitTab({ projectId }: GitTabProps) {
                 Both fields required to override; otherwise the repo default author is used.
               </p>
             </details>
-            <PanelButton disabled={busy || stagedFiles.length === 0}>Commit changes</PanelButton>
+            {unserializableStagedFiles.length ? (
+              <p className="text-xs text-bolt-elements-icon-error" role="alert">
+                These staged paths contain a comma and cannot be committed from here yet:{' '}
+                {unserializableStagedFiles.join(', ')}
+              </p>
+            ) : null}
+            <PanelButton disabled={busy || stagedFiles.length === 0 || unserializableStagedFiles.length > 0}>
+              Commit changes
+            </PanelButton>
           </form>
 
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">

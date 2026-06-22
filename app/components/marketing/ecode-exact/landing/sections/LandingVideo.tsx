@@ -44,11 +44,13 @@ export default function LandingVideo() {
                   if (videoRef.current) {
                     if (isPlaying) {
                       videoRef.current.pause();
+                      setIsPlaying(false);
                     } else {
-                      videoRef.current.play();
+                      videoRef.current
+                        .play()
+                        ?.then(() => setIsPlaying(true))
+                        .catch(() => setIsPlaying(false));
                     }
-
-                    setIsPlaying(!isPlaying);
                   }
                 }}
                 data-testid="button-video-play-toggle"

@@ -163,7 +163,7 @@ export default function DashboardPage() {
             <ProjectGrid projects={projects} />
           </div>
           <div className="space-y-6">
-            <CommandPalettePreview />
+            <CommandPalettePreview projects={projects} />
             <h2 className="text-lg font-semibold">System status</h2>
             <ActivityList
               items={[

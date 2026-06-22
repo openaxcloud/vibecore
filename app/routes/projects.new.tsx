@@ -614,7 +614,10 @@ export async function action({ request, context }: EnterpriseActionArgs) {
    * policy hit we surface the flagged category in the user-facing message.
    */
   const serverEnv = (context?.cloudflare?.env ?? {}) as unknown as Record<string, string | undefined>;
-  const moderation = prompt ? await moderateProjectPrompt(prompt, { serverEnv }) : undefined;
+
+  const moderation = prompt
+    ? await moderateProjectPrompt(prompt, { serverEnv, signal: AbortSignal.timeout(8_000) })
+    : undefined;
 
   if (moderation && !moderation.allowed) {
     return {
