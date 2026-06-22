@@ -19,6 +19,7 @@ import {
   putAgentPatchProposal,
 } from '~/lib/persistence/agentPatchProposalSync';
 import { getRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
+import { foldCommandExitCode } from '~/lib/runtime/command-exit';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import { hasInstalledPreviewDependencies, type PreviewPackageManifest } from '~/lib/runtime/preview-dependencies';
 import { buildPreviewManifestRepair } from '~/lib/runtime/preview-manifest';
@@ -799,12 +800,23 @@ export class WorkbenchStore {
           refreshPortsThrottled();
         }
 
-        if (event.type === 'exit') {
-          exitCode = event.exitCode ?? 0;
+        /*
+         * Fold each event into the exit code. An `error` event (the adapter's
+         * synthetic "stream closed before completion" for an interrupted command —
+         * npm install killed by a pod restart / LB idle-kill / network drop) folds
+         * to a non-zero code so the caller doesn't treat a half-finished install as
+         * success and launch the preview against a broken node_modules.
+         */
+        exitCode = foldCommandExitCode(exitCode, event);
 
-          if (exitCode !== 0) {
-            this.appendWorkspaceLog(`${options.exitMessage} ${exitCode}`);
-          }
+        if (event.type === 'exit' && exitCode !== 0) {
+          this.appendWorkspaceLog(`${options.exitMessage} ${exitCode}`);
+        }
+
+        if (event.type === 'error') {
+          this.appendWorkspaceLog(
+            `${options.exitMessage} ${exitCode} (${event.error?.message ?? 'command stream interrupted'})`,
+          );
         }
       }
     } finally {
