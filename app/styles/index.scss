@@ -397,13 +397,17 @@ html:has([data-ecode-static-shell]) body {
   --vc-font-code: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --vc-ide-font-mono: var(--vc-font-code);
   /*
-   * Root interface font size — drives `html,body { font-size }`, so it is the rem
-   * base for the whole app shell (IDE + dashboard; marketing scope already 16px).
-   * Was 12px (75% rem → everything rendered too small). Measured Replit's own IDE
-   * at 16px root; lifted 12→13→14→16px to match Replit's density exactly. Verified
-   * live across marketing/dashboard/IDE/admin/billing at 3 widths — no regression.
+   * Root interface font size — drives `html,body { font-size }`, the rem base for
+   * the whole app shell (IDE + dashboard; marketing scope is its own 16px). This is
+   * the ORIGINAL 12px density. A previous attempt lifted it to 16px to chase Replit
+   * Git-pane parity, but that was the wrong lever: the Git pane uses FIXED px
+   * (root-independent), and parity comes from its DESIGN — single column, Remote
+   * Updates / Working tree / Commit / History sections, exact labels/buttons — NOT
+   * the root font size. Reverted to restore the app's original density. If a
+   * specific zone genuinely needs to be larger, apply a targeted fixed-px override
+   * there (like the Git pane); never re-scale this base.
    */
-  --vc-type-interface-size: 16px;
+  --vc-type-interface-size: 12px;
   --vc-type-interface-compact-size: 11px;
   --vc-type-code-size: 12px;
   --vc-type-heading-size: 14px;
