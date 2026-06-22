@@ -11,6 +11,31 @@ import { INSPECTOR_SCRIPT } from './inspector-script.js';
  */
 const MAX_INJECT_BYTES = 4 * 1024 * 1024;
 
+/*
+ * Auto-refreshing holding page served for the iframe's top-level navigation when
+ * the upstream dev server is bound-but-not-yet-serving (still compiling) or briefly
+ * unreachable. The cross-origin preview iframe fires onLoad even for a 5xx body, so
+ * returning a JSON error blob here made the IDE mark the broken page as a finished
+ * render and strand the user on a `{error:…}` blob. This page tells them the app is
+ * starting and reloads itself until the dev server returns a real 200. Asset/XHR
+ * requests still receive the machine-readable JSON error.
+ */
+const PREVIEW_STARTING_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="2"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Starting your app…</title><style>html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0d1117;color:#c9d1d9}.box{text-align:center;max-width:420px;padding:24px}.s{width:28px;height:28px;border:3px solid #30363d;border-top-color:#F26207;border-radius:50%;margin:0 auto 16px;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}h1{font-size:15px;font-weight:600;margin:0 0 6px}p{font-size:13px;color:#8b949e;margin:0}</style></head><body><div class="box"><div class="s"></div><h1>Starting your app…</h1><p>The dev server is booting. This page refreshes automatically.</p></div></body></html>`;
+
+/*
+ * True when the request is the iframe's top-level document navigation (vs an asset
+ * or XHR sub-request). Only document navigations should get the HTML holding page.
+ */
+function wantsHtmlDocument(request: FastifyRequest): boolean {
+  const dest = String(request.headers['sec-fetch-dest'] ?? '');
+
+  if (dest === 'document' || dest === 'iframe' || dest === 'frame') {
+    return true;
+  }
+
+  return String(request.headers.accept ?? '').includes('text/html');
+}
+
 export interface PreviewProxyOptions {
   logger?: boolean;
   workspaceManagerUrl?: string;
@@ -643,6 +668,21 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
       return reply.send(outBuffer);
     } catch (error: any) {
+      /*
+       * A still-compiling / briefly-unreachable dev server means the app is starting,
+       * not broken. For the iframe's document navigation, serve the auto-refreshing
+       * holding page instead of a JSON body the browser would render as a finished
+       * page; asset/XHR requests still get the machine-readable error.
+       */
+      if (wantsHtmlDocument(request)) {
+        return reply
+          .code(503)
+          .header('content-type', 'text/html; charset=utf-8')
+          .header('retry-after', '2')
+          .header('cache-control', 'no-store')
+          .send(PREVIEW_STARTING_HTML);
+      }
+
       if (error?.name === 'AbortError') {
         return reply.code(504).send({ error: 'Preview upstream timeout', code: 'PREVIEW_UPSTREAM_TIMEOUT' });
       }

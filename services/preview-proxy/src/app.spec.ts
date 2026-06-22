@@ -22,6 +22,40 @@ function recordingFetch(handler: (input: URL, init: RequestInit) => Promise<Resp
 }
 
 describe('preview-proxy', () => {
+  it('serves an auto-refreshing HTML holding page when the dev server is unreachable (iframe document)', async () => {
+    const fetchImpl = (async () => {
+      throw new Error('connect ECONNREFUSED 127.0.0.1:4173');
+    }) as unknown as typeof fetch;
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/4173/',
+      headers: { accept: 'text/html,*/*', 'sec-fetch-dest': 'iframe' },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.headers['content-type']).toContain('text/html');
+    expect(response.headers['retry-after']).toBe('2');
+    expect(response.body).toContain('Starting your app');
+  });
+
+  it('still returns a JSON error for asset/XHR sub-requests when the dev server is unreachable', async () => {
+    const fetchImpl = (async () => {
+      throw new Error('connect ECONNREFUSED 127.0.0.1:4173');
+    }) as unknown as typeof fetch;
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/4173/assets/main.js',
+      headers: { accept: '*/*', 'sec-fetch-dest': 'script' },
+    });
+
+    expect(response.statusCode).toBe(502);
+    expect(response.json().code).toBe('PREVIEW_UPSTREAM_ERROR');
+  });
+
   it('serves /health', async () => {
     const app = await buildPreviewProxyApp();
     const response = await app.inject({ method: 'GET', url: '/health' });
