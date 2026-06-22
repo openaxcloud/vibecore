@@ -61,3 +61,34 @@ export function isUngeneratedProject(files: FileMap | undefined): boolean {
 
   return realFiles.every(([path]) => SCAFFOLD_FILE_PATTERN.test(path));
 }
+
+/**
+ * Recover the original generation prompt from a seeded README so the "Generate
+ * app" CTA can re-run generation for a stranded project (one whose one-shot
+ * generation never produced files and whose pendingPrompt is already gone). The
+ * AI starter README ends with `Prompt:\n\n<prompt>` (see starterFiles('ai')).
+ */
+export function extractGenerationPrompt(files: FileMap | undefined): string | undefined {
+  if (!files) {
+    return undefined;
+  }
+
+  const readme = Object.values(files).find(
+    (entry): entry is Extract<NonNullable<FileMap[string]>, { type: 'file' }> =>
+      entry?.type === 'file' && /This project was created from an AI prompt/i.test(entry.content),
+  );
+
+  if (!readme) {
+    return undefined;
+  }
+
+  const marker = readme.content.lastIndexOf('Prompt:');
+
+  if (marker === -1) {
+    return undefined;
+  }
+
+  const prompt = readme.content.slice(marker + 'Prompt:'.length).trim();
+
+  return prompt || undefined;
+}

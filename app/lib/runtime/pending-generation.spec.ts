@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { countWorkspaceFiles, isUngeneratedProject, resolvePendingPrompt } from './pending-generation';
+import {
+  countWorkspaceFiles,
+  extractGenerationPrompt,
+  isUngeneratedProject,
+  resolvePendingPrompt,
+} from './pending-generation';
 import type { FileMap } from '~/lib/stores/files';
+
+const aiReadme = (prompt: string) =>
+  `# Todo App\n\nThis project was created from an AI prompt. Application files are intentionally left for the IDE agent to produce as real generated output.\n\nGeneration context:\n\nArtifact type: web\n\nPrompt:\n\n${prompt}\n`;
 
 describe('resolvePendingPrompt', () => {
   it('KEEPS the prompt when the generation wrote no files (failed/empty attempt)', () => {
@@ -65,5 +73,29 @@ describe('isUngeneratedProject', () => {
   it('is false for an empty workspace (nothing to regenerate yet)', () => {
     expect(isUngeneratedProject({})).toBe(false);
     expect(isUngeneratedProject(undefined)).toBe(false);
+  });
+});
+
+describe('extractGenerationPrompt', () => {
+  it('recovers the original prompt from the AI-seeded README', () => {
+    const files: FileMap = {
+      '/home/project/README.md': {
+        type: 'file',
+        content: aiReadme('Build a working todo list app with React and persist to localStorage.'),
+        isBinary: false,
+      },
+    };
+    expect(extractGenerationPrompt(files)).toBe(
+      'Build a working todo list app with React and persist to localStorage.',
+    );
+  });
+
+  it('returns undefined when there is no AI-seeded README', () => {
+    const files: FileMap = {
+      '/home/project/README.md': { type: 'file', content: '# Just a normal readme', isBinary: false },
+      '/home/project/src/App.tsx': { type: 'file', content: 'export default null;', isBinary: false },
+    };
+    expect(extractGenerationPrompt(files)).toBeUndefined();
+    expect(extractGenerationPrompt(undefined)).toBeUndefined();
   });
 });
