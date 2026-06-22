@@ -1,5 +1,5 @@
 import type { K8sObject, WorkspaceK8sClient } from '@vibecore/k8s-client';
-import type { WorkspaceEvent } from '@vibecore/workspace-sdk';
+import { deriveWorkspaceSecret, verifyAgentToken, type WorkspaceEvent } from '@vibecore/workspace-sdk';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WorkspaceManager, type EventBus, type WorkspaceRecord, type WorkspaceStore } from './manager.js';
 
@@ -148,10 +148,13 @@ describe('WorkspaceManager', () => {
     await manager.startWorkspace({ ...input, allowedSecrets: { NPM_TOKEN: 'tok_secret_value' } });
 
     const secret = k8s.objects.get('workspaces:Secret:agent-token-workspace_1') as any;
-    expect(secret.stringData).toMatchObject({
-      tokenSecret: 'test-workspace-agent-secret',
-      NPM_TOKEN: 'tok_secret_value',
-    });
+    // The pod must receive the per-workspace DERIVED key, never the platform root.
+    // A leaked derived key forges tokens only for this workspace, not the whole fleet.
+    expect(secret.stringData.tokenSecret).toBe(
+      deriveWorkspaceSecret('test-workspace-agent-secret', 'workspace_1'),
+    );
+    expect(secret.stringData.tokenSecret).not.toBe('test-workspace-agent-secret');
+    expect(secret.stringData).toMatchObject({ NPM_TOKEN: 'tok_secret_value' });
 
     const pod = k8s.objects.get('workspaces:Pod:workspace-workspace_1') as any;
     const npmEnv = pod.spec.containers[0].env.find((entry: any) => entry.name === 'NPM_TOKEN');
@@ -160,6 +163,27 @@ describe('WorkspaceManager', () => {
       key: 'NPM_TOKEN',
       optional: true,
     });
+  });
+
+  it('issues per-workspace tokens that the workspace pod verifies but cannot be forged for another workspace', () => {
+    const root = 'test-workspace-agent-secret';
+    const manager = new WorkspaceManager(new TestWorkspaceStore(), new TestWorkspaceK8sClient(), new TestEventBus(), root);
+
+    const token = manager.issueAgentToken('workspace_1');
+    const keyForWs1 = deriveWorkspaceSecret(root, 'workspace_1');
+    const keyForWs2 = deriveWorkspaceSecret(root, 'workspace_2');
+
+    // The pod for workspace_1 (which holds only keyForWs1) accepts the token.
+    expect(verifyAgentToken(token, keyForWs1, 'workspace_1')).toBe(true);
+
+    // The same token is useless against workspace_2's pod: its key differs AND the
+    // bound workspaceId mismatches. This is the cross-tenant break we are closing.
+    expect(verifyAgentToken(token, keyForWs2, 'workspace_2')).toBe(false);
+
+    // A tenant who exfiltrated their derived key still cannot recover the root, so
+    // they cannot mint a token that workspace_2's pod would accept.
+    expect(verifyAgentToken(token, root, 'workspace_1')).toBe(false);
+    expect(keyForWs1).not.toBe(keyForWs2);
   });
 
   it('stops, restarts and fully deletes workspace runtime resources', async () => {

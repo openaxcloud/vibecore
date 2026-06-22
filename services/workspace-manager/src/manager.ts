@@ -1,4 +1,4 @@
-import { signAgentToken, type WorkspaceEvent } from '@vibecore/workspace-sdk';
+import { deriveWorkspaceSecret, signAgentToken, type WorkspaceEvent } from '@vibecore/workspace-sdk';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import {
@@ -210,6 +210,8 @@ export class WorkspaceManager {
   async startWorkspace(input: StartWorkspaceInput) {
     const pvcName = `pvc-${input.workspaceId}`;
     const agentTokenSecretName = `agent-token-${input.workspaceId}`;
+    // Inject only the per-workspace derived key into the pod, never the platform root.
+    const workspaceSecret = deriveWorkspaceSecret(this.tokenSecret, input.workspaceId);
     const allowedSecrets = input.allowedSecrets ?? {};
     const secretEnv = Object.fromEntries(
       [...new Set([...input.allowedSecretKeys, ...Object.keys(allowedSecrets)])].map((key) => [key, key]),
@@ -219,7 +221,7 @@ export class WorkspaceManager {
       pvcName,
       agentTokenSecretName,
       storageClassName: input.storageClassName ?? process.env.WORKSPACE_STORAGE_CLASS,
-      tokenSecret: this.tokenSecret,
+      tokenSecret: workspaceSecret,
       secretEnv,
       env: { ...input.env, WORKSPACE_ID: input.workspaceId },
     };
@@ -302,7 +304,7 @@ export class WorkspaceManager {
 
       await this.k8s.apply({
         ...workspaceAgentSecret(runtimeInput),
-        stringData: { tokenSecret: this.tokenSecret, ...allowedSecrets },
+        stringData: { tokenSecret: workspaceSecret, ...allowedSecrets },
       });
       await this.k8s.apply(workspacePod(runtimeInput));
       await this.k8s.apply(workspaceService(runtimeInput));
@@ -594,7 +596,13 @@ export class WorkspaceManager {
   }
 
   issueAgentToken(workspaceId: string, expiresInMs = 60_000) {
-    return signAgentToken({ workspaceId, expiresAt: Date.now() + expiresInMs, secret: this.tokenSecret });
+    // Sign with the same per-workspace derived key that the pod verifies against,
+    // so the platform root secret is never used directly for tenant-facing tokens.
+    return signAgentToken({
+      workspaceId,
+      expiresAt: Date.now() + expiresInMs,
+      secret: deriveWorkspaceSecret(this.tokenSecret, workspaceId),
+    });
   }
 
   /**

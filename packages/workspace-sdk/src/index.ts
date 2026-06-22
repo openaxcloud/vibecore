@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, hkdfSync, timingSafeEqual } from 'node:crypto';
 
 export interface WorkspaceEvent {
   type: string;
@@ -20,6 +20,27 @@ export interface WorkspacePort {
   port: number;
   protocol: 'http' | 'https' | 'tcp';
   url?: string;
+}
+
+/**
+ * Derive a per-workspace agent-token signing key from the platform root secret.
+ *
+ * Previously a single global WORKSPACE_AGENT_TOKEN_SECRET was injected into every
+ * workspace pod AND used to sign every workspace's tokens. A tenant who exfiltrated
+ * that secret from their own pod could forge a valid agent token for ANY other
+ * workspace — a cross-tenant break of the data-plane auth boundary.
+ *
+ * By keying the signature with HKDF(root, info=`workspace-agent-token:${id}`) the
+ * manager injects only the *derived* key into each pod. A leaked per-workspace key
+ * forges tokens for that one workspace; the root never leaves workspace-manager and
+ * cannot be recovered from a derived key (HKDF is a one-way KDF). This mirrors the
+ * per-Repl isolation boundary Replit enforces between tenant environments.
+ */
+export function deriveWorkspaceSecret(rootSecret: string, workspaceId: string) {
+  // 32-byte HKDF-SHA256 output, returned base64url so it stays a plain env-safe string.
+  const derived = hkdfSync('sha256', Buffer.from(rootSecret), Buffer.alloc(0), `workspace-agent-token:${workspaceId}`, 32);
+
+  return Buffer.from(derived).toString('base64url');
 }
 
 export function signAgentToken(input: { workspaceId: string; expiresAt: number; secret: string }) {
