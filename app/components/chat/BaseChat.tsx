@@ -5976,7 +5976,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               {projectIdeMode && (
                 <GenerateAppCta
                   files={projectFiles}
-                  hasMessages={messages.length > 0}
+                  hasMessages={(messages?.length ?? 0) > 0}
                   isGenerating={isAgentRunning}
                   onGenerate={(prompt) => handleProjectAgentSendMessage({} as React.UIEvent, prompt)}
                 />
