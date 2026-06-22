@@ -22,6 +22,18 @@ import {
 export interface RemoteKubernetesRuntimeAdapterOptions {
   baseUrl: string;
   authToken?: string | (() => string | undefined | Promise<string | undefined>);
+
+  /*
+   * Invalidate the cached runtime auth token so the next authToken() call forces
+   * a network re-fetch. Called when the backend rejects the token with a 401
+   * (session revoked, signing-key rotation, logout-all on another device, pod
+   * restart) BEFORE the provider's own client-side expiry clock elapses. Without
+   * it the adapter would keep replaying the same dead token on every preview /
+   * file / command / status call, so the whole workspace 401s forever and looks
+   * crashed even though the user is still logged in. Optional — a static-string
+   * token has no way to refresh, so this is a no-op there.
+   */
+  invalidateAuthToken?: () => void | Promise<void>;
   workspaceId?: string;
   fetchImpl?: typeof fetch;
   WebSocketImpl?: WebSocketConstructor;
@@ -56,6 +68,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   readonly workdir: string;
   #baseUrl: string;
   #authToken?: RemoteKubernetesRuntimeAdapterOptions['authToken'];
+  #invalidateAuthToken?: RemoteKubernetesRuntimeAdapterOptions['invalidateAuthToken'];
   #workspaceId?: string;
   #fetch: typeof fetch;
   #WebSocket?: WebSocketConstructor;
@@ -77,6 +90,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   constructor(options: RemoteKubernetesRuntimeAdapterOptions) {
     this.#baseUrl = options.baseUrl.replace(/\/+$/, '');
     this.#authToken = options.authToken;
+    this.#invalidateAuthToken = options.invalidateAuthToken;
     this.#workspaceId = options.workspaceId;
     this.#fetch = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
     this.#WebSocket = options.WebSocketImpl ?? (globalThis.WebSocket as WebSocketConstructor | undefined);
@@ -815,6 +829,38 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async #rawRequest(path: string, init: RequestInit = {}): Promise<Response> {
+    /*
+     * On a 401 the cached runtime token has been rejected by the backend (session
+     * revoked / signing-key rotation / pod restart) before the provider's own
+     * expiry clock elapsed. Invalidate it so authToken() re-fetches a fresh one,
+     * then retry the request ONCE. Without this self-heal the adapter replays the
+     * same dead token forever and the whole workspace (preview/files/terminal)
+     * 401s with no recovery. Only retry when an invalidate hook is wired (a static
+     * token has nothing to refresh) and never on a caller-aborted request.
+     */
+    const canRefresh = typeof this.#invalidateAuthToken === 'function';
+
+    for (let attempt = 0; ; attempt += 1) {
+      const response = await this.#sendRawRequest(path, init);
+
+      if (response.ok) {
+        return response;
+      }
+
+      if (shouldRefreshAuthToken(response.status, attempt, canRefresh) && !init.signal?.aborted) {
+        await this.#invalidateAuthToken!();
+        continue;
+      }
+
+      throw new RuntimeError(`Remote runtime request failed: ${response.status}`, {
+        code: 'REMOTE_RUNTIME_REQUEST_FAILED',
+        status: response.status,
+        details: await response.text().catch(() => undefined),
+      });
+    }
+  }
+
+  async #sendRawRequest(path: string, init: RequestInit): Promise<Response> {
     const headers = new Headers(init.headers);
 
     if (init.body && !headers.has('content-type') && typeof init.body === 'string') {
@@ -827,25 +873,47 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       headers.set('authorization', `Bearer ${token}`);
     }
 
-    const response = await this.#fetch(`${this.#baseUrl}${path}`, {
+    return this.#fetch(`${this.#baseUrl}${path}`, {
       ...init,
       headers,
       signal: init.signal ?? AbortSignal.timeout(30_000),
     });
-
-    if (!response.ok) {
-      throw new RuntimeError(`Remote runtime request failed: ${response.status}`, {
-        code: 'REMOTE_RUNTIME_REQUEST_FAILED',
-        status: response.status,
-        details: await response.text().catch(() => undefined),
-      });
-    }
-
-    return response;
   }
 
   async #openSocket(path: string, hello?: unknown): Promise<WebSocketLike> {
     if (!this.#WebSocket) {
+      throw new RuntimeError('WebSocket is not available for remote runtime', { code: 'WEBSOCKET_UNAVAILABLE' });
+    }
+
+    /*
+     * Mirror #rawRequest's token self-heal for the socket transport: if the server
+     * rejects the upgrade because the token is dead (it surfaces as a close with an
+     * auth code — 4401 by convention, or 1008 policy-violation), invalidate the
+     * cached token and retry the connect ONCE with a fresh one. Otherwise a revoked
+     * token would strand the terminal / file-watch / port-watch sockets forever.
+     */
+    const canRefresh = typeof this.#invalidateAuthToken === 'function';
+
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await this.#connectSocket(path, hello);
+      } catch (error) {
+        const closeCode = error instanceof RuntimeError ? (error.details as { closeCode?: number })?.closeCode : undefined;
+
+        if (isAuthSocketClose(closeCode) && shouldRefreshAuthToken(401, attempt, canRefresh)) {
+          await this.#invalidateAuthToken!();
+          continue;
+        }
+
+        throw error;
+      }
+    }
+  }
+
+  async #connectSocket(path: string, hello?: unknown): Promise<WebSocketLike> {
+    const WebSocketImpl = this.#WebSocket;
+
+    if (!WebSocketImpl) {
       throw new RuntimeError('WebSocket is not available for remote runtime', { code: 'WEBSOCKET_UNAVAILABLE' });
     }
 
@@ -869,7 +937,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       url.searchParams.set('token', token);
     }
 
-    const socket = new this.#WebSocket(url.toString());
+    const socket = new WebSocketImpl(url.toString());
 
     await new Promise<void>((resolve, reject) => {
       let settled = false;
@@ -890,7 +958,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         resolve();
       };
 
-      const onError = () => {
+      const failConnect = (closeCode?: number) => {
         if (settled) {
           return;
         }
@@ -908,8 +976,20 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
           // already closing/closed
         }
 
-        reject(new RuntimeError('Remote runtime WebSocket failed to connect'));
+        /*
+         * Carry the close code so #openSocket can tell an auth rejection (4401 /
+         * 1008) apart from an ordinary transport failure and self-heal the token.
+         */
+        reject(
+          new RuntimeError('Remote runtime WebSocket failed to connect', {
+            code: 'REMOTE_RUNTIME_SOCKET_FAILED',
+            details: closeCode === undefined ? undefined : { closeCode },
+          }),
+        );
       };
+
+      const onError = () => failConnect();
+      const onClose = (event: { code?: number }) => failConnect(event?.code);
 
       const cleanup = () => {
         if (timer) {
@@ -918,6 +998,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
         socket.removeEventListener?.('open', onOpen);
         socket.removeEventListener?.('error', onError);
+        socket.removeEventListener?.('close', onClose);
       };
 
       /*
@@ -928,6 +1009,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
       socket.addEventListener('open', onOpen);
       socket.addEventListener('error', onError);
+      socket.addEventListener('close', onClose);
     });
 
     return socket;
@@ -1088,4 +1170,25 @@ class AsyncQueue<T> implements AsyncIterable<T> {
 
 function now() {
   return new Date().toISOString();
+}
+
+/**
+ * Decide whether a rejected runtime request should invalidate the cached auth
+ * token and retry. Pure so the self-heal contract is unit-testable without a
+ * live fetch: only a 401 is an auth rejection, we retry at most once (attempt
+ * 0 → refresh, attempt 1 → give up), and only when a refresh hook is wired (a
+ * static token can't be refreshed, so retrying would just replay the dead one).
+ */
+export function shouldRefreshAuthToken(status: number, attempt: number, canRefresh: boolean): boolean {
+  return canRefresh && status === 401 && attempt === 0;
+}
+
+/**
+ * A WebSocket upgrade that the server refuses for auth reasons surfaces as a
+ * close with code 4401 (app-level "unauthorized" convention) or 1008 (policy
+ * violation). Treat those as a token rejection so the socket transport gets the
+ * same one-shot token self-heal as #rawRequest.
+ */
+export function isAuthSocketClose(closeCode: number | undefined): boolean {
+  return closeCode === 4401 || closeCode === 1008;
 }

@@ -102,3 +102,32 @@ describe('MobileCodeEditor document sync', () => {
     expect(content.textContent).not.toContain('x');
   });
 });
+
+describe('MobileCodeEditor dotenv masking', () => {
+  it('does not render dotenv secret values in cleartext', () => {
+    /*
+     * The caret defaults to the start of the document, so line 1 is revealed
+     * for editing; place the secret on a later line to assert masking.
+     */
+    const { container } = render(
+      <MobileCodeEditor value={'PUBLIC_URL=https://app.example\nAPI_KEY=sk-live-supersecret'} filePath=".env" />,
+    );
+    const content = editorContent(container);
+
+    /* The non-caret secret value must never appear as readable text in the DOM. */
+    expect(content.textContent).not.toContain('sk-live-supersecret');
+
+    /* A masked-secret widget should be rendered in its place. */
+    expect(container.querySelector('.cm-masked-secret')).toBeTruthy();
+  });
+
+  it('renders non-dotenv files in plaintext (no masking)', () => {
+    const { container } = render(
+      <MobileCodeEditor value={'const apiKey = "sk-live-supersecret";'} filePath="src/config.ts" />,
+    );
+    const content = editorContent(container);
+
+    expect(content.textContent).toContain('sk-live-supersecret');
+    expect(container.querySelector('.cm-masked-secret')).toBeNull();
+  });
+});

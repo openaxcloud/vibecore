@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { RemoteKubernetesRuntimeAdapter, type WebSocketLike } from './index.js';
+import {
+  RemoteKubernetesRuntimeAdapter,
+  isAuthSocketClose,
+  shouldRefreshAuthToken,
+  type WebSocketLike,
+} from './index.js';
 
 type FakeWebSocketListener = (event: unknown) => void;
 
@@ -10,9 +15,22 @@ class FakeWebSocket implements WebSocketLike {
   static instances: FakeWebSocket[] = [];
   static failNextOpenCount = 0;
 
+  /*
+   * When > 0, the next N constructed sockets reject the connect with an auth
+   * close (code 4401) instead of opening — exercises the token self-heal path.
+   */
+  static authCloseNextOpenCount = 0;
+
   constructor(readonly url: string) {
     FakeWebSocket.instances.push(this);
     queueMicrotask(() => {
+      if (FakeWebSocket.authCloseNextOpenCount > 0) {
+        FakeWebSocket.authCloseNextOpenCount -= 1;
+        this.emit('close', { code: 4401 });
+
+        return;
+      }
+
       if (FakeWebSocket.failNextOpenCount > 0) {
         FakeWebSocket.failNextOpenCount -= 1;
         this.emit('error', {});
@@ -28,8 +46,8 @@ class FakeWebSocket implements WebSocketLike {
     this.sent.push(data);
   }
 
-  close() {
-    this.emit('close', {});
+  close(code?: number) {
+    this.emit('close', { code });
   }
 
   addEventListener(type: 'open' | 'message' | 'error' | 'close', listener: FakeWebSocketListener) {
@@ -482,5 +500,151 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
     await expect(adapter.readFile('missing.tsx')).rejects.toMatchObject({ status: 404 });
     expect(readAttempts).toBe(1);
+  });
+
+  it('invalidates the runtime token and retries once on a 401, self-healing a rejected/rotated token', async () => {
+    let attempts = 0;
+    let currentToken = 'stale-token';
+    const invalidateAuthToken = vi.fn(() => {
+      currentToken = 'fresh-token';
+    });
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.includes('/files/read')) {
+        attempts += 1;
+
+        const auth = (init?.headers as Headers).get('authorization');
+
+        // The first call still carries the stale (server-rejected) token → 401.
+        if (auth === 'Bearer stale-token') {
+          return new Response('unauthorized', { status: 401 });
+        }
+
+        return Response.json({ content: 'recovered' });
+      }
+
+      return Response.json([]);
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: () => currentToken,
+      invalidateAuthToken,
+      workspaceId: 'ws-1',
+      fetchImpl: fetchMock as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    await expect(adapter.readFile('src/App.tsx')).resolves.toBe('recovered');
+    expect(invalidateAuthToken).toHaveBeenCalledTimes(1);
+    expect(attempts).toBe(2);
+  });
+
+  it('does not loop forever when the refreshed token is also rejected (single 401 retry)', async () => {
+    let attempts = 0;
+    const invalidateAuthToken = vi.fn();
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes('/files/read')) {
+        attempts += 1;
+        return new Response('unauthorized', { status: 401 });
+      }
+
+      return Response.json([]);
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token',
+      invalidateAuthToken,
+      workspaceId: 'ws-1',
+      fetchImpl: fetchMock as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    await expect(adapter.readFile('src/App.tsx')).rejects.toMatchObject({ status: 401 });
+    expect(invalidateAuthToken).toHaveBeenCalledTimes(1);
+
+    // One original attempt + exactly one retry after the refresh — not an infinite loop.
+    expect(attempts).toBe(2);
+  });
+
+  it('does not retry a 401 when no invalidate hook is wired (static token cannot refresh)', async () => {
+    let attempts = 0;
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes('/files/read')) {
+        attempts += 1;
+        return new Response('unauthorized', { status: 401 });
+      }
+
+      return Response.json([]);
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token',
+      workspaceId: 'ws-1',
+      fetchImpl: fetchMock as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    await expect(adapter.readFile('src/App.tsx')).rejects.toMatchObject({ status: 401 });
+    expect(attempts).toBe(1);
+  });
+
+  it('self-heals a WebSocket auth-close (4401) by invalidating the token and reconnecting once', async () => {
+    FakeWebSocket.instances = [];
+    FakeWebSocket.failNextOpenCount = 0;
+    FakeWebSocket.authCloseNextOpenCount = 1;
+
+    let currentToken = 'stale-socket-token';
+    const invalidateAuthToken = vi.fn(() => {
+      currentToken = 'fresh-socket-token';
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: () => currentToken,
+      invalidateAuthToken,
+      workspaceId: 'ws-1',
+      fetchImpl: createFetchMock() as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    const terminal = await adapter.openTerminal();
+
+    // First socket got an auth close, so a second one was opened after the refresh.
+    expect(invalidateAuthToken).toHaveBeenCalledTimes(1);
+    expect(FakeWebSocket.instances.length).toBe(2);
+    expect(FakeWebSocket.instances.at(-1)!.url).toContain('token=fresh-socket-token');
+
+    terminal.kill();
+    FakeWebSocket.authCloseNextOpenCount = 0;
+  });
+
+  it('shouldRefreshAuthToken only refreshes once, on a 401, when a hook is available', () => {
+    expect(shouldRefreshAuthToken(401, 0, true)).toBe(true);
+    // Already retried once.
+    expect(shouldRefreshAuthToken(401, 1, true)).toBe(false);
+    // Non-auth status.
+    expect(shouldRefreshAuthToken(502, 0, true)).toBe(false);
+    expect(shouldRefreshAuthToken(403, 0, true)).toBe(false);
+    // No refresh hook (static token).
+    expect(shouldRefreshAuthToken(401, 0, false)).toBe(false);
+  });
+
+  it('isAuthSocketClose recognises 4401/1008 auth closes and ignores ordinary closes', () => {
+    expect(isAuthSocketClose(4401)).toBe(true);
+    expect(isAuthSocketClose(1008)).toBe(true);
+    expect(isAuthSocketClose(1006)).toBe(false);
+    expect(isAuthSocketClose(1000)).toBe(false);
+    expect(isAuthSocketClose(undefined)).toBe(false);
   });
 });

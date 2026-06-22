@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  computeEnvMaskLineRanges,
+  computeEnvMaskRanges,
   detectMobileViewport,
   editorBreakpoints,
   editorKindForLayout,
   extractWorkspaceSymbols,
   getEditorMinimapOptions,
   getResponsiveLayoutState,
+  isEnvFilePath,
   isWorkspaceSemanticFile,
   languageForPath,
 } from './index.js';
@@ -96,5 +99,54 @@ describe('workspace editor semantics', () => {
   it('skips huge or unsupported files from semantic indexing', () => {
     expect(isWorkspaceSemanticFile('image.png', 'binary')).toBe(false);
     expect(isWorkspaceSemanticFile('src/App.tsx', 'x'.repeat(500_001))).toBe(false);
+  });
+});
+
+describe('dotenv secret masking', () => {
+  it('recognises dotenv files across the common naming variants', () => {
+    expect(isEnvFilePath('.env')).toBe(true);
+    expect(isEnvFilePath('project/.env')).toBe(true);
+    expect(isEnvFilePath('.env.local')).toBe(true);
+    expect(isEnvFilePath('config/.env.production')).toBe(true);
+    expect(isEnvFilePath('app/staging.env')).toBe(true);
+    expect(isEnvFilePath('src/App.tsx')).toBe(false);
+    expect(isEnvFilePath('README.md')).toBe(false);
+    expect(isEnvFilePath(undefined)).toBe(false);
+  });
+
+  it('masks the value of every KEY=VALUE line and skips comments and blanks', () => {
+    const lines = [
+      { from: 0, to: 22, text: 'API_KEY=sk-live-secret' },
+      { from: 23, to: 39, text: '# a comment line' },
+      { from: 40, to: 40, text: '' },
+      { from: 41, to: 64, text: 'DATABASE_URL=postgres://' },
+      { from: 65, to: 71, text: 'NOVALUE' },
+    ];
+
+    const ranges = computeEnvMaskRanges(lines);
+
+    /* Only the two real KEY=VALUE lines should be masked. */
+    expect(ranges).toHaveLength(2);
+    expect(ranges[0]).toMatchObject({ from: 8, to: 22, value: 'sk-live-secret' });
+    expect(ranges[1]).toMatchObject({ from: 54, to: 64, value: 'postgres://' });
+  });
+
+  it('reveals the secret on lines the caret is editing so the file stays editable', () => {
+    const lines = [
+      { from: 0, to: 22, text: 'API_KEY=sk-live-secret' },
+      { from: 23, to: 46, text: 'DATABASE_URL=postgres://' },
+    ];
+
+    const ranges = computeEnvMaskRanges(lines, new Set([0]));
+
+    expect(ranges).toHaveLength(1);
+    expect(ranges[0]).toMatchObject({ value: 'postgres://' });
+  });
+
+  it('computes 1-based Monaco line/column ranges for secret values', () => {
+    const ranges = computeEnvMaskLineRanges(['API_KEY=sk-live-secret', '# comment', 'EMPTY=']);
+
+    expect(ranges).toHaveLength(1);
+    expect(ranges[0]).toEqual({ line: 1, startColumn: 9, endColumn: 23, length: 14 });
   });
 });

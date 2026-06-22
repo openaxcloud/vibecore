@@ -6,7 +6,18 @@ import { json } from '@codemirror/lang-json';
 import { markdown } from '@codemirror/lang-markdown';
 import { searchKeymap } from '@codemirror/search';
 import { Compartment, EditorState, Prec, type Extension } from '@codemirror/state';
-import { drawSelection, dropCursor, EditorView, highlightActiveLine, keymap, lineNumbers } from '@codemirror/view';
+import {
+  Decoration,
+  type DecorationSet,
+  drawSelection,
+  dropCursor,
+  EditorView,
+  highlightActiveLine,
+  keymap,
+  lineNumbers,
+  ViewPlugin,
+  WidgetType,
+} from '@codemirror/view';
 import { createElement, useEffect, useRef, useState, type ReactNode } from 'react';
 import type * as MonacoTypes from 'monaco-editor';
 
@@ -363,6 +374,27 @@ function normalizeWorkspaceFilePath(filePath: string) {
   return filePath.replace(/^\/+/, '');
 }
 
+const MONACO_ENV_MASK_STYLE_ID = 'vibecore-monaco-env-mask-style';
+
+/**
+ * Inject (once) the CSS that hides dotenv secret values in the Monaco editor.
+ * The real characters are rendered transparent (so they cannot be read or
+ * copied visually) and a non-selectable dotted overlay is shown in their place.
+ */
+function ensureMonacoEnvMaskStyle() {
+  if (typeof document === 'undefined' || document.getElementById(MONACO_ENV_MASK_STYLE_ID)) {
+    return;
+  }
+
+  const style = document.createElement('style');
+  style.id = MONACO_ENV_MASK_STYLE_ID;
+  style.textContent = [
+    '.cm-monaco-env-mask{color:transparent !important;position:relative;}',
+    '.cm-monaco-env-mask::after{content:"••••••••";position:absolute;left:0;top:0;color:#9aa4b2;letter-spacing:0.05em;pointer-events:none;}',
+  ].join('');
+  document.head.appendChild(style);
+}
+
 function modelUriForPath(monaco: typeof import('monaco-editor/esm/vs/editor/editor.api'), filePath: string) {
   return monaco.Uri.parse(`file:///${normalizeWorkspaceFilePath(filePath)}`);
 }
@@ -714,6 +746,7 @@ export function DesktopCodeEditor({
   const filePathRef = useRef(filePath);
   const projectFilesRef = useRef(projectFiles);
   const ownedWorkspaceModelsRef = useRef<Set<string>>(new Set());
+  const envMaskDecorationsRef = useRef<string[]>([]);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -961,6 +994,26 @@ export function DesktopCodeEditor({
     if (model && monaco) {
       monaco.editor.setModelLanguage(model, languageForPath(filePath, language));
 
+      if (isEnvFilePath(filePath)) {
+        ensureMonacoEnvMaskStyle();
+
+        const lineTexts: string[] = [];
+
+        for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+          lineTexts.push(model.getLineContent(lineNumber));
+        }
+
+        envMaskDecorationsRef.current = editor.deltaDecorations(
+          envMaskDecorationsRef.current,
+          computeEnvMaskLineRanges(lineTexts).map((range) => ({
+            range: new monaco.Range(range.line, range.startColumn, range.line, range.endColumn),
+            options: { inlineClassName: 'cm-monaco-env-mask', stickiness: 1 },
+          })),
+        );
+      } else if (envMaskDecorationsRef.current.length > 0) {
+        envMaskDecorationsRef.current = editor.deltaDecorations(envMaskDecorationsRef.current, []);
+      }
+
       const { entries } = getWorkspaceIndex(projectFiles, filePath, value);
       const nextOwnedModelUris = new Set<string>();
 
@@ -1041,9 +1094,211 @@ interface LocalDocumentDraft {
   updatedAt: number;
 }
 
+/**
+ * A dotenv file holds secrets (API keys, tokens, DB URLs). Treat `.env`,
+ * `.env.local`, `.env.production`, etc. as masked so values never render in
+ * cleartext in the live editor.
+ */
+export function isEnvFilePath(filePath?: string): boolean {
+  if (!filePath) {
+    return false;
+  }
+
+  const fileName = filePath.split('/').pop() ?? filePath;
+
+  return fileName === '.env' || fileName.startsWith('.env.') || fileName.endsWith('.env');
+}
+
+export interface EnvMaskRange {
+  /** Document offset where the secret value begins (just after the `=`). */
+  from: number;
+  /** Document offset where the secret value ends (end of the line). */
+  to: number;
+  /** The raw secret text, used to size the mask. */
+  value: string;
+}
+
+interface EnvMaskLine {
+  /** Document offset of the first character of the line. */
+  from: number;
+  /** Document offset just past the last character of the line. */
+  to: number;
+  /** The full text of the line. */
+  text: string;
+}
+
+/**
+ * Compute the offset ranges of secret VALUES on `KEY=VALUE` lines so they can be
+ * replaced with a masked widget. Comment lines (`#`) and lines without a value
+ * are skipped. Lines whose range intersects `revealLineFroms` (e.g. the line the
+ * caret is on) are left unmasked so the file stays editable.
+ */
+export function computeEnvMaskRanges(lines: EnvMaskLine[], revealLineFroms: ReadonlySet<number> = new Set()): EnvMaskRange[] {
+  const ranges: EnvMaskRange[] = [];
+
+  for (const line of lines) {
+    if (revealLineFroms.has(line.from)) {
+      continue;
+    }
+
+    const text = line.text;
+
+    if (text.trim().startsWith('#')) {
+      continue;
+    }
+
+    const separatorIndex = text.indexOf('=');
+
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const value = text.slice(separatorIndex + 1);
+
+    if (value.length === 0) {
+      continue;
+    }
+
+    const from = line.from + separatorIndex + 1;
+
+    ranges.push({ from, to: line.to, value });
+  }
+
+  return ranges;
+}
+
+export interface EnvMaskLineRange {
+  /** 1-based line number. */
+  line: number;
+  /** 1-based column where the secret value begins (just after `=`). */
+  startColumn: number;
+  /** 1-based column just past the end of the secret value. */
+  endColumn: number;
+  /** Length of the masked secret, used to size the overlay. */
+  length: number;
+}
+
+/**
+ * Monaco variant of {@link computeEnvMaskRanges}: returns 1-based line/column
+ * ranges for the secret VALUE of each `KEY=VALUE` line. `lineTexts[i]` is the
+ * text of line `i + 1`. Comment and value-less lines are skipped.
+ */
+export function computeEnvMaskLineRanges(lineTexts: readonly string[]): EnvMaskLineRange[] {
+  const ranges: EnvMaskLineRange[] = [];
+
+  for (let index = 0; index < lineTexts.length; index++) {
+    const text = lineTexts[index];
+
+    if (text.trim().startsWith('#')) {
+      continue;
+    }
+
+    const separatorIndex = text.indexOf('=');
+
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const value = text.slice(separatorIndex + 1);
+
+    if (value.length === 0) {
+      continue;
+    }
+
+    ranges.push({
+      line: index + 1,
+      startColumn: separatorIndex + 2,
+      endColumn: text.length + 1,
+      length: value.length,
+    });
+  }
+
+  return ranges;
+}
+
+class MaskedSecretWidget extends WidgetType {
+  constructor(private readonly length: number) {
+    super();
+  }
+
+  eq(other: MaskedSecretWidget) {
+    return other.length === this.length;
+  }
+
+  toDOM() {
+    const span = document.createElement('span');
+    span.textContent = '•'.repeat(Math.max(1, this.length));
+    span.className = 'cm-masked-secret';
+    span.setAttribute('aria-label', 'Masked secret value');
+
+    return span;
+  }
+
+  ignoreEvent() {
+    return false;
+  }
+}
+
+function buildEnvMaskDecorations(view: EditorView, getFilePath: () => string | undefined): DecorationSet {
+  if (!isEnvFilePath(getFilePath())) {
+    return Decoration.none;
+  }
+
+  const doc = view.state.doc;
+  const revealLineFroms = new Set<number>();
+
+  for (const range of view.state.selection.ranges) {
+    revealLineFroms.add(doc.lineAt(range.head).from);
+
+    if (range.anchor !== range.head) {
+      revealLineFroms.add(doc.lineAt(range.anchor).from);
+    }
+  }
+
+  const lines: EnvMaskLine[] = [];
+
+  for (let lineNumber = 1; lineNumber <= doc.lines; lineNumber++) {
+    const line = doc.line(lineNumber);
+    lines.push({ from: line.from, to: line.to, text: line.text });
+  }
+
+  const decorations = computeEnvMaskRanges(lines, revealLineFroms).map((range) =>
+    Decoration.replace({ widget: new MaskedSecretWidget(range.value.length) }).range(range.from, range.to),
+  );
+
+  return Decoration.set(decorations);
+}
+
+/**
+ * CodeMirror ViewPlugin that masks dotenv secret values in the live editor. This
+ * ports the masking that previously lived only in the unused app CodeMirror
+ * component so the editor actually rendered in the IDE no longer leaks secrets.
+ */
+export function createEnvMaskingExtension(getFilePath: () => string | undefined) {
+  return ViewPlugin.fromClass(
+    class {
+      decorations: DecorationSet;
+
+      constructor(view: EditorView) {
+        this.decorations = buildEnvMaskDecorations(view, getFilePath);
+      }
+
+      update(update: { docChanged: boolean; selectionSet: boolean; viewportChanged: boolean; view: EditorView }) {
+        if (update.docChanged || update.selectionSet || update.viewportChanged) {
+          this.decorations = buildEnvMaskDecorations(update.view, getFilePath);
+        }
+      }
+    },
+    {
+      decorations: (plugin) => plugin.decorations,
+    },
+  );
+}
+
 function codeMirrorExtensions(
   props: EditorAdapterProps,
   compartments?: { editable: Compartment; readOnly: Compartment },
+  getFilePath: () => string | undefined = () => props.filePath,
 ): Extension[] {
   const largeFile = Boolean(props.largeFile);
   const language = languageForPath(props.filePath, props.language);
@@ -1110,6 +1365,7 @@ function codeMirrorExtensions(
       }),
     ),
     languageExtension,
+    createEnvMaskingExtension(getFilePath),
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         props.onChange?.({ value: update.state.doc.toString(), source: 'codemirror' });
@@ -1133,6 +1389,10 @@ function codeMirrorExtensions(
       },
       '.cm-line': {
         padding: '0 12px',
+      },
+      '.cm-masked-secret': {
+        letterSpacing: '0.05em',
+        opacity: '0.85',
       },
     }),
   ];
@@ -1177,6 +1437,7 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
             onSave: () => propsRef.current.onSave?.(),
           },
           { editable: editableCompartmentRef.current, readOnly: readOnlyCompartmentRef.current },
+          () => propsRef.current.filePath,
         ),
       }),
     });

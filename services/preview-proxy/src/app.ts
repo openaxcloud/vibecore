@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Readable } from 'node:stream';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { INSPECTOR_SCRIPT } from './inspector-script.js';
+import { REPORTER_SCRIPT } from './reporter-script.js';
 
 /*
  * Upper bound on how large an HTML document we will buffer in memory to inject
@@ -94,6 +95,17 @@ export interface PreviewProxyOptions {
  */
 const INSPECTOR_SCRIPT_PATH = '/__vibecore/inspector-script.js';
 const INSPECTOR_MARKER = 'data-vibecore-inspector';
+
+/*
+ * Same-origin path the injected reporter <script src> points at, served below.
+ * The reporter installs window 'error'/'unhandledrejection' (and console.*)
+ * hooks that postMessage runtime errors to the parent IDE, so the IDE's Console
+ * DevTools tab is populated for REMOTE previews — not just WebContainer ones,
+ * which load public/vibecore-preview-reporter.js directly. Served same-origin so
+ * it loads under a `script-src 'self'` CSP on the proxied app.
+ */
+const REPORTER_SCRIPT_PATH = '/__vibecore/preview-reporter.js';
+const REPORTER_MARKER = 'data-vibecore-reporter';
 
 type PreviewRouteParams = { workspaceId: string; port: string; '*'?: string };
 
@@ -320,6 +332,18 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     reply.header('cache-control', 'public, max-age=3600');
 
     return reply.send(INSPECTOR_SCRIPT);
+  });
+
+  /*
+   * Serve the preview error reporter from the proxy origin so injected pages can
+   * load it under a `script-src 'self'` policy. Forwards runtime errors to the
+   * IDE Console tab for remote previews.
+   */
+  app.get(REPORTER_SCRIPT_PATH, async (_request, reply) => {
+    reply.header('content-type', 'application/javascript; charset=utf-8');
+    reply.header('cache-control', 'public, max-age=3600');
+
+    return reply.send(REPORTER_SCRIPT);
   });
 
   const resolveAgent = options.resolveAgent ?? defaultResolveAgent(options, fetchImpl);
@@ -733,7 +757,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
       const path = request.url.split('?')[0].split('#')[0];
 
-      if (path === '/health' || path === INSPECTOR_SCRIPT_PATH) {
+      if (path === '/health' || path === INSPECTOR_SCRIPT_PATH || path === REPORTER_SCRIPT_PATH) {
         return; // proxy-served endpoints take precedence over host proxying
       }
 
@@ -765,17 +789,18 @@ function shouldStreamBody(method: string): boolean {
 }
 
 /*
- * Insert the inspect-to-code bridge <script> into a proxied HTML document. The
- * script is inert until the parent IDE activates it (INSPECTOR_ACTIVATE), so
- * injecting it unconditionally has no effect on the running app. Idempotent:
- * never injects twice, even if an upstream page already carries the marker.
+ * Insert a <script> tag (src + marker) into a proxied HTML document, preferring
+ * the position that loads it earliest while staying valid: end of <head>, else
+ * start of <body>, else prepend. Idempotent per-marker: if the document already
+ * carries that marker (we injected it, or the app self-hosts the script) it is
+ * left untouched.
  */
-export function injectInspectorScript(html: string): string {
-  if (html.includes(INSPECTOR_MARKER)) {
+function injectScriptTag(html: string, src: string, marker: string): string {
+  if (html.includes(marker)) {
     return html;
   }
 
-  const tag = `<script src="${INSPECTOR_SCRIPT_PATH}" ${INSPECTOR_MARKER}></script>`;
+  const tag = `<script src="${src}" ${marker}></script>`;
 
   if (/<\/head>/i.test(html)) {
     return html.replace(/<\/head>/i, `${tag}</head>`);
@@ -787,6 +812,23 @@ export function injectInspectorScript(html: string): string {
 
   // No <head>/<body> (fragment or minimal doc): prepend so it still loads.
   return `${tag}${html}`;
+}
+
+/*
+ * Inject the inspect-to-code bridge AND the preview error reporter into a
+ * proxied HTML document.
+ *
+ * The inspector script is inert until the parent IDE activates it
+ * (INSPECTOR_ACTIVATE), so injecting it unconditionally has no effect on the
+ * running app. The reporter wires window 'error'/'unhandledrejection' (and
+ * console.*) to postMessage so the IDE Console DevTools tab is populated for
+ * REMOTE previews — without it the tab is permanently empty in production
+ * because the proxy was the only HTML-rewrite point and previously injected
+ * only the inspector. Both are idempotent (per-marker), so an upstream page
+ * already carrying either marker is never double-injected.
+ */
+export function injectInspectorScript(html: string): string {
+  return injectScriptTag(injectScriptTag(html, REPORTER_SCRIPT_PATH, REPORTER_MARKER), INSPECTOR_SCRIPT_PATH, INSPECTOR_MARKER);
 }
 
 function defaultResolveAgent(options: PreviewProxyOptions, fetchImpl: typeof fetch) {

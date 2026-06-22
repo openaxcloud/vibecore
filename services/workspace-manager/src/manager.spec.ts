@@ -1,7 +1,13 @@
 import type { K8sObject, WorkspaceK8sClient } from '@vibecore/k8s-client';
 import type { WorkspaceEvent } from '@vibecore/workspace-sdk';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { WorkspaceManager, type EventBus, type WorkspaceRecord, type WorkspaceStore } from './manager.js';
+import {
+  WorkspaceManager,
+  detectPodTerminalFailure,
+  type EventBus,
+  type WorkspaceRecord,
+  type WorkspaceStore,
+} from './manager.js';
 
 class TestWorkspaceK8sClient implements WorkspaceK8sClient {
   readonly objects = new Map<string, K8sObject>();
@@ -412,5 +418,66 @@ describe('WorkspaceManager', () => {
     expect(result?.status).toBe('STOPPED');
     // lastActiveAt must stay frozen so the delete-window reaper can still collect it.
     expect((await store.get(input.workspaceId))!.lastActiveAt).toBe(stoppedAt);
+  });
+});
+
+describe('detectPodTerminalFailure — Unschedulable handling', () => {
+  const now = Date.parse('2026-06-22T12:00:00.000Z');
+  const graceMs = 30_000;
+
+  function unschedulablePod(lastTransitionTime: string, message = '0/3 nodes are available') {
+    return {
+      status: {
+        phase: 'Pending',
+        conditions: [
+          {
+            type: 'PodScheduled',
+            status: 'False',
+            reason: 'Unschedulable',
+            message,
+            lastTransitionTime,
+          },
+        ],
+      },
+    };
+  }
+
+  it('fast-fails an Unschedulable pod once the grace window has elapsed', () => {
+    const transitionedAt = new Date(now - graceMs - 1_000).toISOString();
+    const failure = detectPodTerminalFailure(unschedulablePod(transitionedAt), now, graceMs);
+
+    expect(failure).not.toBeNull();
+    expect(failure?.code).toBe('WORKSPACE_POD_UNSCHEDULABLE');
+    expect(failure?.message).toContain('no capacity available');
+    expect(failure?.message).toContain('0/3 nodes are available');
+  });
+
+  it('does NOT fail an Unschedulable pod still inside the grace window (autoscaler scale-up)', () => {
+    const transitionedAt = new Date(now - 5_000).toISOString();
+
+    expect(detectPodTerminalFailure(unschedulablePod(transitionedAt), now, graceMs)).toBeNull();
+  });
+
+  it('keeps waiting when the Unschedulable condition has no parseable lastTransitionTime', () => {
+    const pod = unschedulablePod('not-a-date');
+
+    expect(detectPodTerminalFailure(pod, now, graceMs)).toBeNull();
+  });
+
+  it('ignores a successfully-scheduled pod (PodScheduled=True)', () => {
+    const pod = {
+      status: {
+        phase: 'Pending',
+        conditions: [{ type: 'PodScheduled', status: 'True' }],
+      },
+    };
+
+    expect(detectPodTerminalFailure(pod, now, graceMs)).toBeNull();
+  });
+
+  it('still detects pre-existing terminal states (phase=Failed)', () => {
+    const failure = detectPodTerminalFailure({ status: { phase: 'Failed' } }, now, graceMs);
+
+    expect(failure?.code).toBe('WORKSPACE_POD_FAILED');
   });
 });

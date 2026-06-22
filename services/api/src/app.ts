@@ -94,6 +94,11 @@ import {
 import { createEmailProvider, type EmailProvider } from './email.js';
 import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
 import {
+  computeWorkspaceRestorePlan,
+  isPortReadyFromProbe,
+  type PortProbeResult,
+} from './runtime-readiness.js';
+import {
   resolveIntegrationOauthStateSecret,
   signIntegrationOauthState,
   verifyIntegrationOauthState,
@@ -9406,6 +9411,93 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return file.content;
   };
 
+  /*
+   * A dev server binds (LISTEN) its port BEFORE it can serve HTTP, so a port the
+   * agent reports as open is not necessarily ready. Probe it through the agent's
+   * preview path and treat any 5xx / connection failure as not-ready. This drives
+   * the `ready` flag so the Preview component's not-ready -> ready auto-reload
+   * edge actually fires once the server starts answering (previously `ready` was
+   * hardcoded true, making that recovery dead code).
+   */
+  const PORT_READY_PROBE_TIMEOUT_MS = 2500;
+
+  const probePortReady = async (workspaceId: string, port: number): Promise<boolean> => {
+    let probe: PortProbeResult;
+
+    try {
+      const token = await agentToken(workspaceId);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), PORT_READY_PROBE_TIMEOUT_MS);
+
+      try {
+        const response = await fetch(`${agentBaseUrl(workspaceId)}/preview/${port}/`, {
+          method: 'GET',
+          headers: { authorization: `Bearer ${token}`, accept: '*/*' },
+          signal: controller.signal,
+        });
+
+        // Drain the body so the socket returns to the pool; we only need the status.
+        await response.body?.cancel().catch(() => undefined);
+        probe = { kind: 'response', status: response.status };
+      } finally {
+        clearTimeout(timer);
+      }
+    } catch {
+      probe = { kind: 'unreachable' };
+    }
+
+    return isPortReadyFromProbe(probe);
+  };
+
+  /*
+   * Restoring a snapshot rewrites project storage, but the running workspace pod
+   * keeps serving the pre-rollback working tree (terminal, dev server, preview)
+   * until something pushes the restored files back in. Mirror the AI write tools:
+   * write every restored file into the pod and delete any path that the snapshot
+   * dropped, so preview/run reflect the rolled-back state.
+   *
+   * Best-effort: the pod may be stopped/GC'd (agent unreachable), and a failed
+   * sync must NOT fail the storage-level restore the caller already committed.
+   */
+  const syncRestoredFilesToWorkspace = async (
+    workspaceId: string,
+    restoredFiles: ReadonlyArray<{ path: string; content: string }>,
+  ): Promise<void> => {
+    try {
+      let livePaths: string[] = [];
+
+      try {
+        const tree = await agentRequest<AgentNode[]>(workspaceId, '/files/tree');
+        livePaths = flattenRuntimeFiles(tree).map((node) => node.path);
+      } catch {
+        /*
+         * Couldn't enumerate the live tree (pod stopped, agent slow). Skip the
+         * delete pass and still write the restored files so at least the editor
+         * state and the pod converge on content; stale extra files are tolerable.
+         */
+        livePaths = [];
+      }
+
+      const plan = computeWorkspaceRestorePlan(restoredFiles, livePaths);
+
+      for (const file of plan.writes) {
+        await agentRequest(workspaceId, '/files/write', {
+          method: 'POST',
+          body: JSON.stringify({ path: file.path, content: file.content }),
+        }).catch(() => undefined);
+      }
+
+      for (const path of plan.deletes) {
+        await agentRequest(workspaceId, '/files/delete', {
+          method: 'POST',
+          body: JSON.stringify({ path }),
+        }).catch(() => undefined);
+      }
+    } catch {
+      // Never let a live-sync failure surface as a restore failure.
+    }
+  };
+
   const authorizeRuntimeWorkspace = async (request: any, workspaceId: string, permission: PermissionKey) => {
     const workspace = await store.getWorkspace(workspaceId);
 
@@ -10661,8 +10753,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       const errorCode = (error as { code?: string } | undefined)?.code;
       const managerStatus = (error as { managerStatus?: number } | undefined)?.managerStatus;
+
+      /*
+       * Treat as transient-provisioning ONLY a request TIMEOUT (the 15s api->manager
+       * abort that fires while the manager is still provisioning a cold workspace —
+       * its cause is an AbortError) or a manager 5xx. A connection error (the manager
+       * is genuinely DOWN — ECONNREFUSED surfaces as WORKSPACE_MANAGER_UNAVAILABLE but
+       * with a non-Abort cause) is NOT provisioning and must surface as a real 502,
+       * not a perpetual 'starting' poll.
+       */
+      const causeName = (error as { cause?: { name?: string } } | undefined)?.cause?.name;
       const transientProvisioning =
-        errorCode === 'WORKSPACE_MANAGER_UNAVAILABLE' ||
+        (errorCode === 'WORKSPACE_MANAGER_UNAVAILABLE' && causeName === 'AbortError') ||
         (errorCode === 'WORKSPACE_MANAGER_REQUEST_FAILED' && (managerStatus === undefined || managerStatus >= 500));
 
       if (!transientProvisioning) {
@@ -10869,8 +10971,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       const errorCode = (restartError as { code?: string } | undefined)?.code;
       const managerStatus = (restartError as { managerStatus?: number } | undefined)?.managerStatus;
+
+      // Only a request timeout (AbortError cause) or manager 5xx is transient-provisioning;
+      // a genuine connection failure (manager down) must surface, not poll forever.
+      const causeName = (restartError as { cause?: { name?: string } } | undefined)?.cause?.name;
       const transientProvisioning =
-        errorCode === 'WORKSPACE_MANAGER_UNAVAILABLE' ||
+        (errorCode === 'WORKSPACE_MANAGER_UNAVAILABLE' && causeName === 'AbortError') ||
         (errorCode === 'WORKSPACE_MANAGER_REQUEST_FAILED' && (managerStatus === undefined || managerStatus >= 500));
 
       if (transientProvisioning) {
@@ -11355,6 +11461,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
 
     let result: { ports: Array<{ port: number; processId?: string }> };
+    let localFallback = false;
 
     try {
       result = await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
@@ -11367,14 +11474,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       result = listLocalRuntimePorts(authorized.workspaceId);
+      localFallback = true;
     }
 
-    return result.ports.map((port) => ({
-      ...port,
-      type: 'open',
-      ready: true,
-      url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
-    }));
+    return Promise.all(
+      result.ports.map(async (port) => ({
+        ...port,
+        type: 'open',
+
+        /*
+         * Drive readiness from an HTTP probe so the Preview's not-ready -> ready
+         * auto-reload edge can fire. The local-runtime fallback serves the dev
+         * server directly on the host (no agent to probe through), so report it
+         * ready immediately rather than probing a port that has no agent route.
+         */
+        ready: localFallback ? true : await probePortReady(authorized.workspaceId, port.port),
+        url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
+      })),
+    );
   });
   app.get('/api/runtime/workspaces/:workspaceId/preview/:port', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
@@ -12140,46 +12257,68 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * and poll /ports every 5s, emitting open/close events as ports appear and
      * disappear instead of sending a single snapshot and closing.
      */
-    const pollPorts = async () => {
+    const pollPorts = async (): Promise<{
+      ports: Array<{ port: number; processId?: string }>;
+      localFallback: boolean;
+    }> => {
       try {
-        return await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
+        const remote = await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
           authorized.workspaceId,
           '/ports',
         );
+
+        return { ports: remote.ports, localFallback: false };
       } catch (error) {
         if (!shouldUseLocalRuntimeFallback(error)) {
           throw error;
         }
 
-        return listLocalRuntimePorts(authorized.workspaceId);
+        return { ports: listLocalRuntimePorts(authorized.workspaceId).ports, localFallback: true };
       }
     };
 
-    const emit = (port: { port: number; processId?: string }, type: 'open' | 'close') =>
+    const emit = (port: { port: number; processId?: string }, type: 'open' | 'close', ready: boolean) =>
       client.send(
         JSON.stringify({
           ...port,
           type,
-          ready: type === 'open',
+          ready,
           url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
         }),
       );
 
     let known = new Map<number, { port: number; processId?: string }>();
 
+    /*
+     * Track per-port readiness so a port that opens not-ready (dev server bound
+     * but not yet serving) later emits a ready=true update once an HTTP probe
+     * succeeds. Without this the open/close-only diff would never re-emit, and
+     * the Preview's not-ready -> ready auto-reload edge could never fire.
+     */
+    const readyState = new Map<number, boolean>();
+
     const sync = async () => {
       const result = await pollPorts();
       const current = new Map(result.ports.map((port) => [port.port, port]));
 
       for (const [port, descriptor] of current) {
-        if (!known.has(port)) {
-          emit(descriptor, 'open');
+        // Local-runtime fallback serves directly on the host: report ready, don't probe.
+        const ready = result.localFallback ? true : await probePortReady(authorized.workspaceId, port);
+        const wasKnown = known.has(port);
+        const wasReady = readyState.get(port) ?? false;
+
+        // Emit on first appearance, or when an already-open port flips to ready.
+        if (!wasKnown || (!wasReady && ready)) {
+          emit(descriptor, 'open', ready);
         }
+
+        readyState.set(port, ready);
       }
 
       for (const [port, descriptor] of known) {
         if (!current.has(port)) {
-          emit(descriptor, 'close');
+          emit(descriptor, 'close', false);
+          readyState.delete(port);
         }
       }
 
@@ -16040,6 +16179,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await persistProjectFileManifest(store, project.id, restored, request.currentUser!.id, {
       clearRecoveredChatFiles: true,
     });
+
+    /*
+     * Push the restored tree into the live workspace pod so the dev server,
+     * terminal and preview actually rewind too — not just project storage / the
+     * editor. Best-effort: a stopped/GC'd pod must not fail the restore.
+     */
+    await syncRestoredFilesToWorkspace(runtimeWorkspaceId(project.id, request.currentUser!.id), restored);
+
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,

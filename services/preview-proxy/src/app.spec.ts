@@ -221,6 +221,54 @@ describe('preview-proxy', () => {
     await app.close();
   });
 
+  it('serves the preview error reporter script', async () => {
+    const app = await buildPreviewProxyApp();
+    const response = await app.inject({ method: 'GET', url: '/__vibecore/preview-reporter.js' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toContain('application/javascript');
+    expect(response.body).toContain('PREVIEW_ERROR');
+    expect(response.body).toContain('PREVIEW_UNHANDLED_REJECTION');
+    expect(response.body).toContain("addEventListener('error'");
+    expect(response.body).toContain("addEventListener('unhandledrejection'");
+    await app.close();
+  });
+
+  it('injects the preview error reporter into proxied HTML so the IDE Console tab is fed in remote previews', async () => {
+    const html = '<!doctype html><html><head><title>App</title></head><body><h1>Hi</h1></body></html>';
+    const { fn: fetchImpl } = recordingFetch(
+      async () => new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } }),
+    );
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+    const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
+
+    expect(response.statusCode).toBe(200);
+
+    // Both the reporter and the inspector bridge are injected, exactly once each.
+    expect(response.body).toContain('src="/__vibecore/preview-reporter.js"');
+    expect(response.body).toContain('data-vibecore-reporter');
+    expect(response.body).toContain('src="/__vibecore/inspector-script.js"');
+    expect((response.body.match(/data-vibecore-reporter/g) ?? []).length).toBe(1);
+    expect(response.body).toContain('<h1>Hi</h1>');
+
+    // content-length must match the rewritten body, not the upstream length.
+    expect(Number(response.headers['content-length'])).toBe(Buffer.byteLength(response.body));
+    await app.close();
+  });
+
+  it('does not double-inject the reporter when the page already self-hosts it', async () => {
+    const html = '<html><head><script src="/x" data-vibecore-reporter></script></head><body></body></html>';
+    const { fn: fetchImpl } = recordingFetch(
+      async () => new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } }),
+    );
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+    const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
+
+    expect((response.body.match(/data-vibecore-reporter/g) ?? []).length).toBe(1);
+    expect(response.body).not.toContain('src="/__vibecore/preview-reporter.js"');
+    await app.close();
+  });
+
   it('does not inject into non-HTML responses', async () => {
     const { fn: fetchImpl } = recordingFetch(
       async () => new Response('body { color: red }', { status: 200, headers: { 'content-type': 'text/css' } }),

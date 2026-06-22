@@ -732,6 +732,27 @@ export class WorkspaceManager {
           throw Object.assign(new Error(failure.message), { code: failure.code });
         }
 
+        /*
+         * Within the grace window an Unschedulable pod is not yet terminal, but we
+         * surface the scheduling reason so the stall reads as "allocating capacity"
+         * rather than an opaque wait (the autoscaler may still bring up a node).
+         */
+        const pending = pendingScheduleReason(typedPod);
+
+        if (pending) {
+          console.warn(
+            JSON.stringify({
+              level: 'warn',
+              service: 'workspace-manager',
+              event: 'workspace.pod.unschedulable_waiting',
+              namespace,
+              podName,
+              reason: pending.reason,
+              message: pending.message,
+            }),
+          );
+        }
+
         if (isPodReady(typedPod)) {
           return;
         }
@@ -838,7 +859,13 @@ export class WorkspaceManager {
 type PodStatusView = {
   status?: {
     phase?: string;
-    conditions?: Array<{ type?: string; status?: string }>;
+    conditions?: Array<{
+      type?: string;
+      status?: string;
+      reason?: string;
+      message?: string;
+      lastTransitionTime?: string;
+    }>;
     containerStatuses?: Array<{
       state?: { waiting?: { reason?: string }; terminated?: { reason?: string } };
       lastState?: { terminated?: { reason?: string } };
@@ -846,19 +873,82 @@ type PodStatusView = {
   };
 };
 
+/*
+ * Grace period for an Unschedulable pod before it is treated as terminal.
+ * A pod can sit PodScheduled=False/Unschedulable for a few seconds while the
+ * cluster autoscaler provisions a new gvisor sandbox node (node-pool scale from
+ * zero). Failing instantly would break the normal cold-start-from-zero path, so
+ * we only surface the coded error once the condition has persisted past this
+ * window. Override via WORKSPACE_UNSCHEDULABLE_GRACE_MS.
+ */
+export function unschedulableGraceMs(): number {
+  const parsed = Number(process.env.WORKSPACE_UNSCHEDULABLE_GRACE_MS);
+
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 30_000;
+}
+
 function isPodReady(pod: PodStatusView) {
   return (
     pod.status?.conditions?.some((condition) => condition.type === 'Ready' && condition.status === 'True') === true
   );
 }
 
+/*
+ * Returns the Unschedulable reason/message if the pod currently cannot be placed,
+ * else null. Used to log "allocating capacity" while still inside the grace window
+ * (before detectPodTerminalFailure escalates it to a terminal error).
+ */
+function pendingScheduleReason(pod: PodStatusView): { reason: string; message: string } | null {
+  const scheduled = pod.status?.conditions?.find((condition) => condition.type === 'PodScheduled');
+
+  if (scheduled && scheduled.status === 'False' && scheduled.reason === 'Unschedulable') {
+    return { reason: scheduled.reason, message: scheduled.message ?? '' };
+  }
+
+  return null;
+}
+
 /**
  * Detect a terminal pod failure that readiness polling would otherwise never
  * recognize (it only checks Ready=True). Returns a coded error or null.
+ *
+ * `now`/`graceMs` only matter for the Unschedulable path: a pod that cannot be
+ * placed (no gvisor sandbox node, CPU/quota exhausted, PVC unbound) sits Pending
+ * with PodScheduled=False/Unschedulable. We give the autoscaler a grace window to
+ * provision a node before surfacing the coded error, so the slow stall becomes an
+ * actionable WORKSPACE_POD_UNSCHEDULABLE instead of an opaque 180s "not ready".
  */
-function detectPodTerminalFailure(pod: PodStatusView): { message: string; code: string } | null {
+export function detectPodTerminalFailure(
+  pod: PodStatusView,
+  now: number = Date.now(),
+  graceMs: number = unschedulableGraceMs(),
+): { message: string; code: string } | null {
   if (pod.status?.phase === 'Failed') {
     return { message: 'Workspace pod failed to start', code: 'WORKSPACE_POD_FAILED' };
+  }
+
+  /*
+   * Unschedulable: the scheduler could not place the pod (no available gvisor
+   * sandbox node, insufficient CPU/quota, or an unbound PVC). Only fail once the
+   * condition has persisted past the grace window — a fresh scale-from-zero
+   * legitimately sits Unschedulable for a few seconds. We anchor the elapsed time
+   * on the condition's lastTransitionTime; if it is missing/unparseable we
+   * conservatively keep waiting (return null) rather than fail an otherwise
+   * possibly-progressing provision.
+   */
+  const scheduled = pod.status?.conditions?.find((condition) => condition.type === 'PodScheduled');
+
+  if (scheduled && scheduled.status === 'False' && scheduled.reason === 'Unschedulable') {
+    const since = scheduled.lastTransitionTime ? Date.parse(scheduled.lastTransitionTime) : Number.NaN;
+
+    if (Number.isFinite(since) && now - since >= graceMs) {
+      const detail = scheduled.message ? `: ${scheduled.message}` : '';
+
+      return {
+        message: `Workspace pod could not be scheduled — no capacity available${detail}`,
+        code: 'WORKSPACE_POD_UNSCHEDULABLE',
+      };
+    }
   }
 
   for (const container of pod.status?.containerStatuses ?? []) {
