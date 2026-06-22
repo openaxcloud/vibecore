@@ -4,6 +4,8 @@ import { buildWorkspaceManagerApp } from './app.js';
 import { JsonWorkspaceStore, StructuredLogEventBus, WorkspaceManager, type WorkspaceStore } from './manager.js';
 import { PrismaWorkspaceStore } from './prisma-store.js';
 import { FilesystemSnapshotStore, type WorkspaceSnapshotStore } from './snapshot-store.js';
+import { ObjectStorageSnapshotStore } from './object-storage-snapshot-store.js';
+import { createGcsObjectStorageClient, type GcsBucketLike } from './gcs-object-storage-client.js';
 
 if (!process.env.WORKSPACE_AGENT_TOKEN_SECRET) {
   throw new Error('WORKSPACE_AGENT_TOKEN_SECRET is required');
@@ -38,11 +40,38 @@ function resolveStore(): WorkspaceStore {
 /*
  * Optional snapshot store (compute/storage decoupling — see
  * docs/replit-parity-isolation.md). Off unless configured, so the default stays
- * unchanged PVC-only behaviour. WORKSPACE_SNAPSHOT_DIR points at a (shared/RWX)
- * volume — the same-node/NFS path. A GCS-backed ObjectStorageSnapshotStore is a
- * drop-in here once a bucket + ObjectStorageClient adapter are provisioned.
+ * unchanged PVC-only behaviour.
+ *  - WORKSPACE_SNAPSHOT_BUCKET → GCS object storage (production). The SDK is
+ *    dynamic-imported so it stays an optional dependency.
+ *  - WORKSPACE_SNAPSHOT_DIR → a (shared/RWX) volume — same-node/NFS path.
  */
-function resolveSnapshotStore(): WorkspaceSnapshotStore | undefined {
+async function resolveSnapshotStore(): Promise<WorkspaceSnapshotStore | undefined> {
+  const bucketName = process.env.WORKSPACE_SNAPSHOT_BUCKET?.trim();
+
+  if (bucketName) {
+    let StorageCtor: new () => { bucket(name: string): GcsBucketLike };
+
+    try {
+      // Optional dependency: only required when a bucket is actually configured.
+      // Indirect the specifier so the type-checker treats it as optional (the
+      // package is intentionally not a build-time dependency of this service).
+      const moduleName = '@google-cloud/storage';
+      ({ Storage: StorageCtor } = (await import(moduleName)) as unknown as {
+        Storage: new () => { bucket(name: string): GcsBucketLike };
+      });
+    } catch {
+      throw new Error(
+        'WORKSPACE_SNAPSHOT_BUCKET is set but @google-cloud/storage is not installed. Add it as a dependency of workspace-manager.',
+      );
+    }
+
+    const prefix = process.env.WORKSPACE_SNAPSHOT_PREFIX?.trim() || 'workspace-snapshots';
+    const bucket = new StorageCtor().bucket(bucketName);
+    console.log(JSON.stringify({ level: 'info', service: 'workspace-manager', event: 'snapshot-store.selected', kind: 'gcs', bucket: bucketName, prefix }));
+
+    return new ObjectStorageSnapshotStore(createGcsObjectStorageClient(bucket), prefix);
+  }
+
   const dir = process.env.WORKSPACE_SNAPSHOT_DIR?.trim();
 
   if (dir) {
@@ -59,7 +88,7 @@ const app = buildWorkspaceManagerApp(
     new KubectlWorkspaceK8sClient(),
     new StructuredLogEventBus(),
     process.env.WORKSPACE_AGENT_TOKEN_SECRET,
-    resolveSnapshotStore(),
+    await resolveSnapshotStore(),
   ),
 );
 const port = Number(process.env.WORKSPACE_MANAGER_PORT ?? 3010);
