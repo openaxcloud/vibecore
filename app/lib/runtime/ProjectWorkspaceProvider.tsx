@@ -3,6 +3,7 @@ import { RuntimeError } from '@vibecore/runtime-contract';
 import { useEffect, useMemo, type PropsWithChildren } from 'react';
 import { createRuntimeAdapter, getRuntimeMode, RuntimeAdapterProvider } from '~/lib/runtime/RuntimeAdapterProvider';
 import { isTransientRuntimeError, withRuntimeRetry } from '~/lib/runtime/retry';
+import { workspaceQuotaPrompt } from '~/lib/runtime/workspace-quota';
 import { workbenchStore } from '~/lib/stores/workbench';
 
 export interface ProjectWorkspaceProviderProps extends PropsWithChildren {
@@ -235,9 +236,11 @@ export function ProjectWorkspaceProvider({
           activeWorkspaceId = undefined;
         }
 
-        if (error instanceof RuntimeError && error.status === 402) {
-          workbenchStore.quotaWarning.set('Workspace quota exceeded');
-          workbenchStore.billingUpgradePrompt.set('Upgrade your plan to start more workspaces.');
+        const quotaPrompt = workspaceQuotaPrompt(error);
+
+        if (quotaPrompt) {
+          workbenchStore.quotaWarning.set(quotaPrompt.warning);
+          workbenchStore.billingUpgradePrompt.set(quotaPrompt.upgrade);
         }
       } finally {
         if (!cancelled) {

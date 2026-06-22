@@ -3,6 +3,12 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from '
 import { Panel, type ImperativePanelHandle } from 'react-resizable-panels';
 import { Terminal, type TerminalRef } from './Terminal';
 import { TerminalManager } from './TerminalManager';
+import {
+  TERMINAL_PROFILES,
+  type TerminalProfileId,
+  buildConnectingNotice,
+  getSessionLabel as buildSessionLabel,
+} from './terminal-session';
 import { shortcutEventEmitter } from '~/lib/hooks';
 import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -14,10 +20,9 @@ const logger = createScopedLogger('Terminal');
 const MAX_TERMINALS = 4;
 const TERMINAL_UI_STORAGE_KEY = 'vibecore-terminal-ui-v1';
 const TERMINAL_PANEL_LABEL = 'Shell (Terminal)';
-const TERMINAL_WORKSPACE_LABEL = '~/workspace';
 export const DEFAULT_TERMINAL_SIZE = 34;
 
-type TerminalProfile = 'managed' | 'bash' | 'zsh' | 'sh';
+type TerminalProfile = TerminalProfileId;
 type TerminalUiState = {
   activeTerminal: number;
   terminalCount: number;
@@ -25,12 +30,7 @@ type TerminalUiState = {
   splitView: boolean;
 };
 
-const terminalProfiles: Array<{ id: TerminalProfile; label: string; command?: string }> = [
-  { id: 'managed', label: 'Managed shell' },
-  { id: 'bash', label: 'bash', command: '/bin/bash' },
-  { id: 'zsh', label: 'zsh', command: '/bin/zsh' },
-  { id: 'sh', label: 'sh', command: '/bin/sh' },
-];
+const terminalProfiles = TERMINAL_PROFILES;
 
 function readTerminalUiState(): TerminalUiState {
   if (typeof window === 'undefined') {
@@ -97,15 +97,23 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
   const activeProfile = terminalProfiles.find((item) => item.id === profile) ?? terminalProfiles[0];
-  const activeShellName = activeProfile.id === 'managed' ? 'bash' : activeProfile.label;
+
+  /*
+   * The profile each pane was actually spawned with. A pane's label and live
+   * shell must agree, so changing the Profile <select> only re-targets shells
+   * created afterward — already-running panes keep the profile recorded here.
+   * Index 0 (the bolt terminal) is always managed.
+   */
+  const paneProfiles = useRef<Map<number, TerminalProfile>>(new Map([[0, 'managed']]));
 
   const getSessionLabel = useCallback(
-    (index: number) => {
-      const baseLabel = `${TERMINAL_WORKSPACE_LABEL}: ${activeShellName}`;
+    (index: number) => buildSessionLabel(index, paneProfiles.current.get(index) ?? 'managed'),
 
-      return index === 0 ? baseLabel : `${baseLabel} #${index + 1}`;
-    },
-    [activeShellName],
+    /*
+     * `profile` is not read directly, but a pane spawned with the freshly
+     * selected profile must re-render its label, so depend on it explicitly.
+     */
+    [profile],
   );
 
   const activeSessionLabel = getSessionLabel(activeTerminal);
@@ -117,11 +125,14 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
      */
     if (terminalCount < MAX_TERMINALS - 1) {
       const nextCount = terminalCount + 1;
+
+      // The new pane is spawned with whatever profile is selected right now.
+      paneProfiles.current.set(nextCount, profile);
       setTerminalCount(nextCount);
       setActiveTerminal(nextCount);
       setSessionMenuOpen(false);
     }
-  }, [terminalCount]);
+  }, [profile, terminalCount]);
 
   const closeTerminal = useCallback(
     (index: number) => {
@@ -144,6 +155,20 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
 
       // Drop the closed pane's stable id so surviving panes keep theirs
       terminalIds.current.splice(index, 1);
+
+      /*
+       * Panes above the closed one shift down by one, so re-key their recorded
+       * profiles to keep each label tied to the shell it was spawned with.
+       */
+      const shifted = new Map<number, TerminalProfile>([[0, 'managed']]);
+      paneProfiles.current.forEach((paneProfile, paneIndex) => {
+        if (paneIndex === index) {
+          return;
+        }
+
+        shifted.set(paneIndex > index ? paneIndex - 1 : paneIndex, paneProfile);
+      });
+      paneProfiles.current = shifted;
 
       // Adjust terminal count and active terminal
       setTerminalCount(terminalCount - 1);
@@ -209,11 +234,18 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
     terminal.focus();
 
     if (activeTerminal === 0) {
+      terminal.write(buildConnectingNotice('managed'));
       void workbenchStore.restartBoltTerminal(terminal);
     } else {
+      /*
+       * A restart re-spawns the shell, so adopt the currently-selected profile
+       * and record it as this pane's profile so its label stays truthful.
+       */
+      paneProfiles.current.set(activeTerminal, activeProfile.id);
+      terminal.write(buildConnectingNotice(activeProfile.id));
       void workbenchStore.restartTerminal(terminal, activeProfile.command);
     }
-  }, [activeProfile.command, activeTerminal]);
+  }, [activeProfile.command, activeProfile.id, activeTerminal]);
 
   const killActiveTerminal = useCallback(() => {
     const ref = terminalRefs.current.get(activeTerminal);
@@ -640,7 +672,11 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                           terminalRefs.current.delete(index);
                         }
                       }}
-                      onTerminalReady={(terminal) => workbenchStore.attachBoltTerminal(terminal)}
+                      onTerminalReady={(terminal) => {
+                        // Immediate feedback so a 30–60s pod cold start never looks hung.
+                        terminal.write(buildConnectingNotice('managed'));
+                        workbenchStore.attachBoltTerminal(terminal);
+                      }}
                       onTerminalResize={(cols, rows) => {
                         setTerminalSize({ cols, rows });
                         workbenchStore.onTerminalResize(cols, rows);
@@ -663,7 +699,19 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                           terminalRefs.current.delete(index);
                         }
                       }}
-                      onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal, activeProfile.command)}
+                      onTerminalReady={(terminal) => {
+                        /*
+                         * Spawn with the profile this pane was created under, not the
+                         * currently-selected one, so the live shell matches its label.
+                         */
+                        const paneProfileId = paneProfiles.current.get(index) ?? profile;
+
+                        const paneProfile =
+                          terminalProfiles.find((item) => item.id === paneProfileId) ?? terminalProfiles[0];
+                        paneProfiles.current.set(index, paneProfileId);
+                        terminal.write(buildConnectingNotice(paneProfileId));
+                        workbenchStore.attachTerminal(terminal, paneProfile.command);
+                      }}
                       onTerminalResize={(cols, rows) => {
                         setTerminalSize({ cols, rows });
                         workbenchStore.onTerminalResize(cols, rows);

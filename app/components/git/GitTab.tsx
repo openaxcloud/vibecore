@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import {
+  computeWorkspaceFilesSignature,
+  shouldRefreshOnFilesChange,
+  shouldRefreshOnVisibility,
+} from './git-autorefresh';
 import { GitBranchSyncControls } from '~/components/git/GitBranchSyncControls';
 import { GitDiffView } from '~/components/git/GitDiffView';
 import { GitMergeEditor } from '~/components/git/GitMergeEditor';
 import { GitSettingsPanel } from '~/components/git/GitSettingsPanel';
 import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
 import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
+import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
+import { debounce } from '~/utils/debounce';
 
 /*
  * The IDE shell wires a CurrentWorkspaceContext from the loader so every tab
@@ -180,6 +187,9 @@ export function GitTab({ projectId }: GitTabProps) {
   const loadRequestRef = useRef(0);
   const inspectionRequestRef = useRef(0);
 
+  // Last working-tree file signature we triggered a silent git reload for.
+  const filesSignatureRef = useRef('');
+
   const [inspection, setInspection] = useState<{
     loading: boolean;
     blame: GitBlameLine[];
@@ -308,6 +318,54 @@ export function GitTab({ projectId }: GitTabProps) {
 
   useEffect(() => {
     void loadPanel();
+  }, [loadPanel]);
+
+  /*
+   * Live working-tree refresh: while the agent (or the user) edits the app the
+   * "Working tree" list and the "N changed" count must track real edits instead
+   * of freezing at whatever was loaded when the tab opened. We listen to the
+   * workbench FilesStore and silently reload git state when the file set
+   * actually changes (debounced to coalesce bursts), and reconcile when the tab
+   * regains focus/visibility after the user was away.
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    // Seed the baseline so the first emission after mount does not double-fetch.
+    filesSignatureRef.current = computeWorkspaceFilesSignature(workbenchStore.files.get());
+
+    const reloadSilently = debounce(() => {
+      void loadPanel({ silent: true });
+    }, 800);
+
+    const handleFilesChange = () => {
+      const nextSignature = computeWorkspaceFilesSignature(workbenchStore.files.get());
+
+      if (!shouldRefreshOnFilesChange(filesSignatureRef.current, nextSignature)) {
+        return;
+      }
+
+      filesSignatureRef.current = nextSignature;
+      reloadSilently();
+    };
+
+    const handleVisibility = () => {
+      if (shouldRefreshOnVisibility(document.visibilityState)) {
+        void loadPanel({ silent: true });
+      }
+    };
+
+    const unsubscribeFiles = workbenchStore.files.listen(handleFilesChange);
+    window.addEventListener('focus', handleVisibility);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      unsubscribeFiles();
+      window.removeEventListener('focus', handleVisibility);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [loadPanel]);
 
   const stagedFiles = useMemo(() => Array.from(staged), [staged]);

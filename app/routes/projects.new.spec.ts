@@ -217,9 +217,10 @@ describe('projects/new action', () => {
         provider: 'OpenAI',
         model: 'gpt-4o',
       }),
-    )) as { error?: string };
+    )) as { error?: string; kind?: string };
 
     expect(response.error).toMatch(/project limit/i);
+    expect(response.kind).toBe('quota');
     expect(attemptedFallbackCreate).toBe(false);
   });
 
@@ -248,8 +249,9 @@ describe('projects/new action', () => {
         provider: 'OpenAI',
         model: 'gpt-4o',
       }),
-    )) as { error?: string };
+    )) as { error?: string; kind?: string };
 
     expect(response.error).toMatch(/project limit/i);
+    expect(response.kind).toBe('quota');
   });
 });

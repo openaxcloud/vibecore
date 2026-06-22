@@ -100,6 +100,11 @@ vi.mock('./Terminal', async () => {
       reloadStyles: () => undefined,
     }));
 
+    // Drive the ready callback so spawn-time behaviour (connecting notice) runs.
+    React.useEffect(() => {
+      props.onTerminalReady?.(terminalHarness.xterm);
+    }, []);
+
     return React.createElement('div', { className: props.className, 'data-testid': props.id });
   });
   Terminal.displayName = 'MockTerminal';
@@ -164,5 +169,29 @@ describe('<TerminalTabs />', () => {
 
     fireEvent.click(within(menu).getByText('Kill Shell'));
     expect(terminalHarness.xterm.input).toHaveBeenCalledWith('\x03');
+  });
+
+  it('writes a connecting notice into the terminal on spawn so cold start is not blank', () => {
+    render(<TerminalTabs panelDefaultSize={100} />);
+
+    const writes = terminalHarness.xterm.write.mock.calls.map((call) => String(call[0]));
+    expect(writes.some((value) => value.includes('Connecting to workspace…'))).toBe(true);
+  });
+
+  it('keeps an already-spawned shell labelled with the profile it was created under', () => {
+    render(<TerminalTabs panelDefaultSize={100} />);
+
+    // Spawn a second shell while the default (managed) profile is selected.
+    fireEvent.click(screen.getByRole('button', { name: /Open shell sessions/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'New Shell' }));
+
+    // Now switch the Profile <select> to zsh.
+    fireEvent.click(screen.getByRole('button', { name: 'More Shell actions' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Shell profile' }), { target: { value: 'zsh' } });
+
+    // The active (already-running) pane must NOT be relabelled to zsh.
+    const sessionButton = screen.getByRole('button', { name: /Open shell sessions/i });
+    expect(sessionButton.textContent).toContain('~/workspace: bash');
+    expect(sessionButton.textContent).not.toContain('zsh');
   });
 });

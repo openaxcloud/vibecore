@@ -12,9 +12,15 @@ import {
   TerminalSquare,
   type LucideIcon,
 } from 'lucide-react';
+import { useEffect } from 'react';
 import type React from 'react';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useLoaderData, useNavigation, useSearchParams } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation, useRevalidator, useSearchParams } from 'react-router';
+import {
+  DEPLOY_POLL_INTERVAL_MS,
+  DEPLOY_REQUEST_TIMEOUT_MS,
+  shouldPollDeployments,
+} from './projects.$projectId.deployments.view';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
@@ -76,6 +82,18 @@ export const action = (args: EnterpriseActionArgs) =>
       try {
         await apiRequest(request, `/projects/${projectId}/deployments`, {
           method: 'POST',
+
+          /*
+           * The static provider runs `npm install` + `npm run build`
+           * SYNCHRONOUSLY inside this POST (services/api caps it at 600s). A
+           * freshly generated app's install alone routinely exceeds the
+           * apiRequest default 30s AbortSignal, which would abort the fetch and
+           * surface a hard "Failed to start deployment" even though the backend
+           * keeps building and the deployment actually goes READY (and a retry
+           * then 409s DEPLOYMENT_IN_PROGRESS). Override the signal to exceed the
+           * backend build cap so the action waits for the real outcome.
+           */
+          signal: AbortSignal.timeout(DEPLOY_REQUEST_TIMEOUT_MS),
           body: JSON.stringify({
             provider: body.provider || 'static',
             environment: body.environment || 'preview',
@@ -117,6 +135,9 @@ export const action = (args: EnterpriseActionArgs) =>
       try {
         await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/redeploy`, {
           method: 'POST',
+
+          /* Redeploy re-runs the same synchronous static build (see deploy POST). */
+          signal: AbortSignal.timeout(DEPLOY_REQUEST_TIMEOUT_MS),
         });
       } catch (error) {
         return json({ error: await apiErrorMessage(error, 'Failed to redeploy') });
@@ -141,8 +162,33 @@ export default function ProjectDeploymentsPage() {
   const { project, data } = useLoaderData<typeof loader>();
   const actionData = useActionData<{ error?: string }>();
   const navigation = useNavigation();
+  const revalidator = useRevalidator();
   const busy = navigation.state !== 'idle';
   const latest = data.deployments[0];
+
+  /*
+   * Live deploy status — the panel otherwise renders a static loader snapshot,
+   * so a QUEUED/BUILDING row never transitions to READY/FAILED until a manual
+   * page reload. The GET loader already reconciles in-flight builds on each hit
+   * ("so a CLIENT POLLING this endpoint sees real status transitions"), so we
+   * just re-run it on an interval while any row is still building and stop once
+   * every row is terminal.
+   */
+  const polling = shouldPollDeployments(data.deployments);
+
+  useEffect(() => {
+    if (!polling) {
+      return undefined;
+    }
+
+    const interval = setInterval(() => {
+      if (revalidator.state === 'idle') {
+        revalidator.revalidate();
+      }
+    }, DEPLOY_POLL_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [polling, revalidator]);
 
   /*
    * Carry the active workspace id from the IDE shell (e.g. `?workspace=ws-1`)

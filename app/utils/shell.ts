@@ -1,6 +1,7 @@
 import type { RuntimeAdapter, TerminalSession } from '@vibecore/runtime-contract';
 import { atom } from 'nanostores';
 import { withResolvers } from './promises';
+import { runSettlingReady } from './shell-init';
 import { normalizeShellCommand } from './shell-normalizer';
 import { stripInternalOscMarkers } from './terminal-output';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
@@ -135,10 +136,21 @@ export class BoltShell {
     this.#runtime = runtime;
     this.#terminal = terminal;
 
-    this.#process = await this.newBoltShellProcess(runtime, terminal);
-
-    await this.waitTillOscCode('interactive');
-    this.#initialized?.();
+    /*
+     * Settle ready() even when spawn fails. If newBoltShellProcess() rejects
+     * (workspace 502 / WORKSPACE_NOT_STARTED, missing-workspace guard) or the
+     * interactive handshake never completes, the throw must still release the
+     * readiness promise — otherwise action-runner's `await shell.ready()`
+     * blocks forever and the agent can never run a command. runSettlingReady
+     * re-throws so terminal.ts can still write the error to xterm.
+     */
+    await runSettlingReady(
+      async () => {
+        this.#process = await this.newBoltShellProcess(runtime, terminal);
+        await this.waitTillOscCode('interactive');
+      },
+      () => this.#initialized?.(),
+    );
   }
 
   async newBoltShellProcess(runtime: RuntimeAdapter, terminal: ITerminal) {

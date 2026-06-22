@@ -1,7 +1,8 @@
-import { Braces } from 'lucide-react';
+import { Braces, Trash2 } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
-import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
+import { buildEnvVarRows, type EnvVarRecord } from './projects.$projectId.env.helpers';
+import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
   apiErrorMessage,
@@ -12,8 +13,9 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 import { projectAction, projectPageLoader } from '~/lib/project-route.server';
+import { classNames } from '~/utils/classNames';
 
-type EnvData = { envVars: Array<{ id: string; key: string; value: string; updatedAt?: string }> };
+type EnvData = { envVars: EnvVarRecord[] };
 
 export const meta: MetaFunction = () => [{ title: 'Environment variables - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>
@@ -36,6 +38,25 @@ export const action = (args: EnterpriseActionArgs) =>
       }
       return redirect(`/projects/${projectId}/env`);
     },
+    delete: async ({ request, projectId, body }) => {
+      try {
+        await apiRequest(request, `/projects/${projectId}/env-vars`, {
+          method: 'DELETE',
+          body: JSON.stringify({ key: body.key }),
+        });
+      } catch (error) {
+        /*
+         * The API enforces RBAC (403) and returns 404 when the key no longer
+         * exists. Surface the message inline instead of throwing to an error
+         * boundary so the panel stays usable.
+         */
+        const status = error instanceof Response ? error.status : 400;
+
+        return json({ error: await apiErrorMessage(error, 'Failed to delete variable') }, { status });
+      }
+
+      return redirect(`/projects/${projectId}/env`);
+    },
   });
 
 export default function ProjectEnvPage() {
@@ -43,6 +64,7 @@ export default function ProjectEnvPage() {
   const navigation = useNavigation();
   const saving = navigation.state === 'submitting';
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+  const rows = buildEnvVarRows(data.envVars);
 
   return (
     <ProjectShell
@@ -51,25 +73,39 @@ export default function ProjectEnvPage() {
       description="Manage non-secret runtime configuration for development, preview and production environments."
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <ActivityList
-          items={
-            (data.envVars ?? []).length
-              ? (data.envVars ?? []).map((item) => ({
-                  title: item.key,
-                  detail: item.updatedAt
-                    ? `Updated ${new Date(item.updatedAt).toLocaleString()}`
-                    : 'Stored in project metadata',
-                  icon: Braces,
-                }))
-              : [
-                  {
-                    title: 'No environment variables',
-                    detail: 'Add the first project environment variable.',
-                    icon: Braces,
-                  },
-                ]
-          }
-        />
+        <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+          {rows.map((row, index) => (
+            <div
+              key={row.kind === 'var' ? row.id : 'empty'}
+              className={classNames(
+                'flex items-start gap-3 p-4',
+                index > 0 && 'border-t border-bolt-elements-borderColor',
+              )}
+            >
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-bolt-elements-background-depth-3">
+                <Braces className="h-4 w-4" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">{row.kind === 'var' ? row.key : row.title}</p>
+                <p className="mt-1 text-sm text-bolt-elements-textSecondary">{row.detail}</p>
+              </div>
+              {row.kind === 'var' ? (
+                <Form method="post" className="shrink-0">
+                  <input type="hidden" name="intent" value="delete" />
+                  <input type="hidden" name="key" value={row.key} />
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    aria-label={`Delete ${row.key}`}
+                    className="rounded-md p-2 text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-red-500 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                  </button>
+                </Form>
+              ) : null}
+            </div>
+          ))}
+        </div>
         <Form
           method="post"
           className="grid gap-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6"

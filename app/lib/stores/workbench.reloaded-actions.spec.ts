@@ -38,6 +38,17 @@ const { runtimeAdapterMock, runtimeFiles } = vi.hoisted(() => {
         yield { type: 'exit' as const, exitCode: 0 };
       }),
       runCommand: vi.fn(async () => ({ exitCode: 0, output: '' })),
+      deleteFile: vi.fn(async (filePath: string) => {
+        runtimeFiles.delete(filePath);
+      }),
+      startWorkspace: vi.fn(async () => ({
+        id: 'ws-1',
+        runtimeMode: 'remote-kubernetes' as const,
+        status: 'running' as const,
+        workdir: '/home/project',
+        createdAt: '',
+        updatedAt: '',
+      })),
     },
   };
 });
@@ -204,8 +215,19 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
     runtimeAdapterMock.createDirectory.mockClear();
     runtimeAdapterMock.listProcesses.mockClear();
     runtimeAdapterMock.killProcess.mockClear();
-    runtimeAdapterMock.streamCommand.mockClear();
     runtimeAdapterMock.runCommand.mockClear();
+    runtimeAdapterMock.deleteFile.mockClear();
+    runtimeAdapterMock.startWorkspace.mockClear();
+
+    /*
+     * Reset (not just clear) streamCommand so a per-test mockImplementation does
+     * not leak into the next test — several tests below install their own
+     * streaming behaviour, and the default must be restored between them.
+     */
+    runtimeAdapterMock.streamCommand.mockReset();
+    runtimeAdapterMock.streamCommand.mockImplementation(async function* () {
+      yield { type: 'exit' as const, exitCode: 0 };
+    });
   });
 
   it('marks reloaded message actions complete without replaying them', async () => {
@@ -355,6 +377,140 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
      * it is installed, otherwise `npm run dev` dies with exit 127 and a blank preview.
      */
     expect(installCall?.args).toContain('--include=dev');
+  });
+
+  it('retries a transiently-failed install before launching the preview', async () => {
+    runtimeFiles.set(
+      'package.json',
+      JSON.stringify({
+        name: 'app',
+        type: 'module',
+        scripts: { dev: 'vite --host 0.0.0.0' },
+        dependencies: { react: '^18.3.1' },
+        devDependencies: { vite: '^5.1.4' },
+      }),
+    );
+
+    const store = new WorkbenchStore();
+    await store.loadRuntimeFiles('.');
+
+    let installAttempts = 0;
+    runtimeAdapterMock.streamCommand.mockImplementation(async function* (request: { args?: string[] }) {
+      const isInstall = (request.args ?? []).includes('install');
+
+      if (isInstall) {
+        installAttempts += 1;
+
+        if (installAttempts === 1) {
+          /* First install drops mid-stream: the adapter's synthetic error. */
+          yield { type: 'error', error: { message: 'Command stream closed before completion' } };
+
+          return;
+        }
+      }
+
+      yield { type: 'exit', exitCode: 0 };
+    });
+
+    await store.reinstallDependencies();
+
+    /* The first retry backs off ~1s, so allow headroom over the default 1s wait. */
+    await vi.waitFor(
+      () => {
+        expect(installAttempts).toBeGreaterThanOrEqual(2);
+      },
+      { timeout: 5000 },
+    );
+
+    store.flushWorkspaceLogs();
+    expect(store.workspaceLogs.get()).toEqual(expect.arrayContaining([expect.stringContaining('failed transiently')]));
+
+    /* The preview must NOT be left in error after a successful retry. */
+    expect(store.previewServerState.get().status).not.toBe('error');
+  });
+
+  it('does not retry a deterministic install failure and surfaces an error state', async () => {
+    runtimeFiles.set(
+      'package.json',
+      JSON.stringify({
+        name: 'app',
+        type: 'module',
+        scripts: { dev: 'vite --host 0.0.0.0' },
+        dependencies: { react: '^18.3.1' },
+        devDependencies: { vite: '^5.1.4' },
+      }),
+    );
+
+    const store = new WorkbenchStore();
+    await store.loadRuntimeFiles('.');
+
+    let installAttempts = 0;
+    runtimeAdapterMock.streamCommand.mockImplementation(async function* (request: { args?: string[] }) {
+      if ((request.args ?? []).includes('install')) {
+        installAttempts += 1;
+        yield { type: 'stderr', data: 'npm error 404 Not Found - GET https://registry/no-such-pkg' };
+        yield { type: 'exit', exitCode: 1 };
+
+        return;
+      }
+
+      yield { type: 'exit', exitCode: 0 };
+    });
+
+    await store.reinstallDependencies();
+
+    await vi.waitFor(() => {
+      expect(store.previewServerState.get().status).toBe('error');
+    });
+
+    /* A real 404 install error must fail fast — exactly one attempt, no retry. */
+    expect(installAttempts).toBe(1);
+  });
+
+  it('reprovisions a stopped workspace before starting the preview', async () => {
+    runtimeFiles.set(
+      'package.json',
+      JSON.stringify({
+        name: 'app',
+        type: 'module',
+        scripts: { dev: 'vite --host 0.0.0.0' },
+        dependencies: { react: '^18.3.1' },
+        devDependencies: { vite: '^5.1.4' },
+      }),
+    );
+
+    const store = new WorkbenchStore();
+    await store.loadRuntimeFiles('.');
+    store.workspaceStatus.set({
+      id: 'ws-1',
+      runtimeMode: 'remote-kubernetes',
+      status: 'stopped',
+      workdir: '/home/project',
+      createdAt: '',
+      updatedAt: '',
+    });
+
+    await store.startPreviewServer();
+
+    expect(runtimeAdapterMock.startWorkspace).toHaveBeenCalled();
+    expect(store.workspaceStatus.get()?.status).toBe('running');
+  });
+
+  it('does not reprovision a healthy workspace', async () => {
+    const store = new WorkbenchStore();
+    await store.loadRuntimeFiles('.');
+    store.workspaceStatus.set({
+      id: 'ws-1',
+      runtimeMode: 'remote-kubernetes',
+      status: 'running',
+      workdir: '/home/project',
+      createdAt: '',
+      updatedAt: '',
+    });
+
+    await store.startPreviewServer();
+
+    expect(runtimeAdapterMock.startWorkspace).not.toHaveBeenCalled();
   });
 
   it('clears the in-flight start guard on stop so the dev server can be relaunched', async () => {

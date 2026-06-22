@@ -222,20 +222,67 @@ export function shouldUseAgentOrchestration(
   return content.length >= 180 || complexBuildSignals.some((signal) => content.includes(signal));
 }
 
+/**
+ * Clamp the specialist-lane roster to the org plan's parallel-agent entitlement.
+ *
+ * Pure + exported so the plan-gating (Starter=1, Core=2, Pro=10, …) is unit
+ * testable. The plan limit is the headline pricing differentiator
+ * ('Up to 2 / 10 parallel agents'); without clamping every tier silently runs
+ * all 5 fixed roles, making the entitlement decorative. When `parallelAgents`
+ * is undefined we keep the full roster (caller hasn't resolved a plan yet), and
+ * we always keep at least the Architect lane when at least one agent is
+ * entitled so the orchestration still produces a coherent decomposition.
+ */
+export function clampRolesToParallelLimit(
+  roles: AgentOrchestrationRole[],
+  parallelAgents?: number,
+): AgentOrchestrationRole[] {
+  if (parallelAgents === undefined || !Number.isFinite(parallelAgents)) {
+    return roles;
+  }
+
+  const limit = Math.floor(parallelAgents);
+
+  if (limit <= 0) {
+    return [];
+  }
+
+  return roles.slice(0, Math.min(limit, roles.length));
+}
+
 export function buildAgentOrchestrationPlan(input: {
   messages: Array<Omit<Message, 'id'> | Message>;
   chatMode?: string;
   subagentsAvailable?: boolean;
+
+  /*
+   * The org plan's parallel-agent entitlement (CreditBillingPlan.parallelAgents:
+   * Starter=1, Core=2, Pro=10, Enterprise=50). When provided we clamp the lane
+   * roster to it; a plan that allows only a single agent (Starter) disables
+   * parallel orchestration entirely and degrades to a single-model lane. When
+   * omitted (caller hasn't resolved a plan) the full 5-role roster is kept so
+   * behaviour is unchanged for callers that don't yet pass the entitlement.
+   */
+  parallelAgents?: number;
 }): AgentOrchestrationPlan {
-  const enabled = shouldUseAgentOrchestration(input.messages, input.chatMode);
+  const complexEnough = shouldUseAgentOrchestration(input.messages, input.chatMode);
+
+  const roles = complexEnough ? clampRolesToParallelLimit(ECODE_AGENT_ROLES, input.parallelAgents) : [];
+
+  /*
+   * A plan that entitles fewer than 2 parallel agents (Starter) can't run the
+   * multi-lane fan-out at all: with a single lane there is nothing to
+   * orchestrate, so fall back to a normal single-lane response.
+   */
+  const enabled = complexEnough && roles.length >= 2;
 
   return {
     enabled,
-    mode: input.subagentsAvailable ? 'parallel-subagents' : 'single-model-lanes',
+    mode: enabled && input.subagentsAvailable ? 'parallel-subagents' : 'single-model-lanes',
     reason: enabled
       ? 'Complex build request detected; split the work into specialist lanes and integrate the result before responding.'
       : 'Single-lane response is sufficient for this request.',
-    roles: enabled ? ECODE_AGENT_ROLES : [],
+    roles: enabled ? roles : [],
   };
 }
 
@@ -271,6 +318,43 @@ export function getSubagentExecutorToken(env?: AgentOrchestrationEnv): string | 
   );
 }
 
+/**
+ * Build the JSON body POSTed to the sub-agent executor. Pure + exported so the
+ * provider/model threading (every lane must run on the user's selected model,
+ * not the gateway default) is unit-testable without a live fetch. `provider`
+ * and `model` are only included when non-blank so the executor falls back to
+ * its own default when the caller has nothing to thread.
+ */
+export function buildAgentRunRequestBody(input: {
+  plan: AgentOrchestrationPlan;
+  messages: Array<Omit<Message, 'id'> | Message>;
+  provider?: string;
+  model?: string;
+  rateLimitKey?: string;
+}): {
+  mode: AgentOrchestrationMode;
+  roles: AgentOrchestrationRole[];
+  messages: Array<{ role: Message['role']; content: string }>;
+  provider?: string;
+  model?: string;
+  rateLimitKey?: string;
+} {
+  const provider = input.provider?.trim();
+  const model = input.model?.trim();
+
+  return {
+    mode: input.plan.mode,
+    roles: input.plan.roles,
+    messages: input.messages.map((message) => ({
+      role: message.role,
+      content: getTextContent(message),
+    })),
+    ...(provider ? { provider } : {}),
+    ...(model ? { model } : {}),
+    ...(input.rateLimitKey ? { rateLimitKey: input.rateLimitKey } : {}),
+  };
+}
+
 function isAgentExecutionResponse(value: unknown): value is AgentExecutionResponse {
   if (!value || typeof value !== 'object') {
     return false;
@@ -299,6 +383,16 @@ export async function executeAgentOrchestration(input: {
   messages: Array<Omit<Message, 'id'> | Message>;
   timeoutMs?: number;
   fetchImpl?: typeof fetch;
+
+  /*
+   * The provider/model the user selected in the composer. Threaded into the
+   * executor body so every specialist lane AND the consensus run on the SAME
+   * model the user picked, instead of silently falling back to the gateway's
+   * first-configured provider's hardcoded default (e.g. gpt-4.1). Omitted from
+   * the body when blank so the executor keeps its own default behaviour.
+   */
+  provider?: string;
+  model?: string;
 
   /*
    * Per-tenant key for the executor's rate limiter (e.g. the project id). Without
@@ -352,15 +446,15 @@ export async function executeAgentOrchestration(input: {
         'content-type': 'application/json',
         ...(token ? { authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({
-        mode: input.plan.mode,
-        roles: input.plan.roles,
-        messages: input.messages.map((message) => ({
-          role: message.role,
-          content: getTextContent(message),
-        })),
-        ...(input.rateLimitKey ? { rateLimitKey: input.rateLimitKey } : {}),
-      }),
+      body: JSON.stringify(
+        buildAgentRunRequestBody({
+          plan: input.plan,
+          messages: input.messages,
+          provider: input.provider,
+          model: input.model,
+          rateLimitKey: input.rateLimitKey,
+        }),
+      ),
       signal: fetchSignal,
     });
 
@@ -420,6 +514,14 @@ export async function executeAgentOrchestrationStream(input: {
   messages: Array<Omit<Message, 'id'> | Message>;
   timeoutMs?: number;
   fetchImpl?: typeof fetch;
+
+  /*
+   * The provider/model the user selected in the composer. Threaded so the
+   * streamed specialist lanes + consensus run on the user's chosen model, not
+   * the gateway's hardcoded default. See {@link executeAgentOrchestration}.
+   */
+  provider?: string;
+  model?: string;
   rateLimitKey?: string;
 
   /*
@@ -489,12 +591,15 @@ export async function executeAgentOrchestrationStream(input: {
         'content-type': 'application/json',
         ...(token ? { authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({
-        mode: input.plan.mode,
-        roles: input.plan.roles,
-        messages: input.messages.map((message) => ({ role: message.role, content: getTextContent(message) })),
-        ...(input.rateLimitKey ? { rateLimitKey: input.rateLimitKey } : {}),
-      }),
+      body: JSON.stringify(
+        buildAgentRunRequestBody({
+          plan: input.plan,
+          messages: input.messages,
+          provider: input.provider,
+          model: input.model,
+          rateLimitKey: input.rateLimitKey,
+        }),
+      ),
       signal: fetchSignal,
     });
 

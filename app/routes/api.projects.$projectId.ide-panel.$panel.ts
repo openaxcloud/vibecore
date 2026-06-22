@@ -1,5 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import {
+  classifyDatabaseRestoreError,
+  foldRestoreResponse,
+  shouldRestoreDatabase,
+  type DatabaseRestoreOutcome,
+} from './snapshot-restore-database';
+import {
   apiRequest,
   clearSessionCookie,
   formObject,
@@ -997,6 +1003,44 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       await apiRequest(request, `/projects/${projectId}/snapshots/${encodeURIComponent(snapshotId)}/restore`, {
         method: 'POST',
       });
+
+      /*
+       * The rollback modal's "Database" checkbox posts `restoreDatabase`. The
+       * file restore above rewinds project storage + the workspace tree only;
+       * when the user explicitly asked for the database too, drive the real
+       * point-in-time restore (POST /projects/:id/database/restores) with the
+       * same snapshot. Surface its outcome so a checked box never silently
+       * leaves the database un-rolled-back.
+       */
+      let databaseOutcome: DatabaseRestoreOutcome = { kind: 'skipped' };
+
+      if (shouldRestoreDatabase(body.restoreDatabase)) {
+        try {
+          const restore = await apiRequest(request, `/projects/${projectId}/database/restores`, {
+            method: 'POST',
+            body: JSON.stringify({ snapshotId }),
+          });
+
+          databaseOutcome = { kind: 'restored', restore };
+        } catch (error) {
+          if (error instanceof Response) {
+            const payload = (await error
+              .clone()
+              .json()
+              .catch(() => ({}))) as { code?: string; error?: string };
+
+            databaseOutcome = classifyDatabaseRestoreError({
+              status: error.status,
+              code: payload.code,
+              message: payload.error ?? 'Database restore failed.',
+            });
+          } else {
+            databaseOutcome = { kind: 'failed', status: 502, message: 'Database restore failed.' };
+          }
+        }
+      }
+
+      return json(foldRestoreResponse(databaseOutcome));
     } else {
       await apiRequest(request, `/projects/${projectId}/snapshots`, {
         method: 'POST',

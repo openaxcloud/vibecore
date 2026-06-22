@@ -1,5 +1,6 @@
 import type { RuntimeAdapter, TerminalSession } from '@vibecore/runtime-contract';
 import { atom, type WritableAtom } from 'nanostores';
+import { buildResizePlan, type TerminalSessionEntry } from './terminal-resize';
 import type { ITerminal } from '~/types/terminal';
 import { newBoltShellProcess, newShellProcess } from '~/utils/shell';
 import { coloredText } from '~/utils/terminal';
@@ -96,21 +97,33 @@ export class TerminalStore {
 
   onTerminalResize(cols: number, rows: number) {
     /*
+     * In split view two terminals of different pixel widths are visible at once,
+     * and each fires its own resize event with its own geometry. Broadcasting a
+     * single (cols,rows) to every PTY let the last event win and clobber the other
+     * pane — its remote shell got the wrong width and wrapped/truncated output.
+     * Resize each PTY to ITS OWN terminal's measured geometry; the event's
+     * (cols,rows) is only a fallback for a terminal that has not yet fit().
+     *
      * The bolt terminal (tab 0) is the PRIMARY managed shell — where the AI runs
-     * commands and the dev server / install / build run. It was excluded here, so
-     * its remote PTY kept the default 80x24 and wrapped/truncated output. Resize
-     * it too, alongside the user-spawned shells.
+     * commands and the dev server / install / build run — so it is included here
+     * with its own measured geometry too.
      */
+    const sessions: TerminalSessionEntry[] = [...this.#terminals];
+    const boltTerminal = this.#boltTerminal.terminal;
+    const boltProcess = this.#boltTerminal.process;
+
+    if (boltTerminal && boltProcess) {
+      sessions.push({ terminal: boltTerminal, process: boltProcess });
+    }
+
     /*
      * resize() is fire-and-forget and may return a rejected promise when a remote
      * PTY socket is not OPEN (mid-reconnect). Swallow it so a resize during a flap
      * never surfaces as an unhandled rejection. Promise.resolve tolerates the
      * `void | Promise<void>` return of the RuntimeContract resize signature.
      */
-    void Promise.resolve(this.#boltTerminal.process?.resize(cols, rows)).catch(() => {});
-
-    for (const { process } of this.#terminals) {
-      void Promise.resolve(process.resize(cols, rows)).catch(() => {});
+    for (const target of buildResizePlan(sessions, cols, rows)) {
+      void Promise.resolve(target.process.resize(target.cols, target.rows)).catch(() => {});
     }
   }
 

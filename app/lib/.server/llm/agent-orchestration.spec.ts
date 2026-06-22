@@ -4,6 +4,8 @@ import {
   ECODE_AGENT_ROLES,
   areParallelSubagentsAvailable,
   buildAgentOrchestrationPlan,
+  buildAgentRunRequestBody,
+  clampRolesToParallelLimit,
   createAgentExecutionContext,
   createAgentOrchestrationPrompt,
   executeAgentOrchestration,
@@ -11,6 +13,9 @@ import {
   getSubagentExecutorToken,
   shouldUseAgentOrchestration,
 } from './agent-orchestration';
+
+const COMPLEX_BUILD_PROMPT =
+  'Build a full-stack SaaS dashboard app with auth, backend APIs, database persistence, WebSocket collaboration, tests, deploy config, and responsive mobile support.';
 
 describe('E-Code agent orchestration', () => {
   it('does not enable specialist lanes for discuss mode', () => {
@@ -409,5 +414,163 @@ describe('E-Code agent orchestration', () => {
     expect(context).toContain('Run: run_abc');
     expect(context).toContain('Role: qa');
     expect(context).toContain('pnpm run test');
+  });
+
+  /*
+   * Bug: parallel sub-agents ran on the gateway's DEFAULT model, not the model
+   * the user selected, because provider/model were never put in the POST body.
+   */
+  it('threads the selected provider/model into the executor request body', async () => {
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: COMPLEX_BUILD_PROMPT }],
+      subagentsAvailable: true,
+    });
+
+    const calls: Array<{ init: RequestInit }> = [];
+
+    const fetchImpl = async (_url: string | URL | Request, init?: RequestInit) => {
+      calls.push({ init: init ?? {} });
+
+      return new Response(JSON.stringify({ runId: 'run_model', status: 'complete', results: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    await executeAgentOrchestration({
+      env: { ECODE_SUBAGENT_EXECUTOR_URL: 'https://agents.example.com' },
+      plan,
+      messages: [{ role: 'user', content: 'Build it.' }],
+      provider: 'Anthropic',
+      model: 'claude-opus-4',
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+
+    expect(JSON.parse(String(calls[0].init.body))).toMatchObject({
+      provider: 'Anthropic',
+      model: 'claude-opus-4',
+    });
+  });
+
+  it('threads the selected provider/model into the streaming executor request body', async () => {
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: COMPLEX_BUILD_PROMPT }],
+      subagentsAvailable: true,
+    });
+
+    const encoder = new TextEncoder();
+    const calls: Array<{ init: RequestInit }> = [];
+
+    const fetchImpl = async (_url: string | URL | Request, init?: RequestInit) => {
+      calls.push({ init: init ?? {} });
+
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({
+                  type: 'run-done',
+                  runId: 'run_model_stream',
+                  status: 'complete',
+                  results: [{ roleId: 'architect', status: 'complete', summary: 'ok' }],
+                })}\n\n`,
+              ),
+            );
+            controller.close();
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'text/event-stream' } },
+      );
+    };
+
+    await executeAgentOrchestrationStream({
+      env: { ECODE_SUBAGENT_EXECUTOR_URL: 'https://agents.example.com' },
+      plan,
+      messages: [{ role: 'user', content: 'Build it.' }],
+      provider: 'Anthropic',
+      model: 'claude-sonnet-4',
+      fetchImpl: fetchImpl as typeof fetch,
+      onEvent: vi.fn(),
+    });
+
+    expect(JSON.parse(String(calls[0].init.body))).toMatchObject({
+      provider: 'Anthropic',
+      model: 'claude-sonnet-4',
+    });
+  });
+
+  it('omits provider/model from the body when they are blank', () => {
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: COMPLEX_BUILD_PROMPT }],
+      subagentsAvailable: true,
+    });
+
+    const body = buildAgentRunRequestBody({
+      plan,
+      messages: [{ role: 'user', content: 'Build it.' }],
+      provider: '   ',
+      model: undefined,
+    });
+
+    expect(body).not.toHaveProperty('provider');
+    expect(body).not.toHaveProperty('model');
+  });
+
+  /*
+   * Bug: the plan-tier parallel-agent limit ('Up to 2 / 10 parallel agents')
+   * was never enforced — every plan always ran all 5 fixed roles.
+   */
+  it('clamps the specialist lane roster to the plan parallel-agent entitlement', () => {
+    expect(clampRolesToParallelLimit(ECODE_AGENT_ROLES, 2).map((role) => role.id)).toEqual(['architect', 'frontend']);
+    expect(clampRolesToParallelLimit(ECODE_AGENT_ROLES, 10).map((role) => role.id)).toEqual(
+      ECODE_AGENT_ROLES.map((role) => role.id),
+    );
+
+    // No entitlement passed: full roster preserved (back-compat for callers that don't pass a plan).
+    expect(clampRolesToParallelLimit(ECODE_AGENT_ROLES, undefined)).toHaveLength(ECODE_AGENT_ROLES.length);
+
+    // A single-agent plan can't fan out.
+    expect(clampRolesToParallelLimit(ECODE_AGENT_ROLES, 1).map((role) => role.id)).toEqual(['architect']);
+  });
+
+  it('caps a Pro-tier (10) plan to the 5 real specialist lanes', () => {
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: COMPLEX_BUILD_PROMPT }],
+      subagentsAvailable: true,
+      parallelAgents: 10,
+    });
+
+    expect(plan.enabled).toBe(true);
+    expect(plan.roles.map((role) => role.id)).toEqual(['architect', 'frontend', 'backend', 'devops', 'qa']);
+  });
+
+  it('limits a Core-tier (2) plan to exactly two specialist lanes', () => {
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: COMPLEX_BUILD_PROMPT }],
+      subagentsAvailable: true,
+      parallelAgents: 2,
+    });
+
+    expect(plan.enabled).toBe(true);
+    expect(plan.roles.map((role) => role.id)).toEqual(['architect', 'frontend']);
+  });
+
+  it('disables parallel orchestration for a single-agent (Starter) plan', () => {
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: COMPLEX_BUILD_PROMPT }],
+      subagentsAvailable: true,
+      parallelAgents: 1,
+    });
+
+    expect(plan.enabled).toBe(false);
+    expect(plan.mode).toBe('single-model-lanes');
+    expect(plan.roles).toHaveLength(0);
   });
 });

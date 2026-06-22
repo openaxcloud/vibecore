@@ -1,6 +1,7 @@
 import type { FileSearchOptions } from '@vibecore/runtime-contract';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { computeReplacement, needsContentHydration, toRuntimeRelativePath } from './search-replace';
 import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
@@ -193,6 +194,7 @@ export function Search() {
 
       let replacementCount = 0;
       let lockedSkipped = 0;
+      let unreadableSkipped = 0;
 
       for (const filePath of targetPaths) {
         const entry = files[filePath];
@@ -212,19 +214,44 @@ export function Search() {
           continue;
         }
 
-        const nextContent = entry.content.replace(matcher, () => {
-          replacementCount += 1;
-          return replaceQuery;
-        });
+        /*
+         * In remote-kubernetes mode the file tree is loaded with content stripped
+         * (mapRuntimeNodes), so any file the user has not individually opened sits
+         * in the store with content === ''. Replacing against '' produces no change
+         * and silently writes nothing while still reporting success. Hydrate the
+         * real on-disk content from the runtime before computing the replacement,
+         * so Replace All actually edits unopened files instead of being decorative.
+         */
+        let content = entry.content;
 
-        if (nextContent !== entry.content) {
+        if (needsContentHydration(content)) {
+          try {
+            content = await runtimeAdapter.readFile(toRuntimeRelativePath(filePath, runtimeAdapter.workdir));
+          } catch (readError) {
+            console.error('Failed to read file for replace:', filePath, readError);
+            unreadableSkipped += 1;
+            continue;
+          }
+        }
+
+        const { nextContent, count } = computeReplacement(content, matcher, replaceQuery);
+
+        if (count > 0 && nextContent !== content) {
+          replacementCount += count;
           await workbenchStore.writeFileContent(filePath, nextContent);
         }
       }
 
+      const skippedNotes = [
+        lockedSkipped > 0 ? `${lockedSkipped} locked file${lockedSkipped === 1 ? '' : 's'} skipped` : undefined,
+        unreadableSkipped > 0
+          ? `${unreadableSkipped} unreadable file${unreadableSkipped === 1 ? '' : 's'} skipped`
+          : undefined,
+      ].filter(Boolean);
+
       toast.success(
         `Replaced ${replacementCount} match${replacementCount === 1 ? '' : 'es'}` +
-          (lockedSkipped > 0 ? ` (${lockedSkipped} locked file${lockedSkipped === 1 ? '' : 's'} skipped)` : ''),
+          (skippedNotes.length > 0 ? ` (${skippedNotes.join(', ')})` : ''),
       );
       await handleSearch(searchQuery);
     } catch (error) {
@@ -240,6 +267,7 @@ export function Search() {
     isRegex,
     replaceQuery,
     resolveWorkbenchPath,
+    runtimeAdapter,
     searchQuery,
     searchResults,
   ]);

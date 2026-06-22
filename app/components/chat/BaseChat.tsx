@@ -22,6 +22,13 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { toast } from 'react-toastify';
 
 import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from './AppliedFilesToast';
+import {
+  describeAutoApplyFailure,
+  describeSnapshotRestoreFailure,
+  isPanelAuthError,
+  panelAuthRedirectTarget,
+  shouldAutoLoadDatabaseSchema,
+} from './base-chat-panels';
 
 import { getApiKeysFromCookies } from './APIKeyManager';
 import styles from './BaseChat.module.scss';
@@ -3126,9 +3133,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           .then((result) => {
             if (result === 'accepted') {
               scheduleAppliedFilesToast(filePath, proposalId);
+
+              return;
             }
+
+            /*
+             * A 'failed' return means the patch was rejected (validation / write
+             * failure). In auto-apply mode the review queue is hidden, so without
+             * an explicit toast the user would never learn the edit didn't land.
+             */
+            toast.error(describeAutoApplyFailure(filePath));
           })
-          .catch(() => undefined);
+          .catch((error) => {
+            toast.error(describeAutoApplyFailure(filePath, error));
+          });
       }
     }, [agentPatchProposals, scheduleAppliedFilesToast]);
 
@@ -5568,11 +5586,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           form.set('snapshotId', rollbackTarget.snapshot.id);
           form.set('restoreDatabase', rollbackDatabase ? 'true' : 'false');
 
-          await fetch(`/api/projects/${projectId}/ide-panel/snapshots`, {
+          const response = await fetch(`/api/projects/${projectId}/ide-panel/snapshots`, {
             method: 'POST',
             body: form,
             credentials: 'include',
           });
+
+          /*
+           * A failed restore (409 storage missing/checksum, 403 RBAC, 5xx) must NOT
+           * fall through to overwrite chat memory + reload, which would destroy the
+           * live transcript while leaving files un-restored. Surface the coded error
+           * and bail before mutating anything.
+           */
+          if (!response.ok) {
+            const payload = await response.json().catch(() => undefined);
+            toast.error(describeSnapshotRestoreFailure(response.status, payload));
+
+            return;
+          }
         }
 
         await saveProjectIdeMemory(
@@ -5591,6 +5622,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         window.location.reload();
       } catch (error) {
         console.error('Failed to rollback project checkpoint', error);
+        toast.error(describeSnapshotRestoreFailure(0, undefined));
       } finally {
         setRollbackBusy(false);
       }
@@ -8387,12 +8419,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <div className="bolt-project-rollback-dialog">
               <div className="bolt-project-rollback-body">
                 <h2 id="rollback-title">Rollback to checkpoint</h2>
-                <div className="bolt-project-rollback-screenshot" aria-label="Screenshot taken by the Agent">
-                  <span className="i-ph:image" aria-hidden />
-                  <strong>Screenshot</strong>
-                  <small>Screenshot taken by the Agent</small>
-                  <em>Preview expired</em>
-                </div>
+                {/*
+                 * No per-checkpoint screenshot is captured or stored, so a static
+                 * 'Screenshot — Preview expired' placeholder would misrepresent the
+                 * state being reverted to in this destructive confirmation. Only
+                 * truthful checkpoint metadata is shown below.
+                 */}
                 <section>
                   <span className="bolt-project-rollback-label">Target checkpoint</span>
                   <h3>{rollbackTarget.title}</h3>
@@ -8648,6 +8680,22 @@ function ProjectIdeServicePanel({
           error?: { code: string; message: string; retryable: boolean } | string;
           status?: 'ok' | 'empty' | 'error';
         };
+
+        const errorCode = typeof result.error === 'object' ? result.error?.code : undefined;
+
+        /*
+         * A mid-session 401 / PANEL_AUTH means the cookie expired while the SPA is
+         * mounted. The API doesn't redirect /api/* requests, so without this the
+         * panel renders a dead-end Retry that re-issues the same unauthenticated
+         * request forever. Bounce to login with a returnTo instead.
+         */
+        if (isPanelAuthError(response.status, errorCode)) {
+          if (typeof window !== 'undefined') {
+            window.location.assign(panelAuthRedirectTarget(window.location.href));
+          }
+
+          return;
+        }
 
         if (!response.ok) {
           const message = typeof result.error === 'string' ? result.error : result.error?.message;
@@ -14721,6 +14769,25 @@ function ProjectDatabasePanel({
       setSchemaState({ loading: false, error: error?.message ?? 'Unable to inspect database schema' });
     }
   }
+
+  /*
+   * The initial panel fetch never passes schemaKey, so data.schema is undefined and
+   * the Explorer renders an empty 'Select a connection…' hint even when real
+   * connections exist. Auto-load the first connection's schema on mount so the
+   * schema browser populates immediately (Replit parity).
+   */
+  const autoLoadedSchemaRef = useRef(false);
+
+  useEffect(() => {
+    if (autoLoadedSchemaRef.current) {
+      return;
+    }
+
+    if (shouldAutoLoadDatabaseSchema({ connectionKey: connections[0]?.key, schema: data.schema })) {
+      autoLoadedSchemaRef.current = true;
+      void loadSchema(connections[0].key);
+    }
+  }, [connections, data.schema]);
 
   async function runQuery(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

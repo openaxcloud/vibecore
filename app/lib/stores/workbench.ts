@@ -8,6 +8,13 @@ import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from '
 import { toast } from 'react-toastify';
 import { EditorStore } from './editor';
 import { FilesStore, type FileMap, type ProjectStorageFile } from './files';
+import {
+  appendWorkspaceLogLines,
+  decodeArchiveEntry,
+  isTransientCommandFailure,
+  shouldUseExistingPreviewServer,
+  workspaceNeedsReprovision,
+} from './preview-recovery';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
@@ -103,6 +110,18 @@ export interface AgentPatchProposal {
 }
 
 const WORKSPACE_LOG_LIMIT = 500;
+const WORKSPACE_LOG_FLUSH_INTERVAL_MS = 100;
+
+/*
+ * Bounded retry for a preview SETUP command (npm/pnpm/yarn install). A freshly
+ * provisioned pod is most fragile during the long install: the workspace-agent
+ * WS can drop mid-stream (surfaced as a synthetic "stream closed before
+ * completion"), the LB can idle-kill it, or a registry blip can 502. Those are
+ * worth re-running; a deterministic install error (unknown package, ERESOLVE)
+ * is not. Total attempts = 1 try + 2 retries, with exponential backoff.
+ */
+const PREVIEW_SETUP_RETRY_ATTEMPTS = 3;
+const PREVIEW_SETUP_RETRY_BASE_DELAY_MS = 1000;
 const ANSI_ESCAPE_SEQUENCE = /\x1B\[[0-?]*[ -/]*[@-~]/g;
 const WORKSPACE_LOG_NOISE_PATTERNS = [/malloc.*stack logging.*not enabled/i];
 
@@ -133,6 +152,29 @@ const PROJECT_STORAGE_SYNC_MAX_FILE_BYTES = 512_000;
 const PROJECT_STORAGE_SYNC_MAX_TOTAL_BYTES = 4_000_000;
 const PROJECT_ARCHIVE_TEXT_DECODER = new TextDecoder('utf-8', { fatal: true });
 const hotData = import.meta.hot?.data ?? {};
+
+/*
+ * Encode raw bytes as standard base64. Chunked through String.fromCharCode so a
+ * large asset can't blow the argument-count limit, and falls back to Buffer in
+ * non-browser (SSR/test) contexts where btoa is absent. Mirrors the
+ * base64ToUint8Array reader in FileTree (plain atob-decodable base64).
+ */
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = '';
+
+  const CHUNK_SIZE = 0x8000;
+
+  for (let index = 0; index < bytes.length; index += CHUNK_SIZE) {
+    const chunk = bytes.subarray(index, index + CHUNK_SIZE);
+    binary += String.fromCharCode(...chunk);
+  }
+
+  if (typeof btoa === 'function') {
+    return btoa(binary);
+  }
+
+  return Buffer.from(binary, 'binary').toString('base64');
+}
 
 function workspaceLogLines(event: CommandEvent | string) {
   const rawLine = typeof event === 'string' ? event : event.data || event.error?.message || event.type;
@@ -167,6 +209,16 @@ export class WorkbenchStore {
   #previewCommandRunning = false;
   #projectId: string | undefined;
   #autosaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+  /*
+   * Coalesce workspace-log appends. A streamed install/build emits hundreds of
+   * lines in a burst; a workspaceLogs.set() per line re-rendered the whole IDE
+   * shell on every line. We buffer incoming lines and flush them on a short timer
+   * (mirroring the PORT_REFRESH_THROTTLE pattern), collapsing a burst into a
+   * handful of store updates.
+   */
+  #pendingWorkspaceLogLines: string[] = [];
+  #workspaceLogFlushTimer: ReturnType<typeof setTimeout> | undefined;
 
   artifacts: Artifacts = hotData.artifacts ?? map({});
 
@@ -464,19 +516,20 @@ export class WorkbenchStore {
 
       const bytes = await entry.async('uint8array');
 
-      try {
-        files.push({
-          path: entry.name,
-          content: PROJECT_ARCHIVE_TEXT_DECODER.decode(bytes),
-          isBinary: false,
-        });
-      } catch {
-        files.push({
-          path: entry.name,
-          content: '',
-          isBinary: true,
-        });
-      }
+      /*
+       * Binary entries (image/font/etc.) are kept as base64 instead of dropped:
+       * the FileTree copy/duplicate path reads isBinary entries via
+       * base64ToUint8Array(content), so empty content produced a 0-byte file and
+       * the asset could never render. Standard base64 (atob-decodable) matches
+       * that reader.
+       */
+      const decoded = decodeArchiveEntry(
+        bytes,
+        (input) => PROJECT_ARCHIVE_TEXT_DECODER.decode(input),
+        uint8ArrayToBase64,
+      );
+
+      files.push({ path: entry.name, content: decoded.content, isBinary: decoded.isBinary });
     }
 
     return files;
@@ -529,6 +582,15 @@ export class WorkbenchStore {
       });
     }
 
+    /*
+     * Recover a reaped workspace before doing anything else. The Run / Reinstall
+     * buttons issue dev-server commands at the EXISTING workspace pod; once the
+     * manager has reconciled the pod away (status stopped/error) those commands
+     * just fail again. Reprovision the pod first so the recovery buttons actually
+     * revive a dead workspace, not only a stopped dev process.
+     */
+    await this.#ensureWorkspaceProvisioned();
+
     await this.refreshRuntimePorts().catch(() => undefined);
 
     if (this.#previewStartPromise) {
@@ -570,7 +632,7 @@ export class WorkbenchStore {
 
     if (shouldInstall) {
       await this.stopPreviewServer();
-    } else if (this.previews.get().some((preview) => preview.ready !== false)) {
+    } else if (await this.#canShortCircuitToExistingPreview()) {
       this.previewServerState.set({ status: 'running' });
       return 'existing preview server';
     }
@@ -648,11 +710,15 @@ export class WorkbenchStore {
             `Preparing preview with ${setupCommand.label}${setupCommand.cwd ? ` in ${setupCommand.cwd}` : ''}`,
           );
 
-          const setupExitCode = await this.#streamWorkspaceCommand(setupCommand, {
-            exitMessage: 'Preview setup command exited with code',
-          });
+          const setupExitCode = await this.#runSetupCommandWithRetry(setupCommand);
 
           if (setupExitCode !== 0) {
+            this.previewServerState.set({
+              status: 'error',
+              command: command.label,
+              error: `${setupCommand.label} failed (exit ${setupExitCode})`,
+            });
+
             return;
           }
         }
@@ -684,6 +750,70 @@ export class WorkbenchStore {
     });
 
     return command.label;
+  }
+
+  /*
+   * Whether #runStartPreviewServer may skip the install/launch and report the
+   * already-running dev server. A port that was merely DETECTED (ready can be
+   * undefined, i.e. `!== false`) against an empty/incomplete node_modules must
+   * NOT suppress a needed install — that strands the iframe on a blank/500 app.
+   * Require a genuinely-ready port AND installed dependencies for the chosen
+   * package dir.
+   */
+  async #canShortCircuitToExistingPreview() {
+    const pkgEntry = this.#findPackageJsonEntry();
+
+    /*
+     * No package.json → nothing to install; trust a detected port (static/other
+     * project shapes), preserving the prior behaviour for those.
+     */
+    if (!pkgEntry || pkgEntry[1]?.type !== 'file') {
+      return this.previews.get().some((preview) => preview.ready !== false);
+    }
+
+    let pkg: PreviewPackageManifest = {};
+
+    if (pkgEntry[1].content) {
+      try {
+        pkg = JSON.parse(pkgEntry[1].content) as PreviewPackageManifest;
+      } catch {
+        pkg = {};
+      }
+    }
+
+    const dependenciesInstalled = await this.#packageDirectoryHasInstalledPreviewDependencies(pkgEntry[0], pkg).catch(
+      () => false,
+    );
+
+    return shouldUseExistingPreviewServer(this.previews.get(), dependenciesInstalled);
+  }
+
+  /*
+   * If the workspace pod has been stopped/reaped, reprovision it via the runtime
+   * adapter before issuing preview commands. No-op when the workspace is healthy
+   * or its status is unknown (webcontainer mode reports no session). Best-effort:
+   * a failure is logged and surfaced via workspaceStatus, but does not throw — the
+   * downstream command attempt will produce the actionable error.
+   */
+  async #ensureWorkspaceProvisioned() {
+    if (!workspaceNeedsReprovision(this.workspaceStatus.get())) {
+      return;
+    }
+
+    if (typeof this.#runtime.startWorkspace !== 'function') {
+      return;
+    }
+
+    this.appendWorkspaceLog('Workspace is stopped; reprovisioning before starting the preview…');
+
+    try {
+      const session = await withRuntimeRetry(() => this.#runtime.startWorkspace());
+      this.workspaceStatus.set(session);
+    } catch (error) {
+      this.appendWorkspaceLog(
+        error instanceof Error ? `Workspace reprovision failed: ${error.message}` : 'Workspace reprovision failed',
+      );
+    }
   }
 
   isPreviewServerStarting() {
@@ -749,6 +879,61 @@ export class WorkbenchStore {
     await this.stopPreviewServer();
 
     return this.startPreviewServer({ forceInstall: true });
+  }
+
+  /*
+   * Run a preview setup command (npm/pnpm/yarn install) with a bounded retry on
+   * TRANSIENT failure. #streamWorkspaceCommand returns a non-zero exit (not a
+   * throw) both for a genuine install error and for an interrupted command
+   * stream; we re-run only when the recent log tail looks transient
+   * (stream-closed / 502 / network), with exponential backoff, so a single
+   * cold-start drop mid-install doesn't blank the preview while a real package
+   * error still fails fast.
+   */
+  async #runSetupCommandWithRetry(setupCommand: PreviewCommand): Promise<number> {
+    let exitCode = 0;
+
+    for (let attempt = 1; attempt <= PREVIEW_SETUP_RETRY_ATTEMPTS; attempt++) {
+      const tailStart = this.#currentWorkspaceLogLength();
+
+      exitCode = await this.#streamWorkspaceCommand(setupCommand, {
+        exitMessage: 'Preview setup command exited with code',
+      });
+
+      if (exitCode === 0) {
+        return 0;
+      }
+
+      const isLastAttempt = attempt >= PREVIEW_SETUP_RETRY_ATTEMPTS;
+      const transient = isTransientCommandFailure(this.#workspaceLogTailSince(tailStart));
+
+      if (isLastAttempt || !transient) {
+        return exitCode;
+      }
+
+      const delayMs = PREVIEW_SETUP_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
+      this.appendWorkspaceLog(
+        `${setupCommand.label} failed transiently (exit ${exitCode}); retrying in ${Math.round(delayMs / 1000)}s ` +
+          `(attempt ${attempt + 1}/${PREVIEW_SETUP_RETRY_ATTEMPTS})`,
+      );
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, delayMs);
+      });
+    }
+
+    return exitCode;
+  }
+
+  #currentWorkspaceLogLength() {
+    this.flushWorkspaceLogs();
+
+    return this.workspaceLogs.get().length;
+  }
+
+  #workspaceLogTailSince(startLength: number) {
+    this.flushWorkspaceLogs();
+
+    return this.workspaceLogs.get().slice(Math.max(0, startLength));
   }
 
   async #streamWorkspaceCommand(
@@ -1259,7 +1444,54 @@ export class WorkbenchStore {
       return;
     }
 
-    this.workspaceLogs.set([...this.workspaceLogs.get(), ...lines].slice(-WORKSPACE_LOG_LIMIT));
+    this.#pendingWorkspaceLogLines.push(...lines);
+
+    /*
+     * Only the high-frequency streamed stdout/stderr burst needs coalescing.
+     * Discrete one-off status lines (and terminal exit/error events) flush
+     * synchronously so callers that read workspaceLogs right after appending
+     * still see them immediately.
+     */
+    const isStreamedOutput = typeof event !== 'string' && (event.type === 'stdout' || event.type === 'stderr');
+
+    if (!isStreamedOutput) {
+      this.flushWorkspaceLogs();
+
+      return;
+    }
+
+    if (this.#workspaceLogFlushTimer) {
+      return;
+    }
+
+    this.#workspaceLogFlushTimer = setTimeout(() => {
+      this.#workspaceLogFlushTimer = undefined;
+      this.#flushWorkspaceLogs();
+    }, WORKSPACE_LOG_FLUSH_INTERVAL_MS);
+  }
+
+  /**
+   * Flush buffered streamed log lines into the workspaceLogs atom in a single
+   * store update. Exposed (not private) so tests and teardown paths can force a
+   * synchronous flush; safe to call when nothing is buffered.
+   */
+  flushWorkspaceLogs() {
+    if (this.#workspaceLogFlushTimer) {
+      clearTimeout(this.#workspaceLogFlushTimer);
+      this.#workspaceLogFlushTimer = undefined;
+    }
+
+    this.#flushWorkspaceLogs();
+  }
+
+  #flushWorkspaceLogs() {
+    if (this.#pendingWorkspaceLogLines.length === 0) {
+      return;
+    }
+
+    const incoming = this.#pendingWorkspaceLogLines;
+    this.#pendingWorkspaceLogLines = [];
+    this.workspaceLogs.set(appendWorkspaceLogLines(this.workspaceLogs.get(), incoming, WORKSPACE_LOG_LIMIT));
   }
 
   #dropResolvedAgentPatchLogs(relativePath: string) {

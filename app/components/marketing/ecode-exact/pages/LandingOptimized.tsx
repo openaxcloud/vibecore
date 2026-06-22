@@ -22,6 +22,7 @@ import {
   ListTodo,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { buildPromptForMode, resolveDemoScrollTarget } from './landing-build-intent';
 import {
   AIModelSelector,
   BuildModeSelector,
@@ -37,6 +38,14 @@ import {
   useWouterLocation,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { DeferredSections } from '~/components/marketing/ecode-exact/landing/DeferredSections';
+
+/*
+ * Number of reveal-and-retry attempts the "Watch Demo" CTA makes while the lazy
+ * video section mounts, and the delay between them. ~10 * 120ms ≈ 1.2s covers the
+ * smooth-scroll + IntersectionObserver + Suspense mount of LandingVideo.
+ */
+const DEMO_SCROLL_MAX_ATTEMPTS = 10;
+const DEMO_SCROLL_RETRY_MS = 120;
 
 export default function LandingOptimized() {
   const [, navigate] = useWouterLocation();
@@ -104,7 +113,15 @@ export default function LandingOptimized() {
      * "Create project" button uses. This gives the homepage and dashboard a
      * single, working create flow.
      */
-    const prompt = pendingBuildPrompt.trim();
+    /*
+     * Fold the chosen mode INTO the prompt. /projects/new only reads ?prompt=
+     * (it ignores ?buildMode= and sessionStorage), so a design-first selection
+     * would otherwise be dropped and generate the same full app as full-app.
+     * buildPromptForMode prepends an explicit design-first directive so the
+     * choice has a real, observable effect through the only channel the create
+     * flow consumes.
+     */
+    const prompt = buildPromptForMode(mode, pendingBuildPrompt);
     sessionStorage.setItem('pendingAppDescription', prompt);
     sessionStorage.setItem('pendingBuildMode', mode);
     sessionStorage.removeItem('triggerBuildOnLanding');
@@ -121,6 +138,36 @@ export default function LandingOptimized() {
     const params = new URLSearchParams({ prompt });
     params.set('buildMode', mode);
     navigate(`/projects/new?${params.toString()}`);
+  };
+
+  /*
+   * The #video-demo anchor only exists once the lazy LandingVideo section mounts
+   * via IntersectionObserver, so on first paint a plain getElementById(...) is
+   * null and the demo CTA did nothing. Nudge the page toward the video region to
+   * trip the observer, then retry until the anchor appears (bounded), and scroll
+   * to it. window.scrollBy is a no-op in jsdom, which is fine — the retry logic
+   * itself is unit-tested via resolveDemoScrollTarget.
+   */
+  const scrollToVideoDemo = () => {
+    const attempt = (attemptsRemaining: number) => {
+      const anchor = document.getElementById('video-demo');
+      const action = resolveDemoScrollTarget(Boolean(anchor), attemptsRemaining);
+
+      if (action.kind === 'scroll-to-anchor') {
+        anchor?.scrollIntoView({ behavior: 'smooth' });
+
+        return;
+      }
+
+      if (action.kind === 'give-up') {
+        return;
+      }
+
+      window.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
+      window.setTimeout(() => attempt(attemptsRemaining - 1), DEMO_SCROLL_RETRY_MS);
+    };
+
+    attempt(DEMO_SCROLL_MAX_ATTEMPTS);
   };
 
   const examples = [
@@ -306,7 +353,7 @@ export default function LandingOptimized() {
                 size="lg"
                 variant="outline"
                 className="gap-2 px-6 sm:px-8 py-4 sm:py-6 text-base sm:text-[15px] border-2 border-[var(--ecode-border)] hover:border-ecode-accent/50 w-full sm:w-auto min-h-[48px]"
-                onClick={() => document.getElementById('video-demo')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={scrollToVideoDemo}
                 data-testid="button-watch-demo"
               >
                 <PlayCircle className="h-4 w-4 sm:h-5 sm:w-5 text-ecode-accent" />

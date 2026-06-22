@@ -12,6 +12,13 @@ import {
   publicMarketingMenus,
   publicNav,
 } from './SaaSLayout';
+import {
+  type CommandPaletteItem,
+  clampSelectionIndex,
+  filterCommandPaletteItems,
+  fuzzyMatches,
+  resolveCommandPaletteKey,
+} from './command-palette-search';
 import { comparePages, marketingCampaignPages, solutionPages } from '~/components/marketing/EcodeMarketingPages';
 import { ecodeCompatibilityRoutePatterns } from '~/components/marketing/EcodeSurfacePages';
 
@@ -233,6 +240,74 @@ describe('public marketing brand', () => {
     );
 
     expectBrokenSourceMediaIsNotShipped(publicDir);
+  });
+});
+
+describe('dashboard command palette search', () => {
+  const items: CommandPaletteItem[] = [
+    { label: 'Create project', to: '/projects/new', hint: 'Action' },
+    { label: 'View usage', to: '/usage', hint: 'Action' },
+    { label: 'Invite teammate', to: '/invitations', hint: 'Action' },
+    { label: 'My Storefront', to: '/projects/store-1/ide', hint: 'Project' },
+  ];
+
+  it('returns all items for an empty query (the palette is not blank on open)', () => {
+    expect(filterCommandPaletteItems(items, '')).toEqual(items);
+    expect(filterCommandPaletteItems(items, '   ')).toEqual(items);
+  });
+
+  it('filters commands by label so typing actually narrows the list', () => {
+    const result = filterCommandPaletteItems(items, 'usage');
+
+    expect(result.map((item) => item.to)).toEqual(['/usage']);
+  });
+
+  it('matches against the destination path too (e.g. "/invit")', () => {
+    expect(filterCommandPaletteItems(items, '/invit').map((item) => item.to)).toEqual(['/invitations']);
+  });
+
+  it('fuzzy-matches subsequences and finds real projects', () => {
+    expect(fuzzyMatches('My Storefront', 'strfrnt')).toBe(true);
+    expect(fuzzyMatches('My Storefront', 'zzz')).toBe(false);
+    expect(filterCommandPaletteItems(items, 'store').map((item) => item.label)).toEqual(['My Storefront']);
+  });
+
+  it('returns an empty list when nothing matches (so the UI can show an empty hint)', () => {
+    expect(filterCommandPaletteItems(items, 'definitely-no-match')).toEqual([]);
+  });
+
+  it('wraps the selection index around both ends', () => {
+    expect(clampSelectionIndex(0, 3)).toBe(0);
+    expect(clampSelectionIndex(3, 3)).toBe(0);
+    expect(clampSelectionIndex(-1, 3)).toBe(2);
+    expect(clampSelectionIndex(5, 0)).toBe(0);
+  });
+
+  it('moves the highlight on arrow keys and reports the event as handled', () => {
+    expect(resolveCommandPaletteKey('ArrowDown', 0, items)).toMatchObject({ nextIndex: 1, handled: true });
+    expect(resolveCommandPaletteKey('ArrowUp', 0, items)).toMatchObject({ nextIndex: items.length - 1, handled: true });
+  });
+
+  it('navigates to the highlighted item on Enter', () => {
+    const result = resolveCommandPaletteKey('Enter', 1, items);
+
+    expect(result.handled).toBe(true);
+    expect(result.navigateTo).toEqual(items[1]);
+  });
+
+  it('does not navigate on Enter when there are no visible items', () => {
+    const result = resolveCommandPaletteKey('Enter', 0, []);
+
+    expect(result.handled).toBe(false);
+    expect(result.navigateTo).toBeUndefined();
+  });
+
+  it('leaves typing characters unhandled so the input keeps its value', () => {
+    expect(resolveCommandPaletteKey('a', 0, items).handled).toBe(false);
+  });
+
+  it('reports Escape as a close request', () => {
+    expect(resolveCommandPaletteKey('Escape', 2, items)).toMatchObject({ close: true, handled: true });
   });
 });
 

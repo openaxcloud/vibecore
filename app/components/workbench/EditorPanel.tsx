@@ -7,6 +7,7 @@ import { FileBreadcrumb } from './FileBreadcrumb';
 import { FileTree } from './FileTree';
 import { LockManager } from './LockManager'; // <-- Import LockManager
 import { Search } from './Search'; // <-- Ensure Search is imported
+import { shouldEditorBeReadOnly } from './editor-read-only';
 import { DEFAULT_TERMINAL_SIZE, TerminalTabs } from './terminal/TerminalTabs';
 import {
   type EditorDocument,
@@ -51,7 +52,6 @@ export const EditorPanel = memo(
     unsavedFiles,
     editorDocument,
     selectedFile,
-    isStreaming,
     fileHistory,
     onFileSelect,
     onEditorChange,
@@ -85,6 +85,27 @@ export const EditorPanel = memo(
     const isLargeFile = Boolean(
       editorDocument && !editorDocument.isBinary && editorDocument.value.length > LARGE_FILE_BYTES,
     );
+
+    /*
+     * Edit-blocking is scoped to the file the agent currently holds a lock on, not the
+     * global stream. A locked dirent (direct lock or inherited from a locked folder) is
+     * marked isLocked in the files map, so the open file is read-only only when it is the
+     * one being touched — unrelated files stay editable while an agent streams.
+     */
+    const isCurrentFileLocked = useMemo(() => {
+      if (!editorDocument) {
+        return false;
+      }
+
+      const dirent = files?.[editorDocument.filePath];
+
+      return dirent?.type === 'file' && Boolean(dirent.isLocked);
+    }, [editorDocument, files]);
+
+    const editorReadOnly = shouldEditorBeReadOnly({
+      hasDocument: editorDocument !== undefined,
+      isCurrentFileLocked,
+    });
     const editorProjectFiles = useMemo(() => {
       return Object.fromEntries(
         Object.entries(files ?? {})
@@ -233,7 +254,7 @@ export const EditorPanel = memo(
               className="h-full w-full"
               value={editorDocument.value}
               filePath={editorDocument.filePath}
-              readOnly={isStreaming || editorDocument === undefined}
+              readOnly={editorReadOnly}
               theme={theme === 'dark' ? 'dark' : 'light'}
               autoFocus={!isMobile() && !useMobilePanelLayout}
               largeFile={isLargeFile}

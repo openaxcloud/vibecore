@@ -6,6 +6,7 @@ import type {
   FileUIPart,
   StepStartUIPart,
 } from '@ai-sdk/ui-utils';
+import { useStore } from '@nanostores/react';
 import type { JSONValue } from 'ai';
 import type { Message } from 'ai';
 import { memo, Fragment, useCallback, useEffect, useState } from 'react';
@@ -15,6 +16,7 @@ import { MessagePatchReview } from './MessagePatchReview';
 import { PlanChecklistView } from './PlanChecklist';
 import ThoughtBox from './ThoughtBox';
 import { ToolInvocations } from './ToolInvocations';
+import { resolveLaneState } from './agent-lane-state';
 import { ConnectionFailedNote } from './connector-cards/ConnectionFailedNote';
 import { ConnectionRequestCard } from './connector-cards/ConnectionRequestCard';
 import { ConnectionResolvedNote } from './connector-cards/ConnectionResolvedNote';
@@ -23,6 +25,7 @@ import { SecretRequestCard } from './connector-cards/SecretRequestCard';
 import Popover from '~/components/ui/Popover';
 import WithTooltip from '~/components/ui/Tooltip';
 import { extractAndStripPlanChecklist } from '~/lib/chat/plan-checklist';
+import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { ContextAnnotation, ToolCallAnnotation } from '~/types/context';
 import type { ProviderInfo } from '~/types/model';
@@ -100,6 +103,14 @@ export const AssistantMessage = memo(
     parts,
     addToolResult,
   }: AssistantMessageProps) => {
+    /*
+     * Global streaming flag (set by Chat.client while a chat request is in
+     * flight). Used to decide whether a parallel-agent lane still marked
+     * 'running' is genuinely in-flight or stranded by a Stop/abort — see
+     * resolveLaneState.
+     */
+    const isStreaming = useStore(streamingState);
+
     const filteredAnnotations = (annotations?.filter(
       (annotation: JSONValue) =>
         annotation && typeof annotation === 'object' && Object.keys(annotation).includes('type'),
@@ -500,7 +511,9 @@ export const AssistantMessage = memo(
                   {agentExecution
                     ? `consensus: ${(agentExecution.consensus?.outcome ?? agentExecution.status).toString().toLowerCase()}`
                     : agentLaneStreams?.some((lane) => lane.status === 'running')
-                      ? 'running in parallel...'
+                      ? isStreaming
+                        ? 'running in parallel...'
+                        : 'stopped'
                       : 'finalizing consensus...'}
                 </span>
               </div>
@@ -509,9 +522,12 @@ export const AssistantMessage = memo(
                   const result = agentExecution?.results.find((r) => r.roleId === role.id);
                   const stream = agentLaneStreams?.find((lane) => lane.roleId === role.id);
 
-                  const state: 'running' | 'complete' | 'partial' | 'failed' = !agentExecution
-                    ? (stream?.status ?? 'running')
-                    : (result?.status ?? 'failed');
+                  const state = resolveLaneState({
+                    resultStatus: result?.status,
+                    streamStatus: stream?.status,
+                    hasExecution: Boolean(agentExecution),
+                    isStreaming,
+                  });
                   const icon =
                     state === 'running'
                       ? 'i-ph:circle-notch animate-spin text-bolt-elements-item-contentAccent'

@@ -1,8 +1,11 @@
+import { useStore } from '@nanostores/react';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import * as Tooltip from '@radix-ui/react-tooltip';
+import type { WorkspaceStatus } from '@vibecore/runtime-contract';
 import { diffLines, type Change } from 'diff';
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { toast } from 'react-toastify';
+import { resolveEmptyExplorerState } from './file-tree-empty-state';
 import { GitStatusBadge } from '~/components/git/GitStatusBadge';
 import {
   isFileLocked as readFileLockedFromStorage,
@@ -88,6 +91,16 @@ interface Props {
   openEditors?: OpenEditorEntry[];
   gitStatusByPath?: Record<string, GitFileStatus | string | undefined>;
   showHiddenFiles?: boolean;
+
+  /*
+   * Workspace lifecycle, used to give the empty file list an honest reason:
+   * loading vs crashed vs genuinely empty. When omitted these are read from the
+   * workbench store so callers (e.g. EditorPanel) need not thread them through.
+   */
+  workspaceLoading?: boolean;
+  workspaceStatus?: WorkspaceStatus;
+  workspaceError?: string;
+  onReconnectWorkspace?: () => void;
 }
 
 interface OpenEditorEntry {
@@ -125,8 +138,37 @@ export const FileTree = memo(
     openEditors = [],
     gitStatusByPath,
     showHiddenFiles = false,
+    workspaceLoading: workspaceLoadingProp,
+    workspaceStatus: workspaceStatusProp,
+    workspaceError: workspaceErrorProp,
+    onReconnectWorkspace,
   }: Props) => {
     renderLogger.trace('FileTree');
+
+    /*
+     * Read workspace lifecycle from the store unless the caller overrode it.
+     * Hooks must run unconditionally, so subscribe regardless and prefer the
+     * explicit props when supplied.
+     */
+    const storeWorkspaceLoading = useStore(workbenchStore.workspaceLoading);
+    const storeWorkspaceSession = useStore(workbenchStore.workspaceStatus);
+    const storeWorkspaceError = useStore(workbenchStore.workspaceError);
+
+    const workspaceLoading = workspaceLoadingProp ?? storeWorkspaceLoading;
+    const workspaceStatus = workspaceStatusProp ?? storeWorkspaceSession?.status;
+    const workspaceError = workspaceErrorProp ?? storeWorkspaceError;
+    const hasWorkspace = Boolean(storeWorkspaceSession) || workspaceStatusProp !== undefined;
+
+    const reconnectWorkspace = useCallback(() => {
+      if (onReconnectWorkspace) {
+        onReconnectWorkspace();
+        return;
+      }
+
+      workbenchStore.loadRuntimeFiles('.').catch((error) => {
+        logger.error('Failed to reconnect workspace files', error);
+      });
+    }, [onReconnectWorkspace]);
 
     const computedHiddenFiles = useMemo(
       () => (showHiddenFiles ? [] : [...DEFAULT_HIDDEN_FILES, ...(hiddenFiles ?? [])]),
@@ -555,9 +597,14 @@ export const FileTree = memo(
             })
           ) : (
             <EmptyExplorerState
-              icon="i-ph:folder-open"
-              title="No files available"
-              description="Project files will appear here once the workspace is loaded."
+              {...resolveEmptyExplorerState({
+                filesEmpty: filteredFileList.length === 0,
+                workspaceLoading,
+                workspaceStatus,
+                workspaceError,
+                hasWorkspace,
+              })}
+              onReconnect={reconnectWorkspace}
             />
           ))}
       </div>
@@ -1392,12 +1439,31 @@ function OutlineView({ symbols, onSelect }: { symbols: OutlineSymbol[]; onSelect
   );
 }
 
-function EmptyExplorerState({ icon, title, description }: { icon: string; title: string; description: string }) {
+interface EmptyExplorerStateProps {
+  icon: string;
+  title: string;
+  description: string;
+  variant?: 'loading' | 'error' | 'empty';
+  showReconnect?: boolean;
+  onReconnect?: () => void;
+}
+
+function EmptyExplorerState({ icon, title, description, showReconnect = false, onReconnect }: EmptyExplorerStateProps) {
   return (
     <div className="flex h-40 flex-col items-center justify-center px-4 text-center text-bolt-elements-textTertiary">
       <span className={classNames('mb-3 size-7', icon)} aria-hidden />
       <p className="text-sm font-medium text-bolt-elements-textSecondary">{title}</p>
       <p className="mt-1 max-w-48 text-xs leading-5">{description}</p>
+      {showReconnect && onReconnect ? (
+        <button
+          type="button"
+          onClick={onReconnect}
+          className="mt-3 flex items-center gap-1.5 rounded-md bg-bolt-elements-item-backgroundActive px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundAccent"
+        >
+          <span className="i-ph:arrow-clockwise size-3.5" aria-hidden />
+          Reconnect
+        </button>
+      ) : null}
     </div>
   );
 }

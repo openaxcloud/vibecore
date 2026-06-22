@@ -499,7 +499,7 @@ async function createProjectOrReturnQuotaError(
   request: Request,
   path: string,
   body: Record<string, unknown>,
-): Promise<{ ok: true; result: ProjectCreationResult } | { ok: false; error: string }> {
+): Promise<{ ok: true; result: ProjectCreationResult } | { ok: false; error: string; quota: true }> {
   try {
     return {
       ok: true,
@@ -512,11 +512,23 @@ async function createProjectOrReturnQuotaError(
     const quotaMessage = await projectQuotaActionMessage(error);
 
     if (quotaMessage) {
-      return { ok: false, error: quotaMessage };
+      return { ok: false, error: quotaMessage, quota: true };
     }
 
     throw error;
   }
+}
+
+type ProjectsNewActionError = { error: string; kind?: 'quota' };
+
+/*
+ * Builds the inline action-error payload from a failed creation attempt.
+ * A quota failure carries a `kind:'quota'` flag so the form can render the
+ * same actionable upgrade buttons the ErrorBoundary shows, instead of an
+ * inert wall of text.
+ */
+function projectCreateActionError(failed: { error: string; quota: true }): ProjectsNewActionError {
+  return { error: failed.error, kind: 'quota' };
 }
 
 async function requireFirstOrganization(request: Request) {
@@ -656,7 +668,7 @@ export async function action({ request, context }: EnterpriseActionArgs) {
       });
 
       if (!created.ok) {
-        return { error: created.error };
+        return projectCreateActionError(created);
       }
 
       result = created.result;
@@ -668,7 +680,7 @@ export async function action({ request, context }: EnterpriseActionArgs) {
       const created = await createProjectOrReturnQuotaError(request, `/orgs/${organization.id}/projects`, { name });
 
       if (!created.ok) {
-        return { error: created.error };
+        return projectCreateActionError(created);
       }
 
       result = created.result;
@@ -677,7 +689,7 @@ export async function action({ request, context }: EnterpriseActionArgs) {
     const created = await createProjectOrReturnQuotaError(request, `/orgs/${organization.id}/projects`, { name });
 
     if (!created.ok) {
-      return { error: created.error };
+      return projectCreateActionError(created);
     }
 
     result = created.result;
@@ -719,7 +731,7 @@ export async function action({ request, context }: EnterpriseActionArgs) {
 
 export default function NewProjectPage() {
   const initialModelsPayload = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+  const actionData = useActionData<typeof action>() as ProjectsNewActionError | undefined;
   const navigation = useNavigation();
   const providersSettings = useStore(providersStore);
   const isSubmitting = navigation.state === 'submitting';
@@ -952,9 +964,22 @@ export default function NewProjectPage() {
           <input type="hidden" name="framework" value={activeCategory.framework} />
 
           {actionData?.error ? (
-            <p className="vc-new-project-error" role="alert">
-              {actionData.error}
-            </p>
+            <div className="vc-new-project-error-block">
+              <p className="vc-new-project-error" role="alert">
+                {actionData.error}
+              </p>
+              {actionData.kind === 'quota' ? (
+                <div className="vc-new-project-error-actions">
+                  <Link to="/billing" className="vc-new-project-submit">
+                    <Rocket className="h-4 w-4" aria-hidden />
+                    <span>View billing</span>
+                  </Link>
+                  <Link to="/dashboard" className="vc-new-project-example">
+                    Back to dashboard
+                  </Link>
+                </div>
+              ) : null}
+            </div>
           ) : null}
 
           <div className="vc-new-project-composer">

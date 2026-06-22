@@ -67,3 +67,33 @@ export function projectAiMessagesToChatMessages(messages: ProjectAiMessageRespon
     })
     .filter((message): message is Message => Boolean(message));
 }
+
+/**
+ * Maximum number of automatic transcript-hydration retries before we give up and
+ * surface a manual retry affordance. A cold/GC'd workspace can 502 a few times
+ * before the agent pod is reachable, so a small bounded auto-retry recovers the
+ * common transient case without spinning forever.
+ */
+export const MAX_TRANSCRIPT_HYDRATION_RETRIES = 3;
+
+export type TranscriptHydrationRetryPlan = {
+  shouldRetry: boolean;
+  delayMs: number;
+};
+
+/**
+ * Pure decision for whether a failed transcript hydration should be retried
+ * automatically, and after what backoff delay. Exponential backoff capped so a
+ * returning user is never left staring at a silently-empty chat panel.
+ *
+ * @param attempt - zero-based index of the attempt that just failed.
+ */
+export function planTranscriptHydrationRetry(attempt: number): TranscriptHydrationRetryPlan {
+  if (!Number.isFinite(attempt) || attempt < 0 || attempt >= MAX_TRANSCRIPT_HYDRATION_RETRIES) {
+    return { shouldRetry: false, delayMs: 0 };
+  }
+
+  const delayMs = Math.min(8000, 1000 * 2 ** attempt);
+
+  return { shouldRetry: true, delayMs };
+}

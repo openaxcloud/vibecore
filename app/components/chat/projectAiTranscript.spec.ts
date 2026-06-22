@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { projectAiMessagesToChatMessages } from './projectAiTranscript';
+import {
+  MAX_TRANSCRIPT_HYDRATION_RETRIES,
+  planTranscriptHydrationRetry,
+  projectAiMessagesToChatMessages,
+} from './projectAiTranscript';
 
 describe('project AI transcript normalization', () => {
   it('converts persisted project AI messages into chat messages', () => {
@@ -94,5 +98,36 @@ describe('project AI transcript normalization', () => {
         ],
       },
     ]);
+  });
+});
+
+describe('transcript hydration retry plan', () => {
+  it('retries early failures with exponential backoff', () => {
+    expect(planTranscriptHydrationRetry(0)).toEqual({ shouldRetry: true, delayMs: 1000 });
+    expect(planTranscriptHydrationRetry(1)).toEqual({ shouldRetry: true, delayMs: 2000 });
+    expect(planTranscriptHydrationRetry(2)).toEqual({ shouldRetry: true, delayMs: 4000 });
+  });
+
+  it('stops auto-retrying once the bounded attempt budget is exhausted', () => {
+    expect(planTranscriptHydrationRetry(MAX_TRANSCRIPT_HYDRATION_RETRIES)).toEqual({
+      shouldRetry: false,
+      delayMs: 0,
+    });
+    expect(planTranscriptHydrationRetry(MAX_TRANSCRIPT_HYDRATION_RETRIES + 5)).toEqual({
+      shouldRetry: false,
+      delayMs: 0,
+    });
+  });
+
+  it('treats invalid attempt counts as non-retryable instead of looping forever', () => {
+    expect(planTranscriptHydrationRetry(-1)).toEqual({ shouldRetry: false, delayMs: 0 });
+    expect(planTranscriptHydrationRetry(Number.NaN)).toEqual({ shouldRetry: false, delayMs: 0 });
+    expect(planTranscriptHydrationRetry(Number.POSITIVE_INFINITY)).toEqual({ shouldRetry: false, delayMs: 0 });
+  });
+
+  it('caps the backoff delay so a returning user is never stranded silently', () => {
+    const plan = planTranscriptHydrationRetry(MAX_TRANSCRIPT_HYDRATION_RETRIES - 1);
+    expect(plan.shouldRetry).toBe(true);
+    expect(plan.delayMs).toBeLessThanOrEqual(8000);
   });
 });

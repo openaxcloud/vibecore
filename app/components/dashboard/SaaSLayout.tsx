@@ -45,7 +45,7 @@ import {
   Instagram,
   type LucideIcon,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type React from 'react';
 import type { IconType } from 'react-icons';
 import {
@@ -66,6 +66,12 @@ import {
   SiVite,
 } from 'react-icons/si';
 import { Form, Link, NavLink, useNavigate } from 'react-router';
+import {
+  type CommandPaletteItem,
+  clampSelectionIndex,
+  filterCommandPaletteItems,
+  resolveCommandPaletteKey,
+} from './command-palette-search';
 import { EcodeBrandMark } from '~/components/brand/EcodeBrandMark';
 import { EcodeExactPublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import { Button } from '~/components/ui/Button';
@@ -1386,15 +1392,61 @@ export function ActivityList({ items }: { items: Array<{ title: string; detail: 
   );
 }
 
-export function CommandPalettePreview() {
-  const commands = [
-    { label: 'Create project', to: '/projects/new' },
-    { label: 'Open recent projects', to: '/recent-projects' },
-    { label: 'Import GitHub repository', to: '/import-github' },
-    { label: 'View usage', to: '/usage' },
-    { label: 'Invite teammate', to: '/invitations' },
-    { label: 'Rotate API key', to: '/api-keys' },
-  ];
+const COMMAND_PALETTE_ACTIONS: CommandPaletteItem[] = [
+  { label: 'Create project', to: '/projects/new', hint: 'Action' },
+  { label: 'Open recent projects', to: '/recent-projects', hint: 'Action' },
+  { label: 'Import GitHub repository', to: '/import-github', hint: 'Action' },
+  { label: 'View usage', to: '/usage', hint: 'Action' },
+  { label: 'Invite teammate', to: '/invitations', hint: 'Action' },
+  { label: 'Rotate API key', to: '/api-keys', hint: 'Action' },
+];
+
+/**
+ * Build the full command list: the static dashboard actions plus a "jump to
+ * project" entry for every project the caller passes in, so the palette can
+ * navigate to any of the user's real projects.
+ */
+export function buildCommandPaletteItems(projects: ProjectCard[] = []): CommandPaletteItem[] {
+  const projectItems: CommandPaletteItem[] = projects.map((project) => ({
+    label: project.name,
+    to: project.ideUrl ?? `/projects/${project.id}`,
+    hint: 'Project',
+  }));
+
+  return [...COMMAND_PALETTE_ACTIONS, ...projectItems];
+}
+
+export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCard[] }) {
+  const navigate = useNavigate();
+  const allItems = useMemo(() => buildCommandPaletteItems(projects), [projects]);
+  const [query, setQuery] = useState('');
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const visibleItems = useMemo(() => filterCommandPaletteItems(allItems, query), [allItems, query]);
+
+  /* Keep the highlight in range whenever the filtered list shrinks/grows. */
+  useEffect(() => {
+    setActiveIndex((index) => clampSelectionIndex(index, visibleItems.length));
+  }, [visibleItems.length]);
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      const result = resolveCommandPaletteKey(event.key, activeIndex, visibleItems);
+
+      if (!result.handled) {
+        return;
+      }
+
+      event.preventDefault();
+      setActiveIndex(result.nextIndex);
+
+      if (result.navigateTo) {
+        navigate(result.navigateTo.to);
+      }
+    },
+    [activeIndex, navigate, visibleItems],
+  );
+
   return (
     <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 shadow-sm">
       <label className="flex items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm">
@@ -1403,22 +1455,40 @@ export function CommandPalettePreview() {
           className="min-w-0 flex-1 bg-transparent outline-none"
           placeholder="Type a command or search..."
           aria-label="Command palette search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={handleKeyDown}
         />
         <kbd className="rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-xs text-bolt-elements-textTertiary">
           K
         </kbd>
       </label>
-      <div className="mt-3 grid gap-1">
-        {commands.map((command) => (
-          <Link
-            key={command.to}
-            to={command.to}
-            className="flex items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-bolt-elements-background-depth-3"
-          >
-            {command.label}
-            <span className="text-xs text-bolt-elements-textTertiary">Enter</span>
-          </Link>
-        ))}
+      <div className="mt-3 grid gap-1" role="listbox" aria-label="Command palette results">
+        {visibleItems.length === 0 ? (
+          <p className="px-3 py-2 text-sm text-bolt-elements-textTertiary">No matching commands or projects.</p>
+        ) : (
+          visibleItems.map((command, index) => (
+            <Link
+              key={`${command.to}-${command.label}`}
+              to={command.to}
+              role="option"
+              aria-selected={index === activeIndex}
+              onMouseEnter={() => setActiveIndex(index)}
+              className={classNames(
+                'flex items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-bolt-elements-background-depth-3',
+                index === activeIndex && 'bg-bolt-elements-background-depth-3',
+              )}
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="truncate">{command.label}</span>
+                {command.hint ? (
+                  <span className="shrink-0 text-xs text-bolt-elements-textTertiary">{command.hint}</span>
+                ) : null}
+              </span>
+              <span className="text-xs text-bolt-elements-textTertiary">Enter</span>
+            </Link>
+          ))
+        )}
       </div>
     </div>
   );

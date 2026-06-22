@@ -22,6 +22,7 @@ import { toast } from 'react-toastify';
 import { Inspector, type ElementInfo } from './Inspector';
 import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
+import { decidePreviewLoadOutcome, shouldRunPreviewBootLoop } from './preview-frame-recovery';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
@@ -391,6 +392,7 @@ export const Preview = memo(
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const previewReloadTimer = useRef<number | undefined>();
+    const previewLoadRetryRef = useRef(0);
     const [activePreviewIndex, setActivePreviewIndex] = useState(0);
     const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -516,6 +518,7 @@ export const Preview = memo(
       }
 
       previewLoadIdentityRef.current = previewLoadIdentity;
+      previewLoadRetryRef.current = 0;
       setPreviewFrameLoaded(false);
       setLoadedPreviewUrl(undefined);
 
@@ -887,12 +890,15 @@ export const Preview = memo(
 
     useEffect(() => {
       if (
-        !autoStart ||
-        !workspaceReady ||
-        hasStaticPreview ||
-        previews.length > 0 ||
         isStartingPreview ||
-        previewRunFailed
+        !shouldRunPreviewBootLoop({
+          autoStart,
+          workspaceReady,
+          hasStaticPreview,
+          previewsLength: previews.length,
+          previewRunFailed,
+          hasWorkspaceError: Boolean(workspaceError),
+        })
       ) {
         return;
       }
@@ -906,11 +912,21 @@ export const Preview = memo(
       previews.length,
       previewRunFailed,
       startPreviewServer,
+      workspaceError,
       workspaceReady,
     ]);
 
     useEffect(() => {
-      if (!autoStart || !workspaceReady || hasStaticPreview || previews.length > 0 || previewRunFailed) {
+      if (
+        !shouldRunPreviewBootLoop({
+          autoStart,
+          workspaceReady,
+          hasStaticPreview,
+          previewsLength: previews.length,
+          previewRunFailed,
+          hasWorkspaceError: Boolean(workspaceError),
+        })
+      ) {
         return undefined;
       }
 
@@ -948,10 +964,19 @@ export const Preview = memo(
       }, 2500);
 
       return () => window.clearInterval(interval);
-    }, [autoStart, hasStaticPreview, previews.length, previewRunFailed, workspaceReady]);
+    }, [autoStart, hasStaticPreview, previews.length, previewRunFailed, workspaceError, workspaceReady]);
 
     useEffect(() => {
-      if (!autoStart || !workspaceReady || hasStaticPreview || previews.length > 0) {
+      if (
+        !shouldRunPreviewBootLoop({
+          autoStart,
+          workspaceReady,
+          hasStaticPreview,
+          previewsLength: previews.length,
+          previewRunFailed,
+          hasWorkspaceError: Boolean(workspaceError),
+        })
+      ) {
         return undefined;
       }
 
@@ -963,7 +988,7 @@ export const Preview = memo(
       }, 300000); // 5min: a fresh complex app's npm install + dev start can exceed 2min under gVisor/CPU contention
 
       return () => window.clearTimeout(timeout);
-    }, [autoStart, hasStaticPreview, previews.length, workspaceReady]);
+    }, [autoStart, hasStaticPreview, previews.length, previewRunFailed, workspaceError, workspaceReady]);
 
     const navigatePreviewHistory = (direction: 'back' | 'forward') => {
       try {
@@ -1658,6 +1683,50 @@ export const Preview = memo(
           return;
         }
 
+        /*
+         * The cross-origin preview iframe fires onLoad even for HTTP 5xx bodies,
+         * so a "load" that lands while the runtime still reports the port as
+         * not-ready is almost certainly the proxy's transient 502 holding page.
+         * Don't dismiss the loading overlay on it — schedule a bounded
+         * auto-reload (through about:blank) until a real render arrives.
+         */
+        const decision = decidePreviewLoadOutcome({
+          attempt: previewLoadRetryRef.current,
+          ready: activePreview?.ready,
+          erroredLoad: false,
+        });
+        previewLoadRetryRef.current = decision.nextAttempt;
+
+        if (!decision.treatAsRendered) {
+          setPreviewNetworkEvents((events) =>
+            [
+              {
+                method: 'GET',
+                url: targetUrl,
+                status: 'upstream-not-ready',
+                source: 'iframe',
+              },
+              ...events,
+            ].slice(0, 80),
+          );
+
+          if (decision.scheduleReload) {
+            setPreviewStatus('Preview server is still starting, retrying...');
+
+            if (previewReloadTimer.current !== undefined) {
+              window.clearTimeout(previewReloadTimer.current);
+            }
+
+            previewReloadTimer.current = window.setTimeout(() => {
+              previewReloadTimer.current = undefined;
+              reloadPreview('upstream-retry');
+            }, 1500);
+          }
+
+          return;
+        }
+
+        previewLoadRetryRef.current = 0;
         setPreviewNetworkEvents((events) =>
           [
             {
@@ -1674,8 +1743,41 @@ export const Preview = memo(
         setIsStartingPreview(false);
         setPreviewStatus('Preview rendered.');
       },
-      [visiblePreviewUrl],
+      [activePreview?.ready, reloadPreview, visiblePreviewUrl],
     );
+
+    const handlePreviewFrameError = useCallback(() => {
+      /*
+       * The browser only fires `error` for network-level frame failures
+       * (DNS/connection reset) — an HTTP 5xx still fires `load`. Treat it as a
+       * transient upstream failure worth a bounded auto-reload rather than a
+       * finished render, so the overlay stays up and the frame self-heals once
+       * the dev server is reachable.
+       */
+      const decision = decidePreviewLoadOutcome({
+        attempt: previewLoadRetryRef.current,
+        ready: activePreview?.ready,
+        erroredLoad: true,
+      });
+      previewLoadRetryRef.current = decision.nextAttempt;
+
+      if (decision.scheduleReload) {
+        setPreviewStatus('Preview server is unreachable, retrying...');
+
+        if (previewReloadTimer.current !== undefined) {
+          window.clearTimeout(previewReloadTimer.current);
+        }
+
+        previewReloadTimer.current = window.setTimeout(() => {
+          previewReloadTimer.current = undefined;
+          reloadPreview('upstream-error-retry');
+        }, 1500);
+      } else {
+        setPreviewStatus('Preview server is not responding.');
+        setPreviewRunFailed(true);
+        setIsStartingPreview(false);
+      }
+    }, [activePreview?.ready, reloadPreview]);
 
     const previewViewportWidth = isDeviceModeOn
       ? showDeviceFrameInPreview
@@ -2065,6 +2167,7 @@ export const Preview = memo(
                         sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
                         allow="cross-origin-isolated"
                         onLoad={() => recordPreviewLoad(iframeUrl)}
+                        onError={handlePreviewFrameError}
                         data-testid="preview-iframe"
                       />
                     </div>
@@ -2078,6 +2181,7 @@ export const Preview = memo(
                     sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
                     allow="geolocation; ch-ua-full-version-list; cross-origin-isolated; screen-wake-lock; publickey-credentials-get; shared-storage-select-url; ch-ua-arch; bluetooth; compute-pressure; ch-prefers-reduced-transparency; deferred-fetch; usb; ch-save-data; publickey-credentials-create; shared-storage; deferred-fetch-minimal; run-ad-auction; ch-ua-form-factors; ch-downlink; otp-credentials; payment; ch-ua; ch-ua-model; ch-ect; autoplay; camera; private-state-token-issuance; accelerometer; ch-ua-platform-version; idle-detection; private-aggregation; interest-cohort; ch-viewport-height; local-fonts; ch-ua-platform; midi; ch-ua-full-version; xr-spatial-tracking; clipboard-read; gamepad; display-capture; keyboard-map; join-ad-interest-group; ch-width; ch-prefers-reduced-motion; browsing-topics; encrypted-media; gyroscope; serial; ch-rtt; ch-ua-mobile; window-management; unload; ch-dpr; ch-prefers-color-scheme; ch-ua-wow64; attribution-reporting; fullscreen; identity-credentials-get; private-state-token-redemption; hid; ch-ua-bitness; storage-access; sync-xhr; ch-device-memory; ch-viewport-width; picture-in-picture; magnetometer; clipboard-write; microphone"
                     onLoad={() => recordPreviewLoad(iframeUrl)}
+                    onError={handlePreviewFrameError}
                     data-testid="preview-iframe"
                   />
                 )}

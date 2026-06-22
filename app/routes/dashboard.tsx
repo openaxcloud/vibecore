@@ -1,6 +1,7 @@
 import { Activity, Boxes, CreditCard, Rocket } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
-import { useLoaderData } from 'react-router';
+import { Link, useLoaderData } from 'react-router';
+import { shouldUseSpaNavigation } from './dashboard-nav';
 import {
   ActivityList,
   AppShell,
@@ -187,15 +188,33 @@ export default function DashboardPage() {
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {importOptions.map((option) => {
             const Icon = option.icon;
-            return (
-              <a
-                key={option.title}
-                href={option.to}
-                className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 hover:bg-bolt-elements-background-depth-3"
-              >
+
+            const className =
+              'rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 hover:bg-bolt-elements-background-depth-3';
+            const body = (
+              <>
                 <Icon className="mb-3 h-5 w-5 text-bolt-elements-textTertiary" aria-hidden />
                 <h3 className="text-sm font-semibold">{option.title}</h3>
                 <p className="mt-2 text-sm text-bolt-elements-textSecondary">{option.description}</p>
+              </>
+            );
+
+            /*
+             * Internal targets navigate client-side via <Link> so a card click
+             * is an SPA transition (no loader re-run, no bundle re-download, no
+             * white flash). Only genuinely external URLs fall back to <a href>.
+             */
+            if (shouldUseSpaNavigation(option.to)) {
+              return (
+                <Link key={option.title} to={option.to} className={className}>
+                  {body}
+                </Link>
+              );
+            }
+
+            return (
+              <a key={option.title} href={option.to} className={className}>
+                {body}
               </a>
             );
           })}

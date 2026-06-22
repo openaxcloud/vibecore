@@ -32,7 +32,11 @@ import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { LlmErrorAlertType } from '~/types/actions';
-import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
+import {
+  planTranscriptHydrationRetry,
+  projectAiMessagesToChatMessages,
+  type ProjectAiMessagesResponse,
+} from './projectAiTranscript';
 import {
   projectModelSelectionFromMetadata,
   projectModelSelectionFromParams,
@@ -242,6 +246,14 @@ export const ChatImpl = memo(
     );
 
     const backendTranscriptHydratedRef = useRef(false);
+
+    /*
+     * Counts failed transcript-hydration attempts so a cold/GC'd workspace 502 is
+     * retried with bounded backoff. Bumping transcriptRetryNonce re-runs the
+     * hydration effect (auto-retry or a user-triggered Retry from the toast).
+     */
+    const backendTranscriptRetryRef = useRef(0);
+    const [transcriptRetryNonce, setTranscriptRetryNonce] = useState(0);
 
     /*
      * Tracks an in-flight initial project generation (the queued pendingPrompt) so
@@ -555,6 +567,7 @@ export const ChatImpl = memo(
       }
 
       let cancelled = false;
+      let retryTimer: ReturnType<typeof setTimeout> | undefined;
       backendTranscriptHydratedRef.current = true;
 
       const hydrateBackendTranscript = async () => {
@@ -578,19 +591,64 @@ export const ChatImpl = memo(
         setMessages(backendMessages);
         latestMessagesRef.current = backendMessages;
         setChatStarted(true);
+        backendTranscriptRetryRef.current = 0;
         workbenchStore.setReloadedMessages(backendMessages.map((message) => message.id));
         await storeMessageHistory(backendMessages);
       };
 
       void hydrateBackendTranscript().catch((error) => {
+        if (cancelled) {
+          return;
+        }
+
+        /*
+         * Allow this conversation to be hydrated again on the next effect run.
+         * Returning users with a real (but transiently unreachable) transcript
+         * must never be left with a silently-empty chat panel.
+         */
         backendTranscriptHydratedRef.current = false;
         logStore.logError('Failed to load project AI transcript', error);
+
+        const attempt = backendTranscriptRetryRef.current;
+        const { shouldRetry, delayMs } = planTranscriptHydrationRetry(attempt);
+
+        if (shouldRetry) {
+          backendTranscriptRetryRef.current = attempt + 1;
+          retryTimer = setTimeout(() => {
+            if (!cancelled) {
+              setTranscriptRetryNonce((nonce) => nonce + 1);
+            }
+          }, delayMs);
+
+          return;
+        }
+
+        toast.error('Could not load your conversation history.', {
+          autoClose: false,
+          onClick: () => {
+            backendTranscriptRetryRef.current = 0;
+            setTranscriptRetryNonce((nonce) => nonce + 1);
+          },
+          toastId: 'project-ai-transcript-error',
+        });
       });
 
       return () => {
         cancelled = true;
+
+        if (retryTimer) {
+          clearTimeout(retryTimer);
+        }
       };
-    }, [initialMessages.length, messages.length, projectId, projectIdeMode, setMessages, storeMessageHistory]);
+    }, [
+      initialMessages.length,
+      messages.length,
+      projectId,
+      projectIdeMode,
+      setMessages,
+      storeMessageHistory,
+      transcriptRetryNonce,
+    ]);
 
     useEffect(() => {
       chatStore.setKey('started', initialMessages.length > 0);

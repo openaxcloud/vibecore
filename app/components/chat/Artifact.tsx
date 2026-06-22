@@ -3,7 +3,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { computed, map } from 'nanostores';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
-import type { ActionState } from '~/lib/runtime/action-runner';
+import {
+  type BundledArtifactState,
+  deriveBundledArtifactState,
+  firstBundledFailureReason,
+} from './bundled-artifact-state';
+import type { ActionState, FailedActionState } from '~/lib/runtime/action-runner';
 import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
@@ -38,7 +43,7 @@ interface ArtifactProps {
 export const Artifact = memo(({ artifactId }: ArtifactProps) => {
   const userToggledActions = useRef(false);
   const [showActions, setShowActions] = useState(false);
-  const [allActionFinished, setAllActionFinished] = useState(false);
+  const [bundledState, setBundledState] = useState<BundledArtifactState>('running');
 
   const artifacts = useStore(workbenchStore.artifacts);
   const artifact = artifacts[artifactId];
@@ -70,15 +75,13 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
     }
 
     if (actions.length !== 0 && artifact?.type === 'bundled') {
-      const finished = !actions.find(
-        (action) => action.status !== 'complete' && !(action.type === 'start' && action.status === 'running'),
-      );
+      const nextState = deriveBundledArtifactState(actions);
 
-      if (allActionFinished !== finished) {
-        setAllActionFinished(finished);
+      if (bundledState !== nextState) {
+        setBundledState(nextState);
       }
     }
-  }, [actions, artifact?.type, allActionFinished]);
+  }, [actions, artifact?.type, bundledState]);
 
   /*
    * The artifact may briefly be missing from the store (e.g. during proposal
@@ -88,17 +91,26 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
     return null;
   }
 
-  // Determine the dynamic title based on state for bundled artifacts
-  const dynamicTitle =
-    artifact?.type === 'bundled'
-      ? allActionFinished
-        ? artifact.id === 'restored-project-setup'
-          ? 'Project Restored' // Title when restore is complete
-          : 'Project Created' // Title when initial creation is complete
-        : artifact.id === 'restored-project-setup'
-          ? 'Restoring Project...' // Title during restore
-          : 'Creating Project...' // Title during initial creation
-      : artifact?.title; // Fallback to original title for non-bundled or if artifact is missing
+  const isRestore = artifact?.id === 'restored-project-setup';
+
+  /*
+   * Determine the dynamic title based on state for bundled artifacts. A failed or
+   * aborted setup action must surface a real failure title instead of spinning on
+   * "Creating Project…" forever.
+   */
+  let dynamicTitle = artifact?.title; // Fallback to original title for non-bundled or if artifact is missing
+
+  if (artifact?.type === 'bundled') {
+    if (bundledState === 'failed') {
+      dynamicTitle = isRestore ? 'Project restore failed' : 'Project setup failed';
+    } else if (bundledState === 'complete') {
+      dynamicTitle = isRestore ? 'Project Restored' : 'Project Created';
+    } else {
+      dynamicTitle = isRestore ? 'Restoring Project...' : 'Creating Project...';
+    }
+  }
+
+  const bundledFailureReason = artifact?.type === 'bundled' ? firstBundledFailureReason(actions) : undefined;
 
   return (
     <>
@@ -144,22 +156,41 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
           </AnimatePresence>
         </div>
         {artifact.type === 'bundled' && (
-          <div className="flex items-center gap-1.5 p-5 bg-bolt-elements-actions-background border-t border-bolt-elements-artifacts-borderColor">
-            <div className={classNames('text-lg', getIconColor(allActionFinished ? 'complete' : 'running'))}>
-              {allActionFinished ? (
-                <div className="i-ph:check"></div>
-              ) : (
-                <div className="i-svg-spinners:90-ring-with-bg"></div>
-              )}
+          <div className="flex flex-col gap-1.5 p-5 bg-bolt-elements-actions-background border-t border-bolt-elements-artifacts-borderColor">
+            <div className="flex items-center gap-1.5">
+              <div
+                className={classNames(
+                  'text-lg',
+                  getIconColor(
+                    bundledState === 'complete' ? 'complete' : bundledState === 'failed' ? 'failed' : 'running',
+                  ),
+                )}
+              >
+                {bundledState === 'complete' ? (
+                  <div className="i-ph:check"></div>
+                ) : bundledState === 'failed' ? (
+                  <div className="i-ph:x"></div>
+                ) : (
+                  <div className="i-svg-spinners:90-ring-with-bg"></div>
+                )}
+              </div>
+              <div className="text-bolt-elements-textPrimary font-medium leading-5 text-sm">
+                {bundledState === 'complete'
+                  ? isRestore
+                    ? 'Restore files from snapshot'
+                    : 'Initial files created'
+                  : bundledState === 'failed'
+                    ? isRestore
+                      ? 'Restore failed'
+                      : 'Project setup failed'
+                    : 'Creating initial files'}
+              </div>
             </div>
-            <div className="text-bolt-elements-textPrimary font-medium leading-5 text-sm">
-              {/* This status text remains the same */}
-              {allActionFinished
-                ? artifact.id === 'restored-project-setup'
-                  ? 'Restore files from snapshot'
-                  : 'Initial files created'
-                : 'Creating initial files'}
-            </div>
+            {bundledState === 'failed' && bundledFailureReason ? (
+              <div className="ml-[1.625rem] whitespace-pre-wrap break-words font-mono text-xs text-bolt-elements-icon-error">
+                {bundledFailureReason}
+              </div>
+            ) : null}
           </div>
         )}
         <AnimatePresence>
@@ -400,6 +431,16 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                   </summary>
                   <ShellCodeBlock classsName="mt-1" code={content} />
                 </details>
+              ) : null}
+              {status === 'failed' && (action as FailedActionState).error ? (
+                <div
+                  className={classNames(
+                    'mt-1 whitespace-pre-wrap break-words font-mono text-xs text-bolt-elements-icon-error',
+                    { 'mb-3.5': !isLast },
+                  )}
+                >
+                  {(action as FailedActionState).error}
+                </div>
               ) : null}
             </motion.li>
           );

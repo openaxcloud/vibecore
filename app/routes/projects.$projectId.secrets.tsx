@@ -1,7 +1,8 @@
-import { KeyRound, Lock } from 'lucide-react';
+import { KeyRound, Lock, Trash2 } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
-import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
+import { secretRows, type SecretRecord } from './projects.$projectId.secrets.rows';
+import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
   apiErrorMessage,
@@ -13,7 +14,7 @@ import {
 } from '~/lib/enterprise-api.server';
 import { projectAction, projectPageLoader } from '~/lib/project-route.server';
 
-type SecretsData = { secrets: Array<{ id: string; key: string; createdAt?: string; updatedAt?: string }> };
+type SecretsData = { secrets: SecretRecord[] };
 
 export const meta: MetaFunction = () => [{ title: 'Project secrets - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>
@@ -34,6 +35,21 @@ export const action = (args: EnterpriseActionArgs) =>
         const status = error instanceof Response ? error.status : 400;
         return json({ error: await apiErrorMessage(error, 'Failed to save secret') }, { status });
       }
+
+      return redirect(`/projects/${projectId}/secrets`);
+    },
+    delete: async ({ request, projectId, body }) => {
+      try {
+        await apiRequest(request, `/projects/${projectId}/secrets`, {
+          method: 'DELETE',
+          body: JSON.stringify({ key: body.key }),
+        });
+      } catch (error) {
+        /* Mirror the upsert path: surface RBAC/not-found/server errors inline instead of an error boundary. */
+        const status = error instanceof Response ? error.status : 400;
+        return json({ error: await apiErrorMessage(error, 'Failed to delete secret') }, { status });
+      }
+
       return redirect(`/projects/${projectId}/secrets`);
     },
   });
@@ -43,6 +59,7 @@ export default function ProjectSecretsPage() {
   const navigation = useNavigation();
   const saving = navigation.state === 'submitting';
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+  const rows = secretRows(data.secrets);
 
   return (
     <ProjectShell
@@ -51,25 +68,52 @@ export default function ProjectSecretsPage() {
       description="Encrypted project secrets with explicit runtime injection and no plain-text logs."
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <ActivityList
-          items={
-            (data.secrets ?? []).length
-              ? (data.secrets ?? []).map((secret) => ({
-                  title: secret.key,
-                  detail: secret.updatedAt
-                    ? `Encrypted, updated ${new Date(secret.updatedAt).toLocaleString()}`
-                    : 'Encrypted project secret',
-                  icon: Lock,
-                }))
-              : [
-                  {
-                    title: 'No project secrets',
-                    detail: 'Secrets are encrypted and values are never listed in clear text.',
-                    icon: KeyRound,
-                  },
-                ]
-          }
-        />
+        <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+          {rows.map((row, index) =>
+            row.kind === 'secret' ? (
+              <div
+                key={row.key}
+                className={
+                  index > 0
+                    ? 'flex items-center gap-3 border-t border-bolt-elements-borderColor p-4'
+                    : 'flex items-center gap-3 p-4'
+                }
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-bolt-elements-background-depth-3">
+                  <Lock className="h-4 w-4" aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{row.key}</p>
+                  <p className="mt-1 text-sm text-bolt-elements-textSecondary">{row.detail}</p>
+                </div>
+                <Form method="post">
+                  <input type="hidden" name="intent" value="delete" />
+                  <input type="hidden" name="key" value={row.key} />
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    size="sm"
+                    disabled={saving}
+                    aria-label={`Delete secret ${row.key}`}
+                    title={`Delete secret ${row.key}`}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                  </Button>
+                </Form>
+              </div>
+            ) : (
+              <div key="empty" className="flex gap-3 p-4">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-bolt-elements-background-depth-3">
+                  <KeyRound className="h-4 w-4" aria-hidden />
+                </span>
+                <div>
+                  <p className="text-sm font-medium">{row.title}</p>
+                  <p className="mt-1 text-sm text-bolt-elements-textSecondary">{row.detail}</p>
+                </div>
+              </div>
+            ),
+          )}
+        </div>
         <Form
           method="post"
           className="grid gap-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6"

@@ -40,8 +40,7 @@ import { streamingState } from '~/lib/stores/streaming';
 import type { FileHistory } from '~/types/actions';
 import { classNames } from '~/utils/classNames';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
-
-type MobileWorkbenchPanel = 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy';
+import { type MobileWorkbenchPanel, resolveActiveWorkbenchView } from './active-workbench-view';
 
 const SHELL_TERMINAL_LABEL = 'Shell (Terminal)';
 
@@ -565,11 +564,11 @@ export const Workbench = memo(
       }
     }, []);
 
-    const activeWorkbenchView: WorkbenchViewType = useMobileWorkbench
-      ? mobilePanel === 'preview'
-        ? 'preview'
-        : 'code'
-      : selectedView;
+    const activeWorkbenchView: WorkbenchViewType = resolveActiveWorkbenchView({
+      useMobileWorkbench,
+      mobilePanel,
+      selectedView,
+    });
 
     const showWorkbenchToolbar = !useMobileWorkbench || mobilePanel !== 'terminal';
 

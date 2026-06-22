@@ -16,6 +16,7 @@ import {
   executeAgentOrchestrationStream,
 } from '~/lib/.server/llm/agent-orchestration';
 import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
+import { ChatQuotaError, serializeChatStreamError } from './api.chat.quota-error';
 import { apiRequest } from '~/lib/enterprise-api.server';
 import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
@@ -277,7 +278,27 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             });
             streamRecovery.stop();
 
-            return;
+            /*
+             * Release this request's MCP clients before the throw below, mirroring
+             * the portfolio fast-path exit; otherwise the stdio children / HTTP
+             * transports leak on every quota-blocked request.
+             */
+            await mcpService.close().catch((closeError) => {
+              logger.warn(
+                `failed to close MCP clients on quota block: ${
+                  closeError instanceof Error ? closeError.message : closeError
+                }`,
+              );
+            });
+
+            /*
+             * Throw (instead of returning a clean 200) so the AI SDK emits a real
+             * stream error part. Without it useChat.onError never fires and the
+             * client shows no "Quota Exceeded" alert — the agent appears to stall
+             * silently. createDataStream's onError serialises this into a payload
+             * Chat.client.handleError can parse.
+             */
+            throw new ChatQuotaError(quota.message, quota.statusCode, quota.code);
           }
 
           /*
@@ -985,6 +1006,18 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * generation error WITHOUT a disconnect previously leaked them. Idempotent.
          */
         void mcpService.close();
+
+        /*
+         * A pre-flight quota block throws ChatQuotaError so the agent never
+         * stalls silently. Serialise it as a JSON error part so the client's
+         * handleError can JSON.parse the statusCode/message and render the quota
+         * alert, instead of the opaque "Custom error: [...]" string below.
+         */
+        if (error instanceof ChatQuotaError) {
+          logger.info(`stream onError code=${error.code} (quota)`);
+
+          return serializeChatStreamError(error);
+        }
 
         const code = clientDisconnected ? 'STREAM_ABORTED' : classifyStreamError(error);
         const baseMessage = streamErrorCodeMessages[code];

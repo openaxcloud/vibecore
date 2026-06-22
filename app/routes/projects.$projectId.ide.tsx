@@ -38,6 +38,7 @@ import { type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 import { useLoaderData } from 'react-router';
 import { Link } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
+import { buildIdeNotifications, restartWorkspace, type IdeNotificationKind } from './projects.$projectId.ide.helpers';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
 import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
@@ -50,17 +51,6 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { projectIdePath, withProjectSearch } from '~/utils/project-url';
 
 const ProjectIdeChat = lazy(() => import('~/components/chat/Chat.client').then((module) => ({ default: module.Chat })));
-
-type IdeNotificationKind = 'success' | 'warning' | 'error' | 'info';
-type IdeNotification = {
-  id: string;
-  title: string;
-  detail: string;
-  timeLabel: string;
-  source: 'Backend activity' | 'Runtime' | 'Preview';
-  kind: IdeNotificationKind;
-  href: string;
-};
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
   { title: data ? `Bolt IDE - ${data.projectId}` : 'Bolt IDE' },
@@ -601,26 +591,41 @@ function IdeProjectTopBar({
                       const Icon = notificationIcon(notification.kind);
 
                       return (
-                        <Link
-                          key={notification.id}
-                          to={notification.href}
-                          className="bolt-project-notification-item"
-                          data-kind={notification.kind}
-                          onClick={() => setOverflowMenuOpen(false)}
-                        >
-                          <span className="bolt-project-notification-icon" aria-hidden>
-                            <Icon className="h-3.5 w-3.5" />
-                          </span>
-                          <span className="min-w-0">
-                            <span className="bolt-project-notification-title">{notification.title}</span>
-                            <span className="bolt-project-notification-detail">{notification.detail}</span>
-                            <span className="bolt-project-notification-meta">
-                              <span>{notification.source}</span>
-                              <span aria-hidden>•</span>
-                              <span>{notification.timeLabel}</span>
+                        <div key={notification.id} className="bolt-project-notification-row">
+                          <Link
+                            to={notification.href}
+                            className="bolt-project-notification-item"
+                            data-kind={notification.kind}
+                            onClick={() => setOverflowMenuOpen(false)}
+                          >
+                            <span className="bolt-project-notification-icon" aria-hidden>
+                              <Icon className="h-3.5 w-3.5" />
                             </span>
-                          </span>
-                        </Link>
+                            <span className="min-w-0">
+                              <span className="bolt-project-notification-title">{notification.title}</span>
+                              <span className="bolt-project-notification-detail">{notification.detail}</span>
+                              <span className="bolt-project-notification-meta">
+                                <span>{notification.source}</span>
+                                <span aria-hidden>•</span>
+                                <span>{notification.timeLabel}</span>
+                              </span>
+                            </span>
+                          </Link>
+                          {notification.action?.kind === 'restart-workspace' ? (
+                            <button
+                              type="button"
+                              data-testid="ide-notification-restart-workspace"
+                              className="bolt-project-notification-action"
+                              onClick={() => {
+                                setOverflowMenuOpen(false);
+                                restartWorkspace();
+                              }}
+                            >
+                              <Play className="h-3 w-3 fill-current" aria-hidden />
+                              <span>{notification.action.label}</span>
+                            </button>
+                          ) : null}
+                        </div>
                       );
                     })}
                   </div>
@@ -704,34 +709,48 @@ function IdeProjectTopBar({
           data-priority="high"
           aria-label="Run and publish"
         >
-          <button
-            type="button"
-            data-testid="button-run-stop"
-            className={previewRunning ? 'bolt-project-run-button is-running' : 'bolt-project-run-button'}
-            onClick={() => {
-              if (previewRunning) {
-                void workbenchStore.stopPreviewServer().catch(() => undefined);
+          {state === 'crashed' ? (
+            <button
+              type="button"
+              data-testid="button-restart-workspace"
+              className="bolt-project-run-button is-crashed"
+              title="Restart workspace: re-provision the crashed runtime"
+              data-vc-tooltip="Restart workspace"
+              onClick={() => restartWorkspace()}
+            >
+              <Play className="h-3 w-3 fill-current" aria-hidden />
+              <span>Restart workspace</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              data-testid="button-run-stop"
+              className={previewRunning ? 'bolt-project-run-button is-running' : 'bolt-project-run-button'}
+              onClick={() => {
+                if (previewRunning) {
+                  void workbenchStore.stopPreviewServer().catch(() => undefined);
 
-                return;
-              }
+                  return;
+                }
 
-              window.dispatchEvent(
-                new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'preview' } }),
-              );
-            }}
-          >
-            {previewRunning ? (
-              <>
-                <Square className="h-3 w-3 fill-current" aria-hidden />
-                <span>Stop</span>
-              </>
-            ) : (
-              <>
-                <Play className="h-3 w-3 fill-current" aria-hidden />
-                <span>Run</span>
-              </>
-            )}
-          </button>
+                window.dispatchEvent(
+                  new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'preview' } }),
+                );
+              }}
+            >
+              {previewRunning ? (
+                <>
+                  <Square className="h-3 w-3 fill-current" aria-hidden />
+                  <span>Stop</span>
+                </>
+              ) : (
+                <>
+                  <Play className="h-3 w-3 fill-current" aria-hidden />
+                  <span>Run</span>
+                </>
+              )}
+            </button>
+          )}
           <Link to={withProjectSearch(projectUrl, { panel: 'deployments' })} className="bolt-project-publish-button">
             <Rocket className="h-3 w-3" aria-hidden />
             Publish
@@ -740,124 +759,6 @@ function IdeProjectTopBar({
       </div>
     </header>
   );
-}
-
-function buildIdeNotifications({
-  projectUrl,
-  backendEvents,
-  runtimeState,
-  runtimeStatusLabel,
-  runtimeError,
-  previewPorts,
-}: {
-  projectUrl: string;
-  backendEvents: ProjectLoaderData['notifications'];
-  runtimeState: 'building' | 'crashed' | 'running' | 'stopped';
-  runtimeStatusLabel: string;
-  runtimeError?: string | null;
-  previewPorts: number[];
-}): IdeNotification[] {
-  const runtimeNotification: IdeNotification = {
-    id: `runtime-${runtimeState}`,
-    title: `Workspace ${runtimeStatusLabel.toLowerCase()}`,
-    detail:
-      runtimeState === 'crashed'
-        ? runtimeError || 'The workspace runtime reported an error.'
-        : runtimeState === 'running'
-          ? 'The IDE runtime is connected and ready for commands.'
-          : runtimeState === 'building'
-            ? 'The workspace is starting and preparing project services.'
-            : 'The workspace runtime is currently idle.',
-    timeLabel: 'Live',
-    source: 'Runtime',
-    kind: runtimeState === 'crashed' ? 'error' : runtimeState === 'building' ? 'warning' : 'info',
-    href: withProjectSearch(projectUrl, { panel: 'logs' }),
-  };
-
-  const previewNotification: IdeNotification | null = previewPorts.length
-    ? {
-        id: `preview-${previewPorts.join('-')}`,
-        title: 'Preview server available',
-        detail: `Live preview ${previewPorts.length === 1 ? 'port' : 'ports'}: ${previewPorts.join(', ')}`,
-        timeLabel: 'Live',
-        source: 'Preview',
-        kind: 'success',
-        href: withProjectSearch(projectUrl, { panel: 'preview' }),
-      }
-    : null;
-
-  const backendNotifications = backendEvents.map((event, index) => {
-    const createdAt = event.createdAt ? new Date(event.createdAt) : null;
-
-    return {
-      id: event.id ?? `activity-${event.action}-${event.createdAt ?? index}`,
-      title: formatActivityTitle(event.action),
-      detail: activityDetail(event.action, event.metadata),
-      timeLabel: createdAt ? createdAt.toLocaleString() : 'Recorded by API',
-      source: 'Backend activity' as const,
-      kind: classifyActivityKind(event.action),
-      href: withProjectSearch(projectUrl, { panel: 'activity' }),
-    };
-  });
-
-  return [runtimeNotification, ...(previewNotification ? [previewNotification] : []), ...backendNotifications].slice(
-    0,
-    12,
-  );
-}
-
-function formatActivityTitle(action: string) {
-  return action
-    .replace(/[_:.-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function activityDetail(action: string, metadata: unknown) {
-  if (metadata && typeof metadata === 'object' && 'message' in metadata && typeof metadata.message === 'string') {
-    return metadata.message;
-  }
-
-  if (action.includes('deploy')) {
-    return 'Deployment activity was recorded by the project API.';
-  }
-
-  if (action.includes('collaborator') || action.includes('member')) {
-    return 'Team or collaborator access changed.';
-  }
-
-  if (action.includes('snapshot')) {
-    return 'A project snapshot event was recorded.';
-  }
-
-  if (action.includes('settings')) {
-    return 'Project configuration changed.';
-  }
-
-  if (action.includes('ai.tool')) {
-    return 'An AI tool action changed the workspace.';
-  }
-
-  return 'Project activity recorded by the backend.';
-}
-
-function classifyActivityKind(action: string): IdeNotificationKind {
-  const normalized = action.toLowerCase();
-
-  if (normalized.includes('fail') || normalized.includes('error') || normalized.includes('delete')) {
-    return 'error';
-  }
-
-  if (normalized.includes('warning') || normalized.includes('quota') || normalized.includes('security')) {
-    return 'warning';
-  }
-
-  if (normalized.includes('create') || normalized.includes('deploy') || normalized.includes('snapshot')) {
-    return 'success';
-  }
-
-  return 'info';
 }
 
 function notificationIcon(kind: IdeNotificationKind) {

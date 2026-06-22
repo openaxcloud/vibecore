@@ -71,3 +71,4 @@ docs/instructions/Roadmap.md
 !docs/*.md
 !docs/**/*.md
 .qodo
+.vibecore-audit/
