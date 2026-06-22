@@ -94,16 +94,22 @@ function decodeHtmlEntities(content: string) {
 function cleanHighlightedCodeMarkup(content: string) {
   /*
    * Only treat content as syntax-highlighter output when it carries an ACTUAL
-   * highlighter signature — a shiki/hljs/prism class or shiki's inline `color:`
-   * style. The old check keyed off a generic Tailwind `text-*` className, so
-   * ordinary JSX/TS source like `<span className="text-red-500">x</span><br/>`
-   * was mistaken for highlighted markup and had its real tags stripped on write
-   * (file-content corruption). Real highlighters never emit Tailwind `text-*`.
+   * highlighter fingerprint: a shiki/hljs/prism class, shiki's inline `color:`
+   * style, OR a DENSE run of Tailwind `text-<color>-<n>` token spans. Some models
+   * emit highlighted code using Tailwind palette classes (one span per token), so
+   * we must still clean those — but keying off a SINGLE generic `text-*` className
+   * mistook ordinary JSX like `<span className="text-red-500">x</span><br/>` for
+   * highlighted markup and stripped its real tags on write (file corruption).
+   * Requiring 3+ such spans alongside <br/>/&nbsp; separates real highlighter
+   * output (wraps every token) from a stray colored span in genuine source.
    */
+  const colorTokenSpans = content.match(/<span\b[^>]*\b(?:class|className)=["'][^"']*\btext-[a-z]+-\d{2,3}\b/gi);
+
   const looksLikeHighlightedSource =
     /&nbsp;|<br\s*\/?>/i.test(content) &&
     (/(?:class|className)=["'][^"']*\b(?:shiki|hljs|token|highlight)\b/i.test(content) ||
-      /<span\b[^>]*\bstyle=["'][^"']*color\s*:/i.test(content));
+      /<span\b[^>]*\bstyle=["'][^"']*color\s*:/i.test(content) ||
+      (colorTokenSpans?.length ?? 0) >= 3);
 
   if (!looksLikeHighlightedSource) {
     return content;

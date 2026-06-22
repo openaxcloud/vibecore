@@ -12,6 +12,14 @@ describe('E-Code homepage hero', () => {
 
     const styles = readFileSync(new URL('../../styles/index.scss', import.meta.url), 'utf8');
 
+    /*
+     * Prettier wraps long SCSS selectors across multiple lines with indentation,
+     * so collapse runs of whitespace to a single space before matching selector
+     * text. This keeps the selector assertions resilient to formatting while
+     * still verifying the exact selector tokens are present and contiguous.
+     */
+    const normalizedStyles = styles.replace(/\s+/g, ' ');
+
     expect(landing).toContain('variant="outline"');
     expect(landing).toContain('text-[44px] sm:text-6xl lg:text-7xl xl:text-8xl');
     expect(landing).toContain("background: 'linear-gradient(90deg, rgba(242, 98, 7, 0.06), rgba(247, 127, 0, 0.06))'");
@@ -21,10 +29,10 @@ describe('E-Code homepage hero', () => {
      * homepage public chrome (commit f549f48e): :is([data-ecode-static-shell],
      * [data-ecode-public-chrome='homepage']).
      */
-    expect(styles).toContain(
+    expect(normalizedStyles).toContain(
       ":is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where([class~='text-[44px]'])",
     );
-    expect(styles).toContain(
+    expect(normalizedStyles).toContain(
       ":is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where(h1, h2, h3, h4, h5, h6) :where(span:not([class*='i-']))",
     );
     expect(landingControls).toContain("fetch('/api/models'");
