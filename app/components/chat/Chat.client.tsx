@@ -19,7 +19,7 @@ import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { countWorkspaceFiles, resolvePendingPrompt } from '~/lib/runtime/pending-generation';
+import { countWorkspaceFiles, resolvePendingPrompt, shouldReplayPendingPrompt } from '~/lib/runtime/pending-generation';
 import { computeRewindTruncation } from '~/utils/chat-rewind';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
@@ -674,6 +674,17 @@ export const ChatImpl = memo(
 
     const abort = () => {
       stop();
+
+      /*
+       * On the very first message, sendMessage() sets fakeLoading=true and then
+       * awaits selectStarterTemplate()/getTemplates() (LLM calls) BEFORE any chat
+       * request exists. During that window the composer shows a Stop button, but
+       * stop() is a no-op (nothing in flight) and fakeLoading would stay true,
+       * leaving the composer permanently stuck on Stop. Clear it here so a Stop
+       * during template selection releases the composer; the `aborted` flag below
+       * lets the in-flight template chain bail before it reload()s a generation.
+       */
+      setFakeLoading(false);
       chatStore.setKey('aborted', true);
       workbenchStore.abortAllActions();
 
@@ -848,6 +859,22 @@ export const ChatImpl = memo(
           const promptKey = `${projectId}:pending:${pendingPrompt.id}`;
 
           if (submittedProjectPromptRef.current === promptKey) {
+            return;
+          }
+
+          /*
+           * The pendingPrompt clear is best-effort (a delayed onFinish timer that can
+           * be lost if the tab closes right after files were written, or if the save
+           * fails). If the workspace already holds a real generated app, re-appending
+           * the prompt would regenerate over it — clobbering files and double-charging
+           * tokens. Skip + clear the stale prompt instead of replaying it.
+           */
+          if (!shouldReplayPendingPrompt(workbenchStore.files.get())) {
+            submittedProjectPromptRef.current = promptKey;
+            void saveProjectIdeMemory(projectId, { chat: { pendingPrompt: null } }).catch((error) => {
+              logger.warn('failed to clear stale pending prompt', { projectId, error });
+            });
+
             return;
           }
 
@@ -1029,7 +1056,7 @@ export const ChatImpl = memo(
       const attachments = await Promise.all(
         files.map(
           (file) =>
-            new Promise<Attachment>((resolve) => {
+            new Promise<Attachment | undefined>((resolve) => {
               const reader = new FileReader();
 
               reader.onloadend = () => {
@@ -1039,12 +1066,26 @@ export const ChatImpl = memo(
                   url: reader.result as string,
                 });
               };
+
+              /*
+               * Without an onerror handler a failed read (file moved/deleted between
+               * selection and send, IO/permission error) would never settle this
+               * Promise, so Promise.all() — and the awaiting sendMessage() — would
+               * hang forever with a frozen composer. Resolve undefined and surface a
+               * toast so the send still proceeds with the readable attachments.
+               */
+              reader.onerror = () => {
+                toast.error(`Could not read attachment "${file.name}". Sending without it.`);
+                resolve(undefined);
+              };
               reader.readAsDataURL(file);
             }),
         ),
       );
 
-      return attachments;
+      const readable = attachments.filter((attachment): attachment is Attachment => attachment !== undefined);
+
+      return readable.length > 0 ? readable : undefined;
     };
 
     const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
@@ -1073,6 +1114,14 @@ export const ChatImpl = memo(
       if (!chatStarted) {
         setFakeLoading(true);
 
+        /*
+         * Clear any stale aborted flag so a Stop pressed DURING the upcoming
+         * template-selection LLM calls is observable below. abort() sets it true
+         * and clears fakeLoading; we re-check it after each await and bail before
+         * kicking off a generation the user already cancelled.
+         */
+        chatStore.setKey('aborted', false);
+
         if (autoSelectTemplate) {
           const { template, title } = await selectStarterTemplate({
             message: finalMessageContent,
@@ -1092,6 +1141,15 @@ export const ChatImpl = memo(
             });
 
             if (temResp) {
+              /*
+               * The user may have pressed Stop while selectStarterTemplate()/
+               * getTemplates() were resolving. abort() set `aborted` and released
+               * the composer; honor it instead of force-starting a generation.
+               */
+              if (chatStore.get().aborted) {
+                return;
+              }
+
               const { assistantMessage, userMessage } = temResp;
               const userMessageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
 
@@ -1140,6 +1198,16 @@ export const ChatImpl = memo(
         // If autoSelectTemplate is disabled or template selection failed, proceed with normal message
         const userMessageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
         const attachments = uploadedFiles.length > 0 ? await filesToAttachments(uploadedFiles) : undefined;
+
+        /*
+         * Stop pressed during the (possibly slow) template selection / attachment
+         * read above must cancel the generation rather than fire it after the fact.
+         */
+        if (chatStore.get().aborted) {
+          setFakeLoading(false);
+
+          return;
+        }
 
         setMessages([
           {

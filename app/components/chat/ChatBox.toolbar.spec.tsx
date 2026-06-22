@@ -196,8 +196,8 @@ describe('<ChatBox /> agent power controls', () => {
     expect(screen.getByRole('switch', { name: /Turbo/i })).toBeTruthy();
     expect(screen.getByRole('radiogroup', { name: 'Build tier' })).toBeTruthy();
 
-    // economy (×1) × $0.25 baseline
-    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$0.25');
+    // economy (×1) × $0.25 baseline, +30% server AI margin → ceil(33¢) = $0.33
+    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$0.33');
   });
 
   it('does not render the power controls outside the IDE composer', () => {
@@ -214,11 +214,11 @@ describe('<ChatBox /> agent power controls', () => {
 
     expect(onAgentPowerChange).toHaveBeenCalledWith(expect.objectContaining({ highPowerModel: true }));
 
-    // $0.25 × 4 = $1.00
-    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$1.00');
+    // $0.25 × 4 = $1.00 raw, +30% server AI margin → ceil(130¢) = $1.30
+    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$1.30');
   });
 
-  it('honors a parent-controlled power value (Turbo → ~$1.50)', () => {
+  it('honors a parent-controlled power value (Turbo → ~$1.95)', () => {
     renderChatBox({
       agentPower: { highPowerModel: false, extendedThinking: false, turboMode: true, buildTier: 'economy' },
       onAgentPowerChange: vi.fn(),
@@ -228,7 +228,7 @@ describe('<ChatBox /> agent power controls', () => {
 
     expect(screen.getByRole('switch', { name: /Turbo/i }).getAttribute('aria-checked')).toBe('true');
 
-    // $0.25 × 6 = $1.50
-    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$1.50');
+    // $0.25 × 6 = $1.50 raw, +30% server AI margin → ceil(195¢) = $1.95
+    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$1.95');
   });
 });

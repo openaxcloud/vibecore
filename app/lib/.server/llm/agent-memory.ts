@@ -1,9 +1,21 @@
 import type { Messages } from './stream-text';
 import { apiRequest } from '~/lib/enterprise-api.server';
 import type { ContextAnnotation } from '~/types/context';
+import { MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('agent-memory');
+
+/**
+ * Strip the `[Model: x]` / `[Provider: y]` composer prefixes that the client
+ * prepends to raw user messages. The agent-memory callers pass the unprocessed
+ * `processedMessages` (stream-text only cleans its own local copy), so without
+ * this the boilerplate would pollute persisted memory content/summary and the
+ * embedding/retrieval query text.
+ */
+export function stripComposerTags(text: string): string {
+  return text.replace(MODEL_REGEX, '').replace(PROVIDER_REGEX, '');
+}
 
 export interface AgentMemoryContextPayload {
   context: string;
@@ -34,15 +46,16 @@ export function latestUserText(messages: Messages): string | undefined {
   const { content } = latest;
 
   if (typeof content === 'string') {
-    return content || undefined;
+    return stripComposerTags(content).trim() || undefined;
   }
 
   if (Array.isArray(content)) {
-    const text = (content as Array<{ type?: string; text?: string }>)
-      .filter((part) => part && part.type === 'text' && typeof part.text === 'string')
-      .map((part) => part.text)
-      .join('\n')
-      .trim();
+    const text = stripComposerTags(
+      (content as Array<{ type?: string; text?: string }>)
+        .filter((part) => part && part.type === 'text' && typeof part.text === 'string')
+        .map((part) => part.text)
+        .join('\n'),
+    ).trim();
 
     return text || undefined;
   }

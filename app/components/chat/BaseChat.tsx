@@ -5598,6 +5598,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   : currentMemory?.chat?.metadata,
                 messages: checkpoint.messages,
                 archivedMessages: [],
+
+                /*
+                 * Replace (not union-merge) the transcript. Without clearMessages
+                 * the older/shorter checkpoint list gets unioned with the live
+                 * messages keyed by id, so every newer message resurfaces and the
+                 * restore does nothing. archivedMessages: [] is likewise ignored
+                 * unless cleared.
+                 */
+                clearMessages: true,
               },
             },
             currentWorkspaceId,
@@ -5703,6 +5712,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               description: rollbackTarget.title,
               messages: rollbackTarget.messages,
               archivedMessages: [],
+
+              /*
+               * Replace (not union-merge) the transcript so the rollback target's
+               * shorter list overwrites the live messages instead of unioning with
+               * them by id, which would resurface every newer message and make the
+               * rollback a no-op.
+               */
+              clearMessages: true,
             },
           },
           currentWorkspaceId,

@@ -235,7 +235,13 @@ export class ActionRunner {
       .then(() => {
         const current = this.actions.get()[actionId];
 
-        if (!current || current.executed || current.status === 'complete' || current.status === 'failed') {
+        if (
+          !current ||
+          current.executed ||
+          current.status === 'complete' ||
+          current.status === 'failed' ||
+          current.status === 'aborted'
+        ) {
           return;
         }
 
@@ -399,6 +405,16 @@ export class ActionRunner {
           }
         }
       });
+
+      /*
+       * `start` is launched fire-and-forget inside the operation above and owns
+       * its own terminal status via the #runStartAction .then/.catch (complete on
+       * success, 'failed' on a fast-failing dev server). Finalizing it here would
+       * clobber a 'failed' set moments earlier back to 'complete'.
+       */
+      if (action.type === 'start') {
+        return;
+      }
 
       this.#updateAction(actionId, {
         status: isStreaming ? 'running' : action.abortSignal.aborted ? 'aborted' : 'complete',

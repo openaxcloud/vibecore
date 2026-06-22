@@ -154,6 +154,60 @@ describe('ActionRunner tool timeout handling', () => {
   });
 });
 
+describe('ActionRunner abort / start finalization', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('does not resurrect an aborted action to running via the deferred addAction update', async () => {
+    const runner = new ActionRunner(createRuntime(), () => createShell() as any);
+    const data = createActionData('action-abort');
+
+    runner.addAction(data);
+
+    // Abort before the deferred #currentExecutionPromise.then callback runs.
+    runner.abortAll();
+
+    expect(runner.actions.get()[data.actionId]?.status).toBe('aborted');
+
+    // Flush the queued deferred status update; it must respect the aborted status.
+    await runner.waitForIdle();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(runner.actions.get()[data.actionId]?.status).toBe('aborted');
+  });
+
+  it('keeps a fast-failing start action marked failed (not clobbered back to complete)', async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn().mockRejectedValue(new Error('dev server exited'));
+
+    const runner = new ActionRunner(createRuntime(), () => ({ ...createShell(), executeCommand }) as any);
+
+    const startData: ActionCallbackData = {
+      artifactId: 'artifact-1',
+      messageId: 'message-1',
+      actionId: 'action-start',
+      action: {
+        type: 'start',
+        content: 'npm run dev',
+      },
+    };
+
+    runner.addAction(startData);
+
+    const runPromise = runner.runAction(startData, false);
+
+    // Let the fire-and-forget #runStartAction reject and set status, then elapse the 2s settle delay.
+    await vi.advanceTimersByTimeAsync(2_000);
+    await runPromise;
+    await Promise.resolve();
+
+    expect(runner.actions.get()[startData.actionId]?.status).toBe('failed');
+  });
+});
+
 describe('extractSelfRepairContent', () => {
   it('strips the boltAction wrapper and the surrounding newlines', () => {
     const raw = '<boltAction type="file" filePath="src/App.tsx">\nexport default App;\n</boltAction>';

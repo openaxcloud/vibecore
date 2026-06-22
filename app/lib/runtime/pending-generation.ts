@@ -63,6 +63,25 @@ export function isUngeneratedProject(files: FileMap | undefined): boolean {
 }
 
 /**
+ * Decide whether a queued `pendingPrompt` should still be re-appended (re-run) when
+ * a project is reopened. The prompt's clear is best-effort (it runs on a delayed
+ * onFinish timer and can be lost if the tab is closed or the save fails right after
+ * the agent wrote files), so on reopen we must not blindly regenerate over an app
+ * that already exists — that clobbers the generated files and double-charges tokens.
+ *
+ * Return false (skip) once the workspace holds real, non-scaffold files: the app was
+ * already produced even though the prompt wasn't cleared. An empty or scaffold-only
+ * (README/.gitignore) workspace still needs generation, so the prompt is re-run.
+ */
+export function shouldReplayPendingPrompt(files: FileMap | undefined): boolean {
+  if (isUngeneratedProject(files)) {
+    return true;
+  }
+
+  return countWorkspaceFiles(files) <= 1;
+}
+
+/**
  * Recover the original generation prompt from a seeded README so the "Generate
  * app" CTA can re-run generation for a stranded project (one whose one-shot
  * generation never produced files and whose pendingPrompt is already gone). The

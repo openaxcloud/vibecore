@@ -3,6 +3,7 @@ import React from 'react';
 import { toast } from 'react-toastify';
 import { ClientOnly } from 'remix-utils/client-only';
 import { AgentPowerControls, type AgentPowerControlsValue } from './AgentPowerControls';
+import { estimateAgentPowerCents } from './agentPowerEstimate';
 import { APIKeyManager } from './APIKeyManager';
 import { ChatBoxModeDropdown } from './ChatBoxModeDropdown';
 import { ComposerMentionsOverlay } from './ComposerMentionsOverlay';
@@ -36,48 +37,6 @@ const DEFAULT_AGENT_POWER: AgentPowerControlsValue = {
 
 const AGENT_POWER_STORAGE_KEY = 'vibecore.agentPower';
 
-/*
- * Proof-of-work estimate multipliers — mirror packages/billing/src/credits.ts
- * (the server-side source of truth used at checkpoint reservation:
- * BUILD_TIER_ESTIMATE_MULTIPLIER / HIGH_POWER / EXTENDED_THINKING / TURBO).
- * Inlined so the web bundle stays free of the server billing package; the live
- * settle figure comes from the server, this is just the pre-flight preview.
- */
-const POWER_ESTIMATE = {
-  baselineCents: 25, // a "simple" Replit request (~$0.25)
-  buildTier: { lite: 0.4, economy: 1, power: 1.8 } as Record<AgentPowerControlsValue['buildTier'], number>,
-  highPower: 4,
-  extendedThinking: 2.5,
-  turbo: 6,
-};
-
-function estimateAgentPowerCents(value: AgentPowerControlsValue): number {
-  /*
-   * Build tier is the effort axis and scales the base. The boosts are ADDITIVE
-   * surcharges (each `multiplier − 1`), never compounding multipliers — Replit
-   * does not aggregate per-control costs (the old `× highPower × thinking × turbo`
-   * product produced an aberrant ~$27/message). A single boost still reproduces
-   * its documented Replit multiple. Mirrors packages/billing `powerBoostSurcharge`.
-   */
-  const cents = POWER_ESTIMATE.baselineCents * (POWER_ESTIMATE.buildTier[value.buildTier] ?? 1);
-
-  let surcharge = 0;
-
-  if (value.highPowerModel) {
-    surcharge += POWER_ESTIMATE.highPower - 1;
-  }
-
-  if (value.extendedThinking) {
-    surcharge += POWER_ESTIMATE.extendedThinking - 1;
-  }
-
-  if (value.turboMode) {
-    surcharge += POWER_ESTIMATE.turbo - 1;
-  }
-
-  return Math.round(cents * (1 + surcharge));
-}
-
 interface ChatBoxProps {
   isModelSettingsCollapsed: boolean;
   setIsModelSettingsCollapsed: (collapsed: boolean) => void;
@@ -108,8 +67,8 @@ interface ChatBoxProps {
   setProvider?: ((provider: ProviderInfo) => void) | undefined;
   model?: string | undefined;
   setModel?: ((model: string) => void) | undefined;
-  setUploadedFiles?: ((files: File[]) => void) | undefined;
-  setImageDataList?: ((dataList: string[]) => void) | undefined;
+  setUploadedFiles?: React.Dispatch<React.SetStateAction<File[]>> | undefined;
+  setImageDataList?: React.Dispatch<React.SetStateAction<string[]>> | undefined;
   handleInputChange?: ((event: React.ChangeEvent<HTMLTextAreaElement>) => void) | undefined;
   handleStop?: (() => void) | undefined;
   enhancingPrompt?: boolean | undefined;
@@ -455,8 +414,17 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
 
                   reader.onload = (e) => {
                     const base64Image = e.target?.result as string;
-                    props.setUploadedFiles?.([...props.uploadedFiles, file]);
-                    props.setImageDataList?.([...props.imageDataList, base64Image]);
+
+                    /*
+                     * Functional updaters: dropping several images at once spins up
+                     * one FileReader per file, and each `onload` fires asynchronously.
+                     * Spreading a render-time snapshot (`props.uploadedFiles`) would
+                     * make every async callback start from the same stale array and
+                     * clobber the others, so only the last image survived. Updating
+                     * from the live `prev` accumulates all dropped images.
+                     */
+                    props.setUploadedFiles?.((prev) => [...prev, file]);
+                    props.setImageDataList?.((prev) => [...prev, base64Image]);
                   };
 
                   reader.onerror = () => {

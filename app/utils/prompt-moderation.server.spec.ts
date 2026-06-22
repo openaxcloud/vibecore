@@ -148,6 +148,41 @@ describe('moderateProjectPrompt', () => {
     expect(result.reason).toBe('provider_error');
   });
 
+  it('forwards a bounded AbortSignal to fetch so the request can time out', async () => {
+    const fetchImpl = vi.fn(async () =>
+      jsonResponse({
+        results: [{ flagged: false, categories: {}, category_scores: {} }],
+      }),
+    );
+
+    const signal = AbortSignal.timeout(8_000);
+
+    await moderateProjectPrompt('build a portfolio', { serverEnv: env, fetchImpl, signal });
+
+    const [, init] = firstFetchCall(fetchImpl);
+    expect(init.signal).toBe(signal);
+  });
+
+  it('fail-opens with reason=provider_error when the signal aborts (timeout)', async () => {
+    const fetchImpl = vi.fn(async (_url: string, init?: RequestInit) => {
+      const error = new Error('The operation was aborted due to timeout');
+      error.name = 'TimeoutError';
+      void init;
+
+      throw error;
+    });
+
+    const result = await moderateProjectPrompt('build a portfolio', {
+      serverEnv: env,
+      fetchImpl,
+      signal: AbortSignal.abort(),
+    });
+
+    expect(result.checked).toBe(false);
+    expect(result.allowed).toBe(true);
+    expect(result.reason).toBe('provider_error');
+  });
+
   it('respects custom endpoint and model overrides', async () => {
     const fetchImpl = vi.fn(async () =>
       jsonResponse({

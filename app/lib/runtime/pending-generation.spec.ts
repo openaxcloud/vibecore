@@ -4,6 +4,7 @@ import {
   extractGenerationPrompt,
   isUngeneratedProject,
   resolvePendingPrompt,
+  shouldReplayPendingPrompt,
 } from './pending-generation';
 import type { FileMap } from '~/lib/stores/files';
 
@@ -73,6 +74,39 @@ describe('isUngeneratedProject', () => {
   it('is false for an empty workspace (nothing to regenerate yet)', () => {
     expect(isUngeneratedProject({})).toBe(false);
     expect(isUngeneratedProject(undefined)).toBe(false);
+  });
+});
+
+describe('shouldReplayPendingPrompt', () => {
+  it('replays the prompt for a scaffold-only project (README/.gitignore)', () => {
+    const files: FileMap = {
+      '/home/project/README.md': { type: 'file', content: '', isBinary: false },
+      '/home/project/.gitignore': { type: 'file', content: '', isBinary: false },
+    };
+    expect(shouldReplayPendingPrompt(files)).toBe(true);
+  });
+
+  it('replays the prompt for an empty workspace (runtime not yet attached)', () => {
+    expect(shouldReplayPendingPrompt({})).toBe(true);
+    expect(shouldReplayPendingPrompt(undefined)).toBe(true);
+  });
+
+  it('SKIPS replay once the agent has already produced real app files', () => {
+    // A best-effort prompt clear was lost, but the app exists — never regenerate over it.
+    const files: FileMap = {
+      '/home/project/README.md': { type: 'file', content: '', isBinary: false },
+      '/home/project/package.json': { type: 'file', content: '', isBinary: false },
+      '/home/project/src/App.tsx': { type: 'file', content: '', isBinary: false },
+    };
+    expect(shouldReplayPendingPrompt(files)).toBe(false);
+  });
+
+  it('SKIPS replay when more than one real file exists even if not matched as scaffold', () => {
+    const files: FileMap = {
+      '/home/project/index.html': { type: 'file', content: '', isBinary: false },
+      '/home/project/main.ts': { type: 'file', content: '', isBinary: false },
+    };
+    expect(shouldReplayPendingPrompt(files)).toBe(false);
   });
 });
 

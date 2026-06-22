@@ -27,6 +27,53 @@ describe('agent memory LLM integration', () => {
     ).toBe('latest');
   });
 
+  it('strips composer [Model:]/[Provider:] prefixes from the latest user text', () => {
+    expect(
+      latestUserText([
+        {
+          role: 'user',
+          content: '[Model: claude-opus-4-8]\n\n[Provider: Anthropic]\n\nmake the navbar sticky',
+        },
+      ] as any),
+    ).toBe('make the navbar sticky');
+  });
+
+  it('strips composer prefixes from array text-part content', () => {
+    expect(
+      latestUserText([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: '[Model: gpt-4.1]\n\n[Provider: OpenAI]\n\nadd a footer' },
+            { type: 'image_url', image_url: { url: 'data:...' } },
+          ],
+        },
+      ] as any),
+    ).toBe('add a footer');
+  });
+
+  it('persists memory content/summary without composer boilerplate', async () => {
+    apiRequest.mockResolvedValueOnce({ preference: { enabled: true } }).mockResolvedValueOnce({});
+
+    await persistAgentMemoryCandidate(new Request('https://app.local/api/chat'), {
+      projectId: 'project-1',
+      messages: [
+        {
+          role: 'user',
+          content: '[Model: claude-opus-4-8]\n\n[Provider: Anthropic]\n\nmake the navbar sticky',
+        },
+      ] as any,
+      assistantText: 'Done',
+    });
+
+    expect(apiRequest.mock.calls[1][1]).toBe('/agent-memory');
+
+    const body = JSON.parse(apiRequest.mock.calls[1][2].body);
+
+    expect(body.content).toBe('make the navbar sticky');
+    expect(body.summary).toBe('make the navbar sticky');
+  });
+
   it('retrieves project memory context when the persisted preference is enabled', async () => {
     apiRequest.mockResolvedValueOnce({ preference: { enabled: true } }).mockResolvedValueOnce({
       context: 'Persistent agent memory retrieved.',

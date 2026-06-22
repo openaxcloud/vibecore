@@ -4,6 +4,7 @@ import {
   ECODE_AGENT_ROLES,
   areParallelSubagentsAvailable,
   buildAgentOrchestrationPlan,
+  buildPartialExecutionFromLanes,
   buildAgentRunRequestBody,
   clampRolesToParallelLimit,
   createAgentExecutionContext,
@@ -572,5 +573,163 @@ describe('E-Code agent orchestration', () => {
     expect(plan.enabled).toBe(false);
     expect(plan.mode).toBe('single-model-lanes');
     expect(plan.roles).toHaveLength(0);
+  });
+
+  /*
+   * Bug: when the SSE failed mid-run AFTER lanes had already executed (and been
+   * billed) on the gateway, the stream threw and the caller fell back to a fresh
+   * /v1/agent-runs POST that re-ran (and re-billed) every lane. Mid-run failures
+   * with completed lanes must resolve to a PARTIAL aggregate, not throw.
+   */
+  it('returns a partial aggregate (no re-run) when the stream errors after a lane completed', async () => {
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: COMPLEX_BUILD_PROMPT }],
+      subagentsAvailable: true,
+    });
+
+    const encoder = new TextEncoder();
+
+    const frames = [
+      { type: 'lane-start', roleId: 'architect', title: 'Architect' },
+      {
+        type: 'lane-done',
+        roleId: 'architect',
+        result: { roleId: 'architect', status: 'complete', summary: 'Architecture complete.' },
+      },
+
+      // Gateway-sent error AFTER a lane already finished (and was billed).
+      { type: 'error', error: 'upstream lane crashed' },
+    ];
+
+    let fetchCount = 0;
+
+    const fetchImpl = async () => {
+      fetchCount += 1;
+
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            for (const frame of frames) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(frame)}\n\n`));
+            }
+
+            controller.close();
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'text/event-stream' } },
+      );
+    };
+
+    const response = await executeAgentOrchestrationStream({
+      env: { ECODE_SUBAGENT_EXECUTOR_URL: 'https://agents.example.com' },
+      plan,
+      messages: [{ role: 'user', content: 'Build it.' }],
+      fetchImpl: fetchImpl as typeof fetch,
+      onEvent: vi.fn(),
+    });
+
+    // Resolved (did not throw) from the already-billed lane, so the caller never re-runs.
+    expect(response.status).toBe('partial');
+    expect(response.results.map((result) => result.roleId)).toEqual(['architect']);
+    expect(fetchCount).toBe(1);
+  });
+
+  /*
+   * Bug guard: a stream that ends with NO lane completed (and no run-done) must
+   * still throw, so the caller falls back to single-model lanes — there is no
+   * billed work to preserve and nothing to double-bill.
+   */
+  it('still throws when the stream ends with no completed lane', async () => {
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: COMPLEX_BUILD_PROMPT }],
+      subagentsAvailable: true,
+    });
+
+    const encoder = new TextEncoder();
+
+    const fetchImpl = async () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: 'lane-start', roleId: 'architect', title: 'A' })}\n\n`),
+            );
+            controller.close();
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'text/event-stream' } },
+      );
+
+    await expect(
+      executeAgentOrchestrationStream({
+        env: { ECODE_SUBAGENT_EXECUTOR_URL: 'https://agents.example.com' },
+        plan,
+        messages: [{ role: 'user', content: 'Build it.' }],
+        fetchImpl: fetchImpl as typeof fetch,
+        onEvent: vi.fn(),
+      }),
+    ).rejects.toMatchObject({ code: 'invalid-response' } satisfies Partial<AgentExecutorError>);
+  });
+
+  /*
+   * Bug guard: an explicit user abort must always propagate (the caller's
+   * re-fetch short-circuits on the aborted signal). Partial work from a
+   * cancelled run must NOT be surfaced even if a lane completed.
+   */
+  it('propagates the error on caller abort even after a lane completed', async () => {
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: COMPLEX_BUILD_PROMPT }],
+      subagentsAvailable: true,
+    });
+
+    const encoder = new TextEncoder();
+    const abortController = new AbortController();
+
+    const fetchImpl = async () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({
+                  type: 'lane-done',
+                  roleId: 'architect',
+                  result: { roleId: 'architect', status: 'complete', summary: 'ok' },
+                })}\n\n`,
+              ),
+            );
+
+            // Caller cancels, then the stream errors out.
+            abortController.abort();
+            controller.error(new DOMException('aborted', 'AbortError'));
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'text/event-stream' } },
+      );
+
+    await expect(
+      executeAgentOrchestrationStream({
+        env: { ECODE_SUBAGENT_EXECUTOR_URL: 'https://agents.example.com' },
+        plan,
+        messages: [{ role: 'user', content: 'Build it.' }],
+        signal: abortController.signal,
+        fetchImpl: fetchImpl as typeof fetch,
+        onEvent: vi.fn(),
+      }),
+    ).rejects.toBeInstanceOf(AgentExecutorError);
+  });
+
+  it('buildPartialExecutionFromLanes returns undefined with no lanes, partial otherwise', () => {
+    expect(buildPartialExecutionFromLanes([], 'run_x')).toBeUndefined();
+
+    const partial = buildPartialExecutionFromLanes(
+      [{ roleId: 'frontend', status: 'complete', summary: 'UI done' }],
+      'run_y',
+    );
+    expect(partial).toMatchObject({ runId: 'run_y', status: 'partial' });
+    expect(partial!.results).toHaveLength(1);
   });
 });

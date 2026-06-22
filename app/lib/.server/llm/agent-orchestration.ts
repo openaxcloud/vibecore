@@ -502,11 +502,42 @@ export type AgentLaneStreamEvent =
   | { type: 'error'; error: string };
 
 /**
+ * Assemble a best-effort {@link AgentExecutionResponse} from the lanes that have
+ * already completed when a stream fails mid-run.
+ *
+ * Pure + exported so the double-billing guard is unit-testable. When the SSE
+ * breaks AFTER one or more `lane-done` events but BEFORE a clean `run-done`
+ * (gateway-sent `error`, missing run-done, or an idle timeout with partial
+ * output), the lanes already executed and were billed on the gateway. Returning
+ * a partial aggregate built from those lanes lets the caller proceed instead of
+ * falling back to {@link executeAgentOrchestration}, which would POST a brand-new
+ * /v1/agent-runs and re-run (and re-bill) every specialist lane. The status is
+ * always `partial` because the run did not finish cleanly.
+ */
+export function buildPartialExecutionFromLanes(
+  completedLanes: AgentExecutionResult[],
+  runId: string,
+): AgentExecutionResponse | undefined {
+  if (completedLanes.length === 0) {
+    return undefined;
+  }
+
+  return {
+    runId,
+    status: 'partial',
+    results: completedLanes,
+  };
+}
+
+/**
  * Streaming variant of {@link executeAgentOrchestration}: consumes the ai-gateway
  * SSE so the IDE can render each specialist sub-agent token-by-token live, then
  * returns the final aggregate. `onEvent` is called for every lane event as it
  * arrives. Falls back semantics identical to the non-streaming call (throws
- * AgentExecutorError so api.chat can fall back to single-model lanes).
+ * AgentExecutorError so api.chat can fall back to single-model lanes) ONLY while
+ * no lane has completed; once any lane has finished (and been billed on the
+ * gateway), a mid-run failure resolves to a partial aggregate instead of
+ * throwing, so the caller does not re-run and double-bill the whole fan-out.
  */
 export async function executeAgentOrchestrationStream(input: {
   env?: AgentOrchestrationEnv;
@@ -583,6 +614,14 @@ export async function executeAgentOrchestrationStream(input: {
    */
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
 
+  /*
+   * Hoisted above the try so the catch can build a partial aggregate from lanes
+   * that already completed (and were billed) before a mid-run failure.
+   */
+  const completedLanes: AgentExecutionResult[] = [];
+
+  let streamRunId: string | undefined;
+
   try {
     const response = await fetcher(new URL('/v1/agent-runs/stream', endpoint).toString(), {
       method: 'POST',
@@ -658,18 +697,48 @@ export async function executeAgentOrchestrationStream(input: {
 
         input.onEvent(event);
 
+        if (event.type === 'lane-done') {
+          completedLanes.push(event.result);
+        }
+
         if (event.type === 'run-done') {
+          streamRunId = event.runId;
           final = { runId: event.runId, status: event.status, results: event.results, consensus: event.consensus };
         }
       }
     }
 
     if (!final || !isAgentExecutionResponse(final)) {
+      /*
+       * No clean run-done, but lanes already ran and were billed on the gateway.
+       * Resolve to a partial aggregate so the caller does NOT re-POST a fresh
+       * /v1/agent-runs and double-bill the whole fan-out. Only throw (triggering
+       * the single-model-lanes fallback) when nothing completed.
+       */
+      const partial = buildPartialExecutionFromLanes(completedLanes, streamRunId ?? `partial-${Date.now()}`);
+
+      if (partial) {
+        return partial;
+      }
+
       throw new AgentExecutorError('Sub-agent stream ended without a run-done event.', 'invalid-response');
     }
 
     return final;
   } catch (error) {
+    /*
+     * User-initiated cancellation must always propagate: the caller's re-fetch
+     * short-circuits on the already-aborted signal, and surfacing partial work
+     * for an explicit stop is wrong. For every OTHER mid-run failure, if lanes
+     * already completed (and were billed) we return their partial aggregate
+     * rather than throwing, so the caller does not re-run and double-bill.
+     */
+    const callerAborted = Boolean(input.signal?.aborted);
+
+    if (!callerAborted && completedLanes.length > 0) {
+      return buildPartialExecutionFromLanes(completedLanes, streamRunId ?? `partial-${Date.now()}`)!;
+    }
+
     if (error instanceof AgentExecutorError) {
       throw error;
     }

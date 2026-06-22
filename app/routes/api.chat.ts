@@ -477,6 +477,22 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         let agentOrchestrationContext: string | undefined;
 
+        /*
+         * The provider/model the user picked in the composer. Threaded into both
+         * the streaming and aggregate sub-agent executors so every specialist lane
+         * AND the consensus run on the SAME model the user selected, instead of
+         * silently falling back to the gateway's first-configured provider default
+         * (e.g. gpt-4.1). The data is the same extractPropertiesFromMessage call
+         * used for usage accounting below.
+         */
+        const lastUserMessageForOrchestration = processedMessages
+          .filter((message) => message.role === 'user')
+          .slice(-1)[0];
+
+        const { provider: orchestrationProvider, model: orchestrationModel } = lastUserMessageForOrchestration
+          ? extractPropertiesFromMessage(lastUserMessageForOrchestration)
+          : { provider: undefined, model: undefined };
+
         if (orchestrationPlan.enabled) {
           if (orchestrationPlan.mode === 'parallel-subagents') {
             dataStream.writeData({
@@ -501,6 +517,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   env: context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
                   plan: orchestrationPlan,
                   messages: processedMessages,
+                  provider: orchestrationProvider,
+                  model: orchestrationModel,
 
                   /*
                    * Per-tenant rate-limit bucket (projectId is the best tenant key
@@ -549,6 +567,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   env: context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
                   plan: orchestrationPlan,
                   messages: processedMessages,
+                  provider: orchestrationProvider,
+                  model: orchestrationModel,
                   rateLimitKey: projectId,
                   signal: request.signal,
                 });
@@ -1171,7 +1191,7 @@ async function emitConnectorConnectionRequests(input: {
       input.request,
       '/api/account/connections',
     );
-    accountConnections = response.connections;
+    accountConnections = response.connections ?? [];
   } catch {
     /*
      * Best-effort: the chat continues even if the account-connections
