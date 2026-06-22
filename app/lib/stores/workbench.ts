@@ -2507,11 +2507,20 @@ export class WorkbenchStore {
       await this.loadRuntimeFiles('.').catch(() => undefined);
     }
 
+    /*
+     * Persist the generated app to durable project storage FIRST — before the
+     * import-validation gate. validateGeneratedFiles throws MissingImportError for
+     * any relative import that doesn't yet resolve (very common mid-generation: a
+     * module emitted in a later boltAction, or a path typo), and the early-return
+     * below previously skipped the save entirely, so the just-generated app was
+     * LOST. Validation must only decide whether to (re)start the preview, never
+     * whether the files are saved.
+     */
+    await this.#persistRuntimeFilesToProjectStorage(artifactId);
+
     if (!(await this.#validateWorkspaceImportsAfterArtifactClose(artifactId))) {
       return;
     }
-
-    await this.#persistRuntimeFilesToProjectStorage(artifactId);
 
     if (!this.#findPackageJsonEntry()) {
       return;
