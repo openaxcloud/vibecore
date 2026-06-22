@@ -189,6 +189,97 @@ describe('admin.$section action — user management', () => {
     expect(calls.some((c) => c === 'POST https://api.example.com/admin/models/toggle')).toBe(true);
   });
 
+  it('grants a quota override (reauth then POST /admin/quota-overrides with the right body)', async () => {
+    const calls: string[] = [];
+
+    let postedBody: Record<string, unknown> | undefined;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        const href = typeof url === 'string' ? url : url.toString();
+        calls.push(`${init?.method ?? 'GET'} ${href}`);
+
+        if (href.endsWith('/auth/reauth')) {
+          return new Response(JSON.stringify({ reauthenticated: true }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        if (href.endsWith('/admin/quota-overrides')) {
+          postedBody = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+          return new Response(JSON.stringify({ override: { id: 'qo1' } }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        throw new Error(`unexpected ${href}`);
+      }),
+    );
+
+    const response = toResponse(
+      await action(
+        args(
+          actionRequest({
+            intent: 'quota-override',
+            organizationId: 'org_1',
+            key: 'projects.count',
+            limit: '50',
+            reason: 'contract expansion',
+            password: 'pw',
+          }),
+        ),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as { message: string }).message).toMatch(/quota override/i);
+    expect(calls[0]).toContain('/auth/reauth');
+    expect(calls.some((c) => c === 'POST https://api.example.com/admin/quota-overrides')).toBe(true);
+    expect(postedBody).toEqual({
+      organizationId: 'org_1',
+      key: 'projects.count',
+      limit: 50,
+      reason: 'contract expansion',
+    });
+  });
+
+  it('rejects a negative quota limit without calling the API', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL | Request) => {
+        const href = typeof url === 'string' ? url : url.toString();
+
+        if (href.endsWith('/auth/reauth')) {
+          return new Response(JSON.stringify({ reauthenticated: true }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        throw new Error(`should not call ${href} for an invalid limit`);
+      }),
+    );
+
+    const response = toResponse(
+      await action(
+        args(
+          actionRequest({
+            intent: 'quota-override',
+            organizationId: 'org_1',
+            key: 'projects.count',
+            limit: '-5',
+            password: 'pw',
+          }),
+        ),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { error: string }).error).toMatch(/limit/i);
+  });
+
   it('impersonate redirects to the dashboard with a new session cookie', async () => {
     vi.stubGlobal(
       'fetch',

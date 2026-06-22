@@ -294,6 +294,7 @@ const USER_INTENT_OK: Record<string, string> = {
   unsuspend: 'User reactivated.',
   'force-logout': 'All sessions revoked.',
   'reset-mfa': 'MFA reset for the user.',
+  'quota-override': 'Quota override created.',
 };
 
 export async function action({ request }: EnterpriseActionArgs) {
@@ -386,6 +387,35 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json({ ok: true, rowId: provider, message: `${provider} OAuth credentials saved.` });
     }
 
+    if (intent === 'quota-override') {
+      const organizationId = String(form.get('organizationId') ?? '');
+      const key = String(form.get('key') ?? '');
+      const reason = String(form.get('reason') ?? '');
+
+      if (!organizationId || !key) {
+        return json({ ok: false, error: 'Organization ID and quota key are required.' }, { status: 400 });
+      }
+
+      const limit = Number(form.get('limit'));
+
+      if (!Number.isFinite(limit) || limit < 0) {
+        return json({ ok: false, error: 'Invalid quota limit.' }, { status: 400 });
+      }
+
+      await apiRequest(request, '/admin/quota-overrides', {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({
+          organizationId,
+          key,
+          limit,
+          reason: reason || 'Admin quota override',
+        }),
+      });
+
+      return json({ ok: true, rowId: `${organizationId}:${key}`, message: USER_INTENT_OK['quota-override'] });
+    }
+
     if (!userId) {
       return json({ ok: false, error: 'Missing user.' }, { status: 400 });
     }
@@ -472,6 +502,7 @@ export default function AdminSectionPage() {
           {section === 'models' ? <ToggleListPanel payload={payload} kind="models" /> : null}
           {section === 'feature-flags' ? <ToggleListPanel payload={payload} kind="feature-flags" /> : null}
           {section === 'oauth-providers' ? <OauthProvidersPanel payload={payload} /> : null}
+          {section === 'quotas' ? <QuotaOverridePanel /> : null}
           {!['overview', 'health', 'users', 'providers', 'models', 'feature-flags', 'oauth-providers'].includes(
             section,
           ) ? (
@@ -965,6 +996,116 @@ function OauthProviderCard({ connector, password }: { connector: Record<string, 
           className="inline-flex items-center rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? 'Saving…' : 'Save'}
+        </button>
+        {fetcher.data?.message ? <span className="text-xs text-emerald-400">{fetcher.data.message}</span> : null}
+        {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+/*
+ * Actionable quota-override grant form for the Quotas admin section. Same
+ * session-auth + password step-up as the other panels: the admin supplies the
+ * org id, quota key, limit and reason plus their password, and the action
+ * re-authenticates before POSTing to /admin/quota-overrides. This sits above the
+ * read-only quota records rendered by DataPanel.
+ */
+function QuotaOverridePanel() {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+
+  const [organizationId, setOrganizationId] = useState('');
+  const [key, setKey] = useState('projects.count');
+  const [limit, setLimit] = useState('');
+  const [reason, setReason] = useState('');
+  const [password, setPassword] = useState('');
+
+  const inputClass =
+    'mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive';
+
+  const grant = () => {
+    fetcher.submit({ intent: 'quota-override', organizationId, key, limit, reason, password }, { method: 'post' });
+    setPassword('');
+  };
+
+  return (
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Grant quota override</h3>
+      <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+        Create an audited per-organization quota override. Step-up protected — your password is sent only with the
+        action and never stored.
+      </p>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Organization ID
+          <input
+            value={organizationId}
+            onChange={(event) => setOrganizationId(event.target.value)}
+            placeholder="org_…"
+            data-testid="quota-override-org"
+            className={inputClass}
+          />
+        </label>
+
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Quota key
+          <input
+            value={key}
+            onChange={(event) => setKey(event.target.value)}
+            placeholder="projects.count"
+            data-testid="quota-override-key"
+            className={inputClass}
+          />
+        </label>
+
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Limit
+          <input
+            type="number"
+            min={0}
+            value={limit}
+            onChange={(event) => setLimit(event.target.value)}
+            placeholder="e.g. 50"
+            data-testid="quota-override-limit"
+            className={inputClass}
+          />
+        </label>
+
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Reason
+          <input
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="contract expansion"
+            data-testid="quota-override-reason"
+            className={inputClass}
+          />
+        </label>
+
+        <label className="block text-xs text-bolt-elements-textSecondary sm:col-span-2">
+          Confirm with your password
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            placeholder="Your password"
+            data-testid="quota-override-password"
+            className={inputClass}
+          />
+        </label>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          type="button"
+          disabled={busy || !organizationId || !key || !password}
+          onClick={grant}
+          className="inline-flex items-center rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy ? 'Granting…' : 'Grant override'}
         </button>
         {fetcher.data?.message ? <span className="text-xs text-emerald-400">{fetcher.data.message}</span> : null}
         {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
