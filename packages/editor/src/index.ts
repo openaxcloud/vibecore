@@ -1,9 +1,9 @@
 import { acceptCompletion, autocompletion, closeBrackets } from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap, insertNewlineAndIndent } from '@codemirror/commands';
-import { bracketMatching, indentOnInput, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
 import { markdown } from '@codemirror/lang-markdown';
+import { bracketMatching, indentOnInput, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 import { searchKeymap } from '@codemirror/search';
 import { Compartment, EditorState, Prec, type Extension } from '@codemirror/state';
 import {
@@ -18,8 +18,8 @@ import {
   ViewPlugin,
   WidgetType,
 } from '@codemirror/view';
-import { createElement, useEffect, useRef, useState, type ReactNode } from 'react';
 import type * as MonacoTypes from 'monaco-editor';
+import { createElement, useEffect, useRef, useState, type ReactNode } from 'react';
 
 export type EditorBreakpoint = 'desktop' | 'tablet-landscape' | 'tablet-portrait' | 'mobile';
 export type EditorKind = 'monaco' | 'codemirror';
@@ -187,7 +187,9 @@ export function useResponsiveLayout(): ResponsiveLayoutState {
 
   useEffect(() => {
     let resizeTimeout: ReturnType<typeof setTimeout> | undefined;
+
     const update = () => setState(readState());
+
     const handleResize = () => {
       if (resizeTimeout) {
         clearTimeout(resizeTimeout);
@@ -228,6 +230,7 @@ export function editorKindForLayout(layout: Pick<ResponsiveLayoutState, 'isDeskt
 
 const WORKSPACE_SYMBOL_EXTENSIONS =
   /\.(tsx|ts|jsx|js|mjs|cjs|css|scss|html|json|md|mdx|py|go|rs|java|c|cc|cpp|h|hpp|cs)$/i;
+
 const MAX_WORKSPACE_INDEX_FILES = 250;
 const MAX_WORKSPACE_INDEX_FILE_BYTES = 500_000;
 
@@ -299,6 +302,7 @@ export function extractWorkspaceSymbols(filePath: string, contents: string): Wor
 
   const symbols: WorkspaceSymbol[] = [];
   const seen = new Set<string>();
+
   const patterns: Array<{ regex: RegExp; kind: WorkspaceSymbol['kind']; group?: number }> = [
     { regex: /\bexport\s+default\s+function\s+([A-Za-z_$][\w$]*)/g, kind: 'function' },
     { regex: /\bexport\s+(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/g, kind: 'function' },
@@ -435,6 +439,108 @@ function findWordMatches(contents: string, word: string) {
   return matches;
 }
 
+/**
+ * Compute the document offsets that fall inside a string literal or a comment
+ * for the C-family / JS-family syntaxes this editor indexes. Used to keep rename
+ * (F2) from rewriting an identifier where it merely appears as text — inside a
+ * string, a line/block comment, etc. — which would corrupt unrelated content.
+ *
+ * This is a deliberately conservative lexical scan (not a full parser): it only
+ * needs to recognise the three masking contexts that produce false-positive word
+ * matches. Anything it cannot classify is treated as code, so a rename is never
+ * silently dropped on a real identifier.
+ */
+export function findStringAndCommentSpans(contents: string): Array<{ start: number; end: number }> {
+  const spans: Array<{ start: number; end: number }> = [];
+  const length = contents.length;
+
+  let index = 0;
+
+  while (index < length) {
+    const char = contents[index];
+    const next = contents[index + 1];
+
+    // Line comment: // ... until end of line.
+    if (char === '/' && next === '/') {
+      const start = index;
+      index += 2;
+
+      while (index < length && contents[index] !== '\n') {
+        index++;
+      }
+
+      spans.push({ start, end: index });
+      continue;
+    }
+
+    // Block comment: /* ... */ (also covers JSDoc).
+    if (char === '/' && next === '*') {
+      const start = index;
+      index += 2;
+
+      while (index < length && !(contents[index] === '*' && contents[index + 1] === '/')) {
+        index++;
+      }
+
+      index = Math.min(length, index + 2);
+      spans.push({ start, end: index });
+      continue;
+    }
+
+    // String / template literal: ' " ` with backslash escapes.
+    if (char === '"' || char === "'" || char === '`') {
+      const quote = char;
+      const start = index;
+      index++;
+
+      while (index < length) {
+        const stringChar = contents[index];
+
+        if (stringChar === '\\') {
+          index += 2;
+          continue;
+        }
+
+        if (stringChar === quote) {
+          index++;
+          break;
+        }
+
+        /*
+         * A non-template quote does not span newlines; bail so an unterminated
+         * string does not swallow the rest of the file.
+         */
+        if (quote !== '`' && stringChar === '\n') {
+          break;
+        }
+
+        index++;
+      }
+
+      spans.push({ start, end: index });
+      continue;
+    }
+
+    index++;
+  }
+
+  return spans;
+}
+
+/**
+ * Word matches for `word` in `contents`, excluding occurrences that sit inside a
+ * string literal or comment. Backs the workspace rename/reference providers so
+ * F2 rewrites the identifier as code, not every textual occurrence (which would
+ * corrupt strings, comments, and same-named text elsewhere).
+ */
+export function findRenameMatches(contents: string, word: string) {
+  const masked = findStringAndCommentSpans(contents);
+
+  const isMasked = (start: number) => masked.some((span) => start >= span.start && start < span.end);
+
+  return findWordMatches(contents, word).filter((match) => !isMasked(match.start));
+}
+
 function installWorkspaceSemanticProviders(
   monaco: typeof import('monaco-editor/esm/vs/editor/editor.api'),
   sources: {
@@ -473,6 +579,7 @@ function installWorkspaceSemanticProviders(
       }
 
       monaco.editor.setModelLanguage(existing, languageForPath(filePath));
+
       return existing;
     }
 
@@ -611,7 +718,7 @@ function installWorkspaceSemanticProviders(
         return entries.flatMap(([filePath, contents]) => {
           const targetModel = ensureModel(filePath, contents);
 
-          return findWordMatches(contents, word.word).map((match) => ({
+          return findRenameMatches(contents, word.word).map((match) => ({
             uri: targetModel.uri,
             range: asRange(targetModel, match.start, match.end),
           }));
@@ -645,18 +752,22 @@ function installWorkspaceSemanticProviders(
           };
         }
 
-        const { entries } = getIndex();
+        /*
+         * Scope the rename to the active model only. A naive `\bword\b`
+         * replacement across every indexed file has no scope/AST awareness, so
+         * renaming across files would rewrite same-named-but-unrelated locals
+         * and properties in other modules. Restrict edits to the current file
+         * and skip occurrences inside strings/comments so only real code
+         * identifiers are renamed.
+         */
+        const contents = model.getValue();
 
         return {
-          edits: entries.flatMap(([filePath, contents]) => {
-            const targetModel = ensureModel(filePath, contents);
-
-            return findWordMatches(contents, word.word).map((match) => ({
-              resource: targetModel.uri,
-              textEdit: { range: asRange(targetModel, match.start, match.end), text: newName },
-              versionId: targetModel.getVersionId(),
-            }));
-          }),
+          edits: findRenameMatches(contents, word.word).map((match) => ({
+            resource: model.uri,
+            textEdit: { range: asRange(model, match.start, match.end), text: newName },
+            versionId: model.getVersionId(),
+          })),
         };
       },
     }),
@@ -748,11 +859,13 @@ export function DesktopCodeEditor({
   const ownedWorkspaceModelsRef = useRef<Set<string>>(new Set());
   const envMaskDecorationsRef = useRef<string[]>([]);
 
-  // Set while we programmatically push an external/agent-streamed value into the
-  // Monaco model via setValue(). Monaco fires onDidChangeModelContent
-  // synchronously for setValue, so without this guard each programmatic update
-  // would re-fire onChange — collapsing the user's selection, polluting the undo
-  // stack, and scheduling redundant autosaves while an agent is writing.
+  /*
+   * Set while we programmatically push an external/agent-streamed value into the
+   * Monaco model via setValue(). Monaco fires onDidChangeModelContent
+   * synchronously for setValue, so without this guard each programmatic update
+   * would re-fire onChange — collapsing the user's selection, polluting the undo
+   * stack, and scheduling redundant autosaves while an agent is writing.
+   */
   const isApplyingExternalRef = useRef(false);
 
   useEffect(() => {
@@ -770,169 +883,177 @@ export function DesktopCodeEditor({
 
     let disposed = false;
 
-    void import('monaco-editor/esm/vs/editor/editor.api').then((monaco) => {
-      if (disposed || !containerRef.current) {
-        return;
-      }
-
-      monacoRef.current = monaco;
-      const currentModel = monaco.editor.createModel(
-        value,
-        languageForPath(filePath, language),
-        modelUriForPath(monaco, filePath ?? 'untitled'),
-      );
-
-      monaco.editor.defineTheme('vibecore-vs-dark', {
-        base: 'vs-dark',
-        inherit: true,
-        rules: [
-          { token: '', foreground: 'F5F9FC', background: '0A0F1C' },
-          { token: 'comment', foreground: '6E7681' },
-          { token: 'keyword', foreground: '0099FF' },
-          { token: 'string', foreground: '3FB950' },
-          { token: 'number', foreground: 'D29922' },
-        ],
-        colors: {
-          'editor.background': '#0A0F1C',
-          'editor.foreground': '#F5F9FC',
-          'editorLineNumber.foreground': '#6E7681',
-          'editorLineNumber.activeForeground': '#C2C8CC',
-          'editorIndentGuide.background1': '#2B3245',
-          'editorIndentGuide.activeBackground1': '#3B4358',
-          'editor.lineHighlightBackground': '#1A2030',
-          'editor.selectionBackground': '#0099FF4D',
-          'editor.inactiveSelectionBackground': '#0099FF26',
-          'editorSuggestWidget.background': '#1A2030',
-          'editorSuggestWidget.border': '#2B3245',
-          'editorSuggestWidget.foreground': '#F5F9FC',
-          'editorSuggestWidget.selectedBackground': '#2B3245',
-          'editorError.foreground': '#F85149',
-          'editorWarning.foreground': '#D29922',
-          'editorGutter.background': '#0A0F1C',
-          ...monacoMinimapThemeColors.dark,
-        },
-      });
-      monaco.editor.defineTheme('vibecore-vs-light', {
-        base: 'vs',
-        inherit: true,
-        rules: [],
-        colors: {
-          'editor.background': '#FFFFFF',
-          'editor.foreground': '#0F172A',
-          ...monacoMinimapThemeColors.light,
-        },
-      });
-
-      const editor = monaco.editor.create(containerRef.current, {
-        model: currentModel,
-        readOnly,
-        automaticLayout: true,
-        minimap: getEditorMinimapOptions({ largeFile, minimapEnabled }),
-        fontSize: 13,
-        fontFamily: '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
-        fontLigatures: !largeFile,
-        tabSize: 2,
-        wordWrap: largeFile ? 'off' : 'on',
-        scrollBeyondLastLine: false,
-        largeFileOptimizations: true,
-        inlineSuggest: { enabled: !largeFile },
-        suggest: { preview: !largeFile, showInlineDetails: true, snippetsPreventQuickSuggestions: false },
-        quickSuggestions: !largeFile,
-        suggestOnTriggerCharacters: !largeFile,
-        parameterHints: { enabled: !largeFile },
-        codeLens: !largeFile,
-        inlayHints: { enabled: largeFile ? 'off' : 'on' },
-        stickyScroll: { enabled: !largeFile },
-        renderWhitespace: largeFile ? 'none' : 'selection',
-        occurrencesHighlight: largeFile ? 'off' : 'singleFile',
-        selectionHighlight: !largeFile,
-        folding: !largeFile,
-        renderLineHighlight: largeFile ? 'none' : 'line',
-        glyphMargin: !largeFile,
-        bracketPairColorization: { enabled: !largeFile },
-        guides: {
-          indentation: true,
-          highlightActiveIndentation: true,
-          bracketPairs: !largeFile,
-          bracketPairsHorizontal: !largeFile,
-        },
-        lightbulb: {
-          enabled: !largeFile ? monaco.editor.ShowLightbulbIconMode.On : monaco.editor.ShowLightbulbIconMode.Off,
-        },
-        gotoLocation: {
-          multipleDefinitions: 'peek',
-          multipleReferences: 'peek',
-          multipleImplementations: 'peek',
-          multipleDeclarations: 'peek',
-        },
-        roundedSelection: false,
-        overviewRulerBorder: false,
-        theme: theme === 'dark' ? 'vibecore-vs-dark' : 'vibecore-vs-light',
-        padding: { top: 12, bottom: 12 },
-      });
-
-      editorRef.current = editor;
-      const disposable = editor.onDidChangeModelContent(() => {
-        if (isApplyingExternalRef.current) {
+    void import('monaco-editor/esm/vs/editor/editor.api')
+      .then((monaco) => {
+        if (disposed || !containerRef.current) {
           return;
         }
 
-        onChangeRef.current?.({ value: editor.getValue(), source: 'monaco' });
-      });
-      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-        onSaveRef.current?.();
-      });
-      editor.addAction({
-        id: 'vibecore.rename-symbol',
-        label: 'Rename Symbol',
-        keybindings: [monaco.KeyCode.F2],
-        run: (activeEditor) => activeEditor.getAction('editor.action.rename')?.run(),
-      });
-      editor.addAction({
-        id: 'vibecore.find-references',
-        label: 'Find References',
-        keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.F12],
-        run: (activeEditor) => activeEditor.getAction('editor.action.goToReferences')?.run(),
-      });
-      editor.addAction({
-        id: 'vibecore.go-to-definition',
-        label: 'Go to Definition',
-        keybindings: [monaco.KeyCode.F12],
-        run: (activeEditor) => activeEditor.getAction('editor.action.revealDefinition')?.run(),
-      });
-      editor.addAction({
-        id: 'vibecore.refactor',
-        label: 'Refactor...',
-        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyR],
-        run: (activeEditor) => activeEditor.getAction('editor.action.refactor')?.run(),
-      });
+        monacoRef.current = monaco;
 
-      const providerDisposables = installWorkspaceSemanticProviders(monaco, {
-        getCurrentValue: () => valueRef.current,
-        getCurrentFilePath: () => filePathRef.current,
-        getProjectFiles: () => projectFilesRef.current,
-        onOpenFile: (targetFilePath) => {
-          window.dispatchEvent(new CustomEvent('vibecore:open-editor-file', { detail: { filePath: targetFilePath } }));
-        },
-      });
+        const currentModel = monaco.editor.createModel(
+          value,
+          languageForPath(filePath, language),
+          modelUriForPath(monaco, filePath ?? 'untitled'),
+        );
 
-      if (autoFocus) {
-        editor.focus();
-      }
+        monaco.editor.defineTheme('vibecore-vs-dark', {
+          base: 'vs-dark',
+          inherit: true,
+          rules: [
+            { token: '', foreground: 'F5F9FC', background: '0A0F1C' },
+            { token: 'comment', foreground: '6E7681' },
+            { token: 'keyword', foreground: '0099FF' },
+            { token: 'string', foreground: '3FB950' },
+            { token: 'number', foreground: 'D29922' },
+          ],
+          colors: {
+            'editor.background': '#0A0F1C',
+            'editor.foreground': '#F5F9FC',
+            'editorLineNumber.foreground': '#6E7681',
+            'editorLineNumber.activeForeground': '#C2C8CC',
+            'editorIndentGuide.background1': '#2B3245',
+            'editorIndentGuide.activeBackground1': '#3B4358',
+            'editor.lineHighlightBackground': '#1A2030',
+            'editor.selectionBackground': '#0099FF4D',
+            'editor.inactiveSelectionBackground': '#0099FF26',
+            'editorSuggestWidget.background': '#1A2030',
+            'editorSuggestWidget.border': '#2B3245',
+            'editorSuggestWidget.foreground': '#F5F9FC',
+            'editorSuggestWidget.selectedBackground': '#2B3245',
+            'editorError.foreground': '#F85149',
+            'editorWarning.foreground': '#D29922',
+            'editorGutter.background': '#0A0F1C',
+            ...monacoMinimapThemeColors.dark,
+          },
+        });
+        monaco.editor.defineTheme('vibecore-vs-light', {
+          base: 'vs',
+          inherit: true,
+          rules: [],
+          colors: {
+            'editor.background': '#FFFFFF',
+            'editor.foreground': '#0F172A',
+            ...monacoMinimapThemeColors.light,
+          },
+        });
 
-      editor.onDidDispose(() => {
-        disposable.dispose();
-        providerDisposables.forEach((providerDisposable) => providerDisposable.dispose());
-        currentModel.dispose();
+        const editor = monaco.editor.create(containerRef.current, {
+          model: currentModel,
+          readOnly,
+          automaticLayout: true,
+          minimap: getEditorMinimapOptions({ largeFile, minimapEnabled }),
+          fontSize: 13,
+          fontFamily: '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
+          fontLigatures: !largeFile,
+          tabSize: 2,
+          wordWrap: largeFile ? 'off' : 'on',
+          scrollBeyondLastLine: false,
+          largeFileOptimizations: true,
+          inlineSuggest: { enabled: !largeFile },
+          suggest: { preview: !largeFile, showInlineDetails: true, snippetsPreventQuickSuggestions: false },
+          quickSuggestions: !largeFile,
+          suggestOnTriggerCharacters: !largeFile,
+          parameterHints: { enabled: !largeFile },
+          codeLens: !largeFile,
+          inlayHints: { enabled: largeFile ? 'off' : 'on' },
+          stickyScroll: { enabled: !largeFile },
+          renderWhitespace: largeFile ? 'none' : 'selection',
+          occurrencesHighlight: largeFile ? 'off' : 'singleFile',
+          selectionHighlight: !largeFile,
+          folding: !largeFile,
+          renderLineHighlight: largeFile ? 'none' : 'line',
+          glyphMargin: !largeFile,
+          bracketPairColorization: { enabled: !largeFile },
+          guides: {
+            indentation: true,
+            highlightActiveIndentation: true,
+            bracketPairs: !largeFile,
+            bracketPairsHorizontal: !largeFile,
+          },
+          lightbulb: {
+            enabled: !largeFile ? monaco.editor.ShowLightbulbIconMode.On : monaco.editor.ShowLightbulbIconMode.Off,
+          },
+          gotoLocation: {
+            multipleDefinitions: 'peek',
+            multipleReferences: 'peek',
+            multipleImplementations: 'peek',
+            multipleDeclarations: 'peek',
+          },
+          roundedSelection: false,
+          overviewRulerBorder: false,
+          theme: theme === 'dark' ? 'vibecore-vs-dark' : 'vibecore-vs-light',
+          padding: { top: 12, bottom: 12 },
+        });
+
+        editorRef.current = editor;
+
+        const disposable = editor.onDidChangeModelContent(() => {
+          if (isApplyingExternalRef.current) {
+            return;
+          }
+
+          onChangeRef.current?.({ value: editor.getValue(), source: 'monaco' });
+        });
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+          onSaveRef.current?.();
+        });
+        editor.addAction({
+          id: 'vibecore.rename-symbol',
+          label: 'Rename Symbol',
+          keybindings: [monaco.KeyCode.F2],
+          run: (activeEditor) => activeEditor.getAction('editor.action.rename')?.run(),
+        });
+        editor.addAction({
+          id: 'vibecore.find-references',
+          label: 'Find References',
+          keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.F12],
+          run: (activeEditor) => activeEditor.getAction('editor.action.goToReferences')?.run(),
+        });
+        editor.addAction({
+          id: 'vibecore.go-to-definition',
+          label: 'Go to Definition',
+          keybindings: [monaco.KeyCode.F12],
+          run: (activeEditor) => activeEditor.getAction('editor.action.revealDefinition')?.run(),
+        });
+        editor.addAction({
+          id: 'vibecore.refactor',
+          label: 'Refactor...',
+          keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyR],
+          run: (activeEditor) => activeEditor.getAction('editor.action.refactor')?.run(),
+        });
+
+        const providerDisposables = installWorkspaceSemanticProviders(monaco, {
+          getCurrentValue: () => valueRef.current,
+          getCurrentFilePath: () => filePathRef.current,
+          getProjectFiles: () => projectFilesRef.current,
+          onOpenFile: (targetFilePath) => {
+            window.dispatchEvent(
+              new CustomEvent('vibecore:open-editor-file', { detail: { filePath: targetFilePath } }),
+            );
+          },
+        });
+
+        if (autoFocus) {
+          editor.focus();
+        }
+
+        editor.onDidDispose(() => {
+          disposable.dispose();
+          providerDisposables.forEach((providerDisposable) => providerDisposable.dispose());
+          currentModel.dispose();
+        });
+      })
+      .catch((error) => {
+        /*
+         * A failed code-split chunk load (recurring after deploys due to asset
+         * skew) would otherwise reject unhandled and silently leave the editor
+         * uninitialised with no surfaced error.
+         */
+        if (!disposed) {
+          console.error('Failed to load the Monaco editor module', error);
+        }
       });
-    }).catch((error) => {
-      // A failed code-split chunk load (recurring after deploys due to asset
-      // skew) would otherwise reject unhandled and silently leave the editor
-      // uninitialised with no surfaced error.
-      if (!disposed) {
-        console.error('Failed to load the Monaco editor module', error);
-      }
-    });
 
     return () => {
       disposed = true;
@@ -959,6 +1080,7 @@ export function DesktopCodeEditor({
     if (monaco && filePath) {
       const uri = modelUriForPath(monaco, filePath);
       const activeModel = editor.getModel();
+
       let targetModel = monaco.editor.getModel(uri);
 
       if (!targetModel) {
@@ -1129,8 +1251,10 @@ export function isEnvFilePath(filePath?: string): boolean {
 export interface EnvMaskRange {
   /** Document offset where the secret value begins (just after the `=`). */
   from: number;
+
   /** Document offset where the secret value ends (end of the line). */
   to: number;
+
   /** The raw secret text, used to size the mask. */
   value: string;
 }
@@ -1138,8 +1262,10 @@ export interface EnvMaskRange {
 interface EnvMaskLine {
   /** Document offset of the first character of the line. */
   from: number;
+
   /** Document offset just past the last character of the line. */
   to: number;
+
   /** The full text of the line. */
   text: string;
 }
@@ -1150,7 +1276,10 @@ interface EnvMaskLine {
  * are skipped. Lines whose range intersects `revealLineFroms` (e.g. the line the
  * caret is on) are left unmasked so the file stays editable.
  */
-export function computeEnvMaskRanges(lines: EnvMaskLine[], revealLineFroms: ReadonlySet<number> = new Set()): EnvMaskRange[] {
+export function computeEnvMaskRanges(
+  lines: EnvMaskLine[],
+  revealLineFroms: ReadonlySet<number> = new Set(),
+): EnvMaskRange[] {
   const ranges: EnvMaskRange[] = [];
 
   for (const line of lines) {
@@ -1187,10 +1316,13 @@ export function computeEnvMaskRanges(lines: EnvMaskLine[], revealLineFroms: Read
 export interface EnvMaskLineRange {
   /** 1-based line number. */
   line: number;
+
   /** 1-based column where the secret value begins (just after `=`). */
   startColumn: number;
+
   /** 1-based column just past the end of the secret value. */
   endColumn: number;
+
   /** Length of the masked secret, used to size the overlay. */
   length: number;
 }
@@ -1319,6 +1451,7 @@ function codeMirrorExtensions(
 ): Extension[] {
   const largeFile = Boolean(props.largeFile);
   const language = languageForPath(props.filePath, props.language);
+
   const languageExtension = largeFile
     ? []
     : language === 'typescript'
@@ -1394,8 +1527,7 @@ function codeMirrorExtensions(
         fontSize: '13px',
       },
       '.cm-scroller': {
-        fontFamily:
-          '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+        fontFamily: '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
         fontVariantLigatures: 'contextual common-ligatures',
         fontFeatureSettings: '"liga" 1, "calt" 1',
         overscrollBehavior: 'contain',
@@ -1482,6 +1614,7 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
     const filePathChanged = lastFilePathRef.current !== props.filePath;
     const upstreamChanged = lastAppliedValueRef.current !== props.value;
     const localDraft = localDocumentDraftRef.current;
+
     const draftSwitchesAwayFromEditedFile =
       filePathChanged &&
       Boolean(localDraft?.filePath) &&

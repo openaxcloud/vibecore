@@ -51,7 +51,7 @@ export interface AiUsage {
   estimatedCostCents: number;
 }
 
-interface ProviderConfig {
+export interface ProviderConfig {
   id: AiProviderId;
   kind: 'openai-compatible' | 'anthropic' | 'gemini' | 'ollama';
   baseUrl: string;
@@ -208,8 +208,12 @@ let gptTokenEncoder: ((text: string) => number[] | Uint32Array) | undefined;
 let gptTokenizerLoadAttempted = false;
 
 export async function ensureGptTokenizer() {
-  if (gptTokenEncoder || gptTokenizerLoadAttempted) return;
+  if (gptTokenEncoder || gptTokenizerLoadAttempted) {
+    return;
+  }
+
   gptTokenizerLoadAttempted = true;
+
   try {
     const tokenizer = (await import('gpt-tokenizer')) as { encode: (text: string) => number[] | Uint32Array };
     gptTokenEncoder = (text) => tokenizer.encode(text);
@@ -220,15 +224,18 @@ export async function ensureGptTokenizer() {
 
 export function countTokens(messages: AiMessage[] | string) {
   const content = typeof messages === 'string' ? messages : messages.map((message) => message.content).join('\n');
+
   if (gptTokenEncoder) {
     try {
       const encoded = gptTokenEncoder(content);
       const length = encoded instanceof Uint32Array ? encoded.length : encoded.length;
+
       return Math.max(1, length);
     } catch {
       // fall through
     }
   }
+
   return Math.max(1, Math.ceil(content.length / 4));
 }
 
@@ -257,16 +264,23 @@ function bearer(config: ProviderConfig) {
   return config.apiKeyEnv ? process.env[config.apiKeyEnv] : undefined;
 }
 
-function headers(config: ProviderConfig) {
+export function headers(config: ProviderConfig) {
   const headers: Record<string, string> = { 'content-type': 'application/json', accept: 'application/json' };
   const token = bearer(config);
 
-  if (token) {
+  /*
+   * Only the openai-compatible / ollama kinds authenticate via the
+   * `Authorization: Bearer <token>` header. Anthropic uses `x-api-key` and
+   * Gemini carries the key in the `?key=` query string — sending a bearer
+   * header for those kinds is at best ignored by the upstream and at worst
+   * leaks the API key into a second header (extra exposure in logs/proxies).
+   * So scope the bearer header to the kinds that actually consume it.
+   */
+  if (token && (config.kind === 'openai-compatible' || config.kind === 'ollama')) {
     headers.authorization = `Bearer ${token}`;
   }
 
   if (config.kind === 'anthropic') {
-    delete headers.authorization;
     headers['x-api-key'] = token ?? '';
     headers['anthropic-version'] = '2023-06-01';
   }
@@ -283,8 +297,10 @@ async function retry<T>(operation: () => Promise<T>, attempts = 3, signal?: Abor
     } catch (error) {
       lastError = error;
 
-      // Don't burn the remaining attempts (and their backoff sleeps) once the
-      // client has aborted — fail fast instead.
+      /*
+       * Don't burn the remaining attempts (and their backoff sleeps) once the
+       * client has aborted — fail fast instead.
+       */
       if (signal?.aborted) {
         throw error;
       }
@@ -393,6 +409,7 @@ function anthropicPayload(request: AiChatRequest, model: string, stream: boolean
   const messages = request.messages
     .filter((message) => message.role !== 'system')
     .map((message) => ({ role: message.role === 'assistant' ? 'assistant' : 'user', content: message.content }));
+
   return {
     model,
     system: system || undefined,
@@ -411,6 +428,7 @@ function geminiPayload(request: AiChatRequest, model: string) {
   const contents = request.messages
     .filter((message) => message.role !== 'system')
     .map((message) => ({ role: message.role === 'assistant' ? 'model' : 'user', parts: [{ text: message.content }] }));
+
   return {
     systemInstruction: system ? { parts: [{ text: system }] } : undefined,
     contents,
@@ -501,6 +519,7 @@ async function* providerStream(
         : config.kind === 'ollama'
           ? { model, messages: request.messages, stream: true }
           : openAiPayload(request, model, true);
+
   /*
    * Bound only the CONNECT/headers phase with 60s, then clear it. A fixed
    * wall-clock over the whole fetch aborted long but legitimate streaming
@@ -509,6 +528,7 @@ async function* providerStream(
    */
   const connectController = new AbortController();
   const connectTimer = setTimeout(() => connectController.abort(), 60_000);
+
   const upstreamSignal = signal
     ? ((AbortSignal as any).any?.([signal, connectController.signal]) ?? connectController.signal)
     : connectController.signal;
@@ -527,9 +547,11 @@ async function* providerStream(
   }
 
   if (!response.ok || !response.body) {
-    // Drain/cancel the error body before throwing. An error status (429/5xx,
-    // common during provider incidents) often carries a body; throwing without
-    // consuming it leaks the upstream connection until GC, exhausting sockets.
+    /*
+     * Drain/cancel the error body before throwing. An error status (429/5xx,
+     * common during provider incidents) often carries a body; throwing without
+     * consuming it leaks the upstream connection until GC, exhausting sockets.
+     */
     await response.body?.cancel().catch(() => {});
 
     /*
@@ -547,6 +569,7 @@ async function* providerStream(
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
+
   let buffer = '';
 
   /*
@@ -581,14 +604,17 @@ async function* providerStream(
           ''
         );
       } catch {
-        // A malformed SSE chunk is not assistant content — yielding the raw JSON would
-        // splice literal `{"choices":...}` text into the streamed message. Skip it.
+        /*
+         * A malformed SSE chunk is not assistant content — yielding the raw JSON would
+         * splice literal `{"choices":...}` text into the streamed message. Skip it.
+         */
         return '';
       }
     };
 
     while (true) {
       let idleTimer: ReturnType<typeof setTimeout> | undefined;
+
       const { value, done } = await Promise.race([
         reader.read(),
         new Promise<never>((_resolve, reject) => {
@@ -619,6 +645,7 @@ async function* providerStream(
       }
 
       buffer += decoder.decode(value, { stream: true });
+
       const lines = buffer.split('\n');
       buffer = lines.pop() ?? '';
 
@@ -631,8 +658,10 @@ async function* providerStream(
       }
     }
   } finally {
-    // Cancel the upstream body so a client disconnect (generator .return()) or error
-    // tears down the provider request instead of leaving it streaming (cost/socket leak).
+    /*
+     * Cancel the upstream body so a client disconnect (generator .return()) or error
+     * tears down the provider request instead of leaving it streaming (cost/socket leak).
+     */
     await reader.cancel().catch(() => {});
   }
 }
@@ -657,14 +686,18 @@ export class AiGateway {
             config.kind === 'ollama' ? `${config.baseUrl.replace(/\/+$/, '')}/api/tags` : config.baseUrl,
             { method: 'GET', signal: controller.signal },
           );
+
           // Release the probe connection — the body is never read.
           await response.body?.cancel().catch(() => {});
+
           return { provider: config.id, healthy: response.status < 500, configured: true };
         } catch {
           return { provider: config.id, healthy: false, configured: true };
         } finally {
-          // Clear the abort timer on EVERY path (the catch branch previously left
-          // a dangling timer to fire against an already-settled controller).
+          /*
+           * Clear the abort timer on EVERY path (the catch branch previously left
+           * a dangling timer to fire against an already-settled controller).
+           */
           clearTimeout(timer);
         }
       }),
@@ -704,9 +737,7 @@ export class AiGateway {
         });
       }
 
-      const candidates = modelCatalog.filter(
-        (model) => model.plans.includes(plan) && model.provider === providerId,
-      );
+      const candidates = modelCatalog.filter((model) => model.plans.includes(plan) && model.provider === providerId);
 
       if (candidates.length === 0) {
         throw Object.assign(new Error('Model is not available on this plan'), {
@@ -754,9 +785,12 @@ export class AiGateway {
       request.provider ?? selectedModel.provider,
       ...((process.env.AI_FALLBACK_PROVIDERS?.split(',').filter(Boolean) as AiProviderId[] | undefined) ?? []),
     ];
-    // Dedup: if the primary provider is also listed in AI_FALLBACK_PROVIDERS, the
-    // same provider would otherwise be retried back-to-back (wasted call + double
-    // cost) instead of falling through to a genuinely different fallback.
+
+    /*
+     * Dedup: if the primary provider is also listed in AI_FALLBACK_PROVIDERS, the
+     * same provider would otherwise be retried back-to-back (wasted call + double
+     * cost) instead of falling through to a genuinely different fallback.
+     */
     const providers = [...new Set(providerIds)]
       .map((providerId) => providerConfigs().find((config) => config.id === providerId))
       .filter((config): config is ProviderConfig => Boolean(config))
@@ -816,10 +850,12 @@ export class AiGateway {
 
   async complete(request: AiChatRequest, signal?: AbortSignal) {
     await ensureGptTokenizer();
+
     const routed = this.route(request);
     const plan = request.plan ?? 'free';
     const primaryProviderId = request.provider ?? routed.model.provider;
     const inputTokens = countTokens(request.messages);
+
     let lastError: unknown;
 
     for (const provider of routed.providers) {
@@ -837,6 +873,7 @@ export class AiGateway {
 
         const content = await retry(() => providerCompletion(provider, request, resolved.id, signal), 3, signal);
         const outputTokens = countTokens(content);
+
         return {
           provider: provider.id,
           model: resolved.id,
@@ -857,15 +894,19 @@ export class AiGateway {
 
   async *stream(request: AiChatRequest, signal?: AbortSignal): AsyncGenerator<AiChatChunk> {
     await ensureGptTokenizer();
+
     const routed = this.route(request);
     const plan = request.plan ?? 'free';
     const primaryProviderId = request.provider ?? routed.model.provider;
     const inputTokens = countTokens(request.messages);
+
     let lastError: unknown;
 
     for (const provider of routed.providers) {
-      // Stop before trying another provider if the client already went away —
-      // otherwise an aborted stream keeps falling through and re-billing.
+      /*
+       * Stop before trying another provider if the client already went away —
+       * otherwise an aborted stream keeps falling through and re-billing.
+       */
       if (signal?.aborted) {
         return;
       }
@@ -883,8 +924,10 @@ export class AiGateway {
         continue;
       }
 
-      // Reset per provider so a failed provider's partial deltas aren't concatenated
-      // onto the fallback provider's output (garbled message + double-counted cost).
+      /*
+       * Reset per provider so a failed provider's partial deltas aren't concatenated
+       * onto the fallback provider's output (garbled message + double-counted cost).
+       */
       let content = '';
       let yieldedDelta = false;
 
@@ -906,10 +949,13 @@ export class AiGateway {
             estimatedCostCents: estimateCost(resolved.catalog ?? routed.model, inputTokens, outputTokens),
           },
         };
+
         return;
       } catch (error) {
-        // A client abort surfaces as a throw here — don't fall through to a
-        // fallback provider (which would re-bill); just stop.
+        /*
+         * A client abort surfaces as a throw here — don't fall through to a
+         * fallback provider (which would re-bill); just stop.
+         */
         if (signal?.aborted) {
           return;
         }
@@ -941,6 +987,7 @@ export class AiGateway {
          * the request N times. Surface it immediately instead.
          */
         const upstreamStatus = (error as { upstreamStatus?: unknown }).upstreamStatus;
+
         const isNonRetryable4xx =
           typeof upstreamStatus === 'number' && upstreamStatus >= 400 && upstreamStatus < 500 && upstreamStatus !== 429;
 

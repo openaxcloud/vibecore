@@ -5,8 +5,10 @@ import { WebContainerRuntimeAdapter, type WebContainerLike, type WebContainerPro
 type WebContainerListener = (...args: unknown[]) => void;
 
 class MemoryFs {
-  // Store raw bytes, mirroring the real WebContainer fs: readFile() with no
-  // encoding returns a Uint8Array, with 'utf-8' returns a string.
+  /*
+   * Store raw bytes, mirroring the real WebContainer fs: readFile() with no
+   * encoding returns a Uint8Array, with 'utf-8' returns a string.
+   */
   files = new Map<string, Uint8Array>();
 
   async mkdir() {
@@ -169,8 +171,10 @@ describe('WebContainerRuntimeAdapter', () => {
     const adapter = new WebContainerRuntimeAdapter({ webcontainer });
     await adapter.boot();
 
-    // A binary asset (NUL + non-UTF-8 high bytes) written straight to the fs at
-    // the relative key the adapter uses.
+    /*
+     * A binary asset (NUL + non-UTF-8 high bytes) written straight to the fs at
+     * the relative key the adapter uses.
+     */
     const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0xfe, 0x01]);
     await webcontainer.fs.writeFile('logo.png', pngBytes);
     await webcontainer.fs.writeFile('readme.txt', new TextEncoder().encode('hello'));
@@ -185,8 +189,10 @@ describe('WebContainerRuntimeAdapter', () => {
     await webcontainer.fs.writeFile('logo.png', new TextEncoder().encode('corrupted'));
     await adapter.restoreSnapshot(snapshot.id);
 
-    // The restored bytes must equal the original binary exactly — not '' (zeroed)
-    // and not a UTF-8-mangled version.
+    /*
+     * The restored bytes must equal the original binary exactly — not '' (zeroed)
+     * and not a UTF-8-mangled version.
+     */
     const restored = (await webcontainer.fs.readFile('logo.png')) as Uint8Array;
     expect(Array.from(restored)).toEqual(Array.from(pngBytes));
     expect(await adapter.readFile('readme.txt')).toEqual({ content: 'hello', encoding: 'utf8' });
@@ -195,6 +201,74 @@ describe('WebContainerRuntimeAdapter', () => {
     const readBinary = await adapter.readFile('logo.png');
     expect(readBinary.encoding).toBe('base64');
     expect(Array.from(Buffer.from(readBinary.content, 'base64'))).toEqual(Array.from(pngBytes));
+  });
+
+  it('decodes base64 content to raw bytes when writeFile is given encoding "base64"', async () => {
+    const webcontainer = createWebContainer();
+    const adapter = new WebContainerRuntimeAdapter({ webcontainer });
+    await adapter.boot();
+
+    /*
+     * A binary asset (NUL + non-UTF-8 high bytes) the way files.ts hands it off:
+     * base64-encoded, with encoding:'base64'.
+     */
+    const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0xfe, 0x01]);
+    const base64 = Buffer.from(pngBytes).toString('base64');
+
+    await adapter.writeFile('assets/logo.png', base64, 'base64');
+
+    /*
+     * The file on disk must be the decoded bytes — NOT the base64 string written
+     * verbatim as text (the corruption this fix addresses).
+     */
+    const onDisk = (await webcontainer.fs.readFile('assets/logo.png')) as Uint8Array;
+    expect(Array.from(onDisk)).toEqual(Array.from(pngBytes));
+
+    // createFile routes through writeFile and must honor the encoding too.
+    await adapter.createFile('assets/icon.png', base64, 'base64');
+
+    const iconOnDisk = (await webcontainer.fs.readFile('assets/icon.png')) as Uint8Array;
+    expect(Array.from(iconOnDisk)).toEqual(Array.from(pngBytes));
+
+    // Round-trips back out as base64 (binary classification preserved).
+    const readBack = await adapter.readFile('assets/logo.png');
+    expect(readBack.encoding).toBe('base64');
+    expect(Array.from(Buffer.from(readBack.content, 'base64'))).toEqual(Array.from(pngBytes));
+  });
+
+  it('writes content verbatim as text when no encoding (utf8) is given', async () => {
+    const webcontainer = createWebContainer();
+    const adapter = new WebContainerRuntimeAdapter({ webcontainer });
+    await adapter.boot();
+
+    /*
+     * A base64-looking string with no encoding flag is plain text and must be
+     * stored as-is (not accidentally decoded).
+     */
+    await adapter.writeFile('notes/data.txt', 'aGVsbG8=');
+
+    const onDisk = (await webcontainer.fs.readFile('notes/data.txt')) as Uint8Array;
+    expect(new TextDecoder().decode(onDisk)).toBe('aGVsbG8=');
+  });
+
+  it('returns no matches instead of throwing on a malformed regex search query', async () => {
+    const webcontainer = createWebContainer();
+    const adapter = new WebContainerRuntimeAdapter({ webcontainer });
+    await adapter.boot();
+
+    await adapter.writeFile('src/App.tsx', 'const value = [1, 2, 3];');
+
+    /*
+     * No internal.textSearch is provided by the test harness, so this exercises
+     * the #searchByReadingFiles fallback. An unbalanced '[' is an invalid regex.
+     */
+    await expect(adapter.searchFiles('[', { isRegex: true })).resolves.toEqual([]);
+    await expect(adapter.searchFiles('(unclosed', { isRegex: true })).resolves.toEqual([]);
+
+    // A valid regex still works.
+    const matches = await adapter.searchFiles('value', { isRegex: true });
+    expect(matches.length).toBeGreaterThan(0);
+    expect(matches[0]).toMatchObject({ path: 'src/App.tsx', lineNumber: 1 });
   });
 
   it('imports real zip archives into the workspace filesystem', async () => {

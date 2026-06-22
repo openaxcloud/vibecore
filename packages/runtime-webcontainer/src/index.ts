@@ -30,8 +30,11 @@ export interface WebContainerProcessLike {
 
 export interface WebContainerFileSystemLike {
   mkdir(path: string, options?: { recursive?: boolean }): Promise<void>;
-  // The real WebContainer fs returns a Uint8Array when no encoding is given and a
-  // string when 'utf-8' is passed — model both so binary reads aren't mistyped.
+
+  /*
+   * The real WebContainer fs returns a Uint8Array when no encoding is given and a
+   * string when 'utf-8' is passed — model both so binary reads aren't mistyped.
+   */
   readFile(path: string, encoding?: string | { encoding?: string }): Promise<string | Uint8Array>;
   writeFile(path: string, content: string | Uint8Array, encoding?: string | { encoding?: string }): Promise<void>;
   rm(path: string, options?: { recursive?: boolean; force?: boolean }): Promise<void>;
@@ -126,6 +129,7 @@ export function createBrowserWebContainerRuntime(
   options: BrowserWebContainerRuntimeOptions,
 ): BrowserWebContainerRuntime {
   const context = options.context ?? { loaded: false };
+
   let webcontainer: Promise<WebContainerLike> = new Promise(() => {
     // WebContainer is browser-only; SSR receives a pending promise and never boots it.
   });
@@ -225,6 +229,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
 
   async startWorkspace(session: Partial<WorkspaceSession> = {}): Promise<WorkspaceSession> {
     await this.boot();
+
     const now = new Date().toISOString();
     this.#session = {
       id: session.id ?? 'webcontainer-local',
@@ -287,15 +292,28 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     return { content: toBase64(bytes), encoding: 'base64' };
   }
 
-  async writeFile(path: string, content: string): Promise<void> {
+  async writeFile(path: string, content: string, encoding?: 'utf8' | 'base64'): Promise<void> {
     const webcontainer = await this.#getWebContainer();
     const runtimePath = this.#toRuntimePath(path);
     await this.#ensureParentDirectory(webcontainer, runtimePath);
+
+    /*
+     * Binary assets (images/fonts/wasm) arrive base64-encoded with
+     * encoding:'base64'. Decode to raw bytes before writing — passing the
+     * base64 STRING through to fs.writeFile stores it verbatim as the file's
+     * text body, corrupting the asset. This mirrors the read/restore side
+     * (#listFiles, #restoreNodes) which base64-encodes the same bytes.
+     */
+    if (encoding === 'base64') {
+      await webcontainer.fs.writeFile(runtimePath, fromBase64(content));
+      return;
+    }
+
     await webcontainer.fs.writeFile(runtimePath, content);
   }
 
-  async createFile(path: string, content = ''): Promise<void> {
-    await this.writeFile(path, content);
+  async createFile(path: string, content = '', encoding?: 'utf8' | 'base64'): Promise<void> {
+    await this.writeFile(path, content, encoding);
   }
 
   async createDirectory(path: string): Promise<void> {
@@ -328,6 +346,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
       await webcontainer.internal.textSearch(query, { ...options, folders: ['.'] }, (filePath, apiMatches) => {
         for (const apiMatch of apiMatches) {
           const previewText = String(apiMatch.preview?.text ?? '');
+
           for (const range of apiMatch.ranges ?? []) {
             matches.push({
               path: filePath,
@@ -348,6 +367,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
 
   async watchFiles(paths: string[], onChange: (change: FileChange) => void): Promise<() => void> {
     const webcontainer = await this.#getWebContainer();
+
     const watchTarget = {
       include: paths.map((path) => `${path.replace(/\/+$/, '')}/**`),
       exclude: ['**/node_modules', '.git', '**/package-lock.json'],
@@ -358,6 +378,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
 
       for (const event of events) {
         const eventPaths = event.paths ?? [event.path];
+
         for (const path of eventPaths) {
           const eventType = event.type ?? event.kind;
           const isFileEvent = eventType === 'add_file' || eventType === 'change';
@@ -366,6 +387,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
           onChange({
             path,
             type: this.#mapWatchEvent(eventType),
+
             /*
              * Honor the binary ⟹ base64-content invariant the rest of the app
              * relies on. Decoding a binary buffer as UTF-8 here corrupted it
@@ -422,6 +444,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
 
   async runCommand(request: CommandRequest): Promise<CommandResult> {
     const events: CommandEvent[] = [];
+
     let output = '';
 
     for await (const event of this.streamCommand(request)) {
@@ -434,9 +457,11 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
 
     const exitEvent = events.findLast((event) => event.type === 'exit');
 
-    // An 'error' event with no 'exit' means the command failed to run/complete;
-    // defaulting exitCode to 0 there falsely reported success (callers then
-    // proceed as if e.g. the build passed). Treat that case as a failure.
+    /*
+     * An 'error' event with no 'exit' means the command failed to run/complete;
+     * defaulting exitCode to 0 there falsely reported success (callers then
+     * proceed as if e.g. the build passed). Treat that case as a failure.
+     */
     if (!exitEvent) {
       const errorEvent = events.findLast((event) => event.type === 'error');
 
@@ -451,6 +476,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
   async *streamCommand(request: CommandRequest): AsyncIterable<CommandEvent> {
     const process = await this.#spawnTracked(request);
     const reader = process.output.getReader();
+
     let completed = false;
 
     try {
@@ -476,8 +502,10 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     } finally {
       reader.releaseLock();
 
-      // The consumer broke or threw out of the loop before the command finished —
-      // kill the process so we never leak a live shell per cancelled command.
+      /*
+       * The consumer broke or threw out of the loop before the command finished —
+       * kill the process so we never leak a live shell per cancelled command.
+       */
       if (!completed) {
         process.kill();
       }
@@ -492,8 +520,10 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
       env: request.env,
       terminal: request.terminal ?? { cols: 80, rows: 15 },
     });
+
     const id = `terminal-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     this.#terminalProcesses.set(id, process);
+
     const writer = process.input.getWriter();
     const events = this.#processEvents(process);
 
@@ -554,6 +584,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
 
   async createSnapshot(label?: string): Promise<Snapshot> {
     const session = await this.getWorkspaceStatus();
+
     const snapshot: Snapshot = {
       id: `snapshot-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       workspaceId: session.id,
@@ -646,6 +677,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     const normalizedRequest = normalizeShellCommandRequest(request);
     const webcontainer = await this.#getWebContainer();
     const id = `process-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
     const process = await webcontainer.spawn(normalizedRequest.command, normalizedRequest.args ?? [], {
       cwd: normalizedRequest.cwd,
       env: normalizedRequest.env,
@@ -663,6 +695,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     process.exit
       .then((exitCode) => {
         const metadata = this.#processes.get(id);
+
         if (metadata) {
           this.#processes.set(id, { ...metadata, status: 'exited', exitCode });
         }
@@ -670,6 +703,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
       .catch(() => {
         // A rejected exit promise (spawn/teardown failure) must not become an unhandled rejection.
         const metadata = this.#processes.get(id);
+
         if (metadata) {
           this.#processes.set(id, { ...metadata, status: 'killed' });
         }
@@ -705,8 +739,10 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     for (const entry of entries) {
       const name = typeof entry === 'string' ? entry : entry.name;
       const path = joinPath(dirPath, name);
+
       const isDirectory =
         typeof entry === 'string' ? false : entry.type === 'directory' || entry.isDirectory?.() === true;
+
       const node: FileNode = { path, name, type: isDirectory ? 'directory' : 'file' };
 
       if (isDirectory) {
@@ -749,7 +785,21 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     const matches: FileSearchMatch[] = [];
     const isRegex = options.isRegex === true;
     const needle = options.caseSensitive ? query : query.toLowerCase();
-    const matcher = isRegex ? new RegExp(query, options.caseSensitive ? 'g' : 'gi') : undefined;
+
+    /*
+     * The query is user-supplied. A malformed pattern (e.g. '[' or '(') makes
+     * the RegExp constructor throw, which would reject the whole searchFiles()
+     * promise. Treat an invalid regex as "no matches" instead of crashing.
+     */
+    let matcher: RegExp | undefined;
+
+    if (isRegex) {
+      try {
+        matcher = new RegExp(query, options.caseSensitive ? 'g' : 'gi');
+      } catch {
+        return [];
+      }
+    }
 
     const visit = (nodes: FileNode[]) => {
       for (const node of nodes) {
@@ -762,8 +812,10 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
         lines.forEach((line, index) => {
           const haystack = options.caseSensitive ? line : line.toLowerCase();
 
-          // matcher is built with the global flag and reused across lines; reset
-          // lastIndex so its stateful cursor doesn't skip matches on later lines.
+          /*
+           * matcher is built with the global flag and reused across lines; reset
+           * lastIndex so its stateful cursor doesn't skip matches on later lines.
+           */
           if (matcher) {
             matcher.lastIndex = 0;
           }
@@ -785,6 +837,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     };
 
     visit(await this.listFiles('.'));
+
     return matches.slice(0, options.resultLimit);
   }
 
@@ -805,8 +858,10 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
         await webcontainer.fs.mkdir(targetPath, { recursive: true });
         await this.#restoreNodes(node.children ?? [], basePath);
       } else if (node.encoding === 'base64' && typeof node.content === 'string') {
-        // Restore binary files from their base64 bytes — writing the base64 string
-        // as text (or '') would corrupt/zero the asset.
+        /*
+         * Restore binary files from their base64 bytes — writing the base64 string
+         * as text (or '') would corrupt/zero the asset.
+         */
         const webcontainer = await this.#getWebContainer();
         const runtimePath = this.#toRuntimePath(targetPath);
         await this.#ensureParentDirectory(webcontainer, runtimePath);
@@ -833,6 +888,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     try {
       const payload = JSON.parse(decoded) as { files?: FileNode[] };
       await this.#restoreNodes(payload.files ?? [], targetPath);
+
       return true;
     } catch {
       return false;

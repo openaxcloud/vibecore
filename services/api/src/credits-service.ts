@@ -135,13 +135,39 @@ export async function debitCredits(
   const packs = await store.listCreditPacks(input.organizationId, { activeOnly: true });
   const plan = planPackConsumption({ amountCents: amount, packs, nowMs: input.nowMs });
 
+  /*
+   * decrementCreditPack is race-clamped (prisma-store.ts): when a concurrent
+   * settlement already drew the same pack below the planned `cents`, it consumes
+   * only whatever remained (clamp-to-0) rather than the planned amount. So the
+   * PLANNED plan.packDebits.cents can over-report what the packs actually covered.
+   * Reconcile against the REAL decrement (pre-minus-post remainingCents) and treat
+   * any clamped shortfall exactly like an uncovered remainder: it must overflow
+   * into the wallet balance / PAYG, never be silently lost. This is the pack-side
+   * analogue of the wallet-balance overdraw handling below.
+   *
+   * `before` is re-read from the store immediately before each decrement (not from
+   * the planning snapshot) so a sibling settlement that drained the pack in between
+   * is reflected; the per-iteration re-read keeps `pre - post` honest under races.
+   */
+  let fromPacks = 0;
+  let packShortfall = 0;
+
   for (const debit of plan.packDebits) {
-    await store.decrementCreditPack({ id: debit.packId, cents: debit.cents });
+    const current = await store.listCreditPacks(input.organizationId, { activeOnly: true });
+    const before = Math.max(0, current.find((p) => p.id === debit.packId)?.remainingCents ?? 0);
+    const updated = await store.decrementCreditPack({ id: debit.packId, cents: debit.cents });
+    const actual = Math.max(0, before - Math.max(0, updated.remainingCents));
+
+    fromPacks += actual;
+    packShortfall += Math.max(0, debit.cents - actual);
   }
+
+  // Whatever the packs could not actually cover overflows into the balance draw.
+  const remainingFromBalance = plan.remainingFromBalance + packShortfall;
 
   let fromBalance = 0;
 
-  if (plan.remainingFromBalance > 0) {
+  if (remainingFromBalance > 0) {
     /*
      * Cap the wallet draw at the REAL balance: the uncovered remainder must overflow
      * into pay-as-you-go (billed via Stripe), not silently drive the wallet negative.
@@ -152,7 +178,7 @@ export async function debitCredits(
      */
     const wallet = await store.getCreditWallet(input.organizationId);
     const balanceCents = Math.max(0, wallet?.balanceCents ?? 0);
-    const drawFromBalance = Math.min(plan.remainingFromBalance, balanceCents);
+    const drawFromBalance = Math.min(remainingFromBalance, balanceCents);
 
     if (drawFromBalance > 0) {
       /*
@@ -192,7 +218,7 @@ export async function debitCredits(
     }
   }
 
-  return { fromPacks: plan.packDebits.reduce((acc, d) => acc + d.cents, 0), fromBalance };
+  return { fromPacks, fromBalance };
 }
 
 export interface SettleResult {

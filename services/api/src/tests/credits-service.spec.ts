@@ -364,6 +364,108 @@ describe('debitCredits (concurrent wallet-balance over-spend guard)', () => {
     expect(second.fromBalance).toBe(0);
   });
 
+  it('reports only the cents a clamped pack actually covered, overflowing the shortfall to PAYG', async () => {
+    const store = new TestApiStore();
+
+    // No wallet balance: a pack shortfall must overflow straight to PAYG, not the wallet.
+    const pack = await store.createCreditPack({
+      organizationId: 'org_1',
+      purchasedCents: 100,
+      expiresAt: new Date(NOW + 30 * 24 * 3600 * 1000),
+    });
+
+    /*
+     * Simulate the pack-side race: planPackConsumption sees a STALE snapshot
+     * (pack still shows 100¢) and plans a 100¢ draw, but a sibling settlement has
+     * already drained the real pack to 50¢, so decrementCreditPack clamps and
+     * actually consumes only 50¢. The PLANNED 100 must NOT be reported as covered.
+     */
+    pack.remainingCents = 50; // real (post-race) remainder in the store
+
+    const realList = store.listCreditPacks.bind(store);
+
+    let firstRead = true;
+    vi.spyOn(store, 'listCreditPacks').mockImplementation(async (orgId: string, opts) => {
+      const packs = await realList(orgId, opts);
+
+      // Only the PLANNING read is stale (sees 100); the per-iteration re-read is honest.
+      if (firstRead) {
+        firstRead = false;
+
+        return packs.map((p) => (p.id === pack.id ? { ...p, remainingCents: 100 } : p));
+      }
+
+      return packs;
+    });
+
+    const result = await debitCredits(store, {
+      organizationId: 'org_1',
+      amountCents: 100,
+      reason: 'agent checkpoint',
+      nowMs: NOW,
+    });
+
+    // Only the 50¢ the pack could actually cover is reported as fromPacks…
+    expect(result.fromPacks).toBe(50);
+
+    // …no wallet balance exists, so the rest is not drawn from balance…
+    expect(result.fromBalance).toBe(0);
+
+    // …and the clamped 50¢ shortfall correctly overflows to PAYG (amount - packs - balance).
+    expect(100 - result.fromPacks - result.fromBalance).toBe(50);
+
+    // The real pack is drained to 0 (clamped), never negative.
+    expect((await realList('org_1')).find((p) => p.id === pack.id)?.remainingCents).toBe(0);
+  });
+
+  it('overflows a clamped pack shortfall into the wallet balance before PAYG', async () => {
+    const store = new TestApiStore();
+
+    // Wallet has 40¢ available to absorb part of the pack shortfall.
+    await store.recordCreditEntry({ organizationId: 'org_1', deltaCents: 40, kind: 'GRANT', reason: 'grant' });
+
+    const pack = await store.createCreditPack({
+      organizationId: 'org_1',
+      purchasedCents: 100,
+      expiresAt: new Date(NOW + 30 * 24 * 3600 * 1000),
+    });
+
+    // Real pack only holds 50¢ but the stale plan tries to draw the full 100¢.
+    pack.remainingCents = 50;
+
+    const realList = store.listCreditPacks.bind(store);
+
+    let firstRead = true;
+    vi.spyOn(store, 'listCreditPacks').mockImplementation(async (orgId: string, opts) => {
+      const packs = await realList(orgId, opts);
+
+      if (firstRead) {
+        firstRead = false;
+
+        return packs.map((p) => (p.id === pack.id ? { ...p, remainingCents: 100 } : p));
+      }
+
+      return packs;
+    });
+
+    const result = await debitCredits(store, {
+      organizationId: 'org_1',
+      amountCents: 100,
+      reason: 'agent checkpoint',
+      nowMs: NOW,
+    });
+
+    // 50¢ really came from the pack…
+    expect(result.fromPacks).toBe(50);
+
+    // …40¢ of the 50¢ shortfall is absorbed by the wallet balance…
+    expect(result.fromBalance).toBe(40);
+    expect((await store.getCreditWallet('org_1'))?.balanceCents).toBe(0);
+
+    // …leaving 10¢ for PAYG.
+    expect(100 - result.fromPacks - result.fromBalance).toBe(10);
+  });
+
   it('draws the real balance and reports no over-draw on the happy path', async () => {
     const store = new TestApiStore();
     await store.recordCreditEntry({ organizationId: 'org_1', deltaCents: 500, kind: 'GRANT', reason: 'grant' });

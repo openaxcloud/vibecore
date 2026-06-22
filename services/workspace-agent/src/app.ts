@@ -311,7 +311,9 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     await assertRealPathContained(root, safePath);
     await mkdir(dirname(safePath), { recursive: true });
     await assertRealPathContained(root, safePath);
-    await writeFile(safePath, content, { flag: 'wx' }).catch(rethrowFsError);
+
+    // Decode base64 like every other write path, or binary files land on disk as literal base64 text.
+    await writeFile(safePath, decodeWriteContent(content, body.encoding), { flag: 'wx' }).catch(rethrowFsError);
 
     return { path: body.path, type: 'file' };
   });
@@ -450,8 +452,16 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      */
     let previewController: AbortController | undefined;
 
+    /*
+     * Fastify decodes the wildcard, so a literal '?' or '#' in a path segment
+     * would be mis-read as a query/fragment delimiter by the URL constructor —
+     * truncating the path and then being overwritten by `target.search = search`.
+     * Re-encode them exactly as the preview-proxy does before forwarding.
+     */
+    const encodedTargetPath = targetPath.replace(/\?/g, '%3F').replace(/#/g, '%23');
+
     for (const host of candidateHosts) {
-      const target = new URL(`http://${host}:${port}/${targetPath}`);
+      const target = new URL(`http://${host}:${port}/${encodedTargetPath}`);
       target.search = search;
 
       /*
@@ -1443,8 +1453,24 @@ async function runCommand(
 
   const timer = setTimeout(() => killGroup('SIGTERM'), options.timeoutMs);
 
-  const append = (target: 'stdout' | 'stderr', chunk: Buffer) => {
-    const next = (target === 'stdout' ? stdout : stderr) + chunk.toString('utf8');
+  /*
+   * Decode through a StringDecoder per stream, not chunk.toString('utf8'): a
+   * multi-byte UTF-8 sequence (emoji/CJK/box-drawing/spinner glyphs in npm/Vite
+   * output) split across two 'data' chunks would otherwise decode to U+FFFD
+   * replacement chars. The decoder buffers the incomplete tail across chunks.
+   * Mirrors runCommandStream and terminal-session.ts.
+   */
+  const decoders: Record<'stdout' | 'stderr', StringDecoder> = {
+    stdout: new StringDecoder('utf8'),
+    stderr: new StringDecoder('utf8'),
+  };
+
+  const append = (target: 'stdout' | 'stderr', text: string) => {
+    if (!text) {
+      return;
+    }
+
+    const next = (target === 'stdout' ? stdout : stderr) + text;
 
     if (Buffer.byteLength(next) > options.maxOutputBytes) {
       truncated = true;
@@ -1471,8 +1497,14 @@ async function runCommand(
     record.output = `${stdout}\n${stderr}`.slice(-options.maxOutputBytes);
   };
 
-  child.stdout.on('data', (chunk) => append('stdout', chunk));
-  child.stderr.on('data', (chunk) => append('stderr', chunk));
+  child.stdout.on('data', (chunk: Buffer) => append('stdout', decoders.stdout.write(chunk)));
+  child.stderr.on('data', (chunk: Buffer) => append('stderr', decoders.stderr.write(chunk)));
+
+  // Flush any incomplete multi-byte tail buffered in the decoders when the child exits.
+  const flushDecoders = () => {
+    append('stdout', decoders.stdout.end());
+    append('stderr', decoders.stderr.end());
+  };
 
   /*
    * Guard the pipe Readables: an 'error' event on stdout/stderr with no listener
@@ -1498,6 +1530,7 @@ async function runCommand(
     child.on('close', (code, signal) => {
       clearTimeout(timer);
       clearTimeout(sigkillTimer);
+      flushDecoders();
       options.processes.delete(id);
       resolvePromise({ id, code, signal, stdout, stderr, truncated });
     });

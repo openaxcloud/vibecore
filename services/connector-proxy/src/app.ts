@@ -298,6 +298,21 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
       return reply.send();
     }
 
+    /*
+     * If the CLIENT disconnects while we are still consuming the upstream body,
+     * abort the upstream fetch — otherwise the token-bearing request to the
+     * provider keeps running to completion with no consumer, wasting the
+     * provider's rate budget and a local socket. This must cover BOTH the
+     * buffered branch (`await upstreamResponse.arrayBuffer()` can be in flight
+     * for up to BODY_MAX_DURATION_MS against a slow provider) and the streaming
+     * branch, so register it before the buffer/stream split.
+     */
+    reply.raw.on('close', () => {
+      if (!reply.raw.writableFinished) {
+        controller.abort();
+      }
+    });
+
     const contentLength = Number(upstreamResponse.headers.get('content-length') ?? '0');
     const MAX_BUFFER_BYTES = 1024 * 1024;
 
@@ -341,17 +356,10 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
     /*
      * Stream large provider responses through instead of buffering them whole.
      * connector-proxy never rewrites binary bodies, and provider downloads can
-     * be large enough that buffering risks avoidable memory pressure.
-     *
-     * If the CLIENT disconnects mid-stream, abort the upstream fetch — otherwise
-     * the token-bearing request to the provider keeps running to completion with
-     * no consumer, wasting the provider's rate budget and a local socket.
+     * be large enough that buffering risks avoidable memory pressure. The
+     * client-disconnect abort handler is registered above (it covers both the
+     * buffered and streamed branches).
      */
-    reply.raw.on('close', () => {
-      if (!reply.raw.writableFinished) {
-        controller.abort();
-      }
-    });
 
     /*
      * Bound the BODY phase too. The connect timeout was cleared once headers

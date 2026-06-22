@@ -6,6 +6,8 @@ import {
   editorBreakpoints,
   editorKindForLayout,
   extractWorkspaceSymbols,
+  findRenameMatches,
+  findStringAndCommentSpans,
   getEditorMinimapOptions,
   getResponsiveLayoutState,
   isEnvFilePath,
@@ -99,6 +101,75 @@ describe('workspace editor semantics', () => {
   it('skips huge or unsupported files from semantic indexing', () => {
     expect(isWorkspaceSemanticFile('image.png', 'binary')).toBe(false);
     expect(isWorkspaceSemanticFile('src/App.tsx', 'x'.repeat(500_001))).toBe(false);
+  });
+});
+
+describe('scope-aware symbol rename matching', () => {
+  it('detects string literal and comment spans, including escapes and templates', () => {
+    const source = [
+      'const a = "user in string";',
+      '// user in line comment',
+      '/* user in block */',
+      '`user ${user}`',
+    ].join('\n');
+
+    const spans = findStringAndCommentSpans(source);
+    const masked = (needleIndex: number) => spans.some((span) => needleIndex >= span.start && needleIndex < span.end);
+
+    // The "user" inside the double-quoted string is masked.
+    expect(masked(source.indexOf('user in string'))).toBe(true);
+
+    // The "user" in the line comment is masked.
+    expect(masked(source.indexOf('user in line comment'))).toBe(true);
+
+    // The "user" in the block comment is masked.
+    expect(masked(source.indexOf('user in block'))).toBe(true);
+
+    // The literal text portion of a template string is masked...
+    expect(masked(source.indexOf('user ${'))).toBe(true);
+  });
+
+  it('renames only code occurrences and leaves strings, comments, and substrings intact', () => {
+    const source = [
+      'function user() {',
+      '  const user = 1;',
+      '  return user;', // code usage
+      '}',
+      'const msg = "user logged in";', // string — must NOT match
+      '// the user pressed a key', // comment — must NOT match
+      'const username = user;', // `username` must NOT match (\b boundary)
+    ].join('\n');
+
+    const matches = findRenameMatches(source, 'user');
+
+    /*
+     * Exactly the four real `user` identifier sites: declaration, const,
+     * return, and the RHS of `username = user`.
+     */
+    expect(matches).toHaveLength(4);
+
+    for (const match of matches) {
+      expect(source.slice(match.start, match.end)).toBe('user');
+    }
+
+    // None of the masked occurrences (string + comment) are included.
+    const stringOccurrence = source.indexOf('user logged in');
+    const commentOccurrence = source.indexOf('user pressed');
+    expect(matches.some((match) => match.start === stringOccurrence)).toBe(false);
+    expect(matches.some((match) => match.start === commentOccurrence)).toBe(false);
+
+    // `username` is never partially matched.
+    const usernameOccurrence = source.indexOf('username');
+    expect(matches.some((match) => match.start === usernameOccurrence)).toBe(false);
+  });
+
+  it('does not let an unterminated single-quoted string swallow following code', () => {
+    // A stray quote on one line must not mask the identifier on later lines.
+    const source = ["const label = 'oops;", 'const user = 1;', 'return user;'].join('\n');
+
+    const matches = findRenameMatches(source, 'user');
+
+    expect(matches).toHaveLength(2);
   });
 });
 

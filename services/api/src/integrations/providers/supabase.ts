@@ -5,13 +5,15 @@ import {
   type ConnectorUserInfo,
 } from './types.js';
 
-// The Supabase Management API does not expose a /user endpoint. The
-// canonical way to validate a Management API token (PAT or
-// service-role token returned by oauth/token) is to list the projects
-// the token has access to. A 200 with an array - even an empty one -
-// confirms the token works; 401/403 confirms it's invalid or
-// insufficient. We use the smallest possible payload (the first
-// project's ref + name) to derive the externalAccount metadata.
+/*
+ * The Supabase Management API does not expose a /user endpoint. The
+ * canonical way to validate a Management API token (PAT or
+ * service-role token returned by oauth/token) is to list the projects
+ * the token has access to. A 200 with an array - even an empty one -
+ * confirms the token works; 401/403 confirms it's invalid or
+ * insufficient. We use the smallest possible payload (the first
+ * project's ref + name) to derive the externalAccount metadata.
+ */
 const PROJECTS_URL = 'https://api.supabase.com/v1/projects';
 
 interface SupabaseProject {
@@ -34,25 +36,61 @@ async function callSupabaseProjects(accessToken: string, fetchImpl?: typeof fetc
 }
 
 function parseSupabaseAccount(projects: SupabaseProject[]): ConnectorUserInfo {
-  const first = projects[0];
-
-  if (!first) {
-    // Empty list is still a valid Supabase account - the token works
-    // but the user has no projects yet. We surface a stable synthetic
-    // id keyed off the token's first available organization so the
-    // UserConnection row has a deterministic external account.
+  if (projects.length === 0) {
+    /*
+     * Empty list is still a valid Supabase account - the token works
+     * but the user has no projects yet. We surface a stable synthetic
+     * id keyed off the token's first available organization so the
+     * UserConnection row has a deterministic external account.
+     */
     return {
       externalAccountId: 'supabase-account',
       externalAccountLabel: 'Supabase account (no projects)',
     };
   }
 
-  const id = first.organization_id ?? first.ref ?? first.id ?? 'supabase-account';
-  const label = first.organization_id ? `Supabase org ${first.organization_id}` : (first.name ?? first.ref ?? id);
+  /*
+   * The Management API GET /v1/projects returns projects in NO guaranteed
+   * order, and the set shifts as the user creates/deletes projects. Picking
+   * projects[0] therefore yields a non-deterministic externalAccountId, which
+   * breaks the UserConnection upsert keyed on (userId, provider,
+   * externalAccountId): reconnecting the SAME token can mint a fresh row and
+   * leave a stale 'ghost' connection behind. To stay stable across calls we
+   * prefer an organization the token can see (a token is typically scoped to a
+   * single org) and, failing that, fall back to the lexicographically smallest
+   * project ref/id. The chosen candidate is independent of array ordering.
+   */
+  const orgIds = projects
+    .map((p) => p.organization_id)
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .sort();
+
+  if (orgIds[0]) {
+    const orgId = orgIds[0];
+
+    return {
+      externalAccountId: orgId,
+      externalAccountLabel: `Supabase org ${orgId}`,
+    };
+  }
+
+  const refIds = projects
+    .map((p) => p.ref ?? p.id)
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .sort();
+
+  const id = refIds[0] ?? 'supabase-account';
+
+  /*
+   * Preserve the original project's display name where we can, but anchor the
+   * label to the same stable project we keyed off so it does not flap either.
+   */
+  const anchor = projects.find((p) => (p.ref ?? p.id) === id);
+  const label = anchor?.name ?? id;
 
   return {
-    externalAccountId: String(id),
-    externalAccountLabel: String(label),
+    externalAccountId: id,
+    externalAccountLabel: label,
   };
 }
 

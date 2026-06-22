@@ -4,23 +4,30 @@ export const secretKeyPattern = /authorization|cookie|password|secret|token|api[
 export const secretValuePatterns = [
   /\bcanary_[A-Za-z0-9_-]{16,}\b/g,
   /\bsk_(?:live|test)_[A-Za-z0-9_-]{16,}\b/g,
+
   // Generic `sk-` prefix covers OpenAI (sk-, sk-proj-, sk-svcacct-) and Anthropic (sk-ant-).
   /\bsk-[A-Za-z0-9_-]{16,}\b/g,
   /\bya29\.[A-Za-z0-9._-]{16,}\b/g,
   /\bxox[baprs]-[A-Za-z0-9-]{16,}\b/g,
+
   // GitHub tokens: classic PAT, fine-grained PAT, and the gho/ghu/ghs/ghr family.
   /\bghp_[A-Za-z0-9]{16,}\b/g,
   /\bgithub_pat_[A-Za-z0-9_]{22,}\b/g,
   /\bgh[ousr]_[A-Za-z0-9]{16,}\b/g,
+
   // JWT / generic Bearer tokens (header.payload.signature).
   /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g,
+
   // AWS access key ids and Google API keys.
   /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g,
   /\bAIza[0-9A-Za-z_-]{35}\b/g,
+
   // Stripe restricted keys (rk_live/test).
   /\brk_(?:live|test)_[A-Za-z0-9]{16,}\b/g,
+
   // PEM private keys (any type) — redact the whole block.
   /-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/g,
+
   // Credentials embedded in connection-string / URL userinfo (scheme://user:pass@host).
   /\b([a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^\s:/@]+):[^\s/@]+@/g,
 ];
@@ -127,6 +134,7 @@ export function decryptJson<T = unknown>(encrypted: string, secret?: string): T 
 
   const decipher = createDecipheriv('aes-256-gcm', encryptionKey(resolvedSecret), Buffer.from(iv, 'base64url'));
   decipher.setAuthTag(Buffer.from(tag, 'base64url'));
+
   const plaintext = Buffer.concat([decipher.update(Buffer.from(ciphertext, 'base64url')), decipher.final()]);
 
   return JSON.parse(plaintext.toString('utf8')) as T;
@@ -165,6 +173,7 @@ function ipv6ToBigInt(ip: string): bigint | undefined {
 
   const head = halves[0] ? halves[0].split(':') : [];
   const tail = halves.length === 2 && halves[1] ? halves[1].split(':') : [];
+
   let groups: string[];
 
   if (halves.length === 2) {
@@ -213,10 +222,12 @@ export function isIpAllowed(ip: string, allowlist: string[] | undefined) {
     return true;
   }
 
-  // Case-insensitive prefix strip: `::FFFF:10.0.0.5` is a valid RFC text form
-  // some stacks/proxies emit. A lowercase-only strip left it as a 128-bit IPv6
-  // address that could never match a 32-bit IPv4 allowlist entry, wrongly
-  // blocking the legitimate client.
+  /*
+   * Case-insensitive prefix strip: `::FFFF:10.0.0.5` is a valid RFC text form
+   * some stacks/proxies emit. A lowercase-only strip left it as a 128-bit IPv6
+   * address that could never match a 32-bit IPv4 allowlist entry, wrongly
+   * blocking the legitimate client.
+   */
   const normalizedIp = ip.trim().replace(/^::ffff:/i, '');
   const ipParsed = ipToBigInt(normalizedIp);
 
@@ -298,7 +309,13 @@ const abuseCommandPatterns: Array<{ pattern: RegExp; signal: AbuseSignal }> = [
     },
   },
   {
-    pattern: /:\(\)\s*\{\s*:\|:|while\s+true.*fork|bomb/i,
+    /*
+     * Match only the recursive-fork shape `:(){ :|: ... }` (the classic `:(){:|:&};:`
+     * bomb and named variants). The previous bare `|bomb` alternative — and the loose
+     * `while true.*fork` — matched any command line that merely contained the substring
+     * "bomb" (or those words), hard-blocking legitimate commands.
+     */
+    pattern: /(?:[A-Za-z_][\w-]*|:)\s*\(\)\s*\{[^}]*?(?:[A-Za-z_][\w-]*|:)\s*\|\s*(?:[A-Za-z_][\w-]*|:)/,
     signal: { type: 'fork_bomb', severity: 'critical', action: 'stop_workspace', reason: 'fork bomb pattern' },
   },
   {
@@ -328,15 +345,15 @@ const abuseCommandPatterns: Array<{ pattern: RegExp; signal: AbuseSignal }> = [
     pattern: /\b(bash|sh|zsh|python|perl|ruby|php)\b.*\/dev\/tcp|nc\s+-e|socat\s+.*exec:|mkfifo\s+.*nc/i,
     signal: { type: 'reverse_shell', severity: 'critical', action: 'stop_workspace', reason: 'reverse shell pattern' },
   },
-  {
-    pattern: /;\s*(rm|curl|wget|bash|sh)\b|&&\s*(rm|curl|wget|bash|sh)\b|\|\s*(bash|sh|zsh)\b/i,
-    signal: {
-      type: 'command_injection',
-      severity: 'high',
-      action: 'manual_review',
-      reason: 'command chaining/injection pattern',
-    },
-  },
+
+  /*
+   * NOTE: a generic command-chaining pattern (`; rm`, `&& rm`, `| sh`, …) was removed here.
+   * detectCommandAbuse's result is hard-thrown as a 409 by the workspace-agent / api callers
+   * regardless of signal.action, so that pattern rejected ordinary shell usage such as
+   * `npm run clean && rm -rf dist`, `cat config | sh`, or `curl … ; bash setup.sh`. The
+   * unambiguous reverse-shell, crypto-mining, metadata-exfil, and download-and-execute
+   * (`curl … | sh`) constructs are already covered by the dedicated patterns above.
+   */
 ];
 
 export function detectCommandAbuse(command = '', args: string[] = []): AbuseSignal | undefined {
@@ -355,6 +372,7 @@ export function detectUsageAbuse(input: {
   if ((input.failedAuthAttempts ?? 0) >= 20) {
     return { type: 'failed_auth_spike', severity: 'high', action: 'throttle', reason: 'many failed auth attempts' };
   }
+
   if ((input.workspaceCreations ?? 0) >= 30) {
     return {
       type: 'workspace_creation_spike',
@@ -363,9 +381,11 @@ export function detectUsageAbuse(input: {
       reason: 'workspace creation spike',
     };
   }
+
   if ((input.aiMessages ?? 0) >= 1000) {
     return { type: 'excessive_ai_usage', severity: 'medium', action: 'throttle', reason: 'excessive AI usage' };
   }
+
   if ((input.storageBytes ?? 0) >= 100 * 1024 * 1024 * 1024) {
     return {
       type: 'storage_abuse',
@@ -374,11 +394,14 @@ export function detectUsageAbuse(input: {
       reason: 'storage abuse threshold exceeded',
     };
   }
+
   if ((input.cpuSeconds ?? 0) >= 6 * 60 * 60) {
     return { type: 'cpu_abuse', severity: 'high', action: 'manual_review', reason: 'CPU abuse threshold exceeded' };
   }
+
   if ((input.previewRequests ?? 0) >= 10_000) {
     return { type: 'spam_preview', severity: 'medium', action: 'throttle', reason: 'preview spam threshold exceeded' };
   }
+
   return undefined;
 }
