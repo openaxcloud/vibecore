@@ -430,9 +430,45 @@ describe('preview-proxy', () => {
       await app.close();
     });
 
-    it('leaves behaviour unchanged when enforcement is off (no cookie required)', async () => {
+    it('leaves behaviour unchanged when enforcement is explicitly off (no cookie required)', async () => {
       const app = await buildPreviewProxyApp({
+        enforceTenant: false,
         tenantSecret: secret,
+        resolveAgent: async () => fakeAgent,
+        fetchImpl: recordingFetch(async () => new Response('ok', { status: 200 })).fn,
+      });
+
+      const response = await app.inject({ method: 'GET', url: '/p/ws_1/3000/index.html' });
+      expect(response.statusCode).toBe(200);
+      await app.close();
+    });
+
+    it('auto-enforces when a tenant secret is provisioned (no explicit flag)', async () => {
+      // Provisioning PREVIEW_TENANT_SECRET is the single activation switch:
+      // with a secret and no override, enforcement is ON, so an uncredentialed
+      // request is rejected rather than silently leaking a cross-tenant preview.
+      const { fn: fetchImpl, calls } = recordingFetch(async () => new Response('ok', { status: 200 }));
+      const app = await buildPreviewProxyApp({ tenantSecret: secret, resolveAgent: async () => fakeAgent, fetchImpl });
+
+      const denied = await app.inject({ method: 'GET', url: '/p/ws_1/3000/index.html' });
+      expect(denied.statusCode).toBe(403);
+      expect(denied.json().code).toBe('PREVIEW_TENANT_FORBIDDEN');
+      expect(calls).toHaveLength(0);
+
+      // A valid cookie for the owning org still passes through.
+      const token = signPreviewTenantToken('org_7', Date.now() + 60_000, secret);
+      const ok = await app.inject({
+        method: 'GET',
+        url: '/p/ws_1/3000/index.html',
+        headers: { cookie: `vc_preview=${token}` },
+      });
+      expect(ok.statusCode).toBe(200);
+      await app.close();
+    });
+
+    it('stays unauthenticated (legacy) when no tenant secret is provisioned', async () => {
+      // No secret → degrade to the prior behaviour instead of crash-looping.
+      const app = await buildPreviewProxyApp({
         resolveAgent: async () => fakeAgent,
         fetchImpl: recordingFetch(async () => new Response('ok', { status: 200 })).fn,
       });

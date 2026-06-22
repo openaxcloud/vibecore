@@ -226,8 +226,29 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   const requestTimeoutMs = options.requestTimeoutMs ?? 30_000;
   const injectInspector = options.injectInspector ?? true;
   const previewDomain = options.previewDomain ?? process.env.PREVIEW_DOMAIN;
-  const enforceTenant = options.enforceTenant ?? process.env.PREVIEW_PROXY_ENFORCE_TENANT === 'true';
   const tenantSecret = options.tenantSecret ?? process.env.PREVIEW_TENANT_SECRET;
+
+  /*
+   * Per-tenant preview auth is now ON whenever a tenant secret is provisioned.
+   * Provisioning PREVIEW_TENANT_SECRET (in helm/env) is the single activation
+   * switch: with a secret present we enforce by default (Replit-style — every
+   * preview is bound to the owning org); with no secret we fall back to the
+   * legacy unauthenticated path so a misconfigured deploy degrades to the prior
+   * behaviour rather than crash-looping at boot. PREVIEW_PROXY_ENFORCE_TENANT
+   * still force-overrides either way (set it to 'false' to keep the secret
+   * provisioned but enforcement off during the cookie-propagation rollout
+   * window, or 'true' to require it).
+   *
+   * ROLLOUT ORDER (see docs/replit-parity-isolation.md): ship the web app's
+   * `vc_preview` cookie FIRST and let it propagate, THEN provision the secret —
+   * enforcing before the app emits the cookie would 403 every preview.
+   */
+  const enforceOverride =
+    options.enforceTenant ??
+    (process.env.PREVIEW_PROXY_ENFORCE_TENANT === undefined
+      ? undefined
+      : process.env.PREVIEW_PROXY_ENFORCE_TENANT === 'true');
+  const enforceTenant = enforceOverride ?? Boolean(tenantSecret);
 
   if (enforceTenant && !tenantSecret) {
     throw new Error('PREVIEW_TENANT_SECRET is required when PREVIEW_PROXY_ENFORCE_TENANT is enabled.');

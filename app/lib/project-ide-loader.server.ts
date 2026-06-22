@@ -1,4 +1,4 @@
-import { apiErrorMessage, apiRequest, json } from '~/lib/enterprise-api.server';
+import { apiErrorMessage, apiRequest, json, previewTenantCookie } from '~/lib/enterprise-api.server';
 
 export type ProjectWorkspaceSummary = {
   id: string;
@@ -100,26 +100,37 @@ export async function loadProjectIdeData(request: Request, projectId: string) {
     const workspaces = Array.isArray(workspacesResult.workspaces) ? workspacesResult.workspaces : [];
     const { currentWorkspaceId, primaryWorkspaceId } = resolveWorkspaceSelection(workspaces, requestedWorkspaceId);
 
-    return json<ProjectLoaderData>({
-      projectId,
-      project: result.project,
-      workspace: dashboardResult.workspace ?? null,
-      organization,
-      git: dashboardResult.git ?? {},
-      collaborators: collaboratorsResult.collaborators ?? [],
-      notifications: dashboardResult.recentActivity ?? [],
-      initialIdePanels: {
-        git: {
-          panel: 'git',
-          project: result.project,
-          status: 'ok',
-          data: { status: dashboardResult.git ?? {} },
+    /*
+     * Refresh the signed `vc_preview` cookie bound to THIS project's org on every
+     * IDE load so the cross-origin preview host can enforce tenant ownership.
+     * No-op (undefined) unless PREVIEW_TENANT_SECRET + PREVIEW_COOKIE_DOMAIN are
+     * provisioned, so this is safe to ship ahead of enabling proxy enforcement.
+     */
+    const previewCookie = previewTenantCookie(result.project.organizationId ?? organization?.id);
+
+    return json<ProjectLoaderData>(
+      {
+        projectId,
+        project: result.project,
+        workspace: dashboardResult.workspace ?? null,
+        organization,
+        git: dashboardResult.git ?? {},
+        collaborators: collaboratorsResult.collaborators ?? [],
+        notifications: dashboardResult.recentActivity ?? [],
+        initialIdePanels: {
+          git: {
+            panel: 'git',
+            project: result.project,
+            status: 'ok',
+            data: { status: dashboardResult.git ?? {} },
+          },
         },
+        workspaces,
+        currentWorkspaceId,
+        primaryWorkspaceId,
       },
-      workspaces,
-      currentWorkspaceId,
-      primaryWorkspaceId,
-    });
+      previewCookie ? { headers: { 'Set-Cookie': previewCookie } } : undefined,
+    );
   } catch (error) {
     const message = await apiErrorMessage(error, 'Project API unavailable');
 

@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createHmac } from 'node:crypto';
 import {
   apiBaseUrl,
   apiRequest,
   firstOrganization,
   firstOrganizationOrNull,
   loginRedirectFromRequest,
+  previewTenantCookie,
   safeReturnTo,
 } from './enterprise-api.server';
 
@@ -401,5 +403,58 @@ describe('firstOrganization helpers', () => {
     await expect(firstOrganizationOrNull(new Request('https://app.example.com/dashboard'))).resolves.toEqual({
       id: 'org_1',
     });
+  });
+});
+
+describe('previewTenantCookie', () => {
+  const PREVIEW_KEYS = ['PREVIEW_TENANT_SECRET', 'PREVIEW_COOKIE_DOMAIN', 'NODE_ENV'] as const;
+  let saved: Partial<Record<(typeof PREVIEW_KEYS)[number], string | undefined>>;
+
+  beforeEach(() => {
+    saved = {};
+    for (const key of PREVIEW_KEYS) {
+      saved[key] = process.env[key];
+      delete process.env[key];
+    }
+  });
+
+  afterEach(() => {
+    for (const key of PREVIEW_KEYS) {
+      const value = saved[key];
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  });
+
+  it('returns undefined unless a secret, domain and orgId are all present', () => {
+    expect(previewTenantCookie('org_1')).toBeUndefined(); // no secret/domain
+    process.env.PREVIEW_TENANT_SECRET = 'sek';
+    expect(previewTenantCookie('org_1')).toBeUndefined(); // no domain
+    process.env.PREVIEW_COOKIE_DOMAIN = 'e-code.ai';
+    expect(previewTenantCookie(null)).toBeUndefined(); // no orgId
+    expect(previewTenantCookie('')).toBeUndefined();
+  });
+
+  it('issues a parent-domain scoped cookie whose token verifies with the shared secret', () => {
+    process.env.PREVIEW_TENANT_SECRET = 'shared-preview-secret';
+    process.env.PREVIEW_COOKIE_DOMAIN = '.e-code.ai'; // leading dot tolerated
+
+    const cookie = previewTenantCookie('org_42', 3600);
+    expect(cookie).toBeDefined();
+    expect(cookie).toContain('vc_preview=');
+    expect(cookie).toContain('Domain=.e-code.ai');
+    expect(cookie).toContain('HttpOnly');
+    expect(cookie).toContain('Max-Age=3600');
+
+    // Reproduce preview-proxy's verifier (base64url(orgId).exp.base64url(HMAC)).
+    const value = /vc_preview=([^;]+)/.exec(cookie!)![1];
+    const [orgB64, expRaw, sig] = value.split('.');
+    const expected = createHmac('sha256', 'shared-preview-secret').update(`${orgB64}.${expRaw}`).digest('base64url');
+    expect(sig).toBe(expected);
+    expect(Number(expRaw)).toBeGreaterThan(Date.now());
+    expect(Buffer.from(orgB64, 'base64url').toString('utf8')).toBe('org_42');
   });
 });

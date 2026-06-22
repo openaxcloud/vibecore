@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { data as json, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
 import { json as jsonResponse } from '~/lib/json-response';
 
@@ -128,6 +129,42 @@ export function sessionCookie(token: string, maxAgeSeconds?: number) {
 
 export function clearSessionCookie() {
   return `${sessionCookieName}=; Path=/; HttpOnly; SameSite=Lax${cookieSecureFlag}; Max-Age=0`;
+}
+
+const previewCookieName = 'vc_preview';
+
+function base64url(input: Buffer | string) {
+  return (typeof input === 'string' ? Buffer.from(input) : input).toString('base64url');
+}
+
+/**
+ * Build a signed `vc_preview` cookie binding the active orgId, mirroring the
+ * token format preview-proxy's `verifyPreviewTenantToken` expects:
+ * `base64url(orgId).<expiresAtMs>.base64url(HMAC-SHA256(payload))`.
+ *
+ * The preview iframe lives on a SEPARATE host (`*.preview.<domain>`), so the
+ * IDE's `vc_session` cookie (no Domain attribute → host-only) is never sent
+ * there and the proxy cannot tell who the requester is. This cookie is scoped to
+ * the shared parent domain (`Domain=.<PREVIEW_COOKIE_DOMAIN>`) so it IS sent to
+ * the preview host, letting the proxy enforce that the workspace belongs to the
+ * caller's org. Returns undefined when no preview secret/domain is provisioned
+ * (the proxy then stays in legacy unauthenticated mode), so this is safe to call
+ * unconditionally from the IDE loader.
+ */
+export function previewTenantCookie(orgId: string | null | undefined, ttlSeconds = 60 * 60 * 12): string | undefined {
+  const secret = envValue('PREVIEW_TENANT_SECRET');
+  const domain = envValue('PREVIEW_COOKIE_DOMAIN')?.trim().replace(/^\.+/, '');
+
+  if (!orgId || !secret || !domain) {
+    return undefined;
+  }
+
+  const expiresAtMs = Date.now() + ttlSeconds * 1000;
+  const payload = `${base64url(orgId)}.${expiresAtMs}`;
+  const sig = base64url(createHmac('sha256', secret).update(payload).digest());
+  const value = `${payload}.${sig}`;
+
+  return `${previewCookieName}=${value}; Path=/; Domain=.${domain}; HttpOnly; SameSite=Lax${cookieSecureFlag}; Max-Age=${ttlSeconds}`;
 }
 
 /*

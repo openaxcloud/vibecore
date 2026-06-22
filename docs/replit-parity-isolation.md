@@ -35,7 +35,24 @@ workspace-manager and cannot be recovered from a derived key.
   short-lived, so this self-heals; no data migration is required. Roll out manager +
   trigger a fleet pod refresh, or accept the ≤30m self-heal window.
 
-### #1 — Enforce per-tenant preview auth by default (DECISION NEEDED)
+### #1 — Enforce per-tenant preview auth by default (CODE DONE; needs helm secret + rollout)
+**Implemented:**
+- preview-proxy now auto-enforces whenever `PREVIEW_TENANT_SECRET` is provisioned
+  (no secret → legacy unauthenticated, never a boot crash). `PREVIEW_PROXY_ENFORCE_TENANT`
+  still force-overrides. Tests: `services/preview-proxy/src/app.spec.ts`.
+- The web IDE loader emits the signed `vc_preview` cookie (HMAC over the project's
+  orgId, `Domain=.<PREVIEW_COOKIE_DOMAIN>`) on every load via `previewTenantCookie()`
+  in `app/lib/enterprise-api.server.ts`. No-op until the secret/domain are set.
+  Tests: `app/lib/enterprise-api.server.spec.ts`.
+- `.env.example` documents `PREVIEW_TENANT_SECRET`, `PREVIEW_COOKIE_DOMAIN`,
+  `PREVIEW_PROXY_ENFORCE_TENANT`.
+
+**Remaining (ops):** add the shared `PREVIEW_TENANT_SECRET` to the helm secret for
+BOTH the web app and preview-proxy, set `PREVIEW_COOKIE_DOMAIN` on the web app. Roll
+out web first (so `vc_preview` propagates), then provision the proxy secret to flip
+enforcement on.
+
+### #1b — original notes
 **Problem:** preview routing (`<workspaceId>-<port>.preview.e-code.ai`) does **not**
 require per-tenant auth unless `PREVIEW_PROXY_ENFORCE_TENANT=true`. Default is OFF
 (backward-compat). Anyone who learns a `workspaceId` can reach that workspace's preview.
