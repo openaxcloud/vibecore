@@ -17321,12 +17321,28 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-project-ide-shell > main {
     height: 100dvh !important;
-    padding-top: var(--vc-ide-topbar-height, 48px) !important;
+    /*
+     * The mobile chrome header (.bolt-mobile-ecode-header) is a fixed 48px bar
+     * plus the safe-area inset — NOT the 36px desktop topbar var. Clearing only
+     * 36px let the fixed header overlap the top of the agent transcript.
+     */
+    padding-top: calc(48px + env(safe-area-inset-top, 0px)) !important;
   }
 
   .bolt-responsive-ide-mobile {
     --mobile-nav-height: 72px;
-    --vc-mobile-shell-top: calc(var(--vc-ide-topbar-height, 48px) + env(safe-area-inset-top, 0px));
+    /* The mobile chrome header is a fixed 48px bar (not the 36px desktop topbar). */
+    --vc-ide-topbar-height: 48px;
+    /*
+     * Height of the agent context bar ("Working on this workspace" / "Ready for
+     * the next change") that sits *below* the 48px header bar when the agent is
+     * the active mobile surface. 0 when it isn't shown — see the
+     * [data-mobile-agent-context='true'] override below.
+     */
+    --vc-mobile-agent-context-height: 0px;
+    --vc-mobile-shell-top: calc(
+      var(--vc-ide-topbar-height, 48px) + var(--vc-mobile-agent-context-height, 0px) + env(safe-area-inset-top, 0px)
+    );
     --vc-mobile-shell-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
     --vc-mobile-panel-gutter: clamp(16px, 4vw, 30px);
     --vc-mobile-panel-gutter-tight: clamp(14px, 3.4vw, 24px);
@@ -17545,9 +17561,25 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     border-right: 0;
   }
 
+  /*
+   * When the agent is the active mobile surface the fixed header grows by the
+   * context bar ("Working on this workspace" / "Ready for the next change").
+   * Reserve that height so it never overlaps the transcript or workbench panels.
+   */
+  .bolt-responsive-ide-mobile[data-mobile-agent-context='true'] {
+    --vc-mobile-agent-context-height: 52px;
+  }
+
   .bolt-responsive-ide-mobile .bolt-project-agent-panel {
     --chat-max-width: min(100%, calc(100vw - 20px));
-    --vc-agent-composer-reserved-space: clamp(236px, 36dvh, 360px);
+    /*
+     * Reserve exactly as much room as the sticky composer actually occupies. The
+     * measured height (set by a ResizeObserver in BaseChat) keeps the last
+     * messages glued just above the composer; the clamp is only the SSR / no-JS
+     * fallback. A static clamp made the transcript jump whenever the composer
+     * grew (notices, tool-calls card, suggestions).
+     */
+    --vc-agent-composer-reserved-space: var(--vc-agent-composer-measured-height, clamp(236px, 36dvh, 360px));
     height: 100%;
     max-height: 100%;
     padding-bottom: 0;
@@ -17562,7 +17594,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     width: 100% !important;
     min-height: 0;
     flex-direction: column;
-    padding: var(--vc-mobile-panel-gutter-tight) 0 0 !important;
+    /*
+     * Push the transcript below the agent context bar so the first prompt isn't
+     * hidden behind the fixed header. The context-bar height is 0 unless the bar
+     * is actually shown (see [data-mobile-agent-context='true']).
+     */
+    padding: calc(var(--vc-mobile-panel-gutter-tight) + var(--vc-mobile-agent-context-height, 0px)) 0 0 !important;
+    scroll-padding-top: var(--vc-mobile-agent-context-height, 0px);
     scroll-padding-bottom: var(--vc-agent-composer-reserved-space);
   }
 
@@ -18927,6 +18965,21 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     padding: 10px;
   }
 
+  /*
+   * `backdrop-filter` (the composer's `backdrop-blur`) makes an element a
+   * containing block for `position: fixed` descendants. The chatbox wrapper AND
+   * its inner input shell both carried it, which trapped the fixed bottom-sheets
+   * (the "•••" tools menu and the agent power popover) inside the tiny composer
+   * box instead of the viewport — so they rendered clipped / behind the
+   * composer. The chatbox already sits on an opaque card on mobile, so dropping
+   * the blur here is invisible and frees the popovers to anchor to the viewport.
+   */
+  .bolt-responsive-ide-mobile .bolt-project-chatbox,
+  .bolt-responsive-ide-mobile .bolt-chatbox-input-shell {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
   .bolt-responsive-ide-mobile .bolt-model-selector {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
@@ -19131,6 +19184,44 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     border-radius: 999px;
     background: var(--mobile-nav-border-top);
     margin: 0 auto 8px;
+    content: '';
+  }
+
+  /*
+   * The agent power popover opens UPWARD with `position: absolute`, so it was
+   * clipped by the composer's `overflow` (the composer is a scroll container on
+   * mobile). Lift it to a fixed bottom-sheet, like the tools menu, so it floats
+   * above the composer and the bottom nav instead of being cut off.
+   */
+  .bolt-responsive-ide-mobile .bolt-agent-power-popover {
+    position: fixed !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: calc(var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
+    left: 50% !important;
+    z-index: 12022;
+    width: min(calc(100vw - 24px), var(--vc-mobile-sheet-max-width));
+    max-width: var(--vc-mobile-sheet-max-width);
+    max-height: min(64dvh, 520px);
+    margin: 0 !important;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-color: var(--mobile-nav-border);
+    border-radius: var(--vc-mobile-sheet-radius);
+    background: var(--mobile-nav-bg-elevated);
+    box-shadow:
+      var(--mobile-nav-shadow),
+      0 24px 80px rgb(0 0 0 / 0.45);
+    transform: translateX(-50%) !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-agent-power-popover::before {
+    display: block;
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--mobile-nav-border-top);
+    margin: 0 auto 10px;
     content: '';
   }
 

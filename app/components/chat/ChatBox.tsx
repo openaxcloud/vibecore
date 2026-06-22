@@ -412,7 +412,9 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         </div>
       )}
       <div
-        className={classNames('relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg')}
+        className={classNames(
+          'bolt-chatbox-input-shell relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg',
+        )}
       >
         <div className="bolt-chatbox-input-frame relative">
           <textarea

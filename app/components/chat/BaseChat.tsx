@@ -2642,6 +2642,61 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       };
     }, [useMobileIde]);
 
+    /*
+     * Keep the transcript's reserved bottom space in lock-step with the *actual*
+     * composer height on mobile. The composer grows/shrinks as notices, the
+     * tool-calls card and suggestions appear — a static clamp left a gap that
+     * mismatched the sticky composer, so the last messages jumped (and could hide
+     * behind the composer) every time its height changed. Measuring it removes
+     * that layout jump.
+     */
+    useEffect(() => {
+      if (!useMobileIde || typeof window === 'undefined' || typeof ResizeObserver === 'undefined') {
+        return undefined;
+      }
+
+      const node = agentComposerRef.current;
+
+      if (!node) {
+        document.documentElement.style.removeProperty('--vc-agent-composer-measured-height');
+        return undefined;
+      }
+
+      let lastReserved = -1;
+
+      const updateComposerHeight = () => {
+        const height = node.getBoundingClientRect().height;
+
+        if (height <= 0) {
+          return;
+        }
+
+        const reserved = Math.round(height) + 16;
+
+        /*
+         * Only rewrite the reserved space when it changes by a meaningful amount.
+         * Sub-pixel/1-2px churn while streaming would otherwise re-shift the
+         * transcript on every frame — the very "jumping" we're trying to kill.
+         */
+        if (Math.abs(reserved - lastReserved) < 6) {
+          return;
+        }
+
+        lastReserved = reserved;
+        document.documentElement.style.setProperty('--vc-agent-composer-measured-height', `${reserved}px`);
+      };
+
+      updateComposerHeight();
+
+      const observer = new ResizeObserver(updateComposerHeight);
+      observer.observe(node);
+
+      return () => {
+        observer.disconnect();
+        document.documentElement.style.removeProperty('--vc-agent-composer-measured-height');
+      };
+    }, [useMobileIde, mobilePanel]);
+
     const closeMobileOverlays = useCallback(() => {
       setMobileToolsSheetOpen(false);
       setMobileTabSwitcherOpen(false);
@@ -3099,6 +3154,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const restoredProjectId = useRef<string | undefined>(undefined);
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
     const scrollUpdateFrame = useRef<number | null>(null);
+    const agentComposerRef = useRef<HTMLDivElement | null>(null);
     const activeProjectPanel = readPanelSearchParam(searchParams, IDE_URL_PANELS) || '';
 
     const setProjectPanelSearchParam = useCallback(
@@ -5829,6 +5885,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           </StickToBottom.Content>
           {shouldRenderAgentComposer && (
             <div
+              ref={agentComposerRef}
               className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
                 'sticky bottom-2': chatStarted,
                 'bolt-project-agent-composer bolt-project-agent-composer-stack': projectIdeMode,
@@ -7376,6 +7433,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
         data-chat-visible={showChat}
         data-mobile-panel={mobilePanel}
+        data-mobile-agent-context={showMobileChrome && isMobileAgentActive ? 'true' : 'false'}
         {...(useMobileIde ? mobileSwipeHandlers : {})}
       >
         {!projectIdeMode && <ClientOnly>{() => <Menu />}</ClientOnly>}

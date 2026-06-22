@@ -132,7 +132,7 @@ export function AgentPowerControls({ value, onChange, estimatedCents, disabled, 
           id={panelId}
           role="dialog"
           aria-label="Agent power settings"
-          className="absolute bottom-full left-0 z-50 mb-2 w-64 rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 shadow-xl"
+          className="bolt-agent-power-popover absolute bottom-full left-0 z-50 mb-2 w-64 rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 shadow-xl"
         >
           <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
             Power level
