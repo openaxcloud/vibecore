@@ -89,6 +89,36 @@ const previewBootSteps: Array<{ id: PreviewBootStepId; label: string; descriptio
   },
 ];
 
+/*
+ * Whether to show the "Starting project workspace…" boot overlay. Critically it
+ * must return FALSE on a failed workspace boot or preview run: when the provider
+ * sets workspaceError it leaves workspaceStatus undefined (workspaceReady stays
+ * false), which previously left the overlay spinning forever with no error and no
+ * recovery. A failure renders the recoverable error UI instead.
+ */
+export function shouldShowStartupOverlay(input: {
+  hasActivePreview: boolean;
+  hasStaticPreview: boolean;
+  autoStart: boolean;
+  previewRunFailed: boolean;
+  hasWorkspaceError: boolean;
+  isStartingPreview: boolean;
+  isRefreshingPorts: boolean;
+  workspaceReady: boolean;
+  previewStatus?: string;
+}): boolean {
+  if (input.previewRunFailed || input.hasWorkspaceError) {
+    return false;
+  }
+
+  return Boolean(
+    !input.hasActivePreview &&
+      !input.hasStaticPreview &&
+      input.autoStart &&
+      (input.isStartingPreview || input.isRefreshingPorts || !input.workspaceReady || input.previewStatus),
+  );
+}
+
 function resolvePreviewBootProgress(input: {
   workspaceReady: boolean;
   previewsLength: number;
@@ -369,6 +399,7 @@ export const Preview = memo(
     const workspaceLoading = useStore(workbenchStore.workspaceLoading);
     const workspaceStatus = useStore(workbenchStore.workspaceStatus);
     const workspaceLogs = useStore(workbenchStore.workspaceLogs);
+    const workspaceError = useStore(workbenchStore.workspaceError);
     const files = useStore(workbenchStore.files);
 
     const normalizedActivePreviewIndex = previews[activePreviewIndex]
@@ -466,13 +497,17 @@ export const Preview = memo(
         iframeUrl &&
         (activePreview.ready === false || !previewFrameLoaded || loadedPreviewUrl !== iframeUrl),
     );
-    const shouldShowPreviewStartupOverlay = Boolean(
-      !activePreview &&
-        !hasStaticPreview &&
-        autoStart &&
-        !previewRunFailed &&
-        (isStartingPreview || isRefreshingPorts || !workspaceReady || previewStatus),
-    );
+    const shouldShowPreviewStartupOverlay = shouldShowStartupOverlay({
+      hasActivePreview: Boolean(activePreview),
+      hasStaticPreview,
+      autoStart,
+      previewRunFailed,
+      hasWorkspaceError: Boolean(workspaceError),
+      isStartingPreview,
+      isRefreshingPorts,
+      workspaceReady,
+      previewStatus,
+    });
     useEffect(() => {
       const previewLoadIdentity = iframeUrl ? `${projectId ?? 'local'}:${iframeUrl}` : undefined;
 
@@ -2074,9 +2109,9 @@ export const Preview = memo(
               </>
             ) : (
               <>
-                {previewRunFailed ? (
+                {previewRunFailed || workspaceError ? (
                   <PreviewNotRunningState
-                    detail={previewStatus}
+                    detail={previewStatus ?? workspaceError}
                     isRunning={isStartingPreview}
                     logs={workspaceLogs.slice(-8)}
                     onRun={() => {
