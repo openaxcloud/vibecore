@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isReauthRedirect } from './projects.$projectId.snapshots';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 /**
  * Regression: both snapshot actions (create/restore) caught every thrown value

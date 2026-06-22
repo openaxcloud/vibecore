@@ -3,10 +3,9 @@ import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
+import { handleCollaboratorActionError } from '~/lib/collaborator-action-error';
 import {
-  apiErrorMessage,
   apiRequest,
-  json,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
@@ -14,31 +13,6 @@ import {
 import { projectAction, projectPageLoader } from '~/lib/project-route.server';
 
 type CollaboratorsData = { collaborators: Array<{ id: string; userId: string; roleKey: string; createdAt?: string }> };
-
-/**
- * Decide how to handle an error thrown while adding a collaborator.
- *
- * - A redirect Response (3xx) means the session expired (401 → /login) or MFA enrollment is
- *   required (403 MFA_REQUIRED → /mfa-setup); it must be re-thrown so the browser follows the
- *   re-auth navigation rather than rendering it as an inline error.
- * - A non-redirect Response (e.g. 404 USER_NOT_FOUND, 403 COLLABORATOR_NOT_ORG_MEMBER) is
- *   surfaced inline as a friendly message.
- * - Anything else is re-thrown to the error boundary.
- */
-export async function handleCollaboratorActionError(error: unknown) {
-  if (error instanceof Response && error.status >= 300 && error.status < 400) {
-    throw error;
-  }
-
-  if (error instanceof Response) {
-    const status = error.status;
-    const msg = await apiErrorMessage(error, 'Unable to add collaborator. Check the email and try again.');
-
-    return json({ error: msg }, { status });
-  }
-
-  throw error;
-}
 
 export const meta: MetaFunction = () => [{ title: 'Project collaborators - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>

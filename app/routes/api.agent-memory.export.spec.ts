@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildAgentMemoryExportResponse } from './api.agent-memory.export';
+import { buildAgentMemoryExportResponse } from '~/lib/agent-memory-export-response';
 
 describe('buildAgentMemoryExportResponse', () => {
   it('returns a real Response whose body is valid, parseable JSON', async () => {

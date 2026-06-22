@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { mapRecentActivity, mapWithConcurrency, MAX_METRIC_REPOS, METRICS_CONCURRENCY } from './api.github-stats';
+import {
+  mapRecentActivity,
+  mapWithConcurrency,
+  MAX_METRIC_REPOS,
+  METRICS_CONCURRENCY,
+} from '~/lib/github-stats-metrics';
 
 describe('mapRecentActivity', () => {
   it('maps repo name/url when present', () => {

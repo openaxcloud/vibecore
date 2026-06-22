@@ -9,6 +9,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { shouldRethrowActionError } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = () => [{ title: 'Account settings - E-Code' }];
 
@@ -26,10 +27,6 @@ interface CurrentUser {
  * boundary). A 3xx redirect has no JSON body, so passing it to apiErrorMessage
  * would surface a dead-end generic error instead of sending the user to re-auth.
  */
-export function shouldRethrowActionError(error: unknown): error is Response {
-  return error instanceof Response && (error.status >= 500 || (error.status >= 300 && error.status < 400));
-}
-
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const { user } = await apiRequest<{ user?: CurrentUser }>(request, '/auth/me');
 

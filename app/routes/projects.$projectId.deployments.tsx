@@ -33,6 +33,7 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 import { projectAction, projectPageLoader } from '~/lib/project-route.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 import { classNames } from '~/utils/classNames';
 
 type DeploymentLog = { timestamp: string; level: 'info' | 'warn' | 'error'; message: string };
@@ -70,10 +71,6 @@ const providers = [
  * to let the browser follow the re-auth redirect instead of converting a
  * body-less redirect into a generic inline "Failed to …" banner.
  */
-export function isReauthRedirect(error: unknown): error is Response {
-  return error instanceof Response && error.status >= 300 && error.status < 400;
-}
-
 export const meta: MetaFunction = () => [{ title: 'Project deployments - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<DeploymentsData>(args, (projectId) => `/projects/${projectId}/deployments`);

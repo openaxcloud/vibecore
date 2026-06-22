@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isReauthRedirect } from './projects.$projectId.domains';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 describe('isReauthRedirect', () => {
   it('re-throws the login redirect apiRequest throws on a mid-session 401', () => {

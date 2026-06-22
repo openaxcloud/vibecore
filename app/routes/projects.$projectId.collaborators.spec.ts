@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { handleCollaboratorActionError } from './projects.$projectId.collaborators';
+import { handleCollaboratorActionError } from '~/lib/collaborator-action-error';
 
 describe('handleCollaboratorActionError', () => {
   it('re-throws redirect Responses (401 → /login) so the browser follows the re-auth navigation', async () => {

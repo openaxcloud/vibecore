@@ -1,5 +1,4 @@
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
-import { createServer, type Server } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { signAgentToken } from '@vibecore/workspace-sdk';
@@ -103,52 +102,9 @@ describe('workspace-agent fix batch', () => {
   });
 
   /*
-   * Bug 3: /preview/:port/* must re-encode '?' and '#' in the wildcard path so they
-   * are not mis-read as URL delimiters (which would truncate the path).
+   * Bug 3 (preview '?'/'#' path re-encoding) was reverted: the re-encode shim
+   * 500'd on Linux/CI due to a cross-platform Fastify splat-decoding difference,
+   * which is worse than the original low-severity truncation. Deferred for a
+   * platform-correct fix; the original behaviour is restored.
    */
-  it('/preview proxies a path containing encoded ? and # without truncation', async () => {
-    let received: string | undefined;
-
-    const upstream: Server = createServer((req, res) => {
-      received = req.url;
-      res.writeHead(200, { 'content-type': 'text/plain' });
-      res.end('ok');
-    });
-
-    await new Promise<void>((resolve) => upstream.listen(0, '127.0.0.1', resolve));
-
-    const address = upstream.address();
-
-    if (typeof address === 'string' || address === null) {
-      upstream.close();
-      throw new Error('expected a TCP address');
-    }
-
-    const port = address.port;
-
-    try {
-      const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
-      const headers = { authorization: `Bearer ${token}` };
-
-      /*
-       * The client encodes ? and # within a single path segment. Fastify decodes
-       * the wildcard, so the handler sees a literal '?' and '#' it must re-encode.
-       */
-      const response = await app.inject({
-        method: 'GET',
-        url: `/preview/${port}/assets/file%3Fname%23frag.js?v=1`,
-        headers,
-      });
-
-      expect(response.statusCode).toBe(200);
-
-      /*
-       * The full path segment must survive to the upstream, re-encoded, and the
-       * real query (?v=1) must be the only query the upstream sees.
-       */
-      expect(received).toBe('/assets/file%3Fname%23frag.js?v=1');
-    } finally {
-      await new Promise<void>((resolve) => upstream.close(() => resolve()));
-    }
-  });
 });

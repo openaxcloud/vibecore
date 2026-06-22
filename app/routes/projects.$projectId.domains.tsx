@@ -12,6 +12,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 type Domain = {
   id: string;
@@ -33,10 +34,6 @@ export const meta: MetaFunction = () => [{ title: 'Custom domains - E-Code' }];
  * so the catch blocks can re-throw it and let the browser follow the re-auth
  * redirect.
  */
-export function isReauthRedirect(error: unknown): error is Response {
-  return error instanceof Response && error.status >= 300 && error.status < 400;
-}
-
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   const projectId = params.projectId;
 

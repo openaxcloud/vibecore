@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shouldRethrowActionError } from './account-settings';
+import { shouldRethrowActionError } from '~/lib/route-reauth';
 
 describe('shouldRethrowActionError', () => {
   it('re-throws the login redirect apiRequest throws on a mid-session 401', () => {

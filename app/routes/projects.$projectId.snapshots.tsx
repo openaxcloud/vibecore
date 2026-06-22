@@ -12,6 +12,7 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 import { projectAction, projectPageLoader } from '~/lib/project-route.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 type SnapshotsData = {
   snapshots: Array<{ id: string; label?: string; kind: string; byteLength?: number; createdAt?: string }>;
@@ -25,10 +26,6 @@ type SnapshotsData = {
  * instead of swallowing a body-less redirect into an inline "Snapshot … failed."
  * banner.
  */
-export function isReauthRedirect(error: unknown): error is Response {
-  return error instanceof Response && error.status >= 300 && error.status < 400;
-}
-
 export const meta: MetaFunction = () => [{ title: 'Project snapshots - E-Code' }];
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<SnapshotsData>(args, (projectId) => `/projects/${projectId}/snapshots`);

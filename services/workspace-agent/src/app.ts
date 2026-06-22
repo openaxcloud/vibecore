@@ -452,16 +452,8 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      */
     let previewController: AbortController | undefined;
 
-    /*
-     * Fastify decodes the wildcard, so a literal '?' or '#' in a path segment
-     * would be mis-read as a query/fragment delimiter by the URL constructor —
-     * truncating the path and then being overwritten by `target.search = search`.
-     * Re-encode them exactly as the preview-proxy does before forwarding.
-     */
-    const encodedTargetPath = targetPath.replace(/\?/g, '%3F').replace(/#/g, '%23');
-
     for (const host of candidateHosts) {
-      const target = new URL(`http://${host}:${port}/${encodedTargetPath}`);
+      const target = new URL(`http://${host}:${port}/${targetPath}`);
       target.search = search;
 
       /*

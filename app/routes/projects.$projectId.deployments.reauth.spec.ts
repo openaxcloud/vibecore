@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isReauthRedirect } from './projects.$projectId.deployments';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 /**
  * Regression: all four deployment actions (deploy/cancel/redeploy/rollback)
