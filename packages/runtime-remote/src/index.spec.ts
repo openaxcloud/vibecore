@@ -206,7 +206,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     }
   });
 
-  it('halts the terminal reconnect loop when the API reports WORKSPACE_NOT_STARTED', async () => {
+  it('retries a few times on WORKSPACE_NOT_STARTED then halts the flap (no infinite reconnect)', async () => {
     vi.useFakeTimers();
     FakeWebSocket.instances = [];
     FakeWebSocket.failNextOpenCount = 0;
@@ -219,25 +219,39 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
       WebSocketImpl: FakeWebSocket,
     });
 
+    const notStarted = () =>
+      JSON.stringify({
+        type: 'error',
+        error: { message: 'Workspace is not running. Click Run to start it.', code: 'WORKSPACE_NOT_STARTED' },
+      });
+
     try {
       await adapter.openTerminal();
       expect(FakeWebSocket.instances).toHaveLength(1);
 
-      // The API signals the runtime isn't started, then closes the socket.
-      const socket = FakeWebSocket.instances.at(-1)!;
-      socket.emit('message', {
-        data: JSON.stringify({
-          type: 'error',
-          error: { message: 'Workspace is not running. Click Run to start it.', code: 'WORKSPACE_NOT_STARTED' },
-        }),
-      });
-      socket.emit('close', {});
+      // First WORKSPACE_NOT_STARTED → does NOT halt (the workspace may be cold-starting),
+      // so it reconnects (a new socket appears) rather than giving up immediately.
+      const first = FakeWebSocket.instances.at(-1)!;
+      first.emit('message', { data: notStarted() });
+      first.emit('close', {});
+      await vi.advanceTimersByTimeAsync(2_000);
+      await Promise.resolve();
+      expect(FakeWebSocket.instances.length).toBeGreaterThan(1);
 
-      // Well past the max 10s backoff: NO reconnect is attempted (no new socket) —
-      // the endless "[terminal reconnected]" flap is gone.
+      // Keep replying NOT_STARTED across cycles: eventually it exhausts the budget and HALTS.
+      for (let i = 0; i < 10; i += 1) {
+        const sock = FakeWebSocket.instances.at(-1)!;
+        sock.emit('message', { data: notStarted() });
+        sock.emit('close', {});
+        await vi.advanceTimersByTimeAsync(10_000);
+        await Promise.resolve();
+      }
+
+      const stableCount = FakeWebSocket.instances.length;
+      // Well past the max backoff: no further reconnects — the flap is bounded, not infinite.
       await vi.advanceTimersByTimeAsync(60_000);
       await Promise.resolve();
-      expect(FakeWebSocket.instances).toHaveLength(1);
+      expect(FakeWebSocket.instances.length).toBe(stableCount);
     } finally {
       vi.useRealTimers();
     }

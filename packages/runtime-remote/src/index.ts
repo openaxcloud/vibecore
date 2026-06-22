@@ -408,6 +408,13 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     let stableTimer: ReturnType<typeof setTimeout> | undefined;
     let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
     let halted = false;
+    // True once the terminal has delivered a real frame — gates the
+    // "[terminal reconnected]" notice so cold-start retries don't spam it.
+    let everWorked = false;
+    // Consecutive WORKSPACE_NOT_STARTED responses; a COLD-STARTING workspace may
+    // emit a few before its agent is ready, so retry this many times before giving up.
+    let notStartedCount = 0;
+    const MAX_NOT_STARTED_RETRIES = 6;
     // Bound the reconnect so a workspace that stays unreachable can't flap forever.
     const MAX_RECONNECT_ATTEMPTS = 8;
 
@@ -466,18 +473,28 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       }
 
       /*
-       * The API emits this when the workspace runtime isn't started (its upstream to
-       * the agent never opened). Halt instead of reconnecting into an endless
-       * "[terminal reconnected]" flap — the user must click Run / reopen.
+       * The API emits this when its upstream to the agent didn't open — the runtime
+       * isn't started. The workspace may be COLD-STARTING (agent not ready for a few
+       * seconds) or genuinely STOPPED, so retry a bounded number of times (the socket
+       * close drives the retry) before halting with a clear "click Run" message —
+       * without the "[terminal reconnected]" spam (gated on everWorked in reconnect()).
        */
       if (
         (parsed as { type?: string }).type === 'error' &&
         (parsed as { error?: { code?: string } }).error?.code === 'WORKSPACE_NOT_STARTED'
       ) {
-        haltReconnect('\r\n\x1b[33m[workspace not running — click Run to start it]\x1b[0m\r\n');
+        notStartedCount += 1;
+
+        if (notStartedCount >= MAX_NOT_STARTED_RETRIES) {
+          haltReconnect('\r\n\x1b[33m[workspace not running — click Run to start it]\x1b[0m\r\n');
+        }
+
         return;
       }
 
+      // A real frame means the terminal is live — reset the not-started budget.
+      everWorked = true;
+      notStartedCount = 0;
       queue.push(parsed);
     };
     const scheduleReconnect = () => {
@@ -583,7 +600,15 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         this.#terminals.set(terminalId, socket);
         bindSocket(socket);
         startHeartbeat();
-        queue.push({ type: 'stdout', data: '\r\n[terminal reconnected]\r\n', timestamp: now() });
+
+        /*
+         * Only announce a reconnect once the terminal has actually worked — so a
+         * cold-starting workspace's retries (which open the client↔API socket but
+         * then get WORKSPACE_NOT_STARTED) don't spam "[terminal reconnected]".
+         */
+        if (everWorked) {
+          queue.push({ type: 'stdout', data: '\r\n[terminal reconnected]\r\n', timestamp: now() });
+        }
       } catch {
         scheduleReconnect();
       }
