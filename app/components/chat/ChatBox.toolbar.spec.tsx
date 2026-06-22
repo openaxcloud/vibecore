@@ -80,31 +80,21 @@ const baseProps: ChatBoxTestProps = {
   chatMode: 'build',
   setChatMode: vi.fn(),
   projectIdeMode: true,
-  agentMode: 'agent',
-  setAgentMode: vi.fn(),
   planFirstEnabled: false,
   onPlanFirstChange: vi.fn(),
+
+  /*
+   * The IDE composer always wires the combined Agent/Plan/Assistant mode
+   * dropdown (see BaseChat). Plan is reachable as a mode inside that dropdown,
+   * not a standalone toggle, so agentMode/setAgentMode must be supplied for the
+   * dropdown to render.
+   */
+  agentMode: 'agent',
+  setAgentMode: vi.fn(),
 };
 
 function renderChatBox(overrides: Partial<ChatBoxTestProps> = {}) {
   return render(<ChatBox {...baseProps} {...overrides} />);
-}
-
-/**
- * The per-request boosts (High power / Extended thinking / Turbo) and the build
- * tier live inside the "Power" popover, collapsed by default. Open it via the
- * popover trigger (the only button with `aria-haspopup="dialog"`).
- */
-function openPowerPopover() {
-  const trigger = screen
-    .getAllByRole('button')
-    .find((button) => button.getAttribute('aria-haspopup') === 'dialog' && /Power/i.test(button.textContent ?? ''));
-
-  if (!trigger) {
-    throw new Error('Power popover trigger not found');
-  }
-
-  fireEvent.click(trigger);
 }
 
 describe('<ChatBox /> toolbar', () => {
@@ -120,11 +110,14 @@ describe('<ChatBox /> toolbar', () => {
     expect(screen.queryByText(/Use Shift \+ Return a new line/i)).toBeNull();
     expect(screen.getByRole('button', { name: 'Upload file' }).getAttribute('data-vc-tooltip')).toBe('Upload file');
 
-    // Agent/Plan/Assistant are merged into a single mode dropdown (default Agent).
-    const modeTrigger = screen.getByRole('button', { name: 'Agent' });
-
+    /*
+     * Plan is no longer a standalone toggle: it is one of three mutually
+     * exclusive modes in the combined Agent/Plan/Assistant dropdown. With
+     * planFirstEnabled=false + agentMode='agent' the trigger reads "Agent".
+     */
+    const modeTrigger = screen.getByRole('button', { name: /Agent/, expanded: false });
     expect(modeTrigger.getAttribute('aria-haspopup')).toBe('menu');
-    expect(modeTrigger.getAttribute('aria-expanded')).toBe('false');
+    expect(modeTrigger.getAttribute('data-mode')).toBe('agent');
 
     expect(screen.getByRole('button', { name: 'More composer & tools' }).getAttribute('aria-haspopup')).toBe('menu');
 
@@ -148,31 +141,35 @@ describe('<ChatBox /> toolbar', () => {
     expect(within(menu).getByText('Hide agent settings')).toBeTruthy();
 
     /*
-     * In the IDE composer the mic is surfaced directly on the bar, so Speech is
-     * intentionally NOT duplicated inside the overflow menu.
+     * In the IDE composer the mic is surfaced directly on the toolbar bar
+     * (Replit parity), so Speech is intentionally omitted from this menu to
+     * avoid a duplicate — it lives on the primary bar instead.
      */
     expect(within(menu).queryByText('Speech')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Start speech recognition' })).toBeTruthy();
   });
 
-  it('selects Plan mode from the composer mode dropdown', () => {
+  it('toggles Plan first from the composer mode dropdown', () => {
     const onPlanFirstChange = vi.fn();
     const setAgentMode = vi.fn();
-    renderChatBox({ planFirstEnabled: false, onPlanFirstChange, setAgentMode });
+    renderChatBox({ planFirstEnabled: true, onPlanFirstChange, setAgentMode });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Agent' }));
+    // planFirstEnabled=true resolves the combined dropdown to the "Plan" mode.
+    const modeTrigger = screen.getByRole('button', { name: /Plan/, expanded: false });
+    expect(modeTrigger.getAttribute('data-mode')).toBe('plan');
+
+    fireEvent.click(modeTrigger);
 
     const menu = screen.getByRole('menu', { name: 'Agent mode' });
 
-    fireEvent.click(within(menu).getByRole('menuitemradio', { name: /Plan/i }));
+    // The Plan menu item is currently selected.
+    expect(within(menu).getByRole('menuitemradio', { name: /Plan/ }).getAttribute('aria-checked')).toBe('true');
 
-    expect(onPlanFirstChange).toHaveBeenCalledWith(true);
+    // Switching to Agent turns Plan-first off.
+    fireEvent.click(within(menu).getByRole('menuitemradio', { name: /Agent/ }));
+
+    expect(onPlanFirstChange).toHaveBeenCalledWith(false);
     expect(setAgentMode).toHaveBeenCalledWith('agent');
-  });
-
-  it('reflects the active Plan mode on the dropdown trigger', () => {
-    renderChatBox({ planFirstEnabled: true });
-
-    expect(screen.getByRole('button', { name: 'Plan' }).getAttribute('aria-haspopup')).toBe('menu');
   });
 });
 
@@ -187,31 +184,32 @@ describe('<ChatBox /> agent power controls', () => {
     renderChatBox();
 
     /*
-     * The default estimate is visible on the composer bar without opening anything.
-     * economy (×1) × $0.25 baseline
+     * The boosts + build tier are collapsed behind a single "Power" dropdown
+     * (Replit-clean composer) without dropping any control. The live cost
+     * estimate stays visible on the bar; the controls live in the popover.
      */
-    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$0.25');
-
-    // The boosts + build tier live inside the collapsed "Power" popover.
-    openPowerPopover();
+    const powerTrigger = screen.getByRole('button', { name: /Power/i });
+    fireEvent.click(powerTrigger);
 
     expect(screen.getByRole('switch', { name: /High power/i })).toBeTruthy();
     expect(screen.getByRole('switch', { name: /Extended thinking/i })).toBeTruthy();
     expect(screen.getByRole('switch', { name: /Turbo/i })).toBeTruthy();
     expect(screen.getByRole('radiogroup', { name: 'Build tier' })).toBeTruthy();
+
+    // economy (×1) × $0.25 baseline
+    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$0.25');
   });
 
   it('does not render the power controls outside the IDE composer', () => {
     renderChatBox({ projectIdeMode: false });
-    expect(screen.queryByRole('switch', { name: /High power/i })).toBeNull();
-    expect(screen.queryByTitle(/Estimated cost for this request/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /High power/i })).toBeNull();
   });
 
   it('raises the proof-of-work estimate when High power is enabled and reports the change', () => {
     const onAgentPowerChange = vi.fn();
     renderChatBox({ onAgentPowerChange });
 
-    openPowerPopover();
+    fireEvent.click(screen.getByRole('button', { name: /Power/i }));
     fireEvent.click(screen.getByRole('switch', { name: /High power/i }));
 
     expect(onAgentPowerChange).toHaveBeenCalledWith(expect.objectContaining({ highPowerModel: true }));
@@ -226,10 +224,11 @@ describe('<ChatBox /> agent power controls', () => {
       onAgentPowerChange: vi.fn(),
     });
 
-    // $0.25 × 6 = $1.50 — shown on the bar straight away.
-    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$1.50');
+    fireEvent.click(screen.getByRole('button', { name: /Power/i }));
 
-    openPowerPopover();
     expect(screen.getByRole('switch', { name: /Turbo/i }).getAttribute('aria-checked')).toBe('true');
+
+    // $0.25 × 6 = $1.50
+    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$1.50');
   });
 });

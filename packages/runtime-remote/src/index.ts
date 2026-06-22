@@ -408,13 +408,21 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     let stableTimer: ReturnType<typeof setTimeout> | undefined;
     let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
     let halted = false;
-    // True once the terminal has delivered a real frame — gates the
-    // "[terminal reconnected]" notice so cold-start retries don't spam it.
+
+    /*
+     * True once the terminal has delivered a real frame — gates the
+     * "[terminal reconnected]" notice so cold-start retries don't spam it.
+     */
     let everWorked = false;
-    // Consecutive WORKSPACE_NOT_STARTED responses; a COLD-STARTING workspace may
-    // emit a few before its agent is ready, so retry this many times before giving up.
+
+    /*
+     * Consecutive WORKSPACE_NOT_STARTED responses; a COLD-STARTING workspace may
+     * emit a few before its agent is ready, so retry this many times before giving up.
+     */
     let notStartedCount = 0;
+
     const MAX_NOT_STARTED_RETRIES = 6;
+
     // Bound the reconnect so a workspace that stays unreachable can't flap forever.
     const MAX_RECONNECT_ATTEMPTS = 8;
 
@@ -1018,6 +1026,10 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
   async #resolveAuthToken(): Promise<string | undefined> {
     return typeof this.#authToken === 'function' ? this.#authToken() : this.#authToken;
+  }
+
+  hasWorkspaceId(): boolean {
+    return Boolean(this.#workspaceId);
   }
 
   #requireWorkspaceId(): string {

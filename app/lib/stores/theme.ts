@@ -130,6 +130,30 @@ function initStore() {
   return DEFAULT_THEME;
 }
 
+/*
+ * Re-point a <meta> tag to a fresh value. We REMOVE and RE-INSERT the element
+ * rather than calling setAttribute('content', …) because iOS Safari only tints
+ * the address bar / bottom toolbar from <meta name="theme-color"> when the node
+ * is (re)parsed — a plain content mutation is silently ignored, so toggling the
+ * theme at runtime (e.g. the Settings → Theme dropdown, which never reloads the
+ * document) left the browser chrome stuck on the value present at first paint.
+ * Replacing the node forces Safari to re-read it and repaint the chrome.
+ */
+function refreshChromeMeta(name: string, content: string) {
+  const head = document.head;
+
+  if (!head) {
+    return;
+  }
+
+  head.querySelectorAll(`meta[name="${name}"]`).forEach((node) => node.remove());
+
+  const meta = document.createElement('meta');
+  meta.setAttribute('name', name);
+  meta.setAttribute('content', content);
+  head.appendChild(meta);
+}
+
 export function applyThemeToDocument(theme: Theme) {
   if (typeof document === 'undefined') {
     return;
@@ -141,10 +165,8 @@ export function applyThemeToDocument(theme: Theme) {
   root.classList.toggle('dark', theme === 'dark');
   root.style.colorScheme = theme;
 
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0a0f1c' : '#f6f8fb');
-  document
-    .querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
-    ?.setAttribute('content', theme === 'dark' ? 'black-translucent' : 'default');
+  refreshChromeMeta('theme-color', theme === 'dark' ? '#0a0f1c' : '#f6f8fb');
+  refreshChromeMeta('apple-mobile-web-app-status-bar-style', theme === 'dark' ? 'black-translucent' : 'default');
 }
 
 export function toggleTheme() {

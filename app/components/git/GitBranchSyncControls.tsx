@@ -124,7 +124,13 @@ export function GitBranchSyncControls({
         <form onSubmit={onSubmit}>
           <input name="intent" value="pull" type="hidden" />
           <input name="branch" value={branch} type="hidden" />
-          <button type="submit" disabled={busy} className={secondaryButton}>
+          <button
+            type="submit"
+            disabled={busy}
+            className={secondaryButton}
+            title={`Pull remote updates from origin/${branch} into this workspace branch`}
+            aria-label={`Pull remote updates from origin/${branch} into this workspace branch`}
+          >
             <span className="i-ph:arrow-down text-sm" aria-hidden />
             Pull
           </button>
@@ -132,7 +138,13 @@ export function GitBranchSyncControls({
         <form onSubmit={onSubmit}>
           <input name="intent" value="push" type="hidden" />
           <input name="branch" value={branch} type="hidden" />
-          <button type="submit" disabled={busy} className={secondaryButton}>
+          <button
+            type="submit"
+            disabled={busy}
+            className={secondaryButton}
+            title={`Push local commits to origin/${branch}`}
+            aria-label={`Push local commits to origin/${branch}`}
+          >
             <span className="i-ph:arrow-up text-sm" aria-hidden />
             Push
           </button>

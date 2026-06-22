@@ -100,6 +100,31 @@ function createFetchMock() {
 }
 
 describe('RemoteKubernetesRuntimeAdapter', () => {
+  it('hasWorkspaceId() reflects whether a workspace is bound (stores skip watching until configured)', async () => {
+    // ID-less (module singleton before configureRuntime wires the project adapter).
+    const unbound = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token',
+      fetchImpl: createFetchMock() as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+    expect(unbound.hasWorkspaceId()).toBe(false);
+
+    // Seeded with a workspace id (project-scoped adapter).
+    const bound = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token',
+      workspaceId: 'ws-42',
+      fetchImpl: createFetchMock() as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+    expect(bound.hasWorkspaceId()).toBe(true);
+
+    // Becomes bound after startWorkspace().
+    await unbound.startWorkspace({ id: 'ws-99' });
+    expect(unbound.hasWorkspaceId()).toBe(true);
+  });
+
   it('opens project workspace, loads file tree, saves edits, runs patches, and opens previews', async () => {
     const fetchMock = createFetchMock();
 
@@ -229,8 +254,10 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
       await adapter.openTerminal();
       expect(FakeWebSocket.instances).toHaveLength(1);
 
-      // First WORKSPACE_NOT_STARTED → does NOT halt (the workspace may be cold-starting),
-      // so it reconnects (a new socket appears) rather than giving up immediately.
+      /*
+       * First WORKSPACE_NOT_STARTED → does NOT halt (the workspace may be cold-starting),
+       * so it reconnects (a new socket appears) rather than giving up immediately.
+       */
       const first = FakeWebSocket.instances.at(-1)!;
       first.emit('message', { data: notStarted() });
       first.emit('close', {});
@@ -248,6 +275,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
       }
 
       const stableCount = FakeWebSocket.instances.length;
+
       // Well past the max backoff: no further reconnects — the flap is bounded, not infinite.
       await vi.advanceTimersByTimeAsync(60_000);
       await Promise.resolve();

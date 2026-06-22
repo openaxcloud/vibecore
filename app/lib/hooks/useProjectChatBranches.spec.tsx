@@ -39,6 +39,7 @@ function applyMockPatch(projectId: string, patch: ProjectIdeMemory) {
 
 vi.mock('~/lib/persistence/projectIdeMemory', () => ({
   getProjectIdeMemory: vi.fn(async (projectId: string) => mockState.get(projectId) ?? {}),
+  getProjectIdeMemorySync: vi.fn((projectId: string) => mockState.get(projectId)),
   saveProjectIdeMemory: vi.fn(async (projectId: string, patch: ProjectIdeMemory) => {
     applyMockPatch(projectId, patch);
   }),

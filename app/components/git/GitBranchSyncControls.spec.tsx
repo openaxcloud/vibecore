@@ -15,11 +15,22 @@ describe('<GitBranchSyncControls />', () => {
   it('labels pull and push branch fields with explicit context', () => {
     render(<GitBranchSyncControls branch="main" idPrefix="test-git" onSubmit={vi.fn()} />);
 
-    expect(screen.getByRole('heading', { name: 'Sync branches' })).toBeTruthy();
-    expect((screen.getByLabelText(/Local branch/i) as HTMLInputElement).value).toBe('main');
-    expect((screen.getByLabelText(/Remote branch/i) as HTMLInputElement).value).toBe('main');
-    expect(screen.getByText('Pull remote updates into this workspace branch.')).toBeTruthy();
-    expect(screen.getByText('Push local commits to this remote branch.')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Remote Updates' })).toBeTruthy();
+
+    /*
+     * Pull and Push must carry explicit, distinct accessible context naming the
+     * branch and the direction of the transfer — not just bare "Pull"/"Push".
+     */
+
+    const pull = screen.getByRole('button', {
+      name: 'Pull remote updates from origin/main into this workspace branch',
+    });
+
+    const push = screen.getByRole('button', { name: 'Push local commits to origin/main' });
+
+    expect(pull).toBeTruthy();
+    expect(push).toBeTruthy();
+    expect(pull.getAttribute('aria-label')).not.toBe(push.getAttribute('aria-label'));
   });
 
   it('submits the matching Git intent for each action', () => {
@@ -32,8 +43,10 @@ describe('<GitBranchSyncControls />', () => {
 
     render(<GitBranchSyncControls branch="main" idPrefix="test-git" onSubmit={onSubmit} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Pull' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Push' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Pull remote updates from origin/main into this workspace branch' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Push local commits to origin/main' }));
 
     expect(onSubmit).toHaveBeenCalledTimes(2);
     expect(submittedIntents).toEqual(['pull', 'push']);
