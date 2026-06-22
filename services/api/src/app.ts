@@ -10325,7 +10325,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   };
 
-  const createBeforeAiSnapshot = async (request: any, project: ProjectRecord, reason: string) => {
+  const createBeforeAiSnapshot = async (
+    request: any,
+    project: ProjectRecord,
+    reason: string,
+    association?: { conversationId?: string; turnIndex?: number },
+  ) => {
     const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
     const archive = await projectStorage.createSnapshot({ projectId: project.id, label: reason, files });
     await persistProjectArchiveObject(archive, { projectId: project.id, kind: 'before-ai-change' });
@@ -10338,6 +10343,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       storageKey: archive.storageKey,
       byteLength: archive.byteLength,
       createdByUserId: request.currentUser!.id,
+      conversationId: association?.conversationId,
+      turnIndex: association?.turnIndex,
     });
   };
 
@@ -10346,6 +10353,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     project: ProjectRecord,
     toolName: (typeof aiToolNames)[number],
     input: z.infer<typeof aiToolSchema>,
+    snapshotAssociation?: { conversationId?: string; turnIndex?: number },
   ) => {
     /*
      * When the caller omits an explicit runtime workspace id, resolve the
@@ -10413,7 +10421,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let output: unknown;
 
     if (['delete_file', 'rename_file', 'apply_patch', 'restore_snapshot'].includes(toolName)) {
-      snapshotId = (await createBeforeAiSnapshot(request, project, `Before AI ${toolName}`)).id;
+      snapshotId = (await createBeforeAiSnapshot(request, project, `Before AI ${toolName}`, snapshotAssociation)).id;
     }
 
     if (toolName === 'list_files') {
@@ -16728,7 +16736,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       content: toolName,
     });
 
-    const result = await executeAiTool(request, project, toolName, body);
+    /*
+     * Snapshot↔checkpoint association. A "before-ai-change" snapshot is taken per
+     * mutating tool call (delete/rename/apply_patch/restore), so one assistant
+     * turn can produce several snapshots. We stamp each with the conversation and
+     * the assistant-turn ordinal so the IDE can pair a chat checkpoint to the
+     * FIRST snapshot of its turn — never by array position. The assistant message
+     * for the in-flight turn has not been persisted yet, so the turn ordinal is
+     * the count of assistant messages already in the conversation (0-based).
+     */
+    const turnIndex = (await store.listAiMessages(conversationId)).filter(
+      (message) => message.role === 'assistant',
+    ).length;
+
+    const result = await executeAiTool(request, project, toolName, body, { conversationId, turnIndex });
 
     const toolCall = await store.createAiToolCall({
       messageId: toolMessage.id,

@@ -545,6 +545,8 @@ model WorkspaceSession {
   workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId])
+  // Presence-cleanup sweeps by userId (nullable); without this it full-scanned.
+  @@index([userId])
 }
 
 model WorkspacePort {
@@ -583,12 +585,20 @@ model ProjectSnapshot {
   storageKey      String?
   byteLength      Int?
   createdByUserId String?
+  // Association used to pair a snapshot to the chat checkpoint that produced it.
+  // Populated for AI "before-ai-change" snapshots; NULL for manual/legacy rows.
+  // turnIndex is the assistant-turn ordinal within the conversation at the time
+  // the snapshot was taken (the first snapshot of a turn has the smallest
+  // createdAt). See migration 0046_snapshot_checkpoint_assoc.
+  conversationId  String?
+  turnIndex       Int?
   createdAt       DateTime @default(now())
   project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdBy       User?    @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
 
   @@index([projectId])
   @@index([createdByUserId])
+  @@index([conversationId, turnIndex])
 }
 
 model ProjectStorageObject {
@@ -744,6 +754,8 @@ model UsageEvent {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, type])
+  // Per-user usage reporting filters by userId over time; was a full-scan.
+  @@index([userId, createdAt])
 }
 
 model QuotaLedger {
@@ -1381,6 +1393,8 @@ model UserConnection {
   @@unique([userId, provider, externalAccountId])
   @@index([userId, provider])
   @@index([status])
+  // Background token-health sweep cursors on lastHealthCheckAt; was a full-scan.
+  @@index([lastHealthCheckAt])
 }
 
 model ProjectConnectionLink {
@@ -1398,6 +1412,8 @@ model ProjectConnectionLink {
   @@unique([projectId, userConnectionId])
   @@index([projectId])
   @@index([userConnectionId])
+  // "who linked this" lookups + future user-offboarding scans; was a full-scan.
+  @@index([linkedByUserId])
 }
 
 model OrganizationOAuthAppOverride {
@@ -1562,11 +1578,18 @@ model CreditLedger {
   createdAt      DateTime        @default(now())
   wallet         CreditWallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
   organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  // NOTE: a PARTIAL UNIQUE index "CreditLedger_org_checkpoint_payg_key" on
+  // (organizationId, checkpointId) WHERE kind='PAYG_CHARGE' is defined in raw SQL
+  // (migration 0045) — Prisma's schema can't express a WHERE-filtered unique index.
+  // It backs recordPaygCharge's atomic create+catch-P2002 dedup. Do not drop it.
 
   @@index([organizationId, createdAt])
   @@index([walletId, createdAt])
   @@index([checkpointId])
   @@index([kind, expiresAt])
+  // Org-scoped credit-expiry sweep filters organizationId + kind + expiresAt
+  // together; the kind/expiresAt-only index wasn't org-scoped.
+  @@index([organizationId, kind, expiresAt])
 }
 
 enum CheckpointStatus {
@@ -1725,4 +1748,6 @@ model DatabaseRestore {
 
   @@index([databaseInstanceId, createdAt])
   @@index([status])
+  // "restores requested by user" lookups; was a full-scan (no FK on this column).
+  @@index([requestedByUserId])
 }

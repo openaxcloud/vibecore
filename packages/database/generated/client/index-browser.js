@@ -432,6 +432,8 @@ exports.Prisma.ProjectSnapshotScalarFieldEnum = {
   storageKey: 'storageKey',
   byteLength: 'byteLength',
   createdByUserId: 'createdByUserId',
+  conversationId: 'conversationId',
+  turnIndex: 'turnIndex',
   createdAt: 'createdAt'
 };
 

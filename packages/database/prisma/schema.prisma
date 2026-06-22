@@ -585,12 +585,20 @@ model ProjectSnapshot {
   storageKey      String?
   byteLength      Int?
   createdByUserId String?
+  // Association used to pair a snapshot to the chat checkpoint that produced it.
+  // Populated for AI "before-ai-change" snapshots; NULL for manual/legacy rows.
+  // turnIndex is the assistant-turn ordinal within the conversation at the time
+  // the snapshot was taken (the first snapshot of a turn has the smallest
+  // createdAt). See migration 0046_snapshot_checkpoint_assoc.
+  conversationId  String?
+  turnIndex       Int?
   createdAt       DateTime @default(now())
   project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdBy       User?    @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
 
   @@index([projectId])
   @@index([createdByUserId])
+  @@index([conversationId, turnIndex])
 }
 
 model ProjectStorageObject {

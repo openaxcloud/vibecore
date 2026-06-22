@@ -5687,16 +5687,86 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const projectId = project.json().project.id as string;
 
     try {
+      const conversation = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/ai/conversations`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { title: 'Snapshot pairing' },
+      });
+      const conversationId = conversation.json().conversation.id as string;
+
       const deletion = await app.inject({
         method: 'POST',
         url: `/projects/${projectId}/ai/tools/delete_file`,
         headers: { authorization: `Bearer ${auth.token}` },
-        payload: { path: 'README.md' },
+        payload: { path: 'README.md', conversationId },
       });
 
       expect(deletion.statusCode).toBe(201);
       expect(deletion.json().snapshotId).toBeTruthy();
-      expect([...store.snapshots.values()].some((snapshot) => snapshot.kind === 'before-ai-change')).toBe(true);
+
+      const beforeAiSnapshots = [...store.snapshots.values()].filter(
+        (snapshot) => snapshot.kind === 'before-ai-change',
+      );
+      expect(beforeAiSnapshots.length).toBe(1);
+
+      /*
+       * The snapshot must carry the (conversationId, turnIndex) association the IDE
+       * relies on to pair a chat checkpoint to the correct snapshot — without it,
+       * "Rollback here" falls back to a position-based guess (the data-loss bug).
+       */
+      expect(beforeAiSnapshots[0].conversationId).toBe(conversationId);
+      expect(beforeAiSnapshots[0].turnIndex).toBe(0);
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('stamps every snapshot of one agent turn with the SAME turnIndex (multi-tool-call turn)', async () => {
+    const runtime = await startRuntimeServices();
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'ai-turn@example.com', organizationName: 'AI Turn Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'AI Turn Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    const conversation = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/ai/conversations`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { title: 'Multi-tool turn' },
+    });
+    const conversationId = conversation.json().conversation.id as string;
+
+    try {
+      /*
+       * Two mutating tool calls in the SAME turn (no assistant message persisted
+       * between them) → two before-ai-change snapshots that must share turnIndex 0.
+       * This is the exact scenario the ordinal-index bug mis-paired.
+       */
+      for (const path of ['a.txt', 'b.txt']) {
+        const response = await app.inject({
+          method: 'POST',
+          url: `/projects/${projectId}/ai/tools/delete_file`,
+          headers: { authorization: `Bearer ${auth.token}` },
+          payload: { path, conversationId },
+        });
+        expect(response.statusCode).toBe(201);
+      }
+
+      const turnIndexes = [...store.snapshots.values()]
+        .filter((snapshot) => snapshot.kind === 'before-ai-change')
+        .map((snapshot) => snapshot.turnIndex);
+
+      expect(turnIndexes.length).toBe(2);
+      expect(turnIndexes).toEqual([0, 0]);
     } finally {
       await runtime.close();
       await app.close();

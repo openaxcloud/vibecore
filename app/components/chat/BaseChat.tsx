@@ -39,6 +39,11 @@ import {
   partitionMonitoringEvents as partitionMonitoringEventsHelper,
 } from './projectMonitoring';
 import { formatRailBadgeValue } from '~/lib/labels/rail-badge';
+import {
+  pairCheckpointsToSnapshots,
+  type CheckpointTurn,
+  type CheckpointSnapshotPairing,
+} from '~/lib/chat/checkpoint-snapshots';
 import { setAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
 import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
@@ -697,6 +702,8 @@ type ProjectSnapshot = {
   createdByUserId?: string;
   createdAt?: string;
   byteLength?: number;
+  conversationId?: string;
+  turnIndex?: number;
 };
 type ProjectConversationCheckpoint = {
   id: string;
@@ -3033,6 +3040,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [guidedTourOpen, setGuidedTourOpen] = useState(false);
     const [guidedTourStepIndex, setGuidedTourStepIndex] = useState(0);
     const [projectSnapshots, setProjectSnapshots] = useState<ProjectSnapshot[]>([]);
+
+    /*
+     * Backend AI conversation id of the *live* project conversation. The
+     * checkpoint↔snapshot pairing keys on this so before-ai-change snapshots
+     * (stamped server-side with their conversationId) can be matched to the
+     * current transcript's turns, not only to archived conversations.
+     */
+    const [currentAiConversationId, setCurrentAiConversationId] = useState<string | undefined>(undefined);
     const agentPatchProposals = useStore(workbenchStore.agentPatchProposals);
 
     const pendingAgentPatchProposals = useMemo(
@@ -3441,8 +3456,70 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           messages: messages ?? [],
           createdAt: undefined,
           updatedAt: undefined,
+          backendConversationId: currentAiConversationId,
         },
       ].filter((conversation) => conversation.messages.length);
+
+      /*
+       * Pair each assistant turn to the snapshot representing the state BEFORE the
+       * turn ran, using the persisted (conversationId, turnIndex) association — NOT
+       * by ordinal array position. One agent turn can take several before-ai-change
+       * snapshots (one per mutating tool call), so the old `snapshots[N - 1]` index
+       * pointed at an unrelated snapshot and "Rollback here" silently restored the
+       * wrong files. See app/lib/chat/checkpoint-snapshots.ts.
+       */
+      const checkpointTurns: CheckpointTurn[] = [];
+      const turnOrdinalByConversation = new Map<string, number>();
+
+      const turnKeyFor = (conversationId: string, messageId: string | undefined, index: number) =>
+        `${conversationId}:${messageId ?? index}`;
+
+      conversationSources.forEach((conversation) => {
+        conversation.messages.forEach((message, index) => {
+          if (message.role !== 'assistant') {
+            return;
+          }
+
+          const ordinal = turnOrdinalByConversation.get(conversation.id) ?? 0;
+          turnOrdinalByConversation.set(conversation.id, ordinal + 1);
+
+          checkpointTurns.push({
+            key: turnKeyFor(conversation.id, message.id, index),
+            backendConversationId: conversation.backendConversationId,
+            turnOrdinal: ordinal,
+          });
+        });
+      });
+
+      const snapshotPairings = pairCheckpointsToSnapshots<ProjectSnapshot>(checkpointTurns, projectSnapshots);
+
+      /*
+       * Legacy fallback. Snapshots created before the association existed carry no
+       * conversationId/turnIndex, so `pairCheckpointsToSnapshots` returns no match
+       * for their turns. Only when NO snapshot in the project carries the
+       * association do we fall back to the old best-effort ordinal heuristic — a
+       * project that has *any* associated snapshot is fully on the precise path,
+       * and we never silently bind an associated turn to an unrelated snapshot.
+       */
+      const hasAnyAssociatedSnapshot = projectSnapshots.some(
+        (snapshot) => snapshot.conversationId && snapshot.turnIndex !== undefined && snapshot.turnIndex !== null,
+      );
+
+      const resolveCheckpointSnapshot = (
+        pairing: CheckpointSnapshotPairing<ProjectSnapshot> | undefined,
+        legacyIndex: number,
+      ): ProjectSnapshot | undefined => {
+        if (pairing?.match === 'association') {
+          return pairing.snapshot;
+        }
+
+        if (hasAnyAssociatedSnapshot) {
+          /* Precise data exists but this turn has none — do not guess. */
+          return undefined;
+        }
+
+        return projectSnapshots[legacyIndex] ?? projectSnapshots[projectSnapshots.length - 1];
+      };
 
       const checkpoints: ProjectConversationCheckpoint[] = [];
 
@@ -3466,7 +3543,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           checkpointNumber += 1;
 
           const createdAt = messageCreatedAt(message) ?? messageCreatedAt(lastUserMessage) ?? conversation.updatedAt;
-          const snapshot = projectSnapshots[checkpointNumber - 1] ?? projectSnapshots[projectSnapshots.length - 1];
+
+          const snapshot = resolveCheckpointSnapshot(
+            snapshotPairings.get(turnKeyFor(conversation.id, message.id, index)),
+            checkpointNumber - 1,
+          );
+
           const title = shortContent(lastUserMessage?.content, `Checkpoint ${checkpointNumber}`);
           const description = shortContent(message.content, 'Agent response checkpoint');
 
@@ -3494,7 +3576,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           const createdAt =
             messageCreatedAt(lastMessage) ?? messageCreatedAt(firstUserMessage) ?? conversation.updatedAt;
 
-          const snapshot = projectSnapshots[checkpointNumber] ?? projectSnapshots[projectSnapshots.length - 1];
+          /*
+           * This branch covers a conversation with no assistant turn yet (e.g.
+           * "Waiting for the agent response"), so there is no turn to pair. Fall
+           * back to the legacy ordinal only when no associated snapshot exists.
+           */
+          const snapshot = resolveCheckpointSnapshot(undefined, checkpointNumber);
 
           checkpoints.push({
             id: `${conversation.id}:${lastMessage.id ?? 'latest'}`,
@@ -3521,7 +3608,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         const sourceMessages = messages;
         const lastMessage = sourceMessages[sourceMessages.length - 1];
         const createdAt = messageCreatedAt(lastMessage);
-        const snapshot = projectSnapshots[0];
+        const snapshot = resolveCheckpointSnapshot(undefined, 0);
 
         checkpoints.push({
           id: `${lastMessage.id ?? 'current'}`,
@@ -3540,7 +3627,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       return checkpoints.reverse();
-    }, [archivedProjectConversations, messages, projectId, projectIdeMode, projectSnapshots]);
+    }, [archivedProjectConversations, currentAiConversationId, messages, projectId, projectIdeMode, projectSnapshots]);
     const filteredProjectConversationCheckpoints = useMemo(() => {
       const query = conversationHistoryQuery.trim().toLowerCase();
 
@@ -3916,7 +4003,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             (conversation) => conversation && Array.isArray(conversation.messages),
           );
 
-          const backendConversations = await loadBackendProjectConversations(memory?.chat?.metadata?.aiConversationId);
+          const liveAiConversationId = memory?.chat?.metadata?.aiConversationId;
+          const backendConversations = await loadBackendProjectConversations(liveAiConversationId);
 
           const conversationsById = new Map<string, (typeof memoryConversations)[number]>();
 
@@ -3926,6 +4014,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             }
 
             setArchivedProjectConversations(Array.from(conversationsById.values()));
+            setCurrentAiConversationId(liveAiConversationId);
           }
         } catch (reason) {
           console.warn('Project conversation memory unavailable', reason);
@@ -8438,9 +8527,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <span className="bolt-project-rollback-label">What will be impacted</span>
                   <div className="bolt-project-rollback-impact">
                     <strong>Files</strong>
-                    <p>
-                      All files in your app will be restored to the state they were in at the time of this checkpoint.
-                    </p>
+                    {rollbackTarget.snapshot?.id ? (
+                      <p>
+                        All files in your app will be restored to the state they were in at the time of this checkpoint.
+                      </p>
+                    ) : (
+                      <p>
+                        No file snapshot is available for this checkpoint, so your files will be left untouched. Only
+                        the Agent's memory will be reset.
+                      </p>
+                    )}
                     <strong>Agent memory</strong>
                     <p>The Agent's memory will reset to what it knew about your app at the time of this checkpoint.</p>
                     <strong>Tasks</strong>

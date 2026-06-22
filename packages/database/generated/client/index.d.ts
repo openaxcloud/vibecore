@@ -43647,10 +43647,12 @@ export namespace Prisma {
 
   export type ProjectSnapshotAvgAggregateOutputType = {
     byteLength: number | null
+    turnIndex: number | null
   }
 
   export type ProjectSnapshotSumAggregateOutputType = {
     byteLength: number | null
+    turnIndex: number | null
   }
 
   export type ProjectSnapshotMinAggregateOutputType = {
@@ -43661,6 +43663,8 @@ export namespace Prisma {
     storageKey: string | null
     byteLength: number | null
     createdByUserId: string | null
+    conversationId: string | null
+    turnIndex: number | null
     createdAt: Date | null
   }
 
@@ -43672,6 +43676,8 @@ export namespace Prisma {
     storageKey: string | null
     byteLength: number | null
     createdByUserId: string | null
+    conversationId: string | null
+    turnIndex: number | null
     createdAt: Date | null
   }
 
@@ -43684,6 +43690,8 @@ export namespace Prisma {
     storageKey: number
     byteLength: number
     createdByUserId: number
+    conversationId: number
+    turnIndex: number
     createdAt: number
     _all: number
   }
@@ -43691,10 +43699,12 @@ export namespace Prisma {
 
   export type ProjectSnapshotAvgAggregateInputType = {
     byteLength?: true
+    turnIndex?: true
   }
 
   export type ProjectSnapshotSumAggregateInputType = {
     byteLength?: true
+    turnIndex?: true
   }
 
   export type ProjectSnapshotMinAggregateInputType = {
@@ -43705,6 +43715,8 @@ export namespace Prisma {
     storageKey?: true
     byteLength?: true
     createdByUserId?: true
+    conversationId?: true
+    turnIndex?: true
     createdAt?: true
   }
 
@@ -43716,6 +43728,8 @@ export namespace Prisma {
     storageKey?: true
     byteLength?: true
     createdByUserId?: true
+    conversationId?: true
+    turnIndex?: true
     createdAt?: true
   }
 
@@ -43728,6 +43742,8 @@ export namespace Prisma {
     storageKey?: true
     byteLength?: true
     createdByUserId?: true
+    conversationId?: true
+    turnIndex?: true
     createdAt?: true
     _all?: true
   }
@@ -43827,6 +43843,8 @@ export namespace Prisma {
     storageKey: string | null
     byteLength: number | null
     createdByUserId: string | null
+    conversationId: string | null
+    turnIndex: number | null
     createdAt: Date
     _count: ProjectSnapshotCountAggregateOutputType | null
     _avg: ProjectSnapshotAvgAggregateOutputType | null
@@ -43858,6 +43876,8 @@ export namespace Prisma {
     storageKey?: boolean
     byteLength?: boolean
     createdByUserId?: boolean
+    conversationId?: boolean
+    turnIndex?: boolean
     createdAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     createdBy?: boolean | ProjectSnapshot$createdByArgs<ExtArgs>
@@ -43872,6 +43892,8 @@ export namespace Prisma {
     storageKey?: boolean
     byteLength?: boolean
     createdByUserId?: boolean
+    conversationId?: boolean
+    turnIndex?: boolean
     createdAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     createdBy?: boolean | ProjectSnapshot$createdByArgs<ExtArgs>
@@ -43886,6 +43908,8 @@ export namespace Prisma {
     storageKey?: boolean
     byteLength?: boolean
     createdByUserId?: boolean
+    conversationId?: boolean
+    turnIndex?: boolean
     createdAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     createdBy?: boolean | ProjectSnapshot$createdByArgs<ExtArgs>
@@ -43900,10 +43924,12 @@ export namespace Prisma {
     storageKey?: boolean
     byteLength?: boolean
     createdByUserId?: boolean
+    conversationId?: boolean
+    turnIndex?: boolean
     createdAt?: boolean
   }
 
-  export type ProjectSnapshotOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "label" | "kind" | "manifest" | "storageKey" | "byteLength" | "createdByUserId" | "createdAt", ExtArgs["result"]["projectSnapshot"]>
+  export type ProjectSnapshotOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "label" | "kind" | "manifest" | "storageKey" | "byteLength" | "createdByUserId" | "conversationId" | "turnIndex" | "createdAt", ExtArgs["result"]["projectSnapshot"]>
   export type ProjectSnapshotInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     createdBy?: boolean | ProjectSnapshot$createdByArgs<ExtArgs>
@@ -43932,6 +43958,8 @@ export namespace Prisma {
       storageKey: string | null
       byteLength: number | null
       createdByUserId: string | null
+      conversationId: string | null
+      turnIndex: number | null
       createdAt: Date
     }, ExtArgs["result"]["projectSnapshot"]>
     composites: {}
@@ -44366,6 +44394,8 @@ export namespace Prisma {
     readonly storageKey: FieldRef<"ProjectSnapshot", 'String'>
     readonly byteLength: FieldRef<"ProjectSnapshot", 'Int'>
     readonly createdByUserId: FieldRef<"ProjectSnapshot", 'String'>
+    readonly conversationId: FieldRef<"ProjectSnapshot", 'String'>
+    readonly turnIndex: FieldRef<"ProjectSnapshot", 'Int'>
     readonly createdAt: FieldRef<"ProjectSnapshot", 'DateTime'>
   }
     
@@ -111228,6 +111258,8 @@ export namespace Prisma {
     storageKey: 'storageKey',
     byteLength: 'byteLength',
     createdByUserId: 'createdByUserId',
+    conversationId: 'conversationId',
+    turnIndex: 'turnIndex',
     createdAt: 'createdAt'
   };
 
@@ -114745,6 +114777,8 @@ export namespace Prisma {
     storageKey?: StringNullableFilter<"ProjectSnapshot"> | string | null
     byteLength?: IntNullableFilter<"ProjectSnapshot"> | number | null
     createdByUserId?: StringNullableFilter<"ProjectSnapshot"> | string | null
+    conversationId?: StringNullableFilter<"ProjectSnapshot"> | string | null
+    turnIndex?: IntNullableFilter<"ProjectSnapshot"> | number | null
     createdAt?: DateTimeFilter<"ProjectSnapshot"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
     createdBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
@@ -114759,6 +114793,8 @@ export namespace Prisma {
     storageKey?: SortOrderInput | SortOrder
     byteLength?: SortOrderInput | SortOrder
     createdByUserId?: SortOrderInput | SortOrder
+    conversationId?: SortOrderInput | SortOrder
+    turnIndex?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     project?: ProjectOrderByWithRelationInput
     createdBy?: UserOrderByWithRelationInput
@@ -114776,6 +114812,8 @@ export namespace Prisma {
     storageKey?: StringNullableFilter<"ProjectSnapshot"> | string | null
     byteLength?: IntNullableFilter<"ProjectSnapshot"> | number | null
     createdByUserId?: StringNullableFilter<"ProjectSnapshot"> | string | null
+    conversationId?: StringNullableFilter<"ProjectSnapshot"> | string | null
+    turnIndex?: IntNullableFilter<"ProjectSnapshot"> | number | null
     createdAt?: DateTimeFilter<"ProjectSnapshot"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
     createdBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
@@ -114790,6 +114828,8 @@ export namespace Prisma {
     storageKey?: SortOrderInput | SortOrder
     byteLength?: SortOrderInput | SortOrder
     createdByUserId?: SortOrderInput | SortOrder
+    conversationId?: SortOrderInput | SortOrder
+    turnIndex?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: ProjectSnapshotCountOrderByAggregateInput
     _avg?: ProjectSnapshotAvgOrderByAggregateInput
@@ -114810,6 +114850,8 @@ export namespace Prisma {
     storageKey?: StringNullableWithAggregatesFilter<"ProjectSnapshot"> | string | null
     byteLength?: IntNullableWithAggregatesFilter<"ProjectSnapshot"> | number | null
     createdByUserId?: StringNullableWithAggregatesFilter<"ProjectSnapshot"> | string | null
+    conversationId?: StringNullableWithAggregatesFilter<"ProjectSnapshot"> | string | null
+    turnIndex?: IntNullableWithAggregatesFilter<"ProjectSnapshot"> | number | null
     createdAt?: DateTimeWithAggregatesFilter<"ProjectSnapshot"> | Date | string
   }
 
@@ -121768,6 +121810,8 @@ export namespace Prisma {
     manifest: JsonNullValueInput | InputJsonValue
     storageKey?: string | null
     byteLength?: number | null
+    conversationId?: string | null
+    turnIndex?: number | null
     createdAt?: Date | string
     project: ProjectCreateNestedOneWithoutSnapshotsInput
     createdBy?: UserCreateNestedOneWithoutProjectSnapshotsInput
@@ -121782,6 +121826,8 @@ export namespace Prisma {
     storageKey?: string | null
     byteLength?: number | null
     createdByUserId?: string | null
+    conversationId?: string | null
+    turnIndex?: number | null
     createdAt?: Date | string
   }
 
@@ -121792,6 +121838,8 @@ export namespace Prisma {
     manifest?: JsonNullValueInput | InputJsonValue
     storageKey?: NullableStringFieldUpdateOperationsInput | string | null
     byteLength?: NullableIntFieldUpdateOperationsInput | number | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    turnIndex?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutSnapshotsNestedInput
     createdBy?: UserUpdateOneWithoutProjectSnapshotsNestedInput
@@ -121806,6 +121854,8 @@ export namespace Prisma {
     storageKey?: NullableStringFieldUpdateOperationsInput | string | null
     byteLength?: NullableIntFieldUpdateOperationsInput | number | null
     createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    turnIndex?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -121818,6 +121868,8 @@ export namespace Prisma {
     storageKey?: string | null
     byteLength?: number | null
     createdByUserId?: string | null
+    conversationId?: string | null
+    turnIndex?: number | null
     createdAt?: Date | string
   }
 
@@ -121828,6 +121880,8 @@ export namespace Prisma {
     manifest?: JsonNullValueInput | InputJsonValue
     storageKey?: NullableStringFieldUpdateOperationsInput | string | null
     byteLength?: NullableIntFieldUpdateOperationsInput | number | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    turnIndex?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -121840,6 +121894,8 @@ export namespace Prisma {
     storageKey?: NullableStringFieldUpdateOperationsInput | string | null
     byteLength?: NullableIntFieldUpdateOperationsInput | number | null
     createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    turnIndex?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -128872,11 +128928,14 @@ export namespace Prisma {
     storageKey?: SortOrder
     byteLength?: SortOrder
     createdByUserId?: SortOrder
+    conversationId?: SortOrder
+    turnIndex?: SortOrder
     createdAt?: SortOrder
   }
 
   export type ProjectSnapshotAvgOrderByAggregateInput = {
     byteLength?: SortOrder
+    turnIndex?: SortOrder
   }
 
   export type ProjectSnapshotMaxOrderByAggregateInput = {
@@ -128887,6 +128946,8 @@ export namespace Prisma {
     storageKey?: SortOrder
     byteLength?: SortOrder
     createdByUserId?: SortOrder
+    conversationId?: SortOrder
+    turnIndex?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -128898,11 +128959,14 @@ export namespace Prisma {
     storageKey?: SortOrder
     byteLength?: SortOrder
     createdByUserId?: SortOrder
+    conversationId?: SortOrder
+    turnIndex?: SortOrder
     createdAt?: SortOrder
   }
 
   export type ProjectSnapshotSumOrderByAggregateInput = {
     byteLength?: SortOrder
+    turnIndex?: SortOrder
   }
 
   export type ProjectStorageObjectCountOrderByAggregateInput = {
@@ -138565,6 +138629,8 @@ export namespace Prisma {
     manifest: JsonNullValueInput | InputJsonValue
     storageKey?: string | null
     byteLength?: number | null
+    conversationId?: string | null
+    turnIndex?: number | null
     createdAt?: Date | string
     project: ProjectCreateNestedOneWithoutSnapshotsInput
   }
@@ -138577,6 +138643,8 @@ export namespace Prisma {
     manifest: JsonNullValueInput | InputJsonValue
     storageKey?: string | null
     byteLength?: number | null
+    conversationId?: string | null
+    turnIndex?: number | null
     createdAt?: Date | string
   }
 
@@ -139424,6 +139492,8 @@ export namespace Prisma {
     storageKey?: StringNullableFilter<"ProjectSnapshot"> | string | null
     byteLength?: IntNullableFilter<"ProjectSnapshot"> | number | null
     createdByUserId?: StringNullableFilter<"ProjectSnapshot"> | string | null
+    conversationId?: StringNullableFilter<"ProjectSnapshot"> | string | null
+    turnIndex?: IntNullableFilter<"ProjectSnapshot"> | number | null
     createdAt?: DateTimeFilter<"ProjectSnapshot"> | Date | string
   }
 
@@ -143307,6 +143377,8 @@ export namespace Prisma {
     manifest: JsonNullValueInput | InputJsonValue
     storageKey?: string | null
     byteLength?: number | null
+    conversationId?: string | null
+    turnIndex?: number | null
     createdAt?: Date | string
     createdBy?: UserCreateNestedOneWithoutProjectSnapshotsInput
   }
@@ -143319,6 +143391,8 @@ export namespace Prisma {
     storageKey?: string | null
     byteLength?: number | null
     createdByUserId?: string | null
+    conversationId?: string | null
+    turnIndex?: number | null
     createdAt?: Date | string
   }
 
@@ -160429,6 +160503,8 @@ export namespace Prisma {
     manifest: JsonNullValueInput | InputJsonValue
     storageKey?: string | null
     byteLength?: number | null
+    conversationId?: string | null
+    turnIndex?: number | null
     createdAt?: Date | string
   }
 
@@ -160946,6 +161022,8 @@ export namespace Prisma {
     manifest?: JsonNullValueInput | InputJsonValue
     storageKey?: NullableStringFieldUpdateOperationsInput | string | null
     byteLength?: NullableIntFieldUpdateOperationsInput | number | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    turnIndex?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutSnapshotsNestedInput
   }
@@ -160958,6 +161036,8 @@ export namespace Prisma {
     manifest?: JsonNullValueInput | InputJsonValue
     storageKey?: NullableStringFieldUpdateOperationsInput | string | null
     byteLength?: NullableIntFieldUpdateOperationsInput | number | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    turnIndex?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -160969,6 +161049,8 @@ export namespace Prisma {
     manifest?: JsonNullValueInput | InputJsonValue
     storageKey?: NullableStringFieldUpdateOperationsInput | string | null
     byteLength?: NullableIntFieldUpdateOperationsInput | number | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    turnIndex?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -162970,6 +163052,8 @@ export namespace Prisma {
     storageKey?: string | null
     byteLength?: number | null
     createdByUserId?: string | null
+    conversationId?: string | null
+    turnIndex?: number | null
     createdAt?: Date | string
   }
 
@@ -163284,6 +163368,8 @@ export namespace Prisma {
     manifest?: JsonNullValueInput | InputJsonValue
     storageKey?: NullableStringFieldUpdateOperationsInput | string | null
     byteLength?: NullableIntFieldUpdateOperationsInput | number | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    turnIndex?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: UserUpdateOneWithoutProjectSnapshotsNestedInput
   }
@@ -163296,6 +163382,8 @@ export namespace Prisma {
     storageKey?: NullableStringFieldUpdateOperationsInput | string | null
     byteLength?: NullableIntFieldUpdateOperationsInput | number | null
     createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    turnIndex?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -163307,6 +163395,8 @@ export namespace Prisma {
     storageKey?: NullableStringFieldUpdateOperationsInput | string | null
     byteLength?: NullableIntFieldUpdateOperationsInput | number | null
     createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    turnIndex?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

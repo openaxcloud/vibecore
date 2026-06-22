@@ -1564,6 +1564,8 @@ export class PrismaApiStore implements ApiStore {
     storageKey?: string;
     byteLength?: number;
     createdByUserId?: string;
+    conversationId?: string;
+    turnIndex?: number;
   }) {
     return mapSnapshot(
       await this.prisma.projectSnapshot.create({
@@ -1575,6 +1577,8 @@ export class PrismaApiStore implements ApiStore {
           storageKey: input.storageKey,
           byteLength: input.byteLength,
           createdByUserId: input.createdByUserId,
+          conversationId: input.conversationId,
+          turnIndex: input.turnIndex,
         },
       }),
     );
@@ -4044,6 +4048,8 @@ function mapSnapshot(snapshot: any): SnapshotRecord {
     storageKey: snapshot.storageKey ?? undefined,
     byteLength: snapshot.byteLength ?? undefined,
     createdByUserId: snapshot.createdByUserId ?? undefined,
+    conversationId: snapshot.conversationId ?? undefined,
+    turnIndex: snapshot.turnIndex ?? undefined,
     createdAt: toIso(snapshot.createdAt)!,
   };
 }

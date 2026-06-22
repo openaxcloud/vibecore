@@ -1127,6 +1127,8 @@ export class TestApiStore implements ApiStore {
     storageKey?: string;
     byteLength?: number;
     createdByUserId?: string;
+    conversationId?: string;
+    turnIndex?: number;
   }) {
     const snapshot: SnapshotRecord = { id: id('snapshot'), ...input, kind: input.kind ?? 'manual', createdAt: now() };
     this.snapshots.set(snapshot.id, snapshot);

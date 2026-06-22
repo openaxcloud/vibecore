@@ -114,6 +114,18 @@ export interface SnapshotRecord {
   storageKey?: string;
   byteLength?: number;
   createdByUserId?: string;
+  /**
+   * AI conversation this snapshot belongs to, when it was taken as a
+   * "before-ai-change" snapshot during a tool call. NULL for manual/legacy rows.
+   * Together with turnIndex this lets the IDE pair a chat checkpoint to the exact
+   * snapshot representing the state before that turn — never by array position.
+   */
+  conversationId?: string;
+  /**
+   * Assistant-turn ordinal within {@link conversationId} at the time the snapshot
+   * was taken. The first snapshot of a turn shares the smallest createdAt.
+   */
+  turnIndex?: number;
   createdAt: string;
 }
 
@@ -1041,6 +1053,8 @@ export interface ApiStore {
     storageKey?: string;
     byteLength?: number;
     createdByUserId?: string;
+    conversationId?: string;
+    turnIndex?: number;
   }): Promise<SnapshotRecord>;
   getSnapshot(id: string): Promise<SnapshotRecord | undefined>;
   listSnapshots(projectId: string): Promise<SnapshotRecord[]>;
