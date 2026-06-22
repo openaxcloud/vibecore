@@ -47,6 +47,17 @@ html:has([data-ecode-static-shell]) body {
   font-size: 16px;
 }
 
+// Mobile + tablet: step the marketing/static scope's base font down one notch
+// too, so the whole UI (app shell and marketing) shrinks consistently.
+@media (max-width: 1024px) {
+  html[data-ecode-public-chrome='homepage'],
+  html[data-ecode-public-chrome='homepage'] body,
+  html:has([data-ecode-static-shell]),
+  html:has([data-ecode-static-shell]) body {
+    font-size: 14px;
+  }
+}
+
 .bolt-route-loader {
   position: fixed;
   inset: 0 0 auto;
@@ -460,6 +471,26 @@ html:has([data-ecode-static-shell]) body {
   // --primary-color: rgba(147, 112, 219, var(--gradient-opacity));
   // --secondary-color: rgba(138, 43, 226, var(--gradient-opacity));
   // --accent-color: rgba(180, 170, 220, var(--gradient-opacity));
+}
+
+/*
+ * Mobile + tablet (≤1024px, the app's mobile/tablet breakpoint) — step the
+ * whole type scale down one notch. Every text token defined above feeds the
+ * broad `:where(...)` font-size rules below (and `--vc-type-interface-size`
+ * is the `html,body` rem base), so reducing the tokens here shrinks the entire
+ * UI's typography by ~2px (one step) on small screens. Layout chrome that must
+ * stay fixed is sized in px inside its own `max-width:1024px` queries and is
+ * unaffected.
+ */
+@media (max-width: 1024px) {
+  :root {
+    --vc-type-interface-size: 14px;
+    --vc-type-interface-compact-size: 10px;
+    --vc-type-code-size: 11px;
+    --vc-type-heading-size: 13px;
+    --vc-type-heading-compact-size: 12px;
+    --vc-type-label-size: 9px;
+  }
 }
 
 :root[data-theme='light'] {
