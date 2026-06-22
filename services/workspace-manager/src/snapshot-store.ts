@@ -1,45 +1,49 @@
-import { cp, mkdir, rm, stat } from 'node:fs/promises';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { copyFile, mkdir, rename, rm, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
 /**
  * Decouple a workspace's durable filesystem from the compute that runs it.
  *
- * Today a workspace is pinned to a ReadWriteOnce PVC, so the workspace can only
- * run wherever that volume mounts: slow cold-start, no instant fork, rigid
- * scheduling. Replit avoids this by keeping each Repl's filesystem in object
- * storage (GCS, fronted by their "margarine" block cache) so any compute node
- * can pick up any Repl, fork is a cheap copy, and compute is ephemeral.
+ * Today a workspace is pinned to a ReadWriteOnce PVC, so it can only run wherever
+ * that volume mounts: slow cold-start, no instant fork, rigid scheduling. Replit
+ * avoids this by keeping each Repl's filesystem in object storage (GCS, fronted
+ * by their "margarine" block cache) so any compute node can pick up any Repl,
+ * fork is a cheap copy, and compute is ephemeral.
  *
- * This is the seam that model sits behind. The manager snapshots `/workspace`
- * to a snapshot store on stop and restores it on start, so the PVC becomes a hot
- * cache rather than the source of truth. `fork` makes a second workspace from an
- * existing snapshot — the primitive behind "duplicate this project" / templates.
+ * This is the seam that model sits behind. The store holds one OPAQUE archive
+ * blob per workspace — it neither knows nor cares that the bytes are a gzipped
+ * tar; the workspace-agent's /snapshots/archive endpoints produce and consume
+ * that format. The manager streams the agent's archive into `saveStream` on stop
+ * and back out via `restoreStream` on start, so the PVC becomes a hot cache
+ * rather than the source of truth. `fork` clones one workspace's blob into a new
+ * id — the primitive behind "duplicate project" / templates.
  *
- * The interface is storage-agnostic: FilesystemSnapshotStore (below) is the
- * dependency-free reference + test double; a GcsSnapshotStore that tars +
- * uploads to a bucket is a drop-in implementation of the same contract.
+ * FilesystemSnapshotStore (below) is the dependency-free reference + same-node
+ * impl; GcsSnapshotStore (gcs-snapshot-store.ts) is a drop-in over a bucket.
  */
 export interface WorkspaceSnapshotStore {
-  /** Persist the contents of `sourceDir` as the snapshot for `workspaceId`. */
-  save(workspaceId: string, sourceDir: string): Promise<void>;
+  /** Persist `archive` as the snapshot blob for `workspaceId` (overwrites). */
+  saveStream(workspaceId: string, archive: Readable): Promise<void>;
 
   /**
-   * Restore `workspaceId`'s snapshot into `targetDir`. Returns false when no
-   * snapshot exists (a brand-new workspace), so the caller can fall back to
-   * provisioning an empty volume. Restoring is idempotent.
+   * Open the snapshot blob for `workspaceId`, or undefined when none exists (a
+   * brand-new workspace), so the caller can fall back to an empty volume.
    */
-  restore(workspaceId: string, targetDir: string): Promise<boolean>;
+  restoreStream(workspaceId: string): Promise<Readable | undefined>;
 
   /** True when a durable snapshot exists for `workspaceId`. */
   has(workspaceId: string): Promise<boolean>;
 
   /**
-   * Create `targetWorkspaceId`'s snapshot from `sourceWorkspaceId`'s — the
-   * instant-fork primitive. Throws if the source has no snapshot.
+   * Clone `sourceWorkspaceId`'s snapshot to `targetWorkspaceId` — the instant
+   * fork primitive. Throws if the source has no snapshot.
    */
   fork(sourceWorkspaceId: string, targetWorkspaceId: string): Promise<void>;
 
-  /** Remove a workspace's snapshot (called on permanent delete). */
+  /** Remove a workspace's snapshot (called on permanent delete). Idempotent. */
   remove(workspaceId: string): Promise<void>;
 }
 
@@ -48,61 +52,59 @@ export interface WorkspaceSnapshotStore {
  * paths. Workspace ids are opaque slugs (`ws-<hex>` / `workspace_<n>`), so this
  * allowlist is deliberately strict — anything else is a bug or an attack.
  */
-function assertSafeId(workspaceId: string): void {
+export function assertSafeWorkspaceId(workspaceId: string): void {
   if (!/^[A-Za-z0-9_-]+$/.test(workspaceId)) {
     throw new Error(`Unsafe workspace id for snapshot store: ${JSON.stringify(workspaceId)}`);
   }
 }
 
 /**
- * Filesystem-backed snapshot store. Each workspace's snapshot is a directory
- * under `rootDir`. This stands in for object storage in dev/tests and on a
- * single node; the GCS implementation swaps the copy for tar+upload but keeps
- * the exact same semantics (which is what the tests below pin).
+ * Filesystem-backed snapshot store: each workspace's archive is a single file
+ * under `rootDir`. Stands in for object storage in dev/tests and on a single
+ * node; GcsSnapshotStore swaps the local file for a bucket object but keeps the
+ * exact same semantics (which is what the tests pin).
  */
 export class FilesystemSnapshotStore implements WorkspaceSnapshotStore {
   constructor(private readonly rootDir: string) {}
 
   private pathFor(workspaceId: string): string {
-    assertSafeId(workspaceId);
+    assertSafeWorkspaceId(workspaceId);
 
-    return join(this.rootDir, workspaceId);
+    return join(this.rootDir, `${workspaceId}.tar.gz`);
   }
 
-  async save(workspaceId: string, sourceDir: string): Promise<void> {
+  async saveStream(workspaceId: string, archive: Readable): Promise<void> {
     const dest = this.pathFor(workspaceId);
-    // Replace atomically-ish: write to a sibling temp dir, then swap in.
-    const tmp = `${dest}.tmp-${Date.now()}`;
+    // Write to a temp sibling then rename so a reader never sees a half-written
+    // blob and a crash mid-write can't corrupt the previous good snapshot.
+    const tmp = `${dest}.tmp-${process.pid}-${Date.now()}`;
 
     await mkdir(dirname(dest), { recursive: true });
-    await rm(tmp, { recursive: true, force: true });
-    await cp(sourceDir, tmp, { recursive: true });
-    await rm(dest, { recursive: true, force: true });
-    // cp instead of rename so this works across filesystem boundaries too.
-    await cp(tmp, dest, { recursive: true });
-    await rm(tmp, { recursive: true, force: true });
+
+    try {
+      await pipeline(archive, createWriteStream(tmp));
+      await rename(tmp, dest);
+    } catch (error) {
+      await rm(tmp, { force: true }).catch(() => undefined);
+      throw error;
+    }
   }
 
-  async restore(workspaceId: string, targetDir: string): Promise<boolean> {
+  async restoreStream(workspaceId: string): Promise<Readable | undefined> {
     if (!(await this.has(workspaceId))) {
-      return false;
+      return undefined;
     }
 
-    await mkdir(targetDir, { recursive: true });
-    await cp(this.pathFor(workspaceId), targetDir, { recursive: true });
-
-    return true;
+    return createReadStream(this.pathFor(workspaceId));
   }
 
   async has(workspaceId: string): Promise<boolean> {
-    // Validate the id up front so an unsafe id throws rather than being masked
-    // as "no snapshot" by the not-found catch below.
-    const dir = this.pathFor(workspaceId);
+    // Validate up front so an unsafe id throws rather than being masked as
+    // "no snapshot" by the not-found catch below.
+    const blob = this.pathFor(workspaceId);
 
     try {
-      const info = await stat(dir);
-
-      return info.isDirectory();
+      return (await stat(blob)).isFile();
     } catch {
       return false;
     }
@@ -116,11 +118,10 @@ export class FilesystemSnapshotStore implements WorkspaceSnapshotStore {
     const dest = this.pathFor(targetWorkspaceId);
 
     await mkdir(dirname(dest), { recursive: true });
-    await rm(dest, { recursive: true, force: true });
-    await cp(this.pathFor(sourceWorkspaceId), dest, { recursive: true });
+    await copyFile(this.pathFor(sourceWorkspaceId), dest);
   }
 
   async remove(workspaceId: string): Promise<void> {
-    await rm(this.pathFor(workspaceId), { recursive: true, force: true });
+    await rm(this.pathFor(workspaceId), { force: true });
   }
 }

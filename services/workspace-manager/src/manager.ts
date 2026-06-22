@@ -1,6 +1,7 @@
 import { deriveWorkspaceSecret, signAgentToken, type WorkspaceEvent } from '@vibecore/workspace-sdk';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { Readable } from 'node:stream';
 import {
   workspaceAgentSecret,
   workspacePod,
@@ -9,6 +10,7 @@ import {
   type WorkspaceK8sClient,
   type WorkspacePlan,
 } from '@vibecore/k8s-client';
+import type { WorkspaceSnapshotStore } from './snapshot-store.js';
 
 export type WorkspaceStatus = 'STARTING' | 'RUNNING' | 'STOPPED' | 'FAILED' | 'DELETED';
 
@@ -205,6 +207,15 @@ export class WorkspaceManager {
     readonly k8s: WorkspaceK8sClient,
     readonly events: EventBus,
     readonly tokenSecret: string,
+    /*
+     * Optional snapshot store (compute/storage decoupling — see
+     * docs/replit-parity-isolation.md). When provided, the manager archives a
+     * workspace to durable object storage on stop and rehydrates it on start,
+     * so the PVC becomes a hot cache the snapshot can outlive (the basis for
+     * ephemeral compute + fork). Unset → unchanged PVC-only behaviour.
+     */
+    readonly snapshotStore?: WorkspaceSnapshotStore,
+    readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
   async startWorkspace(input: StartWorkspaceInput) {
@@ -323,6 +334,11 @@ export class WorkspaceManager {
        */
       await this.waitForAgentReachable(input.workspaceId, input.namespace);
 
+      // Rehydrate from a stored snapshot before reporting RUNNING, so a workspace
+      // whose PVC was reclaimed (preemption/GC) comes back with its files. No-op
+      // when there is no snapshot or no store. Best-effort — see restoreFromStore.
+      await this.restoreFromStore(input.workspaceId, input.namespace);
+
       const running = await this.store.update(input.workspaceId, {
         status: 'RUNNING',
         lastActiveAt: new Date().toISOString(),
@@ -408,6 +424,13 @@ export class WorkspaceManager {
       return workspace;
     }
 
+    // Archive the workspace to durable storage while the agent is still
+    // reachable (before the pod is torn down). Best-effort — the PVC keeps the
+    // data regardless, so this never blocks the stop.
+    if (workspace.status === 'RUNNING') {
+      await this.snapshotToStore(workspaceId, namespace);
+    }
+
     await this.k8s.delete('Pod', namespace, workspace.podName);
     const stopped = await this.store.update(workspaceId, { status: 'STOPPED' });
     // Drop the throttle marker so a later reopen (same deterministic id) touches
@@ -451,6 +474,12 @@ export class WorkspaceManager {
       this.k8s.delete('Secret', namespace, workspace.agentTokenSecretName ?? `agent-token-${workspaceId}`),
       this.k8s.delete('PersistentVolumeClaim', namespace, workspace.pvcName),
     ]);
+    // Delete means delete: drop the durable snapshot too (vs stop, which keeps
+    // it for ephemeral-compute rehydration). Best-effort.
+    if (this.snapshotStore) {
+      await this.snapshotStore.remove(workspaceId).catch(() => undefined);
+    }
+
     const deleted = await this.store.update(workspaceId, { status: 'DELETED' });
     this.lastTouchAt.delete(workspaceId);
     await this.publish(deleted, 'workspace.deleted');
@@ -715,13 +744,97 @@ export class WorkspaceManager {
    * WORKSPACE_AGENT_URL_TEMPLATE override) so this gate exercises the real client
    * path, not pod-local networking.
    */
-  private agentHealthUrl(workspaceId: string, namespace: string): string {
+  private agentBaseUrl(workspaceId: string, namespace: string): string {
     const template = process.env.WORKSPACE_AGENT_URL_TEMPLATE;
-    const base = template
+
+    return template
       ? template.replaceAll('{workspaceId}', workspaceId).replaceAll('{namespace}', namespace).replace(/\/+$/, '')
       : `http://workspace-${workspaceId}.${namespace}.svc.cluster.local:8080`;
+  }
 
-    return `${base}/health`;
+  private agentHealthUrl(workspaceId: string, namespace: string): string {
+    return `${this.agentBaseUrl(workspaceId, namespace)}/health`;
+  }
+
+  /*
+   * Archive a RUNNING workspace's filesystem to the snapshot store by streaming
+   * the agent's /snapshots/archive (tar.gz) straight into the store. Called on
+   * stop BEFORE the pod is deleted, while the agent is still reachable. Entirely
+   * best-effort: the PVC still holds the data, so a snapshot failure must never
+   * block the stop. Returns whether a snapshot was written.
+   */
+  private async snapshotToStore(workspaceId: string, namespace: string): Promise<boolean> {
+    if (!this.snapshotStore) {
+      return false;
+    }
+
+    try {
+      const token = this.issueAgentToken(workspaceId, 120_000);
+      const response = await this.fetchImpl(`${this.agentBaseUrl(workspaceId, namespace)}/snapshots/archive`, {
+        method: 'GET',
+        headers: { authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(120_000),
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error(`agent archive responded ${response.status}`);
+      }
+
+      await this.snapshotStore.saveStream(workspaceId, Readable.fromWeb(response.body as Parameters<typeof Readable.fromWeb>[0]));
+
+      return true;
+    } catch (error) {
+      console.error(
+        JSON.stringify({ event: 'workspace.snapshot.save_failed', workspaceId, error: error instanceof Error ? error.message : String(error) }),
+      );
+
+      return false;
+    }
+  }
+
+  /*
+   * Rehydrate a workspace from its stored snapshot by streaming it into the
+   * agent's /snapshots/archive importer. Called on start AFTER the agent is
+   * reachable, BEFORE the workspace is reported RUNNING. Best-effort: when the
+   * PVC already carries the data this is harmless redundancy, and when there is
+   * no snapshot it is a no-op. Returns whether a snapshot was restored.
+   */
+  private async restoreFromStore(workspaceId: string, namespace: string): Promise<boolean> {
+    if (!this.snapshotStore) {
+      return false;
+    }
+
+    try {
+      const archive = await this.snapshotStore.restoreStream(workspaceId);
+
+      if (!archive) {
+        return false;
+      }
+
+      const token = this.issueAgentToken(workspaceId, 120_000);
+      const response = await this.fetchImpl(`${this.agentBaseUrl(workspaceId, namespace)}/snapshots/archive`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/gzip' },
+        // Stream the archive as the request body. Node's fetch requires `duplex:
+        // 'half'` for a streamed body; neither field is in the DOM RequestInit
+        // type shipped here, hence the cast.
+        body: Readable.toWeb(archive),
+        duplex: 'half',
+        signal: AbortSignal.timeout(120_000),
+      } as unknown as RequestInit);
+
+      if (!response.ok) {
+        throw new Error(`agent import responded ${response.status}`);
+      }
+
+      return true;
+    } catch (error) {
+      console.error(
+        JSON.stringify({ event: 'workspace.snapshot.restore_failed', workspaceId, error: error instanceof Error ? error.message : String(error) }),
+      );
+
+      return false;
+    }
   }
 
   /*

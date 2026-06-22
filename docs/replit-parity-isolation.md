@@ -113,20 +113,30 @@ dependency-free `FilesystemSnapshotStore` reference impl and full unit tests
 guard). The PVC becomes a hot cache rather than the source of truth, and `fork`
 is the primitive behind "duplicate project" / templates.
 
-**Remaining integration (the multi-week part):**
+**Integration status:**
 1. ✅ DONE — Agent streaming archive endpoints: `GET /snapshots/archive` (tar.gz of
-   `/workspace` → stream) and `POST /snapshots/archive` (stream → `/workspace`) on
-   workspace-agent. Tested (export→import round-trip, 415 on non-stream).
-2. `GcsSnapshotStore implements WorkspaceSnapshotStore` (tar + bucket upload/download).
-   NOTE: the production path is stream-based (agent archive ↔ GCS blob), so the store
-   should grow `saveStream(id, Readable)` / `restoreStream(id): Readable | undefined`
-   alongside the dir-based reference impl. FilesystemSnapshotStore is the same-node /
-   test analogue.
-3. Manager lifecycle wiring behind a flag: on `stopWorkspace`, call agent
-   `GET /snapshots/archive` → `saveStream`; on `startWorkspace`, if `has(id)` and the
-   PVC is fresh, `restoreStream` → agent `POST /snapshots/archive` before marking
-   ready; on fork-create, `fork` then provision; on `deleteWorkspace`, `remove`.
-4. Decide retention/GC of snapshots vs PVCs and metering of snapshot storage.
+   `/workspace` → stream) and `POST /snapshots/archive` (stream → `/workspace`).
+   Tested (export→import round-trip, 415 on non-stream).
+2. ✅ DONE — Store is now stream/blob-based: `saveStream`/`restoreStream`/`has`/
+   `fork`/`remove`. `FilesystemSnapshotStore` (same-node/test) and
+   `ObjectStorageSnapshotStore` (over an `ObjectStorageClient` port that GCS/S3
+   satisfy with a thin adapter) both implement it, fully unit-tested.
+3. ✅ DONE — Manager lifecycle wiring (active when a `snapshotStore` is passed to
+   `WorkspaceManager`): `stopWorkspace` streams the agent archive → `saveStream`
+   (before pod teardown); `startWorkspace` `restoreStream` → agent importer after
+   the agent is reachable, before RUNNING; `deleteWorkspace` → `remove`. All
+   best-effort (a snapshot failure never breaks the lifecycle; the PVC still holds
+   data). Tested end-to-end with a fake agent + FilesystemSnapshotStore.
+
+**Remaining (genuinely needs cloud / product decisions):**
+- Concrete GCS `ObjectStorageClient` adapter (~15 lines over `@google-cloud/storage`,
+  sketch in `object-storage-snapshot-store.ts`) + provisioning a bucket + workload
+  identity. Wire the chosen store into `services/workspace-manager/src/server.ts`.
+- `fork` is implemented in the store but not yet surfaced as a "duplicate project"
+  API path — add when the product wants templates/forking.
+- Retention/GC of snapshots vs PVCs, and metering of snapshot storage (billing).
+- Optional: drop the PVC on stop and rely solely on the snapshot (full ephemeral
+  compute) — bigger behavioural change; today the PVC stays the hot path.
 
 ## Suggested order
 1. #1 preview enforcement (small; closes a real cross-tenant hole) — needs infra secret.

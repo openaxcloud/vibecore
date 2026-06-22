@@ -1,7 +1,11 @@
 import type { K8sObject, WorkspaceK8sClient } from '@vibecore/k8s-client';
 import { deriveWorkspaceSecret, verifyAgentToken, type WorkspaceEvent } from '@vibecore/workspace-sdk';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WorkspaceManager, type EventBus, type WorkspaceRecord, type WorkspaceStore } from './manager.js';
+import { FilesystemSnapshotStore } from './snapshot-store.js';
 
 class TestWorkspaceK8sClient implements WorkspaceK8sClient {
   readonly objects = new Map<string, K8sObject>();
@@ -320,6 +324,69 @@ describe('WorkspaceManager', () => {
       } else {
         process.env.INTERNAL_API_SHARED_SECRET = prevSecret;
       }
+    }
+  });
+
+  it('archives to the snapshot store on stop and rehydrates the agent on next start', async () => {
+    const prevFetch = globalThis.fetch;
+    const scratch = await mkdtemp(join(tmpdir(), 'mgr-snap-'));
+    const store = new FilesystemSnapshotStore(join(scratch, 'snapshots'));
+
+    const posted: string[] = [];
+    const fakeFetch = vi.fn(async (url: any, init: any) => {
+      const href = String(url);
+
+      if (href.endsWith('/health')) {
+        return new Response('ok', { status: 200 });
+      }
+
+      if (href.endsWith('/snapshots/archive') && (init?.method ?? 'GET') === 'GET') {
+        // The agent's export: stream a known archive payload to the manager.
+        return new Response(Buffer.from('TAR-BYTES-FOR-WS1'));
+      }
+
+      if (href.endsWith('/snapshots/archive') && init?.method === 'POST') {
+        posted.push(href);
+
+        return new Response(null, { status: 200 });
+      }
+
+      return new Response(null, { status: 404 });
+    });
+    globalThis.fetch = fakeFetch as any;
+
+    try {
+      const manager = new WorkspaceManager(
+        new TestWorkspaceStore(),
+        new TestWorkspaceK8sClient(),
+        new TestEventBus(),
+        'test-workspace-agent-secret',
+        store,
+        fakeFetch as any,
+      );
+
+      await manager.startWorkspace(input);
+      await manager.stopWorkspace('workspaces', input.workspaceId);
+
+      // Stop archived the live workspace into the store, byte-for-byte.
+      expect(await store.has(input.workspaceId)).toBe(true);
+      const restored = await store.restoreStream(input.workspaceId);
+      const chunks: Buffer[] = [];
+      for await (const chunk of restored!) {
+        chunks.push(Buffer.from(chunk));
+      }
+      expect(Buffer.concat(chunks).toString()).toBe('TAR-BYTES-FOR-WS1');
+
+      // Next start pushed the stored snapshot back into the agent's importer.
+      await manager.restartWorkspace(input);
+      expect(posted).toContain(`http://workspace-${input.workspaceId}.workspaces.svc.cluster.local:8080/snapshots/archive`);
+
+      // Delete drops the durable snapshot (vs stop, which keeps it).
+      await manager.deleteWorkspace('workspaces', input.workspaceId);
+      expect(await store.has(input.workspaceId)).toBe(false);
+    } finally {
+      globalThis.fetch = prevFetch;
+      await rm(scratch, { recursive: true, force: true });
     }
   });
 
