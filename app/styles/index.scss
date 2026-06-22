@@ -4794,6 +4794,184 @@ body :where(.lucide, svg[data-lucide]) {
   text-overflow: ellipsis;
 }
 
+/* Agent (kebab / three-dots) bottom-sheet menu */
+.bolt-mobile-agent-menu-backdrop {
+  position: fixed !important;
+  z-index: 12010;
+  inset: 0 !important;
+  display: block;
+  width: 100vw;
+  height: 100dvh;
+  border: 0;
+  border-radius: 0 !important;
+  background: color-mix(in srgb, var(--vc-ide-bg-app) 58%, transparent);
+  padding: 0;
+  backdrop-filter: blur(8px);
+}
+
+.bolt-mobile-agent-menu-sheet {
+  position: fixed;
+  right: auto;
+  bottom: 0;
+  left: 50%;
+  z-index: 12011;
+  display: flex;
+  width: min(calc(100vw - 24px), var(--vc-mobile-sheet-max-width));
+  max-height: min(78dvh, 620px);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--mobile-nav-border);
+  border-top-color: var(--mobile-nav-border-top);
+  border-radius: var(--vc-mobile-sheet-radius) var(--vc-mobile-sheet-radius) 0 0;
+  background: var(--mobile-nav-bg-elevated);
+  box-shadow:
+    var(--mobile-nav-shadow),
+    0 24px 80px color-mix(in srgb, var(--vc-ide-bg-app) 54%, transparent);
+  color: var(--vc-ide-text-primary);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: none !important;
+  opacity: 1 !important;
+  transform: translateX(-50%) !important;
+}
+
+.bolt-mobile-agent-menu-handle {
+  width: 48px;
+  height: 4px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--mobile-nav-border-top);
+  margin: 10px auto 6px;
+}
+
+.bolt-mobile-agent-menu-header {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--mobile-nav-border);
+  padding: 0 14px;
+}
+
+.bolt-mobile-agent-menu-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bolt-mobile-agent-menu-title h2 {
+  color: var(--vc-ide-text-primary);
+  font-size: 14px !important;
+  font-weight: 750;
+  margin: 0;
+}
+
+.bolt-mobile-agent-menu-title span,
+.bolt-mobile-agent-menu-title svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  font-size: 20px;
+  color: var(--ecode-accent);
+}
+
+.bolt-mobile-agent-menu-header button {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-mobile-agent-menu-header button span,
+.bolt-mobile-agent-menu-header button svg {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+}
+
+.bolt-mobile-agent-menu-header button:active,
+.bolt-mobile-agent-menu-header button:hover {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-mobile-agent-menu-list {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px;
+}
+
+.bolt-mobile-agent-menu-list button {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 0 12px;
+  text-align: left;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bolt-mobile-agent-menu-list button:active,
+.bolt-mobile-agent-menu-list button:hover,
+.bolt-mobile-agent-menu-list button:focus-visible {
+  background: var(--vc-ide-bg-hover);
+}
+
+/* leading + trailing icons (any element carrying an icon class) */
+.bolt-mobile-agent-menu-list button > span[class] {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  font-size: 20px;
+  color: var(--vc-ide-text-secondary);
+}
+
+/* the text label (a bare <span> with no class) takes the remaining space */
+.bolt-mobile-agent-menu-list button > span:not([class]) {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-mobile-agent-menu-row--primary,
+.bolt-mobile-agent-menu-row--primary > span[class] {
+  color: var(--ecode-accent);
+}
+
+.bolt-mobile-agent-menu-row--danger,
+.bolt-mobile-agent-menu-row--danger > span[class] {
+  color: var(--vc-ide-accent-error);
+}
+
+.bolt-mobile-agent-menu-row--danger {
+  margin-top: 4px;
+  border-top: 1px solid var(--mobile-nav-border);
+  border-radius: 0 0 10px 10px;
+  padding-top: 12px;
+}
+
 .bolt-workbench-mobile-action {
   display: inline-flex;
   min-height: 32px;
