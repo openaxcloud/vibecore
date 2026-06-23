@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
   computeWorkspaceFilesSignature,
+  shouldApplyEnvelopeForLoad,
+  shouldSurfaceLoadError,
   shouldRefreshOnFilesChange,
   shouldRefreshOnVisibility,
 } from './git-autorefresh';
@@ -279,14 +281,39 @@ export function GitTab({ projectId }: GitTabProps) {
         }
 
         if (!response.ok) {
-          throw new Error(payload.error?.message ?? 'Failed to load git panel');
+          /*
+           * A failed foreground load should surface the error and clear the
+           * stale view. A silent background refresh (FilesStore listener,
+           * focus/visibility reconcile, post-action reload) must NOT pop a red
+           * banner or blank the working-tree list the user is looking at — the
+           * workspace git endpoint can transiently 5xx/lock mid-generation.
+           * Preserve the previously loaded state and try again on the next tick.
+           */
+          if (shouldSurfaceLoadError(options?.silent)) {
+            throw new Error(payload.error?.message ?? 'Failed to load git panel');
+          }
+
+          return;
         }
 
-        setEnvelope(payload);
+        const isErrorEnvelope = payload.status === 'error' && Boolean(payload.error);
+
+        /*
+         * Only replace the visible envelope when it carries real data. An error
+         * envelope typically has no `data`, so applying it during a silent
+         * refresh would collapse `changedFiles` to [] and re-render "No changed
+         * files", wiping the live working-tree list.
+         */
+        if (shouldApplyEnvelopeForLoad(options?.silent, isErrorEnvelope)) {
+          setEnvelope(payload);
+        }
+
         setLastLoadedAt(new Date().toISOString());
 
-        if (payload.status === 'error' && payload.error) {
-          setError(`[${payload.error.code}] ${payload.error.message}`);
+        if (isErrorEnvelope) {
+          if (shouldSurfaceLoadError(options?.silent)) {
+            setError(`[${payload.error!.code}] ${payload.error!.message}`);
+          }
         } else {
           setError(undefined);
         }
@@ -295,7 +322,9 @@ export function GitTab({ projectId }: GitTabProps) {
           return;
         }
 
-        setError(requestError instanceof Error ? requestError.message : 'Failed to load git panel');
+        if (shouldSurfaceLoadError(options?.silent)) {
+          setError(requestError instanceof Error ? requestError.message : 'Failed to load git panel');
+        }
       } finally {
         if (!options?.silent && requestId === loadRequestRef.current) {
           setLoading(false);

@@ -16,7 +16,13 @@ describe('pricing comparison columns', () => {
      * Regression: headers said Starter/Core/Teams/Enterprise while rows read
      * starter/pro/business/enterprise, so "Core" rendered the old "pro" values.
      */
-    expect(COMPARISON_COLUMNS.map((c) => c.label)).toEqual(['Starter', 'Core', 'Teams', 'Enterprise']);
+    expect(COMPARISON_COLUMNS.map((c) => c.label)).toEqual(['Starter', 'Core', 'Pro', 'Enterprise']);
+  });
+
+  it('labels the $100 `teams` tier "Pro" to match the pricing cards (tierDisplayNames)', () => {
+    // The cards rename internal `teams` → "Pro"; the comparison column must agree.
+    const teams = COMPARISON_COLUMNS.find((c) => c.key === 'teams');
+    expect(teams?.label).toBe('Pro');
   });
 
   it('marks exactly one column (Core) as the accented / most-popular column', () => {

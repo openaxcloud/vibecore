@@ -40,7 +40,17 @@ export function inferOpenAIContextWindow(id: string | undefined, contextLength?:
     return contextLength;
   }
 
-  if (id?.includes('gpt-4.1') || id?.includes('gpt-4.5')) {
+  if (id?.includes('gpt-5')) {
+    /*
+     * gpt-5 family ships a ~400k context window. Must be checked BEFORE the
+     * gpt-4 branches (it does not contain 'gpt-4', but keeping it first mirrors
+     * the gpt-4.1 special-case) and BEFORE the 32k default, otherwise a live
+     * gpt-5 model is advertised with maxTokenAllowed=32000 while its completion
+     * budget is 128k, producing maxTokenAllowed < maxCompletionTokens and
+     * silently truncating multi-file context in select-context.
+     */
+    return 400000;
+  } else if (id?.includes('gpt-4.1') || id?.includes('gpt-4.5')) {
     /*
      * Must be checked BEFORE the generic `gpt-4` branch below, otherwise
      * `gpt-4.1`.includes('gpt-4') matches and truncates it to 8k.
@@ -77,6 +87,14 @@ export function inferOpenAIMaxCompletionTokens(id: string | undefined): number {
     return 32000; // Other o1 models: 32K limit
   } else if (id?.includes('o3') || id?.includes('o4')) {
     return 100000; // o3/o4 models: 100K output limit
+  } else if (id?.includes('gpt-5')) {
+    /*
+     * gpt-5 supports a 128K output budget. Must be checked BEFORE the gpt-4
+     * branches (and ahead of the 4096 default), otherwise gpt-5 — which
+     * isReasoningModel() routes through maxCompletionTokens — is capped at 4k
+     * and generation stops mid-file.
+     */
+    return 128000;
   } else if (id?.includes('gpt-4.1') || id?.includes('gpt-4.5')) {
     return 32768; // GPT-4.1 family: 32K output limit
   } else if (id?.includes('gpt-4o')) {

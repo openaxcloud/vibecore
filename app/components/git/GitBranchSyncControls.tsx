@@ -96,8 +96,14 @@ export function GitBranchSyncControls({
               onClick={onRefresh}
               title="Refresh git status"
               aria-label="Refresh git status"
-              className="i-ph:arrows-clockwise text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary disabled:opacity-50"
-            />
+              className={classNames(
+                'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] text-bolt-elements-textSecondary',
+                'hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary disabled:opacity-50',
+                'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus focus:ring-offset-1 focus:ring-offset-bolt-elements-background-depth-2',
+              )}
+            >
+              <span className="i-ph:arrows-clockwise text-sm" aria-hidden />
+            </button>
           ) : null}
         </span>
       </div>

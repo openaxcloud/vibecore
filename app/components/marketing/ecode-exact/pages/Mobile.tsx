@@ -37,6 +37,12 @@ import {
   TabsTrigger,
   useMarketingNavigate,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import {
+  AUTO_CYCLE_INTERVAL_MS,
+  AUTO_CYCLE_RESUME_DELAY_MS,
+  nextFeatureIndex,
+  shouldAutoCycle,
+} from '~/components/marketing/ecode-exact/pages/mobile-auto-cycle';
 
 export default function Mobile() {
   const navigate = useMarketingNavigate();
@@ -301,7 +307,7 @@ export const routes = createRouter({
 
     resumeCycleTimeoutRef.current = setTimeout(() => {
       setIsAutoCycling(true);
-    }, 15000);
+    }, AUTO_CYCLE_RESUME_DELAY_MS);
   };
 
   const handleFeatureSelectByIndex = (index: number) => {
@@ -318,13 +324,13 @@ export const routes = createRouter({
   };
 
   useEffect(() => {
-    if (!isAutoCycling || featureCount === 0) {
+    if (!shouldAutoCycle(isAutoCycling, featureCount)) {
       return undefined;
     }
 
     const interval = setInterval(() => {
-      setActiveFeatureIndex((prev) => (prev + 1) % featureCount);
-    }, 6000);
+      setActiveFeatureIndex((prev) => nextFeatureIndex(prev, featureCount));
+    }, AUTO_CYCLE_INTERVAL_MS);
 
     return () => clearInterval(interval);
   }, [featureCount, isAutoCycling]);
@@ -356,14 +362,17 @@ export const routes = createRouter({
   }, [aiStep]);
 
   const handleRunNextCommand = () => {
+    handlePauseAutoCycle();
     setTerminalStep((step) => Math.min(step + 1, terminalCommands.length));
   };
 
   const handleResetTerminal = () => {
+    handlePauseAutoCycle();
     setTerminalStep(1);
   };
 
   const handleNextAiScenario = () => {
+    handlePauseAutoCycle();
     setAiStep((step) => (step + 1) % aiScenarios.length);
   };
 
@@ -1012,7 +1021,12 @@ session.share({ team: "Field Ops" });
               </p>
             </div>
 
-            <Tabs value={activeFeature.id} onValueChange={handleFeatureSelectById} className="w-full">
+            <Tabs
+              value={activeFeature.id}
+              onValueChange={handleFeatureSelectById}
+              className="w-full"
+              onPointerDownCapture={handlePauseAutoCycle}
+            >
               <TabsList className="flex flex-wrap sm:flex-nowrap w-full max-w-4xl mx-auto mb-12 gap-2 overflow-x-auto rounded-xl bg-muted/60 p-2">
                 {features.map((feature) => (
                   <TabsTrigger

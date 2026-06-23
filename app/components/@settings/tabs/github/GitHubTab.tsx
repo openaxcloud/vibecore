@@ -37,6 +37,8 @@ export default function GitHubTab() {
     stats,
     isLoading: isStatsLoading,
     isRefreshing: isStatsRefreshing,
+    isStale: isStatsStale,
+    refreshStats,
     error: statsError,
   } = useGitHubStats(
     connection,
@@ -190,8 +192,17 @@ export default function GitHubTab() {
         {/* User Profile */}
         {connection.user && <GitHubUserProfile user={connection.user} />}
 
-        {/* Stats Section */}
-        <GitHubStats connection={connection} isExpanded={isStatsExpanded} onToggleExpanded={setIsStatsExpanded} />
+        {/* Stats Section — driven by the single hook instance above (no second auto-fetch) */}
+        <GitHubStats
+          connection={connection}
+          isExpanded={isStatsExpanded}
+          onToggleExpanded={setIsStatsExpanded}
+          stats={stats}
+          isLoading={isStatsLoading}
+          isRefreshing={isStatsRefreshing}
+          isStale={isStatsStale}
+          refreshStats={refreshStats}
+        />
 
         {/* Repositories Section */}
         {stats && hasRepos(stats.repos) && (

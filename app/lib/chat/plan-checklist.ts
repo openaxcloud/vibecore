@@ -216,7 +216,19 @@ export function extractAndStripPlanChecklist(source: string): ExtractedPlan | un
   if (cursor >= 0 && !CHECKBOX_LINE.test(lines[cursor].trim())) {
     const candidate = lines[cursor].trim();
 
-    if (candidate.length > 0 && candidate.length <= 200) {
+    /*
+     * Only absorb the preceding line as a title when it is unambiguously a
+     * heading for the plan. That means either it is a markdown heading
+     * (`# ...`), or a blank line separates it from the first checkbox
+     * (mirroring the forward `sawBlankGap` logic). Without this guard a plain
+     * prose sentence written immediately above the list — e.g. "This app
+     * needs a login page." followed by the checkboxes — would be swallowed
+     * into the plan region and stripped from the rendered Markdown body.
+     */
+    const isHeading = /^#{1,6}\s/.test(candidate);
+    const separatedByBlankLine = cursor < firstCheckboxIdx - 1;
+
+    if (candidate.length > 0 && candidate.length <= 200 && (isHeading || separatedByBlankLine)) {
       titleIdx = cursor;
     }
   }

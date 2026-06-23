@@ -499,6 +499,7 @@ function IdeProjectTopBar({
                     <ProjectMenuItem
                       to={`/api/projects/${projectId}/project-action?intent=export`}
                       icon={<Download className="h-3.5 w-3.5" />}
+                      download
                     >
                       Export
                     </ProjectMenuItem>
@@ -779,18 +780,36 @@ function ProjectMenuItem({
   icon,
   children,
   onClick,
+  download,
 }: {
   to: string;
   icon?: ReactNode;
   children: ReactNode;
   onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
+
+  /*
+   * When the target is a binary/download endpoint (e.g. the project export zip)
+   * a React Router <Link> performs an in-app SPA fetch, which never turns the
+   * response into a file download and honours Content-Disposition. Render a
+   * native anchor with `download` so the browser does a real document
+   * navigation instead.
+   */
+  download?: boolean;
 }) {
+  const className =
+    'flex h-8 items-center gap-2 rounded-md px-2 text-[12px] text-[var(--vc-ide-text-primary)] hover:bg-[var(--vc-ide-bg-hover)]';
+
+  if (download) {
+    return (
+      <a href={to} download className={className} onClick={onClick}>
+        {icon}
+        <span>{children}</span>
+      </a>
+    );
+  }
+
   return (
-    <Link
-      to={to}
-      className="flex h-8 items-center gap-2 rounded-md px-2 text-[12px] text-[var(--vc-ide-text-primary)] hover:bg-[var(--vc-ide-bg-hover)]"
-      onClick={onClick}
-    >
+    <Link to={to} className={className} onClick={onClick}>
       {icon}
       <span>{children}</span>
     </Link>

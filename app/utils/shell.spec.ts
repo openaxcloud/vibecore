@@ -122,11 +122,11 @@ async function newReadyShell() {
 }
 
 /*
- * jsh emits `exit=<code>:<pid>`. BoltShell.waitTillOscCode extracts the final
- * numeric group of the marker as `exitCode` (preserved upstream behavior), so
- * to keep these tests focused on split-marker detection (bug 1) and single-
- * consumer aborting (bug 2) we set code === pid, making the parsed exit code
- * unambiguous regardless of which group is read.
+ * jsh emits `exit=<code>:<pid>`. BoltShell.waitTillOscCode extracts the `<code>`
+ * group as `exitCode`. For the split-marker (bug 1) and single-consumer abort
+ * (bug 2) tests we set code === pid so the assertion is unambiguous; a dedicated
+ * test below uses a distinct PID to lock in that the code group (not the PID) is
+ * read.
  */
 const EXIT = (code: number) => `\x1b]654;exit=${code}:${code}\x07`;
 const PROMPT = '\x1b]654;prompt\x07';
@@ -146,6 +146,24 @@ describe('BoltShell.waitTillOscCode', () => {
     const result = await wait;
     expect(result.exitCode).toBe(0);
     expect(result.output).toContain('build done');
+  });
+
+  it('reads the exit code group, not the PID group, when code !== pid', async () => {
+    const { shell, session } = await newReadyShell();
+
+    const wait = shell.waitTillOscCode('exit');
+    await flush();
+
+    /*
+     * Marker carries the documented `exit=<code>:<pid>` contract with a real,
+     * distinct PID. A successful command (exit 0) running as PID 1234 must
+     * report exitCode 0, never the PID.
+     */
+    session.emit('all good\n\x1b]654;exit=0:1234\x07');
+
+    const result = await wait;
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('all good');
   });
 
   it('detects an exit marker SPLIT across two data events (bug 1)', async () => {

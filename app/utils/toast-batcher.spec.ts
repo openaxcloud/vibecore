@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { batchFileApplied, flushPendingToastBatch, resetToastBatcher, type BatchedFileApplied } from './toast-batcher';
+import {
+  batchFileApplied,
+  flushPendingToastBatch,
+  resetToastBatcher,
+  runUndos,
+  type BatchedFileApplied,
+} from './toast-batcher';
 
 const emit = vi.fn<(entries: BatchedFileApplied[]) => void>();
 
@@ -104,5 +110,58 @@ describe('toast-batcher', () => {
 
     expect(undoA).toHaveBeenCalledTimes(1);
     expect(undoB).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('runUndos', () => {
+  it('runs every undo and reports zero failures when all succeed', async () => {
+    const a = vi.fn(() => undefined);
+    const b = vi.fn(async () => {});
+
+    const failures = await runUndos([a, b]);
+
+    expect(a).toHaveBeenCalledTimes(1);
+    expect(b).toHaveBeenCalledTimes(1);
+    expect(failures).toBe(0);
+  });
+
+  it('counts rejected async reverts without short-circuiting the rest', async () => {
+    const ok = vi.fn(async () => {});
+
+    const rejects = vi.fn(async () => {
+      throw new Error('Remote file changed');
+    });
+
+    const alsoOk = vi.fn(async () => {});
+
+    const failures = await runUndos([ok, rejects, alsoOk]);
+
+    expect(ok).toHaveBeenCalledTimes(1);
+    expect(rejects).toHaveBeenCalledTimes(1);
+    expect(alsoOk).toHaveBeenCalledTimes(1);
+    expect(failures).toBe(1);
+  });
+
+  it('counts a synchronous throw as a failure', async () => {
+    const throws = vi.fn(() => {
+      throw new Error('locked');
+    });
+
+    const failures = await runUndos([throws]);
+
+    expect(failures).toBe(1);
+  });
+
+  it('does not reject overall even when every undo fails', async () => {
+    const failures = await runUndos([
+      async () => {
+        throw new Error('a');
+      },
+      async () => {
+        throw new Error('b');
+      },
+    ]);
+
+    expect(failures).toBe(2);
   });
 });

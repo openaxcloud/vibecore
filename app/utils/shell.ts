@@ -405,7 +405,14 @@ export class BoltShell {
         const oscMatch = buffer.match(/\x1b\]654;([^\x07=]+)=?((-?\d+):(\d+))?\x07/);
 
         if (oscMatch) {
-          const [full, osc, , , code] = oscMatch;
+          /*
+           * The marker payload is `exit=<code>:<pid>` (see terminal-session.ts).
+           * Regex groups: 1=osc name, 2=`<code>:<pid>`, 3=`<code>`, 4=`<pid>`.
+           * Bind to group 3 (the exit code) — group 4 is the PID and must not be
+           * read as the exit code, otherwise a runtime that emits a distinct PID
+           * reports successful (exit 0) commands as failures.
+           */
+          const [full, osc, , exitStr] = oscMatch;
 
           // Drop everything up to and including the matched marker from the buffer.
           const matchEnd = (oscMatch.index ?? 0) + full.length;
@@ -414,11 +421,11 @@ export class BoltShell {
           if (osc === 'exit') {
             /*
              * A truncated/split exit marker can match `osc === 'exit'` with the
-             * `=code:pid` group absent, leaving `code` undefined → parseInt(NaN).
+             * `=code:pid` group absent, leaving `exitStr` undefined → parseInt(NaN).
              * A NaN exit code defeats every `exitCode !== 0` check downstream, so
              * fall back to 0 when the code is missing/unparseable.
              */
-            const parsed = parseInt(code ?? '', 10);
+            const parsed = parseInt(exitStr ?? '', 10);
             exitCode = Number.isNaN(parsed) ? 0 : parsed;
           }
 

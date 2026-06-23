@@ -78,4 +78,66 @@ describe('GitHubStats', () => {
     expect(screen.getByText('TypeScript')).toBeTruthy();
     expect(screen.getByText('CSS')).toBeTruthy();
   });
+
+  it('runs its own auto-fetch hook only in uncontrolled mode', () => {
+    /*
+     * Uncontrolled: parent passes no stats props, so the component mounts its own
+     * auto-fetching hook instance (this is the legacy path).
+     */
+    useGitHubStats.mockReturnValue({
+      stats: null,
+      isLoading: false,
+      isRefreshing: false,
+      refreshStats: vi.fn(),
+      isStale: false,
+    });
+
+    render(<GitHubStats connection={connection} isExpanded={true} onToggleExpanded={() => {}} />);
+
+    expect(useGitHubStats).toHaveBeenCalledTimes(1);
+    expect(useGitHubStats.mock.calls[0][1]).toMatchObject({ autoFetch: true });
+  });
+
+  it('disables its own auto-fetch when stats are supplied by the parent (single-instance dedup)', () => {
+    /*
+     * The hook is still called (Rules of Hooks) but with autoFetch:false, so no second
+     * /api/github-stats fan-out and no duplicate "stats updated" toast fire.
+     */
+    useGitHubStats.mockReturnValue({
+      stats: null,
+      isLoading: false,
+      isRefreshing: false,
+      refreshStats: vi.fn(),
+      isStale: false,
+    });
+
+    const controlledStats = {
+      publicRepos: 7,
+      privateRepos: 1,
+      totalBranches: 9,
+      languages: { Go: 4242 },
+      lastUpdated: new Date('2026-01-01T00:00:00Z').toISOString(),
+    } as Partial<GitHubStatsType>;
+
+    render(
+      <GitHubStats
+        connection={connection}
+        isExpanded={true}
+        onToggleExpanded={() => {}}
+        stats={controlledStats as GitHubStatsType}
+        isLoading={false}
+        isRefreshing={false}
+        isStale={false}
+        refreshStats={vi.fn()}
+      />,
+    );
+
+    expect(useGitHubStats).toHaveBeenCalledTimes(1);
+    expect(useGitHubStats.mock.calls[0][1]).toMatchObject({ autoFetch: false });
+
+    // Renders the parent-supplied stats, not the hook's (null) stats.
+    expect(screen.queryByText(/GitHub Integration Error/i)).toBeNull();
+    expect(screen.getByText('GitHub Overview')).toBeTruthy();
+    expect(screen.getByText('Go')).toBeTruthy();
+  });
 });

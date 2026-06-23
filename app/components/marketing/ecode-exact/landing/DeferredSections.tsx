@@ -1,5 +1,6 @@
-import { Suspense } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { SectionSkeleton, StatsSkeleton, FeaturesSkeleton } from './LandingSkeleton';
+import { SectionLoadBoundary } from './SectionLoadBoundary';
 import { instrumentedLazy, useDeferredRender } from '~/components/marketing/ecode-exact/EcodeExactUi';
 
 const LandingStats = instrumentedLazy(() => import('./sections/LandingStats'), 'LandingStats');
@@ -17,6 +18,34 @@ interface DeferredSectionsProps {
   templatesLoading: boolean;
 }
 
+interface DeferredSectionProps {
+  innerRef: React.Ref<HTMLDivElement>;
+  shouldRender: boolean;
+  name: string;
+  fallback: ReactNode;
+  children: ReactNode;
+}
+
+/**
+ * Renders one intersection-deferred section. While off-screen (or before the
+ * chunk loads) it shows `fallback`. Once on-screen it lazily mounts `children`,
+ * with a {@link SectionLoadBoundary} so a failed chunk import degrades to the
+ * same `fallback` instead of tearing down the whole landing page.
+ */
+function DeferredSection({ innerRef, shouldRender, name, fallback, children }: DeferredSectionProps) {
+  return (
+    <div ref={innerRef}>
+      {shouldRender ? (
+        <SectionLoadBoundary name={name} fallback={fallback}>
+          <Suspense fallback={fallback}>{children}</Suspense>
+        </SectionLoadBoundary>
+      ) : (
+        fallback
+      )}
+    </div>
+  );
+}
+
 export function DeferredSections({ templates, templatesLoading }: DeferredSectionsProps) {
   const statsSection = useDeferredRender({ rootMargin: '200px' });
   const videoSection = useDeferredRender({ rootMargin: '200px' });
@@ -30,95 +59,86 @@ export function DeferredSections({ templates, templatesLoading }: DeferredSectio
 
   return (
     <>
-      <div ref={statsSection.ref}>
-        {statsSection.shouldRender ? (
-          <Suspense fallback={<StatsSkeleton />}>
-            <LandingStats />
-          </Suspense>
-        ) : (
-          <StatsSkeleton />
-        )}
-      </div>
+      <DeferredSection
+        innerRef={statsSection.ref}
+        shouldRender={statsSection.shouldRender}
+        name="LandingStats"
+        fallback={<StatsSkeleton />}
+      >
+        <LandingStats />
+      </DeferredSection>
 
-      <div ref={videoSection.ref}>
-        {videoSection.shouldRender ? (
-          <Suspense fallback={<SectionSkeleton height="h-[600px]" />}>
-            <LandingVideo />
-          </Suspense>
-        ) : (
-          <SectionSkeleton height="h-[600px]" />
-        )}
-      </div>
+      <DeferredSection
+        innerRef={videoSection.ref}
+        shouldRender={videoSection.shouldRender}
+        name="LandingVideo"
+        fallback={<SectionSkeleton height="h-[600px]" />}
+      >
+        <LandingVideo />
+      </DeferredSection>
 
-      <div ref={projectsSection.ref}>
-        {projectsSection.shouldRender ? (
-          <Suspense fallback={<SectionSkeleton />}>
-            <LandingProjects />
-          </Suspense>
-        ) : (
-          <SectionSkeleton />
-        )}
-      </div>
+      <DeferredSection
+        innerRef={projectsSection.ref}
+        shouldRender={projectsSection.shouldRender}
+        name="LandingProjects"
+        fallback={<SectionSkeleton />}
+      >
+        <LandingProjects />
+      </DeferredSection>
 
-      <div ref={templatesSection.ref}>
-        {templatesSection.shouldRender ? (
-          <Suspense fallback={<SectionSkeleton />}>
-            <LandingTemplates templates={templates} isLoading={templatesLoading} />
-          </Suspense>
-        ) : (
-          <SectionSkeleton />
-        )}
-      </div>
+      <DeferredSection
+        innerRef={templatesSection.ref}
+        shouldRender={templatesSection.shouldRender}
+        name="LandingTemplates"
+        fallback={<SectionSkeleton />}
+      >
+        <LandingTemplates templates={templates} isLoading={templatesLoading} />
+      </DeferredSection>
 
-      <div ref={featuresSection.ref}>
-        {featuresSection.shouldRender ? (
-          <Suspense fallback={<FeaturesSkeleton />}>
-            <LandingFeatures />
-          </Suspense>
-        ) : (
-          <FeaturesSkeleton />
-        )}
-      </div>
+      <DeferredSection
+        innerRef={featuresSection.ref}
+        shouldRender={featuresSection.shouldRender}
+        name="LandingFeatures"
+        fallback={<FeaturesSkeleton />}
+      >
+        <LandingFeatures />
+      </DeferredSection>
 
-      <div ref={languagesSection.ref}>
-        {languagesSection.shouldRender ? (
-          <Suspense fallback={<SectionSkeleton />}>
-            <LandingLanguages />
-          </Suspense>
-        ) : (
-          <SectionSkeleton />
-        )}
-      </div>
+      <DeferredSection
+        innerRef={languagesSection.ref}
+        shouldRender={languagesSection.shouldRender}
+        name="LandingLanguages"
+        fallback={<SectionSkeleton />}
+      >
+        <LandingLanguages />
+      </DeferredSection>
 
-      <div ref={workflowSection.ref}>
-        {workflowSection.shouldRender ? (
-          <Suspense fallback={<SectionSkeleton />}>
-            <LandingWorkflow />
-          </Suspense>
-        ) : (
-          <SectionSkeleton />
-        )}
-      </div>
+      <DeferredSection
+        innerRef={workflowSection.ref}
+        shouldRender={workflowSection.shouldRender}
+        name="LandingWorkflow"
+        fallback={<SectionSkeleton />}
+      >
+        <LandingWorkflow />
+      </DeferredSection>
 
-      <div ref={testimonialsSection.ref}>
-        {testimonialsSection.shouldRender ? (
-          <Suspense fallback={<SectionSkeleton />}>
-            <LandingTestimonials />
-          </Suspense>
-        ) : (
-          <SectionSkeleton />
-        )}
-      </div>
+      <DeferredSection
+        innerRef={testimonialsSection.ref}
+        shouldRender={testimonialsSection.shouldRender}
+        name="LandingTestimonials"
+        fallback={<SectionSkeleton />}
+      >
+        <LandingTestimonials />
+      </DeferredSection>
 
-      <div ref={ctaSection.ref}>
-        {ctaSection.shouldRender ? (
-          <Suspense fallback={<SectionSkeleton height="h-64" />}>
-            <LandingCta />
-          </Suspense>
-        ) : (
-          <SectionSkeleton height="h-64" />
-        )}
-      </div>
+      <DeferredSection
+        innerRef={ctaSection.ref}
+        shouldRender={ctaSection.shouldRender}
+        name="LandingCTA"
+        fallback={<SectionSkeleton height="h-64" />}
+      >
+        <LandingCta />
+      </DeferredSection>
     </>
   );
 }

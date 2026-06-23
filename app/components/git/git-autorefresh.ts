@@ -52,3 +52,33 @@ export function shouldRefreshOnFilesChange(previousSignature: string, nextSignat
 export function shouldRefreshOnVisibility(visibilityState: DocumentVisibilityState): boolean {
   return visibilityState === 'visible';
 }
+
+/*
+ * Whether a load failure should be surfaced to the user (red error banner /
+ * setError). Foreground loads always surface; silent background refreshes
+ * (FilesStore listener, focus/visibility reconcile, post-action reload) must
+ * not, because the workspace git endpoint can transiently 5xx/lock during an
+ * active agent generation and we already have a usable view on screen. A
+ * contradictory "success toast + error banner" after a committed action is
+ * also avoided this way.
+ */
+export function shouldSurfaceLoadError(silent: boolean | undefined): boolean {
+  return !silent;
+}
+
+/*
+ * Whether a load response's envelope should replace the visible state.
+ *
+ * - A successful (non-error) envelope always replaces the view.
+ * - An error envelope replaces the view only for a foreground load (so the
+ *   user sees the failure). During a silent refresh an error envelope carries
+ *   no `data`, so applying it would blank the live working-tree list; we keep
+ *   the previously loaded data instead.
+ */
+export function shouldApplyEnvelopeForLoad(silent: boolean | undefined, isErrorEnvelope: boolean): boolean {
+  if (!isErrorEnvelope) {
+    return true;
+  }
+
+  return !silent;
+}

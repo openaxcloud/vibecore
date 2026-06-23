@@ -51,4 +51,26 @@ describe('<GitBranchSyncControls />', () => {
     expect(onSubmit).toHaveBeenCalledTimes(2);
     expect(submittedIntents).toEqual(['pull', 'push']);
   });
+
+  it('renders the refresh control with a comfortable hit area, not a bare icon glyph', () => {
+    const onRefresh = vi.fn();
+
+    render(<GitBranchSyncControls branch="main" idPrefix="test-git" onSubmit={vi.fn()} onRefresh={onRefresh} />);
+
+    const refresh = screen.getByTestId('git-refresh');
+
+    expect(refresh.getAttribute('aria-label')).toBe('Refresh git status');
+
+    /*
+     * The clickable element must carry its own sizing/hit-area utilities rather
+     * than collapsing to the ~14px icon glyph box; the icon lives in a child span.
+     */
+    expect(refresh.className).toContain('h-8');
+    expect(refresh.className).toContain('w-8');
+    expect(refresh.className).not.toContain('i-ph:arrows-clockwise');
+    expect(refresh.querySelector('.i-ph\\:arrows-clockwise')).toBeTruthy();
+
+    fireEvent.click(refresh);
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
 });

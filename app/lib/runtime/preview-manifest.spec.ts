@@ -143,6 +143,25 @@ describe('preview manifest repair', () => {
     expect(packageJson.dependencies).toMatchObject({ react: '^18.3.1', vite: '^5.4.19' });
   });
 
+  it('selects the real root package.json over a deceptively-named sibling file', () => {
+    /*
+     * A file like 'foopackage.json' ends with the literal 'package.json' but is not a
+     * manifest. It sorts before the real 'package.json' at the same depth, so a substring
+     * match would feed the wrong file into the repair. The basename must match exactly.
+     */
+    const { repair, packageJson } = packageJsonFromRepair({
+      'foopackage.json': JSON.stringify({ unrelated: true }),
+      'package.json': JSON.stringify({ name: 'real-app', dependencies: { vite: '^5.4.19' } }),
+      'src/main.tsx': "import { createRoot } from 'react-dom/client';\nimport App from './App';\n",
+      'src/App.tsx': 'export default function App() { return <main>Real</main>; }\n',
+    });
+
+    expect(repair.packageJson?.path).toBe('package.json');
+    expect(packageJson.name).toBe('real-app');
+    expect(packageJson.unrelated).toBeUndefined();
+    expect(packageJson.dependencies).toMatchObject({ react: '^18.3.1' });
+  });
+
   it('does not create a React plugin config for vanilla Vite entries', () => {
     const { repair, packageJson } = packageJsonFromRepair({
       'src/main.ts': 'document.body.textContent = "hello";\n',

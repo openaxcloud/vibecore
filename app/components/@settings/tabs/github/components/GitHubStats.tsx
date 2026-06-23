@@ -10,17 +10,53 @@ interface GitHubStatsProps {
   connection: GitHubConnection;
   isExpanded: boolean;
   onToggleExpanded: (expanded: boolean) => void;
+
+  /*
+   * Optional pre-fetched stats. When provided, this component renders them
+   * directly instead of mounting its own useGitHubStats instance. The parent
+   * (GitHubTab) already owns a single hook instance, so passing these props
+   * avoids a second auto-fetch (duplicate /api/github-stats calls + a duplicate
+   * "stats updated" toast) over the shared singleton cache.
+   */
+  stats?: GitHubStatsType | null;
+  isLoading?: boolean;
+  isRefreshing?: boolean;
+  isStale?: boolean;
+  refreshStats?: () => Promise<void>;
 }
 
-export function GitHubStats({ connection, isExpanded, onToggleExpanded }: GitHubStatsProps) {
-  const { stats, isLoading, isRefreshing, refreshStats, isStale } = useGitHubStats(
+export function GitHubStats({
+  connection,
+  isExpanded,
+  onToggleExpanded,
+  stats: statsProp,
+  isLoading: isLoadingProp,
+  isRefreshing: isRefreshingProp,
+  isStale: isStaleProp,
+  refreshStats: refreshStatsProp,
+}: GitHubStatsProps) {
+  const isControlled = refreshStatsProp !== undefined;
+
+  /*
+   * Only mount our own hook (and thus our own auto-fetch) when the parent has
+   * not already supplied stats. Calling the hook unconditionally keeps the
+   * Rules of Hooks happy; `autoFetch` is disabled in controlled mode so no
+   * second fetch/toast fires.
+   */
+  const owned = useGitHubStats(
     connection,
     {
-      autoFetch: true,
+      autoFetch: !isControlled,
       cacheTimeout: 30 * 60 * 1000, // 30 minutes
     },
     !connection?.token,
   ); // Use server-side if no token
+
+  const stats = isControlled ? (statsProp ?? null) : owned.stats;
+  const isLoading = isControlled ? !!isLoadingProp : owned.isLoading;
+  const isRefreshing = isControlled ? !!isRefreshingProp : owned.isRefreshing;
+  const isStale = isControlled ? !!isStaleProp : owned.isStale;
+  const refreshStats = isControlled ? refreshStatsProp! : owned.refreshStats;
 
   return (
     <GitHubErrorBoundary>

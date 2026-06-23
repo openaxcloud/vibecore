@@ -19,6 +19,8 @@ describe('isSelectableOpenAIChatModel', () => {
     expect(isSelectableOpenAIChatModel('gpt-4o')).toBe(true);
     expect(isSelectableOpenAIChatModel('gpt-4.1-mini')).toBe(true);
     expect(isSelectableOpenAIChatModel('chatgpt-4o-latest')).toBe(true);
+    expect(isSelectableOpenAIChatModel('gpt-5')).toBe(true);
+    expect(isSelectableOpenAIChatModel('gpt-5-mini')).toBe(true);
   });
 
   it('accepts o1/o3/o4 reasoning families', () => {
@@ -72,6 +74,18 @@ describe('inferOpenAIContextWindow', () => {
     expect(inferOpenAIContextWindow('gpt-3.5-turbo')).toBe(16385);
   });
 
+  it('gives gpt-5 family a large window instead of the 32k default (bug 1)', () => {
+    expect(inferOpenAIContextWindow('gpt-5')).toBe(400000);
+    expect(inferOpenAIContextWindow('gpt-5-mini')).toBe(400000);
+    expect(inferOpenAIContextWindow('gpt-5-nano')).toBe(400000);
+  });
+
+  it('keeps the gpt-5 context window >= its completion budget (bug 1 invariant)', () => {
+    for (const id of ['gpt-5', 'gpt-5-mini', 'gpt-5-nano']) {
+      expect(inferOpenAIContextWindow(id)).toBeGreaterThanOrEqual(inferOpenAIMaxCompletionTokens(id));
+    }
+  });
+
   it('honours an explicit context_length when present', () => {
     expect(inferOpenAIContextWindow('o3', 12345)).toBe(12345);
     expect(inferOpenAIContextWindow('gpt-4', 99999)).toBe(99999);
@@ -101,5 +115,10 @@ describe('inferOpenAIMaxCompletionTokens', () => {
     expect(inferOpenAIMaxCompletionTokens('gpt-4o')).toBe(16384);
     expect(inferOpenAIMaxCompletionTokens('gpt-4')).toBe(8192);
     expect(inferOpenAIMaxCompletionTokens('gpt-3.5-turbo')).toBe(4096);
+  });
+
+  it('assigns gpt-5 a 128k budget instead of the 4096 default (bug 1)', () => {
+    expect(inferOpenAIMaxCompletionTokens('gpt-5')).toBe(128000);
+    expect(inferOpenAIMaxCompletionTokens('gpt-5-mini')).toBe(128000);
   });
 });

@@ -10,7 +10,9 @@ import type { ReactNode } from 'react';
  * showed the values authored under the old "pro" tier).
  *
  * Keys intentionally match the internal pricing tier keys used elsewhere on
- * the page (free→Starter, core, teams, enterprise).
+ * the page (free→Starter, core→Core, teams→Pro, enterprise→Enterprise). The
+ * labels must mirror the `tierDisplayNames` mapping in Pricing.tsx so the same
+ * $100 tier is not called "Pro" in the cards yet "Teams" in this table.
  */
 export type ComparisonTierKey = 'starter' | 'core' | 'teams' | 'enterprise';
 
@@ -30,7 +32,7 @@ export interface ComparisonColumn {
 export const COMPARISON_COLUMNS: readonly ComparisonColumn[] = [
   { key: 'starter', label: 'Starter', sublabel: 'Free forever' },
   { key: 'core', label: 'Core', sublabel: 'Most popular', accent: true },
-  { key: 'teams', label: 'Teams', sublabel: 'For teams' },
+  { key: 'teams', label: 'Pro', sublabel: 'For growing teams' },
   { key: 'enterprise', label: 'Enterprise', sublabel: 'Custom' },
 ] as const;
 

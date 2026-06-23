@@ -1,5 +1,6 @@
 import { type ActionFunctionArgs, type LoaderFunctionArgs, data as json } from 'react-router';
 import { resolveVercelPollOutcome } from '~/lib/vercel-deploy-poll';
+import { isValidVercelProjectId } from '~/lib/vercel-project-id';
 import { buildVercelProjectName } from '~/lib/vercel-project-name';
 import type { VercelProjectInfo } from '~/types/vercel';
 
@@ -198,9 +199,20 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return json({ error: 'Missing projectId or token' }, { status: 400 });
   }
 
+  /*
+   * Validate the project id before interpolating it into the upstream URLs.
+   * Without this, a value like `x?teamId=<victim>` injects an extra query
+   * parameter into the deployments call and path characters (`/`, `..`) can
+   * re-target the path of the v9 projects call. Matches the sibling Supabase
+   * routes which validate + encode their refs.
+   */
+  if (!isValidVercelProjectId(projectId)) {
+    return json({ error: 'Invalid projectId' }, { status: 400 });
+  }
+
   try {
     // Get project info
-    const projectResponse = await timeoutFetch(`https://api.vercel.com/v9/projects/${projectId}`, {
+    const projectResponse = await timeoutFetch(`https://api.vercel.com/v9/projects/${encodeURIComponent(projectId)}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -214,7 +226,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     // Get latest deployment
     const deploymentsResponse = await timeoutFetch(
-      `https://api.vercel.com/v6/deployments?projectId=${projectId}&limit=1`,
+      `https://api.vercel.com/v6/deployments?projectId=${encodeURIComponent(projectId)}&limit=1`,
       {
         headers: {
           Authorization: `Bearer ${token}`,

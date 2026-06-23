@@ -186,6 +186,40 @@ describe('extractAndStripPlanChecklist', () => {
     expect(result!.plan.items.some((item) => item.result?.includes('const example'))).toBe(false);
   });
 
+  it('does not absorb a prose sentence directly above the list as the title', () => {
+    const source = ['This app needs a login page and a dashboard.', '- [ ] Build login', '- [ ] Build dashboard'].join(
+      '\n',
+    );
+
+    const result = extractAndStripPlanChecklist(source);
+    expect(result).toBeDefined();
+    expect(result!.plan.items).toHaveLength(2);
+
+    /*
+     * The leading prose line is not separated from the checkboxes by a blank
+     * line and is not a heading, so it must NOT become the plan title — it has
+     * to survive in the rendered Markdown body instead of being stripped.
+     */
+    expect(result!.plan.title).toBeUndefined();
+    expect(result!.remainingText).toContain('This app needs a login page and a dashboard.');
+  });
+
+  it('still absorbs a heading directly above the list as the title', () => {
+    const source = ['## Build the app', '- [ ] Build login', '- [ ] Build dashboard'].join('\n');
+
+    const result = extractAndStripPlanChecklist(source);
+    expect(result?.plan.title).toBe('Build the app');
+    expect(result?.remainingText).toBe('');
+  });
+
+  it('still absorbs a prose title separated from the list by a blank line', () => {
+    const source = ['Here is my plan', '', '- [ ] Build login', '- [ ] Build dashboard'].join('\n');
+
+    const result = extractAndStripPlanChecklist(source);
+    expect(result?.plan.title).toBe('Here is my plan');
+    expect(result?.remainingText).toBe('');
+  });
+
   it('still absorbs indented notes that immediately follow the last item', () => {
     const source = [
       '- [x] Built the runner',

@@ -150,7 +150,10 @@ function scopedRuntimeFiles(files: Record<string, string>, packageJsonPath: stri
 
 function findPackageJsonPath(files: Record<string, string>) {
   return Object.keys(files)
-    .filter((filePath) => filePath.endsWith('package.json') && !filePath.includes('/node_modules/'))
+    .filter(
+      (filePath) =>
+        (filePath === 'package.json' || filePath.endsWith('/package.json')) && !filePath.includes('/node_modules/'),
+    )
     .sort((left, right) => left.split('/').length - right.split('/').length || left.localeCompare(right))[0];
 }
 

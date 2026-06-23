@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   computeWorkspaceFilesSignature,
+  shouldApplyEnvelopeForLoad,
+  shouldSurfaceLoadError,
   shouldRefreshOnFilesChange,
   shouldRefreshOnVisibility,
 } from './git-autorefresh';
@@ -58,5 +60,41 @@ describe('shouldRefreshOnVisibility', () => {
   it('refreshes only when the tab becomes visible', () => {
     expect(shouldRefreshOnVisibility('visible')).toBe(true);
     expect(shouldRefreshOnVisibility('hidden')).toBe(false);
+  });
+});
+
+describe('shouldSurfaceLoadError', () => {
+  it('surfaces errors for foreground loads', () => {
+    expect(shouldSurfaceLoadError(false)).toBe(true);
+    expect(shouldSurfaceLoadError(undefined)).toBe(true);
+  });
+
+  it('suppresses errors for silent background refreshes', () => {
+    /*
+     * A transient 5xx/lock during agent generation must not pop a red banner,
+     * nor contradict an already-fired success toast after a commit/discard.
+     */
+    expect(shouldSurfaceLoadError(true)).toBe(false);
+  });
+});
+
+describe('shouldApplyEnvelopeForLoad', () => {
+  it('always applies a successful (non-error) envelope', () => {
+    expect(shouldApplyEnvelopeForLoad(false, false)).toBe(true);
+    expect(shouldApplyEnvelopeForLoad(true, false)).toBe(true);
+    expect(shouldApplyEnvelopeForLoad(undefined, false)).toBe(true);
+  });
+
+  it('applies an error envelope only for a foreground load', () => {
+    expect(shouldApplyEnvelopeForLoad(false, true)).toBe(true);
+    expect(shouldApplyEnvelopeForLoad(undefined, true)).toBe(true);
+  });
+
+  it('preserves the previous view: does not apply an error envelope on a silent refresh', () => {
+    /*
+     * An error envelope has no `data`; applying it would blank the live
+     * working-tree list mid-generation.
+     */
+    expect(shouldApplyEnvelopeForLoad(true, true)).toBe(false);
   });
 });
