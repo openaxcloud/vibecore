@@ -1,4 +1,3 @@
-import { signAgentToken, type WorkspaceEvent } from '@vibecore/workspace-sdk';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import {
@@ -9,6 +8,7 @@ import {
   type WorkspaceK8sClient,
   type WorkspacePlan,
 } from '@vibecore/k8s-client';
+import { signAgentToken, type WorkspaceEvent } from '@vibecore/workspace-sdk';
 
 export type WorkspaceStatus = 'STARTING' | 'RUNNING' | 'STOPPED' | 'FAILED' | 'DELETED';
 
@@ -34,9 +34,12 @@ export interface WorkspaceRecord {
   agentTokenSecretName: string;
   createdAt: string;
   lastActiveAt: string;
-  // Last time this runtime's active compute was metered to billing (P4). The GC
-  // meters the window from here (or createdAt) to lastActiveAt on stop, then
-  // advances it — idempotent across restarts. Undefined until first metered.
+
+  /*
+   * Last time this runtime's active compute was metered to billing (P4). The GC
+   * meters the window from here (or createdAt) to lastActiveAt on stop, then
+   * advances it — idempotent across restarts. Undefined until first metered.
+   */
   lastMeteredAt?: string;
   error?: string;
 }
@@ -81,18 +84,22 @@ export class JsonWorkspaceStore implements WorkspaceStore {
     const workspaces = await this.read();
     workspaces.set(record.id, record);
     await this.write(workspaces);
+
     return record;
   }
 
   async update(workspaceId: string, patch: Partial<WorkspaceRecord>) {
     const workspaces = await this.read();
     const existing = workspaces.get(workspaceId);
+
     if (!existing) {
       throw new Error('Workspace not found');
     }
+
     const updated = { ...existing, ...patch };
     workspaces.set(workspaceId, updated);
     await this.write(workspaces);
+
     return updated;
   }
 
@@ -193,9 +200,11 @@ async function postWorkspaceComputeMetering(body: {
 }): Promise<boolean> {
   const baseUrl = process.env.API_INTERNAL_URL ?? process.env.API_URL;
   const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
+
   if (!baseUrl) {
     return false;
   }
+
   try {
     const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/internal/metering`, {
       method: 'POST',
@@ -207,6 +216,7 @@ async function postWorkspaceComputeMetering(body: {
       signal: AbortSignal.timeout(15_000),
     });
     await response.body?.cancel().catch(() => {});
+
     return response.ok;
   } catch {
     return false;
@@ -234,6 +244,7 @@ export class WorkspaceManager {
     const pvcName = `pvc-${input.workspaceId}`;
     const agentTokenSecretName = `agent-token-${input.workspaceId}`;
     const allowedSecrets = input.allowedSecrets ?? {};
+
     const secretEnv = Object.fromEntries(
       [...new Set([...input.allowedSecretKeys, ...Object.keys(allowedSecrets)])].map((key) => [key, key]),
     );
@@ -289,6 +300,7 @@ export class WorkspaceManager {
       ...baseRecord,
       error: undefined,
       lastActiveAt: new Date().toISOString(),
+
       /*
        * Reset the metering marker on reopen too. The previous session's stop meter
        * (or the RUNNING-reopen meter just above) advanced lastMeteredAt to the OLD
@@ -299,6 +311,7 @@ export class WorkspaceManager {
        */
       lastMeteredAt: new Date().toISOString(),
     };
+
     let record;
 
     if (existing) {
@@ -432,6 +445,7 @@ export class WorkspaceManager {
       });
 
       await this.publish(failed, 'workspace.failed');
+
       return failed;
     }
   }
@@ -467,11 +481,16 @@ export class WorkspaceManager {
     await this.#meterRuntimeOnStop(workspace);
 
     await this.k8s.delete('Pod', namespace, workspace.podName);
+
     const stopped = await this.store.update(workspaceId, { status: 'STOPPED' });
-    // Drop the throttle marker so a later reopen (same deterministic id) touches
-    // immediately instead of waiting out a stale window.
+
+    /*
+     * Drop the throttle marker so a later reopen (same deterministic id) touches
+     * immediately instead of waiting out a stale window.
+     */
     this.lastTouchAt.delete(workspaceId);
     await this.publish(stopped, 'workspace.stopped');
+
     return stopped;
   }
 
@@ -509,9 +528,11 @@ export class WorkspaceManager {
       this.k8s.delete('Secret', namespace, workspace.agentTokenSecretName ?? `agent-token-${workspaceId}`),
       this.k8s.delete('PersistentVolumeClaim', namespace, workspace.pvcName),
     ]);
+
     const deleted = await this.store.update(workspaceId, { status: 'DELETED' });
     this.lastTouchAt.delete(workspaceId);
     await this.publish(deleted, 'workspace.deleted');
+
     return deleted;
   }
 
@@ -540,27 +561,37 @@ export class WorkspaceManager {
 
   async #garbageCollect(namespace: string, inactiveMs: number, deleteMs: number) {
     const now = Date.now();
+
     for (const snapshot of await this.store.listNonDeleted()) {
-      // Isolate each workspace: a transient kubectl/network error (or a row
-      // concurrently deleted by another sweep) must not abort the whole GC pass
-      // and leave every later workspace's pod/PVC leaking. Log and continue.
+      /*
+       * Isolate each workspace: a transient kubectl/network error (or a row
+       * concurrently deleted by another sweep) must not abort the whole GC pass
+       * and leave every later workspace's pod/PVC leaking. Log and continue.
+       */
       try {
-        // Re-read each row under its freshest state before acting. store.list()
-        // is a point-in-time snapshot, and workspace ids are deterministic per
-        // (project, user): reopening a project re-enters startWorkspace for the
-        // SAME id, flipping the row STOPPED→STARTING and bumping lastActiveAt.
-        // Acting on the stale snapshot raced that re-provision — GC deleted the
-        // PVC in the window between startWorkspace's PVC-apply and Pod-apply, so
-        // the freshly created pod referenced a now-deleted claim and sat Pending
-        // forever ("persistentvolumeclaim not found"), spinning the cluster
-        // autoscaler at real cost. Re-evaluating against live state closes it.
+        /*
+         * Re-read each row under its freshest state before acting. store.list()
+         * is a point-in-time snapshot, and workspace ids are deterministic per
+         * (project, user): reopening a project re-enters startWorkspace for the
+         * SAME id, flipping the row STOPPED→STARTING and bumping lastActiveAt.
+         * Acting on the stale snapshot raced that re-provision — GC deleted the
+         * PVC in the window between startWorkspace's PVC-apply and Pod-apply, so
+         * the freshly created pod referenced a now-deleted claim and sat Pending
+         * forever ("persistentvolumeclaim not found"), spinning the cluster
+         * autoscaler at real cost. Re-evaluating against live state closes it.
+         */
         const workspace = await this.store.get(snapshot.id);
+
         if (!workspace) {
           continue;
         }
+
         const inactiveFor = now - new Date(workspace.lastActiveAt).getTime();
-        // Pass the observed state as an optimistic guard so a reopen that races
-        // between this decision and the actual k8s deletes aborts the reap.
+
+        /*
+         * Pass the observed state as an optimistic guard so a reopen that races
+         * between this decision and the actual k8s deletes aborts the reap.
+         */
         const guard = { status: workspace.status, lastActiveAt: workspace.lastActiveAt };
 
         /*
@@ -578,28 +609,34 @@ export class WorkspaceManager {
           const pod = await this.k8s.getPod(namespace, workspace.podName);
 
           if (!pod) {
-            // The pod died externally; stopWorkspace meters the consumed runtime
-            // window (post-guard) before flipping the row to STOPPED.
+            /*
+             * The pod died externally; stopWorkspace meters the consumed runtime
+             * window (post-guard) before flipping the row to STOPPED.
+             */
             await this.stopWorkspace(namespace, workspace.id, guard);
             continue;
           }
         }
 
         if (workspace.status === 'RUNNING' && inactiveFor > inactiveMs) {
-          // stopWorkspace meters the active runtime window (marker→lastActiveAt),
-          // post-guard, before flipping to STOPPED.
+          /*
+           * stopWorkspace meters the active runtime window (marker→lastActiveAt),
+           * post-guard, before flipping to STOPPED.
+           */
           await this.stopWorkspace(namespace, workspace.id, guard);
         } else if (workspace.status === 'STOPPED' && inactiveFor > deleteMs) {
           await this.deleteWorkspace(namespace, workspace.id, guard);
         } else if ((workspace.status === 'FAILED' || workspace.status === 'STARTING') && inactiveFor > deleteMs) {
-          // Reap abandoned provisioning. A FAILED start (readiness timeout, or a
-          // PVC reaped out from under it) — and a STARTING row orphaned by a
-          // manager crash mid-provision — were never collected: GC only walked
-          // RUNNING→STOPPED→DELETED. Their Pod/PVC/Secret leaked indefinitely and
-          // any Pending pod kept the autoscaler retrying scale-up. lastActiveAt is
-          // stamped at start, so a legitimately in-flight start (seconds to the
-          // ~180s readiness window, far below deleteMs) is never caught here. The
-          // row goes DELETED and reopening re-provisions via the reuse path.
+          /*
+           * Reap abandoned provisioning. A FAILED start (readiness timeout, or a
+           * PVC reaped out from under it) — and a STARTING row orphaned by a
+           * manager crash mid-provision — were never collected: GC only walked
+           * RUNNING→STOPPED→DELETED. Their Pod/PVC/Secret leaked indefinitely and
+           * any Pending pod kept the autoscaler retrying scale-up. lastActiveAt is
+           * stamped at start, so a legitimately in-flight start (seconds to the
+           * ~180s readiness window, far below deleteMs) is never caught here. The
+           * row goes DELETED and reopening re-provisions via the reuse path.
+           */
           await this.deleteWorkspace(namespace, workspace.id, guard);
         }
       } catch (error) {
@@ -620,11 +657,15 @@ export class WorkspaceManager {
       const startMs = workspace.lastMeteredAt
         ? new Date(workspace.lastMeteredAt).getTime()
         : new Date(workspace.createdAt).getTime();
+
       const endMs = new Date(workspace.lastActiveAt).getTime();
+
       if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
         return;
       }
+
       const seconds = Math.max(0, Math.floor((endMs - startMs) / 1000));
+
       if (seconds < 1) {
         return;
       }
@@ -698,8 +739,10 @@ export class WorkspaceManager {
     const workspace = await this.store.get(workspaceId);
 
     if (!workspace || workspace.status !== 'RUNNING') {
-      // Don't record a throttle entry for an unknown/non-running id — otherwise a
-      // caller touching arbitrary ids grows lastTouchAt without bound (leak).
+      /*
+       * Don't record a throttle entry for an unknown/non-running id — otherwise a
+       * caller touching arbitrary ids grows lastTouchAt without bound (leak).
+       */
       return workspace;
     }
 
@@ -752,9 +795,11 @@ export class WorkspaceManager {
       if (pod) {
         const typedPod = pod as unknown as PodStatusView;
 
-        // Fail fast on a terminal pod state (OOMKilled / CrashLoopBackOff /
-        // Failed) instead of spinning the full readiness timeout and throwing
-        // an opaque "not ready" — the API can then surface an actionable error.
+        /*
+         * Fail fast on a terminal pod state (OOMKilled / CrashLoopBackOff /
+         * Failed) instead of spinning the full readiness timeout and throwing
+         * an opaque "not ready" — the API can then surface an actionable error.
+         */
         const failure = detectPodTerminalFailure(typedPod);
 
         if (failure) {
@@ -796,16 +841,11 @@ export class WorkspaceManager {
   /*
    * Agent health URL via the Service DNS — the SAME address the api/preview-proxy
    * resolve (kept in sync with app.ts agentBaseUrl, including the optional
-   * WORKSPACE_AGENT_URL_TEMPLATE override) so this gate exercises the real client
-   * path, not pod-local networking.
+   * WORKSPACE_AGENT_URL_TEMPLATE / WORKSPACE_AGENT_BASE_URL overrides) so this
+   * gate exercises the real client path, not pod-local networking.
    */
   private agentHealthUrl(workspaceId: string, namespace: string): string {
-    const template = process.env.WORKSPACE_AGENT_URL_TEMPLATE;
-    const base = template
-      ? template.replaceAll('{workspaceId}', workspaceId).replaceAll('{namespace}', namespace).replace(/\/+$/, '')
-      : `http://workspace-${workspaceId}.${namespace}.svc.cluster.local:8080`;
-
-    return `${base}/health`;
+    return `${resolveAgentBaseUrl(workspaceId, namespace)}/health`;
   }
 
   /*
@@ -818,17 +858,23 @@ export class WorkspaceManager {
   private async waitForAgentReachable(workspaceId: string, namespace: string) {
     const parsed = Number(process.env.WORKSPACE_AGENT_REACHABLE_TIMEOUT_MS);
 
-    // An explicit 0/negative disables the probe entirely (unit tests, where there
-    // is no real agent Service to reach).
+    /*
+     * An explicit 0/negative disables the probe entirely (unit tests, where there
+     * is no real agent Service to reach).
+     */
     if (Number.isFinite(parsed) && parsed <= 0) {
       return;
     }
 
     const url = this.agentHealthUrl(workspaceId, namespace);
-    // 45s default: a gVisor agent can take 20-30s to start listening under node
-    // CPU contention, and RUNNING must not be reported before it is routable.
+
+    /*
+     * 45s default: a gVisor agent can take 20-30s to start listening under node
+     * CPU contention, and RUNNING must not be reported before it is routable.
+     */
     const timeoutMs = Number.isFinite(parsed) && parsed > 0 ? parsed : 45_000;
     const deadline = Date.now() + timeoutMs;
+
     let lastError: unknown;
 
     while (Date.now() < deadline) {
@@ -861,16 +907,20 @@ export class WorkspaceManager {
 
   private async requireWorkspace(workspaceId: string) {
     const workspace = await this.store.get(workspaceId);
+
     if (!workspace) {
-      // Surface a real 404 (the manager has no Fastify error handler, so a bare
-      // Error would default to 500). Callers — notably the API stop route — need
-      // to tell "this workspace no longer exists" apart from a transient fault
-      // so they can treat a stop/delete of an unknown workspace as idempotent.
+      /*
+       * Surface a real 404 (the manager has no Fastify error handler, so a bare
+       * Error would default to 500). Callers — notably the API stop route — need
+       * to tell "this workspace no longer exists" apart from a transient fault
+       * so they can treat a stop/delete of an unknown workspace as idempotent.
+       */
       throw Object.assign(new Error('Workspace not found'), {
         statusCode: 404,
         code: 'WORKSPACE_NOT_FOUND',
       });
     }
+
     return workspace;
   }
 
@@ -910,6 +960,25 @@ type PodStatusView = {
  * we only surface the coded error once the condition has persisted past this
  * window. Override via WORKSPACE_UNSCHEDULABLE_GRACE_MS.
  */
+/*
+ * Resolve the agent base URL the SAME way as app.ts agentBaseUrl, so the
+ * manager's start-time reachability gate probes the exact address the
+ * api/preview-proxy clients use. Honors the optional WORKSPACE_AGENT_URL_TEMPLATE
+ * override and its WORKSPACE_AGENT_BASE_URL alias before falling back to the
+ * default per-workspace Service DNS. Templates may contain {workspaceId} and
+ * {namespace} placeholders; trailing slashes are trimmed so callers can append
+ * a path segment cleanly.
+ */
+export function resolveAgentBaseUrl(workspaceId: string, namespace: string): string {
+  const template = process.env.WORKSPACE_AGENT_URL_TEMPLATE ?? process.env.WORKSPACE_AGENT_BASE_URL;
+
+  if (template) {
+    return template.replaceAll('{workspaceId}', workspaceId).replaceAll('{namespace}', namespace).replace(/\/+$/, '');
+  }
+
+  return `http://workspace-${workspaceId}.${namespace}.svc.cluster.local:8080`;
+}
+
 export function unschedulableGraceMs(): number {
   const parsed = Number(process.env.WORKSPACE_UNSCHEDULABLE_GRACE_MS);
 

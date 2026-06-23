@@ -140,6 +140,9 @@ export async function meterAllObjectStorage(
   // UTC midnight of the current day — the idempotency window for the daily sweep.
   const dayStartMs = Math.floor(input.nowMs / 86_400_000) * 86_400_000;
 
+  // UTC-day key so the advisory lock auto-expires the dedup window (next day = new key).
+  const utcDay = Math.floor(input.nowMs / 86_400_000);
+
   for (const row of rows) {
     totalBytes += row.bytes;
 
@@ -149,20 +152,36 @@ export async function meterAllObjectStorage(
      * POST /internal/metering/object-storage) can't double-record the usage event
      * or double-charge the day's GiB-months. meterObjectStorage records a
      * storage.objectGiBMonths event, which is what we check for here.
+     *
+     * The check-then-meter is a read-then-write, so it must run inside a per-(org,
+     * UTC-day) advisory lock — otherwise two overlapping sweeps can both pass the
+     * existence check before either records its event (TOCTOU), then both meter and
+     * double-charge. withSerializedMutation serializes the critical section across
+     * pods so the second caller observes the first caller's recorded event and skips.
      */
-    if (await store.hasUsageEventSince(row.organizationId, 'storage.objectGiBMonths', dayStartMs)) {
-      continue;
-    }
+    const metered = await store.withSerializedMutation(
+      `metering:object-storage:${utcDay}:${row.organizationId}`,
+      async () => {
+        if (await store.hasUsageEventSince(row.organizationId, 'storage.objectGiBMonths', dayStartMs)) {
+          return false;
+        }
 
-    // bytes held for one day → GiB-months charged today = (bytes/GiB) * (1 / period days).
-    const gibMonths = row.bytes / BYTES_PER_GIB / days;
-    await meterObjectStorage(store, {
-      organizationId: row.organizationId,
-      gibMonths,
-      shadow: input.shadow,
-      nowMs: input.nowMs,
-    });
-    orgsMetered += 1;
+        // bytes held for one day → GiB-months charged today = (bytes/GiB) * (1 / period days).
+        const gibMonths = row.bytes / BYTES_PER_GIB / days;
+        await meterObjectStorage(store, {
+          organizationId: row.organizationId,
+          gibMonths,
+          shadow: input.shadow,
+          nowMs: input.nowMs,
+        });
+
+        return true;
+      },
+    );
+
+    if (metered) {
+      orgsMetered += 1;
+    }
   }
 
   return { orgsMetered, totalBytes, shadow: Boolean(input.shadow) };

@@ -1,9 +1,10 @@
 import type { K8sObject, WorkspaceK8sClient } from '@vibecore/k8s-client';
 import type { WorkspaceEvent } from '@vibecore/workspace-sdk';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   WorkspaceManager,
   detectPodTerminalFailure,
+  resolveAgentBaseUrl,
   type EventBus,
   type WorkspaceRecord,
   type WorkspaceStore,
@@ -207,15 +208,19 @@ describe('WorkspaceManager', () => {
 
     expect((await manager.startWorkspace(input)).status).toBe('RUNNING');
 
-    // Simulate workspace-gc reaping the idle workspace: the pod/Service/PVC are
-    // deleted but the DB row survives with status DELETED.
+    /*
+     * Simulate workspace-gc reaping the idle workspace: the pod/Service/PVC are
+     * deleted but the DB row survives with status DELETED.
+     */
     await manager.deleteWorkspace('workspaces', input.workspaceId);
     expect((await store.get(input.workspaceId))?.status).toBe('DELETED');
     expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(false);
 
-    // Reopening the project re-enters startWorkspace with the same id. Before
-    // the fix this threw P2002 (create() on an existing row) and the workspace
-    // could never come back; now it reuses the row and re-applies resources.
+    /*
+     * Reopening the project re-enters startWorkspace with the same id. Before
+     * the fix this threw P2002 (create() on an existing row) and the workspace
+     * could never come back; now it reuses the row and re-applies resources.
+     */
     const reopened = await manager.startWorkspace(input);
     expect(reopened.status).toBe('RUNNING');
     expect(reopened.error).toBeUndefined();
@@ -240,9 +245,12 @@ describe('WorkspaceManager', () => {
     const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
 
     await manager.startWorkspace(input);
-    // Simulate a provisioning failure that left the runtime resources behind:
-    // before the fix, GC only walked RUNNING→STOPPED→DELETED and never reaped
-    // FAILED rows, so the Pod/PVC sat leaked (Pending pod spinning autoscaler).
+
+    /*
+     * Simulate a provisioning failure that left the runtime resources behind:
+     * before the fix, GC only walked RUNNING→STOPPED→DELETED and never reaped
+     * FAILED rows, so the Pod/PVC sat leaked (Pending pod spinning autoscaler).
+     */
     await store.update(input.workspaceId, {
       status: 'FAILED',
       lastActiveAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
@@ -278,6 +286,7 @@ describe('WorkspaceManager', () => {
       const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
 
       await manager.startWorkspace(input);
+
       const meteredFrom = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
       const activeUntil = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       await store.update(input.workspaceId, {
@@ -294,9 +303,11 @@ describe('WorkspaceManager', () => {
       expect(meterCall!.body.kind).toBe('compute');
       expect(meterCall!.body.organizationId).toBe('org_1');
       expect(meterCall!.body.projectId).toBe('project_1');
+
       // plan 'pro' → 500m / 1Gi reserved compute
       expect(meterCall!.body.cpuMillicores).toBe(500);
       expect(meterCall!.body.ramMb).toBe(1024);
+
       // metered window = 2h marker → 1h lastActiveAt = ~3600s
       expect(meterCall!.body.seconds).toBe(3600);
 
@@ -304,11 +315,13 @@ describe('WorkspaceManager', () => {
       expect((await store.get(input.workspaceId))?.lastMeteredAt).toBe(activeUntil);
     } finally {
       globalThis.fetch = prevFetch;
+
       if (prevApi === undefined) {
         delete process.env.API_URL;
       } else {
         process.env.API_URL = prevApi;
       }
+
       if (prevSecret === undefined) {
         delete process.env.INTERNAL_API_SHARED_SECRET;
       } else {
@@ -336,6 +349,7 @@ describe('WorkspaceManager', () => {
       const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
 
       await manager.startWorkspace(input);
+
       const meteredFrom = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
       const activeUntil = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       await store.update(input.workspaceId, {
@@ -344,14 +358,17 @@ describe('WorkspaceManager', () => {
         lastActiveAt: activeUntil,
       });
 
-      // The user-facing api stop route (POST /workspaces/:id/stop) calls this with
-      // no guard. Before the fix it flipped the row to STOPPED without ever
-      // metering, silently dropping the active window from billing.
+      /*
+       * The user-facing api stop route (POST /workspaces/:id/stop) calls this with
+       * no guard. Before the fix it flipped the row to STOPPED without ever
+       * metering, silently dropping the active window from billing.
+       */
       const stopped = await manager.stopWorkspace('workspaces', input.workspaceId);
       expect(stopped.status).toBe('STOPPED');
 
       const meterCall = calls.find((call) => call.url.endsWith('/internal/metering'));
       expect(meterCall).toBeTruthy();
+
       // 2h marker → 1h lastActiveAt = ~3600s of reserved 'pro' compute (500m/1Gi).
       expect(meterCall!.body.seconds).toBe(3600);
       expect(meterCall!.body.cpuMillicores).toBe(500);
@@ -359,11 +376,13 @@ describe('WorkspaceManager', () => {
       expect((await store.get(input.workspaceId))?.lastMeteredAt).toBe(activeUntil);
     } finally {
       globalThis.fetch = prevFetch;
+
       if (prevApi === undefined) {
         delete process.env.API_URL;
       } else {
         process.env.API_URL = prevApi;
       }
+
       if (prevSecret === undefined) {
         delete process.env.INTERNAL_API_SHARED_SECRET;
       } else {
@@ -396,9 +415,12 @@ describe('WorkspaceManager', () => {
       const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
 
       await manager.startWorkspace(input);
-      // A workspace that has been RUNNING and accumulating un-metered compute: the
-      // marker sits 2h back, lastActiveAt 1h back (a long-open IDE). The api always
-      // re-POSTs /workspaces/start on reopen even though it is still RUNNING.
+
+      /*
+       * A workspace that has been RUNNING and accumulating un-metered compute: the
+       * marker sits 2h back, lastActiveAt 1h back (a long-open IDE). The api always
+       * re-POSTs /workspaces/start on reopen even though it is still RUNNING.
+       */
       const meteredFrom = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
       const activeUntil = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       await store.update(input.workspaceId, {
@@ -411,23 +433,29 @@ describe('WorkspaceManager', () => {
       const reopened = await manager.startWorkspace(input);
       expect(reopened.status).toBe('RUNNING');
 
-      // The prior un-metered 2h→1h window (~3600s) must be billed BEFORE the marker
-      // is reset to now — otherwise that compute is silently lost.
+      /*
+       * The prior un-metered 2h→1h window (~3600s) must be billed BEFORE the marker
+       * is reset to now — otherwise that compute is silently lost.
+       */
       const meterCall = calls.find((call) => call.url.endsWith('/internal/metering'));
       expect(meterCall).toBeTruthy();
       expect(meterCall!.body.seconds).toBe(3600);
 
-      // And the marker is now freshly stamped at ~now so the STOPPED-gap reasoning
-      // still holds for the next stop.
+      /*
+       * And the marker is now freshly stamped at ~now so the STOPPED-gap reasoning
+       * still holds for the next stop.
+       */
       const markerAge = Date.now() - new Date((await store.get(input.workspaceId))!.lastMeteredAt!).getTime();
       expect(markerAge).toBeLessThan(60_000);
     } finally {
       globalThis.fetch = prevFetch;
+
       if (prevApi === undefined) {
         delete process.env.API_URL;
       } else {
         process.env.API_URL = prevApi;
       }
+
       if (prevSecret === undefined) {
         delete process.env.INTERNAL_API_SHARED_SECRET;
       } else {
@@ -453,18 +481,24 @@ describe('WorkspaceManager', () => {
       const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
 
       await manager.startWorkspace(input);
-      // stopWorkspace meters once (its own window), advancing the marker to
-      // lastActiveAt; reopening a STOPPED row must NOT meter again — the existing
-      // RUNNING-only guard skips the pre-reset meter.
+
+      /*
+       * stopWorkspace meters once (its own window), advancing the marker to
+       * lastActiveAt; reopening a STOPPED row must NOT meter again — the existing
+       * RUNNING-only guard skips the pre-reset meter.
+       */
       await manager.stopWorkspace('workspaces', input.workspaceId);
+
       const meterCountAfterStop = calls.filter((url) => url.endsWith('/internal/metering')).length;
 
       await manager.startWorkspace(input);
+
       const meterCountAfterReopen = calls.filter((url) => url.endsWith('/internal/metering')).length;
 
       expect(meterCountAfterReopen).toBe(meterCountAfterStop);
     } finally {
       globalThis.fetch = prevFetch;
+
       if (prevApi === undefined) {
         delete process.env.API_URL;
       } else {
@@ -483,8 +517,11 @@ describe('WorkspaceManager', () => {
     await store.update(input.workspaceId, { lastMeteredAt: t0 });
 
     const t1 = new Date().toISOString();
-    // Two manager replicas read the SAME lastMeteredAt (t0) and both try to claim
-    // the stop window. The CAS must let exactly one through.
+
+    /*
+     * Two manager replicas read the SAME lastMeteredAt (t0) and both try to claim
+     * the stop window. The CAS must let exactly one through.
+     */
     const replicaA = await store.claimMeterWindow(input.workspaceId, t0, t1);
     const replicaB = await store.claimMeterWindow(input.workspaceId, t0, t1);
 
@@ -495,10 +532,13 @@ describe('WorkspaceManager', () => {
 
   it('does not delete a workspace re-provisioned since the GC snapshot (TOCTOU)', async () => {
     const k8s = new TestWorkspaceK8sClient();
-    // list() yields the stale STOPPED+idle snapshot the GC pass started from,
-    // but get() returns the live row that a concurrent startWorkspace just
-    // flipped to STARTING. GC must re-read and skip — deleting here would pull
-    // the PVC out from under the freshly created pod.
+
+    /*
+     * list() yields the stale STOPPED+idle snapshot the GC pass started from,
+     * but get() returns the live row that a concurrent startWorkspace just
+     * flipped to STARTING. GC must re-read and skip — deleting here would pull
+     * the PVC out from under the freshly created pod.
+     */
     class RaceStore extends TestWorkspaceStore {
       override async list() {
         return [...this.workspaces.values()].map((workspace) => ({
@@ -508,6 +548,7 @@ describe('WorkspaceManager', () => {
         }));
       }
     }
+
     const store = new RaceStore();
     const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
 
@@ -527,8 +568,11 @@ describe('WorkspaceManager', () => {
     const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
 
     await manager.startWorkspace(input);
-    // Simulate a session that has been open past the inactivity window with the
-    // start-time stamp never refreshed — exactly the state that used to get reaped.
+
+    /*
+     * Simulate a session that has been open past the inactivity window with the
+     * start-time stamp never refreshed — exactly the state that used to get reaped.
+     */
     await store.update(input.workspaceId, { lastActiveAt: new Date(Date.now() - 60 * 60 * 1000).toISOString() });
 
     const touched = await manager.touch(input.workspaceId);
@@ -542,13 +586,16 @@ describe('WorkspaceManager', () => {
 
   it('throttles touch() writes within the activity window', async () => {
     const k8s = new TestWorkspaceK8sClient();
+
     let writes = 0;
+
     class CountingStore extends TestWorkspaceStore {
       override async update(workspaceId: string, patch: Partial<WorkspaceRecord>) {
         writes += 1;
         return super.update(workspaceId, patch);
       }
     }
+
     const store = new CountingStore();
     const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
 
@@ -568,10 +615,12 @@ describe('WorkspaceManager', () => {
 
     await manager.startWorkspace(input);
     await manager.stopWorkspace('workspaces', input.workspaceId);
+
     const stoppedAt = (await store.get(input.workspaceId))!.lastActiveAt;
 
     const result = await manager.touch(input.workspaceId);
     expect(result?.status).toBe('STOPPED');
+
     // lastActiveAt must stay frozen so the delete-window reaper can still collect it.
     expect((await store.get(input.workspaceId))!.lastActiveAt).toBe(stoppedAt);
   });
@@ -635,5 +684,55 @@ describe('detectPodTerminalFailure — Unschedulable handling', () => {
     const failure = detectPodTerminalFailure({ status: { phase: 'Failed' } }, now, graceMs);
 
     expect(failure?.code).toBe('WORKSPACE_POD_FAILED');
+  });
+});
+
+describe('resolveAgentBaseUrl — start-gate URL parity with app.ts agentBaseUrl', () => {
+  const KEYS = ['WORKSPACE_AGENT_URL_TEMPLATE', 'WORKSPACE_AGENT_BASE_URL'] as const;
+  const saved: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    for (const key of KEYS) {
+      saved[key] = process.env[key];
+      delete process.env[key];
+    }
+  });
+
+  afterEach(() => {
+    for (const key of KEYS) {
+      if (saved[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = saved[key];
+      }
+    }
+  });
+
+  it('defaults to the per-workspace Service DNS when no override is set', () => {
+    expect(resolveAgentBaseUrl('ws-1', 'workspaces')).toBe('http://workspace-ws-1.workspaces.svc.cluster.local:8080');
+  });
+
+  it('honors WORKSPACE_AGENT_URL_TEMPLATE with placeholders and trims trailing slashes', () => {
+    process.env.WORKSPACE_AGENT_URL_TEMPLATE = 'http://{workspaceId}.{namespace}.example/agent/';
+
+    expect(resolveAgentBaseUrl('ws-2', 'ns-a')).toBe('http://ws-2.ns-a.example/agent');
+  });
+
+  /*
+   * Regression: the gate previously read ONLY WORKSPACE_AGENT_URL_TEMPLATE, so a
+   * deployment configuring WORKSPACE_AGENT_BASE_URL probed the wrong default svc
+   * address — blocking ~45s of every cold start or passing against a stale route.
+   */
+  it('honors the WORKSPACE_AGENT_BASE_URL alias (mirrors app.ts agentBaseUrl)', () => {
+    process.env.WORKSPACE_AGENT_BASE_URL = 'http://{workspaceId}.{namespace}.example:9090';
+
+    expect(resolveAgentBaseUrl('ws-3', 'ns-b')).toBe('http://ws-3.ns-b.example:9090');
+  });
+
+  it('prefers WORKSPACE_AGENT_URL_TEMPLATE over WORKSPACE_AGENT_BASE_URL when both are set', () => {
+    process.env.WORKSPACE_AGENT_URL_TEMPLATE = 'http://template-{workspaceId}.svc:8080';
+    process.env.WORKSPACE_AGENT_BASE_URL = 'http://base-{workspaceId}.svc:8080';
+
+    expect(resolveAgentBaseUrl('ws-4', 'ns-c')).toBe('http://template-ws-4.svc:8080');
   });
 });

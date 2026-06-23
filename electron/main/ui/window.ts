@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell } from 'electron';
 import path from 'node:path';
 import { isDev } from '../utils/constants';
 import { store } from '../utils/store';
+import { isSameOrigin } from './origin';
 
 export function createWindow(rendererURL: string) {
   console.log('Creating window with URL:', rendererURL);
@@ -45,15 +46,14 @@ export function createWindow(rendererURL: string) {
    * the user's default browser and new windows are blocked. Without this a
    * hijacked navigation/redirect/window.open could carry the bridge to an
    * attacker origin and exfiltrate the auth token.
+   *
+   * The match is against the app's exact origin (scheme + host + port) derived
+   * from rendererURL. Matching the bare hostname (localhost/127.0.0.1 on ANY
+   * port) is NOT sufficient: in-app preview/dev servers and AI-generated user
+   * apps run on other localhost ports, and any of those could otherwise inherit
+   * the privileged bridge and read the auth token.
    */
-  const isAllowedOrigin = (target: string): boolean => {
-    try {
-      const url = new URL(target);
-      return url.hostname === 'localhost' || url.hostname === '127.0.0.1';
-    } catch {
-      return false;
-    }
-  };
+  const isAllowedOrigin = (target: string): boolean => isSameOrigin(target, rendererURL);
 
   win.webContents.on('will-navigate', (event, navigationUrl) => {
     if (!isAllowedOrigin(navigationUrl)) {

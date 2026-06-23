@@ -65,6 +65,15 @@ import WebSocket from 'ws';
 import { SignedXml } from 'xml-crypto';
 import { z, type ZodSchema } from 'zod';
 import {
+  INACTIVITY_DAYS,
+  INACTIVITY_WARNING_DAYS,
+  inactivityStage,
+  inactivityWarningCrossed,
+  inactivityWarningEmailContent,
+  isEligibleForInactivityDeletion,
+  shouldSendInactivityWarning,
+} from './account-lifecycle.js';
+import {
   AgentMemoryConfigurationError,
   AgentMemoryService,
   createPostgresAgentMemoryService,
@@ -72,6 +81,25 @@ import {
   type AgentMemoryType,
 } from './agent-memory.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
+import {
+  checkServiceShutdown,
+  openCheckpoint,
+  reportCheckpointPaygUsage,
+  settleCheckpoint,
+} from './credits-service.js';
+import {
+  DELETION_GRACE_PERIOD_DAYS,
+  canCancelDeletion,
+  deletionScope,
+  deletionStatus,
+  purgeDueAtMs,
+} from './data-deletion.js';
+import { clusterName, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
+import {
+  databaseRollbackEntitlement,
+  isDatabaseRollbackEnabled,
+  validateRestoreTarget,
+} from './database-rollback-service.js';
 import { shouldRecordDeploymentUsage } from './deployment-billing.js';
 import {
   assertDeploymentRequestAllowed,
@@ -95,11 +123,6 @@ import {
 } from './deployments.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
 import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
-import {
-  computeWorkspaceRestorePlan,
-  isPortReadyFromProbe,
-  type PortProbeResult,
-} from './runtime-readiness.js';
 import {
   resolveIntegrationOauthStateSecret,
   signIntegrationOauthState,
@@ -128,39 +151,6 @@ import {
   mcpUserConfigSchema,
   createDefaultMcpMarketplaceService,
 } from './mcp-marketplace.js';
-import { PrismaApiStore } from './prisma-store.js';
-import {
-  checkServiceShutdown,
-  openCheckpoint,
-  reportCheckpointPaygUsage,
-  settleCheckpoint,
-} from './credits-service.js';
-import {
-  DELETION_GRACE_PERIOD_DAYS,
-  canCancelDeletion,
-  deletionScope,
-  deletionStatus,
-  purgeDueAtMs,
-} from './data-deletion.js';
-import {
-  APPEALS_EMAIL,
-  STRIKE_EXPIRY_DAYS,
-  type StrikeAction,
-  consequenceForStrikeCount,
-  describeConsequence,
-  escalate,
-  higherConsequence,
-  permissionsForAction,
-} from './strike-system.js';
-import {
-  INACTIVITY_DAYS,
-  INACTIVITY_WARNING_DAYS,
-  inactivityStage,
-  inactivityWarningCrossed,
-  inactivityWarningEmailContent,
-  isEligibleForInactivityDeletion,
-  shouldSendInactivityWarning,
-} from './account-lifecycle.js';
 import {
   meterAllObjectStorage,
   meterDatabaseCompute,
@@ -168,13 +158,7 @@ import {
   meterObjectStorage,
   meterWorkspaceCompute,
 } from './metering-service.js';
-import {
-  databaseRollbackEntitlement,
-  isDatabaseRollbackEnabled,
-  validateRestoreTarget,
-} from './database-rollback-service.js';
-import { clusterName, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
-import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
+import { PrismaApiStore } from './prisma-store.js';
 import {
   filesFromZip,
   filesFromZipBase64,
@@ -186,6 +170,8 @@ import {
   type ProjectStorage,
   type StoredArchive,
 } from './project-storage.js';
+import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
+import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
   API_KEY_SCOPES,
   type ApiKeyScope,
@@ -198,6 +184,16 @@ import {
   type SnapshotRecord,
   type WorkspaceRecord,
 } from './store.js';
+import {
+  APPEALS_EMAIL,
+  STRIKE_EXPIRY_DAYS,
+  type StrikeAction,
+  consequenceForStrikeCount,
+  describeConsequence,
+  escalate,
+  higherConsequence,
+  permissionsForAction,
+} from './strike-system.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -739,8 +735,11 @@ const gitWorkspaceQuerySchema = z.object({ workspaceId: workspaceIdField });
 const gitCommitSchema = z.object({
   message: z.string().min(1),
   files: z.array(z.string().min(1)).optional(),
-  // Optional commit-author override (Replit-parity "commit as" selector). Both
-  // must be present for the override to apply; otherwise the repo default is used.
+
+  /*
+   * Optional commit-author override (Replit-parity "commit as" selector). Both
+   * must be present for the override to apply; otherwise the repo default is used.
+   */
   authorName: z.string().trim().min(1).max(120).optional(),
   authorEmail: z.string().trim().email().max(200).optional(),
   workspaceId: workspaceIdField,
@@ -801,6 +800,7 @@ const gitDiscardSchema = z.object({
 const gitRestoreSchema = z.object({ sha: z.string().min(4).max(64), workspaceId: workspaceIdField });
 const gitCommitParams = z.object({ projectId: z.string().min(1), sha: z.string().min(4).max(64) });
 const gitConflictFileQuerySchema = z.object({ filePath: z.string().min(1), workspaceId: workspaceIdField });
+
 const gitMarkResolvedSchema = z.object({
   filePath: z.string().min(1),
   content: z.string().max(5_000_000),
@@ -1061,6 +1061,7 @@ const adminFeatureFlagSchema = featureFlagSchema.extend({
 });
 
 const adminMaintenanceSchema = z.object({ enabled: z.boolean(), message: z.string().optional() });
+
 const adminLogsRedactSchema = z
   .object({
     organizationId: z.string().min(1).optional(),
@@ -1083,6 +1084,7 @@ const adminIncidentSchema = z.object({
 });
 const billingCheckoutSchema = z.object({
   planKey: z.enum(['free', 'pro', 'team', 'enterprise']),
+
   // Replit-parity: monthly vs annual (discounted) billing.
   interval: z.enum(['monthly', 'annual']).default('monthly'),
   successUrl: z.string().url(),
@@ -1130,6 +1132,7 @@ const aiRecordUsageSchema = z.object({
   outputTokens: z.number().int().nonnegative(),
   finishReason: z.string().optional(),
   source: z.string().min(1).default('remix-chat'),
+
   // Replit-parity per-request power controls (effort-based checkpoint).
   highPowerModel: z.boolean().optional(),
   extendedThinking: z.boolean().optional(),
@@ -2380,6 +2383,7 @@ async function requirePlatformAdmin(request: FastifyRequest) {
 function requireInternalSecret(request: FastifyRequest) {
   const expected = (process.env.INTERNAL_API_SHARED_SECRET || process.env.WORKSPACE_MANAGER_SHARED_SECRET || '').trim();
   const header = request.headers.authorization;
+
   const provided =
     typeof header === 'string' && header.startsWith('Bearer ') ? header.slice('Bearer '.length).trim() : '';
 
@@ -2389,8 +2393,10 @@ function requireInternalSecret(request: FastifyRequest) {
   if (!expected || !provided) {
     throw fail();
   }
+
   const expectedBuf = Buffer.from(expected);
   const providedBuf = Buffer.from(provided);
+
   if (expectedBuf.length !== providedBuf.length || !timingSafeEqual(expectedBuf, providedBuf)) {
     throw fail();
   }
@@ -2699,34 +2705,66 @@ function isWriteProjectPermission(permission: PermissionKey) {
  * for when autoscale / reserved-VM / egress data flows. Dormant/SHADOW until
  * BILLING_CREDITS_ENABLED. Returns the (possibly marker-updated) record.
  */
+/**
+ * Decide whether a deployment row should be metered. Pure (no I/O) so the
+ * exactly-once contract can be unit-tested: only a READY row that has not yet
+ * been stamped with `lastMeteredAt` is eligible. The status reconcile re-reads
+ * the row under a lock and calls this with the fresh row, so a row another pod
+ * already metered (lastMeteredAt set) is rejected.
+ */
+export function shouldMeterDeployment(deployment: Pick<DeploymentRecord, 'status' | 'lastMeteredAt'>): boolean {
+  return deployment.status === 'READY' && !deployment.lastMeteredAt;
+}
+
 async function meterDeploymentOnce(store: ApiStore, deployment: DeploymentRecord): Promise<DeploymentRecord> {
-  if (deployment.status !== 'READY' || deployment.lastMeteredAt) {
+  if (!shouldMeterDeployment(deployment)) {
     return deployment;
   }
 
-  const project = await store.getProject(deployment.projectId);
+  /*
+   * Metering must be exactly-once even though reconcileDeploymentStatus runs on
+   * every deployments-list and single-deployment GET — both of which clients
+   * poll concurrently. The check-then-meter-then-stamp sequence below is only
+   * idempotent serially: two concurrent reads of a freshly-READY row both see
+   * `!lastMeteredAt`, both call meterDeployment (which has no idempotency guard
+   * of its own → two deployment.compute events + two debitCredits draws), then
+   * both stamp lastMeteredAt. Serialize the whole critical section across pods
+   * with a per-deployment Postgres advisory lock and RE-READ the row inside the
+   * lock so the eligibility check and the stamp are atomic w.r.t. each other.
+   */
+  return store.withSerializedMutation(`deploy-meter:${deployment.id}`, async () => {
+    const fresh = (await store.getDeployment(deployment.projectId, deployment.id)) ?? deployment;
 
-  if (!project) {
-    return deployment;
-  }
+    if (!shouldMeterDeployment(fresh)) {
+      return fresh;
+    }
 
-  const shadow = process.env.BILLING_CREDITS_ENABLED !== 'true';
-  const kind = deployment.provider === 'static' ? 'static' : 'autoscale';
-  await meterDeployment(store, {
-    organizationId: project.organizationId,
-    kind,
-    shadow,
-    nowMs: Date.now(),
-  }).catch(() => {});
+    const project = await store.getProject(fresh.projectId);
 
-  return store
-    .updateDeployment(deployment.projectId, deployment.id, { lastMeteredAt: new Date().toISOString() })
-    .catch(() => deployment);
+    if (!project) {
+      return fresh;
+    }
+
+    const shadow = process.env.BILLING_CREDITS_ENABLED !== 'true';
+    const kind = fresh.provider === 'static' ? 'static' : 'autoscale';
+    await meterDeployment(store, {
+      organizationId: project.organizationId,
+      kind,
+      shadow,
+      nowMs: Date.now(),
+    }).catch(() => {});
+
+    return store
+      .updateDeployment(fresh.projectId, fresh.id, { lastMeteredAt: new Date().toISOString() })
+      .catch(() => fresh);
+  });
 }
 
 async function reconcileDeploymentStatus(store: ApiStore, deployment: DeploymentRecord): Promise<DeploymentRecord> {
-  // Meter a newly-READY deployment once (best-effort, idempotent). READY rows
-  // otherwise fall straight through the BUILDING-only logic below.
+  /*
+   * Meter a newly-READY deployment once (best-effort, idempotent). READY rows
+   * otherwise fall straight through the BUILDING-only logic below.
+   */
   if (deployment.status === 'READY' && !deployment.lastMeteredAt) {
     return meterDeploymentOnce(store, deployment);
   }
@@ -3555,8 +3593,10 @@ async function createLoginSession(input: {
     await input.store.markSessionReauthenticated(session.id);
   }
 
-  // P8 inactivity GC: a login is the canonical "activity" signal (Replit deletes
-  // free accounts with no login for ~1 year). Best-effort, non-blocking.
+  /*
+   * P8 inactivity GC: a login is the canonical "activity" signal (Replit deletes
+   * free accounts with no login for ~1 year). Best-effort, non-blocking.
+   */
   void input.store.touchUserActivity(input.userId).catch(() => {});
 
   return session;
@@ -5292,8 +5332,10 @@ function normalizeRuntimeApiWebSocket(rawSocket: unknown) {
       }
     },
     onPong: (listener: () => void) => {
-      // Native pong (the browser's auto-reply to our ping); used for half-open
-      // liveness. No-op on implementations that don't surface it.
+      /*
+       * Native pong (the browser's auto-reply to our ping); used for half-open
+       * liveness. No-op on implementations that don't surface it.
+       */
       candidate.on?.('pong', listener as (message: Buffer) => void);
     },
     terminate: () => {
@@ -5808,12 +5850,15 @@ export async function estimateAiTokens(content: string) {
 async function seedBillingPlans(store: ApiStore) {
   await Promise.all(
     billingPlans.map((plan) => {
-      // Replit-parity: distinct monthly/annual price ids by convention
-      // STRIPE_<KEY>_PRICE_MONTHLY_ID / _ANNUAL_ID; the legacy STRIPE_<KEY>_PRICE_ID
-      // stays as the monthly fallback so existing single-price setups keep working.
+      /*
+       * Replit-parity: distinct monthly/annual price ids by convention
+       * STRIPE_<KEY>_PRICE_MONTHLY_ID / _ANNUAL_ID; the legacy STRIPE_<KEY>_PRICE_ID
+       * stays as the monthly fallback so existing single-price setups keep working.
+       */
       const upper = plan.key.toUpperCase();
       const monthly = process.env[`STRIPE_${upper}_PRICE_MONTHLY_ID`] ?? process.env[plan.stripePriceEnv];
       const annual = process.env[`STRIPE_${upper}_PRICE_ANNUAL_ID`];
+
       return store.upsertBillingPlan({
         key: plan.key,
         name: plan.name,
@@ -5868,10 +5913,12 @@ export async function seedProviderRegistry(store: ApiStore) {
       store.listProviderConfigs(),
       store.listModelConfigs(),
     ]);
+
     const haveProvider = new Set(existingProviders.map((p) => p.provider));
     const haveModel = new Set(existingModels.map((m) => `${m.provider ?? ''}:${m.modelId}`));
 
     const providers = [...new Set(aiModelCatalog.map((m) => m.provider))];
+
     for (const provider of providers) {
       if (!haveProvider.has(provider)) {
         await store.upsertProviderConfig({
@@ -5886,6 +5933,7 @@ export async function seedProviderRegistry(store: ApiStore) {
       if (haveModel.has(`${model.provider}:${model.id}`)) {
         continue;
       }
+
       const enabledPlans = [...new Set(model.plans.map(aiPlanToCreditPlan))];
       await store.upsertModelConfig({
         provider: model.provider,
@@ -5893,6 +5941,7 @@ export async function seedProviderRegistry(store: ApiStore) {
         displayName: model.displayName,
         enabled: true,
         enabledPlans,
+
         // "Most powerful models" (Pro+): models not offered on the Core tier.
         isHighPower: !enabledPlans.includes('core'),
         supportsThinking: model.provider === 'anthropic' || /^(o1|o3|gpt-5)/i.test(model.id),
@@ -5902,8 +5951,10 @@ export async function seedProviderRegistry(store: ApiStore) {
       });
     }
   } catch (error) {
-    // Registry is dormant (nothing reads it until MODEL_REGISTRY_DB flips), so a
-    // seed failure must never block API boot.
+    /*
+     * Registry is dormant (nothing reads it until MODEL_REGISTRY_DB flips), so a
+     * seed failure must never block API boot.
+     */
     console.error('seedProviderRegistry failed (non-fatal)', error);
   }
 }
@@ -7431,8 +7482,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const ACCOUNT_DELETION_PENDING_KEY = 'account.pendingDeletionUserIds';
 
   function accountDeletionEnabled(): boolean {
-    // Non-destructive (records intent only), so default-on; set
-    // ACCOUNT_SELF_DELETION_ENABLED=false to hide the endpoints.
+    /*
+     * Non-destructive (records intent only), so default-on; set
+     * ACCOUNT_SELF_DELETION_ENABLED=false to hide the endpoints.
+     */
     return process.env.ACCOUNT_SELF_DELETION_ENABLED !== 'false';
   }
 
@@ -7441,13 +7494,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     purgedAtMs: number | null;
   } {
     const raw = (preferences?.accountDeletion ?? null) as { requestedAt?: string; purgedAt?: string } | null;
+
     const toMs = (value?: string): number | null => {
       if (!value) {
         return null;
       }
+
       const ms = new Date(value).getTime();
+
       return Number.isFinite(ms) ? ms : null;
     };
+
     return { requestedAtMs: toMs(raw?.requestedAt), purgedAtMs: toMs(raw?.purgedAt) };
   }
 
@@ -7465,6 +7522,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/account/deletion', async (request) => {
     const user = await store.findUserById(request.currentUser!.id);
     const state = readAccountDeletionState(user?.preferences);
+
     return accountDeletionView(state, Date.now());
   });
 
@@ -7478,6 +7536,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const userId = request.currentUser!.id;
       const user = await store.findUserById(userId);
+
       if (!user) {
         return reply.code(404).send({ error: 'not_found' });
       }
@@ -7499,6 +7558,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           resourceId: userId,
           metadata: { purgeDueAt: new Date(purgeDueAtMs(nowMs)).toISOString() },
         });
+
         return accountDeletionView({ requestedAtMs: nowMs, purgedAtMs: null }, nowMs);
       }
 
@@ -8557,6 +8617,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const connections = await store.listUserConnectionsByUser(request.currentUser?.id ?? '', {
           provider: 'github',
         });
+
         const active = connections.find((row) => row.status === 'active');
 
         if (active) {
@@ -10658,9 +10719,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
     await requireOrganizationNotSuspended(store, authorized.organizationId);
 
-    // Replit-parity service-shutdown limit: suspend workspace provisioning when
-    // the org's credits are exhausted and a shutdown cap is configured. Inert
-    // unless BILLING_CREDITS_ENABLED=true (SHADOW/default never blocks).
+    /*
+     * Replit-parity service-shutdown limit: suspend workspace provisioning when
+     * the org's credits are exhausted and a shutdown cap is configured. Inert
+     * unless BILLING_CREDITS_ENABLED=true (SHADOW/default never blocks).
+     */
     if (authorized.organizationId) {
       const shutdown = await checkServiceShutdown(store, {
         organizationId: authorized.organizationId,
@@ -10798,6 +10861,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * not a perpetual 'starting' poll.
        */
       const causeName = (error as { cause?: { name?: string } } | undefined)?.cause?.name;
+
       const transientProvisioning =
         (errorCode === 'WORKSPACE_MANAGER_UNAVAILABLE' && causeName === 'AbortError') ||
         (errorCode === 'WORKSPACE_MANAGER_REQUEST_FAILED' && (managerStatus === undefined || managerStatus >= 500));
@@ -11007,9 +11071,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const errorCode = (restartError as { code?: string } | undefined)?.code;
       const managerStatus = (restartError as { managerStatus?: number } | undefined)?.managerStatus;
 
-      // Only a request timeout (AbortError cause) or manager 5xx is transient-provisioning;
-      // a genuine connection failure (manager down) must surface, not poll forever.
+      /*
+       * Only a request timeout (AbortError cause) or manager 5xx is transient-provisioning;
+       * a genuine connection failure (manager down) must surface, not poll forever.
+       */
       const causeName = (restartError as { cause?: { name?: string } } | undefined)?.cause?.name;
+
       const transientProvisioning =
         (errorCode === 'WORKSPACE_MANAGER_UNAVAILABLE' && causeName === 'AbortError') ||
         (errorCode === 'WORKSPACE_MANAGER_REQUEST_FAILED' && (managerStatus === undefined || managerStatus >= 500));
@@ -11855,6 +11922,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const pendingMessages: string[] = [];
+
     let upstreamOpened = false;
 
     upstream.addEventListener('open', () => {
@@ -12411,8 +12479,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/auth/me', async (request) => {
     const user = await store.findUserById(request.currentUser!.id);
 
-    // P8: when the current session is an admin impersonating this user, surface
-    // the impersonator id so the web can render a persistent "stop" banner.
+    /*
+     * P8: when the current session is an admin impersonating this user, surface
+     * the impersonator id so the web can render a persistent "stop" banner.
+     */
     const impersonatedBy = request.currentSession?.impersonatedBy ?? null;
 
     return {
@@ -16666,9 +16736,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Wrapped so it can never break usage recording.
      */
     let checkpointCreditCents: number | undefined;
+
     if (process.env.BILLING_CREDITS_ENABLED === 'true' || process.env.BILLING_CREDITS_SHADOW === 'true') {
       try {
         const shadow = process.env.BILLING_CREDITS_ENABLED !== 'true';
+
         const checkpoint = await openCheckpoint(store, {
           organizationId: project.organizationId,
           userId: request.currentUser?.id,
@@ -16691,9 +16763,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
         checkpointCreditCents = settled.creditCents;
 
-        // PAYG draw-down: report the overage (cost not covered by packs/balance)
-        // to Stripe metered usage. Fully no-op in SHADOW / until the PAYG price +
-        // subscription item exist (Stripe go-live). Idempotent via checkpoint id.
+        /*
+         * PAYG draw-down: report the overage (cost not covered by packs/balance)
+         * to Stripe metered usage. Fully no-op in SHADOW / until the PAYG price +
+         * subscription item exist (Stripe go-live). Idempotent via checkpoint id.
+         */
         const paygChargeCents = Math.max(0, settled.creditCents - settled.fromPacks - settled.fromBalance);
         await reportCheckpointPaygUsage(store, stripeClient, {
           organizationId: project.organizationId,
@@ -16718,10 +16792,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             .catch((error) => request.log?.warn?.({ err: error }, 'PAYG ledger record failed (non-fatal)'));
         }
 
-        // Usage-based spend alerts (50/80/100% of the budget cap). Only live when
-        // billing is enabled (skip in SHADOW); fires once per rung per billing
-        // period, de-duped via the wallet marker. Best-effort: never breaks the
-        // record path. See spend-alerts.ts.
+        /*
+         * Usage-based spend alerts (50/80/100% of the budget cap). Only live when
+         * billing is enabled (skip in SHADOW); fires once per rung per billing
+         * period, de-duped via the wallet marker. Best-effort: never breaks the
+         * record path. See spend-alerts.ts.
+         */
         if (!shadow && paygChargeCents > 0) {
           try {
             const wallet = await store.getCreditWallet(project.organizationId);
@@ -16729,6 +16805,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             if (wallet?.budgetCapCents && wallet.budgetCapCents > 0) {
               const periodStartMs = (await resolveUsagePeriodStart(project.organizationId)).getTime();
               const paygSpentCents = await store.sumPaygSpendSince(project.organizationId, periodStartMs);
+
               const pct = nextSpendAlertPct({
                 paygSpentCents,
                 budgetCapCents: wallet.budgetCapCents,
@@ -16968,6 +17045,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .map((plan) => ({ planKey: plan.key, name: plan.name })),
     };
   });
+
   /*
    * Admin-owned model registry read-through. Returns the models the platform
    * admin has enabled for this org's plan tier. Behind MODEL_REGISTRY_DB: while
@@ -16986,6 +17064,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const state = await billingState(orgId);
     const creditPlan = toCreditPlanKey(state.plan.key);
     const enabled = await store.listModelConfigs({ enabledOnly: true });
+
     const models = enabled
       .filter((model) => model.enabledPlans.includes(creditPlan))
       .map((model) => ({
@@ -17013,8 +17092,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const packs = await store.listCreditPacks(orgId, { activeOnly: true });
     const packTotal = packs.reduce((acc, p) => acc + Math.max(0, p.remainingCents), 0);
 
-    // Usage-based (PAYG) spend this billing period — drives the in-app spend
-    // indicator + the 50/80/100% alert surface. 0 in SHADOW (nothing charged).
+    /*
+     * Usage-based (PAYG) spend this billing period — drives the in-app spend
+     * indicator + the 50/80/100% alert surface. 0 in SHADOW (nothing charged).
+     */
     const periodStart = await resolveUsagePeriodStart(orgId).catch(() => undefined);
     const paygSpentCents = periodStart ? await store.sumPaygSpendSince(orgId, periodStart.getTime()) : 0;
 
@@ -17052,6 +17133,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const FIVE_HUNDRED = 50_000;
+
     const validIncrement = (cents: number | null | undefined) =>
       cents == null || cents === 1 || cents % FIVE_HUNDRED === 0;
 
@@ -17638,6 +17720,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         );
 
         const invoiceSubscriptionId = typeof object.subscription === 'string' ? object.subscription : undefined;
+
         /*
          * Require an EXPLICIT subscription-id match for the paid-recovery path.
          * Previously `!invoiceSubscriptionId || …` let an invoice that carries NO
@@ -17875,6 +17958,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/admin/models/toggle', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const body = parse(
       z.object({ provider: z.string().min(1), modelId: z.string().min(1), enabled: z.boolean() }),
       request.body ?? {},
@@ -17882,9 +17966,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const existing = (await store.listModelConfigs()).find(
       (m) => m.provider === body.provider && m.modelId === body.modelId,
     );
+
     if (!existing) {
       throw Object.assign(new Error('Model not found in registry'), { statusCode: 404, code: 'MODEL_NOT_FOUND' });
     }
+
     const updated = await store.upsertModelConfig({
       provider: body.provider,
       modelId: body.modelId,
@@ -17903,12 +17989,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: body.modelId,
       metadata: { enabled: body.enabled },
     });
+
     return { model: updated };
   });
 
   app.post('/admin/providers/toggle', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const body = parse(
       z.object({ provider: z.string().min(1), displayName: z.string().min(1), enabled: z.boolean() }),
       request.body ?? {},
@@ -17924,6 +18012,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: body.provider,
       metadata: { enabled: body.enabled },
     });
+
     return { provider: updated };
   });
 
@@ -17937,6 +18026,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/connectors/oauth', async (request) => {
     await requirePlatformAdmin(request);
+
     const rows = await Promise.all(OAUTH_CONNECTOR_PROVIDERS.map((p) => store.getConnectorOAuthCatalog(p)));
 
     return {
@@ -17958,6 +18048,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/admin/connectors/oauth', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const body = parse(
       z.object({
         provider: z.enum(OAUTH_CONNECTOR_PROVIDERS),
@@ -17967,7 +18058,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }),
       request.body ?? {},
     );
+
     const hasNewSecret = typeof body.clientSecret === 'string' && body.clientSecret.length > 0;
+
     const updated = await store.upsertConnectorOAuthConfig({
       provider: body.provider,
       ...(body.clientId !== undefined ? { clientId: body.clientId.length > 0 ? body.clientId : null } : {}),
@@ -17996,10 +18089,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/stripe-health', async (request) => {
     await requirePlatformAdmin(request);
+
     if (!stripeClient) {
       return { configured: false, ok: false, detail: 'STRIPE_SECRET_KEY not configured' };
     }
+
     const result = await stripeClient.ping();
+
     return {
       configured: true,
       ok: result.ok,
@@ -18209,12 +18305,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const target = await store.findUserById(userId);
+
     if (!target) {
       return reply.code(404).send({ error: 'not_found' });
     }
+
     if (target.platformAdmin) {
       return reply.code(403).send({ error: 'cannot_impersonate_admin' });
     }
+
     if (await isUserSuspended(store, userId)) {
       return reply.code(409).send({ error: 'user_suspended' });
     }
@@ -18244,12 +18343,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/auth/impersonation/stop', async (request, reply) => {
     const session = request.currentSession;
+
     if (!session?.impersonatedBy) {
       return reply.code(409).send({ error: 'not_impersonating' });
     }
 
     await store.revokeSession(request.currentUser!.id, session.id);
     reply.clearCookie('session', authCookieOptions(isProduction));
+
     // Attribute the audit to the impersonating admin, not the impersonated user.
     await store.recordAdminAudit({
       actorUserId: session.impersonatedBy,
@@ -18271,23 +18372,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const settings = await store.listSystemSettings();
     const pending = settings.find((setting) => setting.key === 'account.pendingDeletionUserIds');
+
     const ids = Array.isArray(pending?.value)
       ? (pending!.value as unknown[]).filter((id): id is string => typeof id === 'string')
       : [];
+
     const nowMs = Date.now();
 
     const requests = await Promise.all(
       ids.map(async (userId) => {
         const user = await store.findUserById(userId);
         const raw = (user?.preferences?.accountDeletion ?? null) as { requestedAt?: string; purgedAt?: string } | null;
+
         const toMs = (value?: string): number | null => {
           if (!value) {
             return null;
           }
+
           const ms = new Date(value).getTime();
+
           return Number.isFinite(ms) ? ms : null;
         };
+
         const state = { requestedAtMs: toMs(raw?.requestedAt), purgedAtMs: toMs(raw?.purgedAt) };
+
         return {
           userId,
           email: user?.email ?? null,
@@ -18320,34 +18428,44 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       z.object({ enabled: z.boolean().optional(), take: z.number().int().positive().max(5000).optional() }),
       request.body ?? {},
     );
+
     const enabled = body.enabled ?? process.env.INACTIVITY_GC_ENABLED === 'true';
     const nowMs = Date.now();
     const dayMs = 24 * 60 * 60 * 1000;
-    // Candidates = anyone past the FIRST warning threshold; the stage function
-    // then classifies warning vs eligible and exempts paid accounts.
+
+    /*
+     * Candidates = anyone past the FIRST warning threshold; the stage function
+     * then classifies warning vs eligible and exempts paid accounts.
+     */
     const cutoffMs = nowMs - INACTIVITY_WARNING_DAYS[0] * dayMs;
 
     const candidates = await store.listInactiveUserCandidates({ cutoffMs, take: body.take ?? 500 });
 
     const resolveIsPaid = async (userId: string): Promise<boolean> => {
       const orgs = await store.listOrganizations(userId).catch(() => []);
+
       for (const org of orgs) {
         const sub = await store.getSubscription(org.id).catch(() => undefined);
+
         if (sub && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(sub.status) && sub.planKey !== 'free') {
           return true;
         }
       }
+
       return false;
     };
 
     const sharesOrgWithOthers = async (userId: string): Promise<boolean> => {
       const orgs = await store.listOrganizations(userId).catch(() => []);
+
       for (const org of orgs) {
         const members = await store.listMembers(org.id).catch(() => []);
+
         if (members.length > 1) {
           return true;
         }
       }
+
       return false;
     };
 
@@ -18365,11 +18483,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         if (isPaid) {
           exemptPaid += 1;
         }
+
         continue;
       }
 
       if (stage === 'warning') {
         warned += 1;
+
         const daysInactive = Math.floor((nowMs - candidate.lastActiveAtMs) / dayMs);
         await store
           .recordAdminAudit({
@@ -18379,10 +18499,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           })
           .catch(() => {});
 
-        // Email the user a deletion warning (Resend, e-code tone), de-duped per
-        // threshold via User.preferences.inactivityWarnings. Best-effort: a send
-        // failure never breaks the GC sweep.
+        /*
+         * Email the user a deletion warning (Resend, e-code tone), de-duped per
+         * threshold via User.preferences.inactivityWarnings. Best-effort: a send
+         * failure never breaks the GC sweep.
+         */
         const threshold = inactivityWarningCrossed(daysInactive);
+
         if (threshold != null) {
           try {
             const user = await store.findUserById(candidate.id);
@@ -18419,17 +18542,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (!isEligibleForInactivityDeletion({ lastActiveAtMs: candidate.lastActiveAtMs, nowMs, isPaid })) {
         continue;
       }
+
       eligible += 1;
 
       if (!enabled) {
         continue; // dry-run: counted, not deleted
       }
+
       if (await sharesOrgWithOthers(candidate.id)) {
         skippedShared += 1;
         continue;
       }
 
       const ok = await store.deleteUser(candidate.id);
+
       if (ok) {
         deleted += 1;
         await store
@@ -18562,6 +18688,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       shadow,
       nowMs,
     });
+
     return { kind: body.kind, shadow, result };
   });
 
@@ -18575,16 +18702,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.post('/internal/metering/object-storage', async (request, reply) => {
     requireInternalSecret(request);
+
     const body = parse(
       z.object({ shadow: z.boolean().optional(), daysInPeriod: z.number().positive().optional() }),
       request.body ?? {},
     );
+
     const shadow = body.shadow ?? process.env.BILLING_CREDITS_ENABLED !== 'true';
+
     const result = await meterAllObjectStorage(store, {
       shadow,
       nowMs: Date.now(),
       daysInPeriod: body.daysInPeriod,
     });
+
     return { kind: 'object-storage-sweep', shadow, result };
   });
 
@@ -18606,12 +18737,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const nowMs = Date.now();
     const pruned = await store.pruneExpiredDatabaseSnapshots(nowMs).catch(() => 0);
     const instances = await store.listActiveDatabaseInstances().catch(() => []);
+
     let snapshotted = 0;
     let restoresAdvanced = 0;
 
     for (const instance of instances) {
       // Daily automatic snapshot, retained for the plan window.
       const expiresAt = new Date(nowMs + Math.max(1, instance.retentionDays) * 24 * 60 * 60 * 1000).toISOString();
+
       const snapshot = await store
         .createDatabaseSnapshot({ databaseInstanceId: instance.id, kind: 'auto', expiresAt })
         .catch(() => undefined);
@@ -18665,10 +18798,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   function readStrikeRecords(preferences: Record<string, unknown> | undefined): ModerationStrikeRecord[] {
     const raw = preferences?.moderationStrikes;
+
     if (!Array.isArray(raw)) {
       return [];
     }
+
     const severities = ['minor', 'major', 'severe'] as const;
+
     return raw
       .filter(
         (entry): entry is Record<string, unknown> =>
@@ -18685,12 +18821,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   function strikeView(records: ModerationStrikeRecord[], nowMs: number) {
     const cutoff = nowMs - STRIKE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+
     const active = records.filter((record) => {
       const ms = Date.parse(record.createdAt);
       return !Number.isFinite(ms) || ms >= cutoff; // unparseable counts as active (fail open on count)
     });
+
     const escalated = active.reduce<StrikeAction | 'NONE'>((acc, record) => escalate(acc, record.severity), 'NONE');
     const consequence = higherConsequence(consequenceForStrikeCount(active.length), escalated);
+
     return {
       strikes: records,
       activeStrikes: active.length,
@@ -18706,6 +18845,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const { userId } = parse(adminUserParams, request.params);
     const user = await store.findUserById(userId);
+
     if (!user) {
       throw Object.assign(new Error('User not found'), { statusCode: 404, code: 'USER_NOT_FOUND' });
     }
@@ -18718,12 +18858,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireRecentAdminReauth(request);
 
     const { userId } = parse(adminUserParams, request.params);
+
     const body = parse(
       z.object({ severity: z.enum(['minor', 'major', 'severe']), reason: z.string().max(1000).optional() }),
       request.body,
     );
 
     const user = await store.findUserById(userId);
+
     if (!user) {
       throw Object.assign(new Error('User not found'), { statusCode: 404, code: 'USER_NOT_FOUND' });
     }
@@ -18735,9 +18877,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const view = strikeView(records, nowMs);
 
-    // Enforce an account ban with the existing suspension machinery. Serialize the
-    // last-admin check + suspension (like the revoke/suspend paths) so concurrent
-    // ban-level strikes can't both pass the check and leave zero admins.
+    /*
+     * Enforce an account ban with the existing suspension machinery. Serialize the
+     * last-admin check + suspension (like the revoke/suspend paths) so concurrent
+     * ban-level strikes can't both pass the check and leave zero admins.
+     */
     if (view.consequence === 'ACCOUNT_BAN') {
       await store.withSerializedMutation('platform-admin', async () => {
         await assertNotLastPlatformAdmin(store, userId);
@@ -18760,6 +18904,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const { userId } = parse(adminUserParams, request.params);
     const user = await store.findUserById(userId);
+
     if (!user) {
       throw Object.assign(new Error('User not found'), { statusCode: 404, code: 'USER_NOT_FOUND' });
     }
@@ -19355,9 +19500,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
     await gitProvider.removeRemote({ projectId: project.id, workspaceId });
 
-    // Clear the stored remote so the pane returns to its no-remote state. An empty
-    // string (not null) keeps the existing `string` store type while making
-    // `Boolean(gitRepositoryUrl)` false.
+    /*
+     * Clear the stored remote so the pane returns to its no-remote state. An empty
+     * string (not null) keeps the existing `string` store type while making
+     * `Boolean(gitRepositoryUrl)` false.
+     */
     let updatedWorkspace: WorkspaceRecord | undefined;
 
     if (workspaceId) {
@@ -19863,8 +20010,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
     const nowMs = Date.now();
 
-    // A snapshot restore targets the snapshot's creation time; a bare target is
-    // true PITR. Either way the target must sit inside the plan's retention window.
+    /*
+     * A snapshot restore targets the snapshot's creation time; a bare target is
+     * true PITR. Either way the target must sit inside the plan's retention window.
+     */
     let targetTimestampMs = nowMs;
 
     if (body.targetTimestamp) {
@@ -19896,9 +20045,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       requestedByUserId: request.currentUser?.id,
     });
 
-    // Kick off the recovery cluster (no-op while dormant). The worker
-    // `database.maintenance` job polls it to COMPLETED/FAILED. Best-effort:
-    // failure here just leaves the restore PENDING for the worker to retry.
+    /*
+     * Kick off the recovery cluster (no-op while dormant). The worker
+     * `database.maintenance` job polls it to COMPLETED/FAILED. Best-effort:
+     * failure here just leaves the restore PENDING for the worker to retry.
+     */
     const provisioner = resolveDefaultDatabaseProvisioner();
 
     if (provisioner.active) {
@@ -19932,6 +20083,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const existing = await store.getDatabaseInstanceByProject(project.id);
 
     if (existing) {
@@ -19940,6 +20092,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const state = await billingState(project.organizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
+
     const instance = await store.createDatabaseInstance({
       projectId: project.id,
       organizationId: project.organizationId,
@@ -19973,6 +20126,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const instance = await store.getDatabaseInstanceByProject(project.id);
 
     if (!instance) {
@@ -19981,6 +20135,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(z.object({ label: z.string().max(200).optional() }), request.body ?? {});
     const expiresAt = new Date(Date.now() + Math.max(1, instance.retentionDays) * 24 * 60 * 60 * 1000).toISOString();
+
     const snapshot = await store.createDatabaseSnapshot({
       databaseInstanceId: instance.id,
       kind: 'manual',
@@ -20014,9 +20169,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     await requireOrganizationNotSuspended(store, project.organizationId);
 
-    // Replit-parity service-shutdown limit: pause deployments when the org's
-    // credits are exhausted and a shutdown cap is set. Inert unless
-    // BILLING_CREDITS_ENABLED=true (SHADOW/default never blocks).
+    /*
+     * Replit-parity service-shutdown limit: pause deployments when the org's
+     * credits are exhausted and a shutdown cap is set. Inert unless
+     * BILLING_CREDITS_ENABLED=true (SHADOW/default never blocks).
+     */
     const deployShutdown = await checkServiceShutdown(store, {
       organizationId: project.organizationId,
       nowMs: Date.now(),

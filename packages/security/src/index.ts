@@ -338,7 +338,7 @@ const abuseCommandPatterns: Array<{ pattern: RegExp; signal: AbuseSignal }> = [
     },
   },
   {
-    pattern: /\b(curl|wget)\b.*\|\s*(sh|bash|zsh)|base64\s+-d\s*\|\s*(sh|bash|zsh)/i,
+    pattern: /\b(curl|wget)\b.*\|\s*(sh|bash|zsh)(\s|;|&|\||$)|base64\s+-d\s*\|\s*(sh|bash|zsh)(\s|;|&|\||$)/i,
     signal: {
       type: 'malware_download',
       severity: 'high',
@@ -347,7 +347,8 @@ const abuseCommandPatterns: Array<{ pattern: RegExp; signal: AbuseSignal }> = [
     },
   },
   {
-    pattern: /\b(bash|sh|zsh|python|perl|ruby|php)\b.*\/dev\/tcp|nc\s+-e|socat\s+.*exec:|mkfifo\s+.*nc/i,
+    pattern:
+      /\b(bash|sh|zsh|python|perl|ruby|php)\b.*\/dev\/tcp|\bnc\s+-e\b|socat\s+.*exec:|mkfifo\b[^|]*\|\s*(nc|netcat)\b/i,
     signal: { type: 'reverse_shell', severity: 'critical', action: 'stop_workspace', reason: 'reverse shell pattern' },
   },
 

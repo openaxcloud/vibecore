@@ -52,13 +52,18 @@ export async function setupAutoUpdater() {
     logger.info('Update not available.');
   });
 
-  /*
-   * Uncomment this before we have any published updates on github releases.
-   * autoUpdater.on('error', (err) => {
-   *   logger.error('Error in auto-updater:', err);
-   *   dialog.showErrorBox('Error: ', err.message);
-   * });
-   */
+  autoUpdater.on('error', (err) => {
+    // A failed download or signature-verification surfaces here. Without a handler the
+    // failure is swallowed: no 'update-downloaded' event fires, the user gets no feedback,
+    // and they are left believing an update is still in progress. Surface it non-fatally so
+    // the failure is visible and the user can retry later.
+    logger.error('Error in auto-updater:', err);
+
+    const dialogOpts = buildUpdateErrorDialog(err);
+    dialog.showMessageBox(dialogOpts).catch((dialogErr) => {
+      logger.error('Failed to show auto-updater error dialog:', dialogErr);
+    });
+  });
 
   autoUpdater.on('download-progress', (progressObj) => {
     logger.info('Download progress:', progressObj);
@@ -99,6 +104,18 @@ export async function setupAutoUpdater() {
     },
     4 * 60 * 60 * 1000,
   );
+}
+
+export function buildUpdateErrorDialog(err: unknown): MessageBoxOptions {
+  const message = err instanceof Error ? err.message : String(err);
+
+  return {
+    type: 'warning' as const,
+    buttons: ['OK'],
+    title: 'Application Update',
+    message: 'Update Failed',
+    detail: `The update could not be completed and was not installed. You can keep using the current version and try again later.\n\nDetails: ${message}`,
+  };
 }
 
 function formatUpdateDownloadedEvent(event: UpdateDownloadedEvent): string {

