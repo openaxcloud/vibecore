@@ -1,7 +1,8 @@
 import { useStore } from '@nanostores/react';
 import * as RadixDialog from '@radix-ui/react-dialog';
-import { lazy, Suspense, useState, useEffect, useMemo, type ReactNode } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import { AvatarDropdown } from './AvatarDropdown';
+import { TabPanelBoundary } from './TabPanelBoundary';
 import { TAB_LABELS, DEFAULT_TAB_CONFIG, TAB_DESCRIPTIONS } from './constants';
 import { getStatusMessage, getTabUpdateStatus } from './tab-status';
 import type { TabType } from './types';
@@ -60,6 +61,12 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
   const [loadingTab, setLoadingTab] = useState<TabType | null>(null);
   const [showTabManagement, setShowTabManagement] = useState(false);
 
+  /*
+   * Bumped to force a full remount of the lazy tab subtree, so a previously
+   * rejected dynamic import() is retried after the user clicks "Retry".
+   */
+  const [tabReloadKey, setTabReloadKey] = useState(0);
+
   // Store values
   const tabConfiguration = useStore(tabConfigurationStore);
 
@@ -72,12 +79,25 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
     return new Map(DEFAULT_TAB_CONFIG.map((tab) => [tab.id, tab]));
   }, []);
 
+  /*
+   * Detect a corrupt persisted tab configuration. The repair (a store write) must
+   * not happen during render — `resetTabConfiguration()` calls
+   * `tabConfigurationStore.set(...)`, the very store this component subscribes to,
+   * which violates React's render purity (store-write-during-render). Do it in an
+   * effect instead; the memo below just returns [] while the config is invalid.
+   */
+  const isTabConfigValid = Boolean(tabConfiguration?.userTabs && Array.isArray(tabConfiguration.userTabs));
+
+  useEffect(() => {
+    if (!isTabConfigValid) {
+      console.warn('Invalid tab configuration, resetting to defaults');
+      resetTabConfiguration();
+    }
+  }, [isTabConfigValid]);
+
   // Add visibleTabs logic using useMemo with optimized calculations
   const visibleTabs = useMemo(() => {
     if (!tabConfiguration?.userTabs || !Array.isArray(tabConfiguration.userTabs)) {
-      console.warn('Invalid tab configuration, resetting to defaults');
-      resetTabConfiguration();
-
       return [];
     }
 
@@ -121,6 +141,11 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
       setActiveTab(null);
     }
   };
+
+  // Force the lazy tab subtree to remount so a previously rejected chunk import is retried.
+  const handleRetryTabLoad = useCallback(() => {
+    setTabReloadKey((key) => key + 1);
+  }, []);
 
   const getTabComponent = (tabId: TabType) => {
     let tab: ReactNode = null;
@@ -189,9 +214,11 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
     }
 
     return (
-      <Suspense fallback={<div className="p-6 text-sm text-bolt-elements-textSecondary">Loading settings...</div>}>
-        {tab}
-      </Suspense>
+      <TabPanelBoundary key={tabReloadKey} onRetry={handleRetryTabLoad}>
+        <Suspense fallback={<div className="p-6 text-sm text-bolt-elements-textSecondary">Loading settings...</div>}>
+          {tab}
+        </Suspense>
+      </TabPanelBoundary>
     );
   };
 

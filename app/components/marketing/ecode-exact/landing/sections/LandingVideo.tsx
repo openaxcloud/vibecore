@@ -53,6 +53,7 @@ export default function LandingVideo() {
                     }
                   }
                 }}
+                aria-label={isPlaying ? 'Pause demo video' : 'Play demo video'}
                 data-testid="button-video-play-toggle"
               >
                 <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -62,7 +63,7 @@ export default function LandingVideo() {
 
               <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center gap-4">
                 <button
-                  className="text-white hover:text-gray-300 transition"
+                  className="flex min-h-[44px] min-w-[44px] items-center justify-center text-white hover:text-gray-300 transition"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsMuted(!isMuted);
@@ -71,17 +72,20 @@ export default function LandingVideo() {
                       videoRef.current.muted = !isMuted;
                     }
                   }}
+                  aria-label={isMuted ? 'Unmute demo video' : 'Mute demo video'}
+                  aria-pressed={isMuted}
                   data-testid="button-video-mute-toggle"
                 >
                   {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
                 </button>
                 <div className="flex-1" />
                 <button
-                  className="text-white hover:text-gray-300 transition"
+                  className="flex min-h-[44px] min-w-[44px] items-center justify-center text-white hover:text-gray-300 transition"
                   onClick={(e) => {
                     e.stopPropagation();
                     videoRef.current?.requestFullscreen();
                   }}
+                  aria-label="Enter fullscreen"
                   data-testid="button-video-fullscreen"
                 >
                   <Maximize className="h-5 w-5" />

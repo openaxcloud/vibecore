@@ -4,6 +4,7 @@ import {
   ecodeCampaignMarketingPages,
   ecodePricingPlans,
   ecodeProductMarketingPages,
+  selectAiAgentTabContent,
 } from './EcodeProductMarketingPages';
 
 /*
@@ -49,5 +50,45 @@ describe('E-Code product marketing pages', () => {
       expect(plan.monthlyCents).toBe(expected.monthlyCents);
       expect(plan.annualMonthlyCents).toBe(expected.annualMonthlyCents);
     }
+  });
+});
+
+describe('selectAiAgentTabContent', () => {
+  it('shows capabilities and use cases on the overview tab', () => {
+    expect(selectAiAgentTabContent('overview')).toEqual({
+      showCapabilities: true,
+      showUseCases: true,
+      showComparison: false,
+    });
+  });
+
+  it('shows only capabilities on the capabilities tab', () => {
+    expect(selectAiAgentTabContent('capabilities')).toEqual({
+      showCapabilities: true,
+      showUseCases: false,
+      showComparison: false,
+    });
+  });
+
+  it('shows only use cases on the examples tab', () => {
+    expect(selectAiAgentTabContent('examples')).toEqual({
+      showCapabilities: false,
+      showUseCases: true,
+      showComparison: false,
+    });
+  });
+
+  it('shows only the comparison on the comparison tab', () => {
+    expect(selectAiAgentTabContent('comparison')).toEqual({
+      showCapabilities: false,
+      showUseCases: false,
+      showComparison: true,
+    });
+  });
+
+  it('produces a distinct content selection for every tab so the control is never a no-op', () => {
+    const tabs = ['overview', 'capabilities', 'examples', 'comparison'] as const;
+    const serialized = tabs.map((tab) => JSON.stringify(selectAiAgentTabContent(tab)));
+    expect(new Set(serialized).size).toBe(tabs.length);
   });
 });

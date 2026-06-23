@@ -983,10 +983,14 @@ export function EventLogsTab() {
               'border border-[#E5E5E5] dark:border-[#1A1A1A]',
               'hover:bg-purple-500/10 dark:hover:bg-purple-500/20',
               'transition-all duration-200',
-              { 'animate-spin': isRefreshing },
             )}
           >
-            <span className="i-ph:arrows-clockwise text-lg text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+            <span
+              className={classNames(
+                'i-ph:arrows-clockwise text-lg text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors',
+                { 'animate-spin': isRefreshing },
+              )}
+            />
             Refresh
           </button>
 

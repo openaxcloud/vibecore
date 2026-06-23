@@ -1,10 +1,69 @@
-import { forwardRef, type ForwardedRef, useCallback } from 'react';
+import { forwardRef, type ForwardedRef, useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { Checkbox } from '~/components/ui/Checkbox';
 import WithTooltip from '~/components/ui/Tooltip';
 import { useEditChatDescription } from '~/lib/hooks';
 import { type ChatHistoryItem } from '~/lib/persistence';
 import { classNames } from '~/utils/classNames';
+
+/**
+ * Media query used to detect touch / pen primary-input devices.
+ *
+ * `(pointer: coarse)` matches phones, tablets and other devices whose primary
+ * pointing mechanism has limited accuracy and — crucially — no hover state.
+ * Hover-only affordances (e.g. `group-hover:opacity-100`) are unreachable on
+ * such devices.
+ */
+export const COARSE_POINTER_QUERY = '(pointer: coarse)';
+
+/**
+ * Resolve whether the current device uses a coarse (touch) primary pointer.
+ *
+ * Returns `false` during SSR or when `matchMedia` is unavailable so that the
+ * default (hover-capable) rendering is used until the client hydrates.
+ */
+export function resolveCoarsePointer(win: Pick<typeof globalThis, 'matchMedia'> | undefined): boolean {
+  if (!win || typeof win.matchMedia !== 'function') {
+    return false;
+  }
+
+  try {
+    return win.matchMedia(COARSE_POINTER_QUERY).matches;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * React hook returning `true` when the device's primary pointer is coarse
+ * (touch), updating live if the capability changes (e.g. external mouse
+ * attached/detached, browser devtools device emulation).
+ */
+export function useCoarsePointer(): boolean {
+  const [isCoarse, setIsCoarse] = useState<boolean>(() =>
+    resolveCoarsePointer(typeof window === 'undefined' ? undefined : window),
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return undefined;
+    }
+
+    const mql = window.matchMedia(COARSE_POINTER_QUERY);
+    const onChange = (event: MediaQueryListEvent) => setIsCoarse(event.matches);
+
+    /*
+     * Sync once on mount in case the value changed between the initial render
+     * and the effect running.
+     */
+    setIsCoarse(mql.matches);
+    mql.addEventListener('change', onChange);
+
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  return isCoarse;
+}
 
 interface HistoryItemProps {
   item: ChatHistoryItem;
@@ -27,6 +86,15 @@ export function HistoryItem({
 }: HistoryItemProps) {
   const { id: urlId } = useParams();
   const isActiveChat = urlId === item.urlId;
+
+  /**
+   * Touch devices have no hover state, so the hover-only action buttons
+   * (Export / Duplicate / Rename / Delete) are otherwise permanently invisible
+   * and there is no way to rename, duplicate, export or delete an individual
+   * chat from a phone/tablet. Surface them always-on when the primary pointer
+   * is coarse.
+   */
+  const isCoarsePointer = useCoarsePointer();
 
   const { editing, handleChange, handleBlur, handleSubmit, handleKeyDown, currentDescription, toggleEditMode } =
     useEditChatDescription({
@@ -118,7 +186,12 @@ export function HistoryItem({
               'absolute right-0 top-0 bottom-0 flex items-center bg-transparent px-2 transition-colors',
             )}
           >
-            <div className="flex items-center gap-2.5 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div
+              className={classNames(
+                'flex items-center gap-2.5 text-gray-400 dark:text-gray-500 transition-opacity group-hover:opacity-100 focus-within:opacity-100',
+                isCoarsePointer ? 'opacity-100' : 'opacity-0',
+              )}
+            >
               <ChatActionButton
                 toolTipContent="Export"
                 icon="i-ph:download-simple h-4 w-4"

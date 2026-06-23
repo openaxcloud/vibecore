@@ -95,7 +95,12 @@ function GitHubStatsContent({
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
-                  refreshStats();
+
+                  /*
+                   * The hook re-throws on failure but already surfaces the error via toast + error state.
+                   * Swallow the rejection here to avoid an unhandled promise rejection on manual refresh.
+                   */
+                  void refreshStats().catch(() => {});
                 }}
                 disabled={isRefreshing}
                 variant="outline"

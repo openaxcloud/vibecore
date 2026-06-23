@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { splitRepos, DEFAULT_REPO_PREVIEW_COUNT } from './github-repos-display';
+import { hasRepos, splitRepos, DEFAULT_REPO_PREVIEW_COUNT } from './github-repos-display';
 
 const makeRepos = (n: number) => Array.from({ length: n }, (_, i) => ({ id: i }));
 
@@ -61,5 +61,24 @@ describe('splitRepos', () => {
       expect(remaining).toHaveLength(5);
       expect(hasMore).toBe(true);
     }
+  });
+});
+
+describe('hasRepos', () => {
+  it('is true only when the list has at least one entry', () => {
+    expect(hasRepos(makeRepos(1))).toBe(true);
+    expect(hasRepos(makeRepos(20))).toBe(true);
+  });
+
+  it('is false for empty / nullish lists so the empty-state branch can render', () => {
+    /*
+     * Regression: when stats loaded but repos were empty/undefined (new account,
+     * private-only repos, or the no-token server stats path), every branch in
+     * GitHubTab evaluated false and the repository area silently disappeared.
+     * hasRepos must report false in all of these so the explicit empty state shows.
+     */
+    expect(hasRepos([])).toBe(false);
+    expect(hasRepos(undefined)).toBe(false);
+    expect(hasRepos(null)).toBe(false);
   });
 });

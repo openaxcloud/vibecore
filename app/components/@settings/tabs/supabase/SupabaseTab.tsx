@@ -227,7 +227,9 @@ export default function SupabaseTab() {
         await fetchSupabaseStats(connection.token);
       }
     };
-    fetchProjects();
+    fetchProjects().catch((error) => {
+      console.error('Failed to fetch Supabase projects:', error);
+    });
   }, [connection.user, connection.token]);
 
   const handleConnect = async () => {

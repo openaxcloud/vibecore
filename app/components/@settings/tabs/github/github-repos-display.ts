@@ -31,6 +31,18 @@ export interface RepoSplit<T> {
  * @param repos        Full repository list.
  * @param previewCount How many to show before expanding. Defaults to 12.
  */
+/**
+ * Whether a repository list has at least one entry to display.
+ *
+ * Tolerates `undefined`/`null` (e.g. the server-side no-token stats path that
+ * returns stats without a `repos` array) so callers can distinguish "loaded but
+ * empty" from "still loading", and render an explicit empty state instead of
+ * silently showing nothing.
+ */
+export function hasRepos<T>(repos: T[] | undefined | null): boolean {
+  return Array.isArray(repos) && repos.length > 0;
+}
+
 export function splitRepos<T>(repos: T[] | undefined | null, previewCount = DEFAULT_REPO_PREVIEW_COUNT): RepoSplit<T> {
   const safeRepos = Array.isArray(repos) ? repos : [];
   const count = Number.isFinite(previewCount) && previewCount > 0 ? Math.floor(previewCount) : 0;

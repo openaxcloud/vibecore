@@ -10,6 +10,12 @@ type McpServerListProps = {
   toggleServerExpanded: (serverName: string) => void;
 };
 
+export function getNoAvailableServersMessage(configuredCount: number): string {
+  const serverWord = configuredCount === 1 ? 'server is' : 'servers are';
+
+  return `No available MCP servers — ${configuredCount} configured ${serverWord} currently unavailable`;
+}
+
 export default function McpServerList({
   serverEntries,
   expandedServer,
@@ -24,6 +30,14 @@ export default function McpServerList({
   const filteredEntries = onlyShowAvailableServers
     ? serverEntries.filter(([, s]) => s.status === 'available')
     : serverEntries;
+
+  if (onlyShowAvailableServers && filteredEntries.length === 0) {
+    return (
+      <p className="text-sm text-bolt-elements-textSecondary">
+        {checkingServers ? 'Checking MCP servers…' : getNoAvailableServersMessage(serverEntries.length)}
+      </p>
+    );
+  }
 
   return (
     <div className="space-y-2">

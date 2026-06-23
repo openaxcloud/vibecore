@@ -8,7 +8,7 @@ import { GitHubProgressiveLoader } from './components/GitHubProgressiveLoader';
 import { GitHubStats } from './components/GitHubStats';
 import { GitHubUserProfile } from './components/GitHubUserProfile';
 import { LoadingState, ErrorState, ConnectionTestIndicator, RepositoryCard } from './components/shared';
-import { splitRepos } from './github-repos-display';
+import { hasRepos, splitRepos } from './github-repos-display';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
 import { useGitHubConnection, useGitHubStats } from '~/lib/hooks';
@@ -194,7 +194,7 @@ export default function GitHubTab() {
         <GitHubStats connection={connection} isExpanded={isStatsExpanded} onToggleExpanded={setIsStatsExpanded} />
 
         {/* Repositories Section */}
-        {stats?.repos && stats.repos.length > 0 && (
+        {stats && hasRepos(stats.repos) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -259,6 +259,27 @@ export default function GitHubTab() {
                 </Collapsible>
               );
             })()}
+          </motion.div>
+        )}
+
+        {/* Repositories Empty State — stats loaded but no repositories to show */}
+        {stats && !statsError && !hasRepos(stats.repos) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="border-t border-bolt-elements-borderColor pt-6"
+          >
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-bolt-elements-background dark:bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor">
+              <div className="i-ph:folder-open w-5 h-5 text-bolt-elements-textTertiary" />
+              <div>
+                <p className="text-sm font-medium text-bolt-elements-textPrimary">No repositories found</p>
+                <p className="text-xs text-bolt-elements-textSecondary mt-0.5">
+                  This account has no repositories visible to E-Code yet. Create a repository on GitHub, or check that
+                  your token grants access to the repositories you expect.
+                </p>
+              </div>
+            </div>
           </motion.div>
         )}
 
