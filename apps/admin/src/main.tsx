@@ -192,24 +192,46 @@ function SectionView({
   const [dialog, setDialog] = useState<DialogState>(null);
   const [toast, setToast] = useState<string>();
 
-  async function load() {
+  async function load(signal?: AbortSignal) {
     setLoading(true);
     setError(undefined);
 
     try {
-      const response = await apiJson<unknown>(section.endpoint);
+      const response = await apiJson<unknown>(section.endpoint, { signal });
+
+      /*
+       * A newer section/auth load aborted this one: drop the stale response so it
+       * can't clobber the now-visible section's rows/data with the wrong records.
+       */
+      if (signal?.aborted) {
+        return;
+      }
+
       setData(response);
       setRows(collectionFromResponse(response, section));
     } catch (requestError) {
+      if (isAbortError(requestError) || signal?.aborted) {
+        return;
+      }
+
       setError(requestError instanceof Error ? requestError.message : 'Unable to load admin section');
       setRows([]);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   }
 
   useEffect(() => {
-    void load();
+    const controller = new AbortController();
+    void load(controller.signal);
+
+    /*
+     * Cancel the in-flight request when the section/auth changes so a slower
+     * previous-section response cannot resolve after — and overwrite — the new one.
+     */
+    return () => controller.abort();
   }, [section.id, authRevision]);
 
   const visibleRows = useMemo(() => {
@@ -266,7 +288,7 @@ function SectionView({
       <div className="panel" role="alert">
         <h2>Unable to load section</h2>
         <p>{error}</p>
-        <button className="action" type="button" onClick={load}>
+        <button className="action" type="button" onClick={() => void load()}>
           Retry
         </button>
       </div>
@@ -293,7 +315,7 @@ function SectionView({
               Export CSV
             </button>
           ) : null}
-          <button className="secondary" type="button" onClick={load}>
+          <button className="secondary" type="button" onClick={() => void load()}>
             Refresh
           </button>
           {section.id === 'feature-flags' ? (
@@ -706,6 +728,12 @@ function adminActionRequest(action: string, payload?: AdminRecord, body: Record<
   }
 }
 
+export function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException
+    ? error.name === 'AbortError'
+    : Boolean(error) && typeof error === 'object' && (error as { name?: unknown }).name === 'AbortError';
+}
+
 function organizationIdFromPayload(payload?: AdminRecord) {
   const organization = payload?.organization;
   return organization && typeof organization === 'object' && 'id' in organization
@@ -717,8 +745,12 @@ function actionLabel(action: string) {
   return action.replaceAll('-', ' ');
 }
 
-createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+const rootElement = document.getElementById('root');
+
+if (rootElement) {
+  createRoot(rootElement).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
+}

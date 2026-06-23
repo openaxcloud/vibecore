@@ -243,11 +243,14 @@ export class TestApiStore implements ApiStore {
 
   async touchUserActivity(userId: string, nowMs?: number) {
     const user = this.users.get(userId);
+
     if (!user) {
       return null;
     }
+
     const at = new Date(Number.isFinite(nowMs) ? (nowMs as number) : Date.now()).toISOString();
     user.lastActiveAt = at;
+
     return at;
   }
 
@@ -1495,8 +1498,23 @@ export class TestApiStore implements ApiStore {
     return event;
   }
 
-  async listAbuseEvents() {
-    return [...this.abuseEvents.values()];
+  async listAbuseEvents(filter?: { organizationId?: string; type?: string; take?: number }) {
+    let events = [...this.abuseEvents.values()];
+
+    if (filter?.organizationId) {
+      events = events.filter((event) => event.organizationId === filter.organizationId);
+    }
+
+    if (filter?.type) {
+      events = events.filter((event) => event.type === filter.type);
+    }
+
+    // Most-recent-first, matching prisma-store's orderBy: { createdAt: 'desc' }.
+    events.sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
+
+    const take = filter?.take ?? 1000;
+
+    return events.slice(0, take);
   }
 
   async setSystemSetting(input: { key: string; value?: unknown }) {
@@ -1956,7 +1974,12 @@ export class TestApiStore implements ApiStore {
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   }
 
-  async markUserConnectionStatus(input: { id: string; status: UserConnectionStatus; revokedAt?: Date }) {
+  async markUserConnectionStatus(input: {
+    id: string;
+    status: UserConnectionStatus;
+    revokedAt?: Date;
+    clearTokens?: boolean;
+  }) {
     const existing = this.userConnections.get(input.id);
 
     if (!existing) {
@@ -1968,6 +1991,15 @@ export class TestApiStore implements ApiStore {
       status: input.status,
       revokedAt: input.revokedAt?.toISOString(),
       updatedAt: now(),
+
+      /*
+       * Mirror prisma-store's markUserConnectionStatus: on revoke the caller
+       * passes clearTokens to destroy the stored credentials so a revoked /
+       * needs_reconnect row no longer carries usable, decryptable secrets.
+       */
+      ...(input.clearTokens
+        ? { accessTokenEncrypted: undefined, refreshTokenEncrypted: undefined, apiKeyFieldsEncrypted: undefined }
+        : {}),
     };
     this.userConnections.set(updated.id, updated);
 
@@ -2145,6 +2177,7 @@ export class TestApiStore implements ApiStore {
 
   async ensureCreditWallet(organizationId: string) {
     let wallet = this.creditWallets.get(organizationId);
+
     if (!wallet) {
       const ts = now();
       wallet = {
@@ -2157,6 +2190,7 @@ export class TestApiStore implements ApiStore {
       };
       this.creditWallets.set(organizationId, wallet);
     }
+
     return wallet;
   }
 
@@ -2167,16 +2201,21 @@ export class TestApiStore implements ApiStore {
     autoTopupCents?: number | null;
   }) {
     const wallet = await this.ensureCreditWallet(input.organizationId);
+
     if (input.budgetCapCents !== undefined) {
       wallet.budgetCapCents = input.budgetCapCents ?? undefined;
     }
+
     if (input.serviceShutdownCents !== undefined) {
       wallet.serviceShutdownCents = input.serviceShutdownCents ?? undefined;
     }
+
     if (input.autoTopupCents !== undefined) {
       wallet.autoTopupCents = input.autoTopupCents ?? undefined;
     }
+
     wallet.updatedAt = now();
+
     return wallet;
   }
 
@@ -2196,6 +2235,7 @@ export class TestApiStore implements ApiStore {
       createdAt: now(),
     };
     this.creditPacks.set(pack.id, pack);
+
     return pack;
   }
 
@@ -2209,11 +2249,14 @@ export class TestApiStore implements ApiStore {
 
   async decrementCreditPack(input: { id: string; cents: number }) {
     const pack = this.creditPacks.get(input.id);
+
     if (!pack) {
       throw new Error(`credit pack ${input.id} not found`);
     }
+
     // Mirror the store: clamp at 0 so remainingCents never goes negative.
     pack.remainingCents = Math.max(0, pack.remainingCents - Math.max(0, Math.ceil(input.cents)));
+
     return pack;
   }
 
@@ -2227,6 +2270,7 @@ export class TestApiStore implements ApiStore {
     metadata?: unknown;
   }) {
     const wallet = await this.ensureCreditWallet(input.organizationId);
+
     const entry: CreditLedgerRecord = {
       id: id('credit'),
       walletId: wallet.id,
@@ -2242,6 +2286,7 @@ export class TestApiStore implements ApiStore {
     this.creditLedger.set(entry.id, entry);
     wallet.balanceCents += input.deltaCents;
     wallet.updatedAt = now();
+
     return { entry, balanceCents: wallet.balanceCents };
   }
 
@@ -2275,8 +2320,10 @@ export class TestApiStore implements ApiStore {
       return;
     }
 
-    // Tracking-only: writes a PAYG_CHARGE ledger row WITHOUT touching balanceCents
-    // (mirrors the store), deduped by checkpointId.
+    /*
+     * Tracking-only: writes a PAYG_CHARGE ledger row WITHOUT touching balanceCents
+     * (mirrors the store), deduped by checkpointId.
+     */
     const wallet = await this.ensureCreditWallet(input.organizationId);
 
     const existing = [...this.creditLedger.values()].find(
@@ -2344,6 +2391,7 @@ export class TestApiStore implements ApiStore {
       startedAt: now(),
     };
     this.agentCheckpoints.set(checkpoint.id, checkpoint);
+
     return checkpoint;
   }
 
@@ -2358,17 +2406,39 @@ export class TestApiStore implements ApiStore {
     creditCents?: number;
   }) {
     const checkpoint = this.agentCheckpoints.get(input.id);
+
     if (!checkpoint) {
       throw new Error(`checkpoint ${input.id} not found`);
     }
+
     checkpoint.status = input.status;
-    if (input.inputTokens !== undefined) checkpoint.inputTokens = input.inputTokens;
-    if (input.outputTokens !== undefined) checkpoint.outputTokens = input.outputTokens;
-    if (input.wallMs !== undefined) checkpoint.wallMs = input.wallMs;
-    if (input.computeCents !== undefined) checkpoint.computeCents = input.computeCents;
-    if (input.rawProviderCents !== undefined) checkpoint.rawProviderCents = input.rawProviderCents;
-    if (input.creditCents !== undefined) checkpoint.creditCents = input.creditCents;
+
+    if (input.inputTokens !== undefined) {
+      checkpoint.inputTokens = input.inputTokens;
+    }
+
+    if (input.outputTokens !== undefined) {
+      checkpoint.outputTokens = input.outputTokens;
+    }
+
+    if (input.wallMs !== undefined) {
+      checkpoint.wallMs = input.wallMs;
+    }
+
+    if (input.computeCents !== undefined) {
+      checkpoint.computeCents = input.computeCents;
+    }
+
+    if (input.rawProviderCents !== undefined) {
+      checkpoint.rawProviderCents = input.rawProviderCents;
+    }
+
+    if (input.creditCents !== undefined) {
+      checkpoint.creditCents = input.creditCents;
+    }
+
     checkpoint.completedAt = now();
+
     return checkpoint;
   }
 
@@ -2399,6 +2469,7 @@ export class TestApiStore implements ApiStore {
   }) {
     const existing = this.providerConfigs.get(input.provider);
     const ts = now();
+
     const config: ProviderConfigRecord = {
       id: existing?.id ?? id('provider'),
       provider: input.provider,
@@ -2411,6 +2482,7 @@ export class TestApiStore implements ApiStore {
       updatedAt: ts,
     };
     this.providerConfigs.set(input.provider, config);
+
     return config;
   }
 
@@ -2450,6 +2522,7 @@ export class TestApiStore implements ApiStore {
     enabled?: boolean;
   }) {
     const existing = await this.getConnectorOAuthCatalog(input.provider);
+
     const next = {
       ...existing,
       ...(input.clientId !== undefined ? { clientId: input.clientId } : {}),
@@ -2478,12 +2551,14 @@ export class TestApiStore implements ApiStore {
 
   async listModelConfigs(options?: { enabledOnly?: boolean }) {
     let configs = [...this.modelConfigs.values()];
+
     if (options?.enabledOnly) {
       const enabledProviders = new Set(
         [...this.providerConfigs.values()].filter((p) => p.enabled).map((p) => p.provider),
       );
       configs = configs.filter((m) => m.enabled && m.provider && enabledProviders.has(m.provider));
     }
+
     return configs.sort((a, b) => a.modelId.localeCompare(b.modelId));
   }
 
@@ -2502,9 +2577,11 @@ export class TestApiStore implements ApiStore {
     const provider =
       this.providerConfigs.get(input.provider) ??
       (await this.upsertProviderConfig({ provider: input.provider, displayName: input.provider }));
+
     const key = `${provider.id}:${input.modelId}`;
     const existing = this.modelConfigs.get(key);
     const ts = now();
+
     const config: ModelConfigRecord = {
       id: existing?.id ?? id('model'),
       providerConfigId: provider.id,
@@ -2522,6 +2599,7 @@ export class TestApiStore implements ApiStore {
       updatedAt: ts,
     };
     this.modelConfigs.set(key, config);
+
     return config;
   }
 

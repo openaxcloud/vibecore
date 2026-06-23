@@ -15,7 +15,7 @@ vi.mock('electron', () => ({
   shell: { openExternal: vi.fn() },
 }));
 
-import { resolveLiveWindow } from './menu';
+import { buildRouteURL, resolveLiveWindow } from './menu';
 
 /** A fake window with a toggleable destroyed flag, mirroring Electron's API. */
 function fakeWindow(destroyed = false) {
@@ -43,8 +43,10 @@ describe('resolveLiveWindow', () => {
     const recreated = fakeWindow(false);
     allWindows.push(recreated);
 
-    // A *destroyed* BrowserWindow object is still truthy, so optional-chaining
-    // alone would not have saved us — this is the bug-1 regression guard.
+    /*
+     * A *destroyed* BrowserWindow object is still truthy, so optional-chaining
+     * alone would not have saved us — this is the bug-1 regression guard.
+     */
     expect(resolveLiveWindow(destroyed)).toBe(recreated);
   });
 
@@ -74,5 +76,28 @@ describe('resolveLiveWindow', () => {
   it('returns undefined when no live window exists anywhere', () => {
     allWindows.push(fakeWindow(true));
     expect(resolveLiveWindow(fakeWindow(true))).toBeUndefined();
+  });
+});
+
+describe('buildRouteURL', () => {
+  it('uses the live renderer port instead of a hardcoded 5173', () => {
+    /*
+     * bug-1 regression guard: Vite auto-increments the port (strictPort:false)
+     * when 5173 is busy, so the window may live on 5174+.
+     */
+    expect(buildRouteURL('http://localhost:5174', '/dashboard')).toBe('http://localhost:5174/dashboard');
+  });
+
+  it('honours the production default port', () => {
+    expect(buildRouteURL('http://localhost:3000', '/desktop-settings')).toBe('http://localhost:3000/desktop-settings');
+  });
+
+  it('preserves the renderer protocol and host (not just the port)', () => {
+    expect(buildRouteURL('http://127.0.0.1:5173', '/projects')).toBe('http://127.0.0.1:5173/projects');
+  });
+
+  it('resolves the route as an absolute path, ignoring any path in the origin', () => {
+    // An origin may carry a trailing path; route paths are absolute and replace it.
+    expect(buildRouteURL('http://localhost:5174/some/base', '/projects')).toBe('http://localhost:5174/projects');
   });
 });

@@ -177,17 +177,33 @@ export async function configurePushNotifications(
     onPushAction?.(data);
   });
 
-  const permission = await PushNotifications.requestPermissions();
-
-  if (shouldRegisterForPush(permission)) {
-    await PushNotifications.register();
-  }
-
-  return async () => {
+  /*
+   * Build the dispose closure up-front so the three listeners above are always
+   * reachable for removal. requestPermissions()/register() are expected to
+   * reject on iOS when push is denied/restricted, on MDM-locked devices, or
+   * when APNs/FCM registration fails — if we let that rejection propagate
+   * before returning dispose, bootstrapMobileApp's `cleanup.push(await ...)`
+   * never records these listeners, so they leak across a failed bootstrap.
+   * Tear them down ourselves before re-throwing.
+   */
+  const dispose = async () => {
     await registration.remove();
     await registrationError.remove();
     await action.remove();
   };
+
+  try {
+    const permission = await PushNotifications.requestPermissions();
+
+    if (shouldRegisterForPush(permission)) {
+      await PushNotifications.register();
+    }
+  } catch (error) {
+    await dispose();
+    throw error;
+  }
+
+  return dispose;
 }
 
 export function shouldRegisterForPush(permission: PushPermissionResult) {

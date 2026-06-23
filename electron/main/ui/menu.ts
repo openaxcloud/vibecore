@@ -31,18 +31,35 @@ export function resolveLiveWindow(source: WindowSource): BrowserWindow | undefin
     return candidate;
   }
 
-  // The captured/returned window is gone (e.g. closed then reopened on macOS):
-  // act on the current live window instead of throwing "Object has been destroyed".
+  /*
+   * The captured/returned window is gone (e.g. closed then reopened on macOS):
+   * act on the current live window instead of throwing "Object has been destroyed".
+   */
   const live = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
 
   return live ?? undefined;
 }
 
-export function setupMenu(windowSource: WindowSource): void {
+/**
+ * Build an absolute renderer URL for a route `path` against the *live* renderer
+ * `origin` (the one `index.ts` actually loaded the window on).
+ *
+ * The origin must be threaded in rather than hardcoded: in dev the Vite server
+ * uses a non-strict port (`strictPort: false`), so a busy 5173 silently becomes
+ * 5174+, and in prod it is `DEFAULT_PORT`. A literal `http://localhost:5173`
+ * navigated the window to a dead origin (blank/`did-fail-load`) whenever those
+ * differed. We resolve `path` relative to `origin` so the host/port/protocol
+ * always match the window's real renderer, while keeping the route path intact.
+ */
+export function buildRouteURL(origin: string, path: string): string {
+  return new URL(path, origin).toString();
+}
+
+export function setupMenu(windowSource: WindowSource, rendererURL: string): void {
   /** Load a renderer route on whichever window is currently live. */
   const loadOnLiveWindow = (path: string) => {
     const win = resolveLiveWindow(windowSource);
-    win?.loadURL(`http://localhost:5173${path}`).catch(() => undefined);
+    win?.loadURL(buildRouteURL(rendererURL, path)).catch(() => undefined);
   };
 
   /** Send a menu action IPC to whichever window is currently live. */

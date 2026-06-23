@@ -40,6 +40,7 @@ function emit(event: string, ...args: any[]) {
 /** A fake window whose `did-finish-load` callback can be fired on demand. */
 function createFakeWindow() {
   const finishLoadCallbacks: (() => void)[] = [];
+
   const win = {
     isDestroyed: () => false,
     webContents: {
@@ -70,34 +71,45 @@ beforeEach(() => {
 
 describe('parseDeepLinkTarget', () => {
   it('maps host-based project links to the IDE route', () => {
-    expect(parseDeepLinkTarget('vibecore://project/abc123')).toBe(
-      'http://localhost:5173/projects/abc123/ide',
-    );
+    expect(parseDeepLinkTarget('vibecore://project/abc123')).toBe('http://localhost:5173/projects/abc123/ide');
   });
 
   it('maps path-based project links to the IDE route', () => {
-    expect(parseDeepLinkTarget('vibecore:///project/abc123')).toBe(
-      'http://localhost:5173/projects/abc123/ide',
-    );
+    expect(parseDeepLinkTarget('vibecore:///project/abc123')).toBe('http://localhost:5173/projects/abc123/ide');
   });
 
   it('maps workspace links to the IDE route', () => {
-    expect(parseDeepLinkTarget('vibecore://workspace/ws-42')).toBe(
-      'http://localhost:5173/projects/ws-42/ide',
-    );
+    expect(parseDeepLinkTarget('vibecore://workspace/ws-42')).toBe('http://localhost:5173/projects/ws-42/ide');
   });
 
   it('url-encodes the id', () => {
     // `@` is reserved in a path segment and must be percent-encoded in the route.
-    expect(parseDeepLinkTarget('vibecore://project/a@b')).toBe(
-      'http://localhost:5173/projects/a%40b/ide',
-    );
+    expect(parseDeepLinkTarget('vibecore://project/a@b')).toBe('http://localhost:5173/projects/a%40b/ide');
   });
 
   it('returns undefined for unknown targets and malformed urls', () => {
     expect(parseDeepLinkTarget('vibecore://project')).toBeUndefined();
     expect(parseDeepLinkTarget('vibecore://other/1')).toBeUndefined();
     expect(parseDeepLinkTarget('not a url')).toBeUndefined();
+  });
+
+  it('builds the route from the supplied renderer origin (dev auto-port)', () => {
+    // Vite picked a non-default port; the deep link must target that origin.
+    expect(parseDeepLinkTarget('vibecore://project/abc123', 'http://localhost:5180')).toBe(
+      'http://localhost:5180/projects/abc123/ide',
+    );
+  });
+
+  it('normalizes a full renderer URL down to its origin', () => {
+    expect(parseDeepLinkTarget('vibecore://project/abc123', 'http://localhost:5180/some/path?q=1')).toBe(
+      'http://localhost:5180/projects/abc123/ide',
+    );
+  });
+
+  it('falls back to the default origin when the supplied origin is invalid', () => {
+    expect(parseDeepLinkTarget('vibecore://project/abc123', 'not a url')).toBe(
+      'http://localhost:5173/projects/abc123/ide',
+    );
   });
 });
 
@@ -128,6 +140,23 @@ describe('setupDeepLinks cold-start replay', () => {
 
     // And it is cleared so it is not replayed again on a future load/window.
     expect(getPendingDeepLink()).toBeUndefined();
+  });
+
+  it('replays using the live renderer origin getter (dev auto-port)', () => {
+    let mainWindow: any;
+    setupDeepLinks(
+      () => mainWindow,
+      () => 'http://localhost:5181',
+    );
+
+    emit('open-url', { preventDefault: vi.fn() }, 'vibecore://project/cold123');
+
+    const { win, fireDidFinishLoad } = createFakeWindow();
+    mainWindow = win;
+    emit('browser-window-created', { preventDefault: vi.fn() }, win);
+    fireDidFinishLoad();
+
+    expect(win.loadURL).toHaveBeenCalledWith('http://localhost:5181/projects/cold123/ide');
   });
 
   it('does not replay anything when there is no pending deep link', () => {

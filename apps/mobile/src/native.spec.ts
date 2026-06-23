@@ -1,7 +1,20 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it, vi } from 'vitest';
-import { handleDeepLink, runCleanup } from './native';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const addListener = vi.fn();
+const requestPermissions = vi.fn();
+const register = vi.fn();
+
+vi.mock('@capacitor/push-notifications', () => ({
+  PushNotifications: {
+    addListener: (...args: unknown[]) => addListener(...args),
+    requestPermissions: (...args: unknown[]) => requestPermissions(...args),
+    register: (...args: unknown[]) => register(...args),
+  },
+}));
+
+import { configurePushNotifications, handleDeepLink, runCleanup } from './native';
 
 describe('handleDeepLink (cold-start + appUrlOpen routing)', () => {
   it('dispatches the runtime event and invokes the callback for a supported launch URL', () => {
@@ -44,12 +57,14 @@ describe('runCleanup (failed-bootstrap teardown does not leak listeners)', () =>
     await runCleanup(cleanup);
 
     expect(calls).toEqual(['a', 'b', 'c']);
+
     // Drained so a later cleanup() does not double-dispose.
     expect(cleanup).toHaveLength(0);
   });
 
   it('keeps removing the remaining listeners when one teardown throws', async () => {
     const calls: string[] = [];
+
     const cleanup = [
       () => void calls.push('first'),
       () => {
@@ -61,5 +76,59 @@ describe('runCleanup (failed-bootstrap teardown does not leak listeners)', () =>
     await expect(runCleanup(cleanup)).resolves.toBeUndefined();
 
     expect(calls).toEqual(['first', 'third']);
+  });
+});
+
+describe('configurePushNotifications (permission/register rejection does not leak listeners)', () => {
+  beforeEach(() => {
+    addListener.mockReset();
+    requestPermissions.mockReset();
+    register.mockReset();
+  });
+
+  it('removes the three listeners and re-throws when requestPermissions rejects mid-bootstrap', async () => {
+    const remove = vi.fn().mockResolvedValue(undefined);
+    addListener.mockResolvedValue({ remove });
+    requestPermissions.mockRejectedValue(new Error('denied/restricted'));
+
+    await expect(configurePushNotifications()).rejects.toThrow('denied/restricted');
+
+    // All three listeners (registration, registrationError, action) were added...
+    expect(addListener).toHaveBeenCalledTimes(3);
+
+    /*
+     * ...and all three were torn down before the rejection propagated, so they
+     * do not leak when bootstrapMobileApp's `cleanup.push(await ...)` is skipped.
+     */
+    expect(remove).toHaveBeenCalledTimes(3);
+    expect(register).not.toHaveBeenCalled();
+  });
+
+  it('removes the three listeners and re-throws when register() rejects after permission granted', async () => {
+    const remove = vi.fn().mockResolvedValue(undefined);
+    addListener.mockResolvedValue({ remove });
+    requestPermissions.mockResolvedValue({ receive: 'granted' });
+    register.mockRejectedValue(new Error('APNs registration failed'));
+
+    await expect(configurePushNotifications()).rejects.toThrow('APNs registration failed');
+
+    expect(addListener).toHaveBeenCalledTimes(3);
+    expect(remove).toHaveBeenCalledTimes(3);
+  });
+
+  it('returns a dispose that removes the three listeners on the happy path', async () => {
+    const remove = vi.fn().mockResolvedValue(undefined);
+    addListener.mockResolvedValue({ remove });
+    requestPermissions.mockResolvedValue({ receive: 'granted' });
+    register.mockResolvedValue(undefined);
+
+    const dispose = await configurePushNotifications();
+
+    // Not removed yet — the listeners are live until dispose runs.
+    expect(remove).not.toHaveBeenCalled();
+
+    await dispose();
+
+    expect(remove).toHaveBeenCalledTimes(3);
   });
 });

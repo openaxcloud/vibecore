@@ -75,6 +75,13 @@ declare global {
 
 let mainWindow: BrowserWindow | undefined;
 
+/**
+ * The live renderer origin. Resolved asynchronously after `app.whenReady()`
+ * (in dev Vite may auto-increment the port when 5173 is taken), so deep-link
+ * routing reads it via a getter rather than capturing it at setup time.
+ */
+let rendererURL = `http://localhost:${DEFAULT_PORT}`;
+
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 
 /*
@@ -103,7 +110,10 @@ if (!gotSingleInstanceLock) {
 }
 
 function startApp() {
-  setupDeepLinks(() => mainWindow);
+  setupDeepLinks(
+    () => mainWindow,
+    () => rendererURL,
+  );
   setupCrashReporting();
 
   // Snapshot of cookies already persisted, so we only write changed ones to disk.
@@ -212,7 +222,7 @@ function startApp() {
       }
     });
 
-    const rendererURL = await (isDev
+    rendererURL = await (isDev
       ? (async () => {
           await initViteServer();
 
@@ -242,7 +252,7 @@ function startApp() {
 
     console.log('end whenReady');
 
-    return win;
+    return { win, rendererURL };
   })()
     /*
      * Removed leftover IPC sample scaffolding: an uncleared setInterval that sent a
@@ -250,7 +260,7 @@ function startApp() {
      * webContents after window close (errors / wasted work) — plus a no-op ipcTest
      * handler. Neither served any product purpose.
      */
-    .then((win) => setupMenu(win));
+    .then(({ win, rendererURL }) => setupMenu(win, rendererURL));
 
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
