@@ -160,9 +160,24 @@ const inlineThemeCode = stripIndents`
     return exactPaths.has(pathname) || prefixes.some((prefix) => pathname.startsWith(prefix));
   }
 
+  function readPersistedTheme() {
+    /*
+     * Safari Private Browsing / storage-partitioned / cookies-blocked contexts
+     * throw a SecurityError synchronously on localStorage access. This runs in an
+     * inline <head> script before hydration, so an uncaught throw would abort the
+     * rest of setTutorialKitTheme() (theme reconciliation, public-marketing chrome,
+     * theme-color meta). Swallow it and fall back to the default.
+     */
+    try {
+      return localStorage.getItem('bolt_theme');
+    } catch (e) {
+      return null;
+    }
+  }
+
   function setTutorialKitTheme() {
     const publicMarketingRoute = isEcodePublicMarketingPath(window.location.pathname);
-    let theme = publicMarketingRoute ? 'light' : localStorage.getItem('bolt_theme');
+    let theme = publicMarketingRoute ? 'light' : readPersistedTheme();
 
     if (theme !== 'dark' && theme !== 'light') {
       // Default to light (matches Replit); a persisted bolt_theme overrides this.
