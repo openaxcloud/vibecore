@@ -123,10 +123,6 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
   const clientIP = getClientIP(request);
 
-  if (!rateLimiter.check(clientIP)) {
-    return json({ error: 'Rate limit exceeded. Please wait before submitting another report.' }, { status: 429 });
-  }
-
   let report: AbuseReport;
 
   try {
@@ -144,6 +140,16 @@ export async function action({ request, context }: ActionFunctionArgs) {
       { error: 'Your report was flagged as potential spam. Please contact abuse@e-code.ai if this is an error.' },
       { status: 400 },
     );
+  }
+
+  /*
+   * Only count valid, non-spam submissions against the per-IP limit. Recording
+   * a hit for malformed or spam-flagged requests (which are rejected anyway)
+   * would let an honest reporter exhaust their small hourly quota via repeated
+   * client-side-skipped validation failures and get locked out for an hour.
+   */
+  if (!rateLimiter.check(clientIP)) {
+    return json({ error: 'Rate limit exceeded. Please wait before submitting another report.' }, { status: 429 });
   }
 
   const githubToken =

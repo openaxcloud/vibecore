@@ -119,6 +119,14 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
       env: context.cloudflare?.env as any,
       apiKeys,
       providerSettings,
+
+      /*
+       * Thread the request's abort signal into the generation so that when the
+       * browser disconnects mid-enhance (tab close / navigation), the upstream
+       * LLM provider stops generating instead of running the completion to
+       * completion and billing tokens against the platform's managed key.
+       */
+      abortSignal: request.signal,
       options: {
         system:
           'You are a senior software principal architect, you should help the user analyse the user query and enrich it with the necessary context and constraints to make it more specific, actionable, and effective. You should also ensure that the prompt is self-contained and uses professional language. Your response should ONLY contain the enhanced prompt text. Do not include any explanations, metadata, or wrapper tags.',

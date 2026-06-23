@@ -8,6 +8,7 @@ import {
   apiErrorMessage,
   firstOrganization,
   firstOrganizationOrNull,
+  isApiResponse,
   isForbiddenApiResponse,
   json,
   redirect,
@@ -70,7 +71,31 @@ export async function action({ request }: EnterpriseActionArgs) {
       );
     }
 
-    throw error;
+    /*
+     * A 3xx redirect Response thrown here is the session-expiry login or
+     * MFA_REQUIRED re-auth navigation (see enterprise-api.server.ts). It is still
+     * `instanceof Response`, so re-throw it BEFORE the isApiResponse branch —
+     * otherwise the redirect's Location is discarded.
+     */
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
+    if (isApiResponse(error)) {
+      return json(
+        { error: await apiErrorMessage(error, 'We could not open your support ticket. Please try again later.') },
+        { status: error.status },
+      );
+    }
+
+    /*
+     * Non-Response failures (a 500/502 from the api, an AbortSignal.timeout, or a
+     * hung pod network error) would otherwise re-throw and crash the whole Support
+     * page to the root error boundary. Surface the inline banner instead.
+     */
+    console.error('Failed to create support ticket:', error);
+
+    return json({ error: 'Support is temporarily unavailable. Please try again later.' });
   }
 
   return redirect('/support');

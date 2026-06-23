@@ -231,6 +231,81 @@ describe('agent post-generation import validation', () => {
     ).resolves.toBeUndefined();
   });
 
+  describe('JSONC config files (tsconfig/jsconfig/.vscode)', () => {
+    /*
+     * The default tsconfig.json from `npm create vite@latest` / `tsc --init`
+     * ships with `//` comments and trailing commas. Strict JSON.parse threw
+     * GeneratedFileJsonError, silently dropping the agent's write — the same
+     * class of false-block already fixed for lockfiles.
+     */
+    const tsconfigWithComments = `{
+  // Compiler options for the app
+  "compilerOptions": {
+    "target": "ES2020",
+    "strict": true, /* enable all strict checks */
+    "jsx": "react-jsx",
+  },
+  "include": ["src"], // trailing comma below is JSONC-legal
+}`;
+
+    it('does not reject tsconfig.json with comments and trailing commas', async () => {
+      await expect(
+        validateGeneratedFiles([{ path: 'tsconfig.json', content: tsconfigWithComments }]),
+      ).resolves.toBeUndefined();
+    });
+
+    it('does not reject tsconfig.app.json / tsconfig.node.json', async () => {
+      await expect(
+        validateGeneratedFiles([
+          { path: 'tsconfig.app.json', content: tsconfigWithComments },
+          { path: 'tsconfig.node.json', content: tsconfigWithComments },
+        ]),
+      ).resolves.toBeUndefined();
+    });
+
+    it('does not reject jsconfig.json with comments', async () => {
+      await expect(
+        validateGeneratedFiles([
+          { path: 'jsconfig.json', content: '{\n  // paths\n  "compilerOptions": { "baseUrl": "." },\n}' },
+        ]),
+      ).resolves.toBeUndefined();
+    });
+
+    it('does not reject .vscode/settings.json with comments', async () => {
+      await expect(
+        validateGeneratedFiles([
+          {
+            path: '.vscode/settings.json',
+            content: '{\n  // editor prefs\n  "editor.tabSize": 2,\n  "files.eol": "\\n",\n}',
+          },
+        ]),
+      ).resolves.toBeUndefined();
+    });
+
+    it('preserves string content containing comment-like sequences', async () => {
+      await expect(
+        validateGeneratedFiles([
+          {
+            path: '.vscode/settings.json',
+            content: '{\n  "url": "https://e-code.ai/path",\n  "glob": "**/*.ts", // keep\n}',
+          },
+        ]),
+      ).resolves.toBeUndefined();
+    });
+
+    it('still rejects a JSONC config that is structurally invalid', async () => {
+      await expect(
+        validateGeneratedFiles([{ path: 'tsconfig.json', content: '{ "compilerOptions": { ' }]),
+      ).rejects.toBeInstanceOf(GeneratedFileJsonError);
+    });
+
+    it('still rejects a plain (non-JSONC) .json file with comments', async () => {
+      await expect(
+        validateGeneratedFiles([{ path: 'data.json', content: '{\n  // not allowed here\n  "a": 1\n}' }]),
+      ).rejects.toBeInstanceOf(GeneratedFileJsonError);
+    });
+  });
+
   describe('root-absolute imports (Vite public/ dir)', () => {
     /*
      * `import logo from '/vite.svg'` is the Vite-scaffolded default. A leading

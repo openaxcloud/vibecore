@@ -65,22 +65,28 @@ describe('ActionRunner tool timeout handling', () => {
     vi.useRealTimers();
   });
 
-  it('fails a streaming file action that never receives a final close event', async () => {
+  it('does not watchdog-fail a long-streaming file action while its body is still arriving', async () => {
     vi.useFakeTimers();
 
     const runner = new ActionRunner(createRuntime(), () => createShell() as any);
     const data = createActionData();
 
     runner.addAction(data);
+
+    /*
+     * Streaming pass: status:'running', executed:false. The editor buffer is fed
+     * chunk-by-chunk without re-entering the runner, so the watchdog must not arm —
+     * otherwise a healthy file that streams for >FILE_TOOL_TIMEOUT_MS gets a bogus
+     * "timed out" failure. Truncated streams are reaped by abortStreamingFileActions().
+     */
     await runner.runAction(data, true);
 
     expect(runner.actions.get()[data.actionId]?.status).toBe('running');
 
-    await vi.advanceTimersByTimeAsync(120_000);
+    // Far past the 120s file-tool timeout: still running, never spuriously failed.
+    await vi.advanceTimersByTimeAsync(300_000);
 
-    const action = runner.actions.get()[data.actionId];
-    expect(action?.status).toBe('failed');
-    expect(action?.status === 'failed' ? action.error : '').toContain('timed out after 120 seconds');
+    expect(runner.actions.get()[data.actionId]?.status).toBe('running');
   });
 
   it('fails timed-out file writes without multiplying blocked filesystem calls', async () => {

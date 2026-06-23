@@ -160,8 +160,17 @@ export function applyReviewableDiffHunks(input: {
   originalContent: string;
   hunks: ReviewableDiffHunk[];
   acceptedHunkIds: Set<string> | string[];
+
+  /**
+   * The agent's full proposed file content. When provided, it is used to
+   * decide the trailing-newline state of the accepted result whenever the end
+   * of the file is itself part of an accepted change. Without it we fall back
+   * to mirroring the original file, which silently corrupts the trailing
+   * newline for new-file accepts and for hunks that add/remove a final newline.
+   */
+  proposedContent?: string;
 }) {
-  const { originalContent, hunks } = input;
+  const { originalContent, hunks, proposedContent } = input;
   const acceptedHunkIds = input.acceptedHunkIds instanceof Set ? input.acceptedHunkIds : new Set(input.acceptedHunkIds);
 
   if (acceptedHunkIds.size === 0) {
@@ -172,6 +181,15 @@ export function applyReviewableDiffHunks(input: {
   const outputLines: string[] = [];
 
   let cursor = 0;
+
+  /*
+   * Tracks whether the file's final region was produced by an accepted hunk
+   * that extends to the end of the original content. When it is, the trailing
+   * newline of the written file must follow the proposed content, not the
+   * original — otherwise a new file's `code\n` is saved as `code`, or an
+   * accepted newline add/remove at EOF is silently reverted.
+   */
+  let endComesFromAcceptedHunk = false;
 
   for (const hunk of hunks) {
     const hunkStartIndex = Math.max(0, hunk.oldStart - 1);
@@ -192,11 +210,21 @@ export function applyReviewableDiffHunks(input: {
     }
 
     cursor = hunkEndIndex;
+
+    // This accepted hunk consumed the rest of the original file.
+    endComesFromAcceptedHunk = hunkEndIndex >= originalLines.length;
+  }
+
+  if (cursor < originalLines.length) {
+    // Untouched original tail follows the last accepted hunk → original wins.
+    endComesFromAcceptedHunk = false;
   }
 
   outputLines.push(...originalLines.slice(cursor));
 
-  const newline = hasTrailingNewline(originalContent) ? '\n' : '';
+  const baseForNewline = endComesFromAcceptedHunk && proposedContent !== undefined ? proposedContent : originalContent;
+
+  const newline = hasTrailingNewline(baseForNewline) ? '\n' : '';
 
   return `${outputLines.join('\n')}${newline}`;
 }

@@ -53,6 +53,7 @@ import {
 } from '~/lib/enterprise-api.server';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
+import { detectApplePlatform, submitShortcutLabel as resolveSubmitShortcutLabel } from '~/lib/platform-shortcut';
 import { providersStore } from '~/lib/stores/settings';
 import type { ProviderInfo } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
@@ -871,12 +872,19 @@ export default function NewProjectPage() {
 
   const canSubmit = !isSubmitting && promptWordCount >= 3 && !promptHasBlockingError;
 
-  const isAppleHost = useMemo(
-    () => (typeof navigator !== 'undefined' ? /Mac|iPhone|iPad/.test(navigator.platform) : false),
-    [],
-  );
+  /**
+   * Start as `false` so the first client render matches the server-rendered
+   * output (where `navigator` is undefined). Resolving the real platform during
+   * render would cause a hydration mismatch and flip the visible shortcut label
+   * on first paint for Mac/iOS visitors, so detect it after mount instead.
+   */
+  const [isAppleHost, setIsAppleHost] = useState(false);
 
-  const submitShortcutLabel = isAppleHost ? '⌘↵' : 'Ctrl+↵';
+  useEffect(() => {
+    setIsAppleHost(detectApplePlatform());
+  }, []);
+
+  const submitShortcutLabel = resolveSubmitShortcutLabel(isAppleHost);
 
   const configuredProviderCount = availableProviders.filter((provider) =>
     enabledProviderNames.has(provider.name),

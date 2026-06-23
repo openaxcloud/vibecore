@@ -108,6 +108,107 @@ describe('Diff', () => {
     expect(accepted).not.toContain('No newline at end of file');
   });
 
+  it('preserves the proposed trailing newline when the file end is part of an accepted hunk', () => {
+    // New-file accept: original is empty, the agent's content has a trailing newline.
+    const original = '';
+    const proposed = 'const greeting = "hi";\n';
+
+    const hunks = buildReviewableDiffHunks('src/new-file.ts', original, proposed);
+
+    const accepted = applyReviewableDiffHunks({
+      originalContent: original,
+      hunks,
+      acceptedHunkIds: hunks.map((hunk) => hunk.id),
+      proposedContent: proposed,
+    });
+
+    // Without proposedContent the trailing newline would be dropped (original is '').
+    expect(accepted).toBe(proposed);
+    expect(accepted.endsWith('\n')).toBe(true);
+  });
+
+  it('adopts a newly-added trailing newline at EOF when the proposal is accepted', () => {
+    // Original has NO trailing newline; the proposal adds one to the final line.
+    const original = 'const a = 1\nconst b = 2';
+    const proposed = 'const a = 1\nconst b = 2\n';
+
+    const hunks = buildReviewableDiffHunks('src/add-eof-newline.ts', original, proposed);
+
+    const accepted = applyReviewableDiffHunks({
+      originalContent: original,
+      hunks,
+      acceptedHunkIds: hunks.map((hunk) => hunk.id),
+      proposedContent: proposed,
+    });
+
+    expect(accepted).toBe(proposed);
+    expect(accepted.endsWith('\n')).toBe(true);
+  });
+
+  it('drops a removed trailing newline at EOF when the proposal is accepted', () => {
+    // Original HAS a trailing newline; the proposal removes it.
+    const original = 'const a = 1\nconst b = 2\n';
+    const proposed = 'const a = 1\nconst b = 2';
+
+    const hunks = buildReviewableDiffHunks('src/remove-eof-newline.ts', original, proposed);
+
+    const accepted = applyReviewableDiffHunks({
+      originalContent: original,
+      hunks,
+      acceptedHunkIds: hunks.map((hunk) => hunk.id),
+      proposedContent: proposed,
+    });
+
+    expect(accepted).toBe(proposed);
+    expect(accepted.endsWith('\n')).toBe(false);
+  });
+
+  it('keeps the original trailing newline when only a non-final hunk is accepted', () => {
+    // Two independent changes; accepting only the first must not touch the EOF newline.
+    const original = [
+      'const a = 1;',
+      'const keep1 = true;',
+      'const keep2 = true;',
+      'const keep3 = true;',
+      'const keep4 = true;',
+      'const keep5 = true;',
+      'const keep6 = true;',
+      'const keep7 = true;',
+      'const keep8 = true;',
+      'const b = 1;',
+      '',
+    ].join('\n');
+    const proposed = [
+      'const a = 2;',
+      'const keep1 = true;',
+      'const keep2 = true;',
+      'const keep3 = true;',
+      'const keep4 = true;',
+      'const keep5 = true;',
+      'const keep6 = true;',
+      'const keep7 = true;',
+      'const keep8 = true;',
+
+      // remove the trailing newline at EOF in the (rejected) second hunk
+      'const b = 2;',
+    ].join('\n');
+
+    const hunks = buildReviewableDiffHunks('src/partial-eof.ts', original, proposed);
+    expect(hunks.length).toBeGreaterThanOrEqual(2);
+
+    const result = applyReviewableDiffHunks({
+      originalContent: original,
+      hunks,
+      acceptedHunkIds: [hunks[0].id],
+      proposedContent: proposed,
+    });
+
+    // First hunk applied, EOF untouched → original trailing newline retained.
+    expect(result).toContain('const a = 2;');
+    expect(result).toContain('const b = 1;');
+    expect(result.endsWith('\n')).toBe(true);
+  });
+
   it('can reject one hunk while accepting another', () => {
     const original = [
       'const a = 1;',

@@ -831,6 +831,20 @@ export class ActionRunner {
       return;
     }
 
+    /*
+     * A `file` action is driven twice: once while its body is still streaming
+     * (runAction(data, true) → status:'running', executed:false) and once when
+     * the closing </boltAction> arrives (runAction(data, false) → executed:true).
+     * During streaming, every subsequent chunk is written straight to the editor
+     * buffer and never re-enters the runner, so the watchdog is never rescheduled.
+     * Arming it on the streaming pass spuriously marks a healthy long stream
+     * (>FILE_TOOL_TIMEOUT_MS) as 'failed'. Only watchdog the authoritative
+     * non-streaming write (executed:true), whose duration the runner actually owns.
+     */
+    if (initialAction?.type === 'file' && initialAction.executed === false) {
+      return;
+    }
+
     const timeoutMs = initialAction ? this.#timeoutMsForAction(initialAction) : TOOL_TIMEOUT_MS;
 
     const timeoutId = setTimeout(() => {

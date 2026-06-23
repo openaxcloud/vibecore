@@ -6,9 +6,12 @@ import { getEcodeTemplateCatalog } from '~/lib/marketing/ecode-template-catalog.
 
 /**
  * In-repo SSR "browse templates by language" page. Derives the language facets
- * (with counts) from the real E-Code starter-template catalog and links each
- * into the templates gallery. e-code public shell, responsive. Replaces the
- * external-bundle proxy.
+ * (with counts) from the real E-Code starter-template catalog and surfaces them
+ * as an at-a-glance breakdown above a single "View all templates" CTA. The
+ * gallery does not yet support a `language` facet, so the per-language entries
+ * are presented as non-interactive stats rather than links that would silently
+ * land on the identical unfiltered gallery. e-code public shell, responsive.
+ * Replaces the external-bundle proxy.
  */
 export const meta: MetaFunction = () => [
   { title: 'Templates by language — E-Code' },
@@ -48,22 +51,23 @@ export default function TemplatesLanguagesRoute() {
           <p className="text-sm font-semibold uppercase tracking-wide text-[var(--ecode-accent)]">Templates</p>
           <h1 className="mt-3 text-3xl font-semibold sm:text-4xl md:text-5xl">Browse templates by language</h1>
           <p className="mt-4 max-w-2xl text-base text-[var(--ecode-text-muted,#6E7681)] sm:text-lg">
-            {total} production starter templates across {languages.length} languages. Pick a language to open the
-            gallery and start building in the IDE.
+            {total} production starter templates across {languages.length} languages. Open the full gallery to explore
+            every template and start building in the IDE.
           </p>
 
-          <ul className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <ul
+            className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+            aria-label="Template count by language"
+          >
             {languages.map((language) => (
-              <li key={language.name}>
-                <Link
-                  to="/templates"
-                  className="flex items-center justify-between rounded-xl border border-[var(--ecode-border,#E5E7EB)] bg-[var(--ecode-surface,#FFFFFF)] px-4 py-3 transition-colors hover:border-[var(--ecode-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
-                >
-                  <span className="font-medium">{language.name}</span>
-                  <span className="ml-2 inline-flex items-center rounded-full border border-[var(--ecode-border,#E5E7EB)] px-2 py-0.5 text-xs font-medium text-[var(--ecode-text-muted,#6E7681)]">
-                    {language.count}
-                  </span>
-                </Link>
+              <li
+                key={language.name}
+                className="flex items-center justify-between rounded-xl border border-[var(--ecode-border,#E5E7EB)] bg-[var(--ecode-surface,#FFFFFF)] px-4 py-3"
+              >
+                <span className="font-medium">{language.name}</span>
+                <span className="ml-2 inline-flex items-center rounded-full border border-[var(--ecode-border,#E5E7EB)] px-2 py-0.5 text-xs font-medium text-[var(--ecode-text-muted,#6E7681)]">
+                  {language.count}
+                </span>
               </li>
             ))}
           </ul>

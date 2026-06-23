@@ -4,6 +4,17 @@ import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
 
+/**
+ * Builds the model-picker label for an Anthropic dynamic model.
+ *
+ * The Anthropic /v1/models response may omit (or null) `display_name` for some
+ * entries. Mirror the Google provider's behaviour and fall back to the model id
+ * so the selector never renders a literal "undefined (200k context)" entry.
+ */
+export function buildAnthropicModelLabel(model: { display_name?: string | null; id: string }, contextWindow: number) {
+  return `${model.display_name || model.id} (${Math.floor(contextWindow / 1000)}k context)`;
+}
+
 export default class AnthropicProvider extends BaseProvider {
   name = 'Anthropic';
   getApiKeyLink = 'https://console.anthropic.com/settings/keys';
@@ -120,7 +131,7 @@ export default class AnthropicProvider extends BaseProvider {
 
       return {
         name: m.id,
-        label: `${m.display_name} (${Math.floor(contextWindow / 1000)}k context)`,
+        label: buildAnthropicModelLabel(m, contextWindow),
         provider: this.name,
         maxTokenAllowed: contextWindow,
         maxCompletionTokens,

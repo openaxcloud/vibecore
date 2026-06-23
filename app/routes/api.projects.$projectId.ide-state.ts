@@ -1,4 +1,5 @@
 import { apiRequest, json, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { forwardIdeStatePut } from '~/lib/persistence/ide-state-proxy.server';
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (!params.projectId) {
@@ -19,19 +20,13 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     return json({ ok: false, error: 'Method not allowed' }, { status: 405 });
   }
 
-  const body = await request.text();
-
   /*
-   * Forward the conditional header so the API enforces optimistic concurrency
-   * (412 on version mismatch) instead of silently last-write-wins across tabs.
+   * Proxy directly (instead of through `apiRequest`) so the backend's
+   * optimistic-concurrency contract survives end to end: a 412 must keep its
+   * status, its `{ error, code, ideState }` body, and its `etag` header so the
+   * client can re-merge and retry with a fresh `If-Match`. `apiRequest` reshapes
+   * any non-OK body to `{ ok:false, error, code }` and drops headers, which
+   * silently degrades the conflict path into last-write-wins across tabs.
    */
-  const ifMatch = request.headers.get('if-match') ?? undefined;
-
-  const payload = await apiRequest(request, `/projects/${params.projectId}/ide-state`, {
-    method: 'PUT',
-    body,
-    headers: ifMatch ? { 'if-match': ifMatch } : undefined,
-  });
-
-  return json(payload);
+  return forwardIdeStatePut(request, `/projects/${params.projectId}/ide-state`);
 }

@@ -171,6 +171,104 @@ function isLockfile(filePath: string) {
   return VALIDATION_IGNORED_FILENAMES.has(basenameOf(filePath));
 }
 
+/*
+ * JSONC files allow `//` and slash-star comments and trailing commas. The
+ * default tsconfig.json emitted by `npm create vite@latest` / `tsc --init`
+ * literally ships with comments, and editor settings under `.vscode/` and
+ * TS project files (tsconfig*.json, jsconfig*.json) are JSONC by spec. Running
+ * strict JSON.parse on these threw GeneratedFileJsonError and silently dropped
+ * the agent's write — the same class of false-block already fixed for lockfiles.
+ */
+function isJsoncFile(filePath: string) {
+  const basename = basenameOf(filePath).toLowerCase();
+
+  if (/^tsconfig(\..+)?\.json$/.test(basename) || /^jsconfig(\..+)?\.json$/.test(basename)) {
+    return true;
+  }
+
+  const directory = dirname(filePath).split('/').pop();
+
+  return directory === '.vscode' && basename.endsWith('.json');
+}
+
+/*
+ * Strip `//` line comments, slash-star block comments and trailing commas so a
+ * JSONC file can be validated with strict JSON.parse. String literals are
+ * preserved verbatim (we track whether we're inside a string and honour
+ * backslash escapes) so a URL like "https://e-code.ai" or a value containing
+ * "/*" is never mistaken for a comment.
+ */
+function stripJsonComments(input: string) {
+  let output = '';
+  let inString = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  for (let i = 0; i < input.length; i++) {
+    const char = input[i];
+    const next = input[i + 1];
+
+    if (inLineComment) {
+      if (char === '\n' || char === '\r') {
+        inLineComment = false;
+        output += char;
+      }
+
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (char === '*' && next === '/') {
+        inBlockComment = false;
+        i++;
+      }
+
+      continue;
+    }
+
+    if (inString) {
+      output += char;
+
+      if (char === '\\') {
+        // Copy the escaped character verbatim so an escaped quote doesn't end the string.
+        output += next ?? '';
+        i++;
+      } else if (char === '"') {
+        inString = false;
+      }
+
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      output += char;
+      continue;
+    }
+
+    if (char === '/' && next === '/') {
+      inLineComment = true;
+      i++;
+      continue;
+    }
+
+    if (char === '/' && next === '*') {
+      inBlockComment = true;
+      i++;
+      continue;
+    }
+
+    output += char;
+  }
+
+  // Remove trailing commas before a closing } or ] (allowing whitespace between).
+  return output.replace(/,(\s*[}\]])/g, '$1');
+}
+
+export function parseJsonc(content: string) {
+  return JSON.parse(stripJsonComments(content));
+}
+
 function isRelativeOrRootImport(specifier: string) {
   return specifier.startsWith('.') || specifier.startsWith('/');
 }
@@ -320,7 +418,11 @@ export async function validateGeneratedFile(file: GeneratedFile, allFiles: Map<s
 
   if (isJsonFile(normalizedPath)) {
     try {
-      JSON.parse(file.content);
+      if (isJsoncFile(normalizedPath)) {
+        parseJsonc(file.content);
+      } else {
+        JSON.parse(file.content);
+      }
     } catch (error) {
       throw new GeneratedFileJsonError(normalizedPath, error);
     }

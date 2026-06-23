@@ -4,6 +4,20 @@ import WithTooltip from '~/components/ui/Tooltip';
 import { useEditChatDescription } from '~/lib/hooks';
 import { description as descriptionStore } from '~/lib/persistence';
 
+/**
+ * Compute the pixel width for the inline rename input. Grows with the title
+ * length but is clamped to an upper bound so a long description (the validator
+ * allows up to 100 chars) can't push the input wider than the header and force
+ * horizontal overflow / shove the Save button off-screen on narrow viewports.
+ */
+export function computeChatTitleInputWidth(length: number): number {
+  const MIN_WIDTH = 100;
+  const MAX_WIDTH = 320;
+  const perCharWidth = 8;
+
+  return Math.min(Math.max(length * perCharWidth, MIN_WIDTH), MAX_WIDTH);
+}
+
 export function ChatDescription() {
   const initialDescription = useStore(descriptionStore)!;
 
@@ -19,19 +33,19 @@ export function ChatDescription() {
   }
 
   return (
-    <div className="flex items-center justify-center">
+    <div className="flex items-center justify-center max-w-full min-w-0">
       {editing ? (
-        <form onSubmit={handleSubmit} className="flex items-center justify-center">
+        <form onSubmit={handleSubmit} className="flex items-center justify-center max-w-full min-w-0">
           <input
             type="text"
             aria-label="Chat title"
-            className="bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary rounded px-2 mr-2 w-fit"
+            className="bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary rounded px-2 mr-2 w-fit max-w-full min-w-0"
             autoFocus
             value={currentDescription}
             onChange={handleChange}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
-            style={{ width: `${Math.max(currentDescription.length * 8, 100)}px` }}
+            style={{ width: `${computeChatTitleInputWidth(currentDescription.length)}px` }}
           />
           <TooltipProvider>
             <WithTooltip tooltip="Save title">
