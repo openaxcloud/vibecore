@@ -24,7 +24,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         name: project.name,
         status: 'Ready',
         updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
-        stack: project.gitRepositoryUrl ?? project.sourceType ?? 'Bolt project',
+        stack: project.gitRepositoryUrl ?? project.sourceType ?? 'E-Code project',
         sourceType: project.sourceType,
         previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
       })),

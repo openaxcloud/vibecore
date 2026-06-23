@@ -4,6 +4,33 @@ import { useEffect } from 'react';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { netlifyConnection, fetchNetlifyStats } from '~/lib/stores/netlify';
 
+/*
+ * Deploy site names are minted as `<prefix>-<chatId>-<timestamp>` (see
+ * app/routes/api.netlify-deploy.ts).
+ *
+ * We accept both the product-brand `ecode-` prefix and the legacy upstream
+ * `bolt-diy-` prefix so sites created before/after the rename both resolve.
+ */
+const SITE_NAME_PREFIXES = ['ecode', 'bolt-diy'] as const;
+
+/*
+ * Match the chat's site by a delimited key rather than a bare substring. A naive
+ * `name.includes('<prefix>-' + chatId)` treats a short chatId (e.g. `12`) as a
+ * prefix of another (`123`), so `Array.find` could return a *different*
+ * project's live deployment. Requiring the chatId to be followed by the
+ * `-<timestamp>` delimiter (or to be the whole suffix) prevents that collision.
+ */
+export function isNetlifySiteForChat(siteName: string, currentChatId: string): boolean {
+  if (!currentChatId) {
+    return false;
+  }
+
+  return SITE_NAME_PREFIXES.some((prefix) => {
+    const base = `${prefix}-${currentChatId}`;
+    return siteName === base || siteName.startsWith(`${base}-`);
+  });
+}
+
 export function NetlifyDeploymentLink() {
   const connection = useStore(netlifyConnection);
   const currentChatId = useStore(chatId);
@@ -14,7 +41,9 @@ export function NetlifyDeploymentLink() {
     }
   }, [connection.token, currentChatId]);
 
-  const deployedSite = connection.stats?.sites?.find((site) => site.name.includes(`bolt-diy-${currentChatId}`));
+  const deployedSite = currentChatId
+    ? connection.stats?.sites?.find((site) => isNetlifySiteForChat(site.name, currentChatId))
+    : undefined;
 
   if (!deployedSite) {
     return null;

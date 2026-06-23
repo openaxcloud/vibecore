@@ -10,13 +10,15 @@ export interface StrikeRecordLike {
   createdAt: string | number | Date;
 }
 
-export const APPEALS_EMAIL = 'appeals@vibecore.dev';
+export const APPEALS_EMAIL =
+  (typeof process !== 'undefined' && process.env?.MODERATION_APPEALS_EMAIL) || 'appeals@e-code.ai';
 
 export const WARNING_THRESHOLD = 1;
 export const COMMUNITY_BAN_THRESHOLD = 3;
 export const ACCOUNT_BAN_THRESHOLD = 4;
 
 export const STRIKE_EXPIRY_DAYS = 180;
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /** Map a count of active strikes to the resulting action. */
@@ -24,16 +26,21 @@ export function consequenceForStrikeCount(activeStrikes: number): StrikeAction |
   if (!Number.isFinite(activeStrikes) || activeStrikes < 0) {
     return 'NONE';
   }
+
   const n = Math.floor(activeStrikes);
+
   if (n >= ACCOUNT_BAN_THRESHOLD) {
     return 'ACCOUNT_BAN';
   }
+
   if (n >= COMMUNITY_BAN_THRESHOLD) {
     return 'COMMUNITY_BAN';
   }
+
   if (n >= WARNING_THRESHOLD) {
     return 'WARNING';
   }
+
   return 'NONE';
 }
 
@@ -47,23 +54,24 @@ function ladderIndex(action: StrikeAction | 'NONE'): number {
 /** Escalate from the current action given a new violation severity. */
 export function escalate(current: StrikeAction | 'NONE', severity: 'minor' | 'major' | 'severe'): StrikeAction {
   const idx = ladderIndex(current);
+
   if (severity === 'severe') {
     return 'ACCOUNT_BAN';
   }
+
   if (severity === 'major') {
     return LADDER[Math.min(idx + 1, LADDER.length - 1)] as StrikeAction;
   }
+
   if (current === 'NONE' || idx === 0) {
     return 'WARNING';
   }
+
   return current as StrikeAction;
 }
 
 /** Return the more severe of two actions per the ladder (NONE < WARNING < COMMUNITY_BAN < ACCOUNT_BAN). */
-export function higherConsequence(
-  a: StrikeAction | 'NONE',
-  b: StrikeAction | 'NONE',
-): StrikeAction | 'NONE' {
+export function higherConsequence(a: StrikeAction | 'NONE', b: StrikeAction | 'NONE'): StrikeAction | 'NONE' {
   return ladderIndex(a) >= ladderIndex(b) ? a : b;
 }
 
@@ -109,20 +117,27 @@ export function countActiveStrikes(strikes: ReadonlyArray<StrikeRecordLike>, now
   if (!Array.isArray(strikes) || !Number.isFinite(nowMs)) {
     return 0;
   }
+
   const cutoff = nowMs - STRIKE_EXPIRY_DAYS * MS_PER_DAY;
+
   let count = 0;
+
   for (const strike of strikes) {
     if (!strike) {
       continue;
     }
+
     const ms = new Date(strike.createdAt as any).getTime();
+
     if (!Number.isFinite(ms)) {
       count += 1;
       continue;
     }
+
     if (ms >= cutoff) {
       count += 1;
     }
   }
+
   return count;
 }

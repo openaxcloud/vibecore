@@ -175,7 +175,7 @@ function RecoveryCodes({ codes }: { codes: string[] }) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'vibecore-recovery-codes.txt';
+            a.download = 'e-code-recovery-codes.txt';
             a.click();
             URL.revokeObjectURL(url);
           }}

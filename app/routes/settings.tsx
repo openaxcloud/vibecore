@@ -5,7 +5,7 @@ import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 import BackgroundRays from '~/components/ui/BackgroundRays';
 
 export const meta: MetaFunction = () => {
-  return [{ title: 'Settings | Bolt' }];
+  return [{ title: 'Settings - E-Code' }];
 };
 
 export default function SettingsRoute() {

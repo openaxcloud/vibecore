@@ -13,6 +13,7 @@ import {
   statsFromUsage,
   type ProjectCard,
 } from '~/components/dashboard/SaaSLayout';
+import { projectStackLabel } from '~/lib/dashboard-project-stack';
 import { apiRequest, isForbiddenApiResponse, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { projectIdePath } from '~/utils/project-url';
 
@@ -58,12 +59,14 @@ async function optionalBillingRequest(request: Request, organizationId: string) 
  */
 async function optionalAiCostCents(request: Request, organizationId: string) {
   try {
-    const summary = await apiRequest<{ totals: { costCents: number } }>(
+    const summary = await apiRequest<{ totals?: { costCents?: number } }>(
       request,
       `/orgs/${organizationId}/ai/cost-summary`,
     );
 
-    return summary.totals.costCents;
+    const costCents = summary?.totals?.costCents;
+
+    return Number.isFinite(costCents) ? (costCents as number) : 0;
   } catch (error) {
     if (isForbiddenApiResponse(error)) {
       return 0;
@@ -124,7 +127,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         name: project.name,
         status: 'Ready',
         updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
-        stack: project.gitRepositoryUrl ?? project.sourceType ?? 'Bolt project',
+        stack: projectStackLabel(project),
         sourceType: project.sourceType,
         previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
         ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
@@ -140,7 +143,7 @@ export default function DashboardPage() {
   return (
     <AppShell
       title="Dashboard"
-      description="Your production workspace hub for Bolt projects, runtime status, usage, billing and team operations."
+      description="Your production workspace hub for E-Code projects, runtime status, usage, billing and team operations."
       actions={
         <>
           <LinkButton to="/projects/new">New project</LinkButton>

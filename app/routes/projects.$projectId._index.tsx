@@ -28,7 +28,7 @@ export default function ProjectDashboardPage() {
     <ProjectShell
       projectId={project.id}
       title={project.name}
-      description={project.description ?? 'Persistent Bolt project backed by the production API.'}
+      description={project.description ?? 'Persistent E-Code project backed by the production API.'}
     >
       <div className="grid gap-6">
         <StatGrid

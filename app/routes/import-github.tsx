@@ -79,7 +79,7 @@ export default function ImportGithubPage() {
   return (
     <AppShell
       title="Import GitHub"
-      description="Import a repository into a persistent project, then open it in the Bolt IDE."
+      description="Import a repository into a persistent project, then open it in the E-Code IDE."
     >
       <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6">
         <Github className="mb-4 h-6 w-6 text-bolt-elements-textTertiary" aria-hidden />
