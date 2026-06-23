@@ -29,7 +29,7 @@ async function vercelUserLoader({ request }: { request: Request }) {
       signal: AbortSignal.timeout(15000),
       headers: {
         Authorization: `Bearer ${vercelToken}`,
-        'User-Agent': 'bolt.diy-app',
+        'User-Agent': 'e-code-app',
       },
     });
 
@@ -106,7 +106,7 @@ async function vercelUserAction({ request }: { request: Request }) {
         signal: AbortSignal.timeout(15000),
         headers: {
           Authorization: `Bearer ${vercelToken}`,
-          'User-Agent': 'bolt.diy-app',
+          'User-Agent': 'e-code-app',
         },
       });
 

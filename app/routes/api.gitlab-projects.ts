@@ -47,7 +47,7 @@ async function gitlabProjectsLoader({ request }: { request: Request }) {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
-        'User-Agent': 'bolt.diy-app',
+        'User-Agent': 'e-code-app',
       },
 
       // Bound the upstream call so a hung/blackhole GitLab host can't pin the handler.

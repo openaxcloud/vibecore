@@ -13,7 +13,7 @@ import type { GitHubUserResponse, GitHubStats } from '~/types/GitHub';
 const githubHeaders = (token: string) => ({
   Accept: 'application/vnd.github.v3+json',
   Authorization: `Bearer ${token}`,
-  'User-Agent': 'bolt.diy-app',
+  'User-Agent': 'e-code-app',
 });
 
 async function githubJson<T>(token: string, path: string): Promise<T> {

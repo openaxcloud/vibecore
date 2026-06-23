@@ -127,7 +127,7 @@ function formatIssueBody(data: z.infer<typeof bugReportSchema>): string {
     body += `**Contact:** ${data.contactEmail}\n\n`;
   }
 
-  body += '---\n*Submitted via bolt.diy bug report feature*';
+  body += '---\n*Submitted via E-Code bug report feature*';
 
   return body;
 }
@@ -215,7 +215,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
     // Initialize GitHub client
     const octokit = new Octokit({
       auth: githubToken,
-      userAgent: 'bolt.diy-bug-reporter',
+      userAgent: 'e-code-bug-reporter',
     });
 
     // Consume one rate-limit token now that the report is validated and accepted.

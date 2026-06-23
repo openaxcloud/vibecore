@@ -20,7 +20,7 @@ async function supabaseUserLoader({ request }: { request: Request }) {
       signal: AbortSignal.timeout(15000),
       headers: {
         Authorization: `Bearer ${supabaseToken}`,
-        'User-Agent': 'bolt.diy-app',
+        'User-Agent': 'e-code-app',
       },
     });
 
@@ -98,7 +98,7 @@ async function supabaseUserAction({ request }: { request: Request }) {
         signal: AbortSignal.timeout(15000),
         headers: {
           Authorization: `Bearer ${supabaseToken}`,
-          'User-Agent': 'bolt.diy-app',
+          'User-Agent': 'e-code-app',
         },
       });
 
@@ -157,7 +157,7 @@ async function supabaseUserAction({ request }: { request: Request }) {
         signal: AbortSignal.timeout(15000),
         headers: {
           Authorization: `Bearer ${supabaseToken}`,
-          'User-Agent': 'bolt.diy-app',
+          'User-Agent': 'e-code-app',
         },
       });
 

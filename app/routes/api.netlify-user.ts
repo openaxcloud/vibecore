@@ -20,7 +20,7 @@ async function netlifyUserLoader({ request }: { request: Request }) {
       signal: AbortSignal.timeout(15000),
       headers: {
         Authorization: `Bearer ${netlifyToken}`,
-        'User-Agent': 'bolt.diy-app',
+        'User-Agent': 'e-code-app',
       },
     });
 
@@ -87,7 +87,7 @@ async function netlifyUserAction({ request }: { request: Request }) {
         headers: {
           Authorization: `Bearer ${netlifyToken}`,
           'Content-Type': 'application/json',
-          'User-Agent': 'bolt.diy-app',
+          'User-Agent': 'e-code-app',
         },
       });
 

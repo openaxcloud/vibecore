@@ -72,7 +72,7 @@ async function githubBranchesLoader({ request }: { request: Request; context?: a
         headers: {
           Accept: 'application/vnd.github.v3+json',
           Authorization: `Bearer ${githubToken}`,
-          'User-Agent': 'bolt.diy-app',
+          'User-Agent': 'e-code-app',
         },
 
         // Bound the upstream call so a hung GitHub endpoint can't pin the handler.
@@ -102,7 +102,7 @@ async function githubBranchesLoader({ request }: { request: Request; context?: a
         headers: {
           Accept: 'application/vnd.github.v3+json',
           Authorization: `Bearer ${githubToken}`,
-          'User-Agent': 'bolt.diy-app',
+          'User-Agent': 'e-code-app',
         },
 
         // Bound the upstream call so a hung GitHub endpoint can't pin the handler.

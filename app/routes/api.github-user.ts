@@ -56,7 +56,7 @@ async function githubUserLoader({ request }: { request: Request; context?: unkno
       headers: {
         Accept: 'application/vnd.github.v3+json',
         Authorization: `Bearer ${githubToken}`,
-        'User-Agent': 'bolt.diy-app',
+        'User-Agent': 'e-code-app',
       },
 
       // Bound the upstream call so a hung GitHub endpoint can't pin the handler.
@@ -273,7 +273,7 @@ async function githubUserAction({ request }: { request: Request; context?: unkno
         headers: {
           Accept: 'application/vnd.github.v3+json',
           Authorization: `Bearer ${githubToken}`,
-          'User-Agent': 'bolt.diy-app',
+          'User-Agent': 'e-code-app',
         },
 
         // Bound the upstream call so a hung GitHub endpoint can't pin the handler.
@@ -325,7 +325,7 @@ async function githubUserAction({ request }: { request: Request; context?: unkno
         headers: {
           Accept: 'application/vnd.github.v3+json',
           Authorization: `Bearer ${githubToken}`,
-          'User-Agent': 'bolt.diy-app',
+          'User-Agent': 'e-code-app',
         },
 
         // Bound the upstream call so a hung GitHub endpoint can't pin the handler.
@@ -376,7 +376,7 @@ async function githubUserAction({ request }: { request: Request; context?: unkno
           headers: {
             Accept: 'application/vnd.github.v3+json',
             Authorization: `Bearer ${githubToken}`,
-            'User-Agent': 'bolt.diy-app',
+            'User-Agent': 'e-code-app',
           },
 
           // Bound the upstream call so a hung GitHub endpoint can't pin the handler.
