@@ -195,10 +195,23 @@ const inlineThemeCode = stripIndents`
       return;
     }
 
-    var existing = head.querySelectorAll('meta[name="' + name + '"]');
+    /*
+     * Update the EXISTING server-rendered meta IN PLACE — do NOT remove +
+     * re-append. This boot script runs before React hydrates; removing the
+     * theme-color / status-bar metas and appending fresh ones moves them to the
+     * end of <head>, so the pre-hydration meta order no longer matches the
+     * server HTML and React aborts hydration with a mismatch (#418/#423) on every
+     * page, re-rendering the whole document client-side. Mutating content in
+     * place keeps the head order identical. (The RUNTIME theme toggle in
+     * app/lib/stores/theme.ts still re-inserts the node for iOS chrome re-tint,
+     * which is safe because it runs after hydration.)
+     */
+    var existing = head.querySelector('meta[name="' + name + '"]');
 
-    for (var i = 0; i < existing.length; i++) {
-      existing[i].remove();
+    if (existing) {
+      existing.setAttribute('content', content);
+
+      return;
     }
 
     var meta = document.createElement('meta');
@@ -221,14 +234,16 @@ const inlineThemeCode = stripIndents`
  */
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="dark">
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <meta name="theme-color" content="#0a0f1c" />
+        {/* content is intentionally adjusted client-side by the inline theme boot script
+            (light vs dark), so suppress the benign hydration attribute warning. */}
+        <meta name="theme-color" content="#0a0f1c" suppressHydrationWarning />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" suppressHydrationWarning />
         <meta name="apple-mobile-web-app-title" content="E-Code" />
         <Meta />
         <Links />
