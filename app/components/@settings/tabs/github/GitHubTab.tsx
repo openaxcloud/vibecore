@@ -8,6 +8,7 @@ import { GitHubProgressiveLoader } from './components/GitHubProgressiveLoader';
 import { GitHubStats } from './components/GitHubStats';
 import { GitHubUserProfile } from './components/GitHubUserProfile';
 import { LoadingState, ErrorState, ConnectionTestIndicator, RepositoryCard } from './components/shared';
+import { splitRepos } from './github-repos-display';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
 import { useGitHubConnection, useGitHubStats } from '~/lib/hooks';
@@ -35,6 +36,7 @@ export default function GitHubTab() {
   const {
     stats,
     isLoading: isStatsLoading,
+    isRefreshing: isStatsRefreshing,
     error: statsError,
   } = useGitHubStats(
     connection,
@@ -154,6 +156,12 @@ export default function GitHubTab() {
             </h2>
           </div>
           <div className="flex items-center gap-2">
+            {isStatsRefreshing && stats && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-bolt-elements-background-depth-1 rounded-lg text-xs">
+                <div className="i-ph:spinner-gap w-4 h-4 animate-spin text-bolt-elements-item-contentAccent" />
+                <span className="text-bolt-elements-textSecondary">Refreshing…</span>
+              </div>
+            )}
             {connection?.rateLimit && (
               <div className="flex items-center gap-2 px-3 py-1 bg-bolt-elements-background-depth-1 rounded-lg text-xs">
                 <div className="i-ph:cloud w-4 h-4 text-bolt-elements-textSecondary" />
@@ -193,53 +201,64 @@ export default function GitHubTab() {
             transition={{ delay: 0.4 }}
             className="border-t border-bolt-elements-borderColor pt-6"
           >
-            <Collapsible open={isReposExpanded} onOpenChange={setIsReposExpanded}>
-              <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between p-4 rounded-lg bg-bolt-elements-background dark:bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor hover:border-bolt-elements-borderColorActive/70 dark:hover:border-bolt-elements-borderColorActive/70 transition-all duration-200">
-                  <div className="flex items-center gap-2">
-                    <div className="i-ph:folder w-4 h-4 text-bolt-elements-item-contentAccent" />
-                    <span className="text-sm font-medium text-bolt-elements-textPrimary">
-                      All Repositories ({stats.repos.length})
-                    </span>
-                  </div>
-                  <ChevronDown
-                    className={classNames(
-                      'w-4 h-4 transform transition-transform duration-200 text-bolt-elements-textSecondary',
-                      isReposExpanded ? 'rotate-180' : '',
-                    )}
-                  />
-                </div>
-              </CollapsibleTrigger>
+            {(() => {
+              const { preview, remaining, hasMore, hiddenCount } = splitRepos(stats.repos);
 
-              <CollapsibleContent className="overflow-hidden">
-                <div className="mt-4 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {(isReposExpanded ? stats.repos : stats.repos.slice(0, 12)).map((repo) => (
-                      <RepositoryCard
-                        key={repo.full_name}
-                        repository={repo}
-                        variant="detailed"
-                        showHealthScore
-                        showExtendedMetrics
-                        onSelect={() => window.open(repo.html_url, '_blank', 'noopener,noreferrer')}
-                      />
-                    ))}
-                  </div>
+              const renderRepo = (repo: (typeof stats.repos)[number]) => (
+                <RepositoryCard
+                  key={repo.full_name}
+                  repository={repo}
+                  variant="detailed"
+                  showHealthScore
+                  showExtendedMetrics
+                  onSelect={() => window.open(repo.html_url, '_blank', 'noopener,noreferrer')}
+                />
+              );
 
-                  {stats.repos.length > 12 && !isReposExpanded && (
-                    <div className="text-center">
-                      <Button
-                        variant="outline"
-                        onClick={() => setIsReposExpanded(true)}
-                        className="text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
-                      >
-                        Show {stats.repos.length - 12} more repositories
-                      </Button>
+              return (
+                <Collapsible open={isReposExpanded} onOpenChange={setIsReposExpanded}>
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-bolt-elements-background dark:bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor">
+                    <div className="flex items-center gap-2">
+                      <div className="i-ph:folder w-4 h-4 text-bolt-elements-item-contentAccent" />
+                      <span className="text-sm font-medium text-bolt-elements-textPrimary">
+                        All Repositories ({stats.repos.length})
+                      </span>
                     </div>
-                  )}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+                  </div>
+
+                  {/* Preview list — always visible so the section is never empty */}
+                  <div className="mt-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{preview.map(renderRepo)}</div>
+
+                    {/* Remaining repositories — revealed by the Collapsible */}
+                    {hasMore && (
+                      <CollapsibleContent className="overflow-hidden">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{remaining.map(renderRepo)}</div>
+                      </CollapsibleContent>
+                    )}
+
+                    {hasMore && (
+                      <div className="text-center">
+                        <CollapsibleTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+                          >
+                            <ChevronDown
+                              className={classNames(
+                                'w-4 h-4 mr-1 transform transition-transform duration-200',
+                                isReposExpanded ? 'rotate-180' : '',
+                              )}
+                            />
+                            {isReposExpanded ? 'Show fewer repositories' : `Show ${hiddenCount} more repositories`}
+                          </Button>
+                        </CollapsibleTrigger>
+                      </div>
+                    )}
+                  </div>
+                </Collapsible>
+              );
+            })()}
           </motion.div>
         )}
 

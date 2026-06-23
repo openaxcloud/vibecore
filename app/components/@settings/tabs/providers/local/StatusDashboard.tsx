@@ -1,7 +1,30 @@
-import { Cable, Server, ArrowLeft } from 'lucide-react';
+import { Cable, Globe, Monitor, Server, ArrowLeft } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import React from 'react';
 import HealthStatusBadge from './HealthStatusBadge';
-import { PROVIDER_ICONS } from './types';
+import type { ProviderName } from './types';
+
+/**
+ * Real lucide component references keyed by provider name.
+ *
+ * Note: `PROVIDER_ICONS` in ./types.ts stores plain icon *names* (strings),
+ * which cannot be handed to `React.createElement` directly — doing so creates
+ * a custom DOM element (e.g. `<Server>`) instead of rendering the icon.
+ * This map provides the actual components so the dashboard renders real icons.
+ */
+export const PROVIDER_ICON_COMPONENTS: Record<ProviderName, LucideIcon> = {
+  Ollama: Server,
+  LMStudio: Monitor,
+  OpenAILike: Globe,
+};
+
+/**
+ * Resolve the lucide icon component for a provider, falling back to `Server`
+ * for unknown providers.
+ */
+export function getProviderIcon(provider: string): LucideIcon {
+  return PROVIDER_ICON_COMPONENTS[provider as ProviderName] ?? Server;
+}
 import { Button } from '~/components/ui/Button';
 import { Card, CardContent } from '~/components/ui/Card';
 import { useLocalModelHealth } from '~/lib/hooks/useLocalModelHealth';
@@ -47,7 +70,7 @@ function StatusDashboard({ onBack }: { onBack: () => void }) {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-bolt-elements-background-depth-3 flex items-center justify-center">
-                      {React.createElement(PROVIDER_ICONS[status.provider as keyof typeof PROVIDER_ICONS] || Server, {
+                      {React.createElement(getProviderIcon(status.provider), {
                         className: 'w-5 h-5 text-bolt-elements-textPrimary',
                       })}
                     </div>

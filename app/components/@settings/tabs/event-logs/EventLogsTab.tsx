@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { countMatchingLogs } from './log-search';
 import { Dialog, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { Switch } from '~/components/ui/Switch';
 import { logStore, type LogEntry } from '~/lib/stores/logs';
@@ -322,22 +323,38 @@ export function EventLogsTab() {
     [selectedLevel],
   );
 
-  // Log search changes with debounce
+  /*
+   * Keep the latest logs/level in a ref so the debounced search-logging effect
+   * can compute the result count WITHOUT depending on `filteredLogs.length`.
+   * The effect below writes a log entry whose message embeds `searchQuery`; that
+   * entry matches the active query and would bump `filteredLogs.length`, which —
+   * if it were an effect dependency — re-fires the effect and produces an
+   * indefinite once-per-second log/localStorage storm.
+   */
+  const searchCountInputsRef = useRef({ logs: Object.values(logs), selectedLevel });
+  searchCountInputsRef.current = { logs: Object.values(logs), selectedLevel };
+
+  // Log search changes with debounce (depends only on searchQuery — see ref note above)
   useEffect(() => {
+    if (!searchQuery) {
+      return undefined;
+    }
+
     const timeoutId = setTimeout(() => {
-      if (searchQuery) {
-        logStore.logInfo('Log search performed', {
-          type: 'search',
-          message: `Search performed with query "${searchQuery}" (${filteredLogs.length} results)`,
-          component: 'EventLogsTab',
-          query: searchQuery,
-          resultsCount: filteredLogs.length,
-        });
-      }
+      const { logs: currentLogs, selectedLevel: currentLevel } = searchCountInputsRef.current;
+      const resultsCount = countMatchingLogs(currentLogs, currentLevel, searchQuery);
+
+      logStore.logInfo('Log search performed', {
+        type: 'search',
+        message: `Search performed with query "${searchQuery}" (${resultsCount} results)`,
+        component: 'EventLogsTab',
+        query: searchQuery,
+        resultsCount,
+      });
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, filteredLogs.length]);
+  }, [searchQuery]);
 
   // Enhanced refresh handler
   const handleRefresh = useCallback(async () => {

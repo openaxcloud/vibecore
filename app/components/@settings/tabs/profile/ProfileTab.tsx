@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { downscaleAvatarDataUrl, isQuotaExceededError } from './avatar-upload';
 import { profileStore, updateProfile } from '~/lib/stores/profile';
 import { classNames } from '~/utils/classNames';
 import { debounce } from '~/utils/debounce';
@@ -31,11 +32,34 @@ export default function ProfileTab() {
       // Convert the file to base64
       const reader = new FileReader();
 
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        updateProfile({ avatar: base64String });
-        setIsUploading(false);
-        toast.success('Profile picture updated');
+      reader.onloadend = async () => {
+        try {
+          const base64String = reader.result as string;
+
+          /*
+           * Downscale/compress before persisting. A raw photo encoded as base64
+           * easily exceeds the ~5MB localStorage quota; shrinking it keeps the
+           * write within budget. Falls back to the original if compression fails.
+           */
+          const optimized = await downscaleAvatarDataUrl(base64String);
+
+          /*
+           * updateProfile persists synchronously to localStorage and can throw
+           * QuotaExceededError, so this must stay inside the try/catch.
+           */
+          updateProfile({ avatar: optimized });
+          toast.success('Profile picture updated');
+        } catch (error) {
+          console.error('Error saving avatar:', error);
+
+          if (isQuotaExceededError(error)) {
+            toast.error('Image is too large to save. Please choose a smaller picture.');
+          } else {
+            toast.error('Failed to update profile picture');
+          }
+        } finally {
+          setIsUploading(false);
+        }
       };
 
       reader.onerror = () => {

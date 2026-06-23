@@ -1,8 +1,8 @@
-import { motion } from 'framer-motion';
-import { Search, RefreshCw, GitBranch, Calendar, Filter } from 'lucide-react';
-import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, RefreshCw, GitBranch, Calendar, Filter, Check, Shield, Star, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { GitHubRepositoryCard } from './GitHubRepositoryCard';
-import { BranchSelector } from '~/components/ui/BranchSelector';
+import { resolveCloneBranches, type CloneBranchInfo } from './githubBranches';
 import { Button } from '~/components/ui/Button';
 import { useGitHubConnection, useGitHubStats } from '~/lib/hooks';
 import type { GitHubRepoInfo } from '~/types/GitHub';
@@ -36,6 +36,23 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isBranchSelectorOpen, setIsBranchSelectorOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /*
+   * Branch selector modal state (resolved via githubBranches helper so it works
+   * for both legacy client-token and OAuth/server-side connections).
+   */
+  const [branches, setBranches] = useState<CloneBranchInfo[]>([]);
+  const [branchSearchQuery, setBranchSearchQuery] = useState('');
+  const [selectedBranch, setSelectedBranch] = useState('');
+  const [isBranchesLoading, setIsBranchesLoading] = useState(false);
+  const [branchError, setBranchError] = useState<string | null>(null);
+
+  /*
+   * Sequence guard: only the latest in-flight branch fetch may apply its
+   * results, so a slow repo-A response can't overwrite a freshly-loaded
+   * repo-B list.
+   */
+  const branchFetchSeqRef = useRef(0);
 
   const repositories = stats?.repos || [];
   const REPOS_PER_PAGE = 12;
@@ -113,29 +130,90 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
     }
   };
 
+  const fetchBranchesForRepo = async (repo: GitHubRepoInfo) => {
+    const seq = ++branchFetchSeqRef.current;
+    setIsBranchesLoading(true);
+    setBranchError(null);
+
+    try {
+      const { branches: resolved, defaultBranch } = await resolveCloneBranches(
+        connection,
+        repo.full_name,
+        repo.default_branch,
+      );
+
+      if (seq !== branchFetchSeqRef.current) {
+        return;
+      }
+
+      setBranches(resolved);
+      setBranchSearchQuery('');
+      setSelectedBranch(defaultBranch || repo.default_branch || 'main');
+    } catch (err) {
+      if (seq !== branchFetchSeqRef.current) {
+        return;
+      }
+
+      console.error('Failed to fetch branches:', err);
+      setBranchError(err instanceof Error ? err.message : 'Failed to fetch branches');
+      setBranches([]);
+    } finally {
+      if (seq === branchFetchSeqRef.current) {
+        setIsBranchesLoading(false);
+      }
+    }
+  };
+
   const handleCloneRepository = (repo: GitHubRepoInfo) => {
     setSelectedRepo(repo);
     setIsBranchSelectorOpen(true);
+    setBranches([]);
+    setBranchError(null);
+    setSelectedBranch('');
+    fetchBranchesForRepo(repo);
   };
 
-  const handleBranchSelect = (branch: string) => {
-    if (onClone && selectedRepo) {
+  const handleConfirmBranchSelection = () => {
+    if (onClone && selectedRepo && selectedBranch) {
       const cloneUrl = selectedRepo.html_url + '.git';
-      onClone(cloneUrl, branch);
+      onClone(cloneUrl, selectedBranch);
     }
 
+    setIsBranchSelectorOpen(false);
     setSelectedRepo(null);
   };
 
   const handleCloseBranchSelector = () => {
     setIsBranchSelectorOpen(false);
     setSelectedRepo(null);
+    setBranchError(null);
   };
 
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, sortBy, filterBy]);
+
+  // Esc closes the branch selector modal.
+  useEffect(() => {
+    if (!isBranchSelectorOpen) {
+      return undefined;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        handleCloseBranchSelector();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isBranchSelectorOpen]);
+
+  const filteredBranches = branches.filter((branch) =>
+    branch.name.toLowerCase().includes(branchSearchQuery.toLowerCase()),
+  );
 
   if (!isConnected || !connection) {
     return (
@@ -310,18 +388,154 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
       )}
 
       {/* Branch Selector Modal */}
-      {selectedRepo && (
-        <BranchSelector
-          provider="github"
-          repoOwner={selectedRepo.full_name.split('/')[0] ?? ''}
-          repoName={selectedRepo.full_name.split('/')[1] ?? ''}
-          token={connection?.token || ''}
-          defaultBranch={selectedRepo.default_branch}
-          onBranchSelect={handleBranchSelect}
-          onClose={handleCloseBranchSelector}
-          isOpen={isBranchSelectorOpen}
-        />
-      )}
+      <AnimatePresence>
+        {isBranchSelectorOpen && selectedRepo && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={handleCloseBranchSelector}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              role="dialog"
+              aria-modal="true"
+              onClick={(e) => e.stopPropagation()}
+              className="bg-bolt-elements-background-depth-2 rounded-xl shadow-xl border border-bolt-elements-borderColor max-w-md w-full max-h-[80vh] flex flex-col"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-bolt-elements-borderColor flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <GitBranch className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">Select Branch</h3>
+                    <p className="text-sm text-bolt-elements-textSecondary">{selectedRepo.full_name}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close"
+                  title="Close"
+                  onClick={handleCloseBranchSelector}
+                  className="p-2 rounded-lg hover:bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-all"
+                >
+                  <X className="w-5 h-5" aria-hidden />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-hidden flex flex-col">
+                {isBranchesLoading ? (
+                  <div className="flex flex-col items-center justify-center p-8 space-y-4">
+                    <div className="animate-spin w-8 h-8 border-2 border-bolt-elements-borderColorActive border-t-transparent rounded-full" />
+                    <p className="text-sm text-bolt-elements-textSecondary">Loading branches...</p>
+                  </div>
+                ) : branchError ? (
+                  <div className="flex flex-col items-center justify-center p-8 space-y-4" role="alert">
+                    <div className="text-red-500 mb-2">
+                      <GitBranch className="w-8 h-8 mx-auto" />
+                    </div>
+                    <p className="text-sm text-red-600 text-center">{branchError}</p>
+                    <Button onClick={() => fetchBranchesForRepo(selectedRepo)} variant="outline" size="sm">
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Retry
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    {/* Search */}
+                    {branches.length > 10 && (
+                      <div className="p-4 border-b border-bolt-elements-borderColor">
+                        <input
+                          type="text"
+                          placeholder="Search branches..."
+                          value={branchSearchQuery}
+                          onChange={(e) => setBranchSearchQuery(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive"
+                        />
+                      </div>
+                    )}
+
+                    {/* Branch List */}
+                    <div className="flex-1 overflow-y-auto">
+                      {filteredBranches.length > 0 ? (
+                        <div className="p-4 space-y-1">
+                          {filteredBranches.map((branch) => (
+                            <button
+                              key={branch.name}
+                              onClick={() => setSelectedBranch(branch.name)}
+                              className={classNames(
+                                'w-full text-left p-3 rounded-lg transition-all duration-200 border',
+                                selectedBranch === branch.name
+                                  ? 'bg-blue-50 border-blue-200 text-blue-900 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-100'
+                                  : 'bg-bolt-elements-background-depth-1 border-transparent hover:bg-bolt-elements-background-depth-2',
+                              )}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <GitBranch className="w-4 h-4 flex-shrink-0 text-bolt-elements-textSecondary" />
+                                  <span className="font-medium text-bolt-elements-textPrimary truncate">
+                                    {branch.name}
+                                  </span>
+                                  <div className="flex items-center gap-1 flex-shrink-0">
+                                    {branch.isDefault && <Star className="w-3 h-3 text-yellow-500" />}
+                                    {branch.protected && <Shield className="w-3 h-3 text-red-500" />}
+                                  </div>
+                                </div>
+                                {selectedBranch === branch.name && <Check className="w-4 h-4 text-blue-600" />}
+                              </div>
+                              {branch.sha && (
+                                <div className="text-xs text-bolt-elements-textSecondary mt-1 truncate">
+                                  {branch.sha.substring(0, 8)}
+                                </div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center p-8">
+                          <p className="text-sm text-bolt-elements-textSecondary">
+                            {branchSearchQuery ? 'No branches found matching your search.' : 'No branches available.'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Footer */}
+              {!isBranchesLoading && !branchError && branches.length > 0 && (
+                <div className="p-6 border-t border-bolt-elements-borderColor flex items-center justify-between">
+                  <div className="text-sm text-bolt-elements-textSecondary">
+                    {selectedBranch && (
+                      <>
+                        Selected: <span className="font-medium">{selectedBranch}</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button onClick={handleCloseBranchSelector} variant="outline" size="sm">
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleConfirmBranchSelection}
+                      disabled={!selectedBranch}
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Clone Branch
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

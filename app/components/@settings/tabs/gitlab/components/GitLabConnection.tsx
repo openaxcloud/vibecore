@@ -25,21 +25,12 @@ export default function GitLabConnection({ connectionTest, onTestConnection }: G
   const handleConnect = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    console.log('GitLab connect attempt:', {
-      token: token ? `${token.substring(0, 10)}...` : 'empty',
-      gitlabUrl,
-      tokenLength: token.length,
-    });
-
     if (!token.trim()) {
-      console.log('Token is empty, not attempting connection');
       return;
     }
 
     try {
-      console.log('Calling connect function...');
       await connect(token, gitlabUrl);
-      console.log('Connect function completed successfully');
       setToken(''); // Clear token on successful connection
     } catch (error) {
       console.error('GitLab connect failed:', error);
@@ -160,40 +151,29 @@ export default function GitLabConnection({ connectionTest, onTestConnection }: G
 
           <div className="flex items-center justify-between">
             {!isConnected ? (
-              <>
-                <button
-                  type="submit"
-                  disabled={isConnecting || !token.trim()}
-                  className={classNames(
-                    'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                    'bg-[#FC6D26] text-white',
-                    'hover:bg-[#E24329] hover:text-white',
-                    'disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200',
-                    'transform active:scale-95',
-                  )}
-                >
-                  {isConnecting ? (
-                    <>
-                      <div className="i-ph:spinner-gap animate-spin" />
-                      Connecting...
-                    </>
-                  ) : (
-                    <>
-                      <div className="i-ph:plug-charging w-4 h-4" />
-                      Connect
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    console.log('Manual test:', { token: token ? `${token.substring(0, 10)}...` : 'empty', gitlabUrl })
-                  }
-                  className="px-4 py-2 rounded-lg text-sm bg-gray-500 text-white hover:bg-gray-600"
-                >
-                  Test Values
-                </button>
-              </>
+              <button
+                type="submit"
+                disabled={isConnecting || !token.trim()}
+                className={classNames(
+                  'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
+                  'bg-[#FC6D26] text-white',
+                  'hover:bg-[#E24329] hover:text-white',
+                  'disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200',
+                  'transform active:scale-95',
+                )}
+              >
+                {isConnecting ? (
+                  <>
+                    <div className="i-ph:spinner-gap animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <div className="i-ph:plug-charging w-4 h-4" />
+                    Connect
+                  </>
+                )}
+              </button>
             ) : (
               <>
                 <div className="flex items-center justify-between w-full">

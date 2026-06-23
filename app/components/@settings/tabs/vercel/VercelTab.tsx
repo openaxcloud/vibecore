@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import Cookies from 'js-cookie';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { normalizeVercelUser } from './vercel-connect';
 import { ConnectorApiKeyConnectButton } from '~/components/@settings/shared/connectors';
 import { ServiceHeader, ConnectionTestIndicator } from '~/components/@settings/shared/service-integration';
 import { Button } from '~/components/ui/Button';
@@ -236,17 +237,17 @@ export default function VercelTab() {
 
       const userData = (await testResponse.json()) as VercelUserResponse;
 
-      // Set cookies for server-side API access
-      Cookies.set('VITE_VERCEL_ACCESS_TOKEN', token, { expires: 365 });
+      /*
+       * SECURITY: never persist the Vercel access token to a JavaScript-readable
+       * cookie. It is a long-lived, high-privilege credential (can delete
+       * projects / trigger deployments); a non-httpOnly cookie is exfiltratable
+       * by any XSS in the app. The token is held in-memory for this session and
+       * server-side access goes through the connector flow
+       * (ConnectorApiKeyConnectButton), which stores it encrypted at rest.
+       */
 
       // Normalize the user data structure
-      const normalizedUser = userData.user || {
-        id: userData.id || '',
-        username: userData.username || '',
-        email: userData.email || '',
-        name: userData.name || '',
-        avatar: userData.avatar,
-      };
+      const normalizedUser = normalizeVercelUser(userData);
 
       updateVercelConnection({
         user: normalizedUser,

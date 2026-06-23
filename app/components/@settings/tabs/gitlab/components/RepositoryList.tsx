@@ -3,6 +3,21 @@ import { RepositoryCard } from './RepositoryCard';
 import { Button } from '~/components/ui/Button';
 import type { GitLabProjectInfo } from '~/types/GitLab';
 
+export function filterRepositories(repositories: GitLabProjectInfo[], searchQuery: string): GitLabProjectInfo[] {
+  if (!searchQuery) {
+    return repositories;
+  }
+
+  const query = searchQuery.toLowerCase();
+
+  return repositories.filter(
+    (repo) =>
+      repo.name.toLowerCase().includes(query) ||
+      repo.path_with_namespace.toLowerCase().includes(query) ||
+      (repo.description ? repo.description.toLowerCase().includes(query) : false),
+  );
+}
+
 interface RepositoryListProps {
   repositories: GitLabProjectInfo[];
   onClone?: (repo: GitLabProjectInfo) => void;
@@ -15,26 +30,11 @@ const MAX_REPOS_PER_PAGE = 20;
 export function RepositoryList({ repositories, onClone, onRefresh, isRefreshing }: RepositoryListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [isSearching, setIsSearching] = useState(false);
 
-  const filteredRepositories = useMemo(() => {
-    if (!searchQuery) {
-      return repositories;
-    }
-
-    setIsSearching(true);
-
-    const filtered = repositories.filter(
-      (repo) =>
-        repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        repo.path_with_namespace.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (repo.description && repo.description.toLowerCase().includes(searchQuery.toLowerCase())),
-    );
-
-    setIsSearching(false);
-
-    return filtered;
-  }, [repositories, searchQuery]);
+  const filteredRepositories = useMemo(
+    () => filterRepositories(repositories, searchQuery),
+    [repositories, searchQuery],
+  );
 
   const totalPages = Math.ceil(filteredRepositories.length / MAX_REPOS_PER_PAGE);
   const startIndex = (currentPage - 1) * MAX_REPOS_PER_PAGE;
@@ -80,11 +80,7 @@ export function RepositoryList({ repositories, onClone, onRefresh, isRefreshing 
           className="w-full px-4 py-2 pl-10 rounded-lg bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive"
         />
         <div className="absolute left-3 top-1/2 -translate-y-1/2">
-          {isSearching ? (
-            <div className="i-ph:spinner animate-spin w-4 h-4 text-bolt-elements-textSecondary" />
-          ) : (
-            <div className="i-ph:magnifying-glass w-4 h-4 text-bolt-elements-textSecondary" />
-          )}
+          <div className="i-ph:magnifying-glass w-4 h-4 text-bolt-elements-textSecondary" />
         </div>
       </div>
 

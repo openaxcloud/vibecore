@@ -18,6 +18,18 @@ import {
 } from '~/lib/stores/supabase';
 import { classNames } from '~/utils/classNames';
 
+/**
+ * Produce a human-readable status badge label for a Supabase project.
+ *
+ * `project.status` originates from the Supabase Management API response, which is
+ * typed `as any` in fetchSupabaseStats (app/lib/stores/supabase.ts). If the API
+ * omits/null's `status` (or schema-drifts), calling `.replace` directly would throw
+ * during render and crash the whole projects list, so we coerce to 'UNKNOWN' first.
+ */
+export function formatProjectStatusLabel(status: string | null | undefined): string {
+  return (status ?? 'UNKNOWN').replace('_', ' ');
+}
+
 interface ConnectionTestResult {
   status: 'success' | 'error' | 'testing';
   message: string;
@@ -410,7 +422,7 @@ export default function SupabaseTab() {
                                       : 'bg-gray-500',
                               )}
                             />
-                            {project.status.replace('_', ' ')}
+                            {formatProjectStatusLabel(project.status)}
                           </span>
                         </div>
 

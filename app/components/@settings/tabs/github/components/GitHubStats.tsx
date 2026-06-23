@@ -54,6 +54,12 @@ function GitHubStatsContent({
   isExpanded: boolean;
   onToggleExpanded: (expanded: boolean) => void;
 }) {
+  /*
+   * Guard against legacy/partial cached blobs that may lack `languages`
+   * (cache can be hydrated from localStorage or connection.stats, neither validates shape).
+   */
+  const languages = stats?.languages ?? {};
+
   if (!stats) {
     return (
       <div className="mt-6 border-t border-bolt-elements-borderColor dark:border-bolt-elements-borderColor pt-6">
@@ -142,7 +148,7 @@ function GitHubStatsContent({
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {Object.entries(stats.languages)
+                  {Object.entries(languages)
                     .sort(([, a], [, b]) => b - a)
                     .slice(0, 5)
                     .map(([language]) => (
@@ -179,7 +185,7 @@ function GitHubStatsContent({
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-bolt-elements-textPrimary">
-                    {Object.keys(stats.languages).length}
+                    {Object.keys(languages).length}
                   </div>
                   <div className="text-xs text-bolt-elements-textSecondary">Languages Used</div>
                 </div>

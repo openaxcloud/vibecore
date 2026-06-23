@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { settingsPersistenceSnapshot } from './settings-snapshot';
 import type { UserProfile } from '~/components/@settings/core/types';
 import { Switch } from '~/components/ui/Switch';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
@@ -107,7 +108,14 @@ export default function SettingsTab() {
                * save effect below treats this merge as a no-op.
                */
               localStorage.setItem('bolt_user_profile', JSON.stringify({ ...prev, ...merged }));
-              lastPersistedRef.current = JSON.stringify(merged);
+
+              /*
+               * Use the same 3-key snapshot shape the save effect compares
+               * against. `merged` carries extra keys from `prev` (e.g. `theme`),
+               * so stringifying it directly would never match the save effect's
+               * snapshot and would fire a redundant PATCH + toast on every mount.
+               */
+              lastPersistedRef.current = settingsPersistenceSnapshot(merged);
 
               return merged;
             });
@@ -147,11 +155,7 @@ export default function SettingsTab() {
         return;
       }
 
-      const snapshot = JSON.stringify({
-        notifications: settings.notifications,
-        language: settings.language,
-        timezone: settings.timezone,
-      });
+      const snapshot = settingsPersistenceSnapshot(settings);
 
       if (snapshot === lastPersistedRef.current) {
         return;

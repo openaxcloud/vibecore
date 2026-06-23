@@ -6,7 +6,14 @@ import { classNames } from '~/utils/classNames';
 interface CacheEntry {
   key: string;
   size: number;
-  timestamp: number;
+
+  /**
+   * The real creation timestamp persisted in the cached value, if any. Some cache keys
+   * (e.g. github_connection) store a raw object with no timestamp field — for those this
+   * is left undefined rather than substituted with Date.now(), so that "oldest" and
+   * expiry calculations don't treat every timestamp-less entry as freshly created.
+   */
+  timestamp?: number;
   lastAccessed: number;
   data: any;
 }
@@ -25,7 +32,7 @@ interface GitHubCacheManagerProps {
 }
 
 // Cache management utilities
-class CacheManagerService {
+export class CacheManagerService {
   private static readonly _cachePrefix = 'github_';
   private static readonly _cacheKeys = [
     'github_connection',
@@ -44,11 +51,17 @@ class CacheManagerService {
 
         if (data) {
           const parsed = JSON.parse(data);
+          const rawTimestamp = parsed && typeof parsed.timestamp === 'number' ? parsed.timestamp : undefined;
+          const rawLastAccessed = parsed && typeof parsed.lastAccessed === 'number' ? parsed.lastAccessed : undefined;
           entries.push({
             key,
             size: new Blob([data]).size,
-            timestamp: parsed.timestamp || Date.now(),
-            lastAccessed: parsed.lastAccessed || Date.now(),
+
+            // Only carry a timestamp when the cached value actually has one; do not fabricate Date.now().
+            timestamp: rawTimestamp,
+
+            // lastAccessed is purely a display/sort hint, so falling back to now() is acceptable here.
+            lastAccessed: rawLastAccessed ?? Date.now(),
             data: parsed,
           });
         }
@@ -73,13 +86,18 @@ class CacheManagerService {
     }
 
     const totalSize = entries.reduce((sum, entry) => sum + entry.size, 0);
-    const timestamps = entries.map((e) => e.timestamp);
+
+    /*
+     * Only entries with a real persisted timestamp contribute to oldest/newest. Entries
+     * without one (e.g. github_connection) would otherwise pin the range to "now".
+     */
+    const timestamps = entries.map((e) => e.timestamp).filter((t): t is number => typeof t === 'number');
 
     return {
       totalSize,
       totalEntries: entries.length,
-      oldestEntry: Math.min(...timestamps),
-      newestEntry: Math.max(...timestamps),
+      oldestEntry: timestamps.length > 0 ? Math.min(...timestamps) : 0,
+      newestEntry: timestamps.length > 0 ? Math.max(...timestamps) : 0,
     };
   }
 
@@ -98,6 +116,14 @@ class CacheManagerService {
     let removedCount = 0;
 
     for (const entry of entries) {
+      /*
+       * Skip entries without a real timestamp — we can't know whether they're expired,
+       * and defaulting to now() would make them appear permanently fresh.
+       */
+      if (typeof entry.timestamp !== 'number') {
+        continue;
+      }
+
       if (now - entry.timestamp > maxAge) {
         localStorage.removeItem(entry.key);
         removedCount++;
