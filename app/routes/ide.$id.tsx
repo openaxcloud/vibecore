@@ -22,7 +22,7 @@ export default function IdeProjectCompatibilityPage() {
     icon: MonitorPlay,
     primaryAction: ['Open canonical IDE', `/projects/${projectId}/ide`],
     secondaryAction: ['Projects', '/projects'],
-    highlights: ['Canonical route', 'Bolt IDE preserved', 'Runtime panels', 'Team controls'],
+    highlights: ['Canonical route', 'E-Code IDE preserved', 'Runtime panels', 'Team controls'],
     sections: [
       {
         title: 'Compatibility behavior',
@@ -31,7 +31,7 @@ export default function IdeProjectCompatibilityPage() {
       },
       {
         title: 'Production boundary',
-        body: 'The actual IDE surface remains the preserved Bolt workspace rather than a duplicate implementation.',
+        body: 'The actual IDE surface remains the preserved E-Code workspace rather than a duplicate implementation.',
         items: ['No duplicate IDE', 'Shared project model', 'Existing panels', 'Deployment controls'],
       },
     ],

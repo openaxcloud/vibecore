@@ -1,6 +1,7 @@
 import { data as json } from 'react-router';
 import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 import { readSessionToken } from '~/lib/enterprise-api.server';
+import { buildRedirectHeaders } from '~/lib/git-proxy-redirect';
 
 /*
  * Same-origin CORS origin for the git proxy. The IDE's isomorphic-git client
@@ -342,26 +343,13 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
       await response.body?.cancel().catch(() => {});
 
       /*
-       * Drop the caller's git credential (Authorization/Basic PAT) when the
-       * redirect leaves the original origin. Even a redirect to a public host is
-       * a third party that must never receive the user's token. The SSRF guard
-       * above only blocks internal targets; it does not stop credential leakage
-       * to an arbitrary external host the attacker controls.
+       * Build the per-hop header set. This drops the caller's git credential
+       * (Authorization/Basic PAT) when the redirect leaves the original origin —
+       * even a redirect to a public host is a third party that must never receive
+       * the user's token — AND re-points the explicit Host header at the new
+       * target so undici doesn't send a stale Host naming the previous domain.
        */
-      const nextOrigin = (() => {
-        try {
-          return new URL(nextUrl).origin;
-        } catch {
-          return null;
-        }
-      })();
-
-      const redirectHeaders = new Headers(headers);
-
-      if (!initialOrigin || nextOrigin !== initialOrigin) {
-        redirectHeaders.delete('authorization');
-        redirectHeaders.delete('x-authorization');
-      }
+      const redirectHeaders = buildRedirectHeaders(headers, nextUrl, initialOrigin);
 
       /*
        * Redirects are followed as GET without the original body (matches fetch's

@@ -9,6 +9,8 @@ describe('detectHunkLanguage', () => {
     expect(detectHunkLanguage('lib/run.js')).toBe('javascript');
     expect(detectHunkLanguage('component.jsx')).toBe('jsx');
     expect(detectHunkLanguage('package.json')).toBe('json');
+    expect(detectHunkLanguage('tsconfig.jsonc')).toBe('jsonc');
+    expect(detectHunkLanguage('.babelrc.json5')).toBe('jsonc');
     expect(detectHunkLanguage('styles/app.css')).toBe('css');
     expect(detectHunkLanguage('styles/theme.scss')).toBe('scss');
     expect(detectHunkLanguage('docs/intro.md')).toBe('markdown');
@@ -62,6 +64,49 @@ export const App: FC = () => <div className="x">hello</div>;
 
     if (result.kind === 'error') {
       expect(result.language).toBe('json');
+    }
+  });
+
+  it('does not strict-parse JSONC with comments and trailing commas (no self-repair)', async () => {
+    const source = `{
+  // tsconfig with comments
+  "compilerOptions": {
+    "strict": true, // trailing comma below is legal JSONC
+  },
+}`;
+
+    const result = await validateAndFormatHunk('tsconfig.jsonc', source, { format: false });
+
+    /*
+     * Must NOT be an error — an error would drive a needless self-repair
+     * round-trip that strips the comments.
+     */
+    expect(result.kind).toBe('ok');
+
+    if (result.kind === 'ok') {
+      expect(result.language).toBe('jsonc');
+      expect(result.formatted).toBe(source);
+    }
+  });
+
+  it('formats JSONC while preserving comments', async () => {
+    const source = '{\n// keep me\n"a":1,\n}\n';
+    const result = await validateAndFormatHunk('config.jsonc', source);
+
+    expect(result.kind).toBe('ok');
+
+    if (result.kind === 'ok') {
+      expect(result.language).toBe('jsonc');
+      expect(result.formatted).toContain('// keep me');
+    }
+  });
+
+  it('treats .json5 like JSONC (skips strict JSON.parse)', async () => {
+    const result = await validateAndFormatHunk('config.json5', '{ unquoted: 1, /* c */ }', { format: false });
+    expect(result.kind).toBe('ok');
+
+    if (result.kind === 'ok') {
+      expect(result.language).toBe('jsonc');
     }
   });
 

@@ -113,6 +113,30 @@ export const detectProjectType = async (
 const escapeBoltActionAttribute = (value: string): string =>
   value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+/*
+ * Escape any literal `<boltArtifact>`/`<boltAction>` tags embedded in file
+ * CONTENT so they don't prematurely terminate the synthesized action body.
+ * Mirrors projectCommands.escapeBoltTags (inlined to avoid a circular import,
+ * since projectCommands already imports `generateId` from this module).
+ * Without it, a user-edited file containing the literal text `</boltAction>`
+ * (e.g. docs/HTML/JSX fixtures describing the artifact format) would break out
+ * of the action and corrupt both the round-tripped content and the LLM's view
+ * of the conversation when filesToArtifacts output is appended to a message.
+ */
+const escapeBoltTags = (input: string): string => {
+  const escapeTagPair = (regex: RegExp, text: string): string =>
+    text.replace(regex, (_match, openTag: string, content: string, closeTag: string) => {
+      const escapedOpenTag = openTag.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const escapedCloseTag = closeTag.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      return `${escapedOpenTag}${content}${escapedCloseTag}`;
+    });
+
+  const artifactEscaped = escapeTagPair(/(<boltArtifact[^>]*>)([\s\S]*?)(<\/boltArtifact>)/g, input);
+
+  return escapeTagPair(/(<boltAction[^>]*>)([\s\S]*?)(<\/boltAction>)/g, artifactEscaped);
+};
+
 export const filesToArtifacts = (files: { [path: string]: { content: string } }, id: string): string => {
   return `
 <boltArtifact id="${id}" title="User Updated Files">
@@ -120,7 +144,7 @@ ${Object.keys(files)
   .map(
     (filePath) => `
 <boltAction type="file" filePath="${escapeBoltActionAttribute(filePath)}">
-${files[filePath].content}
+${escapeBoltTags(files[filePath].content)}
 </boltAction>
 `,
   )

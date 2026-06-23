@@ -1,15 +1,30 @@
 import { redirect, type LoaderFunctionArgs } from 'react-router';
 import { apiRequest, cookieSecure } from '~/lib/enterprise-api.server';
+import { classifyOAuthStartFailure } from '~/lib/oauth-start-failure';
 
 const oauthStateCookie = 'vc_oauth_state';
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const provider = providerName(params.provider);
 
-  const result = await apiRequest<{ authorizationUrl?: string | null; ready?: boolean }>(
-    request,
-    `/auth/oauth/${provider}/start`,
-  );
+  let result: { authorizationUrl?: string | null; ready?: boolean };
+
+  try {
+    result = await apiRequest<{ authorizationUrl?: string | null; ready?: boolean }>(
+      request,
+      `/auth/oauth/${provider}/start`,
+    );
+  } catch (error) {
+    const outcome = classifyOAuthStartFailure(provider, error);
+
+    if ('rethrow' in outcome) {
+      // A deliberate redirect Response from apiRequest (401 -> login, MFA): pass it through.
+      throw outcome.rethrow;
+    }
+
+    console.error('[oauth-start]', provider, 'fetch_failed', outcome.detail);
+    throw redirect(outcome.redirectTo);
+  }
 
   if (!result.ready || !result.authorizationUrl) {
     throw redirect(`/login?oauth=${provider}&error=not_configured`);

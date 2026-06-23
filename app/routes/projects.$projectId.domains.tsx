@@ -62,7 +62,28 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     throw json({ error: 'Project not found' }, { status: 404 });
   }
 
-  const organization = await firstOrganization(request);
+  let organization: Awaited<ReturnType<typeof firstOrganization>>;
+
+  try {
+    organization = await firstOrganization(request);
+  } catch (error) {
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
+    /*
+     * firstOrganization calls apiRequest('/orgs'), whose default
+     * AbortSignal.timeout fires on a hung/draining api pod (rejecting with a
+     * non-Response TimeoutError) and which also throws a 5xx Response on
+     * upstream failure. Neither must reach the root error boundary and blow
+     * away the whole Custom Domains page — surface the same friendly inline
+     * message the add/verify branches use so the user stays on the page.
+     */
+    console.error('Organization lookup failed in domains action:', error);
+
+    return json({ error: 'Unable to reach the domains service. Please try again in a moment.' });
+  }
+
   const form = await request.formData();
   const intent = String(form.get('intent') ?? 'create');
   const domain = String(form.get('domain') ?? '');

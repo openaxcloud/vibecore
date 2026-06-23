@@ -23,6 +23,8 @@ export default function ProjectDashboardPage() {
   const { project, data } = useLoaderData<typeof loader>();
   const workspaceStatus = data.workspace?.status ?? 'Not started';
   const branch = data.git?.branch ?? project.gitDefaultBranch ?? 'main';
+  const files = data.files ?? [];
+  const recentActivity = data.recentActivity ?? [];
 
   return (
     <ProjectShell
@@ -47,13 +49,13 @@ export default function ProjectDashboardPage() {
             },
             {
               label: 'Files',
-              value: String(data.files.length),
+              value: String(files.length),
               detail: 'Loaded from persistent project storage',
               icon: FileCode2,
             },
             {
               label: 'Activity',
-              value: String(data.recentActivity.length),
+              value: String(recentActivity.length),
               detail: 'Project events from audit-visible activity log',
               icon: Activity,
             },
@@ -61,8 +63,8 @@ export default function ProjectDashboardPage() {
         />
         <ActivityList
           items={
-            data.recentActivity.length
-              ? data.recentActivity.map((item) => ({
+            recentActivity.length
+              ? recentActivity.map((item) => ({
                   title: item.action,
                   detail: item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Recorded by API',
                   icon: Activity,

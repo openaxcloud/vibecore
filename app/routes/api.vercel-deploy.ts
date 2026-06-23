@@ -1,5 +1,6 @@
 import { type ActionFunctionArgs, type LoaderFunctionArgs, data as json } from 'react-router';
 import { resolveVercelPollOutcome } from '~/lib/vercel-deploy-poll';
+import { buildVercelProjectName } from '~/lib/vercel-project-name';
 import type { VercelProjectInfo } from '~/types/vercel';
 
 /*
@@ -281,7 +282,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // If no projectId provided, create a new project
     if (!targetProjectId) {
-      const projectName = `bolt-diy-${chatId}-${Date.now()}`;
+      const projectName = buildVercelProjectName(chatId);
 
       const createProjectResponse = await timeoutFetch('https://api.vercel.com/v9/projects', {
         method: 'POST',
@@ -329,7 +330,7 @@ export async function action({ request }: ActionFunctionArgs) {
         };
       } else {
         // If project doesn't exist, create a new one
-        const projectName = `bolt-diy-${chatId}-${Date.now()}`;
+        const projectName = buildVercelProjectName(chatId);
 
         const createProjectResponse = await timeoutFetch('https://api.vercel.com/v9/projects', {
           method: 'POST',

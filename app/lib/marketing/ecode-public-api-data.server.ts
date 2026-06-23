@@ -53,7 +53,7 @@ const planDefinitions = {
       collaborators: 1,
     },
     features: [
-      'Replit Agent trial included',
+      'AI Agent trial included',
       '10 development apps (with temporary links)',
       'Public apps only',
       'Limited build time, without long full autonomy',
@@ -76,7 +76,7 @@ const planDefinitions = {
       collaborators: 3,
     },
     features: [
-      'Full Replit Agent access',
+      'Full AI Agent access',
       '$25 of monthly credits',
       'Private and public apps',
       'Access to latest models',
@@ -102,7 +102,7 @@ const planDefinitions = {
       collaborators: -1,
     },
     features: [
-      'Everything included with Replit Core',
+      'Everything included with E-Code Core',
       '$40/mo in usage credits included',
       'Credits granted upfront on annual plan',
       '50 Viewer seats',

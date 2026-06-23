@@ -12,12 +12,12 @@ const page = {
   title: 'Create a new IDE project',
   eyebrow: 'IDE',
   description:
-    'The original E-Code /ide/new route is preserved and points builders to E-Code project creation with the Bolt IDE intact.',
+    'The original E-Code /ide/new route is preserved and points builders to E-Code project creation with the E-Code IDE intact.',
   kind: 'standard',
   icon: MonitorPlay,
   primaryAction: ['Create project', '/projects/new'],
   secondaryAction: ['Browse templates', '/templates'],
-  highlights: ['Project creation', 'Bolt IDE', 'Templates', 'Runtime setup'],
+  highlights: ['Project creation', 'E-Code IDE', 'Templates', 'Runtime setup'],
   sections: [
     {
       title: 'Create from prompt or template',

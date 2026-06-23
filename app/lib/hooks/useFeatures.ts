@@ -59,16 +59,46 @@ export const useFeatures = () => {
   };
 
   const acknowledgeAllFeatures = async () => {
-    try {
-      await Promise.all(unviewedFeatures.map((feature) => markFeatureViewed(feature.id)));
+    if (unviewedFeatures.length === 0) {
+      return;
+    }
 
-      const newViewedIds = [...viewedFeatureIds, ...unviewedFeatures.map((f) => f.id)];
+    /*
+     * Mark each feature independently so a single failed POST does not discard the
+     * progress of the others. Promise.all would reject on the first failure and gate
+     * every state/persistence update, re-flagging all features as new on the next mount.
+     */
+    const results = await Promise.allSettled(
+      unviewedFeatures.map(async (feature) => {
+        await markFeatureViewed(feature.id);
+        return feature.id;
+      }),
+    );
+
+    const succeededIds = new Set<string>();
+
+    let firstError: unknown;
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        succeededIds.add(unviewedFeatures[index].id);
+      } else if (firstError === undefined) {
+        firstError = result.reason;
+      }
+    });
+
+    if (succeededIds.size > 0) {
+      const newViewedIds = [...viewedFeatureIds, ...succeededIds];
       setViewedFeatureIds(newViewedIds);
       setViewedFeatures(newViewedIds);
-      setUnviewedFeatures([]);
-      setHasNewFeatures(false);
-    } catch (error) {
-      console.error('Failed to acknowledge all features:', error);
+
+      const remaining = unviewedFeatures.filter((feature) => !succeededIds.has(feature.id));
+      setUnviewedFeatures(remaining);
+      setHasNewFeatures(remaining.length > 0);
+    }
+
+    if (firstError !== undefined) {
+      console.error('Failed to acknowledge all features:', firstError);
     }
   };
 

@@ -27,6 +27,7 @@ export type HunkLanguage =
   | 'typescript'
   | 'tsx'
   | 'json'
+  | 'jsonc'
   | 'css'
   | 'scss'
   | 'html'
@@ -68,7 +69,16 @@ const EXT_TO_LANGUAGE: Record<string, HunkLanguage> = {
   mts: 'typescript',
   tsx: 'tsx',
   json: 'json',
-  jsonc: 'json',
+
+  /*
+   * .jsonc / .json5 legitimately allow comments + trailing commas, which
+   * strict JSON.parse rejects. Treat them as their own language so we skip
+   * the strict parse (and never trigger a needless self-repair round-trip
+   * that would strip the comments) — mirrors isJsonLikePath() in
+   * app/utils/sanitize-file-content.ts which excludes them too.
+   */
+  jsonc: 'jsonc',
+  json5: 'jsonc',
   css: 'css',
   scss: 'scss',
   html: 'html',
@@ -155,6 +165,8 @@ function prettierParserFor(language: HunkLanguage): string | undefined {
       return 'typescript';
     case 'json':
       return 'json';
+    case 'jsonc':
+      return 'jsonc';
     case 'css':
       return 'css';
     case 'scss':

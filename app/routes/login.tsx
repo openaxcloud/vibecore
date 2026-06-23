@@ -266,33 +266,42 @@ export default function LoginPage() {
           icon={<Mail className="h-4 w-4" />}
         />
 
-        <label className="block">
-          <span className="mb-2 flex items-center justify-between">
-            <span className="vc-auth-label text-[13px] font-medium">Password</span>
-            <Link to="/forgot-password" className="vc-auth-link text-[12px] font-semibold hover:underline">
-              Forgot password?
-            </Link>
-          </span>
-          <span className="relative block">
-            <Lock className="vc-auth-field-icon pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-            <input
-              name="password"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="current-password"
-              required
-              placeholder="Enter your password"
-              className="vc-auth-input h-12 w-full rounded-md border px-10 pr-12 text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((value) => !value)}
-              className="vc-auth-input-action absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-md transition-colors sm:h-8 sm:w-8"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-            >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </span>
-        </label>
+        {/*
+         * On the MFA step the password was already entered and verified on the
+         * first submit; it is carried forward in a hidden input below. Hide the
+         * visible password field entirely so (a) the user only enters the MFA
+         * code, and (b) we never render two inputs named `password` (formObject
+         * is last-key-wins, which would otherwise clobber the carry-forward).
+         */}
+        {mfaRequired ? null : (
+          <label className="block">
+            <span className="mb-2 flex items-center justify-between">
+              <span className="vc-auth-label text-[13px] font-medium">Password</span>
+              <Link to="/forgot-password" className="vc-auth-link text-[12px] font-semibold hover:underline">
+                Forgot password?
+              </Link>
+            </span>
+            <span className="relative block">
+              <Lock className="vc-auth-field-icon pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+              <input
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                required
+                placeholder="Enter your password"
+                className="vc-auth-input h-12 w-full rounded-md border px-10 pr-12 text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                className="vc-auth-input-action absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-md transition-colors sm:h-8 sm:w-8"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </span>
+          </label>
+        )}
 
         <AuthField
           label={mfaRequired ? 'MFA code required' : 'MFA or recovery code'}
@@ -309,10 +318,11 @@ export default function LoginPage() {
         />
 
         {/*
-         * The password field is uncontrolled and resets when the form re-renders
-         * with the MFA step. The API re-verifies the password alongside the MFA
-         * code, so carry the first-step password forward in a hidden input to
-         * complete MFA. Only present during the MFA step; never logged.
+         * The visible password field is hidden on the MFA step (above). The API
+         * re-verifies the password alongside the MFA code, so carry the
+         * first-step password forward in this hidden input to complete MFA.
+         * This is the only `password` input present during the MFA step; never
+         * logged.
          */}
         {mfaRequired ? <input type="hidden" name="password" value={loginActionData?.password ?? ''} /> : null}
 

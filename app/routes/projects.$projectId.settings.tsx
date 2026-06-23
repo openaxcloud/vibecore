@@ -1,5 +1,5 @@
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useLoaderData } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
@@ -57,6 +57,7 @@ export const action = (args: EnterpriseActionArgs) =>
 export default function ProjectSettingsPage() {
   const { project } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+  const saving = useNavigation().state === 'submitting';
 
   return (
     <ProjectShell
@@ -81,7 +82,9 @@ export default function ProjectSettingsPage() {
         <Field label="Git repository URL" name="gitRepositoryUrl" defaultValue={project.gitRepositoryUrl ?? ''} />
         <Field label="Default branch" name="gitDefaultBranch" defaultValue={project.gitDefaultBranch ?? 'main'} />
         <div>
-          <Button type="submit">Save changes</Button>
+          <Button type="submit" disabled={saving} aria-busy={saving}>
+            {saving ? 'Saving…' : 'Save changes'}
+          </Button>
         </div>
       </Form>
     </ProjectShell>
