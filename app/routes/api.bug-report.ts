@@ -1,9 +1,7 @@
 import { Octokit } from '@octokit/rest';
 import { data as json, type ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
-
-// Rate limiting store (in production, use Redis or similar)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+import { consumeRateLimit, isRateLimited, resolveBugReportConfig } from '~/lib/bug-report.server';
 
 // Input validation schema
 const bugReportSchema = z.object({
@@ -37,29 +35,6 @@ function sanitizeInput(input: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#x27;')
     .replace(/\//g, '&#x2F;');
-}
-
-// Rate limiting check
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const key = ip;
-  const limit = rateLimitStore.get(key);
-
-  if (!limit || now > limit.resetTime) {
-    // Reset window (1 hour)
-    rateLimitStore.set(key, { count: 1, resetTime: now + 60 * 60 * 1000 });
-    return true;
-  }
-
-  if (limit.count >= 5) {
-    // Max 5 reports per hour per IP
-    return false;
-  }
-
-  limit.count += 1;
-  rateLimitStore.set(key, limit);
-
-  return true;
 }
 
 // Get client IP address
@@ -164,10 +139,15 @@ export async function action({ request, context }: ActionFunctionArgs) {
   }
 
   try {
-    // Rate limiting
+    /*
+     * Rate limiting: only CHECK the quota here. We consume a token later, after
+     * the submission has been fully validated and accepted, so that validation
+     * failures, spam false-positives and accidental double-submits don't burn
+     * an honest user's 5-per-hour allowance.
+     */
     const clientIP = getClientIP(request);
 
-    if (!checkRateLimit(clientIP)) {
+    if (isRateLimited(clientIP)) {
       return json({ error: 'Rate limit exceeded. Please wait before submitting another report.' }, { status: 429 });
     }
 
@@ -206,19 +186,31 @@ export async function action({ request, context }: ActionFunctionArgs) {
       );
     }
 
-    // Get GitHub configuration
-    const githubToken =
-      (context?.cloudflare?.env as any)?.GITHUB_BUG_REPORT_TOKEN || process.env.GITHUB_BUG_REPORT_TOKEN;
-    const targetRepo =
-      (context?.cloudflare?.env as any)?.BUG_REPORT_REPO || process.env.BUG_REPORT_REPO || 'stackblitz-labs/bolt.diy';
+    /*
+     * Resolve GitHub config via globalThis.process.env (the Vite SSR polyfill
+     * shims bare process.env to {} in the web pod) and fail closed when the
+     * target repo is unset — never default to the upstream public repo.
+     */
+    const configResult = resolveBugReportConfig(context?.cloudflare?.env as Record<string, unknown> | undefined);
 
-    if (!githubToken) {
-      console.error('GitHub bug report token not configured');
+    if (!configResult.ok) {
+      if (configResult.reason === 'token') {
+        console.error('GitHub bug report token not configured');
+        return json(
+          { error: 'Bug reporting is not properly configured. Please contact the administrators.' },
+          { status: 500 },
+        );
+      }
+
+      console.error('GitHub bug report repository (BUG_REPORT_REPO) not configured or malformed');
+
       return json(
         { error: 'Bug reporting is not properly configured. Please contact the administrators.' },
         { status: 500 },
       );
     }
+
+    const { githubToken, owner, repo } = configResult.config;
 
     // Initialize GitHub client
     const octokit = new Octokit({
@@ -226,12 +218,8 @@ export async function action({ request, context }: ActionFunctionArgs) {
       userAgent: 'bolt.diy-bug-reporter',
     });
 
-    // Create GitHub issue
-    const [owner, repo] = targetRepo.split('/');
-
-    if (!owner || !repo) {
-      return json({ error: 'Bug report repository is misconfigured. Expected "owner/repo" format.' }, { status: 500 });
-    }
+    // Consume one rate-limit token now that the report is validated and accepted.
+    consumeRateLimit(clientIP);
 
     const issue = await octokit.rest.issues.create({
       owner,

@@ -10,6 +10,7 @@ import {
   redirect,
   type EnterpriseActionArgs,
 } from '~/lib/enterprise-api.server';
+import { shouldRethrowActionError } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = () => [{ title: 'Plan comparison - E-Code' }];
 
@@ -45,6 +46,15 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return redirect(result.checkoutUrl);
   } catch (error) {
+    /*
+     * A re-auth redirect (3xx) or a server (5xx) Response must propagate so the
+     * framework performs the login/MFA redirect or surfaces the error boundary,
+     * rather than being swallowed into an inline message.
+     */
+    if (shouldRethrowActionError(error)) {
+      throw error;
+    }
+
     if (isApiResponse(error)) {
       return json(
         { error: await apiErrorMessage(error, 'Checkout is unavailable right now. Please try again later.') },
@@ -52,7 +62,14 @@ export async function action({ request }: EnterpriseActionArgs) {
       );
     }
 
-    throw error;
+    /*
+     * Non-Response failures (request timeout via AbortSignal.timeout, DNS /
+     * connection errors when the API pod is hung or draining) must not crash to
+     * the route error boundary — keep the user on the plan-comparison page.
+     */
+    console.error('Failed to start plan checkout:', error);
+
+    return json({ error: 'Checkout is temporarily unavailable. Please try again in a moment.' });
   }
 }
 

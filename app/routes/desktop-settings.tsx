@@ -17,6 +17,7 @@ export default function DesktopSettingsRoute() {
 
   const [authState, setAuthState] = useState<{ encryptionAvailable?: boolean; hasToken?: boolean }>({});
   const [status, setStatus] = useState('Desktop bridge not detected.');
+  const [bridgeReady, setBridgeReady] = useState(false);
 
   useEffect(() => {
     const desktop = window.vibecoreDesktop;
@@ -24,6 +25,8 @@ export default function DesktopSettingsRoute() {
     if (!desktop) {
       return;
     }
+
+    setBridgeReady(true);
 
     Promise.all([desktop.settings.get(), desktop.auth.get()])
       .then(([desktopSettings, auth]) => {
@@ -75,7 +78,7 @@ export default function DesktopSettingsRoute() {
         stats={[
           {
             label: 'Bridge',
-            value: window.vibecoreDesktop ? 'Connected' : 'Web',
+            value: bridgeReady ? 'Connected' : 'Web',
             detail: 'Electron preload API',
             icon: Monitor,
           },

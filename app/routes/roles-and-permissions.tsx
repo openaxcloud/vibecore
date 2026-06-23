@@ -5,12 +5,14 @@ import {
   apiErrorMessage,
   firstOrganizationOrNull,
   formObject,
+  isApiResponse,
   isForbiddenApiResponse,
   json,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
@@ -76,11 +78,25 @@ export async function action({ request }: EnterpriseActionArgs) {
       }),
     });
   } catch (error) {
+    // Re-auth (login/MFA) redirects must reach the framework, never the inline UI.
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
     if (isForbiddenApiResponse(error)) {
       return json(
         { error: await apiErrorMessage(error, 'You cannot manage roles for this organization.') },
         { status: 403 },
       );
+    }
+
+    /*
+     * Any other API error (400/409 validation, 5xx api-down, etc.) is rendered
+     * inline so the user keeps their form instead of being thrown to the full
+     * page root error boundary.
+     */
+    if (isApiResponse(error)) {
+      return json({ error: await apiErrorMessage(error, 'Could not create role.') }, { status: error.status });
     }
 
     throw error;

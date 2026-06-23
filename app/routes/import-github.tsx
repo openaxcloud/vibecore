@@ -3,14 +3,17 @@ import type { MetaFunction } from 'react-router';
 import { useActionData } from 'react-router';
 import { AppShell, SettingsForm } from '~/components/dashboard/SaaSLayout';
 import {
+  apiErrorMessage,
   apiRequest,
   firstOrganization,
   firstOrganizationOrNull,
   formObject,
+  isApiResponse,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 import { projectIdePath } from '~/utils/project-url';
 
 export const meta: MetaFunction = () => [{ title: 'Import GitHub - E-Code' }];
@@ -35,14 +38,35 @@ export async function action({ request }: EnterpriseActionArgs) {
     return { error: 'Repository URL is required.' };
   }
 
-  const result = await apiRequest<{ project: Project }>(request, `/orgs/${organization.id}/projects/import/github`, {
-    method: 'POST',
-    body: JSON.stringify({
-      repositoryUrl: body.repositoryUrl,
-      branch: body.branch || undefined,
-      name: body.name || undefined,
-    }),
-  });
+  let result: { project: Project };
+
+  try {
+    result = await apiRequest<{ project: Project }>(request, `/orgs/${organization.id}/projects/import/github`, {
+      method: 'POST',
+      body: JSON.stringify({
+        repositoryUrl: body.repositoryUrl,
+        branch: body.branch || undefined,
+        name: body.name || undefined,
+      }),
+    });
+  } catch (error) {
+    /*
+     * A 3xx re-auth redirect (session expiry / MFA) must be re-thrown so the
+     * framework performs the redirect. Every other API failure — invalid /
+     * private / missing repo (400/404), quota exceeded (402), upstream 500 —
+     * arrives as a thrown `Response` and should surface inline in the form
+     * instead of crashing to the route error boundary.
+     */
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
+    if (isApiResponse(error)) {
+      return { error: await apiErrorMessage(error, 'Failed to import repository.') };
+    }
+
+    throw error;
+  }
 
   return redirect(
     projectIdePath({ id: result.project.id, slug: result.project.slug, organizationSlug: organization.slug }),

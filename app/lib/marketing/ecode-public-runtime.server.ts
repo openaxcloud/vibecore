@@ -456,9 +456,14 @@ export function ecodeMarketplacePublishersLoader() {
   );
 }
 
-function communityCategories() {
-  const templates = listEcodeTemplates();
-
+/**
+ * Build the community category summaries with post counts derived from the
+ * template catalog. Counts are keyed by the catalog's real category values
+ * ('web', 'api', 'ml-ai', 'mobile', 'starter' — see CATEGORY_LABELS in
+ * ecode-template-catalog.server). Earlier code read counts.ai / counts.backend,
+ * which are never category keys, so Challenges/Discussion were permanently 0.
+ */
+export function buildCommunityCategories(templates: Array<{ category: string }>) {
   const counts = templates.reduce<Record<string, number>>((acc, template) => {
     acc[template.category] = (acc[template.category] ?? 0) + 1;
     return acc;
@@ -467,9 +472,13 @@ function communityCategories() {
   return [
     { id: 'showcase', name: 'Showcase', icon: 'Star', postCount: templates.length },
     { id: 'tutorials', name: 'Tutorials', icon: 'Code', postCount: counts.web ?? 0 },
-    { id: 'challenges', name: 'Challenges', icon: 'Trophy', postCount: counts.ai ?? 0 },
-    { id: 'discussion', name: 'Discussion', icon: 'MessageSquare', postCount: counts.backend ?? 0 },
+    { id: 'challenges', name: 'Challenges', icon: 'Trophy', postCount: counts['ml-ai'] ?? 0 },
+    { id: 'discussion', name: 'Discussion', icon: 'MessageSquare', postCount: counts.api ?? 0 },
   ];
+}
+
+function communityCategories() {
+  return buildCommunityCategories(listEcodeTemplates());
 }
 
 function communityPosts() {

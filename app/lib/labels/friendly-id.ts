@@ -33,9 +33,57 @@ export function looksLikeOpaqueId(value: string): boolean {
     const hasMixedCaseWord = /[A-Z][a-z]{2,}/.test(trimmed);
     const hasWordSeparator = /[-_]/.test(trimmed) && /[A-Za-z]{4,}/.test(trimmed);
 
-    if (!hasMixedCaseWord && !hasWordSeparator) {
+    /*
+     * Random tokens (nanoid/base62 ids) mix character classes with high
+     * entropy: digits interleaved with letters, or the URL-safe `-`/`_`
+     * alphabet sprinkled mid-string. Human-typed names — even long, all
+     * lowercase, separator-free ones like `featurelandingpageredesign` or a
+     * name with a trailing year like `myportfoliowebsite2026` — do not look
+     * random. Only treat a 20+ char string as opaque when it actually shows
+     * the charset mixing of an id, otherwise we'd hide legitimate branch and
+     * project names behind a generic fallback.
+     */
+    if (!hasMixedCaseWord && !hasWordSeparator && looksRandomlyMixed(trimmed)) {
       return true;
     }
+  }
+
+  return false;
+}
+
+/*
+ * Heuristic for "looks like a random id" as opposed to a human-typed word.
+ * Real nanoid/base62 tokens interleave digits and letters throughout the
+ * string and/or use the URL-safe `-`/`_` alphabet. A run of plain letters
+ * (an English-ish word), optionally with a trailing number cluster (a year or
+ * version suffix), is a name, not an id.
+ */
+function looksRandomlyMixed(value: string): boolean {
+  const hasLetters = /[A-Za-z]/.test(value);
+  const hasDigits = /[0-9]/.test(value);
+  const hasUrlSafeSeparator = /[-_]/.test(value);
+
+  /*
+   * Words may carry a trailing version/year suffix (e.g. `...website2026`).
+   * Strip a single trailing digit cluster before judging interleaving so such
+   * names are not mistaken for random tokens.
+   */
+  const withoutTrailingDigits = value.replace(/[0-9]+$/, '');
+
+  // Digits still embedded *inside* the remaining text → interleaved like an id.
+  const hasInteriorDigits = /[0-9]/.test(withoutTrailingDigits);
+
+  if (!hasLetters) {
+    // All digits / separators — clearly not a human word; treat as opaque.
+    return true;
+  }
+
+  if (hasUrlSafeSeparator) {
+    return true;
+  }
+
+  if (hasDigits && hasInteriorDigits) {
+    return true;
   }
 
   return false;

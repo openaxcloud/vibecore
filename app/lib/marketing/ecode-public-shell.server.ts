@@ -159,11 +159,7 @@ export async function ecodeNotificationPreferencesLoader({ request }: Enterprise
   return json(normalizeEcodeNotificationPreferences(payload?.preferences?.notifications), { headers: noStoreHeaders });
 }
 
-async function readJsonObject(request: Request) {
-  if ((request.headers.get('content-length') ?? '0') === '0') {
-    return {};
-  }
-
+export async function readJsonObject(request: Request) {
   try {
     const payload = (await request.json()) as unknown;
 

@@ -1,4 +1,5 @@
 import { type ActionFunctionArgs, type LoaderFunctionArgs, data as json } from 'react-router';
+import { resolveVercelPollOutcome } from '~/lib/vercel-deploy-poll';
 import type { VercelProjectInfo } from '~/types/vercel';
 
 /*
@@ -460,15 +461,30 @@ export async function action({ request }: ActionFunctionArgs) {
     let deploymentUrl = '';
     let deploymentState = '';
 
-    while (retryCount < maxRetries) {
-      const statusResponse = await timeoutFetch(`https://api.vercel.com/v13/deployments/${deployData.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        signal: AbortSignal.timeout(30000),
-      });
+    /*
+     * Track transient status-endpoint failures (rate limit / 5xx) separately so
+     * we don't mistake "couldn't read the status" for "deploy didn't finish".
+     */
+    let consecutiveFailures = 0;
 
-      if (statusResponse.ok) {
+    while (retryCount < maxRetries) {
+      let statusResponse: Response | undefined;
+
+      try {
+        statusResponse = await timeoutFetch(`https://api.vercel.com/v13/deployments/${deployData.id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          signal: AbortSignal.timeout(30000),
+        });
+      } catch (statusError) {
+        // Network/timeout error talking to Vercel — treat as a transient failure.
+        console.warn('Vercel status poll request failed:', statusError);
+      }
+
+      if (statusResponse?.ok) {
+        consecutiveFailures = 0;
+
         const status = (await statusResponse.json()) as any;
         deploymentState = status.readyState;
         deploymentUrl = status.url ? `https://${status.url}` : '';
@@ -476,25 +492,57 @@ export async function action({ request }: ActionFunctionArgs) {
         if (status.readyState === 'READY' || status.readyState === 'ERROR') {
           break;
         }
+      } else {
+        consecutiveFailures++;
       }
 
       retryCount++;
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
-    if (deploymentState === 'ERROR') {
+    const outcome = resolveVercelPollOutcome({
+      retryCount,
+      maxRetries,
+      consecutiveFailures,
+      deploymentState,
+    });
+
+    if (outcome.kind === 'error') {
       return json({ error: 'Deployment failed' }, { status: 500 });
     }
 
-    if (retryCount >= maxRetries) {
+    if (outcome.kind === 'timed-out') {
       return json({ error: 'Deployment timed out' }, { status: 500 });
+    }
+
+    /*
+     * 'pending' means the poll loop exhausted (or stopped early) without a
+     * terminal state — typically because the status endpoint was unreachable.
+     * The deployment may well have completed on Vercel's side, so surface the
+     * deploy id (and a 202) instead of reporting a false failure, letting the
+     * client keep polling.
+     */
+    if (outcome.kind === 'pending') {
+      return json(
+        {
+          success: true,
+          pending: true,
+          deploy: {
+            id: deployData.id,
+            state: deploymentState || 'PENDING',
+            url: projectInfo.url || deploymentUrl,
+          },
+          project: projectInfo,
+        },
+        { status: 202 },
+      );
     }
 
     return json({
       success: true,
       deploy: {
         id: deployData.id,
-        state: deploymentState,
+        state: outcome.state,
 
         // Return public domain as deploy URL and private domain as fallback.
         url: projectInfo.url || deploymentUrl,

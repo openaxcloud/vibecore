@@ -1,9 +1,11 @@
 import { Form, useActionData, useLoaderData } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import {
+  apiErrorMessage,
   apiRequest,
   firstOrganizationOrNull,
   formObject,
+  isApiResponse,
   json,
   redirect,
   type EnterpriseActionArgs,
@@ -27,12 +29,20 @@ export async function action({ request }: EnterpriseActionArgs) {
     return json({ error: 'Organization ID is required.' }, { status: 400 });
   }
 
-  const result = await apiRequest<{ token: string }>(request, `/orgs/${body.orgId}/scim/tokens`, {
-    method: 'POST',
-    body: JSON.stringify({ name: body.name }),
-  });
+  try {
+    const result = await apiRequest<{ token: string }>(request, `/orgs/${body.orgId}/scim/tokens`, {
+      method: 'POST',
+      body: JSON.stringify({ name: body.name }),
+    });
 
-  return json({ status: 'SCIM token created. Copy it now; it is shown once.', token: result.token });
+    return json({ status: 'SCIM token created. Copy it now; it is shown once.', token: result.token });
+  } catch (error) {
+    if (isApiResponse(error)) {
+      return json({ error: await apiErrorMessage(error, 'Failed to create SCIM token.') }, { status: error.status });
+    }
+
+    return json({ error: 'Creating SCIM tokens is temporarily unavailable. Please try again in a moment.' });
+  }
 }
 
 export default function ScimTokenSettingsPage() {

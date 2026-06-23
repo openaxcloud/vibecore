@@ -13,6 +13,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = () => [{ title: 'Two-factor authentication - E-Code' }];
 
@@ -108,7 +109,17 @@ export async function action({ request }: EnterpriseActionArgs) {
     const recovery = await apiRequest<{ codes: string[] }>(request, '/auth/recovery-codes', { method: 'POST' });
 
     return json<MfaActionData>({ enabled: true, codes: recovery.codes });
-  } catch {
+  } catch (error) {
+    /*
+     * The recovery-codes call uses the default redirectOn401:true, so an expired
+     * session makes apiRequest throw a login-redirect Response. That must not be
+     * caught here — re-throw it so the framework performs the redirect instead of
+     * masking it behind the soft "visit /recovery-codes" message.
+     */
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
     return json<MfaActionData>({
       enabled: true,
       message:

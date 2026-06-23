@@ -160,6 +160,49 @@ describe('mfa-setup route', () => {
     expect(payload.codes).toEqual(['aaaaaaaa-bbbbbbbb', 'cccccccc-dddddddd']);
   });
 
+  it('action re-throws the login redirect when the session expires while minting recovery codes', async () => {
+    const fetchSpy = vi.fn(async (url: string | URL | Request) => {
+      const href = typeof url === 'string' ? url : url.toString();
+
+      if (href.endsWith('/auth/mfa/verify')) {
+        return new Response(JSON.stringify({ enabled: true }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+
+      /*
+       * Recovery-codes uses the default redirectOn401:true; an expired session
+       * makes apiRequest throw a /login redirect Response.
+       */
+      if (href.endsWith('/auth/recovery-codes')) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+
+      throw new Error(`unexpected fetch: ${href}`);
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    let thrown: unknown;
+
+    try {
+      await action(args(buildFormRequest({ code: '123456' })));
+    } catch (error) {
+      thrown = error;
+    }
+
+    // The redirect must propagate — NOT be swallowed into a soft "enabled" result.
+    expect(thrown).toBeInstanceOf(Response);
+
+    const redirectResponse = thrown as Response;
+    expect(redirectResponse.status).toBeGreaterThanOrEqual(300);
+    expect(redirectResponse.status).toBeLessThan(400);
+    expect(redirectResponse.headers.get('location')).toContain('/login');
+  });
+
   it('action surfaces the API error and skips recovery-code generation when verify fails', async () => {
     const fetchSpy = vi.fn(async (url: string | URL | Request) => {
       const href = typeof url === 'string' ? url : url.toString();

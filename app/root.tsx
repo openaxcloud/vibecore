@@ -396,6 +396,7 @@ function GlobalRouteLoader() {
 }
 
 import { logStore } from './lib/stores/logs';
+import { reconcileMarketingChrome } from './lib/stores/marketing-chrome';
 import { applyThemeToDocument, isPublicMarketingPath, themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 
@@ -419,6 +420,7 @@ function clearMarketingPageServiceWorkerState() {
 
 export default function App() {
   const theme = useStore(themeStore);
+  const location = useLocation();
 
   /*
    * Keep the live <html data-theme> attribute in sync with the theme store.
@@ -428,6 +430,19 @@ export default function App() {
   useEffect(() => {
     applyThemeToDocument(theme);
   }, [theme]);
+
+  /*
+   * Re-apply (or clear) the marketing-only document chrome on every SPA
+   * navigation. The inline boot script in <Layout> sets data-ecode-public-chrome
+   * + font-size:16px once at first paint when the entry path is a marketing
+   * route, but never re-runs on client-side navigation. Without this, navigating
+   * from a marketing page into an app route (e.g. /dashboard, /projects/:id/ide)
+   * leaves the html element stuck at 16px with the homepage chrome attribute,
+   * breaking the IDE's 13px root type scale. See app/lib/stores/marketing-chrome.ts.
+   */
+  useEffect(() => {
+    reconcileMarketingChrome(location.pathname);
+  }, [location.pathname]);
 
   useEffect(() => {
     logStore.logSystem('Application initialized', {

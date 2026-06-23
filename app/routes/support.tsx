@@ -14,6 +14,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 type Ticket = { id: string; subject: string; status: string; createdAt?: string };
 
@@ -26,6 +27,16 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
     return { organization, tickets: tickets.tickets, supportAccessLimited: null };
   } catch (error) {
+    /*
+     * A 3xx Response here is the login / MFA re-auth redirect thrown by the
+     * enterprise API on an expired or absent session. Re-throw it so the
+     * framework performs the redirect instead of degrading it into a generic
+     * "support unavailable" banner on the authenticated page.
+     */
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
     return {
       organization: null,
       tickets: [],

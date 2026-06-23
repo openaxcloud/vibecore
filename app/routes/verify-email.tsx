@@ -2,6 +2,7 @@ import { KeyRound } from 'lucide-react';
 import { Form, Link, useActionData, useNavigation, useSearchParams } from 'react-router';
 import { AuthField, AuthScreen, AuthSubmit } from '~/components/auth/AuthScreen';
 import { apiRequest, formObject, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 export async function action({ request }: EnterpriseActionArgs) {
   const body = formObject(await request.formData());
@@ -37,6 +38,15 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return json({ status: 'Email verified. You can close this tab and continue using E-code.' });
   } catch (error) {
+    /*
+     * A 3xx re-auth redirect (e.g. apiRequest throws `redirect('/mfa-setup')` when the
+     * API answers a page-navigation POST with 403 MFA_REQUIRED) must be re-thrown so the
+     * framework performs the redirect, not swallowed into a generic inline error.
+     */
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
     if (error instanceof Response) {
       let message = 'Verification failed.';
 

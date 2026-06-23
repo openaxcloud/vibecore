@@ -11,6 +11,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { resolveImportActionError } from '~/lib/import-action-error';
 import { projectIdePath } from '~/utils/project-url';
 
 export const meta: MetaFunction = () => [{ title: 'Import zip - E-Code' }];
@@ -49,10 +50,22 @@ export async function action({ request }: EnterpriseActionArgs) {
     return { error: 'A zip archive is required.' };
   }
 
-  const result = await apiRequest<{ project: Project }>(request, `/orgs/${organization.id}/projects/import/zip`, {
-    method: 'POST',
-    body: JSON.stringify({ name, zipBase64: base64FromArrayBuffer(await archive.arrayBuffer()) }),
-  });
+  let result: { project: Project };
+
+  try {
+    result = await apiRequest<{ project: Project }>(request, `/orgs/${organization.id}/projects/import/zip`, {
+      method: 'POST',
+      body: JSON.stringify({ name, zipBase64: base64FromArrayBuffer(await archive.arrayBuffer()) }),
+    });
+  } catch (error) {
+    const resolved = await resolveImportActionError(error, 'Failed to import zip.');
+
+    if (resolved.rethrow) {
+      throw error;
+    }
+
+    return { error: resolved.error };
+  }
 
   return redirect(
     projectIdePath({ id: result.project.id, slug: result.project.slug, organizationSlug: organization.slug }),

@@ -36,7 +36,27 @@ export function decodeRuntimeFileContent(file: RuntimeFileReadResponse): Uint8Ar
   const content = file.content ?? '';
 
   if (file.encoding === 'base64') {
-    const binary = atob(content);
+    let binary: string;
+
+    try {
+      binary = atob(content);
+    } catch {
+      /*
+       * A truncated/garbled base64 body (partially-written or corrupted asset)
+       * makes atob throw a DOMException. Surface the same structured 502 the
+       * read path returns instead of letting it escape the loader as an opaque
+       * 500.
+       */
+      throw jsonResponse(
+        {
+          ok: false,
+          error: 'Project file read failed',
+          code: 'PROJECT_FILE_READ_UNAVAILABLE',
+        },
+        502,
+      );
+    }
+
     const bytes = new Uint8Array(binary.length);
 
     for (let index = 0; index < binary.length; index += 1) {

@@ -54,12 +54,13 @@ export class PromptLibrary {
     });
   }
   static getPropmtFromLibrary(promptId: string, options: PromptOptions) {
-    const prompt = this.library[promptId];
+    /*
+     * Fall back to the default prompt for an unknown id rather than throwing a
+     * bare string. The only caller chains `?? getSystemPrompt()`, but a throw
+     * would bypass that fallback and abort the entire chat-stream setup.
+     */
+    const prompt = this.library[promptId] ?? this.library.default;
 
-    if (!prompt) {
-      throw 'Prompt Now Found';
-    }
-
-    return this.library[promptId]?.get(options);
+    return prompt.get(options);
   }
 }

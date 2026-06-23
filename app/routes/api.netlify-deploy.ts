@@ -186,25 +186,41 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // Poll until deploy is ready for file uploads
     while (retryCount < maxRetries) {
-      const statusResponse = await timeoutFetch(
-        `https://api.netlify.com/api/v1/sites/${targetSiteId}/deploys/${deploy.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
+      let status: any;
+
+      /*
+       * A single transient status-poll failure (the 30s timeout abort, a DNS
+       * hiccup, or a momentary network blip during the polling window) must NOT
+       * fail the whole deploy — Netlify may still be preparing or have already
+       * succeeded. Treat it like the upload block: count the retry, back off,
+       * and poll again instead of letting it bubble to the outer catch.
+       */
+      try {
+        const statusResponse = await timeoutFetch(
+          `https://api.netlify.com/api/v1/sites/${targetSiteId}/deploys/${deploy.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            signal: AbortSignal.timeout(30000),
           },
-          signal: AbortSignal.timeout(30000),
-        },
-      );
-
-      if (!statusResponse.ok) {
-        const errorDetail = await readNetlifyError(statusResponse);
-        return json(
-          { error: `Failed to check deployment status${errorDetail ? `: ${errorDetail}` : ''}` },
-          { status: statusResponse.status },
         );
-      }
 
-      const status = (await statusResponse.json()) as any;
+        if (!statusResponse.ok) {
+          const errorDetail = await readNetlifyError(statusResponse);
+          return json(
+            { error: `Failed to check deployment status${errorDetail ? `: ${errorDetail}` : ''}` },
+            { status: statusResponse.status },
+          );
+        }
+
+        status = (await statusResponse.json()) as any;
+      } catch (error) {
+        console.error('Deploy status poll error:', error);
+        retryCount++;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        continue;
+      }
 
       if (!filesUploaded && (status.state === 'prepared' || status.state === 'uploaded')) {
         // Upload all files regardless of required array

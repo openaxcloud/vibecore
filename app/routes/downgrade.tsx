@@ -10,6 +10,7 @@ import {
   redirect,
   type EnterpriseActionArgs,
 } from '~/lib/enterprise-api.server';
+import { shouldRethrowActionError } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = () => [{ title: 'Downgrade - E-Code' }];
 
@@ -44,6 +45,16 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return redirect(checkout.checkoutUrl);
   } catch (error) {
+    /*
+     * apiRequest throws a real 3xx redirect Response when the session expired or
+     * MFA is required mid-action; those (and 5xx server errors) must be re-thrown
+     * so the framework / error boundary handles them instead of the action
+     * swallowing the redirect into a broken inline error.
+     */
+    if (shouldRethrowActionError(error)) {
+      throw error;
+    }
+
     if (isApiResponse(error)) {
       return json(
         { error: await apiErrorMessage(error, 'The subscription change is unavailable right now.') },

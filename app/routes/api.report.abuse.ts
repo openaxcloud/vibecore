@@ -1,8 +1,9 @@
 import { Octokit } from '@octokit/rest';
 import { data as json, type ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
+import { FixedWindowRateLimiter } from '~/lib/fixed-window-rate-limiter';
 
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+const rateLimiter = new FixedWindowRateLimiter({ limit: 10, windowMs: 60 * 60 * 1000 });
 
 const trimmedString = z.preprocess((value) => (typeof value === 'string' ? value.trim() : value), z.string());
 
@@ -42,25 +43,6 @@ function getClientIP(request: Request) {
       .filter(Boolean) ?? [];
 
   return parts.length > 0 ? parts[parts.length - 1] : 'unknown';
-}
-
-function checkRateLimit(ip: string) {
-  const now = Date.now();
-  const limit = rateLimitStore.get(ip);
-
-  if (!limit || now > limit.resetTime) {
-    rateLimitStore.set(ip, { count: 1, resetTime: now + 60 * 60 * 1000 });
-    return true;
-  }
-
-  if (limit.count >= 10) {
-    return false;
-  }
-
-  limit.count += 1;
-  rateLimitStore.set(ip, limit);
-
-  return true;
 }
 
 function isSpam(report: AbuseReport) {
@@ -141,7 +123,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
   const clientIP = getClientIP(request);
 
-  if (!checkRateLimit(clientIP)) {
+  if (!rateLimiter.check(clientIP)) {
     return json({ error: 'Rate limit exceeded. Please wait before submitting another report.' }, { status: 429 });
   }
 

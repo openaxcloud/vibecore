@@ -1,6 +1,7 @@
 import { Form, useActionData, useLoaderData } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import {
+  apiErrorMessage,
   apiRequest,
   firstOrganizationOrNull,
   formObject,
@@ -9,6 +10,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { shouldRethrowActionError } from '~/lib/route-reauth';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
@@ -27,29 +29,45 @@ export async function action({ request }: EnterpriseActionArgs) {
     return json({ error: 'Organization ID is required.' }, { status: 400 });
   }
 
-  if (body.type === 'saml') {
-    await apiRequest(request, `/orgs/${body.orgId}/sso/saml`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        entityId: body.entityId,
-        ssoUrl: body.ssoUrl,
-        x509Certificate: body.x509Certificate,
-        enabled: body.enabled === 'true',
-      }),
-    });
-  } else {
-    await apiRequest(request, `/orgs/${body.orgId}/sso/oidc`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        issuer: body.issuer,
-        clientId: body.clientId,
-        clientSecret: body.clientSecret,
-        authorizationUrl: body.authorizationUrl || undefined,
-        tokenUrl: body.tokenUrl || undefined,
-        jwksUrl: body.jwksUrl || undefined,
-        enabled: body.enabled === 'true',
-      }),
-    });
+  try {
+    if (body.type === 'saml') {
+      await apiRequest(request, `/orgs/${body.orgId}/sso/saml`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          entityId: body.entityId,
+          ssoUrl: body.ssoUrl,
+          x509Certificate: body.x509Certificate,
+          enabled: body.enabled === 'true',
+        }),
+      });
+    } else {
+      await apiRequest(request, `/orgs/${body.orgId}/sso/oidc`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          issuer: body.issuer,
+          clientId: body.clientId,
+          clientSecret: body.clientSecret,
+          authorizationUrl: body.authorizationUrl || undefined,
+          tokenUrl: body.tokenUrl || undefined,
+          jwksUrl: body.jwksUrl || undefined,
+          enabled: body.enabled === 'true',
+        }),
+      });
+    }
+  } catch (error) {
+    /*
+     * apiRequest throws a real Response on any non-2xx upstream status. A 401/403-MFA page
+     * navigation is thrown as a react-router redirect() (3xx) — re-throw so the browser follows
+     * the re-auth redirect instead of swallowing it into a body-less inline error. Server errors
+     * (5xx) go to the route error boundary. Validation (400, e.g. bad X.509 cert / missing
+     * entityId/ssoUrl) and plan/authorization (403) errors surface inline so the user keeps their
+     * form input instead of hitting RR7's raw error page.
+     */
+    if (shouldRethrowActionError(error)) {
+      throw error;
+    }
+
+    return json({ error: await apiErrorMessage(error, 'Could not save SSO settings.') });
   }
 
   return json({ status: 'SSO settings saved.' });

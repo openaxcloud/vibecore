@@ -167,8 +167,20 @@ export const action: ActionFunction = async ({ request }) => {
   const stream = new TransformStream<Uint8Array, Uint8Array>();
   const writer = stream.writable.getWriter();
 
+  // Used to swallow stream-write/close rejections (see controller comment below).
+  const ignoreStreamError = () => undefined;
+
   const controller = {
-    enqueue: (chunk: Uint8Array) => writer.write(chunk),
+    /*
+     * Swallow write rejections: if the client aborts/closes the response
+     * mid-stream the underlying writer.write() rejects, and because every
+     * writeProgress() call floats this promise an unhandled rejection would
+     * crash the Node server process. The background IIFE still relies on
+     * collectUpdateDetails() to surface real errors via writeProgress.
+     */
+    enqueue: (chunk: Uint8Array) => {
+      writer.write(chunk).catch(ignoreStreamError);
+    },
   } as unknown as TransformStreamDefaultController<Uint8Array>;
 
   void (async () => {
@@ -214,7 +226,11 @@ export const action: ActionFunction = async ({ request }) => {
         error: message,
       });
     } finally {
-      await writer.close();
+      /*
+       * close() also rejects if the client already aborted the stream; swallow
+       * it so the void-ed IIFE never produces an unhandled rejection.
+       */
+      await writer.close().catch(ignoreStreamError);
     }
   })();
 

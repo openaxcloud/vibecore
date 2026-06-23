@@ -20,12 +20,33 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     throw json({ error: 'No organization found' }, { status: 400 });
   }
 
-  const rolesResult = await apiRequest<{ roles: Array<{ key: string; name: string; permissions: string[] }> }>(
-    request,
-    `/orgs/${organization.id}/roles`,
-  );
-
   let canManageInvitations = true;
+
+  /*
+   * The roles fetch hits GET /orgs/:id/roles, which requires
+   * org:read / roles:manage / members:manage. A member lacking those perms — or
+   * any caller who passed an ?orgId for an org they cannot read — would otherwise
+   * get a 403 thrown here, collapsing the whole page into the error boundary
+   * before the invitations fallback can degrade it to the read-only owner-only
+   * state. Treat a 403 the same way as the invitations 403 below: no custom
+   * roles, no invitation management. Re-auth redirects (3xx/401) and server
+   * errors (5xx) still propagate so the framework / error boundary handles them.
+   */
+  let customRoles: Array<{ key: string; name: string }> = [];
+
+  try {
+    const rolesResult = await apiRequest<{ roles: Array<{ key: string; name: string; permissions: string[] }> }>(
+      request,
+      `/orgs/${organization.id}/roles`,
+    );
+    customRoles = rolesResult.roles.map((role) => ({ key: role.key, name: role.name }));
+  } catch (error) {
+    if (!isForbiddenApiResponse(error)) {
+      throw error;
+    }
+
+    canManageInvitations = false;
+  }
 
   let invitationsResult: {
     invitations: Array<{ id: string; email: string; roleKey: string; acceptedAt?: string; expiresAt: string }>;
@@ -52,7 +73,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       { key: 'member', name: 'Member' },
       { key: 'admin', name: 'Admin' },
       { key: 'owner', name: 'Owner' },
-      ...rolesResult.roles.map((role) => ({ key: role.key, name: role.name })),
+      ...customRoles,
     ],
   });
 }

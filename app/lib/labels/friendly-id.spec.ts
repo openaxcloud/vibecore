@@ -27,6 +27,27 @@ describe('looksLikeOpaqueId', () => {
     expect(looksLikeOpaqueId('staging-eu-west-3')).toBe(false);
   });
 
+  it('keeps long all-lowercase word-like branch names (no separator, no digits)', () => {
+    // 26 chars, all lowercase letters: a real branch name, not a nanoid.
+    expect(looksLikeOpaqueId('featurelandingpageredesign')).toBe(false);
+    expect(looksLikeOpaqueId('refactortheentireworkbenchstore')).toBe(false);
+  });
+
+  it('keeps long lowercase project names with a trailing year/version suffix', () => {
+    // 22 chars: word + trailing year cluster is a name, not a random token.
+    expect(looksLikeOpaqueId('myportfoliowebsite2026')).toBe(false);
+    expect(looksLikeOpaqueId('teamdashboardredesign2026')).toBe(false);
+  });
+
+  it('still treats real nanoid-style tokens with interleaved digits as opaque', () => {
+    expect(looksLikeOpaqueId('a1b2c3d4e5f6g7h8i9j0k1')).toBe(true);
+    expect(looksLikeOpaqueId('abc123def456ghi789jkl0')).toBe(true);
+  });
+
+  it('still treats long all-digit/all-separator strings as opaque', () => {
+    expect(looksLikeOpaqueId('12345678901234567890')).toBe(true);
+  });
+
   it('rejects empty strings', () => {
     expect(looksLikeOpaqueId('')).toBe(false);
     expect(looksLikeOpaqueId('   ')).toBe(false);
