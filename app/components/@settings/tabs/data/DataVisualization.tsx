@@ -25,7 +25,6 @@ type DataVisualizationProps = {
 export function DataVisualization({ chats }: DataVisualizationProps) {
   const [chatsByDate, setChatsByDate] = useState<Record<string, number>>({});
   const [messagesByRole, setMessagesByRole] = useState<Record<string, number>>({});
-  const [apiKeyUsage, setApiKeyUsage] = useState<Array<{ provider: string; count: number }>>([]);
   const [averageMessagesPerChat, setAverageMessagesPerChat] = useState<number>(0);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -54,7 +53,6 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
     // Process chat data
     const chatDates: Record<string, number> = {};
     const roleCounts: Record<string, number> = {};
-    const apiUsage: Record<string, number> = {};
 
     let totalMessages = 0;
 
@@ -65,13 +63,6 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
       chat.messages.forEach((message) => {
         roleCounts[message.role] = (roleCounts[message.role] || 0) + 1;
         totalMessages++;
-
-        if (message.role === 'assistant') {
-          const text = typeof message.content === 'string' ? message.content : '';
-          const providerMatch = text.match(/provider:\s*([\w-]+)/i);
-          const provider = providerMatch ? providerMatch[1] : 'unknown';
-          apiUsage[provider] = (apiUsage[provider] || 0) + 1;
-        }
       });
     });
 
@@ -83,7 +74,6 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
 
     setChatsByDate(sortedChatsByDate);
     setMessagesByRole(roleCounts);
-    setApiKeyUsage(Object.entries(apiUsage).map(([provider, count]) => ({ provider, count })));
     setAverageMessagesPerChat(totalMessages / chats.length);
   }, [chats]);
 
@@ -189,18 +179,6 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
           data: Object.values(messagesByRole),
           backgroundColor: Object.keys(messagesByRole).map((_, i) => getChartColors(i).bg),
           borderColor: Object.keys(messagesByRole).map((_, i) => getChartColors(i).border),
-          borderWidth: 1,
-        },
-      ],
-    },
-    apiUsage: {
-      labels: apiKeyUsage.map((item) => item.provider),
-      datasets: [
-        {
-          label: 'API Usage',
-          data: apiKeyUsage.map((item) => item.count),
-          backgroundColor: apiKeyUsage.map((_, i) => getChartColors(i).bg),
-          borderColor: apiKeyUsage.map((_, i) => getChartColors(i).border),
           borderWidth: 1,
         },
       ],
@@ -372,15 +350,6 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
           </div>
         </div>
       </div>
-
-      {apiKeyUsage.length > 0 && (
-        <div className={cardClasses}>
-          <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-6">API Usage by Provider</h3>
-          <div className="h-64">
-            <Pie data={chartData.apiUsage} options={pieOptions} />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -509,15 +509,27 @@ export function BuildModeSelector({
   const [activeAnimations, setActiveAnimations] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (open) {
-      const timer = setTimeout(() => setActiveAnimations({ 'design-first': true, 'full-app': true }), 200);
-      return () => clearTimeout(timer);
+    if (!open) {
+      setActiveAnimations({});
+      return undefined;
     }
 
-    setActiveAnimations({});
+    const timer = setTimeout(() => setActiveAnimations({ 'design-first': true, 'full-app': true }), 200);
 
-    return undefined;
-  }, [open]);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onOpenChange(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open, onOpenChange]);
 
   if (!open) {
     return null;
@@ -529,6 +541,11 @@ export function BuildModeSelector({
       role="dialog"
       aria-modal="true"
       data-testid="build-mode-selector-dialog"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          onOpenChange(false);
+        }
+      }}
     >
       <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
         <div className="px-6 pt-6 pb-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-muted dark:to-muted/70 border-b">

@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { reconcileHydration } from './settings-hydration-merge';
 import { mergeNotificationIntoProfile } from './settings-profile-storage';
 import { settingsPersistenceSnapshot } from './settings-snapshot';
 import { buildTimezoneOptions } from './timezone-options';
@@ -77,6 +78,18 @@ export default function SettingsTab() {
   const hydratedRef = useRef(false);
   const lastPersistedRef = useRef<string | null>(null);
 
+  /*
+   * The persisted fields as they stood at mount, before any user interaction.
+   * The hydration reconcile compares the current state against this baseline to
+   * tell a genuine pre-hydration edit (user value must win) apart from an
+   * untouched field (DB value wins). Captured once via the lazy initializer.
+   */
+  const baselineRef = useRef<Pick<UserProfile, 'notifications' | 'language' | 'timezone'>>({
+    notifications: settings.notifications,
+    language: settings.language,
+    timezone: settings.timezone,
+  });
+
   useEffect(() => {
     setCurrentTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
   }, []);
@@ -98,26 +111,27 @@ export default function SettingsTab() {
 
           if (!cancelled) {
             setSettings((prev) => {
-              const merged: UserProfile = {
-                ...prev,
-                notifications: data.preferences?.notifications ?? prev.notifications,
-                language: data.language ?? prev.language,
-                timezone: data.timezone ?? prev.timezone,
-              };
-
               /*
-               * Mirror into the cache and mark as already-persisted so the
-               * save effect below treats this merge as a no-op.
+               * Reconcile the server response with the (possibly already
+               * user-edited) state. A field the user changed during the
+               * hydration window keeps the user's value; untouched fields take
+               * the DB value. See settings-hydration-merge.ts.
                */
+              const { merged, serverSnapshot } = reconcileHydration(prev, baselineRef.current, data);
+
+              // Mirror the reconciled state into the cache.
               localStorage.setItem('bolt_user_profile', JSON.stringify({ ...prev, ...merged }));
 
               /*
-               * Use the same 3-key snapshot shape the save effect compares
-               * against. `merged` carries extra keys from `prev` (e.g. `theme`),
-               * so stringifying it directly would never match the save effect's
-               * snapshot and would fire a redundant PATCH + toast on every mount.
+               * Seed the dedup ref with what the SERVER actually holds (not the
+               * merged state). If a pre-hydration edit made the displayed state
+               * diverge from the server, the save effect below will see
+               * `snapshot !== lastPersistedRef.current` and fire a corrective
+               * PATCH so the edit reaches the backend instead of being silently
+               * reverted. With no pending edit the two snapshots match and the
+               * merge stays a no-op (no redundant PATCH or toast on mount).
                */
-              lastPersistedRef.current = settingsPersistenceSnapshot(merged);
+              lastPersistedRef.current = serverSnapshot;
 
               return merged;
             });

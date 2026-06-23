@@ -219,7 +219,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
 
         <ResourceCta
           title="Ready to turn a template into a real project?"
-          description="Open a starter, keep the generated code reviewable, and continue in the preserved Bolt IDE."
+          description="Open a starter, keep the generated code reviewable, and continue in the preserved E-Code IDE."
           primary={{ label: 'Start building', to: loginReturnTo('/templates') }}
           secondary={{ label: 'See pricing', to: '/pricing' }}
         />

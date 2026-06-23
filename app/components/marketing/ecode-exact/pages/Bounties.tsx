@@ -263,7 +263,7 @@ export default function MarketingBounties() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="bg-transparent border-white text-white hover:bg-white/10"
+                  className="bg-transparent border-background text-background hover:bg-background/10"
                 >
                   Book a demo
                 </Button>

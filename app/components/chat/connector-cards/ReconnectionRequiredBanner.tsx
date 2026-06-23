@@ -19,6 +19,22 @@ const REASON_LABEL: Record<ReconnectionRequiredReason, string> = {
   scope_insufficient: 'The current scopes no longer cover the agent request.',
 };
 
+const GENERIC_REASON_LABEL = 'Reconnection is required to continue.';
+
+/*
+ * Resolve a reconnection reason to a human-readable label. The upstream
+ * data-part filter (isConnectorDataPart) only checks that `kind` is a
+ * string, so `reason` is not validated against ReconnectionRequiredReason.
+ * A persisted/imported part, or an agent/proxy emitting an unknown or
+ * undefined reason, would otherwise produce `undefined`, which React
+ * renders as nothing — leaving the banner with a blank explanation line.
+ * Fall back to a generic label so the banner always tells the builder
+ * why reconnection is needed.
+ */
+export function reasonLabel(reason: ReconnectionRequiredReason | string | undefined): string {
+  return (reason != null && REASON_LABEL[reason as ReconnectionRequiredReason]) || GENERIC_REASON_LABEL;
+}
+
 export interface ReconnectionRequiredBannerProps {
   payload: ReconnectionRequiredMessage;
   projectId?: string;
@@ -69,7 +85,7 @@ export function ReconnectionRequiredBanner({ payload, projectId }: ReconnectionR
         <span className="i-ph:warning-fill w-5 h-5 text-bolt-elements-icon-warning mt-0.5" />
         <div className="flex-1">
           <p className="text-sm font-medium text-bolt-elements-textPrimary">Reconnect {payload.providerDisplayName}</p>
-          <p className="text-xs text-bolt-elements-textSecondary mt-1">{REASON_LABEL[payload.reason]}</p>
+          <p className="text-xs text-bolt-elements-textSecondary mt-1">{reasonLabel(payload.reason)}</p>
           <Button onClick={startReconnect} disabled={isLaunching} className="mt-2">
             {isLaunching ? 'Waiting for authorization...' : `Reconnect ${payload.providerDisplayName}`}
           </Button>
