@@ -41,7 +41,13 @@ describe('E-Code public theme wrappers', () => {
 
     expect(source).toContain('data-ecode-static-shell');
     expect(source).toContain("const ECODE_PUBLIC_ROOT_FONT_SIZE = '16px'");
-    expect(source).toContain("applyThemeToDocument('light')");
+
+    /*
+     * Public chrome applies the RESOLVED theme (homepage default is light, but a
+     * visitor's persisted dark choice is respected across SPA navigation) rather
+     * than force-resetting to light on every route.
+     */
+    expect(source).toContain('applyThemeToDocument(chromeTheme)');
     expect(source).toContain("root.setAttribute('data-ecode-public-chrome', 'homepage')");
     expect(source).toContain("const label = isHomepageDefaultTheme ? 'System' : 'Dark'");
     expect(source).toContain('Mobile Navigation Menu');
