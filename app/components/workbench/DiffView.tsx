@@ -3,6 +3,7 @@ import { diffLines, type Change } from 'diff';
 import { memo, useMemo, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { getHighlighter } from 'shiki';
+import { formatModifiedTime } from './diff-modified-time';
 import type { EditorDocument } from '~/components/editor/codemirror/CodeMirrorEditor';
 import type { FileMap } from '~/lib/stores/files';
 import { themeStore } from '~/lib/stores/theme';
@@ -19,6 +20,7 @@ interface CodeComparisonProps {
   filename: string;
   lightTheme: string;
   darkTheme: string;
+  lastModified?: number;
 }
 
 /*
@@ -589,6 +591,7 @@ const FileInfo = memo(
     isFullscreen,
     beforeCode,
     afterCode,
+    lastModified,
   }: {
     filename: string;
     hasChanges: boolean;
@@ -596,6 +599,7 @@ const FileInfo = memo(
     isFullscreen: boolean;
     beforeCode: string;
     afterCode: string;
+    lastModified?: number;
   }) => {
     // Calculate additions and deletions from the current document
     const { additions, deletions } = useMemo(() => {
@@ -628,7 +632,9 @@ const FileInfo = memo(
                 </div>
               )}
               <span className="text-yellow-600 dark:text-yellow-400">Modified</span>
-              <span className="text-bolt-elements-textTertiary text-xs">{new Date().toLocaleTimeString()}</span>
+              {formatModifiedTime(lastModified) && (
+                <span className="text-bolt-elements-textTertiary text-xs">{formatModifiedTime(lastModified)}</span>
+              )}
             </>
           ) : (
             <span className="text-green-700 dark:text-green-400">No Changes</span>
@@ -665,81 +671,84 @@ const getSharedHighlighter = async () => {
   return highlighterInstance;
 };
 
-const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language }: CodeComparisonProps) => {
-  const [isFullscreen, setIsFullscreen] = useState(false);
+const InlineDiffComparison = memo(
+  ({ beforeCode, afterCode, filename, language, lastModified }: CodeComparisonProps) => {
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Use state to hold the shared highlighter instance
-  const [highlighter, setHighlighter] = useState<any>(null);
-  const theme = useStore(themeStore);
+    // Use state to hold the shared highlighter instance
+    const [highlighter, setHighlighter] = useState<any>(null);
+    const theme = useStore(themeStore);
 
-  const toggleFullscreen = useCallback(() => {
-    setIsFullscreen((prev) => !prev);
-  }, []);
+    const toggleFullscreen = useCallback(() => {
+      setIsFullscreen((prev) => !prev);
+    }, []);
 
-  const { unifiedBlocks, hasChanges, isBinary, error } = useProcessChanges(beforeCode, afterCode);
+    const { unifiedBlocks, hasChanges, isBinary, error } = useProcessChanges(beforeCode, afterCode);
 
-  useEffect(() => {
-    // Fetch the shared highlighter instance
-    getSharedHighlighter().then(setHighlighter);
+    useEffect(() => {
+      // Fetch the shared highlighter instance
+      getSharedHighlighter().then(setHighlighter);
 
-    /*
-     * No cleanup needed here for the highlighter instance itself,
-     * as it's managed globally. Shiki instances don't typically
-     * need disposal unless you are dynamically loading/unloading themes/languages.
-     * If you were dynamically loading, you might need a more complex
-     * shared instance manager with reference counting or similar.
-     * For static themes/langs, a single instance is sufficient.
-     */
-  }, []); // Empty dependency array ensures this runs only once on mount
+      /*
+       * No cleanup needed here for the highlighter instance itself,
+       * as it's managed globally. Shiki instances don't typically
+       * need disposal unless you are dynamically loading/unloading themes/languages.
+       * If you were dynamically loading, you might need a more complex
+       * shared instance manager with reference counting or similar.
+       * For static themes/langs, a single instance is sufficient.
+       */
+    }, []); // Empty dependency array ensures this runs only once on mount
 
-  if (isBinary || error) {
-    return renderContentWarning(isBinary ? 'binary' : 'error');
-  }
+    if (isBinary || error) {
+      return renderContentWarning(isBinary ? 'binary' : 'error');
+    }
 
-  // Render a loading state or null while highlighter is not ready
-  if (!highlighter) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-bolt-elements-textTertiary">Loading diff...</div>
-      </div>
-    );
-  }
-
-  return (
-    <FullscreenOverlay isFullscreen={isFullscreen} onClose={() => setIsFullscreen(false)}>
-      <div className="w-full h-full flex flex-col">
-        <FileInfo
-          filename={filename}
-          hasChanges={hasChanges}
-          onToggleFullscreen={toggleFullscreen}
-          isFullscreen={isFullscreen}
-          beforeCode={beforeCode}
-          afterCode={afterCode}
-        />
-        <div className={diffPanelStyles}>
-          {hasChanges ? (
-            <div className="overflow-x-auto min-w-full">
-              {unifiedBlocks.map((block, index) => (
-                <CodeLine
-                  key={`${block.lineNumber}-${index}`}
-                  lineNumber={block.lineNumber}
-                  content={block.content}
-                  type={block.type}
-                  highlighter={highlighter} // Pass the shared instance
-                  language={language}
-                  block={block}
-                  theme={theme}
-                />
-              ))}
-            </div>
-          ) : (
-            <NoChangesView beforeCode={beforeCode} language={language} highlighter={highlighter} theme={theme} />
-          )}
+    // Render a loading state or null while highlighter is not ready
+    if (!highlighter) {
+      return (
+        <div className="h-full flex items-center justify-center">
+          <div className="text-bolt-elements-textTertiary">Loading diff...</div>
         </div>
-      </div>
-    </FullscreenOverlay>
-  );
-});
+      );
+    }
+
+    return (
+      <FullscreenOverlay isFullscreen={isFullscreen} onClose={() => setIsFullscreen(false)}>
+        <div className="w-full h-full flex flex-col">
+          <FileInfo
+            filename={filename}
+            hasChanges={hasChanges}
+            onToggleFullscreen={toggleFullscreen}
+            isFullscreen={isFullscreen}
+            beforeCode={beforeCode}
+            afterCode={afterCode}
+            lastModified={lastModified}
+          />
+          <div className={diffPanelStyles}>
+            {hasChanges ? (
+              <div className="overflow-x-auto min-w-full">
+                {unifiedBlocks.map((block, index) => (
+                  <CodeLine
+                    key={`${block.lineNumber}-${index}`}
+                    lineNumber={block.lineNumber}
+                    content={block.content}
+                    type={block.type}
+                    highlighter={highlighter} // Pass the shared instance
+                    language={language}
+                    block={block}
+                    theme={theme}
+                  />
+                ))}
+              </div>
+            ) : (
+              <NoChangesView beforeCode={beforeCode} language={language} highlighter={highlighter} theme={theme} />
+            )}
+          </div>
+        </div>
+      </FullscreenOverlay>
+    );
+  },
+);
 
 interface DiffViewProps {
   fileHistory: Record<string, FileHistory>;
@@ -865,6 +874,7 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
           filename={selectedFile}
           lightTheme="github-light"
           darkTheme="github-dark"
+          lastModified={history?.lastModified}
         />
       </div>
     );

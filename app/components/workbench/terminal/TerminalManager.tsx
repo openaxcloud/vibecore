@@ -1,8 +1,5 @@
 import type { Terminal as XTerm } from '@xterm/xterm';
 import { memo, useEffect } from 'react';
-import { createScopedLogger } from '~/utils/logger';
-
-const logger = createScopedLogger('TerminalManager');
 
 interface TerminalManagerProps {
   terminal: XTerm | null;
@@ -13,44 +10,15 @@ interface TerminalManagerProps {
 export const TerminalManager = memo(({ terminal, isActive }: TerminalManagerProps) => {
   // Simplified terminal manager - removed aggressive health checking that was causing issues
 
-  // Basic terminal event handling - no aggressive monitoring
-  useEffect(() => {
-    if (!terminal) {
-      return undefined;
-    }
-
-    const disposables: Array<{ dispose: () => void }> = [];
-
-    // Set up paste handler via terminal's onKey
-    const onPasteKeyDisposable = terminal.onKey((e) => {
-      // Detect Ctrl+V or Cmd+V
-      if ((e.domEvent.ctrlKey || e.domEvent.metaKey) && e.domEvent.key === 'v') {
-        if (!isActive) {
-          return;
-        }
-
-        // Read from clipboard if available
-        if (navigator.clipboard && navigator.clipboard.readText) {
-          navigator.clipboard
-            .readText()
-            .then((text) => {
-              if (text && terminal) {
-                terminal.paste(text);
-              }
-            })
-            .catch((err) => {
-              logger.warn('Failed to read clipboard:', err);
-            });
-        }
-      }
-    });
-
-    disposables.push(onPasteKeyDisposable);
-
-    return () => {
-      disposables.forEach((d) => d.dispose());
-    };
-  }, [terminal, isActive]);
+  /*
+   * NOTE: We intentionally do NOT wire a manual Cmd/Ctrl+V paste handler here.
+   * xterm.js already handles clipboard paste natively: the browser fires a
+   * `paste` event on xterm's hidden textarea, which xterm forwards to the PTY
+   * via its onData path. `terminal.onKey(...)` is an observer-only event that
+   * cannot suppress that native paste, so additionally calling
+   * `terminal.paste(text)` from an onKey handler delivered the clipboard to the
+   * shell twice.
+   */
 
   // Auto-focus terminal when it becomes active
   useEffect(() => {

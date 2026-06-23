@@ -101,6 +101,21 @@ export function seedRawText(content: string, composed: string, allChosen: boolea
   return allChosen ? composed : content;
 }
 
+/*
+ * Whether `composed` still carries unresolved Git conflict markers.
+ *
+ * A blanket per-line regex (e.g. /^(<{7}|\|{7}|={7}|>{7})/m) gives false positives:
+ * legitimate source content can begin with seven-plus of these characters — a
+ * `=======` markdown/RST divider, a `// =========` section banner, `>>>>>>>` arrow
+ * art, etc. — and would wrongly block "Mark resolved" forever. Instead we re-parse the
+ * composed text with the same conflict grammar used to build it; a marker only counts
+ * if parseConflicts() reconstructs an actual conflict segment (paired <<<<<<< / =======
+ * / >>>>>>> block). Legitimate separator lines parse as plain text and are ignored.
+ */
+export function hasUnresolvedConflictMarkers(composed: string): boolean {
+  return parseConflicts(composed).some((segment) => segment.type === 'conflict');
+}
+
 export function GitMergeEditor({
   filePath,
   content,
@@ -124,6 +139,15 @@ export function GitMergeEditor({
   const [choices, setChoices] = useState<Record<number, Choice>>({});
   const [rawMode, setRawMode] = useState(false);
   const [raw, setRaw] = useState(content);
+
+  /*
+   * Whether the raw textarea has ever been seeded. The raw buffer must be seeded once,
+   * on the FIRST entry into raw mode, from the current resolution. After that the buffer
+   * is owned by the user: toggling Hunk view -> Edit raw again must NOT reseed (which
+   * would clobber hand-typed raw edits — and, with no per-conflict choices made, would
+   * even revert to the original conflict-marked `content`).
+   */
+  const [rawSeeded, setRawSeeded] = useState(false);
 
   const allChosen = conflictIndexes.every((index) => choices[index]);
 
@@ -151,10 +175,11 @@ export function GitMergeEditor({
   }, [segments, choices, rawMode, raw]);
 
   /*
-   * Include the diff3 base marker (|||||||) git emits under merge.conflictStyle=diff3,
-   * not just <<<<<<< / ======= / >>>>>>>, so a leftover base marker also blocks resolve.
+   * Only block resolve when an ACTUAL conflict block remains (paired markers that
+   * parseConflicts reconstructs), not whenever a content line happens to start with
+   * seven of <, |, =, or > — those are legitimate (markdown dividers, banners, arrow art).
    */
-  const stillHasMarkers = /^(<{7}|\|{7}|={7}|>{7})/m.test(composed);
+  const stillHasMarkers = hasUnresolvedConflictMarkers(composed);
 
   return (
     <div
@@ -175,13 +200,15 @@ export function GitMergeEditor({
             className="rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
             onClick={() => {
               /*
-               * Only seed the raw textarea from `composed` when every conflict has a
-               * chosen side; otherwise seed from the original `content` so unresolved
-               * conflict blocks (which `composed` drops) are not silently stripped.
-               * Re-entering hunk view should not re-seed — keep raw edits.
+               * Seed the raw textarea exactly ONCE, on the first entry into raw mode:
+               * from `composed` when every conflict has a chosen side, otherwise from the
+               * original `content` so unresolved conflict blocks (which `composed` drops)
+               * are not silently stripped. After the first seed the buffer belongs to the
+               * user — re-entering raw via Hunk view must not reseed and clobber edits.
                */
-              if (!rawMode) {
+              if (!rawMode && !rawSeeded) {
                 setRaw(seedRawText(content, composed, allChosen));
+                setRawSeeded(true);
               }
 
               setRawMode((value) => !value);

@@ -4,9 +4,30 @@ import { toast } from '~/components/ui/use-toast';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 
-interface LockedItem {
+export interface LockedItem {
   path: string;
   type: 'file' | 'folder';
+}
+
+/**
+ * Optimistically drop the given path(s) from the locked-items list. Used by both
+ * the per-row Unlock button and the bulk "Unlock all" action so the just-unlocked
+ * item disappears immediately instead of lingering until the 5s poll refreshes.
+ */
+export function removeLockedPaths(items: LockedItem[], paths: Set<string> | string): LockedItem[] {
+  const toRemove = typeof paths === 'string' ? new Set([paths]) : paths;
+  return items.filter((item) => !toRemove.has(item.path));
+}
+
+/**
+ * Drop a single path from the selected-paths set, returning a new set (mirrors the
+ * immutable update pattern used throughout the LockManager component).
+ */
+export function removeSelectedPath(selected: Set<string>, path: string): Set<string> {
+  const next = new Set(selected);
+  next.delete(path);
+
+  return next;
 }
 
 export function LockManager() {
@@ -147,7 +168,7 @@ export function LockManager() {
        * list otherwise only refreshes on the 5s poll, leaving just-unlocked items
        * visibly (and confusingly) still "locked" for up to 5 seconds.
        */
-      setLockedItems((prev) => prev.filter((item) => !selectedItems.has(item.path)));
+      setLockedItems((prev) => removeLockedPaths(prev, selectedItems));
       setSelectedItems(new Set()); // Clear selection after unlocking
     }
   };
@@ -265,6 +286,16 @@ export function LockManager() {
                     } else {
                       workbenchStore.unlockFolder(item.path);
                     }
+
+                    /*
+                     * Optimistically drop the just-unlocked item from the list and
+                     * selection so it disappears immediately, instead of lingering
+                     * (still showing the lock affordance) until the 5s poll, which
+                     * would contradict the success toast below. Mirrors the bulk
+                     * "Unlock all" path in handleUnlockSelected.
+                     */
+                    setLockedItems((prev) => removeLockedPaths(prev, item.path));
+                    setSelectedItems((prev) => removeSelectedPath(prev, item.path));
 
                     toast.success(`${item.path.replace('/home/project/', '')} unlocked`);
                   }}

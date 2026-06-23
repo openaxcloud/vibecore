@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
 
 /*
@@ -60,6 +60,22 @@ export function isDatabasePanelDormant(data: PanelData | undefined): boolean {
   return !data || data.ok === false || data.enabled === false;
 }
 
+/**
+ * Edge detector for "a restore/provision/snapshot just succeeded". The refresh
+ * effect must fire exactly once per successful intent, not on every render.
+ *
+ * `restoreOk` is `true` for the whole span between a successful submission
+ * settling and the next submission starting. Reloading the list fetcher inside
+ * that span (which itself churns object references / `.data`) would re-run the
+ * effect forever. So we only reload on the rising edge: `restoreOk` was false
+ * (or unseen) on the previous run and is true now. The caller threads the
+ * previous value through a ref; `false` resets it so the *next* success fires
+ * again. Pure, so the loop-prevention logic is unit-testable without React.
+ */
+export function shouldRefreshAfterRestore(prevRestoreOk: boolean, restoreOk: boolean): boolean {
+  return restoreOk && !prevRestoreOk;
+}
+
 function formatBytes(bytes: number): string {
   if (bytes <= 0) {
     return '0 B';
@@ -84,13 +100,21 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
     }
   }, [loadFetcher, loadUrl]);
 
-  // Refresh after a restore is requested so the new PENDING row appears.
-  const restoreOk = restoreFetcher.state === 'idle' && restoreFetcher.data?.ok;
+  /*
+   * Refresh after a restore is requested so the new PENDING row appears.
+   * `restoreOk` stays true for the whole span after a successful submission, so
+   * reload only on the rising edge — otherwise `loadFetcher.load()` churns the
+   * fetcher reference / `.data` and re-fires the effect into an infinite loop.
+   */
+  const restoreOk = Boolean(restoreFetcher.state === 'idle' && restoreFetcher.data?.ok);
+  const prevRestoreOkRef = useRef(false);
 
   useEffect(() => {
-    if (restoreOk) {
+    if (shouldRefreshAfterRestore(prevRestoreOkRef.current, restoreOk)) {
       loadFetcher.load(loadUrl);
     }
+
+    prevRestoreOkRef.current = restoreOk;
   }, [restoreOk, loadFetcher, loadUrl]);
 
   const data = loadFetcher.data;

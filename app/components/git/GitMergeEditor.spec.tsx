@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { seedRawText } from './GitMergeEditor';
+import { hasUnresolvedConflictMarkers, seedRawText } from './GitMergeEditor';
 
 /*
  * Reproduces the data-loss bug: clicking "Edit raw" before choosing a side for the
@@ -53,5 +53,77 @@ describe('seedRawText', () => {
     const partiallyComposed = 'line a\nline b';
 
     expect(seedRawText(CONTENT_WITH_CONFLICT, partiallyComposed, false)).toContain('our change');
+  });
+});
+
+/*
+ * Reproduces the "permanently disabled Mark resolved" bug: a chosen side whose real
+ * source content contains a line starting with 7+ of <, |, =, or > (a markdown/RST
+ * divider, a section banner, arrow art) must NOT be mistaken for a leftover conflict
+ * marker. Only an actual reconstructable conflict block counts.
+ */
+describe('hasUnresolvedConflictMarkers', () => {
+  it('returns true while an actual conflict block remains in the composed text', () => {
+    const composed = [
+      'line a',
+      '<<<<<<< HEAD',
+      'our change',
+      '=======',
+      'their change',
+      '>>>>>>> branch',
+      'line b',
+    ].join('\n');
+
+    expect(hasUnresolvedConflictMarkers(composed)).toBe(true);
+  });
+
+  it('returns true for a leftover diff3 base marker block', () => {
+    const composed = [
+      '<<<<<<< HEAD',
+      'our change',
+      '|||||||  base',
+      'base change',
+      '=======',
+      'their change',
+      '>>>>>>> branch',
+    ].join('\n');
+
+    expect(hasUnresolvedConflictMarkers(composed)).toBe(true);
+  });
+
+  it('returns false for a fully resolved body (no markers)', () => {
+    const composed = ['line a', 'our change', 'line b'].join('\n');
+
+    expect(hasUnresolvedConflictMarkers(composed)).toBe(false);
+  });
+
+  it('does NOT flag a legitimate ======= markdown/RST divider as a conflict', () => {
+    const composed = ['Heading', '=======', 'body text'].join('\n');
+
+    expect(hasUnresolvedConflictMarkers(composed)).toBe(false);
+  });
+
+  it('does NOT flag a // ========= section banner as a conflict', () => {
+    const composed = ['const x = 1;', '// =========================', 'const y = 2;'].join('\n');
+
+    expect(hasUnresolvedConflictMarkers(composed)).toBe(false);
+  });
+
+  it('does NOT flag >>>>>>> arrow art or <<<<<<< lines as a conflict', () => {
+    const composed = ['<<<<<<< pay attention', 'art', '>>>>>>> the end'].join('\n');
+
+    // No paired ======= between them, so this never forms a conflict segment.
+    expect(hasUnresolvedConflictMarkers(composed)).toBe(false);
+  });
+
+  it('does NOT flag a chosen side that legitimately contains a ======= divider line', () => {
+    /*
+     * This is the exact regression: the user accepts a side whose source includes a
+     * "=======" divider. The composed output is marker-free (no real conflict block),
+     * so resolve must be allowed.
+     */
+    const composed = ['line a', 'Section', '=======', 'content', 'line b'].join('\n');
+
+    expect(hasUnresolvedConflictMarkers(composed)).toBe(false);
   });
 });
