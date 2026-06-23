@@ -1216,14 +1216,23 @@ export class FilesStore {
         const contentToWrite = (content as string).length === 0 ? ' ' : content;
         await this.#runtime.createFile(relativePath, contentToWrite);
 
+        /*
+         * Store the SAME content we actually wrote to the runtime (the
+         * whitespace placeholder when an empty file was substituted), not the
+         * original empty string. In remote-kubernetes mode #saveFileImpl runs an
+         * optimistic-concurrency check that compares the in-memory baseline
+         * against runtime.readFile(); if the map held '' while disk held ' ', the
+         * first legitimate save of a freshly-created empty file would falsely
+         * fail with "Remote file changed since it was loaded".
+         */
         this.files.setKey(filePath, {
           type: 'file',
-          content: content as string,
+          content: contentToWrite,
           isBinary: false,
           isLocked: false,
         });
 
-        this.#modifiedFiles.set(filePath, content as string);
+        this.#modifiedFiles.set(filePath, contentToWrite);
       }
 
       if (!wasFileBefore) {

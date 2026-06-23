@@ -25,58 +25,72 @@ export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITermin
   let isInteractive = !useJshOsc;
 
   void (async () => {
-    for await (const event of session.events) {
-      const data = event.data ?? '';
+    try {
+      for await (const event of session.events) {
+        const data = event.data ?? '';
 
-      if (!data) {
-        continue;
-      }
+        if (!data) {
+          continue;
+        }
 
-      if (useJshOsc && !isInteractive) {
-        const [, osc] = data.match(/\x1b\]654;([^\x07]+)\x07/) || [];
+        if (useJshOsc && !isInteractive) {
+          const [, osc] = data.match(/\x1b\]654;([^\x07]+)\x07/) || [];
 
-        if (osc === 'interactive') {
-          isInteractive = true;
-          jshReady.resolve();
+          if (osc === 'interactive') {
+            isInteractive = true;
+            jshReady.resolve();
+          }
+        }
+
+        /*
+         * jsh's internal `\x1b]654;…\x07` markers are part of the host
+         * handshake, not user-visible output. xterm.js usually swallows
+         * unknown OSC silently but leaks the trailing bytes (`]`, payload
+         * fragments) when the sequence straddles two data events. Strip
+         * them at ingest so the user never sees `]]]]]]]]` runs.
+         */
+        const displayData = stripInternalOscMarkers(data);
+
+        try {
+          terminal.write(displayData);
+        } catch {
+          /*
+           * The terminal can be disposed (component unmounted) while the remote
+           * session is still streaming. Writing to a disposed xterm throws; since
+           * this loop is fire-and-forget, an unhandled throw becomes an unhandled
+           * rejection. Stop consuming once the sink is gone.
+           */
+          break;
+        }
+
+        try {
+          import('~/utils/debugLogger')
+            .then(({ captureTerminalLog }) => {
+              const cleanData = data.replace(/\x1b\[[0-9;]*[mG]/g, '').trim();
+
+              if (cleanData) {
+                captureTerminalLog(cleanData, 'output');
+              }
+            })
+            .catch(() => {
+              // Ignore if debug logger is not available
+            });
+        } catch {
+          // Ignore errors in debug logging
         }
       }
-
+    } finally {
       /*
-       * jsh's internal `\x1b]654;…\x07` markers are part of the host
-       * handshake, not user-visible output. xterm.js usually swallows
-       * unknown OSC silently but leaks the trailing bytes (`]`, payload
-       * fragments) when the sequence straddles two data events. Strip
-       * them at ingest so the user never sees `]]]]]]]]` runs.
+       * The session can end WITHOUT ever emitting the `interactive` OSC marker:
+       * jsh crashes on a degraded/502 workspace, the PTY exits immediately
+       * (command-not-found), or the runtime-remote event queue closes before the
+       * handshake completes. In that case `jshReady` was never resolved, so the
+       * `await jshReady.promise` below would hang forever and newShellProcess()
+       * would never settle. The session has already streamed (and closed), so
+       * treat handshake-not-seen as closed/ready and release the awaiter.
+       * resolve() is idempotent — a no-op once the marker has already resolved it.
        */
-      const displayData = stripInternalOscMarkers(data);
-
-      try {
-        terminal.write(displayData);
-      } catch {
-        /*
-         * The terminal can be disposed (component unmounted) while the remote
-         * session is still streaming. Writing to a disposed xterm throws; since
-         * this loop is fire-and-forget, an unhandled throw becomes an unhandled
-         * rejection. Stop consuming once the sink is gone.
-         */
-        break;
-      }
-
-      try {
-        import('~/utils/debugLogger')
-          .then(({ captureTerminalLog }) => {
-            const cleanData = data.replace(/\x1b\[[0-9;]*[mG]/g, '').trim();
-
-            if (cleanData) {
-              captureTerminalLog(cleanData, 'output');
-            }
-          })
-          .catch(() => {
-            // Ignore if debug logger is not available
-          });
-      } catch {
-        // Ignore errors in debug logging
-      }
+      jshReady.resolve();
     }
   })();
 

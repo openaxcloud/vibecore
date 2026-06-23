@@ -298,6 +298,73 @@ export interface AbuseSignal {
   reason: string;
 }
 
+/*
+ * Upper bound on the joined command string we run abuse regexes against. Real shell
+ * commands are far shorter than this; anything larger is rejected outright so an
+ * attacker can't feed a multi-kilobyte string to a regex matcher and stall Node's
+ * single-threaded event loop. (A few of the abuse patterns below use `.*` which is
+ * super-linear on adversarial input, so the cap is a hard backstop for all of them.)
+ */
+const MAX_ABUSE_SCAN_LENGTH = 4096;
+
+/*
+ * Longest function name we treat as a fork-bomb candidate. The classic bomb uses `:`
+ * or a short identifier; bounding the name keeps the per-candidate self-pipe match
+ * cheap and prevents pathological inputs from constructing huge dynamic patterns.
+ */
+const FORK_BOMB_NAME_MAX = 64;
+
+/*
+ * Matches the *header* of a POSIX function definition: `NAME ( ) {` where NAME is `:`
+ * or a short identifier. There is no ambiguous/nested quantifier here, so it scans in
+ * linear time. The captured name is then used to look for the self-recursive pipe in
+ * the body — see isForkBomb().
+ */
+const forkBombHeaderPattern = new RegExp(`(:|[A-Za-z_][\\w-]{0,${FORK_BOMB_NAME_MAX - 1}})\\s*\\(\\)\\s*\\{`, 'g');
+
+const REGEX_META = /[.*+?^${}()|[\]\\-]/g;
+
+/*
+ * Detect a recursive-fork bomb (`:(){:|:&};:` and named variants such as
+ * `boom(){ boom|boom& };boom`) in LINEAR time.
+ *
+ * The previous implementation used a single regex with a lazy unbounded body and a
+ * back-reference (`([A-Za-z_][\w-]*|:)\s*\(\)\s*\{[^}]*?\1\s*\|\s*\1`). That pattern
+ * backtracks super-linearly: on input like `f(){aaaa…` the engine retried the trailing
+ * back-reference at every interior position, taking seconds for a few KB of input and
+ * blocking the event loop for all tenants (an effective DoS).
+ *
+ * Instead we (1) find each function header `NAME(){` with a non-backtracking scan, then
+ * (2) look for the self-referential pipe `NAME | NAME` in the body with a regex built
+ * from the *literal* (escaped) name — no nested quantifiers, no back-references, so each
+ * step is linear. The real fork bomb still requires the function body to re-invoke that
+ * same function piped to itself, so legitimate piped bodies (`deploy(){ npm run build |
+ * tee log; }`, `proc(){ proc_a | proc_b; }`) are not flagged.
+ */
+function isForkBomb(line: string): boolean {
+  forkBombHeaderPattern.lastIndex = 0;
+
+  let match: RegExpExecArray | null;
+
+  while ((match = forkBombHeaderPattern.exec(line)) !== null) {
+    const name = match[1];
+    const body = line.slice(match.index + match[0].length);
+    const escaped = name.replace(REGEX_META, '\\$&');
+    const selfPipe = new RegExp(`${escaped}\\s*\\|\\s*${escaped}`);
+
+    if (selfPipe.test(body)) {
+      return true;
+    }
+
+    // Avoid a zero-length-match infinite loop on degenerate input.
+    if (match.index === forkBombHeaderPattern.lastIndex) {
+      forkBombHeaderPattern.lastIndex += 1;
+    }
+  }
+
+  return false;
+}
+
 const abuseCommandPatterns: Array<{ pattern: RegExp; signal: AbuseSignal }> = [
   {
     pattern: /\b(xmrig|minerd|cpuminer|ethminer|monero|stratum\+tcp|nicehash)\b/i,
@@ -307,21 +374,6 @@ const abuseCommandPatterns: Array<{ pattern: RegExp; signal: AbuseSignal }> = [
       action: 'stop_workspace',
       reason: 'crypto mining command pattern',
     },
-  },
-  {
-    /*
-     * Match only the recursive-fork shape `:(){ :|: ... }` (the classic `:(){:|:&};:`
-     * bomb and named variants). The function name is captured and back-referenced so the
-     * body must re-invoke *that same* function piped to itself (`NAME | NAME`).
-     *
-     * The previous version required only two arbitrary pipe-separated tokens inside any
-     * POSIX function body, which matched ordinary definitions like `deploy() { npm run
-     * build | tee log; }`, `greet() { echo hi | cat; }`, or `run() { cat x | grep err; }`
-     * and hard-blocked them as a 409. Requiring the self-referential `\1 | \1` shape keeps
-     * the real fork bomb blocked while letting legitimate piped function bodies through.
-     */
-    pattern: /([A-Za-z_][\w-]*|:)\s*\(\)\s*\{[^}]*?\1\s*\|\s*\1/,
-    signal: { type: 'fork_bomb', severity: 'critical', action: 'stop_workspace', reason: 'fork bomb pattern' },
   },
   {
     pattern: /\b(nmap|masscan|zmap|hping3|nping)\b/i,
@@ -363,7 +415,23 @@ const abuseCommandPatterns: Array<{ pattern: RegExp; signal: AbuseSignal }> = [
 ];
 
 export function detectCommandAbuse(command = '', args: string[] = []): AbuseSignal | undefined {
-  const line = [command, ...args].join(' ').trim();
+  let line = [command, ...args].join(' ').trim();
+
+  /*
+   * Hard length cap: never run the abuse regexes against an attacker-sized string.
+   * Several patterns below use `.*` which is super-linear on adversarial input, and
+   * detectCommandAbuse runs synchronously on Node's main thread, so an unbounded input
+   * could stall the event loop for every tenant. Real commands are well under this cap;
+   * we still scan the bounded prefix so an over-long line can't smuggle abuse past us.
+   */
+  if (line.length > MAX_ABUSE_SCAN_LENGTH) {
+    line = line.slice(0, MAX_ABUSE_SCAN_LENGTH);
+  }
+
+  if (isForkBomb(line)) {
+    return { type: 'fork_bomb', severity: 'critical', action: 'stop_workspace', reason: 'fork bomb pattern' };
+  }
+
   return abuseCommandPatterns.find(({ pattern }) => pattern.test(line))?.signal;
 }
 

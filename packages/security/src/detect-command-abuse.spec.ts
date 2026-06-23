@@ -43,6 +43,28 @@ describe('detectCommandAbuse — fork bomb', () => {
     expect(detectCommandAbuse('bash', ['-c', ':() { : | : ; } ; :'])?.type).toBe('fork_bomb');
     expect(detectCommandAbuse('bash', ['-c', 'fork(){ fork | fork; }; fork'])?.type).toBe('fork_bomb');
   });
+
+  it('completes in linear time on a catastrophic-backtracking input (ReDoS regression)', () => {
+    /*
+     * The previous regex `…\{[^}]*?\1\s*\|\s*\1` backtracked super-linearly: this input
+     * took ~5.6s at 100k chars and blocked the event loop for every tenant. The
+     * structural detector must finish near-instantly regardless of input size.
+     */
+    const evil = `f(){${'a'.repeat(100_000)}`;
+    const start = performance.now();
+    const signal = detectCommandAbuse('bash', ['-c', evil]);
+    const elapsed = performance.now() - start;
+
+    expect(signal).toBeUndefined();
+    expect(elapsed).toBeLessThan(50);
+  });
+
+  it('does not stall on a function header followed by a huge non-matching body', () => {
+    const evil = `:(){ ${'x'.repeat(100_000)}`;
+    const start = performance.now();
+    detectCommandAbuse('bash', ['-c', evil]);
+    expect(performance.now() - start).toBeLessThan(50);
+  });
 });
 
 describe('detectCommandAbuse — legitimate command chaining', () => {

@@ -1076,14 +1076,25 @@ function EcodeSurfaceActionLink({
   );
 }
 
-export function createProjectImportSurfacePage(projectId: string, source: string): EcodeSurfacePageDefinition {
-  const sourceLabels = {
-    figma: 'Figma',
-    bolt: 'Bolt',
-    lovable: 'Lovable',
-  } as const satisfies Record<string, string>;
+const PROJECT_IMPORT_SOURCE_LABELS = {
+  figma: 'Figma',
 
-  const label = sourceLabels[source as keyof typeof sourceLabels];
+  /*
+   * The 'bolt' route key is an internal identifier kept for backwards
+   * compatibility; its user-facing label is brand-neutral so the upstream
+   * codename never surfaces in titles, descriptions or the browser tab.
+   */
+  bolt: 'Legacy export',
+  lovable: 'Lovable',
+} as const satisfies Record<string, string>;
+
+export type ProjectImportSource = keyof typeof PROJECT_IMPORT_SOURCE_LABELS;
+
+/** Supported `:source` values for the project import surface route. */
+export const PROJECT_IMPORT_SOURCES = Object.keys(PROJECT_IMPORT_SOURCE_LABELS) as ProjectImportSource[];
+
+export function createProjectImportSurfacePage(projectId: string, source: string): EcodeSurfacePageDefinition {
+  const label = PROJECT_IMPORT_SOURCE_LABELS[source as ProjectImportSource];
 
   if (!label) {
     throw new Response('Unsupported E-Code import source', { status: 404 });

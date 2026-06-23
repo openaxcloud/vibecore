@@ -1,6 +1,6 @@
 import type { CommandEvent, RuntimeAdapter, TerminalSession } from '@vibecore/runtime-contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BoltShell } from './shell';
+import { BoltShell, newShellProcess } from './shell';
 import type { ITerminal } from '~/types/terminal';
 
 vi.mock('~/lib/stores/qrCodeStore', () => ({ expoUrlAtom: { set: vi.fn() } }));
@@ -188,6 +188,63 @@ describe('BoltShell.waitTillOscCode', () => {
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error('hung on split prompt')), 1000)),
     ]);
     expect(result).toBeDefined();
+  });
+});
+
+describe('newShellProcess jsh handshake (bug 1)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const TIMEOUT = (label: string) =>
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(label)), 1000));
+
+  it('resolves once the interactive OSC marker arrives', async () => {
+    const session = new FakeSession();
+    const runtime = { openTerminal: vi.fn().mockResolvedValue(session) } as unknown as RuntimeAdapter;
+
+    const pending = newShellProcess(runtime, makeTerminal());
+    await flush();
+    session.emit('\x1b]654;interactive\x07');
+
+    const result = await Promise.race([pending, TIMEOUT('newShellProcess never resolved after interactive marker')]);
+    expect(result).toBe(session);
+  });
+
+  it('resolves (does not hang) when the session ends WITHOUT an interactive marker', async () => {
+    const session = new FakeSession();
+    const runtime = { openTerminal: vi.fn().mockResolvedValue(session) } as unknown as RuntimeAdapter;
+
+    const pending = newShellProcess(runtime, makeTerminal());
+    await flush();
+
+    /*
+     * Simulate jsh crashing / the PTY exiting immediately on a degraded
+     * workspace: some output streams, then the event queue closes before the
+     * `interactive` handshake is ever seen. The awaited jshReady promise must
+     * still settle instead of hanging forever.
+     */
+    session.emit('jsh: command not found\n');
+    await flush();
+    session.end();
+
+    const result = await Promise.race([
+      pending,
+      TIMEOUT('newShellProcess hung forever when handshake never completed'),
+    ]);
+    expect(result).toBe(session);
+  });
+
+  it('does not await the handshake for a non-jsh command', async () => {
+    const session = new FakeSession();
+    const runtime = { openTerminal: vi.fn().mockResolvedValue(session) } as unknown as RuntimeAdapter;
+
+    // A plain shell command (useJshOsc === false) returns without waiting.
+    const result = await Promise.race([
+      newShellProcess(runtime, makeTerminal(), '/bin/bash'),
+      TIMEOUT('newShellProcess awaited handshake for a non-jsh command'),
+    ]);
+    expect(result).toBe(session);
   });
 });
 
