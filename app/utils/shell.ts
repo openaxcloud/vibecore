@@ -123,6 +123,15 @@ export class BoltShell {
   #outputQueue: string[] = [];
   #outputWaiters: Array<(value: string | undefined) => void> = [];
 
+  /*
+   * Cancellation handle for the currently-running waitTillOscCode loop. Only a
+   * single loop may consume the shared output queue at a time. When a new
+   * execution aborts a previous one, we must terminate the prior loop before
+   * starting a fresh wait — otherwise both loops drain #readOutput() and each
+   * sees only a subset of the chunks (interleaved / missed OSC markers).
+   */
+  #activeWaitCancel: (() => void) | undefined;
+
   constructor() {
     this.#readyPromise = new Promise((resolve) => {
       this.#initialized = resolve;
@@ -240,15 +249,29 @@ export class BoltShell {
     }
 
     /*
+     * Terminate the previous execution's waitTillOscCode loop before we start a
+     * new one. action-runner's abort() only cancels the agent action — it does
+     * NOT stop the prior getCurrentExecutionResult() → waitTillOscCode('exit')
+     * loop, which is still pending and still draining the shared #readOutput()
+     * queue. If we start the 'prompt' wait below while that loop lives, both
+     * consumers split the chunk stream and each can miss its OSC marker or
+     * mis-parse the exit code. Cancelling first restores the single-consumer
+     * invariant. We then drain its (now-settled) promise so state is clean.
+     */
+    if (state?.active) {
+      this.#cancelActiveWait();
+
+      if (state.executionPrms) {
+        await state.executionPrms;
+      }
+    }
+
+    /*
      * interrupt the current execution
      *  this.#shellInputStream?.write('\x03');
      */
     this.terminal.input('\x03');
     await this.waitTillOscCode('prompt');
-
-    if (state && state.executionPrms) {
-      await state.executionPrms;
-    }
 
     /*
      * Defensively normalize known jsh/BusyBox quirks (e.g. obsolete
@@ -294,54 +317,123 @@ export class BoltShell {
       return { output: fullOutput, exitCode };
     }
 
+    /*
+     * Register this loop as the sole active consumer of the output queue. If a
+     * previous loop was still registered (it should have been cancelled by the
+     * caller) we cancel it defensively to preserve the single-consumer
+     * invariant. `cancelled` is flipped by #cancelActiveWait, which also wakes a
+     * pending #readOutput() by resolving its waiter with `undefined`.
+     */
+    if (this.#activeWaitCancel) {
+      this.#cancelActiveWait();
+    }
+
+    let cancelled = false;
+    let wakeWaiter: ((value: string | undefined) => void) | undefined;
+
+    const cancel = () => {
+      cancelled = true;
+
+      // Wake a read that is currently parked, if any.
+      const idx = wakeWaiter ? this.#outputWaiters.indexOf(wakeWaiter) : -1;
+
+      if (idx !== -1) {
+        this.#outputWaiters.splice(idx, 1);
+      }
+
+      wakeWaiter?.(undefined);
+      wakeWaiter = undefined;
+    };
+    this.#activeWaitCancel = cancel;
+
     // Regex for Expo URL
     const expoUrlRegex = /(exp:\/\/[^\s]+)/;
 
-    while (true) {
-      const value = await this.#readOutput();
+    try {
+      while (true) {
+        const value = await this.#readOutput((resolve) => {
+          wakeWaiter = resolve;
+        });
+        wakeWaiter = undefined;
 
-      if (value === undefined) {
-        break;
-      }
+        if (cancelled || value === undefined) {
+          break;
+        }
 
-      const text = value || '';
-      fullOutput += text;
-      buffer += text; // <-- Accumulate in buffer
+        const text = value || '';
+        fullOutput += text;
+        buffer += text; // <-- Accumulate in buffer
 
-      // Extract Expo URL from buffer and set store
-      const expoUrlMatch = buffer.match(expoUrlRegex);
+        // Extract Expo URL from buffer and set store
+        const expoUrlMatch = buffer.match(expoUrlRegex);
 
-      if (expoUrlMatch) {
-        // Remove any trailing ANSI escape codes or non-printable characters
-        const cleanUrl = expoUrlMatch[1]
-          .replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
-          .replace(/[^\x20-\x7E]+$/g, '');
-        expoUrlAtom.set(cleanUrl);
+        if (expoUrlMatch) {
+          // Remove any trailing ANSI escape codes or non-printable characters
+          const cleanUrl = expoUrlMatch[1]
+            .replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
+            .replace(/[^\x20-\x7E]+$/g, '');
+          expoUrlAtom.set(cleanUrl);
 
-        // Remove everything up to and including the URL from the buffer to avoid duplicate matches
-        buffer = buffer.slice(buffer.indexOf(expoUrlMatch[1]) + expoUrlMatch[1].length);
-      }
+          // Remove everything up to and including the URL from the buffer to avoid duplicate matches
+          buffer = buffer.slice(buffer.indexOf(expoUrlMatch[1]) + expoUrlMatch[1].length);
+        }
 
-      // Check if command completion signal with exit code
-      const [, osc, , , code] = text.match(/\x1b\]654;([^\x07=]+)=?((-?\d+):(\d+))?\x07/) || [];
-
-      if (osc === 'exit') {
         /*
-         * A truncated/split exit marker can match `osc === 'exit'` with the
-         * `=code:pid` group absent, leaving `code` undefined → parseInt(NaN).
-         * A NaN exit code defeats every `exitCode !== 0` check downstream, so
-         * fall back to 0 when the code is missing/unparseable.
+         * Check for a command-completion / prompt marker.
+         *
+         * The OSC marker (`\x1b]654;exit=code:pid\x07`, `\x1b]654;prompt\x07`)
+         * can be split across two `data` events (see terminal-output.ts). Matching
+         * the per-chunk `text` misses a straddling marker, so the loop never sees
+         * `osc === waitCode` and hangs until the session ends. Match against the
+         * accumulated `buffer` instead and slice off the consumed bytes so the
+         * same marker is not re-matched on the next iteration.
          */
-        const parsed = parseInt(code ?? '', 10);
-        exitCode = Number.isNaN(parsed) ? 0 : parsed;
-      }
+        const oscMatch = buffer.match(/\x1b\]654;([^\x07=]+)=?((-?\d+):(\d+))?\x07/);
 
-      if (osc === waitCode) {
-        break;
+        if (oscMatch) {
+          const [full, osc, , , code] = oscMatch;
+
+          // Drop everything up to and including the matched marker from the buffer.
+          const matchEnd = (oscMatch.index ?? 0) + full.length;
+          buffer = buffer.slice(matchEnd);
+
+          if (osc === 'exit') {
+            /*
+             * A truncated/split exit marker can match `osc === 'exit'` with the
+             * `=code:pid` group absent, leaving `code` undefined → parseInt(NaN).
+             * A NaN exit code defeats every `exitCode !== 0` check downstream, so
+             * fall back to 0 when the code is missing/unparseable.
+             */
+            const parsed = parseInt(code ?? '', 10);
+            exitCode = Number.isNaN(parsed) ? 0 : parsed;
+          }
+
+          if (osc === waitCode) {
+            break;
+          }
+        }
+      }
+    } finally {
+      /*
+       * Deregister so a later cancel/loop does not act on a finished wait. Only
+       * clear if no newer loop has already replaced our handle.
+       */
+      if (this.#activeWaitCancel === cancel) {
+        this.#activeWaitCancel = undefined;
       }
     }
 
     return { output: fullOutput, exitCode };
+  }
+
+  /*
+   * Terminate the currently-active waitTillOscCode loop (if any) so a new loop
+   * can become the sole consumer of the output queue. See #activeWaitCancel.
+   */
+  #cancelActiveWait() {
+    const cancel = this.#activeWaitCancel;
+    this.#activeWaitCancel = undefined;
+    cancel?.();
   }
 
   #pushOutput(value: string | undefined) {
@@ -357,14 +449,22 @@ export class BoltShell {
     }
   }
 
-  #readOutput() {
+  #readOutput(register?: (resolve: (value: string | undefined) => void) => void) {
     const value = this.#outputQueue.shift();
 
     if (value !== undefined) {
       return Promise.resolve(value);
     }
 
-    return new Promise<string | undefined>((resolve) => this.#outputWaiters.push(resolve));
+    return new Promise<string | undefined>((resolve) => {
+      this.#outputWaiters.push(resolve);
+
+      /*
+       * Hand the parked resolver back to the caller so a cancel can wake (and
+       * deregister) this specific read instead of consuming an unrelated chunk.
+       */
+      register?.(resolve);
+    });
   }
 }
 

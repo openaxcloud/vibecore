@@ -90,6 +90,43 @@ export interface ValidateProjectPromptOptions {
 }
 
 /**
+ * C0/C1 control chars except \t (0x09) and \n (0x0A). After CRLF → LF
+ * normalization, any CR left here is genuine smuggling, not a real line break.
+ */
+const CONTROL_CHARS_RE = /[\x00-\x08\x0B-\x1F\x7F-\x9F]/g;
+
+/**
+ * Zero-width / direction-override smuggling: U+200B..U+200F (ZW*, LRM, RLM),
+ * U+202A..U+202E (LRE..RLO), U+2060 (word joiner), U+FEFF (BOM).
+ */
+const ZERO_WIDTH_CHARS_RE = new RegExp('[\u200B-\u200F\u202A-\u202E\u2060\uFEFF]', 'g');
+
+/**
+ * Counts the invisible / control / direction-override characters that
+ * `normalizeProjectPrompt` removes outright (as opposed to whitespace it merely
+ * collapses or trims). Used to decide whether the "removed invisible
+ * characters" warning is actually warranted — ordinary trailing spaces, doubled
+ * spaces and trailing newlines also shrink the string but are NOT non-printable
+ * smuggling, so a raw length comparison over-fires.
+ *
+ * Counted against the NFC-normalized form so it lines up with what
+ * `normalizeProjectPrompt` actually strips. `match` ignores `lastIndex`, so the
+ * shared global regex instances stay safe to reuse across calls.
+ */
+export function countStrippedNonPrintable(raw: string | null | undefined): number {
+  if (!raw) {
+    return 0;
+  }
+
+  const value = typeof raw.normalize === 'function' ? raw.normalize('NFC') : raw;
+
+  const controlMatches = value.match(CONTROL_CHARS_RE)?.length ?? 0;
+  const zeroWidthMatches = value.match(ZERO_WIDTH_CHARS_RE)?.length ?? 0;
+
+  return controlMatches + zeroWidthMatches;
+}
+
+/**
  * Pure string transform: NFC-normalize, strip control characters except
  * tab + newline, collapse 3+ blank lines into 2, trim. Idempotent.
  *
@@ -115,14 +152,13 @@ export function normalizeProjectPrompt(raw: string | null | undefined): string {
   value = value.replace(/\r\n?/g, '\n');
 
   // Strip C0/C1 control chars except \t (0x09) and \n (0x0A).
-
-  value = value.replace(/[\x00-\x08\x0B-\x1F\x7F-\x9F]/g, '');
+  value = value.replace(CONTROL_CHARS_RE, '');
 
   /*
    * Zero-width / direction-override smuggling: U+200B..U+200F (ZW*, LRM,
    * RLM), U+202A..U+202E (LRE..RLO), U+2060 (word joiner), U+FEFF (BOM).
    */
-  value = value.replace(new RegExp('[\u200B-\u200F\u202A-\u202E\u2060\uFEFF]', 'g'), '');
+  value = value.replace(ZERO_WIDTH_CHARS_RE, '');
 
   // Collapse runs of 3 or more newlines into exactly two (one blank line).
   value = value.replace(/\n{3,}/g, '\n\n');
@@ -212,7 +248,7 @@ export function validateProjectPrompt(
     });
   }
 
-  if (original.length > value.length) {
+  if (countStrippedNonPrintable(original) > 0) {
     warnings.push({
       code: 'non_printable_stripped',
       message: 'Removed invisible / control characters from your prompt.',

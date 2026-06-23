@@ -230,4 +230,98 @@ describe('agent post-generation import validation', () => {
       validateGeneratedFiles([{ path: 'apps/web/npm-shrinkwrap.json', content: '{ truncated' }]),
     ).resolves.toBeUndefined();
   });
+
+  describe('root-absolute imports (Vite public/ dir)', () => {
+    /*
+     * `import logo from '/vite.svg'` is the Vite-scaffolded default. A leading
+     * '/' resolves from the dev-server root (the public/ directory), not from a
+     * file literally named 'vite.svg' at the project root. The validator
+     * stripped the slash to 'vite.svg', failed to resolve it, threw
+     * MissingImportError and dropped the agent's write.
+     */
+    it('does not block a patch on a public/ asset that is not in the file map', async () => {
+      await expect(
+        validateGeneratedFiles([
+          {
+            path: 'src/App.tsx',
+            content: "import logo from '/vite.svg';\nexport default function App() { return <img src={logo} />; }\n",
+          },
+        ]),
+      ).resolves.toBeUndefined();
+    });
+
+    it('resolves a root-absolute import to the public/ directory when the asset exists', () => {
+      const files = new Map([
+        ['src/App.tsx', ''],
+        ['public/vite.svg', ''],
+      ]);
+
+      expect(resolveImport('/vite.svg', 'src/App.tsx', files)).toBe('public/vite.svg');
+    });
+
+    it('still resolves a root-absolute import that lives at the project root', () => {
+      const files = new Map([
+        ['src/main.tsx', ''],
+        ['src/app.css', ''],
+      ]);
+
+      expect(resolveImport('/src/app.css', 'src/main.tsx', files)).toBe('src/app.css');
+    });
+
+    it('never throws on root-absolute imports even when unresolvable', async () => {
+      await expect(
+        validateImports(
+          {
+            path: 'src/main.tsx',
+            content: "import './nope-relative.css';\nimport '/totally-missing.svg';\n",
+          },
+          new Map([
+            ['src/main.tsx', ''],
+            ['src/nope-relative.css', ''],
+          ]),
+        ),
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('type-only imports of .d.ts declaration files', () => {
+    /*
+     * `import type { Foo } from './types'` where the declaration lives in
+     * 'types.d.ts' is a normal TS pattern. RESOLVABLE_EXTENSIONS produced
+     * 'types.ts'/'types.tsx'/… but never 'types.d.ts', so resolveImport
+     * returned undefined and MissingImportError failed the proposal.
+     */
+    it('resolves an extensionless import to a sibling .d.ts file', () => {
+      const files = new Map([
+        ['src/main.ts', ''],
+        ['src/types.d.ts', ''],
+      ]);
+
+      expect(resolveImport('./types', 'src/main.ts', files)).toBe('src/types.d.ts');
+    });
+
+    it('resolves a directory import to its index.d.ts barrel', () => {
+      const files = new Map([
+        ['src/main.ts', ''],
+        ['src/types/index.d.ts', ''],
+      ]);
+
+      expect(resolveImport('./types', 'src/main.ts', files)).toBe('src/types/index.d.ts');
+    });
+
+    it('does not block a TS patch that type-imports a generated .d.ts file', async () => {
+      await expect(
+        validateGeneratedFiles([
+          {
+            path: 'src/main.ts',
+            content: "import type { Config } from './config';\nexport const x: Config = {} as Config;\n",
+          },
+          {
+            path: 'src/config.d.ts',
+            content: 'export interface Config { debug: boolean; }\n',
+          },
+        ]),
+      ).resolves.toBeUndefined();
+    });
+  });
 });

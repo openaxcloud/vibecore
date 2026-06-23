@@ -56,18 +56,6 @@ function log(level: DebugLevel, scope: string | undefined, messages: any[]) {
     return;
   }
 
-  const allMessages = messages.reduce((acc, current) => {
-    if (acc.endsWith('\n')) {
-      return acc + current;
-    }
-
-    if (!acc) {
-      return current;
-    }
-
-    return `${acc} ${current}`;
-  }, '');
-
   const labelBackgroundColor = getColorForLevel(level);
   const labelTextColor = level === 'warn' ? '#000000' : '#FFFFFF';
 
@@ -86,10 +74,16 @@ function log(level: DebugLevel, scope: string | undefined, messages: any[]) {
     labelText = `${labelText} ${formatText(` ${scope} `, '#FFFFFF', '77828D')}`;
   }
 
+  /*
+   * Pass the original arguments through (spread) instead of collapsing them into a single
+   * string. Reducing them with a template literal turned Error objects (and any non-string
+   * value) into '[object Object]', destroying their message/stack/properties, and threw a
+   * TypeError when the first argument was a non-string (acc.endsWith on an object).
+   */
   if (typeof window !== 'undefined') {
-    console.log(`%c${level.toUpperCase()}${scope ? `%c %c${scope}` : ''}`, ...styles, allMessages);
+    console.log(`%c${level.toUpperCase()}${scope ? `%c %c${scope}` : ''}`, ...styles, ...messages);
   } else {
-    console.log(`${labelText}`, allMessages);
+    console.log(`${labelText}`, ...messages);
   }
 }
 

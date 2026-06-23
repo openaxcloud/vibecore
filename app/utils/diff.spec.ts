@@ -80,6 +80,34 @@ describe('Diff', () => {
     expect(totals.hunkCount).toBe(a.hunkCount + b.hunkCount);
   });
 
+  it('does not inject the "No newline at end of file" sentinel into accepted content', () => {
+    /*
+     * No trailing newline on either side — `structuredPatch` emits a
+     * `\ No newline at end of file` sentinel line that must not be written
+     * back into the file when the hunk is accepted.
+     */
+    const original = 'const x = 1\nconst y = 2';
+    const proposed = 'const x = 1\nconst y = 3';
+
+    const hunks = buildReviewableDiffHunks('src/no-newline.ts', original, proposed);
+
+    // The sentinel must never surface as a reviewable line of any type.
+    for (const hunk of hunks) {
+      for (const line of hunk.lines) {
+        expect(line.content).not.toContain('No newline at end of file');
+      }
+    }
+
+    const accepted = applyReviewableDiffHunks({
+      originalContent: original,
+      hunks,
+      acceptedHunkIds: hunks.map((hunk) => hunk.id),
+    });
+
+    expect(accepted).toBe(proposed);
+    expect(accepted).not.toContain('No newline at end of file');
+  });
+
   it('can reject one hunk while accepting another', () => {
     const original = [
       'const a = 1;',

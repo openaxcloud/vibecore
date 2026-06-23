@@ -175,13 +175,7 @@ function isRelativeOrRootImport(specifier: string) {
   return specifier.startsWith('.') || specifier.startsWith('/');
 }
 
-function resolveImportCandidates(specifier: string, importerPath: string) {
-  const basePath = specifier.startsWith('/')
-    ? normalizeGeneratedPath(specifier)
-    : normalizeSegments([dirname(importerPath), specifier].filter(Boolean).join('/'));
-
-  const candidates = new Set<string>();
-
+function addResolutionCandidates(candidates: Set<string>, basePath: string) {
   for (const extension of RESOLVABLE_EXTENSIONS) {
     candidates.add(`${basePath}${extension}`);
   }
@@ -189,6 +183,42 @@ function resolveImportCandidates(specifier: string, importerPath: string) {
   for (const extension of RESOLVABLE_EXTENSIONS.filter(Boolean)) {
     candidates.add(`${basePath}/index${extension}`);
   }
+
+  /*
+   * `.d.ts` ambient declaration files are a normal TS pattern. `extensionOf`
+   * sees only the trailing `.ts`, so the generic `${basePath}.ts` candidate
+   * never matches a file literally named `types.d.ts`, and a valid
+   * `import type { Foo } from './types'` would be flagged as a missing import.
+   * Add the declaration-file variants explicitly.
+   */
+  candidates.add(`${basePath}.d.ts`);
+  candidates.add(`${basePath}/index.d.ts`);
+}
+
+function resolveImportCandidates(specifier: string, importerPath: string) {
+  const candidates = new Set<string>();
+
+  if (specifier.startsWith('/')) {
+    /*
+     * A leading-'/' specifier is NOT a filesystem-absolute path here. In
+     * Vite/Astro/SvelteKit it resolves from the dev-server root, i.e. the
+     * project's public/ directory (e.g. `import logo from '/vite.svg'` →
+     * public/vite.svg) or, for source assets, the project root. Treating the
+     * stripped path as the only candidate (e.g. 'vite.svg') made resolveImport
+     * return undefined and threw MissingImportError, dropping the agent's file
+     * write. Offer both the public/-relative and root-relative candidates.
+     */
+    const stripped = normalizeGeneratedPath(specifier);
+
+    addResolutionCandidates(candidates, stripped);
+    addResolutionCandidates(candidates, normalizeSegments(`public/${stripped}`));
+
+    return [...candidates];
+  }
+
+  const basePath = normalizeSegments([dirname(importerPath), specifier].filter(Boolean).join('/'));
+
+  addResolutionCandidates(candidates, basePath);
 
   return [...candidates];
 }
@@ -245,6 +275,19 @@ export async function validateImports(file: GeneratedFile, allFiles: Map<string,
     const specifier = node.source.value;
 
     if (typeof specifier !== 'string' || !isRelativeOrRootImport(specifier)) {
+      continue;
+    }
+
+    /*
+     * Leading-'/' specifiers resolve from the dev-server root / public
+     * directory in Vite/Astro/SvelteKit, not from authored source. The real
+     * asset (e.g. public/vite.svg) usually lives on disk in the template and
+     * is never part of the generated/existing file map, so a hard-fail here
+     * would wrongly drop the agent's write. We still try to resolve them (to
+     * keep resolveImport useful), but only relative ('.'-prefixed) imports —
+     * which must point at authored files — are allowed to block the patch.
+     */
+    if (specifier.startsWith('/')) {
       continue;
     }
 

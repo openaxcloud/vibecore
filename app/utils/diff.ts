@@ -110,6 +110,16 @@ function hasTrailingNewline(content: string) {
   return content.endsWith('\n') || content.endsWith('\r\n');
 }
 
+/**
+ * The `diff` library's `structuredPatch` represents a missing trailing newline
+ * with a sentinel line whose first character is a backslash, e.g.
+ * `\ No newline at end of file`. These lines are diff metadata, not file
+ * content, and must be filtered out before classifying/applying hunk lines.
+ */
+export function isNoNewlineSentinel(line: string) {
+  return line.startsWith('\\ No newline at end of file');
+}
+
 export function buildReviewableDiffHunks(
   filePath: string,
   originalContent: string,
@@ -125,15 +135,24 @@ export function buildReviewableDiffHunks(
     oldLines: hunk.oldLines,
     newStart: hunk.newStart,
     newLines: hunk.newLines,
-    lines: hunk.lines.map((line, lineIndex) => {
-      const marker = line[0];
+    lines: hunk.lines
 
-      return {
-        id: `${filePath}:${hunkIndex}:${lineIndex}`,
-        type: marker === '+' ? 'add' : marker === '-' ? 'remove' : 'context',
-        content: line.slice(1),
-      };
-    }),
+      /*
+       * `structuredPatch` emits a `\ No newline at end of file` sentinel (first
+       * char `\`) for any side lacking a trailing newline. It is metadata, not
+       * file content — never treat it as a real (context) line, otherwise it
+       * gets written into the saved file on accept (data corruption).
+       */
+      .filter((line) => !isNoNewlineSentinel(line))
+      .map((line, lineIndex) => {
+        const marker = line[0];
+
+        return {
+          id: `${filePath}:${hunkIndex}:${lineIndex}`,
+          type: marker === '+' ? 'add' : marker === '-' ? 'remove' : 'context',
+          content: line.slice(1),
+        };
+      }),
   }));
 }
 

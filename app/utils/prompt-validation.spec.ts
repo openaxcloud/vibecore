@@ -4,6 +4,7 @@ import {
   PROMPT_MAX_CHARS,
   PROMPT_MAX_LINES,
   PROMPT_MIN_WORDS,
+  countStrippedNonPrintable,
   detectPromptInjection,
   normalizeProjectPrompt,
   validateProjectPrompt,
@@ -153,6 +154,27 @@ describe('validateProjectPrompt', () => {
     expect(result.warnings.map((w) => w.code)).toContain('non_printable_stripped');
   });
 
+  it('warns on a control character even when length is otherwise preserved', () => {
+    const result = validateProjectPrompt('Build\x07 a polished app today');
+    expect(result.warnings.map((w) => w.code)).toContain('non_printable_stripped');
+  });
+
+  it('does NOT warn about non-printables for ordinary collapsed whitespace', () => {
+    /*
+     * Doubled spaces, a trailing space and a trailing newline all shrink the
+     * normalized string but are not invisible / control characters.
+     */
+    const result = validateProjectPrompt('  Build    a    polished  app   \n');
+    expect(result.value).toBe('Build a polished app');
+    expect(result.value.length).toBeLessThan('  Build    a    polished  app   \n'.length);
+    expect(result.warnings.map((w) => w.code)).not.toContain('non_printable_stripped');
+  });
+
+  it('does NOT warn for the spec normalize sample even though it shrinks', () => {
+    const result = validateProjectPrompt('  Build    a    polished  app   ');
+    expect(result.warnings).toEqual([]);
+  });
+
   it('returns the normalized value alongside the result', () => {
     const result = validateProjectPrompt('  Build    a    polished  app   ');
     expect(result.value).toBe('Build a polished app');
@@ -171,5 +193,38 @@ describe('validateProjectPrompt', () => {
 
     const strict = validateProjectPrompt('a b c d e', { maxChars: 5 });
     expect(strict.errors.map((e) => e.code)).toContain('too_long');
+  });
+});
+
+describe('countStrippedNonPrintable', () => {
+  it('returns 0 for null / undefined / empty / plain input', () => {
+    expect(countStrippedNonPrintable(null)).toBe(0);
+    expect(countStrippedNonPrintable(undefined)).toBe(0);
+    expect(countStrippedNonPrintable('')).toBe(0);
+    expect(countStrippedNonPrintable('Build a polished app')).toBe(0);
+  });
+
+  it('returns 0 for ordinary whitespace that normalization merely collapses or trims', () => {
+    expect(countStrippedNonPrintable('  Build    a    polished  app   ')).toBe(0);
+    expect(countStrippedNonPrintable('trailing space ')).toBe(0);
+    expect(countStrippedNonPrintable('trailing newline\n')).toBe(0);
+    expect(countStrippedNonPrintable('a\tb')).toBe(0);
+  });
+
+  it('counts C0 / C1 control characters', () => {
+    expect(countStrippedNonPrintable('a\x00b\x07c')).toBe(2);
+    expect(countStrippedNonPrintable('foo\x80bar\x9Fbaz')).toBe(2);
+  });
+
+  it('counts zero-width / direction-override smuggling characters', () => {
+    // U+200B, U+200E, U+202E, U+FEFF — four separate smuggling code points.
+    const smuggled = 'plain​text‎here‮x﻿y';
+    expect(countStrippedNonPrintable(smuggled)).toBe(4);
+  });
+
+  it('is stable across repeated calls (shared global regexes do not retain state)', () => {
+    const input = 'a\x07b​c';
+    expect(countStrippedNonPrintable(input)).toBe(2);
+    expect(countStrippedNonPrintable(input)).toBe(2);
   });
 });
