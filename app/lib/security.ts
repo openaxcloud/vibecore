@@ -3,8 +3,13 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 // Rate limiting store (in-memory for serverless environments)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
+export interface RateLimitConfig {
+  windowMs: number;
+  maxRequests: number;
+}
+
 // Rate limit configuration
-const RATE_LIMITS = {
+const RATE_LIMITS: Record<string, RateLimitConfig> = {
   // General API endpoints
   '/api/*': { windowMs: 15 * 60 * 1000, maxRequests: 100 }, // 100 requests per 15 minutes
 
@@ -19,27 +24,58 @@ const RATE_LIMITS = {
 };
 
 /**
+ * Select the rate-limit rule for an endpoint, preferring the MOST specific match.
+ *
+ * Object.entries() yields keys in insertion order, so a plain `.find()` would
+ * always pick the catch-all '/api/*' rule (declared first) and the stricter
+ * '/api/llmcall', '/api/github-*' and '/api/netlify-*' rules would be dead config.
+ * Candidates are ranked: exact path > longest matching prefix, so the tightest
+ * applicable rule always wins before falling back to broader ones.
+ */
+export function selectRateLimitRule(
+  endpoint: string,
+  rules: Record<string, RateLimitConfig> = RATE_LIMITS,
+): RateLimitConfig | undefined {
+  let best: { config: RateLimitConfig; specificity: number } | undefined;
+
+  for (const [pattern, config] of Object.entries(rules)) {
+    let specificity: number | undefined;
+
+    if (pattern.endsWith('*')) {
+      // Wildcard prefix rule, e.g. '/api/*', '/api/github-*'.
+      const basePattern = pattern.slice(0, -1);
+
+      if (endpoint.startsWith(basePattern)) {
+        // Longer prefixes are more specific than shorter ones.
+        specificity = basePattern.length;
+      }
+    } else if (endpoint === pattern) {
+      // Exact matches always beat any prefix match.
+      specificity = Number.MAX_SAFE_INTEGER;
+    }
+
+    if (specificity !== undefined && (!best || specificity > best.specificity)) {
+      best = { config, specificity };
+    }
+  }
+
+  return best?.config;
+}
+
+/**
  * Rate limiting middleware
  */
 export function checkRateLimit(request: Request, endpoint: string): { allowed: boolean; resetTime?: number } {
   const clientIP = getClientIP(request);
   const key = `${clientIP}:${endpoint}`;
 
-  // Find matching rate limit rule
-  const rule = Object.entries(RATE_LIMITS).find(([pattern]) => {
-    if (pattern.endsWith('/*')) {
-      const basePattern = pattern.slice(0, -2);
-      return endpoint.startsWith(basePattern);
-    }
+  // Find matching rate limit rule (most specific first; see selectRateLimitRule)
+  const config = selectRateLimitRule(endpoint);
 
-    return endpoint === pattern;
-  });
-
-  if (!rule) {
+  if (!config) {
     return { allowed: true }; // No rate limit for this endpoint
   }
 
-  const [, config] = rule;
   const now = Date.now();
   const windowStart = now - config.windowMs;
 

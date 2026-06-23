@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { awaitTransaction } from '~/lib/hooks/awaitTransaction';
 import { buildFilteredSettingsExport } from '~/lib/hooks/buildFilteredSettingsExport';
 import { useIndexedDB } from '~/lib/hooks/useIndexedDB';
 import { validateImportedChat } from '~/lib/hooks/validateImportedChat';
@@ -1237,10 +1238,11 @@ export function useDataOperations({
             };
           }
 
-          await new Promise((resolve, reject) => {
-            chatTransaction.oncomplete = resolve;
-            chatTransaction.onerror = reject;
-          });
+          /*
+           * awaitTransaction wires oncomplete/onerror AND onabort so the
+           * undo-restore promise can't hang on an aborted transaction.
+           */
+          await awaitTransaction(chatTransaction);
 
           if (resetUndoSkipped > 0) {
             console.warn(`Skipped ${resetUndoSkipped} chat(s) during undo restore (duplicate or invalid records)`);

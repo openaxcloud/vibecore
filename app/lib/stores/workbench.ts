@@ -54,6 +54,7 @@ import {
   isResolvedMissingImportPatchFailure,
 } from '~/utils/agent-patch-logs';
 import { createSampler } from '~/utils/sampler';
+import { syncWriteContent } from '~/lib/stores/workbench-sync';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
 
 const { saveAs } = fileSaver;
@@ -376,6 +377,20 @@ export class WorkbenchStore {
     }
 
     this.#autosaveTimers.clear();
+
+    /*
+     * Drop any buffered workspace-log lines and the pending flush timer from the
+     * previous project/runtime. Left alone, a timer scheduled by project A fires
+     * after the provider resets workspaceLogs to [] for project B and flushes
+     * A's buffered lines into B's freshly-reset log atom (cross-project log
+     * leak), and the stale buffer/timer persist across switches.
+     */
+    if (this.#workspaceLogFlushTimer) {
+      clearTimeout(this.#workspaceLogFlushTimer);
+      this.#workspaceLogFlushTimer = undefined;
+    }
+
+    this.#pendingWorkspaceLogLines = [];
   }
 
   async #hydrateAgentPatchProposals(projectId: string) {
@@ -3098,7 +3113,7 @@ export class WorkbenchStore {
     const syncedFiles = [];
 
     for (const [filePath, dirent] of Object.entries(files)) {
-      if (dirent?.type === 'file' && !dirent.isBinary) {
+      if (dirent?.type === 'file') {
         const relativePath = extractRelativePath(filePath);
         const pathSegments = relativePath.split('/');
 
@@ -3113,9 +3128,14 @@ export class WorkbenchStore {
           create: true,
         });
 
-        // write the file content
+        /*
+         * Write binary files too. They are stored base64-encoded, so decode them
+         * into a Uint8Array before writing; otherwise (with the old `!isBinary`
+         * filter) every image/font/favicon/PDF asset was silently dropped while
+         * the caller still reported "Files synced successfully".
+         */
         const writable = await fileHandle.createWritable();
-        await writable.write(dirent.content);
+        await writable.write(syncWriteContent(dirent));
         await writable.close();
 
         syncedFiles.push(relativePath);

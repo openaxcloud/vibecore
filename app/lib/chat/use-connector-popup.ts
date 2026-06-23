@@ -69,6 +69,29 @@ function isConnectorMessage(value: unknown): value is {
   );
 }
 
+/*
+ * Decide whether a given postMessage should be handled by a useConnectorPopup
+ * instance. Returns true only when:
+ *   - the message is a well-formed connector message, AND
+ *   - this instance actually launched a popup (expectedProvider is non-null), AND
+ *   - the message provider matches the provider this instance launched for.
+ *
+ * An idle instance (expectedProvider === null) must never react: several hook
+ * instances are mounted per assistant turn (one card per annotation), and only
+ * the one that called launch() should consume the OAuth completion message.
+ */
+export function shouldHandleConnectorMessage(data: unknown, expectedProvider: string | null): boolean {
+  if (!isConnectorMessage(data)) {
+    return false;
+  }
+
+  if (!expectedProvider) {
+    return false;
+  }
+
+  return data.provider === expectedProvider;
+}
+
 export function useConnectorPopup(): ConnectorPopupHook {
   const [state, setState] = useState<ConnectorPopupState>({ phase: 'idle' });
   const popupRef = useRef<Window | null>(null);
@@ -92,11 +115,21 @@ export function useConnectorPopup(): ConnectorPopupHook {
         return;
       }
 
-      if (!isConnectorMessage(event.data)) {
+      /*
+       * Only an instance that actually launched a popup should react to a
+       * connector postMessage. expectedProviderRef starts null and is set
+       * inside launch(); an idle instance (null ref) must ignore the event so
+       * it cannot cross-talk with another card's OAuth completion.
+       */
+      if (!shouldHandleConnectorMessage(event.data, expectedProviderRef.current)) {
         return;
       }
 
-      if (expectedProviderRef.current && event.data.provider !== expectedProviderRef.current) {
+      if (!isConnectorMessage(event.data)) {
+        /*
+         * Unreachable once shouldHandleConnectorMessage returns true, but
+         * narrows event.data to the connector message shape for TypeScript.
+         */
         return;
       }
 

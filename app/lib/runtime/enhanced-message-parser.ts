@@ -82,6 +82,24 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
 
         return super.parse(messageId, enhancedInput);
       }
+    } else if (this._wrappedMessages.has(messageId)) {
+      /*
+       * Mode flip back to RAW: a prior chunk auto-wrapped a bare code block (so the
+       * base parser's saved position points into the longer wrapped-coordinate
+       * space), but the model has now emitted a real <boltArtifact> in the RAW
+       * input. We MUST feed raw input from here on, otherwise the artifact tags
+       * would be double-wrapped. But the saved wrapped position is longer than the
+       * raw input, so super.parse(raw) would skip the whole `while (i < length)`
+       * loop and silently drop the newly-arrived real artifact. Reset this message,
+       * leave wrapped mode, and re-parse the raw input from position 0 so the saved
+       * position matches the input coordinate space again. The return value is the
+       * FULL re-parsed message, so flag it for the caller to REPLACE not append.
+       */
+      this.resetMessage(messageId);
+      this._wrappedMessages.delete(messageId);
+      this._didResetMessages.add(messageId);
+
+      return super.parse(messageId, input);
     }
 
     return super.parse(messageId, input);

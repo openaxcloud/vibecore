@@ -56,6 +56,42 @@ describe('disk-info', () => {
       const output = ['Filesystem 1024-blocks Used Available Capacity Mounted on', ''].join('\n');
       expect(parseDfOutput(output)).toHaveLength(0);
     });
+
+    it('reads the real mountpoint from macOS 9-column df -k output (not the iused count)', () => {
+      /*
+       * Regression test: macOS `df -k` inserts iused/ifree/%iused columns
+       * between Capacity and 'Mounted on', so the mountpoint is the LAST token,
+       * not parts[5] (which is the iused count).
+       */
+      const output = [
+        'Filesystem    1024-blocks      Used Available Capacity iused      ifree %iused  Mounted on',
+        '/dev/disk3s1s1  971350180  10000000 900000000     2%  400000 4000000000    0%   /',
+        '/dev/disk3s6    971350180     50000 900000000     1%      30 4000000000    0%   /System/Volumes/VM',
+      ].join('\n');
+
+      const disks = parseDfOutput(output);
+
+      expect(disks[0].mountpoint).toBe('/');
+      expect(disks[0].mountpoint).not.toBe('400000');
+      expect(disks[1].mountpoint).toBe('/System/Volumes/VM');
+      expect(disks[0].size).toBe(971350180 * 1024);
+      expect(disks[0].percentage).toBe(2);
+    });
+
+    it('darwin filter drops /System/Volumes mounts once the macOS mountpoint parses correctly', () => {
+      const output = [
+        'Filesystem    1024-blocks      Used Available Capacity iused      ifree %iused  Mounted on',
+        '/dev/disk3s1s1  971350180  10000000 900000000     2%  400000 4000000000    0%   /',
+        '/dev/disk3s6    971350180     50000 900000000     1%      30 4000000000    0%   /System/Volumes/VM',
+        'devfs                 200       200         0   100%     400          0  100%   /dev',
+      ].join('\n');
+
+      const physical = filterPhysicalDisks(parseDfOutput(output), 'darwin');
+
+      expect(physical).toHaveLength(1);
+      expect(physical[0].mountpoint).toBe('/');
+      expect(physical[0].filesystem).toBe('/dev/disk3s1s1');
+    });
   });
 
   describe('parsePowerShellOutput', () => {

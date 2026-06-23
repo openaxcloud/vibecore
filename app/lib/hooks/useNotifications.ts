@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getNotifications, markNotificationRead, type Notification } from '~/lib/api/notifications';
+import { isActionableNotification } from '~/lib/hooks/notification-filter';
 import { logStore } from '~/lib/stores/logs';
 
 export const useNotifications = () => {
@@ -10,7 +11,13 @@ export const useNotifications = () => {
   const checkNotifications = async () => {
     try {
       const notifications = await getNotifications();
-      const unread = notifications.filter((n) => !logStore.isRead(n.id));
+
+      /*
+       * Only actionable notifications (errors/warnings or updates) count toward
+       * the bell's unread badge. This mirrors `getUnreadCount` so routine info
+       * logs — e.g. successful API calls — don't perpetually mark the bell unread.
+       */
+      const unread = notifications.filter((n) => !logStore.isRead(n.id) && isActionableNotification(n));
 
       // Guard against setState after unmount (the fetch may resolve late).
       if (!mountedRef.current) {

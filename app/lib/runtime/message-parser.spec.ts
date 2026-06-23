@@ -1,6 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { EnhancedStreamingMessageParser } from './enhanced-message-parser';
-import { StreamingMessageParser, type ActionCallback, type ArtifactCallback } from './message-parser';
+import {
+  StreamingMessageParser,
+  cleanFileActionContent,
+  type ActionCallback,
+  type ArtifactCallback,
+} from './message-parser';
 
 interface ExpectedResult {
   output: string;
@@ -862,6 +867,69 @@ export { Button } from './Button';
         console.log(`Actions detected: ${enhancedCallbacks.onActionOpen.mock.calls.length}`);
       });
     });
+  });
+});
+
+describe('cleanFileActionContent (HTML-entity corruption regression)', () => {
+  it('does NOT decode HTML entities in plain TSX source (no highlighter fingerprint)', () => {
+    const tsx = 'export default function App() {\n  return <p>a &lt; b &amp;&amp; c &gt; d</p>;\n}';
+
+    // The decode would have turned `&lt;` into a literal `<` -> invalid JSX.
+    expect(cleanFileActionContent(tsx, 'src/App.tsx')).toBe(tsx);
+  });
+
+  it('does NOT decode HTML entities in plain JS/CSS/SCSS source', () => {
+    const js = 'const cmp = (a, b) => a &lt; b &amp;&amp; b &gt; 0;';
+    const css = '.a::before { content: "&amp;"; }';
+
+    expect(cleanFileActionContent(js, 'src/util.js')).toBe(js);
+    expect(cleanFileActionContent(css, 'src/styles.css')).toBe(css);
+    expect(cleanFileActionContent(css, 'src/styles.scss')).toBe(css);
+  });
+
+  it('strips markdown fences but leaves entities intact for source files', () => {
+    const fenced = '```tsx\nreturn <span>{count} &amp;&amp; valid</span>;\n```';
+
+    expect(cleanFileActionContent(fenced, 'src/Counter.tsx')).toBe('return <span>{count} &amp;&amp; valid</span>;');
+  });
+
+  it('still decodes + strips real syntax-highlighter markup (fingerprint present)', () => {
+    const highlighted =
+      '<span class="hljs-keyword">return</span>&nbsp;<span class="hljs-number">1</span>&nbsp;&lt;&nbsp;<span class="hljs-number">2</span><br/>';
+
+    const cleaned = cleanFileActionContent(highlighted, 'src/Highlighted.tsx');
+
+    expect(cleaned).toContain('return');
+    expect(cleaned).toContain('1 < 2');
+    expect(cleaned).not.toContain('<span');
+    expect(cleaned).not.toContain('&nbsp;');
+    expect(cleaned).not.toContain('<br/>');
+    expect(cleaned).not.toContain('&lt;');
+  });
+
+  it('preserves JSX entities end-to-end through the streaming parser onActionClose', () => {
+    const callbacks = {
+      onArtifactOpen: vi.fn(),
+      onArtifactClose: vi.fn(),
+      onActionOpen: vi.fn(),
+      onActionClose: vi.fn(),
+    };
+
+    const parser = new StreamingMessageParser({ callbacks });
+
+    const input =
+      '<boltArtifact title="App.tsx" id="a1" type="bundled">' +
+      '<boltAction type="file" filePath="src/App.tsx">' +
+      'export default function App() {\n  return <p>a &lt; b</p>;\n}' +
+      '</boltAction></boltArtifact>';
+
+    parser.parse('entity_tsx', input);
+
+    const content = callbacks.onActionClose.mock.calls[0][0].action.content as string;
+
+    // `&lt;` must survive: decoding it to `<` would break the JSX.
+    expect(content).toContain('a &lt; b');
+    expect(content).not.toContain('a < b');
   });
 });
 

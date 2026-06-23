@@ -324,4 +324,80 @@ describe('agent post-generation import validation', () => {
       ).resolves.toBeUndefined();
     });
   });
+
+  describe('re-export statements (export ... from)', () => {
+    /*
+     * Babel parses `export { X } from './m'` as ExportNamedDeclaration and
+     * `export * from './m'` as ExportAllDeclaration — neither is an
+     * ImportDeclaration. Both carry a relative `node.source` that must resolve
+     * exactly like an import, otherwise a broken barrel re-export slips past
+     * validation while the equivalent plain import is caught.
+     */
+    it('throws when a named re-export targets a missing relative module', async () => {
+      await expect(
+        validateImports(
+          {
+            path: 'src/index.ts',
+            content: "export { Button } from './Missing';\n",
+          },
+          new Map([['src/index.ts', '']]),
+        ),
+      ).rejects.toBeInstanceOf(MissingImportError);
+    });
+
+    it('throws when a star re-export targets a missing relative module', async () => {
+      await expect(
+        validateImports(
+          {
+            path: 'src/index.ts',
+            content: "export * from './Missing';\n",
+          },
+          new Map([['src/index.ts', '']]),
+        ),
+      ).rejects.toBeInstanceOf(MissingImportError);
+    });
+
+    it('allows a re-export that resolves to a generated sibling', async () => {
+      await expect(
+        validateGeneratedFiles([
+          {
+            path: 'src/index.ts',
+            content: "export { Button } from './Button';\nexport * from './Card';\n",
+          },
+          {
+            path: 'src/Button.tsx',
+            content: 'export const Button = () => <button />;\n',
+          },
+          {
+            path: 'src/Card.tsx',
+            content: 'export const Card = () => <div />;\n',
+          },
+        ]),
+      ).resolves.toBeUndefined();
+    });
+
+    it('ignores a local export with no source module', async () => {
+      await expect(
+        validateImports(
+          {
+            path: 'src/index.ts',
+            content: 'export const x = 1;\nexport default x;\n',
+          },
+          new Map([['src/index.ts', '']]),
+        ),
+      ).resolves.toBeUndefined();
+    });
+
+    it('does not block a leading-slash re-export (dev-server-root asset)', async () => {
+      await expect(
+        validateImports(
+          {
+            path: 'src/index.ts',
+            content: "export * from '/generated/registry';\n",
+          },
+          new Map([['src/index.ts', '']]),
+        ),
+      ).resolves.toBeUndefined();
+    });
+  });
 });

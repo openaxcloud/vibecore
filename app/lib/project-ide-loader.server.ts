@@ -68,6 +68,27 @@ export function isRedirectResponse(error: unknown): error is Response {
   return error instanceof Response && error.status >= 300 && error.status < 400;
 }
 
+/*
+ * The IDE loader must distinguish genuine client-facing failures from transient
+ * backend hiccups when resolving the project itself.
+ *
+ * `apiRequest` throws a `Response` carrying the upstream status for every
+ * non-ok reply. A 3xx is a login/MFA redirect; a 401/403/404 (and any other
+ * 4xx) is a definitive answer — the session is gone, the caller has no
+ * permission, or the project does not exist — and must surface as that status
+ * so the route renders a clean re-auth/forbidden/not-found page instead of a
+ * fully-mounted IDE shell that echoes the raw project id as its name.
+ *
+ * Only transient 5xx / network / timeout failures should degrade into the soft
+ * error shell, where the IDE chrome stays up with a recoverable banner. So:
+ * re-throw any thrown `Response` whose status is < 500 (covers 3xx redirects and
+ * all 4xx), and let everything else (5xx Responses, plain network errors) fall
+ * through to the soft shell.
+ */
+export function shouldRethrowResolveError(error: unknown): error is Response {
+  return error instanceof Response && error.status < 500;
+}
+
 export async function loadProjectIdeData(request: Request, projectId: string) {
   if (!projectId) {
     throw new Response('Project not found', { status: 404 });
@@ -132,13 +153,15 @@ export async function loadProjectIdeData(request: Request, projectId: string) {
     });
   } catch (error) {
     /*
-     * `apiRequest` throws redirect Responses (login on 401, MFA on 403) for page
-     * navigations. React Router navigates only when a loader *throws* such a
-     * Response, so re-throw any 3xx here instead of swallowing it into the soft
-     * shell below — otherwise a logged-out user renders broken IDE chrome rather
-     * than being sent to /login.
+     * Re-throw definitive client-facing failures so React Router handles them:
+     * 3xx login/MFA redirects (it only navigates when a loader *throws* such a
+     * Response) and 4xx answers — 401 expired session, 403 no permission, 404
+     * project not found. Folding a 403/404 into the soft shell below would render
+     * broken IDE chrome that confirms and displays the raw project id instead of
+     * a clean forbidden/not-found page. Only transient 5xx / network failures
+     * fall through to the recoverable soft shell.
      */
-    if (isRedirectResponse(error)) {
+    if (shouldRethrowResolveError(error)) {
       throw error;
     }
 

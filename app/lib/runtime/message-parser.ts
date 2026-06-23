@@ -70,10 +70,6 @@ function cleanoutMarkdownSyntax(content: string) {
   }
 }
 
-function cleanEscapedTags(content: string) {
-  return decodeHtmlEntities(content);
-}
-
 function decodeHtmlEntities(content: string) {
   return content
     .replace(/&nbsp;/g, ' ')
@@ -124,25 +120,25 @@ function cleanHighlightedCodeMarkup(content: string) {
   );
 }
 
-/*
- * Extensions whose source legitimately contains HTML entities (&amp;, &lt;, &gt;,
- * &copy;, …). Blindly decoding entities in these files corrupts valid markup
- * (e.g. `<p>Tom &amp; Jerry</p>` would be rewritten to a broken `&`), so we strip
- * markdown fences / highlighter markup but skip the entity decode for them.
- */
-const ENTITY_PRESERVING_EXTENSIONS = ['.html', '.htm', '.xhtml', '.svg', '.xml', '.vue', '.rss', '.atom'];
-
-function cleanFileActionContent(content: string, filePath?: string) {
-  const lower = (filePath ?? '').toLowerCase();
-  const preserveEntities = ENTITY_PRESERVING_EXTENSIONS.some((ext) => lower.endsWith(ext));
-
+export function cleanFileActionContent(content: string, _filePath?: string) {
+  /*
+   * Markdown fences are always stripped. HTML-entity decoding, however, must NOT
+   * be applied unconditionally: source files (.tsx/.jsx/.ts/.js/.css/.scss, …)
+   * legitimately contain HTML entities in JSX text and string/CSS content
+   * (e.g. `return <p>a &lt; b</p>;` or `<span>{count} &amp;&amp; valid</span>`),
+   * and blindly running cleanEscapedTags() rewrote `&lt;` -> `<`, producing
+   * invalid JSX / silently corrupted text on every write.
+   *
+   * Entity decoding only makes sense when the content is actually syntax-highlighter
+   * output (where entities encode the rendered source). That is exactly what
+   * cleanHighlightedCodeMarkup() gates on via a highlighter fingerprint, and it
+   * decodes entities itself when (and only when) that fingerprint is present.
+   * So for ALL extensions we strip fences + run the gated highlighter cleanup and
+   * never call an unconditional entity decode.
+   */
   const stripped = cleanoutMarkdownSyntax(content);
 
-  if (preserveEntities) {
-    return cleanHighlightedCodeMarkup(stripped);
-  }
-
-  return cleanHighlightedCodeMarkup(cleanEscapedTags(stripped));
+  return cleanHighlightedCodeMarkup(stripped);
 }
 export class StreamingMessageParser {
   #messages = new Map<string, MessageState>();

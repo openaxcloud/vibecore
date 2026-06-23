@@ -60,7 +60,16 @@ export function parseDfOutput(output: string): DiskInfo[] {
       const available = parseInt(parts[3], 10) * 1024;
       const percentageStr = (parts[4] ?? '').replace('%', '');
       const percentage = parseInt(percentageStr, 10);
-      const mountpoint = parts[5];
+
+      /*
+       * The mountpoint is always the LAST whitespace-separated token. On Linux
+       * `df -k` emits 6 columns (mountpoint = parts[5]), but on macOS it emits
+       * extra inode columns (iused, ifree, %iused) between Capacity and
+       * 'Mounted on', giving 9 columns. Reading a fixed index would pick up the
+       * iused count instead of the path; take the last token so both layouts
+       * parse correctly.
+       */
+      const mountpoint = parts[parts.length - 1];
 
       return {
         filesystem,

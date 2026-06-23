@@ -1,4 +1,5 @@
 import type { LanguageModelV1 } from 'ai';
+import { resolveTogetherCompletionTokens } from './together-completion-tokens';
 import { BaseProvider, getOpenAILikeModel } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
@@ -86,7 +87,7 @@ export default class TogetherProvider extends BaseProvider {
         label: `${m.display_name || m.id}${priceLabel} - context ${Math.floor(ctx / 1000)}k`,
         provider: this.name,
         maxTokenAllowed: ctx,
-        maxCompletionTokens: 8192,
+        maxCompletionTokens: resolveTogetherCompletionTokens(m, ctx),
       };
     });
   }

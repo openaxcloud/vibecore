@@ -268,7 +268,21 @@ export async function validateImports(file: GeneratedFile, allFiles: Map<string,
   }
 
   for (const node of ast.program.body) {
-    if (node.type !== 'ImportDeclaration') {
+    /*
+     * `import X from './m'`, `export { X } from './m'` and `export * from './m'`
+     * all reference an external module via `node.source` and must be validated
+     * identically. Babel parses the two re-export forms as ExportNamedDeclaration
+     * / ExportAllDeclaration, NOT ImportDeclaration, so checking only the latter
+     * let a broken re-export (`export { Button } from './Missing'`) slip past
+     * while the equivalent plain import was caught. A local `export const x = 1`
+     * has `node.source === null` and is skipped below.
+     */
+    const isModuleReference =
+      node.type === 'ImportDeclaration' ||
+      node.type === 'ExportNamedDeclaration' ||
+      node.type === 'ExportAllDeclaration';
+
+    if (!isModuleReference || node.source == null) {
       continue;
     }
 
