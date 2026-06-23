@@ -9,6 +9,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const token = new URL(request.url).searchParams.get('token') ?? '';
@@ -30,6 +31,18 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return json({ status: `Invitation accepted for ${result.organizationId} as ${result.roleKey}.` });
   } catch (error) {
+    /*
+     * `/invitations/accept` is a page navigation, not an `/api/` call, so
+     * `apiRequest` honours `redirectOn401` and throws a framework `redirect()`
+     * Response (302 to /login, or /mfa-setup for a platform-admin MFA gate) on
+     * an expired session. Re-throw those so the framework performs the re-auth
+     * redirect — `isApiResponse` matches any Response (including 3xx), so it
+     * would otherwise swallow the redirect into a generic inline error.
+     */
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
     if (isApiResponse(error)) {
       return json({ error: await apiErrorMessage(error, 'Failed to accept invitation.') }, { status: error.status });
     }

@@ -7,12 +7,21 @@ import {
   json,
   type EnterpriseActionArgs,
 } from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 export async function action({ request }: EnterpriseActionArgs) {
   try {
     const result = await apiRequest<{ codes: string[] }>(request, '/auth/recovery-codes', { method: 'POST' });
     return json({ status: 'Recovery codes rotated.', codes: result.codes });
   } catch (error) {
+    /*
+     * A login / MFA re-auth redirect (3xx) must be re-thrown so the browser
+     * actually navigates, rather than being swallowed into an inline error.
+     */
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
     if (isApiResponse(error)) {
       return json(
         { error: await apiErrorMessage(error, 'Failed to rotate recovery codes.') },

@@ -11,6 +11,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
@@ -37,6 +38,10 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return json({ status: 'SCIM token created. Copy it now; it is shown once.', token: result.token });
   } catch (error) {
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
     if (isApiResponse(error)) {
       return json({ error: await apiErrorMessage(error, 'Failed to create SCIM token.') }, { status: error.status });
     }

@@ -5,6 +5,7 @@ import { Form, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { AppShell, StatusPill } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { shouldRethrowActionError } from '~/lib/route-reauth';
 import { classNames } from '~/utils/classNames';
 
 export const meta: MetaFunction = () => [{ title: 'API keys - E-Code' }];
@@ -88,7 +89,18 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return json<ActionResult>({ ok: false, error: 'Unknown action.' }, { status: 400 });
   } catch (error) {
-    // apiRequest throws a json() Response on API errors; surface its message.
+    /*
+     * apiRequest throws a 3xx redirect Response when the session expired mid-flight
+     * (login redirect on 401) or MFA is required (redirect to /mfa-setup on 403),
+     * and a 5xx Response on server failures. Both must be re-thrown so the framework
+     * performs the redirect / the error boundary handles it — never swallowed into a
+     * dead-end inline 'Request failed.' message that leaves the form stuck.
+     */
+    if (shouldRethrowActionError(error)) {
+      throw error;
+    }
+
+    // apiRequest throws a json() Response on 4xx API errors; surface its message inline.
     if (error instanceof Response) {
       const payload = (await error.json().catch(() => null)) as { error?: string } | null;
 

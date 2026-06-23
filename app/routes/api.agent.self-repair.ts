@@ -114,6 +114,14 @@ export async function action({ context, request }: ActionFunctionArgs) {
       apiKeys,
       providerSettings,
       promptId: 'self-repair',
+
+      /*
+       * Forward the client abort signal so a Stop click or the caller's 45s
+       * timeout (callSelfRepairEndpoint in action-runner.ts) cancels the
+       * upstream provider request instead of letting it generate (and bill)
+       * the full file after the HTTP connection has already dropped.
+       */
+      abortSignal: request.signal,
     });
 
     const content = await result.text;

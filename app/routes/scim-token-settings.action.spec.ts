@@ -119,4 +119,21 @@ describe('scim-token-settings action error handling', () => {
     expect(body.error).toBeUndefined();
     expect(body.status).toContain('SCIM token created');
   });
+
+  it('re-throws a 401 login re-auth (3xx) redirect so the framework performs the redirect', async () => {
+    const loginRedirect = new Response(null, {
+      status: 302,
+      headers: { Location: '/login?returnTo=%2Fscim-token-settings' },
+    });
+    apiRequest.mockRejectedValueOnce(loginRedirect);
+
+    await expect(action({ request: formRequest({ orgId: 'org_1', name: 'x' }) } as never)).rejects.toBe(loginRedirect);
+  });
+
+  it('re-throws an MFA_REQUIRED redirect to /mfa-setup instead of swallowing it inline', async () => {
+    const mfaRedirect = new Response(null, { status: 303, headers: { Location: '/mfa-setup' } });
+    apiRequest.mockRejectedValueOnce(mfaRedirect);
+
+    await expect(action({ request: formRequest({ orgId: 'org_1', name: 'x' }) } as never)).rejects.toBe(mfaRedirect);
+  });
 });

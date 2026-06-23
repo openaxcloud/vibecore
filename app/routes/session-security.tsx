@@ -11,6 +11,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
@@ -49,6 +50,16 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return json({ status: 'Session security policy saved.' });
   } catch (error) {
+    /*
+     * An expired session / MFA-required state makes apiRequest throw a framework
+     * redirect() (a 3xx Response to /login or /mfa-setup). Re-throw it so the
+     * framework performs the navigation instead of swallowing it into a dead-end
+     * inline error with a 3xx-status JSON body and no Location header.
+     */
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
     if (isApiResponse(error)) {
       return json(
         { error: await apiErrorMessage(error, 'Failed to save session security policy.') },

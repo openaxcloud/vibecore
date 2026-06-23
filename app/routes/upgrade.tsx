@@ -10,6 +10,7 @@ import {
   redirect,
   type EnterpriseActionArgs,
 } from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = () => [{ title: 'Upgrade - E-Code' }];
 
@@ -34,6 +35,17 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return redirect(result.checkoutUrl);
   } catch (error) {
+    /*
+     * A 3xx redirect Response thrown mid-checkout is a session-expiry login or
+     * MFA_REQUIRED re-auth navigation (see enterprise-api.server.ts). It is still
+     * `instanceof Response`, so it must be re-thrown BEFORE the isApiResponse
+     * branch — otherwise the redirect's Location is discarded and the user gets a
+     * bogus json error with a 3xx status instead of reaching the re-auth page.
+     */
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
     if (isApiResponse(error)) {
       return json(
         { error: await apiErrorMessage(error, 'Checkout is unavailable right now. Please try again later.') },

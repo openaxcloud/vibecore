@@ -1,6 +1,7 @@
 import { lookup } from 'node:dns/promises';
 import { data as json } from 'react-router';
 import type { ActionFunctionArgs } from 'react-router';
+import { collectCappedBody } from '~/lib/web-search-body';
 import { isAllowedUrl, isPrivateIp } from '~/utils/url';
 
 const MAX_CONTENT_LENGTH = 8000;
@@ -155,30 +156,21 @@ async function httpGetOnce(
           return;
         }
 
-        const chunks: Buffer[] = [];
+        collectCappedBody(res, MAX_FETCH_BYTES).then((collected) => {
+          if (collected.kind === 'too-large') {
+            resolve({ kind: 'too-large' });
 
-        let total = 0;
-
-        res.on('data', (chunk: Buffer) => {
-          total += chunk.length;
-
-          if (total > MAX_FETCH_BYTES) {
-            res.destroy();
             return;
           }
 
-          chunks.push(chunk);
-        });
-        res.on('end', () =>
           resolve({
             kind: 'body',
             status,
             statusText: res.statusMessage ?? '',
             contentType: (res.headers['content-type'] as string | undefined) ?? '',
-            html: Buffer.concat(chunks).toString('utf8'),
-          }),
-        );
-        res.on('error', reject);
+            html: collected.buffer.toString('utf8'),
+          });
+        }, reject);
       },
     );
 

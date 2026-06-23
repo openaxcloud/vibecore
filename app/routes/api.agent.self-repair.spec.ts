@@ -107,6 +107,24 @@ describe('POST /api/agent/self-repair', () => {
     expect(call.promptId).toBe('self-repair');
   });
 
+  it('forwards request.signal as abortSignal so a client Stop/timeout cancels the upstream provider', async () => {
+    streamTextMock.mockResolvedValueOnce({ text: Promise.resolve('ok') });
+
+    const action = await loadAction();
+    const request = makeRequest({ body: JSON.stringify({ prompt: 'fix this hunk' }) });
+
+    await action(actionArgs(request));
+
+    const call = streamTextMock.mock.calls[0][0];
+
+    /*
+     * The abort signal must be the *same* signal the client connection carries,
+     * otherwise a disconnect/Stop cannot cancel the in-flight provider request.
+     */
+    expect(call.abortSignal).toBe(request.signal);
+    expect(call.abortSignal).toBeInstanceOf(AbortSignal);
+  });
+
   it('prepends [Model:]/[Provider:] tags so streamText routes to the active model', async () => {
     streamTextMock.mockResolvedValueOnce({ text: Promise.resolve('corrected file body') });
 

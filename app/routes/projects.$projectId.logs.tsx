@@ -12,6 +12,7 @@ import {
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { apiRequest, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import type { ProjectRecord } from '~/lib/project-route.server';
+import { shouldRethrowActionError } from '~/lib/route-reauth';
 
 /* Re-fetch the runtime log buffer this often while a workspace is live. */
 const LOG_POLL_INTERVAL_MS = 4000;
@@ -43,10 +44,23 @@ export async function loader(args: EnterpriseLoaderArgs) {
     runtimeLogs = await apiRequest<RuntimeLogsSnapshot>(
       args.request,
       `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/logs/snapshot`,
-    ).catch((error: unknown) => ({
-      logs: [],
-      error: error instanceof Error ? error.message : 'Unable to load runtime logs.',
-    }));
+    ).catch((error: unknown) => {
+      /*
+       * apiRequest rejects with a thrown react-router redirect Response (3xx) on
+       * an expired session / MFA-required during a page navigation, and with a
+       * 5xx Response on server failures. Those must propagate so the framework
+       * performs the login redirect (or the error boundary handles the 5xx)
+       * instead of being silently degraded into a dead-end inline log banner.
+       */
+      if (shouldRethrowActionError(error)) {
+        throw error;
+      }
+
+      return {
+        logs: [],
+        error: error instanceof Error ? error.message : 'Unable to load runtime logs.',
+      };
+    });
   }
 
   return json({ project: projectResult.project, data: { ...dashboard, runtimeLogs } });

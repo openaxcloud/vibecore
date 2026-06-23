@@ -13,6 +13,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { isSecurityScheduleDue, vulnerabilitiesFromSecretScan } from '~/lib/ide-panel-security';
 import { defaultProjectKeybindings, serializeKeybindingOverrides } from '~/lib/keybindings';
 import { buildProjectOverviewInsights } from '~/lib/project-overview';
 
@@ -791,24 +792,12 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         apiRequest(request, `/projects/${projectId}/activity`),
       ]);
 
+      /*
+       * The loader is a GET and must be side-effect-free. Scheduled scans run shell
+       * commands in the workspace and mutate project env-vars, so they are triggered
+       * from the action (POST) path, never from a plain panel read/navigation.
+       */
       const securityState = readSecurityState(envVars);
-
-      if (isSecurityScheduleDue(securityState, new Date())) {
-        await runSecurityScan(
-          request,
-          projectId,
-          dashboard?.workspace?.id ?? projectId,
-          securityState,
-          new Date().toISOString(),
-        );
-        await apiRequest(request, `/projects/${projectId}/env-vars`, {
-          method: 'PUT',
-          body: JSON.stringify({
-            key: SECURITY_STATE_ENV_KEY,
-            value: JSON.stringify(normalizeSecurityState(securityState)),
-          }),
-        });
-      }
 
       return json(
         panelEnvelope(panel, project.project, {
@@ -816,6 +805,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           ...(envVars as any),
           ...(activity as any),
           securityState,
+          scheduledScanDue: isSecurityScheduleDue(securityState, new Date()),
         }),
       );
     } catch (error) {
@@ -1972,6 +1962,16 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       await runSecurityScan(request, projectId, workspaceId, state, now);
     }
 
+    /*
+     * Fire any due scheduled scan from the action (POST) path. This used to run from
+     * the loader (a GET), which executed shell commands and mutated env-vars during a
+     * plain panel read. A manual `scan` already ran one above, so skip in that case.
+     */
+    if (intent !== 'scan' && isSecurityScheduleDue(state, new Date(now))) {
+      const workspaceId = dashboard?.workspace?.id ?? projectId;
+      await runSecurityScan(request, projectId, workspaceId, state, now);
+    }
+
     await apiRequest(request, `/projects/${projectId}/env-vars`, {
       method: 'PUT',
       body: JSON.stringify({ key: SECURITY_STATE_ENV_KEY, value: JSON.stringify(normalizeSecurityState(state)) }),
@@ -3012,27 +3012,6 @@ function vulnerabilitiesFromAuditOutput(output: string, timestamp: string) {
   }
 }
 
-function vulnerabilitiesFromSecretScan(output: string, timestamp: string) {
-  return output
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .slice(0, 50)
-    .map((line, index) => ({
-      id: `secret:${index}:${line.slice(0, 80)}`,
-      packageName: 'workspace',
-      title: 'Potential secret in source file',
-      severity: 'high',
-      status: 'open',
-      hidden: false,
-      source: 'secret-scan',
-      details: line.replace(/=.*/, '=***'),
-      recommendation: 'Move credentials into project secrets and rotate exposed values.',
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    }));
-}
-
 function vulnerabilitiesFromSastOutput(output: string, timestamp: string) {
   return output
     .split(/\r?\n/)
@@ -3089,16 +3068,6 @@ function nextSecurityScheduleRun(frequency: string, fromIso: string) {
   next.setUTCHours(3, 0, 0, 0);
 
   return next.toISOString();
-}
-
-function isSecurityScheduleDue(state: any, now: Date) {
-  if (!state?.settings?.schedule?.enabled || !state.settings.schedule.nextRunAt) {
-    return false;
-  }
-
-  const nextRunAt = new Date(state.settings.schedule.nextRunAt);
-
-  return !Number.isNaN(nextRunAt.getTime()) && nextRunAt.getTime() <= now.getTime();
 }
 
 function normalizeSeverity(value: unknown) {

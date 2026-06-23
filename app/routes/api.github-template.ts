@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import { data as json } from 'react-router';
+import { base64ToBytes, decodeTemplateBytes } from '~/lib/github-template-decode';
 import { STARTER_TEMPLATES } from '~/utils/constants';
 
 /*
@@ -110,10 +111,15 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
 
         const contentData = (await contentResponse.json()) as any;
 
-        let content: string;
+        let decoded: { content: string; encoding: 'utf8' | 'base64' };
 
         try {
-          content = atob(contentData.content.replace(/\s/g, ''));
+          /*
+           * GitHub returns the file body base64-encoded; decode to raw bytes,
+           * then losslessly re-encode (base64 for binary, utf8 string for text)
+           * so non-text assets (favicon.ico, fonts, PNG/SVG) survive intact.
+           */
+          decoded = decodeTemplateBytes(base64ToBytes(contentData.content));
         } catch {
           console.warn(`Failed to decode GitHub content for ${file.path}: invalid base64`);
           return null;
@@ -122,7 +128,8 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
         return {
           name: file.path.split('/').pop() || '',
           path: file.path,
-          content,
+          content: decoded.content,
+          encoding: decoded.encoding,
         };
       } catch (error) {
         console.warn(`Error fetching ${file.path}:`, error);
@@ -210,13 +217,18 @@ async function fetchRepoContentsZip(repo: string, githubToken?: string) {
       normalizedPath = filename.substring(rootFolderName.length + 1);
     }
 
-    // Get the file content
-    const content = await zipEntry.async('string');
+    /*
+     * Read the raw bytes and decode losslessly. `async('string')` would
+     * UTF-8-decode binary assets (favicon.ico, fonts, PNG/SVG) and mangle them.
+     */
+    const bytes = await zipEntry.async('uint8array');
+    const decoded = decodeTemplateBytes(bytes);
 
     return {
       name: normalizedPath.split('/').pop() || '',
       path: normalizedPath,
-      content,
+      content: decoded.content,
+      encoding: decoded.encoding,
     };
   });
 

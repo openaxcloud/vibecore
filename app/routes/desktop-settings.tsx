@@ -1,6 +1,12 @@
 import { KeyRound, Monitor, Wifi } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppShell, StatGrid } from '~/components/dashboard/SaaSLayout';
+import {
+  debounce,
+  openDesktopLocalFolder,
+  saveDesktopSettings,
+  showDesktopTestNotification,
+} from '~/lib/desktop-settings-actions';
 
 interface DesktopSettingsState {
   proxy: { mode?: string; server?: string };
@@ -37,39 +43,38 @@ export default function DesktopSettingsRoute() {
       .catch((error) => setStatus(error instanceof Error ? error.message : String(error)));
   }, []);
 
-  async function save(next: DesktopSettingsState) {
+  /*
+   * Persist immediately for discrete toggles/selects. Errors surface to the
+   * status line instead of becoming unhandled rejections.
+   */
+  const persist = useCallback((next: DesktopSettingsState) => {
+    void saveDesktopSettings(window.vibecoreDesktop, next).then(setStatus);
+  }, []);
+
+  /*
+   * Debounced variant for the manual-server text field so we don't run
+   * settings.set once per keystroke. Cancelled on unmount.
+   */
+  const persistDebounced = useMemo(() => debounce(persist, 400), [persist]);
+
+  useEffect(() => () => persistDebounced.cancel(), [persistDebounced]);
+
+  function save(next: DesktopSettingsState, options?: { debounced?: boolean }) {
     setSettings(next);
 
-    if (!window.vibecoreDesktop) {
-      setStatus('Desktop bridge not detected. Settings are staged in this browser session.');
-      return;
+    if (options?.debounced) {
+      persistDebounced(next);
+    } else {
+      persist(next);
     }
-
-    await window.vibecoreDesktop.settings.set(next);
-    setStatus('Desktop settings saved.');
   }
 
-  async function showTestNotification() {
-    if (!window.vibecoreDesktop) {
-      setStatus('Desktop bridge not detected. Native notifications require Electron.');
-      return;
-    }
-
-    await window.vibecoreDesktop.notifications.show({
-      title: 'E-Code',
-      body: 'Native notifications are enabled.',
-    });
-    setStatus('Test notification sent.');
+  function showTestNotification() {
+    void showDesktopTestNotification(window.vibecoreDesktop).then(setStatus);
   }
 
-  async function openLocalFolder() {
-    if (!window.vibecoreDesktop) {
-      setStatus('Desktop bridge not detected. Local folder import requires Electron.');
-      return;
-    }
-
-    const folder = await window.vibecoreDesktop.files.openLocalFolder();
-    setStatus(folder ? `Folder selected: ${folder}` : 'Folder selection canceled.');
+  function openLocalFolder() {
+    void openDesktopLocalFolder(window.vibecoreDesktop).then(setStatus);
   }
 
   return (
@@ -118,7 +123,9 @@ export default function DesktopSettingsRoute() {
               className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2"
               placeholder="http://proxy.company.test:8080"
               value={settings.proxy?.server ?? ''}
-              onChange={(event) => save({ ...settings, proxy: { ...settings.proxy, server: event.target.value } })}
+              onChange={(event) =>
+                save({ ...settings, proxy: { ...settings.proxy, server: event.target.value } }, { debounced: true })
+              }
             />
           </label>
         </div>

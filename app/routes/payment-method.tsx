@@ -10,6 +10,7 @@ import {
   redirect,
   type EnterpriseActionArgs,
 } from '~/lib/enterprise-api.server';
+import { shouldRethrowActionError } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = () => [{ title: 'Payment method - E-Code' }];
 
@@ -28,6 +29,17 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return redirect(result.portalUrl);
   } catch (error) {
+    /*
+     * A mid-session 401 (login redirect) or 403 MFA_REQUIRED (step-up redirect)
+     * surfaces here as a thrown 3xx Response. Re-throw those (and 5xx server
+     * responses) so the framework performs the redirect / error boundary handles
+     * them, instead of swallowing them into a misleading "portal unavailable"
+     * inline message with a 302 status.
+     */
+    if (shouldRethrowActionError(error)) {
+      throw error;
+    }
+
     if (isApiResponse(error)) {
       return json(
         { error: await apiErrorMessage(error, 'The Stripe customer portal is unavailable right now.') },
