@@ -24,9 +24,19 @@ export const meta: MetaFunction = () => [{ title: 'Support - E-Code' }];
 export async function loader({ request }: EnterpriseLoaderArgs) {
   try {
     const organization = await firstOrganization(request);
-    const tickets = await apiRequest<{ tickets: Ticket[] }>(request, `/support/${organization.id}/tickets`);
+    const tickets = await apiRequest<{ tickets?: Ticket[] }>(request, `/support/${organization.id}/tickets`);
 
-    return { organization, tickets: tickets.tickets, supportAccessLimited: null };
+    /*
+     * apiRequest returns the raw JSON of a 200 response with no shape validation,
+     * so a payload skew between api versions (or `{}`) leaves `tickets.tickets`
+     * undefined. Normalize to an array here so the component's `.filter(Boolean)`
+     * never crashes the whole page to the root error boundary.
+     */
+    return {
+      organization,
+      tickets: Array.isArray(tickets?.tickets) ? tickets.tickets : [],
+      supportAccessLimited: null,
+    };
   } catch (error) {
     /*
      * A 3xx Response here is the login / MFA re-auth redirect thrown by the
@@ -104,7 +114,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 export default function SupportPage() {
   const { tickets, supportAccessLimited } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
-  const visibleTickets = tickets.filter(Boolean) as Ticket[];
+  const visibleTickets = (tickets ?? []).filter(Boolean) as Ticket[];
 
   return (
     <AppShell title="Support" description="Open support tickets and review enterprise support status.">

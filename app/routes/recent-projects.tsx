@@ -16,8 +16,10 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
   const result = await apiRequest<{ projects: ApiProject[] }>(request, `/orgs/${organization.id}/projects`);
 
+  const projects = Array.isArray(result?.projects) ? result.projects : [];
+
   return {
-    projects: result.projects
+    projects: projects
       .sort((left, right) => new Date(right.updatedAt ?? 0).getTime() - new Date(left.updatedAt ?? 0).getTime())
       .map((project) => ({
         id: project.id,

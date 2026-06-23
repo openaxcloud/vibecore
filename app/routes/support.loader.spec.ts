@@ -77,6 +77,37 @@ describe('support loader re-auth handling', () => {
     expect(data.supportAccessLimited).toBeTruthy();
   });
 
+  it('returns an empty tickets array when the 200 payload omits the tickets array', async () => {
+    /*
+     * Regression: apiRequest does NO shape validation, so a payload skew (`{}`)
+     * left `tickets.tickets` undefined and the component's `tickets.filter(Boolean)`
+     * crashed the whole Support page to the root error boundary.
+     */
+    firstOrganization.mockResolvedValueOnce({ id: 'org-1', name: 'Acme' });
+    apiRequest.mockResolvedValueOnce({});
+
+    const { loader } = await import('./support');
+
+    const data = (await loader({ request: loaderRequest() } as any)) as {
+      tickets: unknown[];
+      supportAccessLimited: string | null;
+    };
+
+    expect(data.tickets).toEqual([]);
+    expect(data.supportAccessLimited).toBeNull();
+  });
+
+  it('returns an empty tickets array when tickets is null', async () => {
+    firstOrganization.mockResolvedValueOnce({ id: 'org-1', name: 'Acme' });
+    apiRequest.mockResolvedValueOnce({ tickets: null });
+
+    const { loader } = await import('./support');
+
+    const data = (await loader({ request: loaderRequest() } as any)) as { tickets: unknown[] };
+
+    expect(data.tickets).toEqual([]);
+  });
+
   it('returns tickets normally when both calls succeed', async () => {
     firstOrganization.mockResolvedValueOnce({ id: 'org-1', name: 'Acme' });
     apiRequest.mockResolvedValueOnce({ tickets: [{ id: 't1', subject: 'Runtime down', status: 'open' }] });

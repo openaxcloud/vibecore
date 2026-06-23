@@ -35,7 +35,7 @@ export default function OnboardingPage() {
         <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6">
           <h2 className="font-semibold">Recommended next step</h2>
           <p className="mt-2 text-sm text-bolt-elements-textSecondary">
-            Create a persistent project and open it in the preserved Bolt IDE.
+            Create a persistent project and open it in the E-Code IDE.
           </p>
           <div className="mt-5">
             <LinkButton to="/projects/new">Create project</LinkButton>

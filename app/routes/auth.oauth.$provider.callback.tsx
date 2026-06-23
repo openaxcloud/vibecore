@@ -80,7 +80,24 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     throw redirect(`/login?oauth=${provider}&error=callback_failed&detail=${encodeURIComponent(detail)}`);
   }
 
-  const result = (await response.json()) as { token?: string };
+  let result: { token?: string };
+
+  try {
+    result = (await response.json()) as { token?: string };
+  } catch (error) {
+    /*
+     * A 200 with an empty body or non-JSON payload (e.g. an upstream proxy/HTML
+     * error page that still carries a 200, or a truncated body) makes
+     * `response.json()` throw a SyntaxError that would otherwise bubble up as an
+     * unhandled 500 error boundary mid-OAuth. Degrade to the login error screen
+     * like every other failure path here.
+     */
+    const detail = error instanceof Error ? error.message : 'bad_response';
+    console.error('[oauth-callback]', provider, 'bad_response', detail);
+    throw redirect(`/login?oauth=${provider}&error=callback_failed&detail=bad_response`, {
+      headers: { 'Set-Cookie': clearStateCookie() },
+    });
+  }
 
   if (!result.token || typeof result.token !== 'string') {
     console.error('[oauth-callback]', provider, 'missing token in successful response');
