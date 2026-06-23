@@ -49,7 +49,13 @@ describe('E-Code public theme wrappers', () => {
      */
     expect(source).toContain('applyThemeToDocument(chromeTheme)');
     expect(source).toContain("root.setAttribute('data-ecode-public-chrome', 'homepage')");
-    expect(source).toContain("const label = isHomepageDefaultTheme ? 'System' : 'Dark'");
+
+    /*
+     * The toggle's icon+label now derive from the tested getThemeSwitcherPresentation
+     * helper (reflects the real active theme: Sun/Light, Moon/Dark) instead of the
+     * old inline 'System'/'Dark' string.
+     */
+    expect(source).toContain('getThemeSwitcherPresentation(theme)');
     expect(source).toContain('Mobile Navigation Menu');
     expect(source).toContain('Navigate through E-Code platform sections');
     expect(source).toContain('h-dvh max-h-dvh flex-col overflow-hidden');
