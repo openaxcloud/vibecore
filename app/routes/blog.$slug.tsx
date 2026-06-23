@@ -1,43 +1,54 @@
 import { Newspaper } from 'lucide-react';
+import { data as json, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from 'react-router';
 
-import {
-  makeMarketingMeta,
-  MarketingStaticPage,
-  type MarketingPageDefinition,
-} from '~/components/marketing/EcodeMarketingPages';
+import { MarketingStaticPage } from '~/components/marketing/EcodeMarketingPages';
+import { toBlogDetailPageDefinition } from '~/lib/marketing/ecode-blog-detail-page';
+import { findEcodeBlogPost } from '~/lib/marketing/ecode-public-api-data.server';
 
-const blogDetailPage = {
-  slug: 'blog-detail',
-  title: 'Introducing E-Code AI Agent 2.0',
-  eyebrow: 'Blog',
-  description:
-    'A public E-Code product update covering the agent workflow, review controls, deployment handoff, and production readiness improvements.',
-  kind: 'resource',
-  icon: Newspaper,
-  primaryAction: ['Read the docs', '/docs'],
-  secondaryAction: ['Back to blog', '/blog'],
-  highlights: ['Agent planning', 'Patch review', 'Runtime validation', 'Deployment handoff'],
-  sections: [
+/**
+ * In-repo SSR blog detail page. Reads the `:slug` param, resolves the matching
+ * published post from the public blog data, and renders it through the shared
+ * marketing page shell. Unknown slugs 404 server-side instead of silently
+ * serving a single hardcoded placeholder article.
+ */
+export const meta: MetaFunction<typeof loader> = ({ data }) => [
+  { title: data ? `${data.title} - E-Code Blog` : 'Blog - E-Code' },
+  {
+    name: 'description',
+    content: data?.excerpt ?? 'The E-Code blog — product updates, engineering and AI development.',
+  },
+];
+
+export function loader({ params }: LoaderFunctionArgs) {
+  const post = findEcodeBlogPost(params.slug);
+
+  if (!post) {
+    throw new Response('Blog post not found', { status: 404 });
+  }
+
+  return json(
     {
-      title: 'Agent planning that stays visible',
-      body: 'E-Code AI Agent 2.0 keeps the plan, tool activity, code edits and validation state visible so teams can review what changed before shipping.',
-      items: ['Visible plan', 'Tool timeline', 'Patch review', 'Human approval'],
+      title: post.title,
+      excerpt: post.excerpt,
+      content: post.content,
+      author: post.author,
+      authorRole: post.authorRole,
+      category: post.category,
+      tags: post.tags,
+      readTime: post.readTime,
+      publishedAt: post.publishedAt,
     },
     {
-      title: 'Built for real app delivery',
-      body: 'The update connects generation with previews, tests, logs and deployment readiness instead of stopping at a static code suggestion.',
-      items: ['Preview checks', 'Test feedback', 'Runtime logs', 'Release notes'],
+      headers: {
+        'Cache-Control': 'public, max-age=300',
+      },
     },
-    {
-      title: 'Enterprise controls included',
-      body: 'Teams get the same public E-Code controls across identity, auditability, data boundaries and policy-driven delivery workflows.',
-      items: ['Audit trail', 'Team governance', 'Secure defaults', 'Policy-aware agents'],
-    },
-  ],
-} as const satisfies MarketingPageDefinition;
-
-export const meta = makeMarketingMeta(blogDetailPage);
+  );
+}
 
 export default function BlogDetailRoute() {
-  return <MarketingStaticPage page={blogDetailPage} />;
+  const post = useLoaderData<typeof loader>();
+  const page = toBlogDetailPageDefinition(post, Newspaper);
+
+  return <MarketingStaticPage page={page} />;
 }

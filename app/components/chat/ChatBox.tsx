@@ -471,7 +471,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             }}
             placeholder={
               props.placeholder ??
-              (props.chatMode === 'build' ? 'How can Bolt help you today?' : 'What would you like to discuss?')
+              (props.chatMode === 'build' ? 'How can E-Code help you today?' : 'What would you like to discuss?')
             }
             translate="no"
           />

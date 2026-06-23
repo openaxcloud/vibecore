@@ -1149,7 +1149,7 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
     return (
       <EmptyPanel
         title="No projects yet"
-        description="Create a persistent project to open the Bolt IDE with saved files, runtime sessions and snapshots."
+        description="Create a persistent project to open the E-Code IDE with saved files, runtime sessions and snapshots."
         actionLabel="Create project"
         to="/projects/new"
         icon={Sparkles}
@@ -1171,7 +1171,7 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
                   {project.name}
                 </CardTitle>
                 <CardDescription className="truncate">
-                  {project.stack ?? project.sourceType ?? 'Persistent Bolt project'}
+                  {project.stack ?? project.sourceType ?? 'Persistent project'}
                 </CardDescription>
               </div>
               <StatusPill label={project.status ?? 'Ready'} />
@@ -1743,7 +1743,7 @@ export const importOptions = [
   },
   {
     title: 'Create from prompt',
-    description: 'Start with Bolt AI and capture the result as a SaaS project.',
+    description: 'Start with E-Code AI and capture the result as a SaaS project.',
     to: '/projects/new',
     icon: Sparkles,
   },

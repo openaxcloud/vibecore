@@ -1,36 +1,86 @@
 import { BrowserWindow, Menu, shell } from 'electron';
 
-export function setupMenu(win: BrowserWindow): void {
+/** Public E-Code documentation (brand-sweep canonical, no internal codename / `.local` host). */
+const DOCS_URL = 'https://e-code.ai/docs';
+
+/**
+ * Accepts either the (legacy) literal window or a live getter. A getter lets the
+ * menu track window recreation on macOS, where closing the window destroys it
+ * but keeps the process alive (`window-all-closed` does not quit), and a later
+ * dock re-activate builds a brand-new `mainWindow`.
+ */
+export type WindowSource = BrowserWindow | (() => BrowserWindow | null | undefined);
+
+/**
+ * Resolve the window the menu should act on, *at click time*.
+ *
+ * The menu is built once at startup, so any window captured then may have been
+ * destroyed (close+reopen on macOS) by the time a menu item fires. We therefore
+ * never act on a stale reference:
+ *   - a getter is re-invoked so it returns the current `mainWindow`;
+ *   - a captured window is used only while live;
+ *   - in either case, if the resolved window is missing/destroyed we fall back
+ *     to any live BrowserWindow (the one rebuilt on dock re-activate).
+ *
+ * Returns a usable, non-destroyed window, or `undefined` when none exists.
+ */
+export function resolveLiveWindow(source: WindowSource): BrowserWindow | undefined {
+  const candidate = typeof source === 'function' ? source() : source;
+
+  if (candidate && !candidate.isDestroyed()) {
+    return candidate;
+  }
+
+  // The captured/returned window is gone (e.g. closed then reopened on macOS):
+  // act on the current live window instead of throwing "Object has been destroyed".
+  const live = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
+
+  return live ?? undefined;
+}
+
+export function setupMenu(windowSource: WindowSource): void {
+  /** Load a renderer route on whichever window is currently live. */
+  const loadOnLiveWindow = (path: string) => {
+    const win = resolveLiveWindow(windowSource);
+    win?.loadURL(`http://localhost:5173${path}`).catch(() => undefined);
+  };
+
+  /** Send a menu action IPC to whichever window is currently live. */
+  const sendToLiveWindow = (action: string) => {
+    const win = resolveLiveWindow(windowSource);
+    win?.webContents.send('desktop:menu-action', action);
+  };
+
   const currentMenu = Menu.getApplicationMenu();
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
       ...(currentMenu ? currentMenu.items : []),
       {
-        label: 'VibeCore',
+        label: 'E-Code',
         submenu: [
           {
             label: 'Desktop Settings',
             accelerator: 'CmdOrCtrl+,',
-            click: () => win.loadURL('http://localhost:5173/desktop-settings'),
+            click: () => loadOnLiveWindow('/desktop-settings'),
           },
           { type: 'separator' },
           {
             label: 'Open Dashboard',
             accelerator: 'CmdOrCtrl+Shift+D',
-            click: () => win.loadURL('http://localhost:5173/dashboard'),
+            click: () => loadOnLiveWindow('/dashboard'),
           },
           {
             label: 'Open Projects',
             accelerator: 'CmdOrCtrl+Shift+P',
-            click: () => win.loadURL('http://localhost:5173/projects'),
+            click: () => loadOnLiveWindow('/projects'),
           },
           { type: 'separator' },
           {
             label: 'Documentation',
-            click: () => shell.openExternal('https://docs.vibecore.local').catch(() => undefined),
+            click: () => shell.openExternal(DOCS_URL).catch(() => undefined),
           },
           { type: 'separator' },
-          { role: 'quit', label: 'Quit VibeCore' },
+          { role: 'quit', label: 'Quit E-Code' },
         ],
       },
       {
@@ -39,17 +89,17 @@ export function setupMenu(win: BrowserWindow): void {
           {
             label: 'Import Zip',
             accelerator: 'CmdOrCtrl+O',
-            click: () => win.webContents.send('desktop:menu-action', 'import-zip'),
+            click: () => sendToLiveWindow('import-zip'),
           },
           {
             label: 'Open Local Folder as Project',
             accelerator: 'CmdOrCtrl+Shift+O',
-            click: () => win.webContents.send('desktop:menu-action', 'open-local-folder'),
+            click: () => sendToLiveWindow('open-local-folder'),
           },
           {
             label: 'Export Project',
             accelerator: 'CmdOrCtrl+E',
-            click: () => win.webContents.send('desktop:menu-action', 'export-project'),
+            click: () => sendToLiveWindow('export-project'),
           },
         ],
       },
@@ -60,14 +110,14 @@ export function setupMenu(win: BrowserWindow): void {
             label: 'Back',
             accelerator: 'CmdOrCtrl+[',
             click: () => {
-              win?.webContents.navigationHistory.goBack();
+              resolveLiveWindow(windowSource)?.webContents.navigationHistory.goBack();
             },
           },
           {
             label: 'Forward',
             accelerator: 'CmdOrCtrl+]',
             click: () => {
-              win?.webContents.navigationHistory.goForward();
+              resolveLiveWindow(windowSource)?.webContents.navigationHistory.goForward();
             },
           },
         ],

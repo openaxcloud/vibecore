@@ -49,7 +49,7 @@ export interface MarketingPageDefinition {
   }[];
 }
 
-const productProof = ['AI-native builder', 'Preserved Bolt IDE', 'Real runtimes', 'Enterprise governance'] as const;
+const productProof = ['AI-native builder', 'E-Code IDE', 'Real runtimes', 'Enterprise governance'] as const;
 
 export const marketingPages = {
   product: {
@@ -110,7 +110,7 @@ export const marketingPages = {
     sections: [
       {
         title: 'Integrated development workspace',
-        body: 'E-Code keeps the preserved Bolt IDE, generated code, terminal output, preview state and deployment path visible in one production workflow.',
+        body: 'E-Code keeps the browser IDE, generated code, terminal output, preview state and deployment path visible in one production workflow.',
         items: ['File tree and editor', 'Agent patch review', 'Live preview', 'Terminal and logs'],
       },
       {

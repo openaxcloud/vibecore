@@ -53,8 +53,8 @@ import { projectIdePath, withProjectSearch } from '~/utils/project-url';
 const ProjectIdeChat = lazy(() => import('~/components/chat/Chat.client').then((module) => ({ default: module.Chat })));
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
-  { title: data ? `Bolt IDE - ${data.projectId}` : 'Bolt IDE' },
-  { name: 'description', content: 'Bolt IDE connected to a persistent project workspace.' },
+  { title: data ? `E-Code IDE - ${data.projectId}` : 'E-Code IDE' },
+  { name: 'description', content: 'E-Code IDE connected to a persistent project workspace.' },
 ];
 
 const IDE_CLIENT_SEARCH_PARAMS = new Set(['panel', 'commit']);
@@ -150,7 +150,7 @@ export default function ProjectIdeRoute() {
           <main className="h-dvh pt-9">
             <ClientOnly fallback={optimisticShell}>
               {() => (
-                <ZoneErrorBoundary zone="editor" title="Bolt IDE" boundaryId={`project:${projectId}:ide`}>
+                <ZoneErrorBoundary zone="editor" title="E-Code IDE" boundaryId={`project:${projectId}:ide`}>
                   <Suspense fallback={optimisticShell}>
                     <ProjectIdeChat
                       forceWorkbench

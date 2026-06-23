@@ -76,7 +76,7 @@ export default function ImportZipPage() {
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
 
   return (
-    <AppShell title="Import zip" description="Upload an archive and convert it into a persistent Bolt project.">
+    <AppShell title="Import zip" description="Upload an archive and convert it into a persistent E-Code project.">
       <Form
         className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6"
         method="post"

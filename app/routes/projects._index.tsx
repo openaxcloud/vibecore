@@ -45,7 +45,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         name: project.name,
         status: 'Ready',
         updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
-        stack: project.gitRepositoryUrl ?? project.sourceType ?? 'Bolt project',
+        stack: project.gitRepositoryUrl ?? project.sourceType ?? 'E-Code project',
         sourceType: project.sourceType,
         previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
         ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
@@ -86,7 +86,7 @@ export default function ProjectsPage() {
   return (
     <AppShell
       title="Projects"
-      description="Browse persistent Bolt projects, switch between grid and list views, and open managed workspaces."
+      description="Browse persistent E-Code projects, switch between grid and list views, and open managed workspaces."
       actions={
         <>
           <LinkButton to="/projects/new">Create project</LinkButton>
@@ -165,7 +165,7 @@ function ProjectList({ projects }: { projects: ProjectCard[] }) {
                 <StatusPill label={project.status ?? 'Ready'} />
               </div>
               <p className="mt-1 truncate text-sm text-bolt-elements-textSecondary">
-                {project.stack ?? project.sourceType ?? 'Persistent Bolt project'}
+                {project.stack ?? project.sourceType ?? 'Persistent E-Code project'}
               </p>
             </div>
           </div>

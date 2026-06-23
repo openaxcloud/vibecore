@@ -319,6 +319,57 @@ const aiAgentUseCases = [
   },
 ] as const;
 
+const aiAgentComparison = [
+  {
+    title: 'No setup or boilerplate',
+    description: 'Skip scaffolding, config files and dependency wrangling — the agent handles it end to end.',
+    examples: [
+      'Zero local tooling required',
+      'Project structure generated for you',
+      'Dependencies installed automatically',
+    ],
+  },
+  {
+    title: 'Full-stack, not snippets',
+    description: 'Other assistants suggest code fragments. E-Code ships a complete, runnable application.',
+    examples: ['Frontend, backend and data layer', 'Wired-up routes and components', 'Production-ready defaults'],
+  },
+  {
+    title: 'Iterates with context',
+    description: 'Keeps the whole project in mind so follow-up changes stay consistent instead of starting over.',
+    examples: ['Remembers earlier decisions', 'Fixes its own build errors', 'Adds features without regressions'],
+  },
+  {
+    title: 'From idea to live in minutes',
+    description: 'Describe the goal and get a deployable app — no copy-pasting between tools.',
+    examples: ['One conversation, one workflow', 'Instant preview', 'Deploy when ready'],
+  },
+] as const;
+
+type AiAgentTab = 'overview' | 'capabilities' | 'examples' | 'comparison';
+
+/**
+ * Selects which content sections the AI Agent page renders for the active tab.
+ * Returns boolean flags so the tab strip is a real control rather than a no-op.
+ */
+export function selectAiAgentTabContent(tab: AiAgentTab): {
+  showCapabilities: boolean;
+  showUseCases: boolean;
+  showComparison: boolean;
+} {
+  switch (tab) {
+    case 'capabilities':
+      return { showCapabilities: true, showUseCases: false, showComparison: false };
+    case 'examples':
+      return { showCapabilities: false, showUseCases: true, showComparison: false };
+    case 'comparison':
+      return { showCapabilities: false, showUseCases: false, showComparison: true };
+    case 'overview':
+    default:
+      return { showCapabilities: true, showUseCases: true, showComparison: false };
+  }
+}
+
 const aiPlatformStats = [
   ['100K+', 'Apps Built'],
   ['<60s', 'Average Build Time'],
@@ -628,7 +679,8 @@ export function makeEcodeCampaignMeta(key: CampaignPageKey): MetaFunction {
 
 export function EcodeAiAgentPage() {
   const [selectedSegment, setSelectedSegment] = useState<(typeof trailerSegments)[number]>(trailerSegments[0]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'capabilities' | 'examples' | 'comparison'>('overview');
+  const [activeTab, setActiveTab] = useState<AiAgentTab>('overview');
+  const { showCapabilities, showUseCases, showComparison } = selectAiAgentTabContent(activeTab);
 
   return (
     <PublicShell>
@@ -821,31 +873,49 @@ export function EcodeAiAgentPage() {
               </Button>
             ))}
           </div>
-          <div className="mt-6 grid gap-6 md:grid-cols-2">
-            {aiAgentCapabilities.map((capability) => (
-              <Panel key={capability.title}>
-                <h3 className="flex items-center gap-2 text-lg font-semibold text-bolt-elements-textPrimary">
-                  <Sparkles className="h-5 w-5 text-[var(--ecode-accent)]" aria-hidden />
-                  {capability.title}
-                </h3>
-                <p className="mt-2 text-sm text-bolt-elements-textSecondary">{capability.description}</p>
-                <CheckList className="mt-4" items={capability.examples} />
-              </Panel>
-            ))}
-          </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-4">
-            {aiAgentUseCases.map((useCase) => {
-              const Icon = useCase.icon;
-              return (
-                <Panel key={useCase.category}>
-                  <Icon className="h-8 w-8 text-[var(--ecode-accent)]" aria-hidden />
-                  <h3 className="mt-3 text-lg font-semibold text-bolt-elements-textPrimary">{useCase.category}</h3>
-                  <p className="mt-1 text-sm text-bolt-elements-textTertiary">{useCase.timing}</p>
-                  <CheckList className="mt-4" items={useCase.apps} />
+          {showCapabilities ? (
+            <div className="mt-6 grid gap-6 md:grid-cols-2">
+              {aiAgentCapabilities.map((capability) => (
+                <Panel key={capability.title}>
+                  <h3 className="flex items-center gap-2 text-lg font-semibold text-bolt-elements-textPrimary">
+                    <Sparkles className="h-5 w-5 text-[var(--ecode-accent)]" aria-hidden />
+                    {capability.title}
+                  </h3>
+                  <p className="mt-2 text-sm text-bolt-elements-textSecondary">{capability.description}</p>
+                  <CheckList className="mt-4" items={capability.examples} />
                 </Panel>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          ) : null}
+          {showUseCases ? (
+            <div className="mt-8 grid gap-4 md:grid-cols-4">
+              {aiAgentUseCases.map((useCase) => {
+                const Icon = useCase.icon;
+                return (
+                  <Panel key={useCase.category}>
+                    <Icon className="h-8 w-8 text-[var(--ecode-accent)]" aria-hidden />
+                    <h3 className="mt-3 text-lg font-semibold text-bolt-elements-textPrimary">{useCase.category}</h3>
+                    <p className="mt-1 text-sm text-bolt-elements-textTertiary">{useCase.timing}</p>
+                    <CheckList className="mt-4" items={useCase.apps} />
+                  </Panel>
+                );
+              })}
+            </div>
+          ) : null}
+          {showComparison ? (
+            <div className="mt-6 grid gap-6 md:grid-cols-2">
+              {aiAgentComparison.map((item) => (
+                <Panel key={item.title}>
+                  <h3 className="flex items-center gap-2 text-lg font-semibold text-bolt-elements-textPrimary">
+                    <Sparkles className="h-5 w-5 text-[var(--ecode-accent)]" aria-hidden />
+                    {item.title}
+                  </h3>
+                  <p className="mt-2 text-sm text-bolt-elements-textSecondary">{item.description}</p>
+                  <CheckList className="mt-4" items={item.examples} />
+                </Panel>
+              ))}
+            </div>
+          ) : null}
         </Section>
       </MarketingMain>
     </PublicShell>
