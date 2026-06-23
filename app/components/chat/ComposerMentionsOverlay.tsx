@@ -16,6 +16,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 
 import { FileMentionsPalette } from './FileMentionsPalette';
+import { isMentionNavigationKey } from './composer-mention-keys';
 import type { FileMentionCandidate } from '~/lib/hooks/useFileMentions';
 import { recordMentionedFile } from '~/lib/persistence/projectIdeMemory';
 import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
@@ -129,6 +130,73 @@ export const ComposerMentionsOverlay = memo(
       lastHandledTriggerRef.current = trigger;
     }, [trigger]);
 
+    /*
+     * The palette lives on a tabIndex={-1} div that never holds focus, so
+     * its own onKeyDown never fires from real key events — the chat
+     * textarea keeps focus. Without this bridge, Enter reaches ChatBox's
+     * textarea onKeyDown and SENDS the message (with the literal `@token`
+     * still in it) instead of picking the highlighted candidate, and the
+     * arrow keys are inert.
+     *
+     * Fix: while a trigger is active, intercept the palette's
+     * navigation/commit keys on the textarea, stop them from reaching the
+     * send handler (stopImmediatePropagation prevents React's root-level
+     * delegated listener from firing), and re-dispatch them to the palette
+     * div so its existing handleKeyDown drives navigation + selection.
+     */
+    const overlayRef = useRef<HTMLDivElement>(null);
+    const triggerActive = trigger !== null;
+
+    useEffect(() => {
+      const textarea = textareaRef.current;
+
+      if (!textarea || !triggerActive) {
+        return undefined;
+      }
+
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.isComposing) {
+          return;
+        }
+
+        if (!isMentionNavigationKey(event.key, { shiftKey: event.shiftKey })) {
+          return;
+        }
+
+        const palette = overlayRef.current?.querySelector<HTMLElement>('.bolt-file-mentions-palette');
+
+        if (!palette) {
+          return;
+        }
+
+        /*
+         * Prevent the textarea's default (newline / focus move) AND stop
+         * the event before it bubbles to React's root listener, which is
+         * what would otherwise invoke ChatBox's send-on-Enter handler.
+         */
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        // Forward to the palette so its onKeyDown handles nav/select/dismiss.
+        palette.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key: event.key,
+            code: event.code,
+            shiftKey: event.shiftKey,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+      };
+
+      // Capture phase so we run before React's bubble-phase root listener.
+      textarea.addEventListener('keydown', onKeyDown, true);
+
+      return () => {
+        textarea.removeEventListener('keydown', onKeyDown, true);
+      };
+    }, [textareaRef, triggerActive]);
+
     const handleSelect = useCallback(
       (candidate: FileMentionCandidate) => {
         const active = lastHandledTriggerRef.current ?? trigger;
@@ -192,7 +260,7 @@ export const ComposerMentionsOverlay = memo(
     }
 
     return (
-      <div className="bolt-composer-mentions-overlay">
+      <div ref={overlayRef} className="bolt-composer-mentions-overlay">
         <FileMentionsPalette
           query={trigger.query}
           onSelect={handleSelect}

@@ -16,9 +16,10 @@
  * surface — slash commands are explicit user actions.
  */
 
-import { memo, useCallback, useEffect, useMemo, useState, type RefObject } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 
 import { SlashCommandsPalette } from './SlashCommandsPalette';
+import { shouldForwardKeyToSlashPalette } from './composer-slash-keys';
 import { parseSlashInput, type SlashCommand, type SlashCommandContext } from '~/lib/chat/slash-commands';
 import { recordSlashCommand } from '~/lib/persistence/projectIdeMemory';
 import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
@@ -72,6 +73,25 @@ export const ComposerSlashOverlay = memo(
     const [focused, setFocused] = useState(false);
 
     /*
+     * Ref to the overlay wrapper. The palette (a child of this wrapper)
+     * owns its keyboard navigation on its own div's onKeyDown, but in
+     * production focus stays in the textarea so it never fires. We forward
+     * the nav keys to it (see the keydown-bridge effect below) by
+     * redispatching the event onto the palette node, which keeps the
+     * palette's active-index state and selection logic as the single
+     * source of truth.
+     */
+    const paletteRef = useRef<HTMLDivElement | null>(null);
+
+    /*
+     * Mirror whether a trigger is currently active into a ref so the
+     * (stable) capture-phase keydown listener can read the latest value
+     * without re-subscribing on every keystroke.
+     */
+    const triggerActiveRef = useRef(false);
+    triggerActiveRef.current = Boolean(trigger) && focused;
+
+    /*
      * Track focus on the parent textarea so the palette only renders
      * when the composer is the active element. This avoids the palette
      * lingering after the user blurs the textarea to do something else.
@@ -108,6 +128,76 @@ export const ComposerSlashOverlay = memo(
       return () => {
         ref.removeEventListener('focus', onFocus);
         ref.removeEventListener('blur', onBlur);
+      };
+    }, [textareaRef]);
+
+    /*
+     * Keyboard bridge: while a slash trigger is active, intercept the
+     * palette's navigation keys on the textarea *before* the composer's
+     * own onKeyDown runs (capture phase), and forward them to the
+     * palette. Without this, ArrowUp/Down/Enter/Tab/Escape never reach
+     * the (unfocused) palette and Enter falls through to handleSendMessage,
+     * sending the literal `/command` text to the LLM.
+     */
+    useEffect(() => {
+      const ref = textareaRef.current;
+
+      if (!ref) {
+        return undefined;
+      }
+
+      const onKeyDownCapture = (event: KeyboardEvent) => {
+        if (!shouldForwardKeyToSlashPalette(event, triggerActiveRef.current)) {
+          return;
+        }
+
+        const wrapper = paletteRef.current;
+
+        /*
+         * The palette node is the one carrying the React onKeyDown
+         * handler — dispatch onto it (or a descendant) so React resolves
+         * that handler from the event target's fiber. The wrapper itself
+         * has no handler and the palette is its child, so dispatching on
+         * the wrapper would bubble away from the palette and do nothing.
+         */
+        const palette = wrapper?.querySelector<HTMLElement>('.bolt-slash-commands-palette');
+
+        if (!palette) {
+          return;
+        }
+
+        /*
+         * Stop the composer's bubble-phase Enter handler (and any other
+         * listeners) from firing, then hand the key to the palette. The
+         * palette's onKeyDown calls preventDefault itself for the keys it
+         * handles; we preventDefault here too so a fall-through Enter can
+         * never submit the raw command even if the palette has no match.
+         */
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        const forwarded = new KeyboardEvent('keydown', {
+          key: event.key,
+          code: event.code,
+          shiftKey: event.shiftKey,
+          metaKey: event.metaKey,
+          ctrlKey: event.ctrlKey,
+          altKey: event.altKey,
+          bubbles: true,
+          cancelable: true,
+        });
+
+        palette.dispatchEvent(forwarded);
+      };
+
+      /*
+       * Capture phase so we run before React's bubble-phase delegated
+       * onKeyDown on the textarea (ChatBox's Enter -> handleSendMessage).
+       */
+      ref.addEventListener('keydown', onKeyDownCapture, true);
+
+      return () => {
+        ref.removeEventListener('keydown', onKeyDownCapture, true);
       };
     }, [textareaRef]);
 
@@ -171,7 +261,7 @@ export const ComposerSlashOverlay = memo(
     }
 
     return (
-      <div className="bolt-composer-slash-overlay">
+      <div className="bolt-composer-slash-overlay" ref={paletteRef}>
         <SlashCommandsPalette
           query={trigger.keyword}
           onSelect={handleSelect}

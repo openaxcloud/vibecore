@@ -7,6 +7,7 @@ import ModelCard from './ModelCard';
 import ProviderCard from './ProviderCard';
 import SetupGuide from './SetupGuide';
 import StatusDashboard from './StatusDashboard';
+import { getActiveMonitorTargets } from './health-monitoring';
 import { OLLAMA_API_URL } from './types';
 import { Button } from '~/components/ui/Button';
 import { Card, CardContent, CardHeader } from '~/components/ui/Card';
@@ -78,19 +79,27 @@ export default function LocalProvidersTab() {
     return filteredProviders.length > 0 && filteredProviders.every((p) => p.settings.enabled);
   }, [filteredProviders]);
 
-  // Start/stop health monitoring for enabled providers
+  // Start/stop health monitoring for enabled providers.
   useEffect(() => {
-    filteredProviders.forEach((provider) => {
-      const baseUrl = provider.settings.baseUrl;
+    const targets = getActiveMonitorTargets(filteredProviders);
 
-      if (provider.settings.enabled && baseUrl) {
-        console.log(`[LocalProvidersTab] Starting monitoring for ${provider.name} at ${baseUrl}`);
-        startMonitoring(provider.name as 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl);
-      } else if (!provider.settings.enabled && baseUrl) {
-        console.log(`[LocalProvidersTab] Stopping monitoring for ${provider.name} at ${baseUrl}`);
-        stopMonitoring(provider.name as 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl);
-      }
+    targets.forEach((target) => {
+      console.log(`[LocalProvidersTab] Starting monitoring for ${target.name} at ${target.baseUrl}`);
+      startMonitoring(target.name, target.baseUrl);
     });
+
+    /*
+     * Tear down the polling intervals when the tab unmounts (or before the
+     * effect re-runs). Without this, startMonitoring()'s setInterval kept firing
+     * background health-check fetches for the lifetime of the page even after
+     * the user navigated away from the Local Providers settings tab.
+     */
+    return () => {
+      targets.forEach((target) => {
+        console.log(`[LocalProvidersTab] Stopping monitoring for ${target.name} at ${target.baseUrl}`);
+        stopMonitoring(target.name, target.baseUrl);
+      });
+    };
   }, [filteredProviders, startMonitoring, stopMonitoring]);
 
   // Fetch Ollama models when enabled

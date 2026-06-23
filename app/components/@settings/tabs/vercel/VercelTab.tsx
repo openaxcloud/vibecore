@@ -4,6 +4,7 @@ import Cookies from 'js-cookie';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { normalizeVercelUser } from './vercel-connect';
+import { redactVercelConnection } from './vercel-redact';
 import { ConnectorApiKeyConnectButton } from '~/components/@settings/shared/connectors';
 import { ServiceHeader, ConnectionTestIndicator } from '~/components/@settings/shared/service-integration';
 import { Button } from '~/components/ui/Button';
@@ -714,7 +715,12 @@ export default function VercelTab() {
     projectActions,
   ]);
 
-  console.log('connection', connection);
+  /*
+   * SECURITY: never log the raw connection (it holds the Vercel access token).
+   * Log only a redacted shape so the high-privilege token cannot leak to the
+   * console, browser extensions, error reporters or session-replay tools.
+   */
+  console.log('vercel connection', redactVercelConnection(connection));
 
   return (
     <div className="space-y-6">

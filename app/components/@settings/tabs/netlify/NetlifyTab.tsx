@@ -3,6 +3,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { motion } from 'framer-motion';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { formatPublishedAgo } from './format-published';
 import { ConnectorApiKeyConnectButton } from '~/components/@settings/shared/connectors';
 import { Badge } from '~/components/ui/Badge';
 import { Button } from '~/components/ui/Button';
@@ -1013,12 +1014,14 @@ export default function NetlifyTab() {
                               </div>
                               {site.published_deploy && (
                                 <div className="mt-3 text-sm">
-                                  <div className="flex items-center gap-1">
-                                    <div className="i-ph:clock w-4 h-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
-                                    <span className="text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
-                                      Published {formatDistanceToNow(new Date(site.published_deploy.published_at))} ago
-                                    </span>
-                                  </div>
+                                  {formatPublishedAgo(site.published_deploy.published_at) && (
+                                    <div className="flex items-center gap-1">
+                                      <div className="i-ph:clock w-4 h-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                                      <span className="text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
+                                        Published {formatPublishedAgo(site.published_deploy.published_at)}
+                                      </span>
+                                    </div>
+                                  )}
                                   {site.published_deploy.branch && (
                                     <div className="flex items-center gap-1 mt-1">
                                       <div className="i-ph:code w-4 h-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />

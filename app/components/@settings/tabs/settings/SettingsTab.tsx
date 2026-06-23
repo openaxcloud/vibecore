@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { mergeNotificationIntoProfile } from './settings-profile-storage';
 import { settingsPersistenceSnapshot } from './settings-snapshot';
 import type { UserProfile } from '~/components/@settings/core/types';
 import { Switch } from '~/components/ui/Switch';
@@ -236,13 +237,13 @@ export default function SettingsTab() {
                 // Update local state
                 setSettings((prev) => ({ ...prev, notifications: checked }));
 
-                // Update localStorage immediately
-                const existingProfile = JSON.parse(localStorage.getItem('bolt_user_profile') || '{}');
-
-                const updatedProfile = {
-                  ...existingProfile,
-                  notifications: checked,
-                };
+                /*
+                 * Update localStorage immediately. Parse defensively — a
+                 * corrupt stored value (another tab, the theme store, an
+                 * extension, or a stale 'undefined' literal) must not throw
+                 * and leave the toggle in an inconsistent state.
+                 */
+                const updatedProfile = mergeNotificationIntoProfile(localStorage.getItem('bolt_user_profile'), checked);
                 localStorage.setItem('bolt_user_profile', JSON.stringify(updatedProfile));
 
                 /*

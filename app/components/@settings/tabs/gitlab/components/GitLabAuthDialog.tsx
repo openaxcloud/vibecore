@@ -25,7 +25,11 @@ export function GitLabAuthDialog({ isOpen, onClose }: GitLabAuthDialogProps) {
 
     try {
       await connect(token, gitlabUrl);
-      toast.success('Successfully connected to GitLab!');
+
+      /*
+       * Note: the success toast is fired by useGitLabConnection.connect on its success path.
+       * Do not show another toast here, otherwise the user sees two stacked success toasts.
+       */
       setToken('');
       onClose();
     } catch (error) {

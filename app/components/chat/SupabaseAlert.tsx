@@ -24,7 +24,14 @@ export function cleanSqlContent(content: string) {
 
   let cleaned = content.replace(/\/\*[\s\S]*?\*\//g, '');
 
-  cleaned = cleaned.replace(/(--).*$/gm, '').replace(/(#).*$/gm, '');
+  /*
+   * Strip only real PostgreSQL comments. PostgreSQL uses `--` for single-line
+   * comments and `/* *​/` for block comments. It does NOT use `#` as a comment
+   * marker (that's MySQL) — in Postgres `#` is an operator: JSONB path operators
+   * (`#>`, `#>>`, `#-`) and bitwise XOR (`#`). Stripping after `#` silently
+   * truncates valid SQL and runs a different, broken query against the live DB.
+   */
+  cleaned = cleaned.replace(/(--).*$/gm, '');
 
   const statements = cleaned
     .split(';')
