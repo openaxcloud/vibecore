@@ -271,6 +271,73 @@ describe('WebContainerRuntimeAdapter', () => {
     expect(matches[0]).toMatchObject({ path: 'src/App.tsx', lineNumber: 1 });
   });
 
+  it('bounds the search fallback: skips node_modules/.git/binary and stops at resultLimit', async () => {
+    const webcontainer = createWebContainer();
+    const adapter = new WebContainerRuntimeAdapter({ webcontainer });
+    await adapter.boot();
+
+    // Project source containing the needle.
+    await adapter.writeFile('src/a.ts', 'const needle = 1;');
+    await adapter.writeFile('src/b.ts', 'const needle = 2;');
+    await adapter.writeFile('src/c.ts', 'const needle = 3;');
+
+    // node_modules / .git / dist must never be read or matched.
+    await adapter.writeFile('node_modules/dep/index.js', 'const needle = "vendor";');
+    await adapter.writeFile('.git/config', 'needle = repo');
+    await adapter.writeFile('dist/bundle.js', 'const needle = "built";');
+
+    // A binary file containing the needle bytes must be skipped (no base64 false match).
+    const binary = new Uint8Array([...new TextEncoder().encode('needle'), 0x00, 0xff, 0xfe]);
+    await webcontainer.fs.writeFile('assets/blob.bin', binary);
+
+    const allMatches = await adapter.searchFiles('needle');
+    expect(allMatches.map((m) => m.path).sort()).toEqual(['src/a.ts', 'src/b.ts', 'src/c.ts']);
+    expect(allMatches.every((m) => !m.path.includes('node_modules'))).toBe(true);
+    expect(allMatches.some((m) => m.path.endsWith('.bin'))).toBe(false);
+
+    // resultLimit bounds the number of matches returned.
+    const limited = await adapter.searchFiles('needle', { resultLimit: 2 });
+    expect(limited.length).toBe(2);
+  });
+
+  it('terminal event stream yields an error event instead of an unhandled rejection on teardown failure', async () => {
+    const webcontainer = createWebContainer();
+    const adapter = new WebContainerRuntimeAdapter({ webcontainer });
+    await adapter.boot();
+
+    const failure = new Error('spawn teardown failed');
+
+    // A process whose output stream completes cleanly but whose exit promise rejects.
+    const failingProcess: WebContainerProcessLike = {
+      input: new WritableStream<string>(),
+      output: new ReadableStream<string>({
+        start(controller) {
+          controller.enqueue('hello');
+          controller.close();
+        },
+      }),
+      exit: Promise.reject(failure),
+      kill: vi.fn(),
+      resize: vi.fn(),
+    };
+
+    // Avoid an unhandled rejection on the bare exit promise itself (real processes are awaited).
+    failingProcess.exit.catch(() => undefined);
+
+    (webcontainer.spawn as ReturnType<typeof vi.fn>).mockResolvedValueOnce(failingProcess);
+
+    const session = await adapter.openTerminal();
+    const events: string[] = [];
+
+    // Iterating the generator must NOT throw — the rejection becomes an 'error' event.
+    for await (const event of session.events) {
+      events.push(event.type);
+    }
+
+    expect(events).toContain('stdout');
+    expect(events[events.length - 1]).toBe('error');
+  });
+
   it('imports real zip archives into the workspace filesystem', async () => {
     const webcontainer = createWebContainer();
     const adapter = new WebContainerRuntimeAdapter({ webcontainer });

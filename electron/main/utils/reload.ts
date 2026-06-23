@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import { isDev } from './constants';
 
 // Reload on change.
 let isQuited = false;
@@ -9,6 +10,13 @@ const abort = new AbortController();
 const { signal } = abort;
 
 export async function reloadOnChange() {
+  // Dev-only hot reload. In a packaged build any write under the app dir (auto-update
+  // staging, AV/indexer touching files, non-asar layouts) would otherwise relaunch the
+  // running app from under the user. Never watch outside of dev mode.
+  if (!isDev) {
+    return;
+  }
+
   const dir = path.join(app.getAppPath(), 'build', 'electron');
 
   try {

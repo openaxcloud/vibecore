@@ -15,6 +15,7 @@ import {
 import { parseSessionLockState } from './session';
 import { supportsPlatformBiometrics } from './biometric';
 import { editorKindForLayout, getResponsiveLayoutState } from '@vibecore/editor';
+import { launchMobileBootstrap } from './bootstrap-launch';
 
 describe('mobile native adapters', () => {
   it('reads runtime config from env without hardcoding API URLs', () => {
@@ -143,5 +144,50 @@ describe('mobile native adapters', () => {
     expect(events).toContainEqual(['deep-link', { url: 'vibecore://projects/project_123/ide?panel=security' }]);
     expect(events).toContainEqual(['push-token', { value: 'push-token-123' }]);
     expect(events).toContainEqual(['push-action', { route: '/projects/project_123/ide?panel=security' }]);
+  });
+
+  it('routes bootstrap failures to the crash hook instead of leaking an unhandled rejection', async () => {
+    const reported: Array<{ error: unknown; context?: Record<string, unknown> }> = [];
+    const unhandled: unknown[] = [];
+    const onUnhandled = (event: PromiseRejectionEvent) => unhandled.push(event.reason);
+    window.addEventListener('unhandledrejection', onUnhandled);
+
+    const failure = new Error('push permission denied');
+
+    // launchMobileBootstrap must resolve (not reject) even when bootstrap rejects.
+    await expect(
+      launchMobileBootstrap(
+        {
+          onCrashReport(error, context) {
+            reported.push({ error, context });
+          },
+        },
+        () => Promise.reject(failure),
+      ),
+    ).resolves.toBeUndefined();
+
+    // Give the microtask queue a tick so any stray rejection would surface.
+    await Promise.resolve();
+    window.removeEventListener('unhandledrejection', onUnhandled);
+
+    expect(reported).toEqual([{ error: failure, context: { source: 'bootstrap-launch' } }]);
+    expect(unhandled).toHaveLength(0);
+  });
+
+  it('resolves cleanly on a successful bootstrap without reporting a crash', async () => {
+    const reported: unknown[] = [];
+
+    await expect(
+      launchMobileBootstrap(
+        {
+          onCrashReport(error) {
+            reported.push(error);
+          },
+        },
+        () => Promise.resolve({ ok: true }),
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(reported).toHaveLength(0);
   });
 });

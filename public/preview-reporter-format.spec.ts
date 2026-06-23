@@ -34,6 +34,58 @@ describe('serializeConsoleArg', () => {
     const result = serializeConsoleArg(circular);
     expect(result).toContain('[Circular]');
   });
+
+  it('detects circular references nested deeper in the tree', () => {
+    const node: Record<string, unknown> = { id: 1, child: { id: 2 } };
+    (node.child as Record<string, unknown>).parent = node;
+
+    expect(serializeConsoleArg(node)).toContain('[Circular]');
+  });
+
+  it('does NOT mislabel shared sibling object references as circular', () => {
+    const shared = { value: 'shared-data' };
+
+    const out = serializeConsoleArg({ a: shared, b: shared });
+
+    expect(out).not.toContain('[Circular]');
+    expect(out).toBe(JSON.stringify({ a: shared, b: shared }));
+    // Both occurrences must retain the real data, not be collapsed to [Circular].
+    expect(out.match(/shared-data/g)).toHaveLength(2);
+  });
+
+  it('does NOT mislabel repeated array elements as circular', () => {
+    const item = { n: 7 };
+
+    const out = serializeConsoleArg([item, item, item]);
+
+    expect(out).not.toContain('[Circular]');
+    expect(out).toBe(JSON.stringify([item, item, item]));
+    expect(out.match(/"n":7/g)).toHaveLength(3);
+  });
+
+  it('handles shared references AND a real cycle together', () => {
+    const shared = { tag: 'leaf' };
+    const root: Record<string, unknown> = { first: shared, second: shared };
+    root.loop = root;
+
+    const out = serializeConsoleArg(root);
+
+    // The shared sibling is fully serialized at both positions...
+    expect(out.match(/leaf/g)).toHaveLength(2);
+    // ...but the genuine self-reference is still caught.
+    expect(out).toContain('[Circular]');
+  });
+
+  it('serializes a diamond-shaped (non-circular) object graph in full', () => {
+    const leaf = { color: 'red' };
+    const left = { leaf };
+    const right = { leaf };
+
+    const out = serializeConsoleArg({ left, right });
+
+    expect(out).not.toContain('[Circular]');
+    expect(out.match(/red/g)).toHaveLength(2);
+  });
 });
 
 describe('formatConsoleMessage', () => {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   computeEnvMaskLineRanges,
   computeEnvMaskRanges,
+  computeEnvRevealLines,
   detectMobileViewport,
   editorBreakpoints,
   editorKindForLayout,
@@ -219,5 +220,30 @@ describe('dotenv secret masking', () => {
 
     expect(ranges).toHaveLength(1);
     expect(ranges[0]).toEqual({ line: 1, startColumn: 9, endColumn: 23, length: 14 });
+  });
+
+  it('leaves the caret line unmasked in Monaco so a secret can be edited without going blind', () => {
+    const lineTexts = ['API_KEY=sk-live-secret', 'DATABASE_URL=postgres://'];
+
+    /* Caret on line 1: that secret stays visible, the other stays masked. */
+    const ranges = computeEnvMaskLineRanges(lineTexts, new Set([1]));
+
+    expect(ranges).toHaveLength(1);
+    expect(ranges[0]).toMatchObject({ line: 2 });
+  });
+
+  it('derives reveal lines from Monaco selections (start and end of each)', () => {
+    const revealLines = computeEnvRevealLines([
+      { startLineNumber: 2, endLineNumber: 2 },
+      { startLineNumber: 4, endLineNumber: 6 },
+    ]);
+
+    expect([...revealLines].sort((a, b) => a - b)).toEqual([2, 4, 6]);
+  });
+
+  it('returns an empty reveal set for missing/empty Monaco selections', () => {
+    expect(computeEnvRevealLines(null).size).toBe(0);
+    expect(computeEnvRevealLines(undefined).size).toBe(0);
+    expect(computeEnvRevealLines([]).size).toBe(0);
   });
 });

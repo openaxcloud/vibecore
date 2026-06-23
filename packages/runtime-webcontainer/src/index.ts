@@ -727,6 +727,15 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
       }
 
       yield { type: 'exit', exitCode: await process.exit, timestamp: new Date().toISOString() };
+    } catch (error) {
+      /*
+       * reader.read() or process.exit can reject on a spawn/teardown failure.
+       * The terminal consumer (app/utils/shell.ts) iterates this generator in a
+       * fire-and-forget async IIFE whose try/catch only wraps terminal.write, so
+       * a throw here would escape as an unhandled promise rejection. Surface it
+       * as an 'error' event instead, mirroring streamCommand.
+       */
+      yield { type: 'error', error: toRuntimeError(error), timestamp: new Date().toISOString() };
     } finally {
       reader.releaseLock();
     }
@@ -785,6 +794,7 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     const matches: FileSearchMatch[] = [];
     const isRegex = options.isRegex === true;
     const needle = options.caseSensitive ? query : query.toLowerCase();
+    const resultLimit = typeof options.resultLimit === 'number' ? options.resultLimit : Infinity;
 
     /*
      * The query is user-supplied. A malformed pattern (e.g. '[' or '(') makes
@@ -801,42 +811,99 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
       }
     }
 
-    const visit = (nodes: FileNode[]) => {
-      for (const node of nodes) {
-        if (node.type === 'directory') {
-          visit(node.children ?? []);
-          continue;
+    const scanFile = (path: string, content: string) => {
+      const lines = content.split('\n');
+
+      for (let index = 0; index < lines.length; index += 1) {
+        if (matches.length >= resultLimit) {
+          return;
         }
 
-        const lines = (node.content ?? '').split('\n');
-        lines.forEach((line, index) => {
-          const haystack = options.caseSensitive ? line : line.toLowerCase();
+        const line = lines[index];
+        const haystack = options.caseSensitive ? line : line.toLowerCase();
 
-          /*
-           * matcher is built with the global flag and reused across lines; reset
-           * lastIndex so its stateful cursor doesn't skip matches on later lines.
-           */
-          if (matcher) {
-            matcher.lastIndex = 0;
-          }
+        /*
+         * matcher is built with the global flag and reused across lines; reset
+         * lastIndex so its stateful cursor doesn't skip matches on later lines.
+         */
+        if (matcher) {
+          matcher.lastIndex = 0;
+        }
 
-          const match = matcher?.exec(line);
-          const column = matcher ? (match?.index ?? -1) : haystack.indexOf(needle);
+        const match = matcher?.exec(line);
+        const column = matcher ? (match?.index ?? -1) : haystack.indexOf(needle);
 
-          if (column >= 0) {
-            matches.push({
-              path: node.path,
-              lineNumber: index + 1,
-              line,
-              startColumn: column,
-              endColumn: column + (match?.[0].length ?? query.length),
-            });
-          }
-        });
+        if (column >= 0) {
+          matches.push({
+            path,
+            lineNumber: index + 1,
+            line,
+            startColumn: column,
+            endColumn: column + (match?.[0].length ?? query.length),
+          });
+        }
       }
     };
 
-    visit(await this.listFiles('.'));
+    const webcontainer = await this.#getWebContainer();
+
+    /*
+     * Traverse the tree lazily instead of reading every file (incl. node_modules
+     * and binary blobs as base64) into memory up front. Skip noisy/huge dirs and
+     * binary files, and stop descending once resultLimit matches are collected —
+     * so the fallback bounds both traversal and memory on real projects.
+     */
+    const walk = async (dirPath: string): Promise<void> => {
+      if (matches.length >= resultLimit) {
+        return;
+      }
+
+      let entries: WebContainerDirentLike[] | string[];
+
+      try {
+        entries = await webcontainer.fs.readdir(dirPath, { withFileTypes: true });
+      } catch {
+        return;
+      }
+
+      for (const entry of entries) {
+        if (matches.length >= resultLimit) {
+          return;
+        }
+
+        const name = typeof entry === 'string' ? entry : entry.name;
+
+        if (SEARCH_SKIP_DIRECTORIES.has(name)) {
+          continue;
+        }
+
+        const path = joinPath(dirPath, name);
+
+        const isDirectory =
+          typeof entry === 'string' ? false : entry.type === 'directory' || entry.isDirectory?.() === true;
+
+        if (isDirectory) {
+          await walk(path);
+          continue;
+        }
+
+        try {
+          const raw = await webcontainer.fs.readFile(path);
+          const bytes = typeof raw === 'string' ? new TextEncoder().encode(raw) : raw;
+
+          // Skip binary files — base64 content yields meaningless matches and bloats memory.
+          if (!isUtf8(bytes)) {
+            continue;
+          }
+
+          scanFile(path, new TextDecoder().decode(bytes));
+        } catch {
+          // Unreadable file (vanished/permission) — skip it.
+        }
+      }
+    };
+
+    await walk(this.#toRuntimePath('.'));
 
     return matches.slice(0, options.resultLimit);
   }
@@ -911,6 +978,13 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     return 'update';
   }
 }
+
+/*
+ * Directories the file-reading search fallback must never descend into: they
+ * are huge (node_modules), irrelevant build output (dist/build/coverage), or
+ * VCS internals (.git) whose contents would pollute results and exhaust memory.
+ */
+const SEARCH_SKIP_DIRECTORIES = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.cache']);
 
 function joinPath(left: string, right: string) {
   if (left === '.' || left === '') {

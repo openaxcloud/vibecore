@@ -6,13 +6,13 @@ const webServer = process.env.PLAYWRIGHT_SKIP_WEB_SERVER
       {
         command: 'VITE_DEV_HOST=127.0.0.1 VITE_DEV_PORT=5173 VITE_STRICT_PORT=true pnpm run dev',
         url: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:5173',
-        reuseExistingServer: true,
+        reuseExistingServer: !process.env.CI,
         timeout: 120_000,
       },
       {
         command: 'pnpm --filter @vibecore/admin dev',
         url: 'http://127.0.0.1:5174',
-        reuseExistingServer: true,
+        reuseExistingServer: !process.env.CI,
         timeout: 120_000,
       },
     ];

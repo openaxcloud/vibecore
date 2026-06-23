@@ -26,6 +26,23 @@ describe('detectCommandAbuse — fork bomb', () => {
     expect(detectCommandAbuse('node', ['fork-worker.js'])).toBeUndefined();
     expect(detectCommandAbuse('git', ['fetch', 'fork'])).toBeUndefined();
   });
+
+  it('does NOT flag ordinary shell function definitions whose body contains a pipe', () => {
+    // Previously the loose `token | token` body match flagged any piped function body.
+    expect(detectCommandAbuse('sh', ['-c', 'deploy() { npm run build | tee log; }'])).toBeUndefined();
+    expect(detectCommandAbuse('sh', ['-c', 'greet() { echo hi | cat; }'])).toBeUndefined();
+    expect(detectCommandAbuse('sh', ['-c', 'run() { cat x | grep error; }'])).toBeUndefined();
+    expect(detectCommandAbuse('sh', ['-c', 'build() { webpack | tee build.log; }'])).toBeUndefined();
+    expect(detectCommandAbuse('sh', ['-c', 'f() { a | b | c; }'])).toBeUndefined();
+
+    // A function that pipes one helper into a differently-named one is not a self-fork.
+    expect(detectCommandAbuse('sh', ['-c', 'proc() { proc_a | proc_b; }'])).toBeUndefined();
+  });
+
+  it('flags spaced / whitespace-variant recursive fork bombs (self-pipe)', () => {
+    expect(detectCommandAbuse('bash', ['-c', ':() { : | : ; } ; :'])?.type).toBe('fork_bomb');
+    expect(detectCommandAbuse('bash', ['-c', 'fork(){ fork | fork; }; fork'])?.type).toBe('fork_bomb');
+  });
 });
 
 describe('detectCommandAbuse — legitimate command chaining', () => {

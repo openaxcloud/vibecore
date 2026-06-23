@@ -32,9 +32,11 @@ function editorContent(container: HTMLElement) {
 describe('MobileCodeEditor document sync', () => {
   it('preserves local edits when the file path resolves after typing starts', () => {
     const onChange = vi.fn();
+
     const { container, rerender } = render(
       <MobileCodeEditor value="export const value = 1;" filePath={undefined} onChange={onChange} />,
     );
+
     const content = editorContent(container);
 
     content.focus();
@@ -48,9 +50,11 @@ describe('MobileCodeEditor document sync', () => {
 
   it('accepts whitespace and newline as the first mobile keystrokes', () => {
     const onChange = vi.fn();
+
     const { container } = render(
       <MobileCodeEditor value="export const value = 1;" filePath="src/App.tsx" onChange={onChange} />,
     );
+
     const content = editorContent(container);
 
     content.focus();
@@ -68,9 +72,11 @@ describe('MobileCodeEditor document sync', () => {
   it('does not overwrite a fresh local draft with a stale upstream value', () => {
     const onChange = vi.fn();
     const initialValue = 'export const value = 1;';
+
     const { container, rerender } = render(
       <MobileCodeEditor value={initialValue} filePath="src/App.tsx" onChange={onChange} />,
     );
+
     const content = editorContent(container);
 
     content.focus();
@@ -87,9 +93,11 @@ describe('MobileCodeEditor document sync', () => {
 
   it('still applies a real file switch after a local edit', () => {
     const onChange = vi.fn();
+
     const { container, rerender } = render(
       <MobileCodeEditor value="export const value = 1;" filePath="src/App.tsx" onChange={onChange} />,
     );
+
     const content = editorContent(container);
 
     content.focus();
@@ -103,6 +111,39 @@ describe('MobileCodeEditor document sync', () => {
   });
 });
 
+describe('MobileCodeEditor keymap is not preempted', () => {
+  /*
+   * Regression: a Prec.highest keydown handler used to swallow every printable
+   * key and Enter, manually inserting a bare character. That preempted the
+   * configured keymap so Enter inserted "\n" with no indentation. Removing it
+   * lets `insertNewlineAndIndent` run, preserving the leading indentation of the
+   * current line on the new line.
+   */
+  it('auto-indents on Enter (keymap insertNewlineAndIndent runs)', () => {
+    const onChange = vi.fn();
+
+    const { container } = render(
+      <MobileCodeEditor value={'function f() {\n  const x = 1;'} filePath="src/App.tsx" onChange={onChange} />,
+    );
+
+    const content = editorContent(container);
+
+    content.focus();
+
+    /* Move the caret to the end of the indented second line, then press Enter. */
+    fireEvent.keyDown(content, { key: 'End' });
+    fireEvent.keyDown(content, { key: 'Enter' });
+
+    const value = onChange.mock.lastCall?.[0]?.value as string | undefined;
+    expect(value).toBeTruthy();
+
+    /* The new (third) line must carry the 2-space indentation, not be bare. */
+    const lines = value!.split('\n');
+    expect(lines).toHaveLength(3);
+    expect(lines[2]).toMatch(/^ {2}/);
+  });
+});
+
 describe('MobileCodeEditor dotenv masking', () => {
   it('does not render dotenv secret values in cleartext', () => {
     /*
@@ -112,6 +153,7 @@ describe('MobileCodeEditor dotenv masking', () => {
     const { container } = render(
       <MobileCodeEditor value={'PUBLIC_URL=https://app.example\nAPI_KEY=sk-live-supersecret'} filePath=".env" />,
     );
+
     const content = editorContent(container);
 
     /* The non-caret secret value must never appear as readable text in the DOM. */
@@ -125,6 +167,7 @@ describe('MobileCodeEditor dotenv masking', () => {
     const { container } = render(
       <MobileCodeEditor value={'const apiKey = "sk-live-supersecret";'} filePath="src/config.ts" />,
     );
+
     const content = editorContent(container);
 
     expect(content.textContent).toContain('sk-live-supersecret');

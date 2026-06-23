@@ -38,7 +38,19 @@ export class SecureSessionStore {
 }
 
 export function parseSessionLockState(value: string): SessionLockState {
-  const parsed = JSON.parse(value) as Partial<SessionLockState>;
+  let parsed: Partial<SessionLockState>;
+
+  try {
+    parsed = JSON.parse(value) as Partial<SessionLockState>;
+  } catch {
+    // Corrupt/truncated storage (interrupted write, OS migration, tampering).
+    // Fall back to the safe locked-out default rather than crashing init.
+    return { locked: false, biometricEnabled: false };
+  }
+
+  if (parsed === null || typeof parsed !== 'object') {
+    return { locked: false, biometricEnabled: false };
+  }
 
   return {
     locked: parsed.locked === true,

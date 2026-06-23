@@ -52,15 +52,29 @@ export function serializeConsoleArg(value: unknown): string {
   }
 
   try {
-    const seen = new WeakSet<object>();
+    // Track only the *current ancestor chain* so genuine cycles are caught
+    // while shared (sibling) references to the same non-circular object are
+    // still serialized in full. A permanent set-of-all-visited would mislabel
+    // `{ a: shared, b: shared }` / `[item, item]` as [Circular]. JSON.stringify
+    // does not signal subtree exit, so we maintain the stack by relating each
+    // value to its parent (the `this` context the replacer is invoked with).
+    const ancestors: unknown[] = [];
 
-    const json = JSON.stringify(value, (_key, nested) => {
+    const json = JSON.stringify(value, function replacer(this: unknown, _key, nested) {
       if (typeof nested === 'object' && nested !== null) {
-        if (seen.has(nested)) {
+        // Pop ancestors that are no longer on the path to `this` (the parent
+        // holder of the current value). When the replacer descends, `this` is
+        // the most recent ancestor; when it moves to a sibling/uncle, unwind
+        // back to the parent before pushing again.
+        while (ancestors.length > 0 && ancestors[ancestors.length - 1] !== this) {
+          ancestors.pop();
+        }
+
+        if (ancestors.indexOf(nested) !== -1) {
           return '[Circular]';
         }
 
-        seen.add(nested);
+        ancestors.push(nested);
       }
 
       if (typeof nested === 'bigint') {

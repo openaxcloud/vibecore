@@ -1,4 +1,4 @@
-import { acceptCompletion, autocompletion, closeBrackets } from '@codemirror/autocomplete';
+import { acceptCompletion, autocompletion, closeBrackets, insertBracket } from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap, insertNewlineAndIndent } from '@codemirror/commands';
 import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
@@ -19,7 +19,7 @@ import {
   WidgetType,
 } from '@codemirror/view';
 import type * as MonacoTypes from 'monaco-editor';
-import { createElement, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createElement, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 export type EditorBreakpoint = 'desktop' | 'tablet-landscape' | 'tablet-portrait' | 'mobile';
 export type EditorKind = 'monaco' | 'codemirror';
@@ -876,6 +876,38 @@ export function DesktopCodeEditor({
     projectFilesRef.current = projectFiles;
   });
 
+  /*
+   * Recompute the .env secret-value masks for the active model, leaving the
+   * line(s) the caret/selection touches unmasked so a secret stays readable
+   * while it is being edited. Runs from the value/path effect and again on every
+   * cursor move (registered in onMount) so the reveal follows the caret.
+   */
+  const applyEnvMaskDecorations = useCallback(() => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    const model = editor?.getModel();
+
+    if (!editor || !monaco || !model || !isEnvFilePath(filePathRef.current)) {
+      return;
+    }
+
+    const lineTexts: string[] = [];
+
+    for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+      lineTexts.push(model.getLineContent(lineNumber));
+    }
+
+    const revealLines = computeEnvRevealLines(editor.getSelections());
+
+    envMaskDecorationsRef.current = editor.deltaDecorations(
+      envMaskDecorationsRef.current,
+      computeEnvMaskLineRanges(lineTexts, revealLines).map((range) => ({
+        range: new monaco.Range(range.line, range.startColumn, range.line, range.endColumn),
+        options: { inlineClassName: 'cm-monaco-env-mask', stickiness: 1 },
+      })),
+    );
+  }, []);
+
   useEffect(() => {
     if (!containerRef.current || editorRef.current) {
       return;
@@ -995,6 +1027,14 @@ export function DesktopCodeEditor({
 
           onChangeRef.current?.({ value: editor.getValue(), source: 'monaco' });
         });
+
+        /*
+         * Re-mask on cursor move so the line being edited reveals while every
+         * other secret value stays masked (mirrors the CodeMirror behaviour).
+         */
+        const selectionDisposable = editor.onDidChangeCursorSelection(() => {
+          applyEnvMaskDecorations();
+        });
         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
           onSaveRef.current?.();
         });
@@ -1040,6 +1080,7 @@ export function DesktopCodeEditor({
 
         editor.onDidDispose(() => {
           disposable.dispose();
+          selectionDisposable.dispose();
           providerDisposables.forEach((providerDisposable) => providerDisposable.dispose());
           currentModel.dispose();
         });
@@ -1135,20 +1176,7 @@ export function DesktopCodeEditor({
 
       if (isEnvFilePath(filePath)) {
         ensureMonacoEnvMaskStyle();
-
-        const lineTexts: string[] = [];
-
-        for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
-          lineTexts.push(model.getLineContent(lineNumber));
-        }
-
-        envMaskDecorationsRef.current = editor.deltaDecorations(
-          envMaskDecorationsRef.current,
-          computeEnvMaskLineRanges(lineTexts).map((range) => ({
-            range: new monaco.Range(range.line, range.startColumn, range.line, range.endColumn),
-            options: { inlineClassName: 'cm-monaco-env-mask', stickiness: 1 },
-          })),
-        );
+        applyEnvMaskDecorations();
       } else if (envMaskDecorationsRef.current.length > 0) {
         envMaskDecorationsRef.current = editor.deltaDecorations(envMaskDecorationsRef.current, []);
       }
@@ -1330,12 +1358,23 @@ export interface EnvMaskLineRange {
 /**
  * Monaco variant of {@link computeEnvMaskRanges}: returns 1-based line/column
  * ranges for the secret VALUE of each `KEY=VALUE` line. `lineTexts[i]` is the
- * text of line `i + 1`. Comment and value-less lines are skipped.
+ * text of line `i + 1`. Comment and value-less lines are skipped. Lines whose
+ * 1-based number is in `revealLines` (e.g. the line(s) the caret/selection
+ * touches) are left unmasked so a secret can be read while it is being edited.
  */
-export function computeEnvMaskLineRanges(lineTexts: readonly string[]): EnvMaskLineRange[] {
+export function computeEnvMaskLineRanges(
+  lineTexts: readonly string[],
+  revealLines: ReadonlySet<number> = new Set(),
+): EnvMaskLineRange[] {
   const ranges: EnvMaskLineRange[] = [];
 
   for (let index = 0; index < lineTexts.length; index++) {
+    const lineNumber = index + 1;
+
+    if (revealLines.has(lineNumber)) {
+      continue;
+    }
+
     const text = lineTexts[index];
 
     if (text.trim().startsWith('#')) {
@@ -1363,6 +1402,24 @@ export function computeEnvMaskLineRanges(lineTexts: readonly string[]): EnvMaskL
   }
 
   return ranges;
+}
+
+/**
+ * Collect the set of 1-based line numbers that a list of Monaco selections
+ * touches (start + end of each selection), so those lines can be left unmasked
+ * while the user edits a secret. Mirrors the CodeMirror `revealLineFroms` logic.
+ */
+export function computeEnvRevealLines(
+  selections: readonly { startLineNumber: number; endLineNumber: number }[] | null | undefined,
+): Set<number> {
+  const revealLines = new Set<number>();
+
+  for (const selection of selections ?? []) {
+    revealLines.add(selection.startLineNumber);
+    revealLines.add(selection.endLineNumber);
+  }
+
+  return revealLines;
 }
 
 class MaskedSecretWidget extends WidgetType {
@@ -1494,21 +1551,48 @@ function codeMirrorExtensions(
           compartments.readOnly.of(EditorState.readOnly.of(Boolean(props.readOnly))),
         ]
       : [EditorView.editable.of(!props.readOnly), EditorState.readOnly.of(Boolean(props.readOnly))]),
-    Prec.highest(
+
+    /*
+     * Touch/IME fallback: on mobile (and in environments whose contentEditable
+     * input pipeline does not synthesise input events for every keystroke) raw
+     * keydowns would otherwise never reach the document. This handler turns those
+     * keystrokes into edits — but it MUST defer to the configured keymap and to
+     * closeBrackets so Enter still auto-indents (insertNewlineAndIndent) and
+     * typing an opening bracket/quote still auto-closes. We therefore:
+     *   - skip Enter entirely (let the { key: 'Enter' } keymap binding run), and
+     *   - route printable characters through insertBracket() first (the same
+     *     primitive closeBrackets uses) so '(', '{', '[', '"', '`' auto-close.
+     */
+    Prec.high(
       EditorView.domEventHandlers({
         keydown(event, view) {
           if (view.state.readOnly || event.metaKey || event.ctrlKey || event.altKey || event.isComposing) {
             return false;
           }
 
-          const keyText = event.key === 'Enter' ? '\n' : event.key.length === 1 ? event.key : undefined;
-
-          if (!keyText) {
+          // Enter and other non-printable keys are owned by the keymap.
+          if (event.key.length !== 1) {
             return false;
           }
 
+          const keyText = event.key;
+
+          // Let closeBrackets auto-close/skip-over brackets and quotes.
+          const bracketTransaction = insertBracket(view.state, keyText);
+
+          if (bracketTransaction) {
+            event.preventDefault();
+            view.dispatch(bracketTransaction);
+
+            return true;
+          }
+
           event.preventDefault();
-          view.dispatch(view.state.replaceSelection(keyText));
+          view.dispatch({
+            ...view.state.replaceSelection(keyText),
+            scrollIntoView: true,
+            userEvent: 'input.type',
+          });
 
           return true;
         },

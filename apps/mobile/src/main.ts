@@ -1,7 +1,7 @@
 import { editorKindForLayout, getResponsiveLayoutState } from '@vibecore/editor';
+import { launchMobileBootstrap } from './bootstrap-launch';
 import { readMobileRuntimeConfig } from './config';
 import {
-  bootstrapMobileApp,
   openExternalUrl,
   readNativeAppInfo,
   routeFromDeepLink,
@@ -19,7 +19,7 @@ const title = document.querySelector<HTMLElement>('#mobile-title');
 const offlineBanner = document.querySelector<HTMLElement>('#offline-banner');
 const upload = document.querySelector<HTMLInputElement>('#file-upload');
 
-void bootstrapMobileApp({
+void launchMobileBootstrap({
   config,
   onDeepLink(url) {
     navigateFrame(routeFromDeepLink(url));

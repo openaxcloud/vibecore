@@ -16,6 +16,7 @@ import { setupDesktopAuthIpc } from './desktop/auth';
 import { setupCrashReporting } from './desktop/crash-reporting';
 import { setupDeepLinks } from './desktop/deep-links';
 import { setupNativeDesktopServices } from './desktop/native-services';
+import { createCookieSnapshot, diffCookies, recordCookies } from './utils/cookie-sync';
 
 Object.assign(console, log.functions);
 
@@ -75,142 +76,178 @@ declare global {
 let mainWindow: BrowserWindow | undefined;
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 
+/*
+ * A second launch fails to acquire the single-instance lock. `app.quit()` only
+ * *begins* the asynchronous quit lifecycle - it is not a synchronous halt - so
+ * we must guard every piece of startup behind the lock. Otherwise `whenReady()`
+ * can resolve before the quit completes and a full second window, protocol
+ * handler and native services get spun up. The first instance receives the
+ * `second-instance` event and focuses its existing window instead.
+ */
 if (!gotSingleInstanceLock) {
+  console.log('Another instance is already running; quitting this one.');
   app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+
+      mainWindow.focus();
+    }
+  });
+
+  startApp();
 }
 
-setupDeepLinks(() => mainWindow);
-setupCrashReporting();
+function startApp() {
+  setupDeepLinks(() => mainWindow);
+  setupCrashReporting();
 
-(async () => {
-  await app.whenReady();
-  console.log('App is ready');
-  setupDesktopAuthIpc();
+  // Snapshot of cookies already persisted, so we only write changed ones to disk.
+  const persistedCookies = createCookieSnapshot();
 
-  // Load any existing cookies from ElectronStore, set as cookie
-  await initCookies();
+  (async () => {
+    await app.whenReady();
+    console.log('App is ready');
+    setupDesktopAuthIpc();
 
-  const serverBuild = await loadServerBuild();
+    // Load any existing cookies from ElectronStore, set as cookie
+    await initCookies();
 
-  protocol.handle('http', async (req) => {
-    console.log('Handling request for:', req.url);
+    const serverBuild = await loadServerBuild();
 
-    if (isDev) {
-      console.log('Dev mode: forwarding to vite server');
-      return await fetch(req);
-    }
+    protocol.handle('http', async (req) => {
+      console.log('Handling request for:', req.url);
 
-    req.headers.append('Referer', req.referrer);
-
-    try {
-      const url = new URL(req.url);
-
-      // Forward requests to specific local server ports
-      if (url.port !== `${DEFAULT_PORT}`) {
-        console.log('Forwarding request to local server:', req.url);
+      if (isDev) {
+        console.log('Dev mode: forwarding to vite server');
         return await fetch(req);
       }
 
-      // Always try to serve asset first
-      const assetPath = path.join(app.getAppPath(), 'build', 'client');
-      const res = await serveAsset(req, assetPath);
+      req.headers.append('Referer', req.referrer);
 
-      if (res) {
-        console.log('Served asset:', req.url);
-        return res;
-      }
+      try {
+        const url = new URL(req.url);
 
-      // Forward all cookies to remix server
-      const cookies = await session.defaultSession.cookies.get({});
-
-      if (cookies.length > 0) {
-        req.headers.set('Cookie', cookies.map((c) => `${c.name}=${c.value}`).join('; '));
-
-        // Store all cookies
-        await storeCookies(cookies);
-      }
-
-      // Create request handler with the server build
-      const handler = createRequestHandler(serverBuild, 'production');
-      console.log('Handling request with server build:', req.url);
-
-      const result = await handler(req, {
-        /*
-         * Remix app access cloudflare.env
-         * Need to pass an empty object to prevent undefined
-         */
-        // @ts-ignore:next-line
-        cloudflare: {},
-      });
-
-      return result;
-    } catch (err) {
-      console.log('Error handling request:', {
-        url: req.url,
-        error:
-          err instanceof Error
-            ? {
-                message: err.message,
-                stack: err.stack,
-                cause: err.cause,
-              }
-            : err,
-      });
-
-      const error = err instanceof Error ? err : new Error(String(err));
-
-      return new Response(`Error handling request to ${req.url}: ${error.stack ?? error.message}`, {
-        status: 500,
-        headers: { 'content-type': 'text/plain' },
-      });
-    }
-  });
-
-  const rendererURL = await (isDev
-    ? (async () => {
-        await initViteServer();
-
-        if (!viteServer) {
-          throw new Error('Vite server is not initialized');
+        // Forward requests to specific local server ports
+        if (url.port !== `${DEFAULT_PORT}`) {
+          console.log('Forwarding request to local server:', req.url);
+          return await fetch(req);
         }
 
-        const listen = await viteServer.listen();
-        global.__electron__ = electron;
-        viteServer.printUrls();
+        // Always try to serve asset first
+        const assetPath = path.join(app.getAppPath(), 'build', 'client');
+        const res = await serveAsset(req, assetPath);
 
-        return `http://localhost:${listen.config.server.port}`;
-      })()
-    : `http://localhost:${DEFAULT_PORT}`);
+        if (res) {
+          console.log('Served asset:', req.url);
+          return res;
+        }
 
-  console.log('Using renderer URL:', rendererURL);
+        // Forward all cookies to remix server
+        const cookies = await session.defaultSession.cookies.get({});
 
-  const win = await createWindow(rendererURL);
-  mainWindow = win;
-  setupNativeDesktopServices(() => mainWindow);
+        if (cookies.length > 0) {
+          req.headers.set('Cookie', cookies.map((c) => `${c.name}=${c.value}`).join('; '));
 
-  app.on('activate', async () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      mainWindow = await createWindow(rendererURL);
+          /*
+           * Persist only cookies whose value changed since the last write. electron-store's
+           * set() rewrites the whole encrypted config file per call, so storing every cookie
+           * on every request caused N*M full-file disk writes per page load. Steady-state
+           * navigation now does zero disk I/O.
+           */
+          const changedCookies = diffCookies(cookies, persistedCookies);
+
+          if (changedCookies.length > 0) {
+            await storeCookies(changedCookies);
+            recordCookies(changedCookies, persistedCookies);
+          }
+        }
+
+        // Create request handler with the server build
+        const handler = createRequestHandler(serverBuild, 'production');
+        console.log('Handling request with server build:', req.url);
+
+        const result = await handler(req, {
+          /*
+           * Remix app access cloudflare.env
+           * Need to pass an empty object to prevent undefined
+           */
+          // @ts-ignore:next-line
+          cloudflare: {},
+        });
+
+        return result;
+      } catch (err) {
+        console.log('Error handling request:', {
+          url: req.url,
+          error:
+            err instanceof Error
+              ? {
+                  message: err.message,
+                  stack: err.stack,
+                  cause: err.cause,
+                }
+              : err,
+        });
+
+        const error = err instanceof Error ? err : new Error(String(err));
+
+        return new Response(`Error handling request to ${req.url}: ${error.stack ?? error.message}`, {
+          status: 500,
+          headers: { 'content-type': 'text/plain' },
+        });
+      }
+    });
+
+    const rendererURL = await (isDev
+      ? (async () => {
+          await initViteServer();
+
+          if (!viteServer) {
+            throw new Error('Vite server is not initialized');
+          }
+
+          const listen = await viteServer.listen();
+          global.__electron__ = electron;
+          viteServer.printUrls();
+
+          return `http://localhost:${listen.config.server.port}`;
+        })()
+      : `http://localhost:${DEFAULT_PORT}`);
+
+    console.log('Using renderer URL:', rendererURL);
+
+    const win = await createWindow(rendererURL);
+    mainWindow = win;
+    setupNativeDesktopServices(() => mainWindow);
+
+    app.on('activate', async () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        mainWindow = await createWindow(rendererURL);
+      }
+    });
+
+    console.log('end whenReady');
+
+    return win;
+  })()
+    /*
+     * Removed leftover IPC sample scaffolding: an uncleared setInterval that sent a
+     * 'ping' to win.webContents every 60s forever — firing into a possibly-destroyed
+     * webContents after window close (errors / wasted work) — plus a no-op ipcTest
+     * handler. Neither served any product purpose.
+     */
+    .then((win) => setupMenu(win));
+
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      app.quit();
     }
   });
 
-  console.log('end whenReady');
-
-  return win;
-})()
-  /*
-   * Removed leftover IPC sample scaffolding: an uncleared setInterval that sent a
-   * 'ping' to win.webContents every 60s forever — firing into a possibly-destroyed
-   * webContents after window close (errors / wasted work) — plus a no-op ipcTest
-   * handler. Neither served any product purpose.
-   */
-  .then((win) => setupMenu(win));
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
-
-reloadOnChange();
-setupAutoUpdater();
+  reloadOnChange();
+  setupAutoUpdater();
+}

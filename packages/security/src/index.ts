@@ -311,11 +311,16 @@ const abuseCommandPatterns: Array<{ pattern: RegExp; signal: AbuseSignal }> = [
   {
     /*
      * Match only the recursive-fork shape `:(){ :|: ... }` (the classic `:(){:|:&};:`
-     * bomb and named variants). The previous bare `|bomb` alternative — and the loose
-     * `while true.*fork` — matched any command line that merely contained the substring
-     * "bomb" (or those words), hard-blocking legitimate commands.
+     * bomb and named variants). The function name is captured and back-referenced so the
+     * body must re-invoke *that same* function piped to itself (`NAME | NAME`).
+     *
+     * The previous version required only two arbitrary pipe-separated tokens inside any
+     * POSIX function body, which matched ordinary definitions like `deploy() { npm run
+     * build | tee log; }`, `greet() { echo hi | cat; }`, or `run() { cat x | grep err; }`
+     * and hard-blocked them as a 409. Requiring the self-referential `\1 | \1` shape keeps
+     * the real fork bomb blocked while letting legitimate piped function bodies through.
      */
-    pattern: /(?:[A-Za-z_][\w-]*|:)\s*\(\)\s*\{[^}]*?(?:[A-Za-z_][\w-]*|:)\s*\|\s*(?:[A-Za-z_][\w-]*|:)/,
+    pattern: /([A-Za-z_][\w-]*|:)\s*\(\)\s*\{[^}]*?\1\s*\|\s*\1/,
     signal: { type: 'fork_bomb', severity: 'critical', action: 'stop_workspace', reason: 'fork bomb pattern' },
   },
   {

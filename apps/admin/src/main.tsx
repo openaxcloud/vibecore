@@ -5,12 +5,12 @@ import {
   clearAdminToken,
   exportCsv,
   getAdminToken,
-  loginAdmin,
   reauthAdmin,
   setAdminToken,
   type AdminOverview,
   type AdminRecord,
 } from './api';
+import { buildAdminLoginBody, errorMessage, isMfaRequiredError } from './admin-login';
 import {
   adminSections,
   collectionFromResponse,
@@ -29,6 +29,7 @@ function App() {
   const [token, setToken] = useState(getAdminToken());
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [loginMfaCode, setLoginMfaCode] = useState('');
   const [authRevision, setAuthRevision] = useState(0);
   const [tokenMessage, setTokenMessage] = useState<string>();
   const [reauthPassword, setReauthPassword] = useState('');
@@ -87,12 +88,22 @@ function App() {
               event.preventDefault();
               if (loginEmail || loginPassword) {
                 try {
-                  const nextToken = await loginAdmin(loginEmail.trim(), loginPassword);
-                  setToken(nextToken);
+                  const result = await apiJson<{ token: string }>('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify(buildAdminLoginBody(loginEmail, loginPassword, loginMfaCode)),
+                  });
+                  setAdminToken(result.token);
+                  setToken(result.token);
+                  setLoginMfaCode('');
                   setTokenMessage('Login saved. Reloading admin data...');
                   setAuthRevision((value) => value + 1);
                 } catch (error) {
-                  setTokenMessage(error instanceof Error ? error.message : 'Login failed');
+                  const message = errorMessage(error, 'Login failed');
+                  setTokenMessage(
+                    isMfaRequiredError(message)
+                      ? 'MFA code required — enter your authenticator or recovery code and try again.'
+                      : message,
+                  );
                 }
               } else {
                 useToken();
@@ -112,6 +123,15 @@ function App() {
               value={loginPassword}
               onChange={(event) => setLoginPassword(event.target.value)}
               placeholder="password"
+            />
+            <input
+              aria-label="MFA code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={loginMfaCode}
+              onChange={(event) => setLoginMfaCode(event.target.value)}
+              placeholder="MFA code (if enabled)"
             />
             <input
               aria-label="Admin bearer token"
@@ -198,18 +218,26 @@ function SectionView({ section, authRevision, reauthPassword }: { section: Admin
         setToast('Enter your re-auth password in the top bar before dangerous admin actions.');
         return;
       }
-
-      await reauthAdmin(reauthPassword);
     }
 
-    const request = adminActionRequest(action, payload, body);
-    await apiJson(request.path, {
-      method: request.method,
-      body: request.body ? JSON.stringify(request.body) : undefined,
-    });
-    setToast('Admin action completed and audited.');
-    setDialog(null);
-    await load();
+    try {
+      if (dangerousActions.has(action)) {
+        await reauthAdmin(reauthPassword);
+      }
+
+      const request = adminActionRequest(action, payload, body);
+      await apiJson(request.path, {
+        method: request.method,
+        body: request.body ? JSON.stringify(request.body) : undefined,
+      });
+      setToast('Admin action completed and audited.');
+      setDialog(null);
+      await load();
+    } catch (error) {
+      // Re-auth or the action endpoint failed: surface it instead of leaving
+      // the dialog stuck open with no feedback (would look like a no-op).
+      setToast(errorMessage(error, 'Admin action failed'));
+    }
   }
 
   if (loading) {
