@@ -1,3 +1,4 @@
+import { mapRecentActivity } from '~/lib/github-stats-metrics';
 import type {
   GitHubUserResponse,
   GitHubRepoInfo,
@@ -385,16 +386,7 @@ export class GitHubApiServiceClass {
 
       const githubStats: GitHubStats = {
         repos: detailedRepos,
-        recentActivity:
-          recentActivity.status === 'fulfilled'
-            ? recentActivity.value.slice(0, 10).map((event: any) => ({
-                id: event.id,
-                type: event.type,
-                repo: { name: event.repo.name, url: event.repo.url },
-                created_at: event.created_at,
-                payload: event.payload || {},
-              }))
-            : [],
+        recentActivity: recentActivity.status === 'fulfilled' ? mapRecentActivity(recentActivity.value) : [],
         languages: stats.languages,
         totalGists: userData.public_gists || 0,
         publicRepos: userData.public_repos || 0,

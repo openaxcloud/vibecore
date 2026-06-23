@@ -4,13 +4,24 @@ import { useLoaderData } from 'react-router';
 
 import { ActivityList, AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import { apiRequest, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = () => [{ title: 'Security settings - E-Code' }];
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const me = await apiRequest<{ user?: { mfaEnabled?: boolean } }>(request, '/auth/me').catch(() => ({
-    user: undefined,
-  }));
+  const me = await apiRequest<{ user?: { mfaEnabled?: boolean } }>(request, '/auth/me').catch((error) => {
+    /*
+     * A 3xx re-auth redirect (expired session → /login, or 403 MFA_REQUIRED →
+     * /mfa-setup) must propagate so the framework performs the navigation.
+     * Swallowing it would strand a logged-out user on this page with a
+     * misleading "2FA is off" badge and links that each 401 in a redirect loop.
+     */
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
+    return { user: undefined };
+  });
 
   return json({ mfaEnabled: me?.user?.mfaEnabled === true });
 }

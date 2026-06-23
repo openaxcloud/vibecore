@@ -1,5 +1,8 @@
 import { execFile } from 'node:child_process';
-import { data as json, type ActionFunction, type LoaderFunction } from 'react-router';
+import { type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
+import { requireWebSession } from '~/lib/.server/require-session';
+import { json } from '~/lib/json-response';
+import { withSecurity } from '~/lib/security';
 
 type UpdateStage = 'fetch' | 'pull' | 'install' | 'build' | 'complete';
 
@@ -126,7 +129,27 @@ async function collectUpdateDetails(rawBranch: string) {
   };
 }
 
-export const loader: LoaderFunction = async ({ request }) => {
+/*
+ * /api/update is a local self-update helper: every hit forks a chain of git
+ * subprocesses and the loader runs `git fetch upstream <branch>` (outbound
+ * network). Left anonymous it is a cheap subprocess/network DoS vector and
+ * leaks host repo topology (changed files + commit messages). Mirror the
+ * sibling api.system.disk-info route: gate behind a valid web session (fails
+ * closed with a 401/503 Response) and apply withSecurity rate limiting +
+ * method allowlisting. requireWebSession's auth Response is surfaced as-is so
+ * withSecurity's catch does not rewrite it into a generic 500.
+ */
+async function updateLoaderHandler({ request }: LoaderFunctionArgs): Promise<Response> {
+  try {
+    await requireWebSession(request);
+  } catch (authResponse) {
+    if (authResponse instanceof Response) {
+      return authResponse;
+    }
+
+    throw authResponse;
+  }
+
   const url = new URL(request.url);
   const branch = url.searchParams.get('branch') || 'main';
 
@@ -149,14 +172,17 @@ export const loader: LoaderFunction = async ({ request }) => {
 
     return json({ stage: 'complete', message: 'Update check failed', progress: 100, error: message }, { status: 500 });
   }
-};
+}
 
-export const action: ActionFunction = async ({ request }) => {
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
+async function updateActionHandler({ request }: ActionFunctionArgs): Promise<Response> {
+  try {
+    await requireWebSession(request);
+  } catch (authResponse) {
+    if (authResponse instanceof Response) {
+      return authResponse;
+    }
+
+    throw authResponse;
   }
 
   const { branch = 'main', autoUpdate = false } = (await request.json().catch(() => ({}))) as {
@@ -241,4 +267,14 @@ export const action: ActionFunction = async ({ request }) => {
       'Cache-Control': 'no-cache',
     },
   });
-};
+}
+
+export const loader = withSecurity(updateLoaderHandler, {
+  rateLimit: true,
+  allowedMethods: ['GET'],
+});
+
+export const action = withSecurity(updateActionHandler, {
+  rateLimit: true,
+  allowedMethods: ['POST'],
+});

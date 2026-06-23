@@ -113,6 +113,29 @@ function readableFromWebStream(stream: ReadableStream<Uint8Array>) {
   );
 }
 
+/**
+ * Re-encode the URL delimiters '?' and '#' in the forwarded path.
+ *
+ * Fastify URL-DECODES the wildcard route param, so a provider path containing
+ * an encoded '?' (%3F) or '#' (%23) — e.g. a GitHub Contents API request for a
+ * file literally named `a#b.txt` (`…/contents/a%23b.txt`) — arrives here with
+ * the literal delimiter. Concatenated into the upstream URL string and parsed by
+ * `new URL(...)`, that '#' is read as a fragment delimiter (dropping the rest of
+ * the path) and '?' as a query delimiter (mangling the path into a bogus query),
+ * causing the wrong upstream resource to be fetched with the user's token. The
+ * traversal guard only inspects the already-truncated pathname, so it does not
+ * catch this. Re-encode just those two delimiters (the URL constructor handles
+ * the remaining special characters) before building the upstream URL. Mirrors the
+ * sibling preview-proxy fix.
+ */
+export function encodeUpstreamPathDelimiters(wildcard: string | undefined): string {
+  if (!wildcard) {
+    return '';
+  }
+
+  return wildcard.replace(/\?/g, '%3F').replace(/#/g, '%23');
+}
+
 export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Promise<FastifyInstance> {
   if (!options.accessTokenSecret || options.accessTokenSecret.length < 16) {
     throw new Error('CONNECTOR_PROXY_ACCESS_TOKEN_SECRET must be at least 16 characters');
@@ -169,7 +192,8 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
       });
     }
 
-    const upstreamPath = params['*'] ? `/${params['*']}` : '/';
+    const safeWildcard = encodeUpstreamPathDelimiters(params['*']);
+    const upstreamPath = safeWildcard ? `/${safeWildcard}` : '/';
     const queryString = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
 
     /*

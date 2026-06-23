@@ -279,7 +279,19 @@ export function normalizeProjectOverviewCommits(commits?: OverviewCommitInput[])
     .slice(0, 5);
 }
 
-export function normalizeProjectOverviewMembers(input: {
+const activeMemberStatuses = new Set(['active', 'editing', 'online', 'present']);
+
+export function isActiveProjectOverviewStatus(status?: string): boolean {
+  return activeMemberStatuses.has(String(status ?? '').toLowerCase());
+}
+
+/**
+ * Normalizes collaborators + presence into the full (un-truncated) member list,
+ * sorted with active members first. Callers that need a count of active members
+ * must use this rather than the display-truncated {@link normalizeProjectOverviewMembers},
+ * which slices to a fixed display cap.
+ */
+export function normalizeProjectOverviewMembersFull(input: {
   collaborators?: OverviewCollaborator[];
   presence?: OverviewPresence[];
 }): ProjectOverviewMember[] {
@@ -317,18 +329,23 @@ export function normalizeProjectOverviewMembers(input: {
       lastSeenAt: presence.updatedAt ?? presence.createdAt,
     }));
 
-  return [...presenceOnlyMembers, ...collaboratorMembers]
-    .sort((left, right) => {
-      const leftActive = left.status === 'active' || left.status === 'editing' || left.status === 'online';
-      const rightActive = right.status === 'active' || right.status === 'editing' || right.status === 'online';
+  return [...presenceOnlyMembers, ...collaboratorMembers].sort((left, right) => {
+    const leftActive = isActiveProjectOverviewStatus(left.status);
+    const rightActive = isActiveProjectOverviewStatus(right.status);
 
-      if (leftActive !== rightActive) {
-        return leftActive ? -1 : 1;
-      }
+    if (leftActive !== rightActive) {
+      return leftActive ? -1 : 1;
+    }
 
-      return left.userId.localeCompare(right.userId);
-    })
-    .slice(0, 8);
+    return left.userId.localeCompare(right.userId);
+  });
+}
+
+export function normalizeProjectOverviewMembers(input: {
+  collaborators?: OverviewCollaborator[];
+  presence?: OverviewPresence[];
+}): ProjectOverviewMember[] {
+  return normalizeProjectOverviewMembersFull(input).slice(0, 8);
 }
 
 export function buildProjectOverviewInsights(input: BuildProjectOverviewInput): ProjectOverviewInsights {
@@ -336,11 +353,10 @@ export function buildProjectOverviewInsights(input: BuildProjectOverviewInput): 
   const files = input.packages?.files?.length ? input.packages.files : (input.dashboard?.files ?? []);
   const collaborators = input.collaboration?.collaborators ?? [];
   const presence = input.collaboration?.presence ?? [];
-  const members = normalizeProjectOverviewMembers({ collaborators, presence });
+  const allMembers = normalizeProjectOverviewMembersFull({ collaborators, presence });
+  const members = allMembers.slice(0, 8);
 
-  const activeMemberCount = members.filter((member) =>
-    ['active', 'editing', 'online', 'present'].includes(member.status.toLowerCase()),
-  ).length;
+  const activeMemberCount = allMembers.filter((member) => isActiveProjectOverviewStatus(member.status)).length;
 
   const scripts = extractProjectScripts({
     manifests: input.packages?.manifests,

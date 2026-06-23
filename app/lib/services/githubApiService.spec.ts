@@ -116,3 +116,91 @@ describe('GitHubApiServiceClass issues count excludes pull requests', () => {
     expect(searchUrl).toContain('repo%3Aoctocat%2Fhello-world');
   });
 });
+
+describe('GitHubApiServiceClass.generateComprehensiveStats recent activity', () => {
+  it('does not throw when an activity event has no repo field', async () => {
+    /*
+     * GitHub's events feed returns event types (some org/member/sponsorship
+     * events, or events on deleted repos) that have no top-level `repo`. Mapping
+     * those used to read `event.repo.name` unguarded and throw, aborting the
+     * entire stats computation and blanking the GitHub stats panel.
+     */
+    const events = [
+      {
+        id: '1',
+        type: 'PushEvent',
+        repo: { name: 'octocat/repo-a', url: `${baseURL}/repos/octocat/repo-a` },
+        created_at: 't1',
+        payload: {},
+      },
+
+      // SponsorshipEvent-style payload with no top-level repo.
+      { id: '2', type: 'SponsorshipEvent', created_at: 't2', payload: {} },
+
+      // repo present but missing url.
+      { id: '3', type: 'MemberEvent', repo: { name: 'octocat/repo-b' }, created_at: 't3' },
+    ];
+
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith(`${baseURL}/user/repos`)) {
+        // One page of repos, then stop (partial page).
+        return Response.json([
+          { id: 1, full_name: 'octocat/repo-a', stargazers_count: 5, forks_count: 2, private: false },
+        ]);
+      }
+
+      if (url.startsWith(`${baseURL}/user/orgs`)) {
+        return Response.json([]);
+      }
+
+      if (url.includes('/events')) {
+        return Response.json(events);
+      }
+
+      if (url.includes('/branches')) {
+        return Response.json([{ name: 'main' }]);
+      }
+
+      if (url.startsWith(`${baseURL}/search/issues`)) {
+        return Response.json({ total_count: 0 });
+      }
+
+      if (url.includes('/contributors') || url.includes('/pulls')) {
+        return Response.json([]);
+      }
+
+      if (url.startsWith(`${baseURL}/repos/`)) {
+        return Response.json({
+          id: 1,
+          full_name: 'octocat/repo-a',
+          stargazers_count: 5,
+          forks_count: 2,
+          private: false,
+        });
+      }
+
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const service = new GitHubApiServiceClass();
+    service.configure({ token: 'ghp_test', tokenType: 'classic' });
+
+    const stats = await service.generateComprehensiveStats({
+      login: 'octocat',
+      public_repos: 1,
+      public_gists: 0,
+      followers: 3,
+    } as any);
+
+    expect(stats.recentActivity).toHaveLength(3);
+    expect(stats.recentActivity[0].repo).toEqual({ name: 'octocat/repo-a', url: `${baseURL}/repos/octocat/repo-a` });
+    expect(stats.recentActivity[1]).toMatchObject({
+      id: '2',
+      type: 'SponsorshipEvent',
+      repo: { name: '', url: '' },
+    });
+    expect(stats.recentActivity[2].repo).toEqual({ name: 'octocat/repo-b', url: '' });
+  });
+});

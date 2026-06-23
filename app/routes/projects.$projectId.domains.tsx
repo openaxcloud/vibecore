@@ -86,7 +86,15 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         return json({ error: payload.error ?? 'Domain verification failed. Check the DNS record and try again.' });
       }
 
-      throw error;
+      /*
+       * A non-Response failure (e.g. the apiRequest AbortSignal.timeout firing on a slow
+       * upstream DNS-TXT lookup, a hung/draining api pod, or a connection reset) would
+       * otherwise propagate to the root error boundary and blow away the whole page.
+       * Surface a friendly inline message instead so the user stays on the page.
+       */
+      console.error('Domain verification request failed:', error);
+
+      return json({ error: 'Unable to reach the domains service. Please try again in a moment.' });
     }
   } else {
     try {
@@ -108,7 +116,14 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         return json({ error: payload.error ?? 'Unable to add domain. Check the value and try again.' });
       }
 
-      throw error;
+      /*
+       * A non-Response failure (e.g. the apiRequest AbortSignal.timeout firing, a hung/draining
+       * api pod, DNS failure, or a connection reset) would otherwise propagate to the root error
+       * boundary and blow away the whole page. Surface a friendly inline message instead.
+       */
+      console.error('Add-domain request failed:', error);
+
+      return json({ error: 'Unable to reach the domains service. Please try again in a moment.' });
     }
   }
 

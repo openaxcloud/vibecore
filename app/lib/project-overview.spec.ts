@@ -81,4 +81,26 @@ describe('project overview insights', () => {
     expect(overview.members[0]).toMatchObject({ userId: 'user_1', status: 'active', filePath: 'src/App.tsx' });
     expect(overview.activity[0]?.action).toBe('project.files.import_zip');
   });
+
+  it('counts active members beyond the displayed-member cap', () => {
+    const collaborators = Array.from({ length: 15 }, (_, index) => ({
+      id: `collab_${index}`,
+      userId: `user_${index}`,
+      roleKey: 'editor',
+    }));
+    const presence = Array.from({ length: 15 }, (_, index) => ({
+      userId: `user_${index}`,
+      status: 'active',
+      mode: 'editing',
+    }));
+
+    const overview = buildProjectOverviewInsights({
+      project: { id: 'project_big', name: 'Big Team App' },
+      collaboration: { collaborators, presence },
+    });
+
+    // The displayed member list is capped, but the active count must reflect the full team.
+    expect(overview.members).toHaveLength(8);
+    expect(overview.summary.activeMemberCount).toBe(15);
+  });
 });

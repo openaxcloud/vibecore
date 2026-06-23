@@ -39,27 +39,49 @@ export async function bootstrapMobileApp(options: MobileBootstrapOptions = {}) {
   const config = options.config ?? readMobileRuntimeConfig();
   const cleanup: Array<() => void | Promise<void>> = [];
 
-  await configureChrome();
-  cleanup.push(await configureDeepLinks(options.onDeepLink));
-  cleanup.push(
-    config.allowPushNotifications
-      ? await configurePushNotifications(options.onPushToken, options.onPushAction)
-      : () => undefined,
-  );
-  cleanup.push(configureOfflineState(options.onOfflineChange));
-  cleanup.push(configureCrashReporting(options.onCrashReport));
+  /*
+   * Configure each native capability in turn, accumulating its dispose callback
+   * as we go. If any step throws (e.g. push permission requests reject on a
+   * restricted/MDM device), tear down everything we already wired up before
+   * re-throwing — otherwise the App 'appUrlOpen' listener (and any window
+   * listeners) would be orphaned with no reachable handle to remove them.
+   */
+  try {
+    await configureChrome();
+    cleanup.push(await configureDeepLinks(options.onDeepLink));
+    cleanup.push(
+      config.allowPushNotifications
+        ? await configurePushNotifications(options.onPushToken, options.onPushAction)
+        : () => undefined,
+    );
+    cleanup.push(configureOfflineState(options.onOfflineChange));
+    cleanup.push(configureCrashReporting(options.onCrashReport));
+  } catch (error) {
+    await runCleanup(cleanup);
+    throw error;
+  }
 
   Keyboard.setAccessoryBarVisible({ isVisible: true }).catch(() => undefined);
   SplashScreen.hide().catch(() => undefined);
 
   return {
     config,
-    cleanup: async () => {
-      for (const dispose of cleanup.splice(0)) {
-        await dispose();
-      }
-    },
+    cleanup: () => runCleanup(cleanup),
   };
+}
+
+/**
+ * Run (and drain) the accumulated dispose callbacks. Each callback is awaited
+ * and isolated so one failing teardown cannot prevent the rest from running.
+ */
+export async function runCleanup(cleanup: Array<() => void | Promise<void>>) {
+  for (const dispose of cleanup.splice(0)) {
+    try {
+      await dispose();
+    } catch {
+      // Best-effort teardown — keep removing the remaining listeners.
+    }
+  }
 }
 
 export async function configureChrome() {
@@ -73,15 +95,39 @@ export async function configureChrome() {
 
 export async function configureDeepLinks(onDeepLink?: (url: URL) => void) {
   const listener = await App.addListener('appUrlOpen', (event: URLOpenListenerEvent) => {
-    const url = parseDeepLink(event.url);
-
-    if (url) {
-      dispatchMobileDeepLink(url);
-      onDeepLink?.(url);
-    }
+    handleDeepLink(event.url, onDeepLink);
   });
 
+  /*
+   * Cold start: when the app is launched by tapping a vibecore:// or https
+   * link (e.g. from a push notification or shared project link), the launch
+   * URL is delivered to the OS before this JS listener attaches, so
+   * 'appUrlOpen' never fires for it. getLaunchUrl() is the documented path to
+   * recover it — without this the app falls through to the default /projects
+   * frame instead of the linked project/IDE/panel.
+   */
+  try {
+    const launch = await App.getLaunchUrl();
+
+    if (launch?.url) {
+      handleDeepLink(launch.url, onDeepLink);
+    }
+  } catch {
+    // getLaunchUrl is unavailable on some platforms/web — ignore.
+  }
+
   return () => listener.remove();
+}
+
+export function handleDeepLink(value: string, onDeepLink?: (url: URL) => void) {
+  const url = parseDeepLink(value);
+
+  if (url) {
+    dispatchMobileDeepLink(url);
+    onDeepLink?.(url);
+  }
+
+  return url;
 }
 
 export function parseDeepLink(value: string): URL | undefined {
