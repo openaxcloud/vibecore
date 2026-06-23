@@ -196,28 +196,32 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
   const [modelsLoading, setModelsLoading] = useState(variant === 'card');
   const [modelsError, setModelsError] = useState<string | null>(null);
 
-  const [selectedModel, setSelectedModel] = useState<string>(() => {
-    if (typeof window === 'undefined') {
-      return '';
-    }
+  /*
+   * SSR-safe initial selection: the server has no window/localStorage, so the
+   * first render MUST be deterministic and identical on server and client (an
+   * empty selection). Reading the persisted preference in the initializer made
+   * the client's first render diverge from the server HTML, throwing a React
+   * hydration mismatch (#418/#423) on every public page load. The persisted /
+   * default preference is applied right after mount (client-only) in the effect
+   * below; for the card variant the live catalog effect refines it further.
+   */
+  const [selectedModel, setSelectedModel] = useState<string>('');
 
+  useEffect(() => {
     const persisted = readPersistedModelId();
 
-    if (variant === 'card') {
-      /*
-       * The catalog has not loaded yet, so resolve against the static fallback
-       * list with no default — we deliberately keep the placeholder selected
-       * until either the persisted model is recognised or the live catalog
-       * arrives, rather than auto-picking an arbitrary first option for the card.
-       */
-      return resolvePreferredModelId(
-        persisted,
-        modelOptions.map((model) => model.id),
-      );
-    }
+    const resolved =
+      variant === 'card'
+        ? resolvePreferredModelId(
+            persisted,
+            modelOptions.map((model) => model.id),
+          )
+        : persisted || modelOptions[0]?.id || '';
 
-    return persisted || modelOptions[0]?.id || '';
-  });
+    if (resolved) {
+      setSelectedModel(resolved);
+    }
+  }, [variant, modelOptions]);
 
   const currentModel = useMemo(
     () => models.find((model) => model.id === selectedModel) ?? null,
