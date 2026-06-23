@@ -37,20 +37,63 @@ export interface ButtonProps
   _asChild?: boolean;
 }
 
+/**
+ * Merge the Button's computed props onto an `_asChild` element so the rendered child
+ * (e.g. an <a>) becomes the single semantic element carrying the button styling.
+ * className is concatenated; refs are not merged here (forwarded ref takes precedence).
+ */
+export function mergeAsChildProps(
+  childProps: Record<string, unknown>,
+  buttonProps: { className?: string; [key: string]: unknown },
+): Record<string, unknown> {
+  const { className: childClassName, ...restChild } = childProps as { className?: string };
+  const { className: buttonClassName, ...restButton } = buttonProps;
+
+  return {
+    ...restChild,
+    ...restButton,
+    className: classNames(buttonClassName, childClassName),
+  };
+}
+
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, _asChild = false, ...props }, ref) => {
+  ({ className, variant, size, _asChild = false, children, ...props }, ref) => {
     const effectiveVariant = variant ?? 'default';
     const effectiveSize = size ?? 'default';
 
+    const buttonClassName = classNames(buttonVariants({ variant: effectiveVariant, size: effectiveSize }), className);
+
+    /*
+     * When `_asChild` is set, render the single child element (e.g. an <a>) with the
+     * button styling instead of wrapping it in a <button>. This avoids invalid nested
+     * interactive elements (<button><a/></button>) and produces correct semantics.
+     */
+    if (_asChild && React.isValidElement(children)) {
+      const child = children as React.ReactElement<Record<string, unknown>>;
+
+      return React.cloneElement(child, {
+        ...mergeAsChildProps(child.props, {
+          ...props,
+          className: buttonClassName,
+          'data-vc-button': 'true',
+          'data-variant': effectiveVariant,
+          'data-size': effectiveSize,
+        }),
+        ref,
+      } as Record<string, unknown>);
+    }
+
     return (
       <button
-        className={classNames(buttonVariants({ variant: effectiveVariant, size: effectiveSize }), className)}
+        className={buttonClassName}
         data-vc-button="true"
         data-variant={effectiveVariant}
         data-size={effectiveSize}
         ref={ref}
         {...props}
-      />
+      >
+        {children}
+      </button>
     );
   },
 );

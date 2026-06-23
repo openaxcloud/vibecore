@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Search, RefreshCw, GitBranch, Calendar, Filter } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import { RepositoryCard } from './RepositoryCard';
+import { shouldShowRepositorySpinner } from './gitlabRepositorySelectorState';
 import { BranchSelector } from '~/components/ui/BranchSelector';
 import { Button } from '~/components/ui/Button';
 import { useGitLabConnection } from '~/lib/hooks';
@@ -20,6 +21,7 @@ export function GitLabRepositorySelector({ onClone, className }: GitLabRepositor
   const { connection, isConnected } = useGitLabConnection();
   const [repositories, setRepositories] = useState<GitLabProjectInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('updated');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
@@ -68,6 +70,7 @@ export function GitLabRepositorySelector({ onClone, className }: GitLabRepositor
       setRepositories([]);
     } finally {
       loadingState(false);
+      setHasFetched(true);
     }
   };
 
@@ -190,7 +193,7 @@ export function GitLabRepositorySelector({ onClone, className }: GitLabRepositor
     );
   }
 
-  if (isLoading && !repositories.length) {
+  if (shouldShowRepositorySpinner({ isLoading, hasFetched, repositoryCount: repositories.length })) {
     return (
       <div className="flex flex-col items-center justify-center p-8 space-y-4">
         <div className="animate-spin w-8 h-8 border-2 border-bolt-elements-borderColorActive border-t-transparent rounded-full" />
@@ -199,7 +202,7 @@ export function GitLabRepositorySelector({ onClone, className }: GitLabRepositor
     );
   }
 
-  if (!repositories.length && !isLoading) {
+  if (!repositories.length && !isLoading && hasFetched) {
     return (
       <div className="text-center p-8">
         <GitBranch className="w-12 h-12 text-bolt-elements-textTertiary mx-auto mb-4" />

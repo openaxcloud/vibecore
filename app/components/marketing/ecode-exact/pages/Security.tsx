@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
-import { Badge } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import { Badge, Link } from '~/components/marketing/ecode-exact/EcodeExactUi';
 
 export default function Security() {
   const securityFeatures = [
@@ -196,20 +196,20 @@ export default function Security() {
           </div>
         </section>
 
-        {/* Trust Center */}
+        {/* Talk to our security team */}
         <section className="py-responsive">
           <div className="container-responsive text-center">
-            <h2 className="text-3xl font-bold mb-4">Visit Our Trust Center</h2>
+            <h2 className="text-3xl font-bold mb-4">Have a Security Question?</h2>
             <p className="text-[15px] text-muted-foreground mb-8 max-w-2xl mx-auto">
               Learn more about our security practices, compliance certifications, and commitment to protecting your data
             </p>
-            <button
-              className="px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 min-h-[44px]"
-              onClick={() => (window.location.href = '/security')}
+            <Link
+              href="/contact"
+              className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 min-h-[44px]"
               data-testid="button-security-trust-center"
             >
-              Visit Trust Center
-            </button>
+              Contact Our Security Team
+            </Link>
           </div>
         </section>
       </main>

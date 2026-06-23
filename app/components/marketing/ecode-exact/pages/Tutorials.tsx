@@ -15,10 +15,28 @@ import { Badge } from '~/components/marketing/ecode-exact/EcodeExactUi';
 type TutorialLevel = 'Beginner' | 'Intermediate' | 'Advanced';
 
 const levelStyles: Record<TutorialLevel, string> = {
-  Beginner: 'bg-green-100 text-green-700',
-  Intermediate: 'bg-blue-100 text-blue-700',
-  Advanced: 'bg-purple-100 text-purple-700',
+  Beginner: 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300',
+  Intermediate: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
+  Advanced: 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300',
 };
+
+/**
+ * Build the docs deep-link for a tutorial or learning-path entry.
+ *
+ * There is no per-tutorial detail route yet, so every lesson points at the
+ * canonical `/docs` page and scrolls to a stable, slugified anchor derived
+ * from its title. Centralising the logic keeps every card linking to a real,
+ * reachable destination (and makes the slugging unit-testable).
+ */
+export function tutorialHref(title: string): string {
+  const anchor = title
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return anchor ? `/docs#${anchor}` : '/docs';
+}
 
 export default function Tutorials() {
   const tutorials = [
@@ -124,22 +142,30 @@ export default function Tutorials() {
               {tutorials.map((tutorial) => {
                 const Icon = tutorial.icon;
                 return (
-                  <Card key={tutorial.title} className="flex flex-col">
-                    <CardHeader>
-                      <Icon className="h-10 w-10 mb-2" style={{ color: 'var(--ecode-accent)' }} />
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge className={`text-[12px] ${levelStyles[tutorial.level]}`}>{tutorial.level}</Badge>
-                        <span className="flex items-center gap-1 text-[12px] text-muted-foreground">
-                          <Clock className="h-3.5 w-3.5" />
-                          {tutorial.duration}
-                        </span>
-                      </div>
-                      <CardTitle className="text-lg">{tutorial.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                      <p className="text-[13px] text-muted-foreground">{tutorial.description}</p>
-                    </CardContent>
-                  </Card>
+                  <a
+                    key={tutorial.title}
+                    href={tutorialHref(tutorial.title)}
+                    className="group block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                    style={{ ['--tw-ring-color' as string]: 'var(--ecode-accent)' }}
+                    data-testid="link-tutorial"
+                  >
+                    <Card className="flex flex-col h-full transition-shadow group-hover:shadow-md">
+                      <CardHeader>
+                        <Icon className="h-10 w-10 mb-2" style={{ color: 'var(--ecode-accent)' }} />
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge className={`text-[12px] ${levelStyles[tutorial.level]}`}>{tutorial.level}</Badge>
+                          <span className="flex items-center gap-1 text-[12px] text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5" />
+                            {tutorial.duration}
+                          </span>
+                        </div>
+                        <CardTitle className="text-lg">{tutorial.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex-1">
+                        <p className="text-[13px] text-muted-foreground">{tutorial.description}</p>
+                      </CardContent>
+                    </Card>
+                  </a>
                 );
               })}
             </div>
@@ -161,28 +187,36 @@ export default function Tutorials() {
               {learningPaths.map((path) => {
                 const Icon = path.icon;
                 return (
-                  <Card key={path.title} className="flex flex-col">
-                    <CardHeader>
-                      <Icon className="h-10 w-10 mb-2" style={{ color: 'var(--ecode-accent)' }} />
-                      <CardTitle>{path.title}</CardTitle>
-                      <CardDescription>{path.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                      <ol className="space-y-3">
-                        {path.steps.map((step, index) => (
-                          <li key={step} className="flex items-center gap-3 text-[13px]">
-                            <span
-                              className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-semibold text-white"
-                              style={{ backgroundColor: 'var(--ecode-accent)' }}
-                            >
-                              {index + 1}
-                            </span>
-                            <span>{step}</span>
-                          </li>
-                        ))}
-                      </ol>
-                    </CardContent>
-                  </Card>
+                  <a
+                    key={path.title}
+                    href={tutorialHref(path.title)}
+                    className="group block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                    style={{ ['--tw-ring-color' as string]: 'var(--ecode-accent)' }}
+                    data-testid="link-learning-path"
+                  >
+                    <Card className="flex flex-col h-full transition-shadow group-hover:shadow-md">
+                      <CardHeader>
+                        <Icon className="h-10 w-10 mb-2" style={{ color: 'var(--ecode-accent)' }} />
+                        <CardTitle>{path.title}</CardTitle>
+                        <CardDescription>{path.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex-1">
+                        <ol className="space-y-3">
+                          {path.steps.map((step, index) => (
+                            <li key={step} className="flex items-center gap-3 text-[13px]">
+                              <span
+                                className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-semibold text-white"
+                                style={{ backgroundColor: 'var(--ecode-accent)' }}
+                              >
+                                {index + 1}
+                              </span>
+                              <span>{step}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </CardContent>
+                    </Card>
+                  </a>
                 );
               })}
             </div>

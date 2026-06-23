@@ -152,7 +152,7 @@ const isBinaryFile = (content: string) => {
   return content.length > MAX_FILE_SIZE || BINARY_REGEX.test(content);
 };
 
-const processChanges = (beforeCode: string, afterCode: string) => {
+export const processChanges = (beforeCode: string, afterCode: string) => {
   try {
     if (isBinaryFile(beforeCode) || isBinaryFile(afterCode)) {
       return {
@@ -601,19 +601,24 @@ const FileInfo = memo(
     afterCode: string;
     lastModified?: number;
   }) => {
-    // Calculate additions and deletions from the current document
+    /*
+     * Calculate additions and deletions from the current document.
+     *
+     * Derive the counts from the SAME diff that drives the rendered body
+     * (`processChanges`, which normalizes lines with `trimEnd()` only) instead of
+     * a separate `diffLines(..., { ignoreWhitespace: true })`. Otherwise an edit
+     * that only changes leading whitespace/indentation highlights red/green lines
+     * in the body (processChanges sees a change) while the whitespace-insensitive
+     * stat reports +0/-0, leaving a "Modified" badge with no change counts.
+     */
     const { additions, deletions } = useMemo(() => {
       if (!hasChanges) {
         return { additions: 0, deletions: 0 };
       }
 
-      const changes = diffLines(beforeCode, afterCode, {
-        newlineIsToken: false,
-        ignoreWhitespace: true,
-        ignoreCase: false,
-      });
+      const { lineChanges } = processChanges(beforeCode, afterCode);
 
-      return computeDiffStat(changes);
+      return { additions: lineChanges.after.size, deletions: lineChanges.before.size };
     }, [hasChanges, beforeCode, afterCode]);
 
     const showStats = additions > 0 || deletions > 0;

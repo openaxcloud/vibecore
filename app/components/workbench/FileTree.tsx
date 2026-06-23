@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { resolveCopyContent } from './file-tree-copy';
 import { computeFileDiffStats } from './file-tree-diff-stats';
 import { resolveEmptyExplorerState } from './file-tree-empty-state';
+import { buildOverwritePrompt, findUploadCollisions } from './file-tree-upload-collision';
 import { toRuntimeRelativePath } from './search-replace';
 import { GitStatusBadge } from '~/components/git/GitStatusBadge';
 import {
@@ -305,6 +306,17 @@ export const FileTree = memo(
         const droppedFiles = Array.from(event.dataTransfer.files ?? []);
 
         if (droppedFiles.length === 0) {
+          return;
+        }
+
+        /*
+         * createFile overwrites any existing (unlocked) entry with no confirm, so a
+         * drag-drop of e.g. logo.png into a folder that already has one would silently
+         * clobber the original bytes. Mirror the collision guard the menu actions use.
+         */
+        const collisions = findUploadCollisions(droppedFiles, targetFolder, workbenchStore.files.get());
+
+        if (collisions.length > 0 && !confirm(buildOverwritePrompt(collisions))) {
           return;
         }
 
@@ -736,30 +748,42 @@ function FileContextMenu({
       e.stopPropagation();
 
       const items = Array.from(e.dataTransfer.items);
-      const files = items.filter((item) => item.kind === 'file');
 
-      for (const item of files) {
-        const file = item.getAsFile();
+      const droppedFiles = items
+        .filter((item) => item.kind === 'file')
+        .map((item) => item.getAsFile())
+        .filter((file): file is File => file != null);
 
-        if (file) {
-          try {
-            const filePath = path.join(targetPath, file.name);
+      /*
+       * createFile overwrites any existing (unlocked) entry with no confirm, so dropping
+       * a file onto a folder that already contains one of that name would silently clobber
+       * it. Mirror the collision guard used by New File / Rename / Duplicate.
+       */
+      const collisions = findUploadCollisions(droppedFiles, targetPath, workbenchStore.files.get());
 
-            // Convert file to binary data (Uint8Array)
-            const arrayBuffer = await file.arrayBuffer();
-            const binaryContent = new Uint8Array(arrayBuffer);
+      if (collisions.length > 0 && !confirm(buildOverwritePrompt(collisions))) {
+        setIsDragging(false);
+        return;
+      }
 
-            const success = await workbenchStore.createFile(filePath, binaryContent);
+      for (const file of droppedFiles) {
+        try {
+          const filePath = path.join(targetPath, file.name);
 
-            if (success) {
-              toast.success(`File ${file.name} uploaded successfully`);
-            } else {
-              toast.error(`Failed to upload file ${file.name}`);
-            }
-          } catch (error) {
-            toast.error(`Error uploading ${file.name}`);
-            logger.error(error);
+          // Convert file to binary data (Uint8Array)
+          const arrayBuffer = await file.arrayBuffer();
+          const binaryContent = new Uint8Array(arrayBuffer);
+
+          const success = await workbenchStore.createFile(filePath, binaryContent);
+
+          if (success) {
+            toast.success(`File ${file.name} uploaded successfully`);
+          } else {
+            toast.error(`Failed to upload file ${file.name}`);
           }
+        } catch (error) {
+          toast.error(`Error uploading ${file.name}`);
+          logger.error(error);
         }
       }
 

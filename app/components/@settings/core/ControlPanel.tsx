@@ -3,11 +3,11 @@ import * as RadixDialog from '@radix-ui/react-dialog';
 import { lazy, Suspense, useState, useEffect, useMemo, type ReactNode } from 'react';
 import { AvatarDropdown } from './AvatarDropdown';
 import { TAB_LABELS, DEFAULT_TAB_CONFIG, TAB_DESCRIPTIONS } from './constants';
+import { getStatusMessage, getTabUpdateStatus } from './tab-status';
 import type { TabType } from './types';
 import { TabTile } from '~/components/@settings/shared/components/TabTile';
 import BackgroundRays from '~/components/ui/BackgroundRays';
 import { DialogTitle } from '~/components/ui/Dialog';
-import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus';
 import { useFeatures } from '~/lib/hooks/useFeatures';
 import { useNotifications } from '~/lib/hooks/useNotifications';
 import { tabConfigurationStore, resetTabConfiguration } from '~/lib/stores/settings';
@@ -66,7 +66,6 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
   // Status hooks
   const { hasNewFeatures, unviewedFeatures, acknowledgeAllFeatures } = useFeatures();
   const { hasUnreadNotifications, unreadNotifications, markAllAsRead } = useNotifications();
-  const { hasConnectionIssues, currentIssue, acknowledgeIssue } = useConnectionStatus();
 
   // Memoize the base tab configurations to avoid recalculation
   const baseTabConfig = useMemo(() => {
@@ -196,42 +195,11 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
     );
   };
 
-  const getTabUpdateStatus = (tabId: TabType): boolean => {
-    switch (tabId) {
-      case 'features':
-        return hasNewFeatures;
-      case 'notifications':
-        return hasUnreadNotifications;
-      case 'github':
-      case 'gitlab':
-      case 'supabase':
-      case 'vercel':
-      case 'netlify':
-        return hasConnectionIssues;
-      default:
-        return false;
-    }
-  };
-
-  const getStatusMessage = (tabId: TabType): string => {
-    switch (tabId) {
-      case 'features':
-        return `${unviewedFeatures.length} new feature${unviewedFeatures.length === 1 ? '' : 's'} to explore`;
-      case 'notifications':
-        return `${unreadNotifications.length} unread notification${unreadNotifications.length === 1 ? '' : 's'}`;
-      case 'github':
-      case 'gitlab':
-      case 'supabase':
-      case 'vercel':
-      case 'netlify':
-        return currentIssue === 'disconnected'
-          ? 'Connection lost'
-          : currentIssue === 'high-latency'
-            ? 'High latency detected'
-            : 'Connection issues detected';
-      default:
-        return '';
-    }
+  const tabStatusInputs = {
+    hasNewFeatures,
+    unviewedFeaturesCount: unviewedFeatures.length,
+    hasUnreadNotifications,
+    unreadNotificationsCount: unreadNotifications.length,
   };
 
   const handleTabClick = (tabId: TabType) => {
@@ -246,13 +214,6 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
         break;
       case 'notifications':
         markAllAsRead();
-        break;
-      case 'github':
-      case 'gitlab':
-      case 'supabase':
-      case 'vercel':
-      case 'netlify':
-        acknowledgeIssue();
         break;
     }
 
@@ -370,8 +331,8 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
                               tab={tab}
                               onClick={() => handleTabClick(tab.id as TabType)}
                               isActive={activeTab === tab.id}
-                              hasUpdate={getTabUpdateStatus(tab.id)}
-                              statusMessage={getStatusMessage(tab.id)}
+                              hasUpdate={getTabUpdateStatus(tab.id as TabType, tabStatusInputs)}
+                              statusMessage={getStatusMessage(tab.id as TabType, tabStatusInputs)}
                               description={TAB_DESCRIPTIONS[tab.id]}
                               isLoading={loadingTab === tab.id}
                               className="h-full relative"

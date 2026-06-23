@@ -40,6 +40,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Link } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
+import { getReelDemoHref } from '~/components/marketing/ecode-marketing-reels';
 import { Button } from '~/components/ui/Button';
 import { classNames } from '~/utils/classNames';
 
@@ -781,15 +782,22 @@ export function EcodeAiAgentPage() {
             {quickReels.map((reel) => {
               const Icon = reel.icon;
               return (
-                <Panel key={reel.id}>
-                  <Icon className="h-7 w-7 text-[var(--ecode-accent)]" aria-hidden />
-                  <h3 className="mt-3 font-semibold text-bolt-elements-textPrimary">{reel.title}</h3>
-                  <p className="mt-2 text-sm text-bolt-elements-textSecondary">Timestamp {reel.timestamp}</p>
-                  <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--ecode-accent)]">
-                    Watch Now
-                    <ArrowRight className="h-4 w-4" aria-hidden />
-                  </span>
-                </Panel>
+                <Link
+                  key={reel.id}
+                  to={getReelDemoHref()}
+                  aria-label={`Watch the ${reel.title} demo`}
+                  className="group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
+                >
+                  <Panel className="h-full transition-colors group-hover:border-[var(--ecode-accent)]">
+                    <Icon className="h-7 w-7 text-[var(--ecode-accent)]" aria-hidden />
+                    <h3 className="mt-3 font-semibold text-bolt-elements-textPrimary">{reel.title}</h3>
+                    <p className="mt-2 text-sm text-bolt-elements-textSecondary">Timestamp {reel.timestamp}</p>
+                    <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--ecode-accent)]">
+                      Watch Now
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                    </span>
+                  </Panel>
+                </Link>
               );
             })}
           </div>

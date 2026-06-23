@@ -28,7 +28,6 @@ export default function Popover({
   return (
     <PopoverPrimitive.Root>
       <PopoverPrimitive.Trigger asChild>{trigger}</PopoverPrimitive.Trigger>
-      <PopoverPrimitive.Anchor />
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Content
           align={align}

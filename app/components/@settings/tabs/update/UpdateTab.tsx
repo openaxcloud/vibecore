@@ -1,22 +1,33 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 
+interface UpdateDetails {
+  changedFiles?: string[];
+  additions?: number;
+  deletions?: number;
+  commitMessages?: string[];
+  currentCommit?: string;
+  remoteCommit?: string;
+  updateReady?: boolean;
+  compareUrl?: string;
+  changelog?: string;
+}
+
 interface UpdateProgress {
   stage: string;
   message: string;
   progress: number;
   error?: string;
-  details?: {
-    changedFiles?: string[];
-    additions?: number;
-    deletions?: number;
-    commitMessages?: string[];
-    currentCommit?: string;
-    remoteCommit?: string;
-    updateReady?: boolean;
-    compareUrl?: string;
-    changelog?: string;
-  };
+  details?: UpdateDetails;
+}
+
+/**
+ * The server only sets `updateReady` when it successfully diffs against
+ * upstream. Treat a missing flag as "up to date" so an error/partial payload
+ * never renders a misleading "+0 / -0 over an empty file list" diff panel.
+ */
+export function isUpdateAvailable(details: UpdateDetails | undefined): boolean {
+  return Boolean(details?.updateReady);
 }
 
 export default function UpdateTab() {
@@ -124,13 +135,52 @@ export default function UpdateTab() {
               </div>
             </div>
           </div>
-          <div className="max-h-80 overflow-y-auto rounded-lg bg-bolt-elements-background-depth-1 p-3">
-            {(details.changedFiles || []).map((file) => (
-              <div key={file} className="text-xs text-bolt-elements-textSecondary">
-                {file}
+
+          {details.changelog && <p className="text-sm text-bolt-elements-textSecondary">{details.changelog}</p>}
+
+          {isUpdateAvailable(details) ? (
+            <>
+              {details.compareUrl && (
+                <a
+                  href={details.compareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-purple-500 hover:underline"
+                >
+                  Compare changes on the source repository
+                  <span aria-hidden="true">↗</span>
+                </a>
+              )}
+
+              {(details.commitMessages?.length ?? 0) > 0 && (
+                <div className="space-y-1">
+                  <div className="text-sm font-medium text-bolt-elements-textPrimary">Commits</div>
+                  <div className="max-h-40 overflow-y-auto rounded-lg bg-bolt-elements-background-depth-1 p-3 space-y-1">
+                    {details.commitMessages!.map((message) => (
+                      <div key={message} className="text-xs text-bolt-elements-textSecondary">
+                        {message}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <div className="text-sm font-medium text-bolt-elements-textPrimary">Changed files</div>
+                <div className="max-h-80 overflow-y-auto rounded-lg bg-bolt-elements-background-depth-1 p-3">
+                  {(details.changedFiles || []).map((file) => (
+                    <div key={file} className="text-xs text-bolt-elements-textSecondary">
+                      {file}
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <div className="rounded-lg bg-bolt-elements-background-depth-1 p-3 text-sm text-bolt-elements-textSecondary">
+              You are up to date — no changes to review.
+            </div>
+          )}
         </div>
       )}
     </div>

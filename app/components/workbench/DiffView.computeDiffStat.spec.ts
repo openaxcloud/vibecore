@@ -1,6 +1,6 @@
 import { diffLines } from 'diff';
 import { describe, expect, it } from 'vitest';
-import { computeDiffStat } from './DiffView';
+import { computeDiffStat, processChanges } from './DiffView';
 
 describe('computeDiffStat', () => {
   it('reports +1/-1 for a single-line edit (no trailing-newline over-count)', () => {
@@ -43,5 +43,57 @@ describe('computeDiffStat', () => {
     ];
 
     expect(computeDiffStat(changes as any)).toEqual({ additions: 2, deletions: 1 });
+  });
+});
+
+describe('badge stats agree with the rendered diff (processChanges)', () => {
+  /*
+   * The FileInfo badge derives +N/-N from processChanges' lineChanges sizes so
+   * the counts can never disagree with the highlighted lines in the body.
+   */
+  const badgeStat = (before: string, after: string) => {
+    const { lineChanges } = processChanges(before, after);
+    return { additions: lineChanges.after.size, deletions: lineChanges.before.size };
+  };
+
+  it('reports non-zero counts for a leading-whitespace-only change (matches highlighted body)', () => {
+    const before = 'function f() {\nreturn 1;\n}\n';
+    const after = 'function f() {\n    return 1;\n}\n'; // only indentation added
+
+    const { hasChanges } = processChanges(before, after);
+    const stat = badgeStat(before, after);
+
+    // The body renders the change as Modified...
+    expect(hasChanges).toBe(true);
+
+    // ...and the badge must show a count rather than +0/-0.
+    expect(stat.additions + stat.deletions).toBeGreaterThan(0);
+    expect(stat).toEqual({ additions: 1, deletions: 1 });
+
+    /*
+     * A whitespace-insensitive diff (the old buggy source) would report nothing,
+     * which is exactly the disagreement we are guarding against.
+     */
+    expect(computeDiffStat(diffLines(before, after, { ignoreWhitespace: true }))).toEqual({
+      additions: 0,
+      deletions: 0,
+    });
+  });
+
+  it('reports zero counts when only trailing whitespace differs (no body change)', () => {
+    const before = 'a\nb\n';
+    const after = 'a   \nb\t\n'; // trimEnd() normalizes these away
+
+    const { hasChanges } = processChanges(before, after);
+
+    expect(hasChanges).toBe(false);
+    expect(badgeStat(before, after)).toEqual({ additions: 0, deletions: 0 });
+  });
+
+  it('agrees with the body for an ordinary single-line edit', () => {
+    const before = 'line one\nline two\nline three\n';
+    const after = 'line one\nCHANGED\nline three\n';
+
+    expect(badgeStat(before, after)).toEqual({ additions: 1, deletions: 1 });
   });
 });

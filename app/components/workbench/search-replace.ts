@@ -73,3 +73,22 @@ export function needsContentHydration(content: string): boolean {
 export function hasUnsavedEdits(unsavedFiles: Set<string>, filePath: string): boolean {
   return unsavedFiles.has(filePath);
 }
+
+/**
+ * Whether a given search invocation is still the most recent one and is therefore
+ * allowed to hide the "Searching…" spinner.
+ *
+ * The search handler is debounced (300ms) and also re-run by Replace All, and it
+ * keeps the spinner visible for a minimum duration via a trailing setTimeout. If a
+ * fast search finishes and schedules that timeout, a newer search can start (and set
+ * the spinner back on) before the stale timeout fires. Letting the stale timeout call
+ * setIsSearching(false) would flicker the newer search's spinner off prematurely (and,
+ * if the component has since unmounted, trigger a setState-on-unmounted warning).
+ *
+ * Each search stamps itself with a monotonically increasing token; only the
+ * invocation whose token still matches the latest token may stop the spinner. Pure so
+ * the arbitration rule can be unit-tested without rendering the component.
+ */
+export function isLatestSearch(invocationToken: number, latestToken: number): boolean {
+  return invocationToken === latestToken;
+}

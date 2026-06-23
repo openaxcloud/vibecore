@@ -50,6 +50,16 @@ interface Feature {
   id?: string;
 }
 
+/**
+ * Filters the feature list for a given category tab. The special `'All'` tab
+ * returns every feature; any other value returns only the features whose
+ * `category` matches exactly. Kept as a pure function so the tab/data alignment
+ * is unit-testable independently of the React tree.
+ */
+export function filterFeaturesByCategory<T extends { category: string }>(items: T[], category: string): T[] {
+  return items.filter((item) => category === 'All' || item.category === category);
+}
+
 export default function Features() {
   const navigate = useMarketingNavigate();
   const { user } = usePublicAuth();
@@ -255,7 +265,12 @@ export default function Features() {
     },
   ];
 
-  const categories = ['All', 'Development', 'Collaboration', 'Infrastructure', 'Security', 'Analytics'];
+  /*
+   * These must match the `category` strings used in the feature data above,
+   * otherwise a tab would filter to an empty grid (and its features would be
+   * unreachable outside the 'All' tab).
+   */
+  const categories = ['All', 'AI-Powered', 'Creating', 'Learning Together', 'Infrastructure', 'Security', 'Analytics'];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -302,7 +317,7 @@ export default function Features() {
       <section className="py-12 sm:py-16 md:py-20 px-4">
         <div className="container mx-auto max-w-7xl">
           <Tabs defaultValue="All" className="w-full">
-            <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 w-full max-w-3xl mx-auto gap-1 h-auto flex-wrap">
+            <TabsList className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 w-full max-w-3xl mx-auto gap-1 h-auto flex-wrap">
               {categories.map((category) => (
                 <TabsTrigger
                   key={category}
@@ -315,40 +330,51 @@ export default function Features() {
               ))}
             </TabsList>
 
-            {categories.map((category) => (
-              <TabsContent key={category} value={category} className="mt-8 sm:mt-12">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
-                  {features
-                    .filter((f) => category === 'All' || f.category === category)
-                    .map((feature, index) => (
-                      <Card
-                        key={index}
-                        id={feature.id}
-                        className="hover:shadow-lg transition-shadow"
-                        data-testid={`card-feature-${feature.id || index}`}
-                      >
-                        <CardHeader className="p-4 sm:p-6">
-                          <div className="p-2 sm:p-3 bg-primary/10 rounded-lg w-fit mb-3 sm:mb-4">{feature.icon}</div>
-                          <CardTitle className="text-base sm:text-[15px]">{feature.title}</CardTitle>
-                          <CardDescription className="text-[11px] sm:text-[13px]">
-                            {feature.description}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-4 sm:p-6 pt-0">
-                          <ul className="space-y-1.5 sm:space-y-2">
-                            {feature.details.map((detail, i) => (
-                              <li key={i} className="flex items-start gap-2 text-[11px] sm:text-[13px]">
-                                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                                <span>{detail}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </CardContent>
-                      </Card>
-                    ))}
-                </div>
-              </TabsContent>
-            ))}
+            {categories.map((category) => {
+              const visibleFeatures = filterFeaturesByCategory(features, category);
+
+              return (
+                <TabsContent key={category} value={category} className="mt-8 sm:mt-12">
+                  {visibleFeatures.length === 0 ? (
+                    <div
+                      className="text-center py-12 sm:py-16 text-muted-foreground text-[13px] sm:text-[15px]"
+                      data-testid="text-features-empty"
+                    >
+                      No features in this category yet. Check back soon.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+                      {visibleFeatures.map((feature, index) => (
+                        <Card
+                          key={index}
+                          id={feature.id}
+                          className="hover:shadow-lg transition-shadow"
+                          data-testid={`card-feature-${feature.id || index}`}
+                        >
+                          <CardHeader className="p-4 sm:p-6">
+                            <div className="p-2 sm:p-3 bg-primary/10 rounded-lg w-fit mb-3 sm:mb-4">{feature.icon}</div>
+                            <CardTitle className="text-base sm:text-[15px]">{feature.title}</CardTitle>
+                            <CardDescription className="text-[11px] sm:text-[13px]">
+                              {feature.description}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="p-4 sm:p-6 pt-0">
+                            <ul className="space-y-1.5 sm:space-y-2">
+                              {feature.details.map((detail, i) => (
+                                <li key={i} className="flex items-start gap-2 text-[11px] sm:text-[13px]">
+                                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                                  <span>{detail}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              );
+            })}
           </Tabs>
         </div>
       </section>

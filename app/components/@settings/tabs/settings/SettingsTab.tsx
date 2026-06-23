@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { mergeNotificationIntoProfile } from './settings-profile-storage';
 import { settingsPersistenceSnapshot } from './settings-snapshot';
+import { buildTimezoneOptions } from './timezone-options';
 import type { UserProfile } from '~/components/@settings/core/types';
 import { Switch } from '~/components/ui/Switch';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
@@ -292,7 +293,7 @@ export default function SettingsTab() {
               'transition-all duration-200',
             )}
           >
-            {Array.from(new Set([currentTimezone, settings.timezone].filter(Boolean))).map((tz) => (
+            {buildTimezoneOptions(currentTimezone, settings.timezone).map((tz) => (
               <option key={tz} value={tz}>
                 {tz}
               </option>

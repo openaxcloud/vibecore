@@ -1,7 +1,13 @@
 import type { FileSearchOptions } from '@vibecore/runtime-contract';
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
-import { computeReplacement, hasUnsavedEdits, needsContentHydration, toRuntimeRelativePath } from './search-replace';
+import {
+  computeReplacement,
+  hasUnsavedEdits,
+  isLatestSearch,
+  needsContentHydration,
+  toRuntimeRelativePath,
+} from './search-replace';
 import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
@@ -47,6 +53,27 @@ export function Search() {
   const [hasSearched, setHasSearched] = useState(false);
   const [searchError, setSearchError] = useState<string | undefined>(undefined);
 
+  /*
+   * Track the trailing min-loader timer and a monotonic token for the latest search.
+   * handleSearch is debounced AND re-run by replaceAll, so a new search can start before
+   * a previous fast search's trailing setTimeout fires. Without these guards that stale
+   * timeout would clear the spinner of the newer in-flight search (premature flicker) and
+   * could call setState after unmount (React warning). We clear the pending timer at the
+   * start of every search and on unmount, and stamp each search with a token so only the
+   * latest invocation is allowed to flip the spinner off.
+   */
+  const minLoaderTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const searchTokenRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      if (minLoaderTimerRef.current !== undefined) {
+        clearTimeout(minLoaderTimerRef.current);
+        minLoaderTimerRef.current = undefined;
+      }
+    };
+  }, []);
+
   const groupedResults = useMemo(() => groupResultsByFile(searchResults), [searchResults]);
 
   useEffect(() => {
@@ -70,6 +97,17 @@ export function Search() {
 
         return;
       }
+
+      /*
+       * Cancel any pending trailing min-loader timer from a prior fast search so it
+       * can't clear the spinner of this newer search once it fires.
+       */
+      if (minLoaderTimerRef.current !== undefined) {
+        clearTimeout(minLoaderTimerRef.current);
+        minLoaderTimerRef.current = undefined;
+      }
+
+      const token = ++searchTokenRef.current;
 
       setIsSearching(true);
       setSearchResults([]);
@@ -111,10 +149,23 @@ export function Search() {
       } finally {
         const elapsed = Date.now() - start;
 
-        if (elapsed < minLoaderTime) {
-          setTimeout(() => setIsSearching(false), minLoaderTime - elapsed);
+        /*
+         * Only the latest search may flip the spinner off; a superseded search must
+         * leave the newer one's spinner alone.
+         */
+        const stopSpinner = () => {
+          if (isLatestSearch(token, searchTokenRef.current)) {
+            setIsSearching(false);
+          }
+        };
+
+        if (elapsed < minLoaderTime && isLatestSearch(token, searchTokenRef.current)) {
+          minLoaderTimerRef.current = setTimeout(() => {
+            minLoaderTimerRef.current = undefined;
+            stopSpinner();
+          }, minLoaderTime - elapsed);
         } else {
-          setIsSearching(false);
+          stopSpinner();
         }
       }
     },

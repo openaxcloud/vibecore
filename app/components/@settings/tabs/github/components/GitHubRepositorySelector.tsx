@@ -16,6 +16,27 @@ interface GitHubRepositorySelectorProps {
 type SortOption = 'updated' | 'stars' | 'name' | 'created';
 type FilterOption = 'all' | 'own' | 'forks' | 'archived';
 
+/**
+ * Clamp a page number into the valid 1..totalPages range. Used to keep the user
+ * off a stranded, now-empty paginated page after the repo list shrinks (Refresh,
+ * filter, or cache update) — there'd otherwise be no pagination UI to escape it.
+ */
+export function clampPage(currentPage: number, totalPages: number): number {
+  if (totalPages < 1) {
+    return 1;
+  }
+
+  if (currentPage > totalPages) {
+    return totalPages;
+  }
+
+  if (currentPage < 1) {
+    return 1;
+  }
+
+  return currentPage;
+}
+
 export function GitHubRepositorySelector({ onClone, className }: GitHubRepositorySelectorProps) {
   const { connection, isConnected } = useGitHubConnection();
 
@@ -23,10 +44,14 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
     stats,
     isLoading: isStatsLoading,
     refreshStats,
-  } = useGitHubStats(connection, {
-    autoFetch: true,
-    cacheTimeout: 30 * 60 * 1000, // 30 minutes
-  });
+  } = useGitHubStats(
+    connection,
+    {
+      autoFetch: true,
+      cacheTimeout: 30 * 60 * 1000, // 30 minutes
+    },
+    !connection?.token,
+  ); // Use server-side if no token (OAuth-connected users have no client token)
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('updated');
@@ -193,6 +218,19 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, sortBy, filterBy]);
+
+  /*
+   * Clamp the current page when the underlying list shrinks (e.g. after a
+   * Refresh or cache update) so the user is never stranded on a now-empty page
+   * with no pagination controls to navigate back from.
+   */
+  useEffect(() => {
+    const clamped = clampPage(currentPage, totalPages);
+
+    if (clamped !== currentPage) {
+      setCurrentPage(clamped);
+    }
+  }, [currentPage, totalPages]);
 
   // Esc closes the branch selector modal.
   useEffect(() => {

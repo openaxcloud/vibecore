@@ -5,6 +5,11 @@ import {
   shouldRefreshOnFilesChange,
   shouldRefreshOnVisibility,
 } from './git-autorefresh';
+import {
+  failedConflictContentState,
+  resolveConflictContentState,
+  type MergeContentState,
+} from './git-conflict-content';
 import { findUnserializableStagedFiles, pathBreaksCommaSerialization } from './git-staged-files';
 import { GitBranchSyncControls } from '~/components/git/GitBranchSyncControls';
 import { GitDiffView } from '~/components/git/GitDiffView';
@@ -182,7 +187,7 @@ export function GitTab({ projectId }: GitTabProps) {
 
   // Inline merge editor: the conflict file currently open + its marker content.
   const [mergeFile, setMergeFile] = useState<string | null>(null);
-  const [mergeContent, setMergeContent] = useState<{ content: string; loading: boolean } | null>(null);
+  const [mergeContent, setMergeContent] = useState<MergeContentState | null>(null);
   const commitRequestRef = useRef(0);
   const mergeRequestRef = useRef(0);
   const loadRequestRef = useRef(0);
@@ -624,13 +629,13 @@ export function GitTab({ projectId }: GitTabProps) {
           return;
         }
 
-        setMergeContent({ content: detail?.content ?? '', loading: false });
+        setMergeContent(resolveConflictContentState(detail?.content));
       } catch {
         if (requestId !== mergeRequestRef.current) {
           return;
         }
 
-        setMergeContent({ content: '', loading: false });
+        setMergeContent(failedConflictContentState());
       }
     },
     [projectId, resolvedWorkspaceId],
@@ -1072,6 +1077,23 @@ export function GitTab({ projectId }: GitTabProps) {
                         mergeContent?.loading ? (
                           <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 text-xs text-bolt-elements-textSecondary">
                             Loading conflict…
+                          </div>
+                        ) : mergeContent?.error ? (
+                          <div
+                            data-testid="git-merge-load-error"
+                            role="alert"
+                            className="flex flex-wrap items-center gap-3 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-500"
+                          >
+                            <span className="flex-1">{mergeContent.error}</span>
+                            <button
+                              type="button"
+                              data-testid="git-merge-load-retry"
+                              disabled={busy}
+                              className="inline-flex h-8 items-center justify-center rounded-md border border-red-500/40 px-3 font-medium hover:bg-red-500/10 disabled:opacity-60"
+                              onClick={() => void loadConflictFile(path)}
+                            >
+                              Retry
+                            </button>
                           </div>
                         ) : (
                           <GitMergeEditor

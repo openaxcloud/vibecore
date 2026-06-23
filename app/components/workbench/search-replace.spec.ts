@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { computeReplacement, hasUnsavedEdits, needsContentHydration, toRuntimeRelativePath } from './search-replace';
+import {
+  computeReplacement,
+  hasUnsavedEdits,
+  isLatestSearch,
+  needsContentHydration,
+  toRuntimeRelativePath,
+} from './search-replace';
 
 describe('computeReplacement', () => {
   it('counts and substitutes every literal match', () => {
@@ -79,5 +85,26 @@ describe('toRuntimeRelativePath', () => {
 
   it('falls back to stripping leading slashes for unprefixed paths', () => {
     expect(toRuntimeRelativePath('/loose/path.ts', '/workspace')).toBe('loose/path.ts');
+  });
+});
+
+describe('isLatestSearch', () => {
+  it('lets the most recent search stop the spinner', () => {
+    expect(isLatestSearch(3, 3)).toBe(true);
+  });
+
+  it('blocks a superseded fast search from hiding a newer search spinner', () => {
+    /*
+     * Regression guard: a fast search (token 1) schedules a trailing min-loader
+     * timeout; before it fires, a newer search (token 2) starts and turns the
+     * spinner back on. When the stale timeout finally runs it must NOT clear the
+     * spinner, or the newer in-flight search flickers off prematurely.
+     */
+    expect(isLatestSearch(1, 2)).toBe(false);
+  });
+
+  it('treats any non-current token as stale (e.g. after unmount-triggered reset)', () => {
+    expect(isLatestSearch(5, 6)).toBe(false);
+    expect(isLatestSearch(0, 1)).toBe(false);
   });
 });
