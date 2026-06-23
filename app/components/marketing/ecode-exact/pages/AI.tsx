@@ -38,7 +38,7 @@ import {
   Link,
   Spinner,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
-import { resolveSeekTime } from '~/components/marketing/ecode-exact/pages/ai-demo-seek';
+import { playVideoAndSyncState, resolveSeekTime } from '~/components/marketing/ecode-exact/pages/ai-demo-seek';
 
 type FeatureKey = 'autonomous' | 'multilingual' | 'intelligent' | 'realtime';
 
@@ -79,8 +79,11 @@ export default function AI() {
     }
 
     if (video.paused) {
-      void video.play();
-      setIsVideoPlaying(true);
+      /*
+       * Drive the flag off the real play() result so a rejected play (autoplay
+       * policy, decode error, 404 source) doesn't leave the overlay hidden.
+       */
+      void playVideoAndSyncState(video, setIsVideoPlaying);
     } else {
       video.pause();
       setIsVideoPlaying(false);
@@ -104,8 +107,12 @@ export default function AI() {
     const seekAndPlay = () => {
       // Clamp against the real, loaded duration so cues never overshoot the clip.
       video.currentTime = resolveSeekTime(position, video.duration);
-      void video.play();
-      setIsVideoPlaying(true);
+
+      /*
+       * Only mark playing if play() actually succeeds; otherwise the overlay
+       * would stay hidden with no way to restart the demo.
+       */
+      void playVideoAndSyncState(video, setIsVideoPlaying);
     };
 
     /*

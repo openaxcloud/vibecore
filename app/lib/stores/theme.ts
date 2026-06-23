@@ -169,18 +169,24 @@ export function applyThemeToDocument(theme: Theme) {
   refreshChromeMeta('apple-mobile-web-app-status-bar-style', theme === 'dark' ? 'black-translucent' : 'default');
 }
 
-export function toggleTheme() {
-  const currentTheme = themeStore.get();
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+/**
+ * Persist the chosen theme to localStorage (both the standalone key and the
+ * user-profile blob). Returns true on success, false if persistence failed.
+ *
+ * Persistence is best-effort: localStorage can throw (Safari Private Browsing
+ * blocks writes, or a QuotaExceededError). We must never let that abort the
+ * caller before the DOM has been updated, otherwise the store/DOM desync and
+ * the UI stays on the old theme. See toggleTheme().
+ */
+export function persistTheme(theme: Theme): boolean {
+  let ok = true;
 
-  // Update the theme store
-  themeStore.set(newTheme);
-
-  // Update localStorage
-  localStorage.setItem(kTheme, newTheme);
-
-  // Update the HTML theme hooks used by both CSS variables and Tailwind dark variants.
-  applyThemeToDocument(newTheme);
+  try {
+    localStorage.setItem(kTheme, theme);
+  } catch (error) {
+    ok = false;
+    console.error('Error persisting theme to localStorage:', error);
+  }
 
   // Update user profile if it exists
   try {
@@ -188,12 +194,34 @@ export function toggleTheme() {
 
     if (userProfile) {
       const profile = JSON.parse(userProfile);
-      profile.theme = newTheme;
+      profile.theme = theme;
       localStorage.setItem('bolt_user_profile', JSON.stringify(profile));
     }
   } catch (error) {
+    ok = false;
     console.error('Error updating user profile theme:', error);
   }
+
+  return ok;
+}
+
+export function toggleTheme() {
+  const currentTheme = themeStore.get();
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+  // Update the theme store
+  themeStore.set(newTheme);
+
+  /*
+   * Update the HTML theme hooks used by both CSS variables and Tailwind dark
+   * variants BEFORE persisting. localStorage writes can throw (Safari Private
+   * Browsing / QuotaExceededError); doing the DOM update first guarantees the
+   * UI actually changes even when persistence fails.
+   */
+  applyThemeToDocument(newTheme);
+
+  // Persist (best-effort — never throws past here).
+  persistTheme(newTheme);
 
   logStore.logSystem(`Theme changed to ${newTheme} mode`);
 }

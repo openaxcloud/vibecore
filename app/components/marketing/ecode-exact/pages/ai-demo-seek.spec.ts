@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { resolveSeekTime } from './ai-demo-seek';
+import { describe, expect, it, vi } from 'vitest';
+import { playVideoAndSyncState, resolveSeekTime } from './ai-demo-seek';
 
 describe('resolveSeekTime', () => {
   it('returns 0 when duration is not yet known (metadata not loaded)', () => {
@@ -38,5 +38,59 @@ describe('resolveSeekTime', () => {
     expect(resolveSeekTime(-5, 72)).toBe(0);
     expect(resolveSeekTime(2, 72)).toBe(72 - 0.5);
     expect(resolveSeekTime(NaN, 72)).toBe(0);
+  });
+});
+
+describe('playVideoAndSyncState', () => {
+  it('marks the video playing only after a resolved play() promise', async () => {
+    const setIsVideoPlaying = vi.fn();
+    const video = { play: vi.fn(() => Promise.resolve()) };
+
+    const result = await playVideoAndSyncState(video, setIsVideoPlaying);
+
+    expect(result).toBe(true);
+    expect(video.play).toHaveBeenCalledTimes(1);
+    expect(setIsVideoPlaying).toHaveBeenCalledTimes(1);
+    expect(setIsVideoPlaying).toHaveBeenCalledWith(true);
+  });
+
+  it('reverts to not-playing when play() rejects (autoplay/decode/404)', async () => {
+    const setIsVideoPlaying = vi.fn();
+    const video = { play: vi.fn(() => Promise.reject(new DOMException('NotAllowedError'))) };
+
+    const result = await playVideoAndSyncState(video, setIsVideoPlaying);
+
+    /*
+     * The original bug: state was set to true eagerly and the rejection was
+     * swallowed, so the overlay stayed hidden with no way to restart.
+     */
+    expect(result).toBe(false);
+    expect(setIsVideoPlaying).toHaveBeenCalledTimes(1);
+    expect(setIsVideoPlaying).toHaveBeenCalledWith(false);
+  });
+
+  it('reverts to not-playing when play() throws synchronously', async () => {
+    const setIsVideoPlaying = vi.fn();
+
+    const video = {
+      play: vi.fn(() => {
+        throw new Error('boom');
+      }),
+    };
+
+    const result = await playVideoAndSyncState(video, setIsVideoPlaying);
+
+    expect(result).toBe(false);
+    expect(setIsVideoPlaying).toHaveBeenCalledWith(false);
+  });
+
+  it('optimistically reports playing for legacy browsers returning undefined', async () => {
+    const setIsVideoPlaying = vi.fn();
+    const video = { play: vi.fn(() => undefined) };
+
+    const result = await playVideoAndSyncState(video, setIsVideoPlaying);
+
+    expect(result).toBe(true);
+    expect(setIsVideoPlaying).toHaveBeenCalledWith(true);
   });
 });

@@ -9,7 +9,6 @@ import {
   Linkedin,
   LogIn,
   Menu,
-  Monitor,
   Moon,
   Search,
   ShieldCheck,
@@ -22,6 +21,7 @@ import {
 import { useEffect, useState } from 'react';
 import { Badge, Button, cn, Link, useMarketingNavigate } from './EcodeExactUi';
 import { publicChromeUserChoseDark, resolvePublicChromeTheme } from './ecode-public-theme';
+import { getThemeSwitcherPresentation } from './theme-switcher-presentation';
 import { ScrollArea } from '~/components/ui/ScrollArea';
 import { applyThemeToDocument, kTheme, themeStore, toggleTheme } from '~/lib/stores/theme';
 import type { Theme } from '~/lib/stores/theme';
@@ -592,9 +592,8 @@ function NavPill({ href, children }: { href: string; children: React.ReactNode }
 
 function ThemeSwitcher() {
   const theme = useStore(themeStore);
-  const isHomepageDefaultTheme = theme === 'light';
-  const Icon = isHomepageDefaultTheme ? Monitor : theme === 'dark' ? Moon : Sun;
-  const label = isHomepageDefaultTheme ? 'System' : 'Dark';
+  const { icon, label } = getThemeSwitcherPresentation(theme);
+  const Icon = icon === 'moon' ? Moon : Sun;
 
   const handleThemeToggle = () => {
     publicThemeWasManuallyChanged = true;

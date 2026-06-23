@@ -39,3 +39,53 @@ export function resolveSeekTime(position: number, duration: number): number {
 
   return Math.min(target, maxTarget);
 }
+
+/**
+ * Minimal structural view of the bits of `HTMLVideoElement` the play helper
+ * touches. Kept narrow so the helper is unit-testable with a plain stub instead
+ * of a full DOM video element.
+ */
+export interface PlayableVideo {
+  play: () => Promise<void> | void;
+}
+
+/**
+ * Start playback and report whether it actually began, driving the
+ * `isVideoPlaying` flag off the real `play()` result rather than an optimistic
+ * guess.
+ *
+ * The overlay (play/pause toggle, dimmed scrim) is hidden while
+ * `isVideoPlaying` is true. The previous code set the flag to `true`
+ * immediately and discarded the promise returned by `play()`. If `play()`
+ * rejects — autoplay/gesture policy, a decode error, or a missing/404 source —
+ * no `play` event ever fires, so the `onPlay` handler never corrects the
+ * state: the overlay stays hidden and the button reads "Pause Demo" even though
+ * nothing is playing, leaving the user with no visible control to start it.
+ *
+ * Here we await the promise and only commit `true` on success, reverting to
+ * `false` on rejection. `onPlay`/`onPause` remain the live source of truth;
+ * this just stops a rejected `play()` from stranding the overlay.
+ *
+ * Older browsers return `undefined` (no promise) from `play()`; in that case we
+ * optimistically report `true` and let the `play`/`pause` events reconcile.
+ */
+export async function playVideoAndSyncState(
+  video: PlayableVideo,
+  setIsVideoPlaying: (playing: boolean) => void,
+): Promise<boolean> {
+  try {
+    const result = video.play();
+
+    if (result && typeof (result as Promise<void>).then === 'function') {
+      await result;
+    }
+
+    setIsVideoPlaying(true);
+
+    return true;
+  } catch {
+    setIsVideoPlaying(false);
+
+    return false;
+  }
+}
