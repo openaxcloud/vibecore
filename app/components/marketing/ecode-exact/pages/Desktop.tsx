@@ -22,6 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import { desktopDownloadUrl } from '~/components/marketing/ecode-exact/pages/desktop-download';
 
 export default function Desktop() {
   const downloads = [
@@ -126,15 +127,16 @@ export default function Desktop() {
                       <Icon className="h-10 w-10 mb-4 text-primary" />
                       <h3 className="font-semibold mb-1">Download for {dl.os}</h3>
                       <p className="text-[13px] text-muted-foreground mb-6">{dl.hint}</p>
-                      <button
-                        type="button"
+                      <a
+                        href={desktopDownloadUrl(dl.file)}
+                        download
                         className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-md text-white font-medium min-h-[44px] hover:opacity-90 transition-opacity"
                         style={{ backgroundColor: 'var(--ecode-accent)' }}
                         data-testid={`button-download-${dl.os.toLowerCase()}`}
                       >
                         <Download className="h-4 w-4" />
                         {dl.os}
-                      </button>
+                      </a>
                       <p className="text-[11px] text-muted-foreground mt-3">{dl.file}</p>
                     </CardContent>
                   </Card>
@@ -212,15 +214,16 @@ export default function Desktop() {
               The same projects, agents, and previews you know from the web — now with the speed and reach of a native
               desktop app.
             </p>
-            <button
-              type="button"
+            <a
+              href={desktopDownloadUrl(downloads[0].file)}
+              download
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-white font-medium min-h-[44px] hover:opacity-90 transition-opacity"
               style={{ backgroundColor: 'var(--ecode-accent)' }}
               data-testid="button-desktop-cta"
             >
               <Download className="h-4 w-4" />
               Get the desktop app
-            </button>
+            </a>
           </div>
         </section>
       </main>

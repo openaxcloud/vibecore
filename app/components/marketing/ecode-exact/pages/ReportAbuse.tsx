@@ -34,7 +34,7 @@ type AbuseReportResponse = {
   error?: string;
 };
 
-function buildAbuseMailto(payload: AbuseReportPayload) {
+export function buildAbuseMailto(payload: AbuseReportPayload) {
   const subject = `E-Code abuse report: ${payload.reportType}`;
 
   const body = [
@@ -85,20 +85,20 @@ export default function ReportAbuse() {
     e.preventDefault();
     setIsSubmitting(true);
 
+    const formElement = e.currentTarget;
+    const formData = new FormData(formElement);
+    const pagePath = typeof window !== 'undefined' ? window.location.pathname : '/report-abuse';
+
+    const payload: AbuseReportPayload = {
+      reportType,
+      targetUrl: String(formData.get('url') ?? ''),
+      description: String(formData.get('description') ?? ''),
+      reporterEmail: String(formData.get('email') ?? ''),
+      username: String(formData.get('username') ?? ''),
+      pagePath,
+    };
+
     try {
-      const formElement = e.currentTarget;
-      const formData = new FormData(formElement);
-      const pagePath = typeof window !== 'undefined' ? window.location.pathname : '/report-abuse';
-
-      const payload = {
-        reportType,
-        targetUrl: String(formData.get('url') ?? ''),
-        description: String(formData.get('description') ?? ''),
-        reporterEmail: String(formData.get('email') ?? ''),
-        username: String(formData.get('username') ?? ''),
-        pagePath,
-      };
-
       const result = await submitAbuseReport(payload);
 
       if (result.fallbackMailto) {
@@ -117,10 +117,23 @@ export default function ReportAbuse() {
       formElement.reset();
       setReportType('code');
     } catch (error) {
+      /*
+       * The server rejects some reports without supplying a fallbackMailto
+       * (spam-flagged reports, Zod validation errors, and GitHub failures all
+       * return errors with no mailto). Rather than silently losing the user's
+       * typed report behind a generic toast, fall back to a client-built
+       * mailto so they can still send it to abuse@e-code.ai.
+       */
+      if (typeof window !== 'undefined') {
+        window.location.href = buildAbuseMailto(payload);
+      }
+
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to connect to server. Please try again later.',
-        variant: 'destructive',
+        title: 'Opening email client',
+        description:
+          error instanceof Error
+            ? `${error.message} We've prepared your report for abuse@e-code.ai instead.`
+            : "We couldn't reach the server, so we've prepared your report for abuse@e-code.ai instead.",
       });
     } finally {
       setIsSubmitting(false);

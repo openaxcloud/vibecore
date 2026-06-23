@@ -21,8 +21,9 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Badge, Button, cn, Link, useMarketingNavigate } from './EcodeExactUi';
+import { publicChromeUserChoseDark, resolvePublicChromeTheme } from './ecode-public-theme';
 import { ScrollArea } from '~/components/ui/ScrollArea';
-import { applyThemeToDocument, themeStore, toggleTheme } from '~/lib/stores/theme';
+import { applyThemeToDocument, kTheme, themeStore, toggleTheme } from '~/lib/stores/theme';
 import type { Theme } from '~/lib/stores/theme';
 
 type MenuItem = {
@@ -200,7 +201,25 @@ function useHomepagePublicChrome() {
       return undefined;
     }
 
-    publicThemeWasManuallyChanged = false;
+    /*
+     * Respect a visitor's persisted dark choice. Reading localStorage here lets a
+     * dark selection survive SPA navigation between marketing pages: each route
+     * change remounts this shell, and without this guard we would unconditionally
+     * reset the manual-change flag and re-force light, reverting the user's pick.
+     */
+    let persistedTheme: string | null = null;
+
+    try {
+      persistedTheme = localStorage.getItem(kTheme);
+    } catch {
+      persistedTheme = null;
+    }
+
+    if (publicChromeUserChoseDark(persistedTheme)) {
+      publicThemeWasManuallyChanged = true;
+    }
+
+    const chromeTheme = resolvePublicChromeTheme(persistedTheme);
 
     const root = document.documentElement;
     const body = document.body;
@@ -212,8 +231,8 @@ function useHomepagePublicChrome() {
     root.setAttribute('data-ecode-public-chrome', 'homepage');
     root.style.fontSize = ECODE_PUBLIC_ROOT_FONT_SIZE;
     body.style.fontSize = ECODE_PUBLIC_ROOT_FONT_SIZE;
-    themeStore.set('light');
-    applyThemeToDocument('light');
+    themeStore.set(chromeTheme);
+    applyThemeToDocument(chromeTheme);
 
     return () => {
       window.setTimeout(() => {

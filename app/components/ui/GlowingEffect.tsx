@@ -1,5 +1,7 @@
-import { animate } from 'framer-motion';
+import { animate, type AnimationPlaybackControls } from 'framer-motion';
 import { memo, useCallback, useEffect, useRef } from 'react';
+
+import { computeShortestAngle } from './glowing-effect-angle';
 import { classNames } from '~/utils/classNames';
 
 interface GlowingEffectProps {
@@ -31,6 +33,7 @@ const GlowingEffect = memo(
     const containerRef = useRef<HTMLDivElement>(null);
     const lastPosition = useRef({ x: 0, y: 0 });
     const animationFrameRef = useRef<number>(0);
+    const animationControlsRef = useRef<AnimationPlaybackControls | null>(null);
 
     const handleMove = useCallback(
       (e?: MouseEvent | { x: number; y: number }) => {
@@ -40,6 +43,16 @@ const GlowingEffect = memo(
 
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current);
+        }
+
+        /*
+         * Stop any in-flight tween before scheduling a new one. movementDuration
+         * defaults to 2s while pointermove fires many times per second, so without
+         * this dozens of concurrent tweens would fight over the --start variable.
+         */
+        if (animationControlsRef.current) {
+          animationControlsRef.current.stop();
+          animationControlsRef.current = null;
         }
 
         animationFrameRef.current = requestAnimationFrame(() => {
@@ -81,10 +94,9 @@ const GlowingEffect = memo(
           const currentAngle = parseFloat(element.style.getPropertyValue('--start')) || 0;
           const targetAngle = (180 * Math.atan2(mouseY - center[1], mouseX - center[0])) / Math.PI + 90;
 
-          const angleDiff = ((targetAngle - currentAngle + 180) % 360) - 180;
-          const newAngle = currentAngle + angleDiff;
+          const newAngle = computeShortestAngle(currentAngle, targetAngle);
 
-          animate(currentAngle, newAngle, {
+          animationControlsRef.current = animate(currentAngle, newAngle, {
             duration: movementDuration,
             ease: [0.16, 1, 0.3, 1],
             onUpdate: (value) => {
@@ -112,6 +124,11 @@ const GlowingEffect = memo(
       return () => {
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current);
+        }
+
+        if (animationControlsRef.current) {
+          animationControlsRef.current.stop();
+          animationControlsRef.current = null;
         }
 
         window.removeEventListener('scroll', handleScroll);

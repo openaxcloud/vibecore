@@ -1,4 +1,6 @@
 import { ArrowRight, Calendar, Rocket, Bot, Users, CreditCard, Sparkles, Newspaper } from 'lucide-react';
+import { useState } from 'react';
+import { filterPostsByCategory } from './blog-filter';
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
@@ -82,6 +84,9 @@ export default function Blog() {
     },
   ];
 
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const visiblePosts = filterPostsByCategory(posts, selectedCategory);
+
   return (
     <div className="min-h-screen flex flex-col" data-testid="page-blog">
       <PublicNavbar />
@@ -109,18 +114,24 @@ export default function Blog() {
         <section className="py-6 border-b border-border">
           <div className="container-responsive">
             <div className="flex flex-wrap justify-center gap-2">
-              {categories.map((category, index) => (
-                <span
-                  key={category}
-                  className={`px-4 py-2 rounded-full text-[13px] font-medium min-h-[44px] inline-flex items-center cursor-pointer ${
-                    index === 0 ? 'text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70'
-                  }`}
-                  style={index === 0 ? { backgroundColor: 'var(--ecode-accent)' } : undefined}
-                  data-testid={`filter-${category.toLowerCase().replace(/\s+/g, '-')}`}
-                >
-                  {category}
-                </span>
-              ))}
+              {categories.map((category) => {
+                const isActive = category === selectedCategory;
+                return (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setSelectedCategory(category)}
+                    aria-pressed={isActive}
+                    className={`px-4 py-2 rounded-full text-[13px] font-medium min-h-[44px] inline-flex items-center cursor-pointer ${
+                      isActive ? 'text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                    }`}
+                    style={isActive ? { backgroundColor: 'var(--ecode-accent)' } : undefined}
+                    data-testid={`filter-${category.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    {category}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -174,7 +185,7 @@ export default function Blog() {
             <h2 className="text-3xl font-bold mb-12">Latest Posts</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {posts.map((post) => {
+              {visiblePosts.map((post) => {
                 const Icon = post.icon;
                 return (
                   <Card key={post.title} className="flex flex-col hover:shadow-lg transition-shadow">
@@ -210,6 +221,12 @@ export default function Blog() {
                 );
               })}
             </div>
+
+            {visiblePosts.length === 0 && (
+              <p className="text-[15px] text-muted-foreground text-center" data-testid="text-no-posts">
+                No posts in this category yet.
+              </p>
+            )}
           </div>
         </section>
 

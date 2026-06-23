@@ -2,6 +2,7 @@ import * as RadixPopover from '@radix-ui/react-popover';
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
 import { IconButton } from './IconButton';
+import { seedColorSchemeState } from './color-scheme-state';
 import type { DesignScheme } from '~/types/design-scheme';
 import { defaultDesignScheme, designFeatures, designFonts, paletteRoles } from '~/types/design-scheme';
 import { classNames } from '~/utils/classNames';
@@ -21,30 +22,24 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
   triggerLabel = 'Design palette',
   triggerVariant = 'icon',
 }) => {
-  const [palette, setPalette] = useState<{ [key: string]: string }>(() => {
-    if (designScheme?.palette) {
-      return { ...defaultDesignScheme.palette, ...designScheme.palette };
-    }
-
-    return defaultDesignScheme.palette;
-  });
-
-  const [features, setFeatures] = useState<string[]>(designScheme?.features || defaultDesignScheme.features);
-  const [font, setFont] = useState<string[]>(designScheme?.font || defaultDesignScheme.font);
+  const initialState = seedColorSchemeState(designScheme);
+  const [palette, setPalette] = useState<{ [key: string]: string }>(initialState.palette);
+  const [features, setFeatures] = useState<string[]>(initialState.features);
+  const [font, setFont] = useState<string[]>(initialState.font);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<'colors' | 'typography' | 'features'>('colors');
 
-  useEffect(() => {
-    if (designScheme) {
-      setPalette(() => ({ ...defaultDesignScheme.palette, ...designScheme.palette }));
-      setFeatures(designScheme.features || defaultDesignScheme.features);
-      setFont(designScheme.font || defaultDesignScheme.font);
-    } else {
-      setPalette(defaultDesignScheme.palette);
-      setFeatures(defaultDesignScheme.features);
-      setFont(defaultDesignScheme.font);
-    }
+  // Re-seed local editing state from the current designScheme prop.
+  const resetLocalState = React.useCallback(() => {
+    const next = seedColorSchemeState(designScheme);
+    setPalette(next.palette);
+    setFeatures(next.features);
+    setFont(next.font);
   }, [designScheme]);
+
+  useEffect(() => {
+    resetLocalState();
+  }, [resetLocalState]);
 
   const handleColorChange = (role: string, value: string) => {
     setPalette((prev) => ({ ...prev, [role]: value }));
@@ -294,7 +289,21 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
 
   return (
     <div>
-      <RadixPopover.Root open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <RadixPopover.Root
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          /*
+           * Re-seed local state from the current prop whenever the dialog opens
+           * so that edits abandoned via Cancel are discarded rather than shown
+           * (and silently committed) on the next open.
+           */
+          if (open) {
+            resetLocalState();
+          }
+
+          setIsDialogOpen(open);
+        }}
+      >
         <RadixPopover.Trigger asChild>
           <IconButton
             title="Design Palette"
@@ -364,7 +373,13 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
                   {Object.keys(palette).length} colors • {font.length} fonts • {features.length} features
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="secondary" onClick={() => setIsDialogOpen(false)}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      resetLocalState();
+                      setIsDialogOpen(false);
+                    }}
+                  >
                     Cancel
                   </Button>
                   <Button

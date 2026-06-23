@@ -38,6 +38,7 @@ import {
   Link,
   Spinner,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import { resolveSeekTime } from '~/components/marketing/ecode-exact/pages/ai-demo-seek';
 
 type FeatureKey = 'autonomous' | 'multilingual' | 'intelligent' | 'realtime';
 
@@ -89,7 +90,7 @@ export default function AI() {
   const handleVideoPause = () => setIsVideoPlaying(false);
   const handleVideoPlay = () => setIsVideoPlaying(true);
 
-  const handleSeekTo = (seconds: number) => {
+  const handleSeekTo = (position: number) => {
     const video = videoRef.current;
 
     if (!video) {
@@ -100,9 +101,27 @@ export default function AI() {
       video.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    video.currentTime = seconds;
-    void video.play();
-    setIsVideoPlaying(true);
+    const seekAndPlay = () => {
+      // Clamp against the real, loaded duration so cues never overshoot the clip.
+      video.currentTime = resolveSeekTime(position, video.duration);
+      void video.play();
+      setIsVideoPlaying(true);
+    };
+
+    /*
+     * HAVE_METADATA (1) or greater means duration is known and seeking will
+     * actually take effect. Before that, setting currentTime is silently
+     * ignored, so defer the seek to a one-time loadedmetadata handler — that
+     * makes the very first click jump instead of just playing from 0.
+     */
+    if (video.readyState >= 1 && Number.isFinite(video.duration) && video.duration > 0) {
+      seekAndPlay();
+    } else {
+      video.addEventListener('loadedmetadata', seekAndPlay, { once: true });
+
+      // Kick off loading so metadata arrives even though the element has no preload.
+      video.load();
+    }
   };
 
   const [aiData] = useState<AIData | undefined>(undefined);
@@ -303,27 +322,30 @@ export default function AI() {
     { value: '99.9%', label: 'Success Rate' },
   ];
 
+  /*
+   * All three cards jump into the SAME shared platform demo clip, so each one
+   * is a chapter expressed as a fraction (0..1) of the real video. The concrete
+   * timestamp is resolved from the loaded video duration at click time, which
+   * keeps cues in-bounds regardless of the asset's actual length.
+   */
   const demoHighlights = [
     {
-      title: 'E-commerce in 5 Minutes',
-      description: 'Watch AI build a complete online store with payments, inventory, and admin dashboard',
+      title: 'Scaffolding the app',
+      description: 'Watch the AI agent plan the build and generate a production-ready project structure',
       icon: Rocket,
-      duration: '5:23',
-      cue: 0,
+      position: 0,
     },
     {
-      title: 'SaaS Dashboard Demo',
-      description: 'AI creates a full analytics dashboard with real-time data visualization',
+      title: 'Wiring the dashboard',
+      description: 'The agent assembles a full analytics dashboard with real-time data visualization',
       icon: Users,
-      duration: '3:45',
-      cue: 65,
+      position: 1 / 3,
     },
     {
-      title: 'Multilingual App Creation',
-      description: 'Building apps in Japanese, Spanish, and Arabic - AI understands any language',
+      title: 'Shipping to the cloud',
+      description: 'Infrastructure is configured and the app is deployed with a single click',
       icon: Globe,
-      duration: '4:15',
-      cue: 132,
+      position: 2 / 3,
     },
   ];
 
@@ -528,14 +550,14 @@ export default function AI() {
                   <Card
                     key={highlight.title}
                     className="group hover:shadow-xl transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-primary"
-                    onClick={() => handleSeekTo(highlight.cue)}
+                    onClick={() => handleSeekTo(highlight.position)}
                     role="button"
                     tabIndex={0}
                     aria-label={`Jump to ${highlight.title} in the demo`}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
-                        handleSeekTo(highlight.cue);
+                        handleSeekTo(highlight.position);
                       }
                     }}
                   >
@@ -549,7 +571,7 @@ export default function AI() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-muted-foreground text-[13px]">{highlight.description}</p>
-                      <div className="mt-3 text-[11px] text-muted-foreground">Duration: {highlight.duration}</div>
+                      <div className="mt-3 text-[11px] text-muted-foreground">Jump to this chapter</div>
                     </CardContent>
                   </Card>
                 );

@@ -38,6 +38,10 @@ import {
   useMarketingNavigate,
   usePublicAuth,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import {
+  COMPARISON_COLUMNS,
+  type ComparisonCategory,
+} from '~/components/marketing/ecode-exact/pages/pricing-comparison';
 
 const cloudComputingImg =
   'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop';
@@ -261,39 +265,39 @@ export default function Pricing() {
     });
   }, [apiPlans]);
 
-  const comparisonFeatures = [
+  const comparisonFeatures: ComparisonCategory[] = [
     {
       category: 'Infrastructure',
       features: [
-        { name: 'CPU cores', starter: '1 vCPU', pro: '4 vCPUs', business: '8 vCPUs', enterprise: 'Custom' },
-        { name: 'Memory', starter: '1 GB', pro: '8 GB', business: '16 GB', enterprise: 'Custom' },
-        { name: 'Storage', starter: '10 GB', pro: '100 GB', business: '500 GB', enterprise: 'Unlimited' },
-        { name: 'Bandwidth', starter: '50 GB', pro: '1 TB', business: 'Unlimited', enterprise: 'Unlimited' },
+        { name: 'CPU cores', starter: '1 vCPU', core: '4 vCPUs', teams: '8 vCPUs', enterprise: 'Custom' },
+        { name: 'Memory', starter: '1 GB', core: '8 GB', teams: '16 GB', enterprise: 'Custom' },
+        { name: 'Storage', starter: '10 GB', core: '100 GB', teams: '500 GB', enterprise: 'Unlimited' },
+        { name: 'Bandwidth', starter: '50 GB', core: '1 TB', teams: 'Unlimited', enterprise: 'Unlimited' },
       ],
     },
     {
       category: 'Development',
       features: [
-        { name: 'Projects', starter: '5 active', pro: 'Unlimited', business: 'Unlimited', enterprise: 'Unlimited' },
+        { name: 'Projects', starter: '5 active', core: 'Unlimited', teams: 'Unlimited', enterprise: 'Unlimited' },
         {
           name: 'Private repos',
           starter: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
-          pro: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
-          business: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
+          core: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
+          teams: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
           enterprise: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
         },
         {
           name: 'Custom domains',
           starter: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
-          pro: '5',
-          business: 'Unlimited',
+          core: '5',
+          teams: 'Unlimited',
           enterprise: 'Unlimited',
         },
         {
           name: 'SSL certificates',
           starter: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
-          pro: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
-          business: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
+          core: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
+          teams: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
           enterprise: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
         },
       ],
@@ -301,26 +305,26 @@ export default function Pricing() {
     {
       category: 'AI Features',
       features: [
-        { name: 'AI requests/month', starter: '100', pro: 'Unlimited', business: 'Unlimited', enterprise: 'Unlimited' },
+        { name: 'AI requests/month', starter: '100', core: 'Unlimited', teams: 'Unlimited', enterprise: 'Unlimited' },
         {
           name: 'Code completion',
           starter: 'Basic',
-          pro: 'Advanced',
-          business: 'Advanced',
+          core: 'Advanced',
+          teams: 'Advanced',
           enterprise: 'Custom models',
         },
         {
           name: 'AI Agent apps',
           starter: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
-          pro: 'Unlimited',
-          business: 'Unlimited',
+          core: 'Unlimited',
+          teams: 'Unlimited',
           enterprise: 'Unlimited',
         },
         {
           name: 'Custom AI training',
           starter: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
-          pro: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
-          business: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
+          core: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
+          teams: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
           enterprise: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
         },
       ],
@@ -331,23 +335,23 @@ export default function Pricing() {
         {
           name: 'Support channels',
           starter: 'Community',
-          pro: 'Email',
-          business: 'Priority + Chat',
+          core: 'Email',
+          teams: 'Priority + Chat',
           enterprise: '24/7 Phone',
         },
-        { name: 'Response time', starter: 'Best effort', pro: '24 hours', business: '4 hours', enterprise: '1 hour' },
+        { name: 'Response time', starter: 'Best effort', core: '24 hours', teams: '4 hours', enterprise: '1 hour' },
         {
           name: 'Dedicated manager',
           starter: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
-          pro: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
-          business: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
+          core: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
+          teams: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
           enterprise: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
         },
         {
           name: 'SLA',
           starter: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
-          pro: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
-          business: '99.9%',
+          core: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
+          teams: '99.9%',
           enterprise: '99.99%',
         },
       ],
@@ -670,22 +674,24 @@ export default function Pricing() {
                       >
                         Features
                       </th>
-                      <th className="text-center p-6 min-w-[150px]" data-testid="column-tier-starter">
-                        <div className="font-semibold text-[var(--ecode-text)]">Starter</div>
-                        <div className="text-[13px] text-[var(--ecode-text-muted)] mt-1">Free forever</div>
-                      </th>
-                      <th className="text-center p-6 min-w-[150px]" data-testid="column-tier-core">
-                        <div className="font-semibold text-[var(--ecode-accent)]">Core</div>
-                        <div className="text-[13px] text-[var(--ecode-text-muted)] mt-1">Most popular</div>
-                      </th>
-                      <th className="text-center p-6 min-w-[150px]" data-testid="column-tier-teams">
-                        <div className="font-semibold text-[var(--ecode-text)]">Teams</div>
-                        <div className="text-[13px] text-[var(--ecode-text-muted)] mt-1">For teams</div>
-                      </th>
-                      <th className="text-center p-6 min-w-[150px]" data-testid="column-tier-enterprise">
-                        <div className="font-semibold text-[var(--ecode-text)]">Enterprise</div>
-                        <div className="text-[13px] text-[var(--ecode-text-muted)] mt-1">Custom</div>
-                      </th>
+                      {COMPARISON_COLUMNS.map((column) => (
+                        <th
+                          key={column.key}
+                          className="text-center p-6 min-w-[150px]"
+                          data-testid={`column-tier-${column.key}`}
+                        >
+                          <div
+                            className={
+                              column.accent
+                                ? 'font-semibold text-[var(--ecode-accent)]'
+                                : 'font-semibold text-[var(--ecode-text)]'
+                            }
+                          >
+                            {column.label}
+                          </div>
+                          <div className="text-[13px] text-[var(--ecode-text-muted)] mt-1">{column.sublabel}</div>
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -705,12 +711,20 @@ export default function Pricing() {
                             data-testid={`row-feature-${feature.name.toLowerCase().replace(/\s/g, '-')}`}
                           >
                             <td className="p-6 font-medium text-[var(--ecode-text-secondary)]">{feature.name}</td>
-                            <td className="text-center p-6 text-[var(--ecode-text-muted)]">{feature.starter}</td>
-                            <td className="text-center p-6 text-[var(--ecode-accent)] font-medium">{feature.pro}</td>
-                            <td className="text-center p-6 text-[var(--ecode-text)] font-medium">{feature.business}</td>
-                            <td className="text-center p-6 text-[var(--ecode-text)] font-medium">
-                              {feature.enterprise}
-                            </td>
+                            {COMPARISON_COLUMNS.map((column) => (
+                              <td
+                                key={column.key}
+                                className={
+                                  column.key === 'starter'
+                                    ? 'text-center p-6 text-[var(--ecode-text-muted)]'
+                                    : column.accent
+                                      ? 'text-center p-6 text-[var(--ecode-accent)] font-medium'
+                                      : 'text-center p-6 text-[var(--ecode-text)] font-medium'
+                                }
+                              >
+                                {feature[column.key]}
+                              </td>
+                            ))}
                           </tr>
                         ))}
                       </Fragment>

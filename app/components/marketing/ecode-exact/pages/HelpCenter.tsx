@@ -10,6 +10,8 @@ import {
   LifeBuoy,
   BookOpen,
 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { filterHelpArticles, filterHelpTopics, normalizeHelpQuery } from './help-search';
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
@@ -74,6 +76,22 @@ export default function HelpCenter() {
     'Configuring an MCP integration',
   ];
 
+  // Live query bound to the search input.
+  const [query, setQuery] = useState('');
+
+  /*
+   * Submitted query: only updated on Enter / form submit, so typing does not
+   * re-filter the page until the user actually searches.
+   */
+  const [submittedQuery, setSubmittedQuery] = useState('');
+
+  const hasActiveSearch = normalizeHelpQuery(submittedQuery) !== '';
+  const visibleTopics = useMemo(() => filterHelpTopics(topics, submittedQuery), [submittedQuery]);
+
+  const visibleArticles = useMemo(() => filterHelpArticles(popularArticles, submittedQuery), [submittedQuery]);
+
+  const hasNoResults = hasActiveSearch && visibleTopics.length === 0 && visibleArticles.length === 0;
+
   return (
     <div className="min-h-screen flex flex-col" data-testid="page-help-center">
       <PublicNavbar />
@@ -91,7 +109,15 @@ export default function HelpCenter() {
                 Search our guides or browse by topic to get the most out of E-Code.
               </p>
 
-              <div className="relative max-w-xl mx-auto">
+              <form
+                className="relative max-w-xl mx-auto"
+                role="search"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  setSubmittedQuery(query);
+                }}
+                data-testid="form-help-search"
+              >
                 <Search className="h-5 w-5 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <input
                   type="search"
@@ -99,69 +125,98 @@ export default function HelpCenter() {
                   aria-label="Search the Help Center"
                   className="w-full min-h-[48px] pl-12 pr-4 rounded-md border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-offset-2"
                   style={{ ['--tw-ring-color' as string]: 'var(--ecode-accent)' }}
+                  value={query}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setQuery(next);
+
+                    // Clearing the field restores the full unfiltered page.
+                    if (next === '') {
+                      setSubmittedQuery('');
+                    }
+                  }}
                   data-testid="input-help-search"
                 />
-              </div>
+              </form>
             </div>
           </div>
         </section>
+
+        {hasNoResults && (
+          <section className="py-responsive" data-testid="help-search-no-results">
+            <div className="container-responsive text-center">
+              <p className="text-[15px] text-muted-foreground">
+                No results found for &ldquo;{submittedQuery.trim()}&rdquo;. Try a different search or browse the topics
+                below.
+              </p>
+            </div>
+          </section>
+        )}
 
         {/* Help Topics */}
-        <section className="py-responsive">
-          <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">Browse by topic</h2>
+        {visibleTopics.length > 0 && (
+          <section className="py-responsive">
+            <div className="container-responsive">
+              <h2 className="text-3xl font-bold text-center mb-12">
+                {hasActiveSearch ? 'Matching topics' : 'Browse by topic'}
+              </h2>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {topics.map((topic) => {
-                const Icon = topic.icon;
-                return (
-                  <Card key={topic.title} className="h-full">
-                    <CardHeader>
-                      <div
-                        className="h-11 w-11 rounded-md flex items-center justify-center mb-3"
-                        style={{ backgroundColor: 'color-mix(in srgb, var(--ecode-accent) 12%, transparent)' }}
-                      >
-                        <Icon className="h-6 w-6" style={{ color: 'var(--ecode-accent)' }} />
-                      </div>
-                      <CardTitle className="flex items-center justify-between">
-                        <span>{topic.title}</span>
-                        <Badge variant="secondary" className="text-[12px]">
-                          {topic.articleCount} articles
-                        </Badge>
-                      </CardTitle>
-                      <CardDescription>{topic.description}</CardDescription>
-                    </CardHeader>
-                  </Card>
-                );
-              })}
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {visibleTopics.map((topic) => {
+                  const Icon = topic.icon;
+                  return (
+                    <Card key={topic.title} className="h-full">
+                      <CardHeader>
+                        <div
+                          className="h-11 w-11 rounded-md flex items-center justify-center mb-3"
+                          style={{ backgroundColor: 'color-mix(in srgb, var(--ecode-accent) 12%, transparent)' }}
+                        >
+                          <Icon className="h-6 w-6" style={{ color: 'var(--ecode-accent)' }} />
+                        </div>
+                        <CardTitle className="flex items-center justify-between">
+                          <span>{topic.title}</span>
+                          <Badge variant="secondary" className="text-[12px]">
+                            {topic.articleCount} articles
+                          </Badge>
+                        </CardTitle>
+                        <CardDescription>{topic.description}</CardDescription>
+                      </CardHeader>
+                    </Card>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Popular Articles */}
-        <section className="py-responsive bg-muted">
-          <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">Popular articles</h2>
+        {visibleArticles.length > 0 && (
+          <section className="py-responsive bg-muted">
+            <div className="container-responsive">
+              <h2 className="text-3xl font-bold text-center mb-12">
+                {hasActiveSearch ? 'Matching articles' : 'Popular articles'}
+              </h2>
 
-            <div className="max-w-3xl mx-auto">
-              <Card>
-                <CardContent className="p-0">
-                  <ul className="divide-y divide-border">
-                    {popularArticles.map((article) => (
-                      <li key={article}>
-                        <div className="flex items-center gap-4 p-4 sm:p-5">
-                          <BookOpen className="h-5 w-5 flex-shrink-0" style={{ color: 'var(--ecode-accent)' }} />
-                          <span className="flex-1 text-[15px]">{article}</span>
-                          <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
+              <div className="max-w-3xl mx-auto">
+                <Card>
+                  <CardContent className="p-0">
+                    <ul className="divide-y divide-border">
+                      {visibleArticles.map((article) => (
+                        <li key={article}>
+                          <div className="flex items-center gap-4 p-4 sm:p-5">
+                            <BookOpen className="h-5 w-5 flex-shrink-0" style={{ color: 'var(--ecode-accent)' }} />
+                            <span className="flex-1 text-[15px]">{article}</span>
+                            <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Contact Support CTA */}
         <section className="py-responsive">

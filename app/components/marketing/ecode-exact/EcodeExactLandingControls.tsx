@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { SiGoogle, SiOpenai } from 'react-icons/si';
 import { toast as toastify } from 'react-toastify';
 import { Badge, Button, Card, CardContent, cn, Skeleton } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import {
+  PREFERRED_AI_MODEL_STORAGE_KEY,
+  readPersistedModelId,
+  resolvePreferredModelId,
+} from '~/components/marketing/ecode-exact/resolve-preferred-model';
 
 export type BuildMode = 'design-first' | 'full-app' | 'continue-planning';
 
@@ -192,11 +197,26 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
   const [modelsError, setModelsError] = useState<string | null>(null);
 
   const [selectedModel, setSelectedModel] = useState<string>(() => {
-    if (variant === 'card' || typeof window === 'undefined') {
+    if (typeof window === 'undefined') {
       return '';
     }
 
-    return window.localStorage.getItem('ecode-preferred-ai-model') || modelOptions[0]?.id || '';
+    const persisted = readPersistedModelId();
+
+    if (variant === 'card') {
+      /*
+       * The catalog has not loaded yet, so resolve against the static fallback
+       * list with no default — we deliberately keep the placeholder selected
+       * until either the persisted model is recognised or the live catalog
+       * arrives, rather than auto-picking an arbitrary first option for the card.
+       */
+      return resolvePreferredModelId(
+        persisted,
+        modelOptions.map((model) => model.id),
+      );
+    }
+
+    return persisted || modelOptions[0]?.id || '';
   });
 
   const currentModel = useMemo(
@@ -213,7 +233,7 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
     onModelChange?.(modelId);
 
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('ecode-preferred-ai-model', modelId);
+      window.localStorage.setItem(PREFERRED_AI_MODEL_STORAGE_KEY, modelId);
     }
   };
 
@@ -263,6 +283,25 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
 
         if (loadedModels.length > 0) {
           setModels(loadedModels);
+
+          /*
+           * Restore the returning visitor's saved preference now that we know
+           * which models the live catalog actually offers. Without this the card
+           * always reopened on the disabled 'Select AI model...' placeholder and
+           * the 'Model preference saved' confirmation never showed. We only
+           * overwrite the current selection when nothing has been chosen yet, so
+           * an in-session change made before the fetch resolved is preserved.
+           */
+          setSelectedModel((current) => {
+            if (current) {
+              return current;
+            }
+
+            return resolvePreferredModelId(
+              readPersistedModelId(),
+              loadedModels.map((model) => model.id),
+            );
+          });
         }
       } catch (error) {
         if (!controller.signal.aborted) {

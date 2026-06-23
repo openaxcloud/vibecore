@@ -207,12 +207,12 @@ export default function Accessibility() {
               assistive technology you were using, and a short description so we can reproduce and resolve it quickly.
             </p>
             <a
-              href="mailto:accessibility@vibecore.dev"
+              href="mailto:accessibility@e-code.ai"
               className="inline-flex items-center justify-center px-6 py-3 text-primary-foreground rounded-md min-h-[44px]"
               style={{ backgroundColor: 'var(--ecode-accent)' }}
               data-testid="link-accessibility-report"
             >
-              accessibility@vibecore.dev
+              accessibility@e-code.ai
             </a>
           </div>
         </section>

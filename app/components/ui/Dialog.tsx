@@ -6,6 +6,7 @@ import { Button } from './Button';
 import { Checkbox } from './Checkbox';
 import { IconButton } from './IconButton';
 import { Label } from './Label';
+import { isAllSelected } from './selection-dialog-utils';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 
@@ -305,13 +306,17 @@ export function SelectionDialog({
   maxHeight = '60vh',
 }: SelectionDialogProps) {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [selectAll, setSelectAll] = useState(false);
+
+  /*
+   * Derive the "all selected" state from the actual selection so the label stays
+   * in sync even when items are toggled individually.
+   */
+  const allSelected = isAllSelected(selectedItems.length, items.length);
 
   // Reset selected items when dialog opens
   useEffect(() => {
     if (isOpen) {
       setSelectedItems([]);
-      setSelectAll(false);
     }
   }, [isOpen]);
 
@@ -320,12 +325,10 @@ export function SelectionDialog({
   };
 
   const handleSelectAll = () => {
-    if (selectedItems.length === items.length) {
+    if (allSelected) {
       setSelectedItems([]);
-      setSelectAll(false);
     } else {
       setSelectedItems(items.map((item) => item.id));
-      setSelectAll(true);
     }
   };
 
@@ -402,7 +405,7 @@ export function SelectionDialog({
                 onClick={handleSelectAll}
                 className="text-xs h-8 px-2 text-bolt-elements-textPrimary hover:text-bolt-elements-item-contentAccent hover:bg-bolt-elements-item-backgroundAccent bg-bolt-elements-background-depth-2 dark:bg-transparent"
               >
-                {selectAll ? 'Deselect All' : 'Select All'}
+                {allSelected ? 'Deselect All' : 'Select All'}
               </Button>
             </div>
 

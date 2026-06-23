@@ -22,6 +22,7 @@ import {
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { Badge } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import { PRESS_CONTACT_EMAIL, PRESS_CONTACT_MAILTO } from '~/components/marketing/ecode-exact/pages/press-contact';
 
 export default function Press() {
   const brandAssets = [
@@ -102,12 +103,12 @@ export default function Press() {
                     </div>
                   </div>
                   <a
-                    href="mailto:press@vibecore.dev"
+                    href={PRESS_CONTACT_MAILTO}
                     className="px-6 py-3 rounded-md text-white min-h-[44px] inline-flex items-center"
                     style={{ backgroundColor: 'var(--ecode-accent)' }}
                     data-testid="link-press-contact"
                   >
-                    press@vibecore.dev
+                    {PRESS_CONTACT_EMAIL}
                   </a>
                 </CardContent>
               </Card>
