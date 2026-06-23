@@ -532,7 +532,16 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
       processId: id,
       cols: request.terminal?.cols ?? 80,
       rows: request.terminal?.rows ?? 15,
-      write: (data) => writer.write(data),
+      write: (data) => {
+        /*
+         * Guard like the remote adapter: the underlying input stream is closed
+         * once the spawned shell exits or killProcess() kills it, so a keystroke
+         * arriving in that window would otherwise reject the write() Promise with
+         * nothing to catch it (unhandled rejection in the browser/desktop runtime).
+         * Dropping input across an exited process is acceptable.
+         */
+        void writer.write(data).catch(() => {});
+      },
       resize: (cols, rows) => this.resizeTerminal(id, cols, rows),
       kill: () => this.killProcess(id),
       events,

@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { buildAdminLoginBody, errorMessage, isMfaRequiredError } from './admin-login';
+import {
+  adminSections,
+  collectionFromResponse,
+  dangerousActions,
+  searchableText,
+  sortRows,
+  type AdminSection,
+} from './admin-model';
 import {
   apiJson,
   clearAdminToken,
@@ -10,15 +19,7 @@ import {
   type AdminOverview,
   type AdminRecord,
 } from './api';
-import { buildAdminLoginBody, errorMessage, isMfaRequiredError } from './admin-login';
-import {
-  adminSections,
-  collectionFromResponse,
-  dangerousActions,
-  searchableText,
-  sortRows,
-  type AdminSection,
-} from './admin-model';
+import { redactRecord } from './redact';
 import './styles.css';
 
 type SortState = { key: string; direction: 'asc' | 'desc' };
@@ -86,6 +87,7 @@ function App() {
             className="token-form"
             onSubmit={async (event) => {
               event.preventDefault();
+
               if (loginEmail || loginPassword) {
                 try {
                   const result = await apiJson<{ token: string }>('/auth/login', {
@@ -171,7 +173,15 @@ function App() {
   );
 }
 
-function SectionView({ section, authRevision, reauthPassword }: { section: AdminSection; authRevision: number; reauthPassword: string }) {
+function SectionView({
+  section,
+  authRevision,
+  reauthPassword,
+}: {
+  section: AdminSection;
+  authRevision: number;
+  reauthPassword: string;
+}) {
   const [data, setData] = useState<unknown>();
   const [rows, setRows] = useState<AdminRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -185,6 +195,7 @@ function SectionView({ section, authRevision, reauthPassword }: { section: Admin
   async function load() {
     setLoading(true);
     setError(undefined);
+
     try {
       const response = await apiJson<unknown>(section.endpoint);
       setData(response);
@@ -210,7 +221,11 @@ function SectionView({ section, authRevision, reauthPassword }: { section: Admin
 
   async function runAction(action: string, payload?: AdminRecord, body?: Record<string, unknown>) {
     if (dangerousActions.has(action)) {
-      if (!window.confirm('Confirm this admin action. It requires recent re-authentication and will be written to AdminAuditLog.')) {
+      if (
+        !window.confirm(
+          'Confirm this admin action. It requires recent re-authentication and will be written to AdminAuditLog.',
+        )
+      ) {
         return;
       }
 
@@ -234,8 +249,10 @@ function SectionView({ section, authRevision, reauthPassword }: { section: Admin
       setDialog(null);
       await load();
     } catch (error) {
-      // Re-auth or the action endpoint failed: surface it instead of leaving
-      // the dialog stuck open with no feedback (would look like a no-op).
+      /*
+       * Re-auth or the action endpoint failed: surface it instead of leaving
+       * the dialog stuck open with no feedback (would look like a no-op).
+       */
       setToast(errorMessage(error, 'Admin action failed'));
     }
   }
@@ -377,6 +394,7 @@ function SectionView({ section, authRevision, reauthPassword }: { section: Admin
 function Overview({ data }: { data: AdminOverview }) {
   const counts = data?.counts ?? {};
   const health = data?.health;
+
   return (
     <div className="grid metrics">
       {Object.entries(counts).map(([key, value]) => (
@@ -425,6 +443,7 @@ function RowActions({
       </>
     );
   }
+
   if (section.id === 'organizations') {
     return (
       <button className="danger" type="button" onClick={() => onAction('suspend-org')}>
@@ -432,6 +451,7 @@ function RowActions({
       </button>
     );
   }
+
   if (section.id === 'workspaces') {
     return (
       <>
@@ -444,6 +464,7 @@ function RowActions({
       </>
     );
   }
+
   if (section.id === 'abuse-events') {
     return (
       <button className="secondary" type="button" onClick={() => onAction('resolve-abuse')}>
@@ -451,6 +472,7 @@ function RowActions({
       </button>
     );
   }
+
   if (section.id === 'support-tickets') {
     return (
       <button className="secondary" type="button" onClick={() => onAction('respond-ticket')}>
@@ -458,6 +480,7 @@ function RowActions({
       </button>
     );
   }
+
   if (section.id === 'quotas') {
     return (
       <button className="secondary" type="button" onClick={() => onAction('quota-override')}>
@@ -465,6 +488,7 @@ function RowActions({
       </button>
     );
   }
+
   return null;
 }
 
@@ -479,6 +503,7 @@ function ActionDialog({
 }) {
   const [form, setForm] = useState<Record<string, string>>({});
   const fields = fieldsForAction(dialog.action);
+
   return (
     <div className="modal-backdrop" role="presentation">
       <form
@@ -555,6 +580,7 @@ function inferColumns(rows: AdminRecord[]) {
   const keys = new Set(
     rows.flatMap((row) => Object.keys(row)).filter((key) => !/secret|token|password|keyHash/i.test(key)),
   );
+
   return preferred
     .filter((key) => keys.has(key))
     .concat([...keys].filter((key) => !preferred.includes(key)).slice(0, 4));
@@ -564,31 +590,27 @@ function formatCell(value: unknown) {
   if (value === undefined || value === null) {
     return <span className="muted">-</span>;
   }
+
   if (typeof value === 'boolean') {
     return value ? 'yes' : 'no';
   }
+
   if (typeof value === 'object') {
     return <code>{JSON.stringify(redactRecord(value as AdminRecord)).slice(0, 140)}</code>;
   }
-  return String(value);
-}
 
-function redactRecord(record: AdminRecord) {
-  return Object.fromEntries(
-    Object.entries(record).map(([key, value]) => [
-      /secret|token|password|keyHash/i.test(key) ? key : key,
-      /secret|token|password|keyHash/i.test(key) ? '[redacted]' : value,
-    ]),
-  );
+  return String(value);
 }
 
 function statusClass(status: string) {
   if (/healthy|configured|ok|ready|live/i.test(status)) {
     return 'status';
   }
+
   if (/not-configured|degraded|pending|starting/i.test(status)) {
     return 'status warn';
   }
+
   return 'status bad';
 }
 
@@ -598,6 +620,7 @@ function fieldsForAction(action: string): ActionField[] {
   if (action === 'respond-ticket') {
     return [{ name: 'response', label: 'Response', kind: 'textarea', required: true }];
   }
+
   if (action === 'quota-override') {
     return [
       { name: 'key', label: 'Quota key', required: true },
@@ -605,6 +628,7 @@ function fieldsForAction(action: string): ActionField[] {
       { name: 'reason', label: 'Reason', required: true },
     ];
   }
+
   if (action === 'create-flag') {
     return [
       { name: 'key', label: 'Flag key', required: true },
@@ -612,14 +636,17 @@ function fieldsForAction(action: string): ActionField[] {
       { name: 'rolloutPercent', label: 'Rollout percent', required: false },
     ];
   }
+
   if (action === 'announcement' || action === 'incident') {
     return [{ name: 'message', label: 'Message', kind: 'textarea', required: true }];
   }
+
   return [];
 }
 
 function adminActionRequest(action: string, payload?: AdminRecord, body: Record<string, unknown> = {}) {
   const id = String(payload?.id ?? '');
+
   switch (action) {
     case 'suspend-user':
       return { method: 'POST', path: `/admin/users/${id}/suspend` };

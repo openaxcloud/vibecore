@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  commentSyntaxForLanguage,
   computeEnvMaskLineRanges,
   computeEnvMaskRanges,
   computeEnvRevealLines,
@@ -171,6 +172,69 @@ describe('scope-aware symbol rename matching', () => {
     const matches = findRenameMatches(source, 'user');
 
     expect(matches).toHaveLength(2);
+  });
+
+  it('maps language ids and file paths to the correct comment syntax', () => {
+    expect(commentSyntaxForLanguage('python')).toBe('hash');
+    expect(commentSyntaxForLanguage('ruby')).toBe('hash');
+    expect(commentSyntaxForLanguage('shellscript')).toBe('hash');
+    expect(commentSyntaxForLanguage('script.py')).toBe('hash');
+    expect(commentSyntaxForLanguage('typescript')).toBe('c-family');
+    expect(commentSyntaxForLanguage('component.tsx')).toBe('c-family');
+    expect(commentSyntaxForLanguage(undefined)).toBe('c-family');
+  });
+
+  it('masks Python "#" comments and triple-quoted docstrings (does not corrupt them on rename)', () => {
+    const source = [
+      'def login(user):', // code usage of `user`
+      '    """Authenticate the user and return user session.', // docstring — must NOT match
+      '    The user argument is the username.', // docstring continuation — must NOT match
+      '    """',
+      '    # log the user in here', // hash comment — must NOT match
+      '    return user', // code usage
+    ].join('\n');
+
+    const matches = findRenameMatches(source, 'user', 'python');
+
+    /*
+     * Only the two real `user` identifier sites (the parameter in the def and the
+     * return). Every `user` inside the docstring and the `#` comment is masked.
+     */
+    expect(matches).toHaveLength(2);
+
+    for (const match of matches) {
+      expect(source.slice(match.start, match.end)).toBe('user');
+    }
+
+    const docstringOccurrence = source.indexOf('user and return');
+    const commentOccurrence = source.indexOf('user in here');
+    expect(matches.some((match) => match.start === docstringOccurrence)).toBe(false);
+    expect(matches.some((match) => match.start === commentOccurrence)).toBe(false);
+  });
+
+  it('treats a Python triple-quoted block as one span, not three empty quotes', () => {
+    const source = ["x = '''", 'user lives entirely inside this docstring', "'''", 'user = 1'].join('\n');
+
+    const spans = findStringAndCommentSpans(source, 'hash');
+    const masked = (needleIndex: number) => spans.some((span) => needleIndex >= span.start && needleIndex < span.end);
+
+    // The identifier inside the docstring body is masked...
+    expect(masked(source.indexOf('user lives'))).toBe(true);
+
+    // ...but the real `user = 1` after the closing ''' is code.
+    const matches = findRenameMatches(source, 'user', 'python');
+    expect(matches).toHaveLength(1);
+    expect(source.slice(matches[0].start, matches[0].end)).toBe('user');
+    expect(matches[0].start).toBe(source.lastIndexOf('user'));
+  });
+
+  it('does not treat "#" as a comment for C-family languages', () => {
+    // In JS, `#` is a private-field sigil, not a comment — must stay code.
+    const source = ['class C {', '  #user = 1;', '  get() { return this.#user; }', '}'].join('\n');
+
+    const spans = findStringAndCommentSpans(source, 'c-family');
+
+    expect(spans).toHaveLength(0);
   });
 });
 

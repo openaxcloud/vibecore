@@ -17,6 +17,25 @@ export interface SyncableCookie {
 }
 
 /**
+ * Build the origin-scoped filter used when fetching cookies to forward to the
+ * app's own (auth-bearing) Remix server.
+ *
+ * The BrowserWindow runs in the default (unpartitioned) session, which is shared
+ * with in-app previews and AI-generated user apps. Fetching cookies with an empty
+ * filter (`{}`) returns *every* cookie in that session, so cookies set by those
+ * other origins leaked into requests to our own server and onto disk. Passing a
+ * `url` filter makes Electron apply standard cookie matching (domain/path/secure)
+ * and only return cookies that legitimately belong to the request origin.
+ *
+ * `requestUrl` is the incoming request URL; we only build a filter from it once
+ * the caller has confirmed it targets the app's own server port, so its origin is
+ * the app origin.
+ */
+export function appOriginCookieFilter(requestUrl: string): { url: string } {
+  return { url: new URL(requestUrl).origin };
+}
+
+/**
  * Build a stable signature for a single cookie. Only name+value participate in
  * the request `Cookie` header we forward, so a value change is the only thing
  * worth re-persisting for.

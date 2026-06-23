@@ -338,6 +338,52 @@ describe('WebContainerRuntimeAdapter', () => {
     expect(events[events.length - 1]).toBe('error');
   });
 
+  it('swallows write rejections after the terminal process input stream is closed', async () => {
+    const webcontainer = createWebContainer();
+    const adapter = new WebContainerRuntimeAdapter({ webcontainer });
+    await adapter.boot();
+
+    /*
+     * A process whose input stream is already closed — getWriter().write() will
+     * reject, mirroring an xterm keystroke arriving after the shell exited or was
+     * killed. The adapter must NOT surface that as an unhandled rejection.
+     */
+    const closedInput = new WritableStream<string>();
+    await closedInput.close();
+
+    const exitedProcess: WebContainerProcessLike = {
+      input: closedInput,
+      output: new ReadableStream<string>({
+        start(controller) {
+          controller.close();
+        },
+      }),
+      exit: Promise.resolve(0),
+      kill: vi.fn(),
+      resize: vi.fn(),
+    };
+
+    (webcontainer.spawn as ReturnType<typeof vi.fn>).mockResolvedValueOnce(exitedProcess);
+
+    const session = await adapter.openTerminal();
+
+    // Calling write() must not throw synchronously and must not return a rejecting Promise.
+    let unhandled: unknown;
+
+    const onRejection = (reason: unknown) => {
+      unhandled = reason;
+    };
+    process.on('unhandledRejection', onRejection);
+
+    expect(() => session.write('keystroke after exit')).not.toThrow();
+
+    // Give any pending microtask / rejection a tick to surface.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    process.off('unhandledRejection', onRejection);
+
+    expect(unhandled).toBeUndefined();
+  });
+
   it('imports real zip archives into the workspace filesystem', async () => {
     const webcontainer = createWebContainer();
     const adapter = new WebContainerRuntimeAdapter({ webcontainer });

@@ -1,5 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { createCookieSnapshot, diffCookies, recordCookies } from './cookie-sync';
+import { appOriginCookieFilter, createCookieSnapshot, diffCookies, recordCookies } from './cookie-sync';
+
+describe('appOriginCookieFilter', () => {
+  it('scopes the cookie lookup to the request origin (not an empty all-cookies filter)', () => {
+    expect(appOriginCookieFilter('http://localhost:5173/some/path?q=1')).toEqual({
+      url: 'http://localhost:5173',
+    });
+  });
+
+  it('drops path, query and hash so only the origin participates in cookie matching', () => {
+    expect(appOriginCookieFilter('http://localhost:5173/auth/callback#frag')).toEqual({
+      url: 'http://localhost:5173',
+    });
+  });
+
+  it('distinguishes app origin from a sibling preview port on the same host', () => {
+    /*
+     * In-app previews / AI apps run on other localhost ports in the shared default
+     * session; the filter must be specific to the app port so their cookies are excluded.
+     */
+    expect(appOriginCookieFilter('http://localhost:5173/').url).not.toEqual(
+      appOriginCookieFilter('http://localhost:3000/').url,
+    );
+  });
+});
 
 describe('cookie-sync', () => {
   it('returns all cookies on first sync (empty snapshot)', () => {

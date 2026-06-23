@@ -1,22 +1,22 @@
 /// <reference types="vite/client" />
-import { createRequestHandler } from 'react-router';
+import path from 'node:path';
 import electron, { app, BrowserWindow, protocol, session } from 'electron';
 import log from 'electron-log';
-import path from 'node:path';
+import { createRequestHandler } from 'react-router';
 import * as pkg from '../../package.json';
-import { setupAutoUpdater } from './utils/auto-update';
-import { isDev, DEFAULT_PORT } from './utils/constants';
-import { initViteServer, viteServer } from './utils/vite-server';
-import { setupMenu } from './ui/menu';
-import { createWindow } from './ui/window';
-import { initCookies, storeCookies } from './utils/cookie';
-import { loadServerBuild, serveAsset } from './utils/serve';
-import { reloadOnChange } from './utils/reload';
 import { setupDesktopAuthIpc } from './desktop/auth';
 import { setupCrashReporting } from './desktop/crash-reporting';
 import { setupDeepLinks } from './desktop/deep-links';
 import { setupNativeDesktopServices } from './desktop/native-services';
-import { createCookieSnapshot, diffCookies, recordCookies } from './utils/cookie-sync';
+import { setupMenu } from './ui/menu';
+import { createWindow } from './ui/window';
+import { setupAutoUpdater } from './utils/auto-update';
+import { isDev, DEFAULT_PORT } from './utils/constants';
+import { initCookies, storeCookies } from './utils/cookie';
+import { appOriginCookieFilter, createCookieSnapshot, diffCookies, recordCookies } from './utils/cookie-sync';
+import { reloadOnChange } from './utils/reload';
+import { loadServerBuild, serveAsset } from './utils/serve';
+import { initViteServer, viteServer } from './utils/vite-server';
 
 Object.assign(console, log.functions);
 
@@ -74,6 +74,7 @@ declare global {
 }
 
 let mainWindow: BrowserWindow | undefined;
+
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 
 /*
@@ -146,8 +147,17 @@ function startApp() {
           return res;
         }
 
-        // Forward all cookies to remix server
-        const cookies = await session.defaultSession.cookies.get({});
+        /*
+         * Forward only the app origin's own cookies to the remix server. The
+         * BrowserWindow shares the default (unpartitioned) session with in-app
+         * previews and AI-generated user apps running on other localhost ports,
+         * so an empty filter (`{}`) would return every cookie in that session and
+         * leak foreign-origin cookies into requests to our own auth-bearing server
+         * (and onto disk). `appOriginCookieFilter` scopes the lookup to this
+         * request's origin — safe here because we've already confirmed the request
+         * targets the app's own server port above.
+         */
+        const cookies = await session.defaultSession.cookies.get(appOriginCookieFilter(req.url));
 
         if (cookies.length > 0) {
           req.headers.set('Cookie', cookies.map((c) => `${c.name}=${c.value}`).join('; '));

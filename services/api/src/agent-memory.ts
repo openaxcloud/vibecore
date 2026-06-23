@@ -40,6 +40,7 @@ export interface AgentMemorySearchInput {
   scopes?: AgentMemoryScope[];
   memoryTypes?: AgentMemoryType[];
   tags?: string[];
+
   /*
    * When false, the search does not bump accessCount/lastUsedAt on the matched
    * rows. Used by the dedup probe inside remember(), which must not inflate the
@@ -751,6 +752,7 @@ export class AgentMemoryService {
       memoryTypes: [memoryType],
       tags: tags.length ? tags : undefined,
       limit: 1,
+
       // Dedup probe — must not inflate the matched memory's usage stats.
       trackAccess: false,
     });
@@ -775,21 +777,30 @@ export class AgentMemoryService {
     const importance = scoreImportance(content, input.importance ?? duplicate?.importance);
 
     if (duplicate) {
-      return {
-        memory: await this.repository.update({
-          id: duplicate.id,
-          userId: input.userId,
-          content,
-          summary,
-          embedding,
-          metadata,
-          memoryType,
-          tags,
-          references: mergedReferences,
-          importance,
-        }),
-        updated: true,
-      };
+      const updated = await this.repository.update({
+        id: duplicate.id,
+        userId: input.userId,
+        content,
+        summary,
+        embedding,
+        metadata,
+        memoryType,
+        tags,
+        references: mergedReferences,
+        importance,
+      });
+
+      /*
+       * update() returns undefined when the duplicate row vanished (archived /
+       * deleted concurrently) between the dedup search and the update. Returning
+       * { memory: undefined, updated: true } here would report a phantom success
+       * (route replies 202) while the caller's content is silently dropped.
+       * Fall through to the normal create() path so the memory is actually
+       * persisted as a fresh row.
+       */
+      if (updated) {
+        return { memory: updated, updated: true };
+      }
     }
 
     /*
@@ -829,8 +840,10 @@ export class AgentMemoryService {
         updated: false,
       };
     } catch (error) {
-      // create() enforces the cap atomically; a concurrent writer may have filled
-      // the scope after the pre-check above — surface it as a clean skip, not a 500.
+      /*
+       * create() enforces the cap atomically; a concurrent writer may have filled
+       * the scope after the pre-check above — surface it as a clean skip, not a 500.
+       */
       if ((error as { code?: string } | undefined)?.code === 'AGENT_MEMORY_QUOTA') {
         return { skipped: 'quota_exceeded' };
       }

@@ -440,17 +440,51 @@ function findWordMatches(contents: string, word: string) {
 }
 
 /**
- * Compute the document offsets that fall inside a string literal or a comment
- * for the C-family / JS-family syntaxes this editor indexes. Used to keep rename
- * (F2) from rewriting an identifier where it merely appears as text — inside a
- * string, a line/block comment, etc. — which would corrupt unrelated content.
+ * The lexical family a file uses for comments and string literals. This selects
+ * which masking contexts {@link findStringAndCommentSpans} recognises so a rename
+ * (F2) does not rewrite identifiers that merely appear inside comments/strings.
+ *
+ * - `c-family`: `//` and `/* *\/` comments, `' " \`` quoted strings (JS/TS, Go,
+ *   Rust, Java, C/C++, C#, CSS, …).
+ * - `hash`: `#` line comments plus Python triple-quoted (`'''`/`"""`) strings and
+ *   single-line `' " ` quotes (Python, Ruby, shell, …).
+ */
+export type CommentSyntax = 'c-family' | 'hash';
+
+const HASH_COMMENT_LANGUAGES = new Set(['python', 'ruby', 'shell', 'shellscript', 'bash', 'sh', 'yaml', 'toml']);
+
+/**
+ * Map a Monaco language id (or a file path) to the lexical family whose
+ * comment/string syntax should be masked before computing rename edits. Defaults
+ * to the C-family scanner, which is correct for the JS/TS/Go/Rust/Java/C/C#/CSS
+ * languages this editor indexes.
+ */
+export function commentSyntaxForLanguage(languageOrPath?: string): CommentSyntax {
+  if (!languageOrPath) {
+    return 'c-family';
+  }
+
+  const language = languageOrPath.includes('.') ? languageForPath(languageOrPath) : languageOrPath;
+
+  return HASH_COMMENT_LANGUAGES.has(language) ? 'hash' : 'c-family';
+}
+
+/**
+ * Compute the document offsets that fall inside a string literal or a comment for
+ * the syntax `syntax` describes. Used to keep rename (F2) from rewriting an
+ * identifier where it merely appears as text — inside a string, a line/block
+ * comment, a `#` comment, or a Python triple-quoted docstring — which would
+ * corrupt unrelated content.
  *
  * This is a deliberately conservative lexical scan (not a full parser): it only
- * needs to recognise the three masking contexts that produce false-positive word
+ * needs to recognise the masking contexts that produce false-positive word
  * matches. Anything it cannot classify is treated as code, so a rename is never
  * silently dropped on a real identifier.
  */
-export function findStringAndCommentSpans(contents: string): Array<{ start: number; end: number }> {
+export function findStringAndCommentSpans(
+  contents: string,
+  syntax: CommentSyntax = 'c-family',
+): Array<{ start: number; end: number }> {
   const spans: Array<{ start: number; end: number }> = [];
   const length = contents.length;
 
@@ -460,8 +494,8 @@ export function findStringAndCommentSpans(contents: string): Array<{ start: numb
     const char = contents[index];
     const next = contents[index + 1];
 
-    // Line comment: // ... until end of line.
-    if (char === '/' && next === '/') {
+    // C-family line comment: // ... until end of line.
+    if (syntax === 'c-family' && char === '/' && next === '/') {
       const start = index;
       index += 2;
 
@@ -473,8 +507,8 @@ export function findStringAndCommentSpans(contents: string): Array<{ start: numb
       continue;
     }
 
-    // Block comment: /* ... */ (also covers JSDoc).
-    if (char === '/' && next === '*') {
+    // C-family block comment: /* ... */ (also covers JSDoc).
+    if (syntax === 'c-family' && char === '/' && next === '*') {
       const start = index;
       index += 2;
 
@@ -487,8 +521,53 @@ export function findStringAndCommentSpans(contents: string): Array<{ start: numb
       continue;
     }
 
+    // Hash line comment: # ... until end of line (Python/Ruby/shell/YAML).
+    if (syntax === 'hash' && char === '#') {
+      const start = index;
+      index++;
+
+      while (index < length && contents[index] !== '\n') {
+        index++;
+      }
+
+      spans.push({ start, end: index });
+      continue;
+    }
+
+    /*
+     * Python triple-quoted string / docstring: ''' or """ spanning newlines,
+     * with backslash escapes. Must be tried before the single-quote case so the
+     * three opening quotes are consumed as one delimiter rather than three empty
+     * strings (which would leave the docstring body scanned as code).
+     */
+    if (syntax === 'hash' && (char === '"' || char === "'") && next === char && contents[index + 2] === char) {
+      const quote = char;
+      const start = index;
+      index += 3;
+
+      while (index < length) {
+        const stringChar = contents[index];
+
+        if (stringChar === '\\') {
+          index += 2;
+          continue;
+        }
+
+        if (stringChar === quote && contents[index + 1] === quote && contents[index + 2] === quote) {
+          index += 3;
+          break;
+        }
+
+        index++;
+      }
+
+      index = Math.min(length, index);
+      spans.push({ start, end: index });
+      continue;
+    }
+
     // String / template literal: ' " ` with backslash escapes.
-    if (char === '"' || char === "'" || char === '`') {
+    if (char === '"' || char === "'" || (syntax === 'c-family' && char === '`')) {
       const quote = char;
       const start = index;
       index++;
@@ -532,9 +611,13 @@ export function findStringAndCommentSpans(contents: string): Array<{ start: numb
  * string literal or comment. Backs the workspace rename/reference providers so
  * F2 rewrites the identifier as code, not every textual occurrence (which would
  * corrupt strings, comments, and same-named text elsewhere).
+ *
+ * `languageOrPath` selects the comment/string syntax to mask (e.g. a `.py`
+ * path or `'python'` language masks `#` comments and `'''`/`"""` docstrings),
+ * defaulting to the C-family syntax used by JS/TS/Go/Rust/Java/C/C#.
  */
-export function findRenameMatches(contents: string, word: string) {
-  const masked = findStringAndCommentSpans(contents);
+export function findRenameMatches(contents: string, word: string, languageOrPath?: string) {
+  const masked = findStringAndCommentSpans(contents, commentSyntaxForLanguage(languageOrPath));
 
   const isMasked = (start: number) => masked.some((span) => start >= span.start && start < span.end);
 
@@ -718,7 +801,7 @@ function installWorkspaceSemanticProviders(
         return entries.flatMap(([filePath, contents]) => {
           const targetModel = ensureModel(filePath, contents);
 
-          return findRenameMatches(contents, word.word).map((match) => ({
+          return findRenameMatches(contents, word.word, filePath).map((match) => ({
             uri: targetModel.uri,
             range: asRange(targetModel, match.start, match.end),
           }));
@@ -763,7 +846,7 @@ function installWorkspaceSemanticProviders(
         const contents = model.getValue();
 
         return {
-          edits: findRenameMatches(contents, word.word).map((match) => ({
+          edits: findRenameMatches(contents, word.word, model.getLanguageId()).map((match) => ({
             resource: model.uri,
             textEdit: { range: asRange(model, match.start, match.end), text: newName },
             versionId: model.getVersionId(),
