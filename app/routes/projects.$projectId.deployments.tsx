@@ -8,6 +8,7 @@ import {
   History,
   RotateCcw,
   Rocket,
+  Settings,
   ShieldCheck,
   Sparkles,
   TerminalSquare,
@@ -25,6 +26,8 @@ import {
 } from './projects.$projectId.deployments.view';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { ComputeTierPreview } from '~/components/deploy/ComputeTierPreview';
+import { DeploySubNav, type DeployView } from '~/components/deploy/DeploySubNav';
+import { DeploymentOverview } from '~/components/deploy/DeploymentOverview';
 import { DeploymentTypeSelector } from '~/components/deploy/DeploymentTypeSelector';
 import {
   DEFAULT_DEPLOYMENT_TYPE,
@@ -247,6 +250,9 @@ export default function ProjectDeploymentsPage() {
    */
   const [deployType, setDeployType] = useState<DeploymentTypeId>(DEFAULT_DEPLOYMENT_TYPE);
 
+  // Replit-style sub-nav: Overview · Logs · Domains · Manage.
+  const [view, setView] = useState<DeployView>('overview');
+
   return (
     <ProjectShell
       projectId={project.id}
@@ -261,151 +267,258 @@ export default function ProjectDeploymentsPage() {
           {actionData.error}
         </div>
       ) : null}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
-        <section className="grid gap-4">
-          <div className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md md:grid-cols-3">
-            <Metric
-              label="Latest status"
-              value={latest?.status ?? 'None'}
-              tone={latest?.status === 'READY' ? 'good' : 'muted'}
-            />
-            <Metric label="Environment" value={latest?.environment ?? 'Not deployed'} />
-            <Metric label="Live URL" value={safeHostname(latest?.url) ?? 'No URL'} />
-          </div>
+      <DeploySubNav active={view} onSelect={setView} />
 
-          <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-md">
-            <div className="flex items-center justify-between border-b border-bolt-elements-borderColor px-5 py-4">
-              <div>
-                <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Deployment history</h2>
-                <p className="text-xs text-bolt-elements-textSecondary">
-                  Redeploy, cancel or rollback without leaving the project.
-                </p>
-              </div>
-              <History className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden />
+      {view === 'logs' ? <DeployLogsView deployment={latest} /> : null}
+      {view === 'domains' ? <DeployDomainsView deployment={latest} /> : null}
+      {view === 'manage' ? (
+        <DeployHistory deployments={data.deployments} busy={busy} workspaceId={workspaceId} />
+      ) : null}
+
+      {view === 'overview' ? (
+        <div className="mt-4 grid gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
+          <section className="grid gap-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Form method="post" className="contents">
+                <input type="hidden" name="intent" value="redeploy" />
+                <input type="hidden" name="deploymentId" value={latest?.id ?? ''} />
+                <input type="hidden" name="workspaceId" value={workspaceId} />
+                <DeployActionButton primary type="submit" disabled={busy || !latest}>
+                  <Rocket className="h-3.5 w-3.5" aria-hidden /> Republish
+                </DeployActionButton>
+              </Form>
+              <DeployActionButton type="button" onClick={() => setView('manage')}>
+                <Settings className="h-3.5 w-3.5" aria-hidden /> Adjust settings
+              </DeployActionButton>
+              <DeployActionButton type="button" disabled title="Security scanning is coming soon">
+                <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Run security scan
+              </DeployActionButton>
             </div>
-            <div className="divide-y divide-bolt-elements-borderColor">
-              {data.deployments.length ? (
-                data.deployments.map((deployment) => (
-                  <DeploymentRow key={deployment.id} deployment={deployment} busy={busy} workspaceId={workspaceId} />
-                ))
-              ) : (
-                <div className="grid place-items-center gap-3 px-5 py-14 text-center">
-                  <Rocket className="h-8 w-8 text-bolt-elements-textTertiary" aria-hidden />
-                  <div>
-                    <p className="text-sm font-medium text-bolt-elements-textPrimary">No deployments yet</p>
-                    <p className="text-xs text-bolt-elements-textSecondary">
-                      Use the wizard to create the first preview or production release.
-                    </p>
+
+            <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">Production</h2>
+            <DeploymentOverview deployment={latest} deploymentTypeId={deployType} />
+          </section>
+
+          <div className="grid gap-4">
+            <div className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md">
+              <DeploymentTypeSelector selected={deployType} onSelect={setDeployType} />
+            </div>
+
+            {deployType === 'static' ? (
+              <Form
+                method="post"
+                className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md"
+              >
+                <input type="hidden" name="workspaceId" value={workspaceId} />
+                <div>
+                  <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Deployment wizard</h2>
+                  <p className="text-xs text-bolt-elements-textSecondary">
+                    Provider, environment, build command, output directory and controlled secret injection.
+                  </p>
+                </div>
+
+                <fieldset className="grid gap-2 border-0 p-0">
+                  <legend className="text-xs font-medium uppercase tracking-[0.04em] text-bolt-elements-textTertiary">
+                    Provider
+                  </legend>
+                  <div className="grid gap-2">
+                    {providers.map((provider, index) => {
+                      const Icon = provider.icon;
+                      return (
+                        <label
+                          key={provider.id}
+                          className="flex cursor-pointer items-center gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 transition-colors hover:bg-bolt-elements-background-depth-3"
+                        >
+                          <input
+                            className="h-4 w-4 accent-bolt-elements-focus"
+                            type="radio"
+                            name="provider"
+                            value={provider.id}
+                            defaultChecked={index === 0}
+                          />
+                          <Icon className="h-4 w-4 text-bolt-elements-item-contentAccent" aria-hidden />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-medium text-bolt-elements-textPrimary">
+                              {provider.name}
+                            </span>
+                            <span className="block truncate text-xs text-bolt-elements-textSecondary">
+                              {provider.detail}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
+                </fieldset>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field as="select" label="Environment" name="environment" defaultValue="preview">
+                    <option value="preview">Preview</option>
+                    <option value="staging">Staging</option>
+                    <option value="production">Production</option>
+                  </Field>
+                  <Field label="Framework" name="framework" placeholder="Auto detect" />
                 </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <div className="grid gap-4">
-          <div className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md">
-            <DeploymentTypeSelector selected={deployType} onSelect={setDeployType} />
-          </div>
-
-          {deployType === 'static' ? (
-            <Form
-              method="post"
-              className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md"
-            >
-              <input type="hidden" name="workspaceId" value={workspaceId} />
-              <div>
-                <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Deployment wizard</h2>
-                <p className="text-xs text-bolt-elements-textSecondary">
-                  Provider, environment, build command, output directory and controlled secret injection.
-                </p>
-              </div>
-
-              <fieldset className="grid gap-2 border-0 p-0">
-                <legend className="text-xs font-medium uppercase tracking-[0.04em] text-bolt-elements-textTertiary">
-                  Provider
-                </legend>
-                <div className="grid gap-2">
-                  {providers.map((provider, index) => {
-                    const Icon = provider.icon;
-                    return (
-                      <label
-                        key={provider.id}
-                        className="flex cursor-pointer items-center gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 transition-colors hover:bg-bolt-elements-background-depth-3"
-                      >
-                        <input
-                          className="h-4 w-4 accent-bolt-elements-focus"
-                          type="radio"
-                          name="provider"
-                          value={provider.id}
-                          defaultChecked={index === 0}
-                        />
-                        <Icon className="h-4 w-4 text-bolt-elements-item-contentAccent" aria-hidden />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-medium text-bolt-elements-textPrimary">
-                            {provider.name}
-                          </span>
-                          <span className="block truncate text-xs text-bolt-elements-textSecondary">
-                            {provider.detail}
-                          </span>
-                        </span>
-                      </label>
-                    );
-                  })}
+                <Field label="Build command" name="buildCommand" defaultValue="npm run build" />
+                <Field label="Output directory" name="outputDirectory" defaultValue="dist" />
+                <Field label="Git branch" name="branch" placeholder="main" />
+                <div className="grid gap-1">
+                  <Field label="Custom domain" name="customDomain" placeholder="app.example.com" />
+                  <p className="text-[11px] text-bolt-elements-textTertiary">
+                    Optional. After publishing, point your domain&apos;s DNS (CNAME) at the deployment. Managed TLS
+                    certificates for custom domains are coming soon.
+                  </p>
                 </div>
-              </fieldset>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field as="select" label="Environment" name="environment" defaultValue="preview">
-                  <option value="preview">Preview</option>
-                  <option value="staging">Staging</option>
-                  <option value="production">Production</option>
-                </Field>
-                <Field label="Framework" name="framework" placeholder="Auto detect" />
-              </div>
-              <Field label="Build command" name="buildCommand" defaultValue="npm run build" />
-              <Field label="Output directory" name="outputDirectory" defaultValue="dist" />
-              <Field label="Git branch" name="branch" placeholder="main" />
-              <div className="grid gap-1">
-                <Field label="Custom domain" name="customDomain" placeholder="app.example.com" />
-                <p className="text-[11px] text-bolt-elements-textTertiary">
-                  Optional. After publishing, point your domain&apos;s DNS (CNAME) at the deployment. Managed TLS
-                  certificates for custom domains are coming soon.
-                </p>
-              </div>
-              <Field label="GitHub repository URL" name="repositoryUrl" placeholder="https://github.com/acme/app" />
-              <Field
-                as="textarea"
-                label="Environment variables"
-                name="envVars"
-                placeholder={'PUBLIC_API_URL=https://api.example.com\nSECRET_TOKEN=redacted-in-logs'}
-              />
-              <Field
-                label="Inject user-scoped secrets"
-                name="injectSecrets"
-                placeholder="DATABASE_URL,STRIPE_SECRET_KEY"
-              />
-              <label className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
-                <input
-                  className="h-4 w-4 accent-bolt-elements-focus"
-                  type="checkbox"
-                  name="previewDeployment"
-                  defaultChecked
+                <Field label="GitHub repository URL" name="repositoryUrl" placeholder="https://github.com/acme/app" />
+                <Field
+                  as="textarea"
+                  label="Environment variables"
+                  name="envVars"
+                  placeholder={'PUBLIC_API_URL=https://api.example.com\nSECRET_TOKEN=redacted-in-logs'}
                 />
-                Create preview deployment URL when environment is not production.
-              </label>
+                <Field
+                  label="Inject user-scoped secrets"
+                  name="injectSecrets"
+                  placeholder="DATABASE_URL,STRIPE_SECRET_KEY"
+                />
+                <label className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
+                  <input
+                    className="h-4 w-4 accent-bolt-elements-focus"
+                    type="checkbox"
+                    name="previewDeployment"
+                    defaultChecked
+                  />
+                  Create preview deployment URL when environment is not production.
+                </label>
 
-              <Button type="submit" disabled={busy} className="gap-2">
-                <Rocket className="h-4 w-4" aria-hidden />
-                {busy ? 'Deploying...' : 'Deploy project'}
-              </Button>
-            </Form>
+                <Button type="submit" disabled={busy} className="gap-2">
+                  <Rocket className="h-4 w-4" aria-hidden />
+                  {busy ? 'Deploying...' : 'Deploy project'}
+                </Button>
+              </Form>
+            ) : (
+              <ComingSoonPanel type={getDeploymentType(deployType)} />
+            )}
+          </div>
+        </div>
+      ) : null}
+    </ProjectShell>
+  );
+}
+
+/** Republish/Adjust/Security action buttons — Replit-measured 32px/r6/13.3px; primary = orange. */
+function DeployActionButton({
+  primary,
+  children,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { primary?: boolean }) {
+  return (
+    <button
+      {...props}
+      className={classNames(
+        'inline-flex h-[32px] items-center gap-1.5 rounded-[6px] px-3 text-[13.3px] font-medium disabled:opacity-60',
+        primary
+          ? 'font-semibold text-white hover:opacity-90'
+          : 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
+      )}
+      style={primary ? { background: 'var(--ecode-accent, #F26207)' } : undefined}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Logs view — the latest deployment's redacted build/deploy logs. */
+function DeployLogsView({ deployment }: { deployment?: Deployment }) {
+  const logs = deployment?.logs ?? [];
+
+  return (
+    <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-md">
+      <div className="flex items-center gap-2 border-b border-bolt-elements-borderColor px-4 py-3 text-[14px] font-medium text-bolt-elements-textPrimary">
+        <TerminalSquare className="h-4 w-4" aria-hidden /> Build &amp; deploy logs
+      </div>
+      <pre className="max-h-[480px] overflow-auto p-4 font-mono text-[12px] leading-5 text-bolt-elements-textSecondary">
+        {logs.length ? logs.map((log) => `[${log.level}] ${log.message}`).join('\n') : 'No logs yet'}
+      </pre>
+    </div>
+  );
+}
+
+/** Domains view — live URL + custom domain + DNS guidance. */
+function DeployDomainsView({ deployment }: { deployment?: Deployment }) {
+  return (
+    <div className="mt-4 grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md">
+      <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">Domains</h2>
+      <div className="grid gap-2 text-[14px]">
+        <div className="flex items-center gap-2">
+          <Globe2 className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden />
+          {deployment?.url ? (
+            <a
+              href={deployment.url}
+              target="_blank"
+              rel="noreferrer"
+              className="truncate text-[var(--ecode-accent,#F26207)] hover:underline"
+            >
+              {deployment.url}
+            </a>
           ) : (
-            <ComingSoonPanel type={getDeploymentType(deployType)} />
+            <span className="text-bolt-elements-textTertiary">No live URL yet — publish first.</span>
           )}
         </div>
+        {deployment?.customDomain ? (
+          <div className="flex items-center gap-2">
+            <Globe2 className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden />
+            <span className="text-bolt-elements-textPrimary">{deployment.customDomain}</span>
+          </div>
+        ) : null}
       </div>
-    </ProjectShell>
+      <p className="text-[12px] text-bolt-elements-textTertiary">
+        Add a custom domain in the Overview wizard. After publishing, point your domain&apos;s DNS (CNAME) at the
+        deployment; managed TLS for custom domains is coming soon.
+      </p>
+    </div>
+  );
+}
+
+/** Manage view — full deployment history with redeploy/cancel/rollback. */
+function DeployHistory({
+  deployments,
+  busy,
+  workspaceId,
+}: {
+  deployments: Deployment[];
+  busy: boolean;
+  workspaceId: string;
+}) {
+  return (
+    <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-md">
+      <div className="flex items-center justify-between border-b border-bolt-elements-borderColor px-5 py-4">
+        <div>
+          <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">Deployment history</h2>
+          <p className="text-xs text-bolt-elements-textSecondary">
+            Redeploy, cancel or rollback without leaving the project.
+          </p>
+        </div>
+        <History className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden />
+      </div>
+      <div className="divide-y divide-bolt-elements-borderColor">
+        {deployments.length ? (
+          deployments.map((deployment) => (
+            <DeploymentRow key={deployment.id} deployment={deployment} busy={busy} workspaceId={workspaceId} />
+          ))
+        ) : (
+          <div className="grid place-items-center gap-3 px-5 py-14 text-center">
+            <Rocket className="h-8 w-8 text-bolt-elements-textTertiary" aria-hidden />
+            <div>
+              <p className="text-sm font-medium text-bolt-elements-textPrimary">No deployments yet</p>
+              <p className="text-xs text-bolt-elements-textSecondary">
+                Use the Overview wizard to create the first preview or production release.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -614,22 +727,6 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function Metric({ label, value, tone = 'muted' }: { label: string; value: string; tone?: 'good' | 'muted' }) {
-  return (
-    <div className="min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
-      <p className="text-xs text-bolt-elements-textSecondary">{label}</p>
-      <p
-        className={classNames(
-          'mt-2 truncate text-sm font-semibold',
-          tone === 'good' ? 'text-green-300' : 'text-bolt-elements-textPrimary',
-        )}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}
-
 function Field({
   label,
   name,
@@ -672,18 +769,6 @@ function Field({
       )}
     </label>
   );
-}
-
-function safeHostname(url?: string): string | null {
-  if (!url) {
-    return null;
-  }
-
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return url;
-  }
 }
 
 function parseEnvVars(value: string) {
