@@ -5,7 +5,6 @@ import {
   Bookmark,
   Calendar,
   Code2,
-  Eye,
   Globe2,
   Heart,
   Layers,
@@ -17,7 +16,6 @@ import {
   Sparkles,
   Target,
   Trophy,
-  TrendingUp,
   Users,
   Zap,
 } from 'lucide-react';
@@ -206,6 +204,11 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
                 Visitors see a marketing page. Signed-in builders continue into the IDE, where auth, files, terminal,
                 preview and deployment controls remain part of the real product.
               </p>
+              <ProductCapture
+                src="/ecode-static/assets/product/ide.png"
+                alt="E-Code IDE with file tree, editor and live preview"
+                caption="The preserved E-Code IDE your template opens into."
+              />
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               {[
@@ -272,8 +275,8 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
     });
   }, [activeCategory, lowerSearchQuery, posts]);
 
-  const totalMembers = contributors.length > 0 ? '12.5K' : 'Public';
   const activeChallenges = challenges.length.toString();
+  const programCount = events.length.toString();
 
   return (
     <PublicShell>
@@ -287,7 +290,7 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
           metrics={[
             { label: 'Public discussions', value: posts.length.toString() },
             { label: 'Active challenges', value: activeChallenges },
-            { label: 'Members', value: totalMembers },
+            { label: 'Upcoming programs', value: programCount },
           ]}
           icon={<Users className="h-5 w-5" aria-hidden />}
         />
@@ -408,7 +411,7 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
                 </MarketingLinkButton>
               </CommunitySidebarPanel>
 
-              <CommunitySidebarPanel title="Top contributors" icon={<TrendingUp className="h-4 w-4" aria-hidden />}>
+              <CommunitySidebarPanel title="Top contributors" icon={<Users className="h-4 w-4" aria-hidden />}>
                 <div className="space-y-3">
                   {contributors.map((contributor) => (
                     <CommunityContributorRow key={contributor.id} contributor={contributor} />
@@ -432,6 +435,11 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
                 Community content remains readable. Participation, private files and workspace controls stay behind the
                 authenticated product flow.
               </p>
+              <ProductCapture
+                src="/ecode-static/assets/product/dashboard.png"
+                alt="E-Code project dashboard showing real workspaces and deployment status"
+                caption="The dashboard you continue into after signing in."
+              />
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {events.map((event) => (
@@ -524,6 +532,24 @@ function ResourceHero({
         </div>
       </div>
     </section>
+  );
+}
+
+function ProductCapture({ src, alt, caption }: { src: string; alt: string; caption: string }) {
+  return (
+    <figure className="mt-8 overflow-hidden rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] shadow-[0_24px_80px_-48px_rgba(242,98,7,0.55)]">
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        className="block h-auto w-full"
+        sizes="(min-width: 1024px) 40vw, 100vw"
+      />
+      <figcaption className="border-t border-[var(--ecode-border)] px-4 py-3 text-[12px] text-[var(--ecode-text-muted)]">
+        {caption}
+      </figcaption>
+    </figure>
   );
 }
 
@@ -678,8 +704,7 @@ function CommunityFeedCard({ post }: { post: PublicCommunityPost }) {
           </div>
           <p className="mt-2 text-[13px] text-[var(--ecode-text-muted)]">
             by <span className="font-semibold text-[var(--ecode-text-secondary)]">{post.authorName}</span> @
-            {post.authorHandle} · {post.authorReputation.toLocaleString()} rep ·{' '}
-            <time dateTime={post.updatedAt}>{post.updatedAt.slice(0, 10)}</time>
+            {post.authorHandle} · <time dateTime={post.updatedAt}>{post.updatedAt.slice(0, 10)}</time>
           </p>
           <p className="mt-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]">{post.summary}</p>
           <div className="mt-5 flex flex-wrap gap-2">
@@ -694,22 +719,18 @@ function CommunityFeedCard({ post }: { post: PublicCommunityPost }) {
               <ActionMetric
                 href={loginReturnTo(`/community/post/${post.id}`)}
                 icon={<Heart className="h-4 w-4" aria-hidden />}
-                label={post.likes.toString()}
+                label="Like"
               />
               <ActionMetric
                 href={`/community/post/${post.id}`}
                 icon={<MessageSquare className="h-4 w-4" aria-hidden />}
-                label={post.comments.toString()}
+                label="Discuss"
               />
               <ActionMetric
                 href={loginReturnTo(`/community/post/${post.id}`)}
                 icon={<Bookmark className="h-4 w-4" aria-hidden />}
                 label="Save"
               />
-              <span className="inline-flex items-center gap-1">
-                <Eye className="h-4 w-4" aria-hidden />
-                {post.views.toLocaleString()} views
-              </span>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <Link
@@ -758,30 +779,32 @@ function CommunitySidebarPanel({ title, icon, children }: { title: string; icon:
 }
 
 function CommunityChallengeItem({ challenge }: { challenge: PublicCommunityChallenge }) {
-  const difficultyClass =
-    challenge.difficulty === 'easy'
-      ? 'text-emerald-600'
-      : challenge.difficulty === 'medium'
-        ? 'text-amber-600'
-        : 'text-red-600';
+  const difficultyAccent = challenge.difficulty === 'hard';
 
   return (
     <div className="border-b border-[var(--ecode-border)] pb-4 last:border-b-0 last:pb-0">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-[15px] font-bold text-[var(--ecode-text)]">{challenge.title}</h3>
-        <span className={classNames('text-[11px] font-semibold uppercase tracking-[0.16em]', difficultyClass)}>
+        <span
+          className={classNames(
+            'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.16em]',
+            difficultyAccent
+              ? 'border-[var(--ecode-accent)] text-[var(--ecode-accent)]'
+              : 'border-[var(--ecode-border)] text-[var(--ecode-text-muted)]',
+          )}
+        >
           {challenge.difficulty}
         </span>
       </div>
       <p className="mt-2 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">{challenge.description}</p>
       <div className="mt-3 flex flex-wrap gap-3 text-[12px] text-[var(--ecode-text-muted)]">
         <span className="inline-flex items-center gap-1">
-          <Users className="h-4 w-4" aria-hidden />
-          {challenge.participants} builders
+          <Layers className="h-4 w-4" aria-hidden />
+          Guided build
         </span>
         <span className="inline-flex items-center gap-1">
           <Target className="h-4 w-4" aria-hidden />
-          {challenge.submissions} submissions
+          Open to all members
         </span>
       </div>
       <Link
@@ -803,9 +826,7 @@ function CommunityContributorRow({ contributor }: { contributor: PublicCommunity
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-[13px] font-semibold text-[var(--ecode-text)]">{contributor.name}</p>
-        <p className="truncate text-[12px] text-[var(--ecode-text-muted)]">
-          @{contributor.handle} · {contributor.score.toLocaleString()} pts
-        </p>
+        <p className="truncate text-[12px] text-[var(--ecode-text-muted)]">@{contributor.handle}</p>
       </div>
       <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--ecode-surface-secondary)] px-2.5 py-1 text-[11px] text-[var(--ecode-text-secondary)]">
         <Award className="h-3.5 w-3.5 text-[var(--ecode-accent)]" aria-hidden />

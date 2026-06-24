@@ -185,8 +185,8 @@ export const ecodePricingPlans = [
     cta: 'Get Pro',
     popular: false,
     enterprise: false,
-    icon: <Users className="h-7 w-7" aria-hidden />,
-    gradient: 'from-blue-600 to-cyan-500',
+    icon: <Rocket className="h-7 w-7" aria-hidden />,
+    gradient: 'from-[var(--ecode-accent)] to-[#F99D25]',
     features: [
       '$100/mo of credits',
       'Up to 15 collaborators',
@@ -370,11 +370,11 @@ export function selectAiAgentTabContent(tab: AiAgentTab): {
   }
 }
 
-const aiPlatformStats = [
-  ['100K+', 'Apps Built'],
-  ['<60s', 'Average Build Time'],
-  ['100+', 'Languages Supported'],
-  ['99.9%', 'Success Rate'],
+const aiPlatformHighlights = [
+  ['Natural language', 'Describe the app in plain English'],
+  ['Full-stack output', 'Frontend, backend and data layer'],
+  ['100+ languages', 'TypeScript, Python, Node and more'],
+  ['One-click deploy', 'Ship to the cloud from the workspace'],
 ] as const;
 
 const aiPlatformFeatures = [
@@ -615,12 +615,11 @@ const deploymentWorkflow = [
   ['Monitor and iterate', 'Observe requests, latency, usage and release health after every push.'],
 ] as const;
 
-const bountiesStats = [
-  ['324', 'Active bounties'],
-  ['$3.4k', 'Avg payout'],
-  ['48 hrs', 'Time to hire'],
-  ['180+', 'Enterprise teams'],
-  ['5.2k', 'Completed builds'],
+const bountyHighlights = [
+  ['Outcome-based', 'Pay on accepted, validated delivery'],
+  ['Secure sandboxes', 'Isolated review workspaces per bounty'],
+  ['Managed payouts', 'Global payments handled for you'],
+  ['Governed access', 'SOC 2 aligned review processes'],
 ] as const;
 
 const bountyCategories = [
@@ -686,13 +685,13 @@ export function EcodeAiAgentPage() {
     <PublicShell>
       <MarketingMain>
         <section className="relative overflow-hidden bg-gradient-to-b from-bolt-elements-background-depth-1 to-bolt-elements-background-depth-2 py-16 sm:py-20">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(242,98,7,0.16),transparent_34%),radial-gradient(circle_at_80%_15%,rgba(14,165,233,0.16),transparent_28%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(242,98,7,0.16),transparent_34%),radial-gradient(circle_at_80%_15%,rgba(249,157,37,0.14),transparent_28%)]" />
           <Container className="relative grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
             <div>
               <Badge icon={Sparkles}>E-CODE AGENT 2.0 POWERED</Badge>
               <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-normal text-bolt-elements-textPrimary sm:text-5xl lg:text-6xl">
                 AI Agent v2{' '}
-                <span className="block bg-gradient-to-r from-[var(--ecode-accent)] via-amber-400 to-cyan-400 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-[var(--ecode-accent)] via-amber-400 to-[#F99D25] bg-clip-text text-transparent">
                   Build Apps with Natural Language
                 </span>
               </h1>
@@ -712,7 +711,7 @@ export function EcodeAiAgentPage() {
               <div className="mt-7 flex flex-wrap gap-4 text-sm text-bolt-elements-textSecondary">
                 {aiAgentProof.map((proof) => (
                   <span key={proof} className="inline-flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-hidden />
+                    <CheckCircle2 className="h-4 w-4 text-[var(--ecode-accent)]" aria-hidden />
                     {proof}
                   </span>
                 ))}
@@ -772,9 +771,9 @@ export function EcodeAiAgentPage() {
               title={selectedSegment.title}
               description={selectedSegment.description}
               metrics={[
-                ['47s', 'average build time'],
-                ['1,247', 'lines generated'],
-                ['23', 'files created'],
+                ['Full project', 'files and routes'],
+                ['Typed code', 'frontend and backend'],
+                ['Live preview', 'as it builds'],
               ]}
             />
             <div className="space-y-4">
@@ -812,14 +811,14 @@ export function EcodeAiAgentPage() {
               <Panel>
                 <h3 className="flex items-center gap-2 text-base font-semibold text-bolt-elements-textPrimary">
                   <Sparkles className="h-5 w-5 text-[var(--ecode-accent)]" aria-hidden />
-                  Live Demo Stats
+                  What the agent does
                 </h3>
                 <dl className="mt-4 space-y-3 text-sm">
                   {[
-                    ['Average Build Time', '47 seconds'],
-                    ['Lines of Code Generated', '1,247'],
-                    ['Files Created', '23'],
-                    ['Success Rate', '99.7%'],
+                    ['Plans the project', 'Files, routes and structure'],
+                    ['Writes the code', 'Typed frontend and backend'],
+                    ['Installs dependencies', 'Sets up the environment'],
+                    ['Runs a live preview', 'Inspect before you deploy'],
                   ].map(([label, value]) => (
                     <div key={label} className="flex justify-between gap-4">
                       <dt className="text-bolt-elements-textSecondary">{label}</dt>
@@ -935,7 +934,7 @@ export function EcodeAiPlatformPage() {
               <Badge icon={Sparkles}>POWERED BY E-CODE.AI</Badge>
               <h1 className="mt-6 text-4xl font-bold tracking-normal text-bolt-elements-textPrimary sm:text-6xl">
                 Enterprise AI That{' '}
-                <span className="block bg-gradient-to-r from-[var(--ecode-accent)] via-amber-400 to-cyan-400 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-[var(--ecode-accent)] via-amber-400 to-[#F99D25] bg-clip-text text-transparent">
                   Builds Applications
                 </span>
               </h1>
@@ -953,9 +952,9 @@ export function EcodeAiPlatformPage() {
                 </ActionLink>
               </div>
               <div className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-4">
-                {aiPlatformStats.map(([value, label]) => (
-                  <div key={label}>
-                    <div className="text-3xl font-bold text-[var(--ecode-accent)]">{value}</div>
+                {aiPlatformHighlights.map(([value, label]) => (
+                  <div key={value}>
+                    <div className="text-lg font-bold text-[var(--ecode-accent)]">{value}</div>
                     <div className="mt-1 text-xs font-medium text-bolt-elements-textSecondary">{label}</div>
                   </div>
                 ))}
@@ -1194,7 +1193,7 @@ export function EcodeMobilePage() {
     <PublicShell>
       <MarketingMain>
         <section className="relative overflow-hidden py-16 sm:py-24">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(14,165,233,0.16),transparent_32%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(249,157,37,0.16),transparent_32%)]" />
           <Container className="relative grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
             <div>
               <Badge icon={Smartphone}>Build from anywhere</Badge>
@@ -1473,6 +1472,26 @@ export function EcodePricingPage() {
             ))}
           </div>
         </Section>
+
+        <Section tone="dark">
+          <div className="mx-auto max-w-3xl text-center">
+            <Badge icon={Rocket}>Start building today</Badge>
+            <h2 className="mt-5 text-4xl font-bold text-white">Start free, upgrade when you need more</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-white/75">
+              Build with free daily Agent credits, then move to Core or Pro for more collaborators, parallel agents and
+              any-region publishing. No credit card required to begin.
+            </p>
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+              <ActionLink to="/register">
+                Start for Free
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </ActionLink>
+              <ActionLink to="/contact-sales" variant="outlineDark">
+                Contact Sales
+              </ActionLink>
+            </div>
+          </div>
+        </Section>
       </MarketingMain>
     </PublicShell>
   );
@@ -1483,7 +1502,7 @@ export function EcodeDeploymentsPage() {
     <PublicShell>
       <MarketingMain>
         <section className="relative overflow-hidden py-16 sm:py-24">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_20%,rgba(34,197,94,0.14),transparent_32%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_20%,rgba(242,98,7,0.14),transparent_32%)]" />
           <Container className="relative grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
             <div>
               <Badge icon={Rocket}>Deploy from idea to internet in one click</Badge>
@@ -1523,15 +1542,14 @@ export function EcodeDeploymentsPage() {
         <Section>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ['50 ms', 'median edge response'],
-              ['99.99%', 'uptime architecture'],
-              ['300+', 'regions and edge points'],
-              ['10M+', 'monthly requests handled'],
-            ].map(([value, label]) => (
-              <Panel key={label}>
-                <div className="text-4xl font-bold text-[var(--ecode-accent)]">{value}</div>
-                <p className="mt-2 text-sm text-bolt-elements-textSecondary">{label}</p>
-              </Panel>
+              [Globe2, 'Global routing', 'Edge cache and custom domains with TLS'],
+              [Activity, 'Live observability', 'Requests, latency and errors after release'],
+              [Shield, 'Secure by default', 'Secrets, identity and deployment policy'],
+              [GitBranch, 'Instant rollbacks', 'Revert to a healthy release in one click'],
+            ].map(([icon, title, description]) => (
+              <IconCard key={title as string} icon={icon as LucideIcon} title={title as string}>
+                {description as string}
+              </IconCard>
             ))}
           </div>
         </Section>
@@ -1583,7 +1601,7 @@ export function EcodeBountiesPage() {
     <PublicShell>
       <MarketingMain>
         <section className="relative overflow-hidden bg-slate-950 py-16 text-white sm:py-24">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(242,98,7,0.22),transparent_32%),radial-gradient(circle_at_82%_12%,rgba(59,130,246,0.2),transparent_28%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(242,98,7,0.22),transparent_32%),radial-gradient(circle_at_82%_12%,rgba(249,157,37,0.18),transparent_28%)]" />
           <Container className="relative grid gap-12 lg:grid-cols-[1fr_0.9fr] lg:items-center">
             <div>
               <Badge icon={Handshake}>Developer marketplace</Badge>
@@ -1613,11 +1631,11 @@ export function EcodeBountiesPage() {
               </div>
             </div>
             <Panel dark className="bg-white/10">
-              <h2 className="text-xl font-semibold text-white">Marketplace pulse</h2>
+              <h2 className="text-xl font-semibold text-white">How E-Code runs bounties</h2>
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                {bountiesStats.map(([value, label]) => (
-                  <div key={label} className="rounded-lg border border-white/10 bg-black/20 p-4">
-                    <div className="text-3xl font-bold text-white">{value}</div>
+                {bountyHighlights.map(([value, label]) => (
+                  <div key={value} className="rounded-lg border border-white/10 bg-black/20 p-4">
+                    <div className="text-lg font-bold text-white">{value}</div>
                     <p className="mt-1 text-sm text-white/65">{label}</p>
                   </div>
                 ))}
@@ -1702,7 +1720,7 @@ export function EcodeTeamsPage() {
     <PublicShell>
       <MarketingMain>
         <section className="relative overflow-hidden py-16 sm:py-24">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.16),transparent_28%),radial-gradient(circle_at_80%_10%,rgba(242,98,7,0.16),transparent_28%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(242,98,7,0.16),transparent_30%),radial-gradient(circle_at_80%_10%,rgba(249,157,37,0.14),transparent_28%)]" />
           <Container className="relative text-center">
             <Badge icon={Users}>Teams</Badge>
             <h1 className="mx-auto mt-6 max-w-4xl text-4xl font-bold tracking-normal text-bolt-elements-textPrimary sm:text-6xl">
@@ -1765,34 +1783,37 @@ export function EcodeTeamsPage() {
           </div>
         </Section>
 
-        <Section tone="dark">
+        <Section tone="muted">
           <SectionIntro
-            title="Loved by Teams Worldwide"
-            description="E-Code collaboration helps distributed builders move faster."
-            invert
+            title="See collaboration in the workspace"
+            description="Shared presence, live previews and Git review happen in the same browser IDE — no setup per teammate."
           />
-          <div className="grid gap-5 md:grid-cols-3">
-            {[
-              ['Sarah Chen', 'CTO, TechStart', 'We ship 3x faster and onboard new developers in hours, not weeks.'],
-              [
-                'Marcus Johnson',
-                'Engineering Lead, CloudScale',
-                'The real-time collaboration features are game-changing across time zones.',
-              ],
-              [
-                'Dr. Emily Rodriguez',
-                'CS Professor, Tech University',
-                'I can help students debug in real time and the whole class can learn together.',
-              ],
-            ].map(([name, role, quote]) => (
-              <Panel key={name} dark>
-                <p className="text-white/80">"{quote}"</p>
-                <div className="mt-5">
-                  <div className="font-semibold text-white">{name}</div>
-                  <div className="text-sm text-white/55">{role}</div>
-                </div>
-              </Panel>
-            ))}
+          <ProductFigure
+            src="/ecode-static/assets/product/ide-git.png"
+            alt="E-Code browser IDE showing Git review and version control inside a shared workspace"
+            caption="Branch, review and merge with full project context visible to the whole team."
+          />
+        </Section>
+
+        <Section tone="dark">
+          <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
+            <div>
+              <Badge icon={Users}>Start your team workspace</Badge>
+              <h2 className="mt-5 text-4xl font-bold text-white">Bring your whole team into one workspace</h2>
+              <p className="mt-4 text-lg leading-8 text-white/75">
+                Invite collaborators, share live project context and ship together from the browser. Upgrade to Core or
+                Pro for more seats, parallel agents and any-region publishing.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
+              <ActionLink to="/register">
+                Start Collaborating Free
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </ActionLink>
+              <ActionLink to="/contact-sales" variant="outlineDark">
+                Contact Sales
+              </ActionLink>
+            </div>
           </div>
         </Section>
       </MarketingMain>
@@ -2077,6 +2098,19 @@ function WorkspaceMockup({ large = false }: { large?: boolean }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function ProductFigure({ alt, caption, src }: { alt: string; caption?: string; src: string }) {
+  return (
+    <figure className="overflow-hidden rounded-2xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 shadow-2xl">
+      <img src={src} alt={alt} className="block w-full" loading="lazy" decoding="async" />
+      {caption ? (
+        <figcaption className="border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-5 py-3 text-sm text-bolt-elements-textSecondary">
+          {caption}
+        </figcaption>
+      ) : null}
+    </figure>
   );
 }
 

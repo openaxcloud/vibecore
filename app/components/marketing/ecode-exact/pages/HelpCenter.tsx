@@ -1,16 +1,6 @@
-import {
-  Search,
-  Rocket,
-  FolderKanban,
-  Cloud,
-  CreditCard,
-  Bot,
-  Plug,
-  ArrowRight,
-  LifeBuoy,
-  BookOpen,
-} from 'lucide-react';
+import { Search, Rocket, FolderKanban, Cloud, CreditCard, Bot, ArrowRight, LifeBuoy, BookOpen } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { SiGithub } from 'react-icons/si';
 import { filterHelpArticles, filterHelpTopics, normalizeHelpQuery } from './help-search';
 import {
   EcodeExactPublicFooter as PublicFooter,
@@ -23,7 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
-import { Badge } from '~/components/marketing/ecode-exact/EcodeExactUi';
 
 export default function HelpCenter() {
   const topics = [
@@ -31,37 +20,31 @@ export default function HelpCenter() {
       icon: Rocket,
       title: 'Getting started',
       description: 'Set up your account, create your first project, and ship in minutes.',
-      articleCount: 14,
     },
     {
       icon: FolderKanban,
       title: 'Workspaces',
       description: 'Manage files, terminals, ports, and live previews in the E-Code IDE.',
-      articleCount: 22,
     },
     {
       icon: Cloud,
       title: 'Deployments',
       description: 'Publish static sites and full-stack apps with custom domains.',
-      articleCount: 18,
     },
     {
       icon: CreditCard,
       title: 'Billing',
       description: 'Plans, invoices, usage limits, and how to upgrade or cancel.',
-      articleCount: 11,
     },
     {
       icon: Bot,
       title: 'AI agent',
       description: 'Prompt the agent, review proposed edits, and iterate on your code.',
-      articleCount: 16,
     },
     {
-      icon: Plug,
+      icon: SiGithub,
       title: 'Integrations',
       description: 'Connect GitHub, MCP servers, and third-party services to your projects.',
-      articleCount: 9,
     },
   ];
 
@@ -173,12 +156,7 @@ export default function HelpCenter() {
                         >
                           <Icon className="h-6 w-6" style={{ color: 'var(--ecode-accent)' }} />
                         </div>
-                        <CardTitle className="flex items-center justify-between">
-                          <span>{topic.title}</span>
-                          <Badge variant="secondary" className="text-[12px]">
-                            {topic.articleCount} articles
-                          </Badge>
-                        </CardTitle>
+                        <CardTitle>{topic.title}</CardTitle>
                         <CardDescription>{topic.description}</CardDescription>
                       </CardHeader>
                     </Card>
@@ -218,23 +196,86 @@ export default function HelpCenter() {
           </section>
         )}
 
+        {/* Get oriented in the workspace — real product capture */}
+        {!hasActiveSearch && (
+          <section className="py-responsive">
+            <div className="container-responsive">
+              <div className="grid lg:grid-cols-2 gap-10 items-center">
+                <div>
+                  <h2 className="text-3xl font-bold mb-4">Get oriented in the workspace</h2>
+                  <p className="text-[15px] text-muted-foreground mb-6 max-w-xl">
+                    Most questions answer themselves once you know where things live. The E-Code IDE puts the AI agent,
+                    code editor, file tree and live preview together in a single workspace — exactly what you see below.
+                  </p>
+                  <a
+                    href="/ai-agent"
+                    className="inline-flex items-center gap-2 text-[15px] font-medium hover:opacity-80 transition-opacity"
+                    style={{ color: 'var(--ecode-accent)' }}
+                    data-testid="link-help-tour-ide"
+                  >
+                    Explore the AI agent
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                </div>
+
+                <figure className="group relative">
+                  <div className="absolute -inset-2 bg-gradient-to-r from-[#F26207]/20 to-[#F99D25]/20 blur-2xl rounded-2xl pointer-events-none" />
+                  <div className="relative rounded-xl overflow-hidden ring-1 ring-bolt-elements-borderColor bg-bolt-elements-background-depth-3 shadow-2xl">
+                    <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#F26207]/70" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#F99D25]/70" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-bolt-elements-textTertiary/40" />
+                      <span className="ml-2 text-[11px] sm:text-[13px] text-bolt-elements-textSecondary font-medium truncate">
+                        E-Code Workspace
+                      </span>
+                    </div>
+                    <img
+                      src="/ecode-static/assets/product/ide.png"
+                      alt="The E-Code IDE showing the AI agent panel, code editor, file tree and live preview together in one workspace"
+                      width={1440}
+                      height={900}
+                      loading="lazy"
+                      className="block w-full h-auto"
+                      data-testid="img-help-ide"
+                    />
+                  </div>
+                  <figcaption className="mt-3 flex items-start gap-2 text-[11px] sm:text-[13px] text-bolt-elements-textSecondary px-1">
+                    <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#F26207] flex-shrink-0 mt-0.5" />
+                    <span>The E-Code IDE: agent, editor, files and live preview in one workspace.</span>
+                  </figcaption>
+                </figure>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Contact Support CTA */}
-        <section className="py-responsive">
+        <section className="py-responsive bg-muted">
           <div className="container-responsive text-center">
             <LifeBuoy className="h-10 w-10 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
             <h2 className="text-3xl font-bold mb-4">Still need help?</h2>
             <p className="text-[15px] text-muted-foreground mb-8 max-w-2xl mx-auto">
               Can&apos;t find what you&apos;re looking for? Our support team is here to help you get unblocked.
             </p>
-            <a
-              href="/contact"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 text-primary-foreground rounded-md min-h-[44px] hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: 'var(--ecode-accent)' }}
-              data-testid="button-help-contact-support"
-            >
-              Contact Support
-              <ArrowRight className="h-4 w-4" />
-            </a>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a
+                href="/contact"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 text-primary-foreground rounded-md min-h-[44px] hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: 'var(--ecode-accent)' }}
+                data-testid="button-help-contact-support"
+              >
+                Contact Support
+                <ArrowRight className="h-4 w-4" />
+              </a>
+              <a
+                href="/docs"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md min-h-[44px] border border-border hover:bg-background transition-colors text-[15px]"
+                data-testid="button-help-read-docs"
+              >
+                <BookOpen className="h-4 w-4" />
+                Read the docs
+              </a>
+            </div>
           </div>
         </section>
       </main>

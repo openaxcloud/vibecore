@@ -51,6 +51,56 @@ export interface MarketingPageDefinition {
 
 const productProof = ['AI-native builder', 'E-Code IDE', 'Real runtimes', 'Enterprise governance'] as const;
 
+const PRODUCT_BASE = '/ecode-static/assets/product';
+
+/**
+ * Maps a marketing page slug to a real product capture plus a caption.
+ * Only slugs with a genuinely representative screenshot are listed; everything
+ * else renders without a figure rather than forcing an unrelated image.
+ */
+const productFigures: Record<string, { src: string; alt: string; caption: string }> = {
+  product: {
+    src: `${PRODUCT_BASE}/ide.png`,
+    alt: 'E-Code browser IDE with file tree, editor, terminal and live preview',
+    caption: 'The E-Code workspace: editor, terminal, preview and agent in one view.',
+  },
+  features: {
+    src: `${PRODUCT_BASE}/ide.png`,
+    alt: 'E-Code browser IDE showing the integrated development workspace',
+    caption: 'File tree, editor, terminal output and preview stay visible together.',
+  },
+  demo: {
+    src: `${PRODUCT_BASE}/ide.png`,
+    alt: 'E-Code IDE during a prompt-to-app build session',
+    caption: 'From prompt to running app inside one browser workspace.',
+  },
+  ai: {
+    src: `${PRODUCT_BASE}/ide.png`,
+    alt: 'E-Code AI agent working inside the development environment',
+    caption: 'Agents reason over real files, terminal output and previews.',
+  },
+  desktop: {
+    src: `${PRODUCT_BASE}/ide.png`,
+    alt: 'E-Code desktop workspace with persistent project context',
+    caption: 'A focused desktop workspace with readable panels and preview state.',
+  },
+  mobile: {
+    src: `${PRODUCT_BASE}/mobile.png`,
+    alt: 'E-Code mobile interface for building and reviewing on a phone',
+    caption: 'Prompt, files, preview and release context on smaller viewports.',
+  },
+  deployments: {
+    src: `${PRODUCT_BASE}/ide-deploy.png`,
+    alt: 'E-Code deployment panel with release status and runtime logs',
+    caption: 'Deploy with logs, domains, runtime health and release checks.',
+  },
+  'dashboard-builder': {
+    src: `${PRODUCT_BASE}/dashboard.png`,
+    alt: 'E-Code dashboard view with charts and operational telemetry',
+    caption: 'Data-rich dashboards with auth, charts, filters and team access.',
+  },
+};
+
 export const marketingPages = {
   product: {
     slug: 'product',
@@ -1194,6 +1244,29 @@ export function MarketingIndexPage({
             })}
           </div>
         </section>
+
+        <section className="border-t border-[var(--ecode-border)]" aria-label={`${title} call to action`}>
+          <div className="relative overflow-hidden">
+            <div className="absolute inset-0 marketing-gradient opacity-70" aria-hidden />
+            <div className="container-responsive relative flex flex-col items-start gap-6 py-16 sm:py-20 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-2xl">
+                <h2 className="text-3xl font-bold leading-tight tracking-tight text-[var(--ecode-text)] sm:text-4xl">
+                  Start building with E-Code
+                </h2>
+                <p className="mt-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)] sm:text-base">
+                  Turn a prompt into a typed, reviewable project with a running preview and a governed path to
+                  production.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <EcodeMarketingActionLink to="/signup">Start building</EcodeMarketingActionLink>
+                <EcodeMarketingActionLink to="/contact-sales" variant="secondary">
+                  Contact sales
+                </EcodeMarketingActionLink>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
     </PublicShell>
   );
@@ -1204,6 +1277,8 @@ function MarketingPageContent({ page }: { page: MarketingPageDefinition }) {
 
   const compare =
     'logoSrc' in page ? (page as MarketingPageDefinition & { logoSrc: string; competitor: string }) : null;
+
+  const figure = productFigures[page.slug];
 
   return (
     <>
@@ -1272,6 +1347,28 @@ function MarketingPageContent({ page }: { page: MarketingPageDefinition }) {
         </section>
       ) : null}
 
+      {figure ? (
+        <section className="container-responsive pb-16 sm:pb-24" aria-label={`${page.title} product preview`}>
+          <figure className="overflow-hidden rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] shadow-2xl">
+            <div className="flex items-center gap-2 border-b border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] px-4 py-3">
+              <span className="h-3 w-3 rounded-full bg-[var(--ecode-accent)]" aria-hidden />
+              <span className="h-3 w-3 rounded-full bg-[var(--ecode-border)]" aria-hidden />
+              <span className="h-3 w-3 rounded-full bg-[var(--ecode-border)]" aria-hidden />
+            </div>
+            <img
+              src={figure.src}
+              alt={figure.alt}
+              className="block h-auto w-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+            <figcaption className="border-t border-[var(--ecode-border)] px-5 py-4 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">
+              {figure.caption}
+            </figcaption>
+          </figure>
+        </section>
+      ) : null}
+
       <section className="container-responsive grid gap-5 pb-20 sm:pb-28 lg:grid-cols-2">
         {page.sections.map((section) => (
           <article
@@ -1290,6 +1387,31 @@ function MarketingPageContent({ page }: { page: MarketingPageDefinition }) {
             </ul>
           </article>
         ))}
+      </section>
+
+      <section className="border-t border-[var(--ecode-border)]" aria-label={`${page.title} call to action`}>
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 marketing-gradient opacity-70" aria-hidden />
+          <div className="container-responsive relative flex flex-col items-start gap-6 py-16 sm:py-20 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <h2 className="text-3xl font-bold leading-tight tracking-tight text-[var(--ecode-text)] sm:text-4xl">
+                Build, run and ship with E-Code
+              </h2>
+              <p className="mt-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)] sm:text-base">
+                Generate real, reviewable code, run it on production runtimes and deploy through governed release flows
+                from one workspace.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <EcodeMarketingActionLink to={page.primaryAction?.[1] ?? '/signup'}>
+                {page.primaryAction?.[0] ?? 'Start building'}
+              </EcodeMarketingActionLink>
+              <EcodeMarketingActionLink to={page.secondaryAction?.[1] ?? '/contact-sales'} variant="secondary">
+                {page.secondaryAction?.[0] ?? 'Contact sales'}
+              </EcodeMarketingActionLink>
+            </div>
+          </div>
+        </div>
       </section>
     </>
   );
