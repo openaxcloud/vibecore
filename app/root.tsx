@@ -1,5 +1,6 @@
 /* eslint-disable import/order */
 import { useStore } from '@nanostores/react';
+import EcodeBrandMark from './components/brand/EcodeBrandMark';
 import type { LinksFunction } from 'react-router';
 import {
   isRouteErrorResponse,
@@ -429,19 +430,40 @@ function GlobalRouteLoader() {
   }, [loading]);
 
   return (
-    <div
-      className="bolt-route-loader"
-      data-visible={visible}
-      role="status"
-      aria-live="polite"
-      aria-label="Loading page"
-    >
-      <span className="bolt-route-loader-bar" />
-      <span className="bolt-route-loader-pill">
-        <span className="i-svg-spinners:90-ring-with-bg" aria-hidden />
-        <span>Loading</span>
-      </span>
-    </div>
+    <>
+      {/* Slim top accent bar — instant feedback for fast navigations. */}
+      <div
+        className="bolt-route-loader"
+        data-visible={visible}
+        role="status"
+        aria-live="polite"
+        aria-label="Loading page"
+      >
+        <span className="bolt-route-loader-bar" />
+      </div>
+
+      {/*
+       * Branded full-screen splash for slower loads — shows the E-Code logo on a
+       * themed surface instead of a blank/stale page. Gated by the same 120ms
+       * delay so quick client navigations never flash it.
+       */}
+      <div
+        className={`pointer-events-none fixed inset-0 z-[9999] flex items-center justify-center bg-bolt-elements-background-depth-1 transition-opacity duration-200 ${
+          visible ? 'opacity-100' : 'opacity-0'
+        }`}
+        data-testid="branded-route-loader"
+        aria-hidden={!visible}
+      >
+        <div className="flex flex-col items-center gap-5">
+          <span className="relative inline-flex h-16 w-16 items-center justify-center">
+            <span className="absolute inset-0 animate-ping rounded-full bg-[#F26207]/20" />
+            <span className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#F26207]" />
+            <EcodeBrandMark size="lg" showText={false} gradientId="route-loader-gradient" />
+          </span>
+          <span className="text-sm font-medium text-bolt-elements-textSecondary">Loading E-Code…</span>
+        </div>
+      </div>
+    </>
   );
 }
 
