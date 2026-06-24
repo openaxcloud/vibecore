@@ -17,11 +17,15 @@ vi.mock('~/components/marketing/ecode-exact/EcodeExactShell', () => ({
 
 vi.mock('~/components/marketing/ecode-exact/EcodeExactUi', () => ({
   Badge: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+  Button: ({ children, ...props }: { children?: React.ReactNode } & Record<string, unknown>) => (
+    <button {...props}>{children}</button>
+  ),
   Card: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   CardContent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   CardDescription: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   CardHeader: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   CardTitle: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  useMarketingNavigate: () => () => {},
 }));
 
 import Accessibility from './Accessibility';

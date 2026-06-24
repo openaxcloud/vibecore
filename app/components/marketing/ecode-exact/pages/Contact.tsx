@@ -1,4 +1,5 @@
-import { Mail, MessageCircle, Newspaper, ShieldCheck, MapPin, Send } from 'lucide-react';
+import { ArrowRight, BadgeDollarSign, Globe, Headset, Mail, Newspaper, Rocket, Send, ShieldCheck } from 'lucide-react';
+import { type ComponentType } from 'react';
 import { type FormEvent } from 'react';
 import { useEcodeToast } from '~/components/marketing/ecode-exact/EcodeExactLandingControls';
 import {
@@ -81,15 +82,20 @@ export default function Contact() {
     formElement.reset();
   };
 
-  const channels = [
+  const channels: {
+    icon: ComponentType<{ className?: string }>;
+    title: string;
+    description: string;
+    email: string;
+  }[] = [
     {
-      icon: Mail,
+      icon: BadgeDollarSign,
       title: 'Sales',
       description: 'Talk to our team about plans, pricing, and enterprise rollouts.',
       email: 'sales@e-code.ai',
     },
     {
-      icon: MessageCircle,
+      icon: Headset,
       title: 'Support',
       description: 'Get help with your projects, workspaces, and account.',
       email: 'support@e-code.ai',
@@ -117,7 +123,12 @@ export default function Contact() {
         <section className="py-responsive bg-gradient-to-b from-background to-muted">
           <div className="container-responsive">
             <div className="text-center max-w-3xl mx-auto">
-              <Mail className="h-12 w-12 mx-auto mb-4 text-primary" />
+              <span
+                className="inline-flex h-14 w-14 items-center justify-center rounded-xl mb-5 text-white shadow-sm"
+                style={{ backgroundColor: 'var(--ecode-accent)' }}
+              >
+                <Mail className="h-7 w-7" />
+              </span>
               <h1 className="text-4xl font-bold mb-4" data-testid="heading-contact">
                 Get in Touch
               </h1>
@@ -143,7 +154,12 @@ export default function Contact() {
                 return (
                   <Card key={channel.title}>
                     <CardContent className="pt-6 text-center">
-                      <Icon className="h-12 w-12 mx-auto mb-4 text-primary" />
+                      <span
+                        className="inline-flex h-12 w-12 items-center justify-center rounded-xl mb-4 text-white shadow-sm"
+                        style={{ backgroundColor: 'var(--ecode-accent)' }}
+                      >
+                        <Icon className="h-6 w-6" />
+                      </span>
                       <h3 className="font-semibold mb-2">{channel.title}</h3>
                       <p className="text-[13px] text-muted-foreground mb-4">{channel.description}</p>
                       <a
@@ -236,16 +252,76 @@ export default function Contact() {
           </div>
         </section>
 
-        {/* Office */}
+        {/* Remote-first */}
         <section className="py-responsive">
-          <div className="container-responsive text-center">
-            <MapPin className="h-10 w-10 mx-auto mb-4 text-primary" />
-            <h2 className="text-3xl font-bold mb-4">Visit Us</h2>
-            <p className="text-[15px] text-muted-foreground max-w-2xl mx-auto">
-              E-Code is a remote-first company with team members around the world. For partnership or in-person
-              inquiries, reach out to <span className="font-medium text-foreground">hello@e-code.ai</span> and we will
-              point you to the right person.
-            </p>
+          <div className="container-responsive">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl mb-4 text-[var(--ecode-accent)] bg-[var(--bolt-elements-background-depth-2,rgba(255,255,255,0.04))] ring-1 ring-[var(--ecode-border)]">
+                  <Globe className="h-6 w-6" />
+                </span>
+                <h2 className="text-3xl font-bold mb-4">Remote-first, built in the open</h2>
+                <p className="text-[15px] text-muted-foreground mb-4">
+                  E-Code is a remote-first company with team members around the world. There is no front desk to visit,
+                  but there is always someone online. For partnership or general inquiries, reach out to{' '}
+                  <a href="mailto:hello@e-code.ai" className="font-medium text-[var(--ecode-accent)] hover:underline">
+                    hello@e-code.ai
+                  </a>{' '}
+                  and we will point you to the right person.
+                </p>
+                <p className="text-[15px] text-muted-foreground">
+                  Prefer to just start building? Spin up a project in your browser and talk to the AI agent directly.
+                </p>
+              </div>
+
+              <figure className="rounded-xl overflow-hidden ring-1 ring-[var(--ecode-border)] shadow-lg bg-[var(--bolt-elements-background-depth-2,rgba(255,255,255,0.04))]">
+                <img
+                  src="/ecode-static/assets/product/dashboard.png"
+                  alt="The E-Code dashboard where you create projects, open workspaces and manage your account"
+                  width={1440}
+                  height={900}
+                  loading="lazy"
+                  className="block w-full h-auto"
+                  data-testid="img-contact-dashboard"
+                />
+              </figure>
+            </div>
+          </div>
+        </section>
+
+        {/* Final CTA */}
+        <section className="py-responsive bg-muted">
+          <div className="container-responsive">
+            <div
+              className="relative overflow-hidden rounded-2xl px-8 py-14 text-center text-white"
+              style={{ background: 'linear-gradient(135deg, var(--ecode-accent), #F99D25)' }}
+            >
+              <span className="inline-flex h-14 w-14 items-center justify-center rounded-xl mb-5 bg-white/15 backdrop-blur-sm">
+                <Rocket className="h-7 w-7" />
+              </span>
+              <h2 className="text-3xl font-bold mb-3">Start building with E-Code today</h2>
+              <p className="text-[15px] text-white/90 max-w-xl mx-auto mb-8">
+                Describe what you want to build and the AI agent writes, runs, and deploys it — no setup required. No
+                credit card to get started.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <a
+                  href="/signup"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-semibold text-[var(--ecode-accent)] bg-white min-h-[44px] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ecode-accent)]"
+                  data-testid="link-contact-cta-signup"
+                >
+                  Get started free
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+                <a
+                  href="/dashboard"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-semibold text-white ring-1 ring-inset ring-white/60 min-h-[44px] transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  data-testid="link-contact-cta-dashboard"
+                >
+                  Open dashboard
+                </a>
+              </div>
+            </div>
           </div>
         </section>
       </main>
