@@ -785,16 +785,29 @@ export function GitTab({ projectId }: GitTabProps) {
             </form>
             <button
               type="button"
+              data-testid="git-branch-refresh"
+              disabled={loading}
+              onClick={() => void loadPanel()}
+              title="Refresh git status"
+              aria-label="Refresh git status"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary disabled:opacity-50"
+            >
+              <span className="i-ph:arrows-clockwise text-base" aria-hidden />
+            </button>
+            <button
+              type="button"
               data-testid="git-settings-toggle"
               aria-pressed={showSettings}
               onClick={() => setShowSettings((value) => !value)}
               title="Git settings"
               aria-label="Git settings"
               className={classNames(
-                'i-ph:gear shrink-0 text-base hover:text-bolt-elements-textPrimary',
+                'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
                 showSettings ? 'text-bolt-elements-item-contentAccent' : 'text-bolt-elements-textSecondary',
               )}
-            />
+            >
+              <span className="i-ph:gear text-base" aria-hidden />
+            </button>
           </div>
         </div>
 
@@ -1186,8 +1199,9 @@ export function GitTab({ projectId }: GitTabProps) {
               Commit message
               <textarea
                 name="message"
-                className="min-h-24 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
-                placeholder={stagedFiles.length ? `Commit ${stagedFiles.length} staged files` : 'Commit message'}
+                rows={1}
+                className="min-h-[32px] rounded-[6px] border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2.5 py-1.5 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+                placeholder={stagedFiles.length ? `Commit ${stagedFiles.length} staged files` : 'Summary'}
               />
             </label>
             <details className="text-xs text-bolt-elements-textSecondary">
