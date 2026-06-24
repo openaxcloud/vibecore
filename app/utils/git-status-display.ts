@@ -75,7 +75,20 @@ const STATUS_DEFINITIONS: Record<
     description: 'Merge conflict that must be resolved before committing.',
     toneClassName:
       'border-red-500/70 bg-red-100 text-red-800 dark:border-red-500/50 dark:bg-red-500/20 dark:text-red-100',
-    aliases: ['uu', 'aa', 'dd', 'du', 'ud', 'conflict', 'conflicted', 'unmerged', 'bothmodified', 'both-modified'],
+    aliases: [
+      'uu',
+      'aa',
+      'dd',
+      'au',
+      'ua',
+      'du',
+      'ud',
+      'conflict',
+      'conflicted',
+      'unmerged',
+      'bothmodified',
+      'both-modified',
+    ],
   },
   changed: {
     displayCode: 'C',
@@ -115,6 +128,15 @@ function keyFromNormalizedStatus(normalized: string): GitStatusDisplayKey {
   }
 
   if (normalized.length > 1) {
+    /*
+     * Unmerged porcelain codes carry a 'U' in either column (e.g. AU/UA/UD/DU/UU).
+     * These are conflict states and must be resolved as such before the
+     * single-column fallback below misreads them as Added/Untracked/etc.
+     */
+    if (lower.includes('u')) {
+      return 'conflict';
+    }
+
     const firstColumn = STATUS_BY_ALIAS[normalized[0]?.toLowerCase() ?? ''];
 
     if (firstColumn) {

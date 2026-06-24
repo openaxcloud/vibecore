@@ -1,17 +1,36 @@
-import { data as json, type LoaderFunction, type LoaderFunctionArgs } from 'react-router';
+import type { LoaderFunctionArgs } from 'react-router';
+import { requireWebSession } from '~/lib/.server/require-session';
+import { json } from '~/lib/json-response';
+import { withSecurity } from '~/lib/security';
 
 /**
  * Diagnostic API for troubleshooting connection issues
  */
 
-interface AppContext {
-  env?: {
-    GITHUB_ACCESS_TOKEN?: string;
-    NETLIFY_TOKEN?: string;
-  };
-}
+/**
+ * This loader makes outbound network calls (api.github.com/zen, api.netlify.com)
+ * on every hit, each with a 15s timeout, and echoes caller request headers back.
+ * Left anonymous it is a cheap DoS/amplification vector — an unauthenticated
+ * caller can force the server to fan out outbound requests and hold connections
+ * open. Gate it exactly like its hardening-batch siblings (api.system.disk-info,
+ * api.update): require a valid web session BEFORE any outbound probe, and wrap
+ * the loader in withSecurity for rate limiting + method allowlisting.
+ *
+ * requireWebSession fails closed (throws a 401/503 Response). withSecurity's
+ * catch would otherwise rewrite that into a generic 500, so surface the auth
+ * Response as-is before reaching the external connectivity probes.
+ */
+async function diagnosticsHandler({ request }: LoaderFunctionArgs): Promise<Response> {
+  try {
+    await requireWebSession(request);
+  } catch (authResponse) {
+    if (authResponse instanceof Response) {
+      return authResponse;
+    }
 
-export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs & { context: AppContext }) => {
+    throw authResponse;
+  }
+
   /*
    * Do NOT expose whether the SERVER holds GitHub/Netlify tokens: this loader is
    * unauthenticated, and leaking hasGithubToken/hasNetlifyToken to anyone is an
@@ -146,4 +165,9 @@ export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs & {
       headers: corsStatus.headers,
     },
   );
-};
+}
+
+export const loader = withSecurity(diagnosticsHandler, {
+  rateLimit: true,
+  allowedMethods: ['GET'],
+});

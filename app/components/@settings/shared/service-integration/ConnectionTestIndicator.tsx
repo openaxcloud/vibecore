@@ -20,6 +20,9 @@ export function ConnectionTestIndicator({ testResult, className }: ConnectionTes
 
   return (
     <motion.div
+      role={testResult.status === 'error' ? 'alert' : 'status'}
+      aria-live={testResult.status === 'error' ? 'assertive' : 'polite'}
+      aria-atomic="true"
       className={classNames(
         'p-4 rounded-lg border',
         {

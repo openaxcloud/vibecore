@@ -218,6 +218,24 @@ export const PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS = 5_000;
 const SAVE_RETRY_DELAYS_MS = [1_000, 4_000, 12_000];
 const PROJECT_IDE_MEMORY_AUTH_STATUSES = new Set([401, 403]);
 
+/*
+ * Conservative cap for `fetch(..., { keepalive: true })` request bodies. The
+ * Fetch spec / browsers limit the combined size of all in-flight keepalive
+ * requests to ~64 KiB; over that the fetch rejects with a TypeError. We keep a
+ * margin and only enable keepalive when the IDE-state body fits, so an
+ * oversized state doesn't make the whole unload flush throw.
+ */
+const KEEPALIVE_MAX_BODY_BYTES = 60_000;
+
+/*
+ * Set once any unload-class lifecycle event fires (pagehide / beforeunload /
+ * visibilitychange→hidden). While true, the flush PUT is sent with
+ * `keepalive: true` so the browser does not abort the request when the document
+ * is torn down — without it the just-flushed save is canceled in flight and the
+ * most recent debounced IDE-state delta is lost, defeating the flush listeners.
+ */
+let documentUnloading = false;
+
 function messageKey(message: Message, index: number) {
   return message.id ?? `${message.role}:${index}:${String(message.content).slice(0, 80)}`;
 }
@@ -439,6 +457,16 @@ export function setProjectIdeMemorySaveDebounceMsForTest(ms: number) {
 }
 
 /**
+ * Tests-only override of the document-unloading flag that toggles `keepalive`
+ * on the save PUT. In production this is set by the pagehide / beforeunload /
+ * visibilitychange→hidden listeners; exposed here so specs can exercise the
+ * keepalive path without simulating a full DOM lifecycle teardown.
+ */
+export function setProjectIdeMemoryUnloadingForTest(value: boolean) {
+  documentUnloading = value;
+}
+
+/**
  * Tests-only read of the last known server version (the ETag we'll send as
  * `If-Match` on the next PUT).
  */
@@ -547,6 +575,14 @@ function installLifecycleFlushListenersOnce() {
    * cleanly; beforeunload covers desktop browser close + nav.
    */
   const flushAll = () => {
+    /*
+     * Mark the document as unloading so persistWithRetry sends the PUT with
+     * `keepalive: true` (or via sendBeacon for oversized bodies). Without this
+     * the browser aborts the outstanding non-keepalive fetch during teardown
+     * and the final debounced save is dropped — the exact data-loss these
+     * listeners exist to prevent.
+     */
+    documentUnloading = true;
     void flushProjectIdeMemorySaves();
   };
 
@@ -797,6 +833,20 @@ export async function flushProjectIdeMemorySaves(projectId?: string, workspaceId
   await Promise.allSettled(promises);
 }
 
+/**
+ * UTF-8 byte length of a string. Used to decide whether an unload-time PUT body
+ * fits inside the keepalive size budget. Falls back to a char-count estimate
+ * when TextEncoder is unavailable (it is in all browsers and Node ≥ 11).
+ */
+function byteLength(value: string): number {
+  if (typeof TextEncoder !== 'undefined') {
+    return new TextEncoder().encode(value).length;
+  }
+
+  // Conservative upper bound: assume worst-case multi-byte chars.
+  return value.length * 3;
+}
+
 async function persistWithRetry(scope: string): Promise<void> {
   let lastError: unknown;
 
@@ -836,12 +886,33 @@ async function persistWithRetry(scope: string): Promise<void> {
       headers['if-match'] = `"${knownVersion}"`;
     }
 
+    const body = JSON.stringify({ state: dirty });
+
+    /*
+     * During document unload (pagehide / beforeunload / tab hidden) a normal
+     * fetch is aborted by the browser as soon as the page is torn down, which
+     * would drop this final flush. `keepalive: true` lets the request outlive
+     * the document so the last debounced IDE-state delta still reaches the
+     * server.
+     *
+     * Keepalive bodies are size-capped (~64 KiB across all in-flight keepalive
+     * requests); over that the fetch rejects with a TypeError. We only opt into
+     * keepalive when the body fits the budget — for an oversized state we send a
+     * plain fetch (same as before this fix), which may be aborted on a hard
+     * close but at least still completes on the visibilitychange→hidden path
+     * (tab backgrounded but document alive) and is retried/reseeded otherwise.
+     * We can't fall back to sendBeacon here because the ide-state endpoints only
+     * accept PUT and sendBeacon issues a POST.
+     */
+    const useKeepalive = documentUnloading && byteLength(body) <= KEEPALIVE_MAX_BODY_BYTES;
+
     try {
       const response = await fetch(endpoint, {
         method: 'PUT',
         credentials: 'include',
         headers,
-        body: JSON.stringify({ state: dirty }),
+        body,
+        ...(useKeepalive ? { keepalive: true } : {}),
       });
 
       if (response.status === 412) {

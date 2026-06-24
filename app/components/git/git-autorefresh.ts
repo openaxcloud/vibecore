@@ -82,3 +82,18 @@ export function shouldApplyEnvelopeForLoad(silent: boolean | undefined, isErrorE
 
   return !silent;
 }
+
+/*
+ * Whether the "last fetched X ago" timestamp should be advanced for a load.
+ *
+ * Only a successful (non-error) envelope actually replaces the visible
+ * working-tree data, so only then is the data genuinely "fresh". An error
+ * envelope from a silent background refresh is intentionally swallowed (see
+ * shouldApplyEnvelopeForLoad) and leaves the previous data on screen; advancing
+ * the timestamp in that case would falsely report the stale list as just
+ * fetched, which is especially misleading during an active agent generation
+ * when the git endpoint transiently 5xx/locks.
+ */
+export function shouldAdvanceLastFetched(isErrorEnvelope: boolean): boolean {
+  return !isErrorEnvelope;
+}

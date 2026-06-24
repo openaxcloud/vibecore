@@ -8,6 +8,7 @@ import {
   PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS,
   saveProjectIdeMemory,
   setProjectIdeMemorySaveDebounceMsForTest,
+  setProjectIdeMemoryUnloadingForTest,
 } from './projectIdeMemory';
 
 function makeHeaders(entries: Record<string, string> = {}) {
@@ -553,6 +554,72 @@ describe('project IDE memory save debouncing', () => {
 
     await vi.advanceTimersByTimeAsync(0);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends the unload-flush PUT with keepalive:true so the browser does not abort it during teardown (Bug 1)', async () => {
+    clearProjectIdeMemoryCacheForTest();
+    setProjectIdeMemorySaveDebounceMsForTest(1_500);
+    installLocalStorage();
+
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ ideState: null }) }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const projectId = 'project-keepalive-unload';
+
+    void saveProjectIdeMemory(projectId, { ui: { agentWidth: 444 } });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    /*
+     * The lifecycle listeners flip this flag right before flushing on a genuine
+     * tab close / navigation (pagehide / beforeunload). Simulate that, then
+     * flush, and assert the PUT carries keepalive so the browser will not abort
+     * it during document teardown.
+     */
+    setProjectIdeMemoryUnloadingForTest(true);
+
+    try {
+      await flushProjectIdeMemorySaves(projectId);
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      const call = fetchMock.mock.calls[0];
+
+      if (!call) {
+        throw new Error('expected a recorded fetch call');
+      }
+
+      const init = call[1] as RequestInit;
+      expect(init.method).toBe('PUT');
+      expect(init.keepalive).toBe(true);
+    } finally {
+      setProjectIdeMemoryUnloadingForTest(false);
+    }
+  });
+
+  it('omits keepalive on an ordinary (non-unload) debounced PUT', async () => {
+    clearProjectIdeMemoryCacheForTest();
+    setProjectIdeMemorySaveDebounceMsForTest(1_500);
+    installLocalStorage();
+    setProjectIdeMemoryUnloadingForTest(false);
+
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ ideState: null }) }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const projectId = 'project-keepalive-normal';
+
+    void saveProjectIdeMemory(projectId, { ui: { agentWidth: 321 } });
+    await vi.advanceTimersByTimeAsync(1_500);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const call = fetchMock.mock.calls[0];
+
+    if (!call) {
+      throw new Error('expected a recorded fetch call');
+    }
+
+    const init = call[1] as RequestInit;
+    expect(init.keepalive).toBeUndefined();
   });
 
   it('rejects the shared debounced promise when the PUT fails permanently', async () => {

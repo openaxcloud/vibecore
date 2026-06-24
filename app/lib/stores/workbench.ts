@@ -3256,7 +3256,15 @@ export class WorkbenchStore {
             // Create blobs for each file
             const blobs = await Promise.all(
               Object.entries(files).map(async ([filePath, dirent]) => {
-                if (dirent?.type === 'file' && dirent.content) {
+                if (dirent?.type === 'file') {
+                  /*
+                   * Guard on file type, not content truthiness: an empty file
+                   * (content === '') is a legitimate file (.gitkeep, empty
+                   * __init__.py, placeholder modules) and must be committed.
+                   * Treat missing content as an empty blob.
+                   */
+                  const content = dirent.content ?? '';
+
                   const { data: blob } = await octokit.git.createBlob({
                     owner: repo.owner.login,
                     repo: repo.name,
@@ -3265,11 +3273,14 @@ export class WorkbenchStore {
                      * Binary files are stored as a base64 string already
                      * (FilesStore sets isBinary + base64 content), so re-encoding
                      * them produced base64-of-base64 and corrupted the asset on
-                     * push. Send binary content as-is; encode text as base64.
+                     * push. Send binary content as-is; encode text as base64
+                     * (Buffer.from('').toString('base64') === '' is a valid
+                     * empty blob).
                      */
-                    content: dirent.isBinary ? dirent.content : Buffer.from(dirent.content).toString('base64'),
+                    content: dirent.isBinary ? content : Buffer.from(content).toString('base64'),
                     encoding: 'base64',
                   });
+
                   return { path: extractRelativePath(filePath), sha: blob.sha };
                 }
 
@@ -3411,11 +3422,17 @@ export class WorkbenchStore {
 
         const actions = Object.entries(files).reduce(
           (acc, [filePath, dirent]) => {
-            if (dirent?.type === 'file' && dirent.content) {
+            if (dirent?.type === 'file') {
+              /*
+               * Guard on file type, not content truthiness: an empty file
+               * (content === '') is a legitimate file (.gitkeep, empty
+               * __init__.py, placeholder modules) and must be committed.
+               * Treat missing content as an empty string.
+               */
               acc.push({
                 action: 'create',
                 file_path: extractRelativePath(filePath),
-                content: dirent.content,
+                content: dirent.content ?? '',
 
                 /*
                  * Binary content is stored as base64; tell GitLab so it decodes

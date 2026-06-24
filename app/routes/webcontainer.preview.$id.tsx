@@ -65,6 +65,10 @@ export default function WebContainerPreview() {
 
       // Listen for preview updates
       broadcastChannelRef.current.onmessage = (event) => {
+        if (!event.data || typeof event.data !== 'object') {
+          return;
+        }
+
         if (event.data.previewId === previewId) {
           if (event.data.type === 'refresh-preview' || event.data.type === 'file-change') {
             handleRefresh();

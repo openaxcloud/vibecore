@@ -9,21 +9,37 @@
  * self-host deployment that legitimately runs a model server on a private IP can
  * opt out with ALLOW_PRIVATE_PROVIDER_BASE_URLS=true.
  */
+/**
+ * Decode the IPv4 address embedded in the low 32 bits of an IPv6 host, regardless
+ * of the surrounding prefix. This folds back IPv4-mapped (::ffff:a.b.c.d /
+ * ::ffff:hi:lo), the bare ::hi:lo form, AND the NAT64 well-known prefix
+ * (64:ff9b::a.b.c.d / 64:ff9b::hi:lo, RFC 6052) so the embedded IPv4 can be run
+ * through the blocklist. Being prefix-agnostic also closes any future
+ * IPv4-in-IPv6 translation prefix that an egress translator might honour.
+ */
 function foldIpv4MappedIpv6(host: string): string | undefined {
-  const dotted = host.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+  // Trailing dotted-quad form: <anything>::a.b.c.d (e.g. ::ffff:1.2.3.4, 64:ff9b::1.2.3.4).
+  const dotted = host.match(/(?::|^)(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
 
   if (dotted) {
     return dotted[1];
   }
 
-  const hex =
-    host.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i) || host.match(/^::([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+  /*
+   * Trailing two-hextet form: <prefix>::hi:lo or <prefix>:hi:lo where the low 32
+   * bits encode the IPv4. The host must contain a `::` (compressed run) so we only
+   * fold genuine embedded-IPv4 layouts and not arbitrary full IPv6 addresses whose
+   * last two groups merely look numeric.
+   */
+  if (host.includes('::')) {
+    const hex = host.match(/(?:::|:)([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
 
-  if (hex) {
-    const hi = parseInt(hex[1], 16);
-    const lo = parseInt(hex[2], 16);
+    if (hex) {
+      const hi = parseInt(hex[1], 16);
+      const lo = parseInt(hex[2], 16);
 
-    return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+      return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+    }
   }
 
   return undefined;

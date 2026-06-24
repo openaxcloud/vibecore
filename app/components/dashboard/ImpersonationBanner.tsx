@@ -13,9 +13,35 @@ interface ImpersonationState {
   email: string | null;
 }
 
+interface StopResult {
+  stopped: boolean;
+}
+
+export const IMPERSONATION_STOP_ERROR = 'Could not stop impersonation — try again.';
+
+/*
+ * Derive what the Stop control should render from the fetcher's state + data.
+ * The /api/impersonation action swallows every failure into { stopped: false }
+ * with HTTP 200 (and never redirects on a 401), so a failed or expired stop
+ * resolves to data we must surface — otherwise the button just flips back to
+ * 'Stop impersonating' and the admin is left silently still impersonating.
+ */
+export function deriveStopState(state: 'idle' | 'submitting' | 'loading', data: StopResult | undefined) {
+  const stopping = state !== 'idle';
+
+  // A request resolved (state back to idle, data present) but the stop did not take.
+  const failed = !stopping && data !== undefined && !data.stopped;
+
+  return {
+    stopping,
+    failed,
+    error: failed ? IMPERSONATION_STOP_ERROR : null,
+  };
+}
+
 export function ImpersonationBanner() {
   const status = useFetcher<ImpersonationState>();
-  const stop = useFetcher<{ stopped: boolean }>();
+  const stop = useFetcher<StopResult>();
 
   // Load impersonation status once on mount.
   useEffect(() => {
@@ -35,7 +61,7 @@ export function ImpersonationBanner() {
     return null;
   }
 
-  const stopping = stop.state !== 'idle';
+  const { stopping, error } = deriveStopState(stop.state, stop.data);
 
   return (
     <div
@@ -48,6 +74,11 @@ export function ImpersonationBanner() {
       <span>
         Viewing as <strong>{status.data.email ?? 'another user'}</strong> — admin impersonation session.
       </span>
+      {error ? (
+        <span role="alert" className="text-[12px] font-semibold text-white/90" data-testid="impersonation-stop-error">
+          {error}
+        </span>
+      ) : null}
       <stop.Form method="post" action="/api/impersonation">
         <button
           type="submit"

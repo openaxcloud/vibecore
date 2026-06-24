@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   computeWorkspaceFilesSignature,
+  shouldAdvanceLastFetched,
   shouldApplyEnvelopeForLoad,
   shouldSurfaceLoadError,
   shouldRefreshOnFilesChange,
@@ -96,5 +97,19 @@ describe('shouldApplyEnvelopeForLoad', () => {
      * working-tree list mid-generation.
      */
     expect(shouldApplyEnvelopeForLoad(true, true)).toBe(false);
+  });
+});
+
+describe('shouldAdvanceLastFetched', () => {
+  it('advances the timestamp when real data was loaded (non-error envelope)', () => {
+    expect(shouldAdvanceLastFetched(false)).toBe(true);
+  });
+
+  it('does not advance the timestamp for an error envelope', () => {
+    /*
+     * A swallowed silent-refresh error leaves the previous working-tree list on
+     * screen; advancing "last fetched" would falsely report stale data as fresh.
+     */
+    expect(shouldAdvanceLastFetched(true)).toBe(false);
   });
 });

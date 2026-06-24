@@ -16,7 +16,9 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
   const result = await apiRequest<{ projects: ApiProject[] }>(request, `/orgs/${organization.id}/projects`);
 
-  return { projects: toProjectCards(result.projects, organization) };
+  const projects = Array.isArray(result?.projects) ? result.projects : [];
+
+  return { projects: toProjectCards(projects, organization) };
 }
 
 export const meta: MetaFunction = () => [{ title: 'Command palette - E-Code' }];

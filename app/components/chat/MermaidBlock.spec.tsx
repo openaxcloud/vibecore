@@ -73,4 +73,51 @@ describe('MermaidBlock', () => {
     expect(container.querySelector('.bolt-mermaid-block-error')).not.toBeNull();
     expect(screen.getByText(/boom syntax error/i)).not.toBeNull();
   });
+
+  it('invokes bindFunctions only after the freshly rendered svg is committed to the DOM', async () => {
+    /*
+     * Before the fix bindFunctions ran synchronously right after setSvg, so the
+     * container still held the PREVIOUS (here: empty) innerHTML — interactive
+     * bindings attached to nodes that the upcoming commit replaced. The fix
+     * defers the call to a useLayoutEffect keyed on the committed svg, so the
+     * container handed to bindFunctions must already contain the new svg.
+     */
+    let innerHtmlWhenBound: string | null = null;
+
+    const bindFunctions = vi.fn((element: Element) => {
+      innerHtmlWhenBound = element.innerHTML;
+    });
+
+    renderMock.mockResolvedValueOnce({
+      svg: '<svg data-testid="diagram"><g class="node"></g></svg>',
+      bindFunctions,
+    });
+
+    render(<MermaidBlock code="graph TD; A-->B;" />);
+
+    await waitFor(() => {
+      expect(bindFunctions).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * The container passed to bindFunctions reflects the committed svg, not the
+     * stale/empty markup that existed at the moment setSvg was called.
+     */
+    expect(innerHtmlWhenBound).toContain('data-testid="diagram"');
+
+    const boundElement = bindFunctions.mock.calls[0][0] as Element;
+    expect(boundElement.querySelector('[data-testid="diagram"]')).not.toBeNull();
+  });
+
+  it('does not throw when a successful render returns no bindFunctions', async () => {
+    renderMock.mockResolvedValueOnce({ svg: '<svg data-testid="no-bind"></svg>' });
+
+    const { container } = render(<MermaidBlock code="graph TD; A-->B;" />);
+
+    await waitFor(() => {
+      expect(container.querySelector('[data-testid="no-bind"]')).not.toBeNull();
+    });
+
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 });

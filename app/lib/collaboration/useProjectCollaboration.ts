@@ -123,9 +123,17 @@ export function useProjectCollaboration({
       return;
     }
 
+    /*
+     * Always send an explicit `filePath` key (not a spread that omits it when
+     * falsy). updatePresence merges cumulatively into #pendingPresence, so
+     * omitting the key leaves a previously-set path stuck — collaborators would
+     * keep seeing this user as editing a file they've since closed or navigated
+     * away from. Sending `filePath: undefined` overwrites the prior value, and
+     * presence.update wholesale-replaces the presence entry, clearing it.
+     */
     client.updatePresence({
       status: 'online',
-      ...(filePath ? { filePath } : {}),
+      filePath: filePath || undefined,
       mode,
     });
   }, [client, enabled, filePath, mode]);

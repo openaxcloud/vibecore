@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
   computeWorkspaceFilesSignature,
+  shouldAdvanceLastFetched,
   shouldApplyEnvelopeForLoad,
   shouldSurfaceLoadError,
   shouldRefreshOnFilesChange,
@@ -308,7 +309,17 @@ export function GitTab({ projectId }: GitTabProps) {
           setEnvelope(payload);
         }
 
-        setLastLoadedAt(new Date().toISOString());
+        /*
+         * Only advance the "last fetched" timestamp when the response carried
+         * real data. A silent background refresh that receives an error
+         * envelope intentionally keeps the previous state (see
+         * shouldApplyEnvelopeForLoad); bumping the timestamp anyway would tell
+         * the user the stale working-tree list is fresh ("just now") while it
+         * has not actually been replaced.
+         */
+        if (shouldAdvanceLastFetched(isErrorEnvelope)) {
+          setLastLoadedAt(new Date().toISOString());
+        }
 
         if (isErrorEnvelope) {
           if (shouldSurfaceLoadError(options?.silent)) {

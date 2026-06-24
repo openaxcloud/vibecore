@@ -23,4 +23,21 @@ describe('git status display helpers', () => {
       expect.arrayContaining(['U:Untracked', 'M:Modified', 'A:Added']),
     );
   });
+
+  it('treats every unmerged porcelain code as a conflict, including AU and UA', () => {
+    for (const code of ['UU', 'AA', 'DD', 'AU', 'UA', 'DU', 'UD', 'UM', 'MU']) {
+      expect(describeGitFileStatus(code), code).toMatchObject({ key: 'conflict', label: 'Conflict' });
+    }
+  });
+
+  it('does not mislabel AU as Added or UA as Untracked', () => {
+    expect(describeGitFileStatus('AU').key).not.toBe('added');
+    expect(describeGitFileStatus('UA').key).not.toBe('untracked');
+  });
+
+  it('keeps the single-column fallback for non-conflict two-letter codes', () => {
+    expect(describeGitFileStatus('MM').key).toBe('modified');
+    expect(describeGitFileStatus('AM').key).toBe('added');
+    expect(describeGitFileStatus(' M').key).toBe('modified');
+  });
 });

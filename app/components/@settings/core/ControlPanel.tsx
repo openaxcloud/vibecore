@@ -4,6 +4,7 @@ import { lazy, Suspense, useState, useEffect, useMemo, useCallback, type ReactNo
 import { AvatarDropdown } from './AvatarDropdown';
 import { TabPanelBoundary } from './TabPanelBoundary';
 import { TAB_LABELS, DEFAULT_TAB_CONFIG, TAB_DESCRIPTIONS } from './constants';
+import { getTabPanelBoundaryKey } from './tab-panel-boundary-key';
 import { getStatusMessage, getTabUpdateStatus } from './tab-status';
 import type { TabType } from './types';
 import { TabTile } from '~/components/@settings/shared/components/TabTile';
@@ -214,7 +215,7 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
     }
 
     return (
-      <TabPanelBoundary key={tabReloadKey} onRetry={handleRetryTabLoad}>
+      <TabPanelBoundary key={getTabPanelBoundaryKey(tabId, tabReloadKey)} onRetry={handleRetryTabLoad}>
         <Suspense fallback={<div className="p-6 text-sm text-bolt-elements-textSecondary">Loading settings...</div>}>
           {tab}
         </Suspense>

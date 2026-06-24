@@ -18,6 +18,18 @@ describe('isBlockedProviderBaseUrl', () => {
     expect(isBlockedProviderBaseUrl('not a url')).toBe(true);
   });
 
+  it('folds the NAT64 well-known prefix (64:ff9b::/96) back to its embedded IPv4 and blocks it', () => {
+    // 64:ff9b::169.254.169.254 normalizes to 64:ff9b::a9fe:a9fe — metadata, blocked even with private allowed.
+    for (const allowPrivate of [false, true]) {
+      expect(isBlockedProviderBaseUrl('http://[64:ff9b::169.254.169.254]/v1', allowPrivate)).toBe(true);
+      expect(isBlockedProviderBaseUrl('http://[64:ff9b::a9fe:a9fe]/v1', allowPrivate)).toBe(true);
+    }
+
+    // NAT64-wrapped RFC1918 is private: blocked by default, allowed only when opted in.
+    expect(isBlockedProviderBaseUrl('http://[64:ff9b::10.0.0.1]/v1')).toBe(true);
+    expect(isBlockedProviderBaseUrl('http://[64:ff9b::10.0.0.1]/v1', true)).toBe(false);
+  });
+
   it('allows loopback (local providers like Ollama / LM Studio)', () => {
     expect(isBlockedProviderBaseUrl('http://localhost:11434/v1')).toBe(false);
     expect(isBlockedProviderBaseUrl('http://127.0.0.1:1234/v1')).toBe(false);

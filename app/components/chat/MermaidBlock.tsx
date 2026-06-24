@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react';
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { themeStore } from '~/lib/stores/theme';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger } from '~/utils/logger';
@@ -25,6 +25,7 @@ export const MermaidBlock = memo(({ code, className }: MermaidBlockProps) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [svg, setSvg] = useState<string | null>(null);
+  const bindFunctionsRef = useRef<((element: Element) => void) | null>(null);
   const theme = useStore(themeStore);
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export const MermaidBlock = memo(({ code, className }: MermaidBlockProps) => {
     if (!trimmed) {
       setStatus('done');
       setSvg(null);
+      bindFunctionsRef.current = null;
 
       return () => {
         cancelled = true;
@@ -61,12 +63,15 @@ export const MermaidBlock = memo(({ code, className }: MermaidBlockProps) => {
         const result = await mermaid.render(id, trimmed);
 
         if (!cancelled) {
+          /*
+           * Defer bindFunctions until the new SVG is committed to the DOM.
+           * Calling it now would wire callbacks onto the previous render's
+           * markup (still in the container), which the upcoming commit
+           * replaces — silently dropping the interactive bindings.
+           */
+          bindFunctionsRef.current = result.bindFunctions ?? null;
           setSvg(result.svg);
           setStatus('done');
-
-          if (containerRef.current) {
-            result.bindFunctions?.(containerRef.current);
-          }
         }
       } catch (error) {
         logger.warn('Mermaid render failed', error);
@@ -82,6 +87,19 @@ export const MermaidBlock = memo(({ code, className }: MermaidBlockProps) => {
       cancelled = true;
     };
   }, [code, theme]);
+
+  /*
+   * Wire up Mermaid's interactive bindings (click handlers, tooltips) only
+   * after the freshly rendered SVG has been committed into the container.
+   */
+  useLayoutEffect(() => {
+    const bindFunctions = bindFunctionsRef.current;
+
+    if (svg && bindFunctions && containerRef.current) {
+      bindFunctions(containerRef.current);
+      bindFunctionsRef.current = null;
+    }
+  }, [svg]);
 
   const copyToClipboard = async () => {
     try {

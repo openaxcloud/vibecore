@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { GitHubCacheManager } from './components/GitHubCacheManager';
 import { GitHubConnection } from './components/GitHubConnection';
 import { GitHubErrorBoundary } from './components/GitHubErrorBoundary';
-import { GitHubProgressiveLoader } from './components/GitHubProgressiveLoader';
 import { GitHubStats } from './components/GitHubStats';
 import { GitHubUserProfile } from './components/GitHubUserProfile';
 import { LoadingState, ErrorState, ConnectionTestIndicator, RepositoryCard } from './components/shared';
@@ -304,22 +303,11 @@ export default function GitHubTab() {
           />
         )}
 
-        {/* Stats Loading State */}
-        {isStatsLoading && !stats && (
-          <GitHubProgressiveLoader
-            isLoading={isStatsLoading}
-            loadingMessage="Loading GitHub statistics..."
-            showProgress={true}
-            progressSteps={[
-              { key: 'user', label: 'Fetching user info', completed: !!connection?.user, loading: !connection?.user },
-              { key: 'repos', label: 'Loading repositories', completed: false, loading: true },
-              { key: 'stats', label: 'Calculating statistics', completed: false },
-              { key: 'cache', label: 'Updating cache', completed: false },
-            ]}
-          >
-            <div />
-          </GitHubProgressiveLoader>
-        )}
+        {/*
+         * Stats Loading State is handled inside <GitHubStats> above (it renders its own
+         * spinner when isLoading && !stats). A second standalone progressive loader here
+         * would stack two loading UIs for the same single fetch, so it has been removed.
+         */}
 
         {/* Cache Management Section - Only show when connected */}
         {isConnected && connection && (

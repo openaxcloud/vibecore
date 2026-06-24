@@ -68,7 +68,11 @@ describe('useProjectCollaboration', () => {
 
     const client = collaborationMock.MockProjectCollaborationClient.instances[0];
     await waitFor(() => {
-      expect(client.updatePresence).toHaveBeenCalledWith({ status: 'online', mode: 'editing' });
+      expect(client.updatePresence).toHaveBeenCalledWith({
+        status: 'online',
+        filePath: undefined,
+        mode: 'editing',
+      });
       expect(client.updatePresence).toHaveBeenCalledWith({
         status: 'online',
         filePath: 'src/App.tsx',
@@ -88,6 +92,38 @@ describe('useProjectCollaboration', () => {
       vi.advanceTimersByTime(1);
     });
     expect(client.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends an explicit filePath clear when the open file is closed', async () => {
+    const { rerender } = renderHook(
+      ({ filePath }: { filePath?: string }) =>
+        useProjectCollaboration({ projectId: 'project-3', enabled: true, filePath, mode: 'editing' }),
+      { initialProps: { filePath: 'src/App.tsx' as string | undefined } },
+    );
+
+    await waitFor(() => {
+      expect(collaborationMock.MockProjectCollaborationClient.instances).toHaveLength(1);
+    });
+
+    const client = collaborationMock.MockProjectCollaborationClient.instances[0];
+    await waitFor(() => {
+      expect(client.updatePresence).toHaveBeenCalledWith({
+        status: 'online',
+        filePath: 'src/App.tsx',
+        mode: 'editing',
+      });
+    });
+
+    // Close the file: the consumer now passes filePath: undefined.
+    rerender({ filePath: undefined });
+
+    await waitFor(() => {
+      expect(client.updatePresence).toHaveBeenCalledWith({
+        status: 'online',
+        filePath: undefined,
+        mode: 'editing',
+      });
+    });
   });
 
   it('reuses the shared client when a strict-mode remount happens immediately', async () => {

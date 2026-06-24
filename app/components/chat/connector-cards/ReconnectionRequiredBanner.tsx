@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Button } from '~/components/ui/Button';
 import type { ReconnectionRequiredMessage, ReconnectionRequiredReason } from '~/lib/chat/connector-messages';
 import { useConnectorPopup } from '~/lib/chat/use-connector-popup';
@@ -42,8 +42,11 @@ export interface ReconnectionRequiredBannerProps {
 
 export function ReconnectionRequiredBanner({ payload, projectId }: ReconnectionRequiredBannerProps) {
   const { state, launch } = useConnectorPopup();
+  const [networkError, setNetworkError] = useState<string | null>(null);
 
   const startReconnect = useCallback(async () => {
+    setNetworkError(null);
+
     try {
       const response = await fetch(`/api/integrations/oauth/${payload.provider}/connect`, {
         method: 'POST',
@@ -52,17 +55,21 @@ export function ReconnectionRequiredBanner({ payload, projectId }: ReconnectionR
       });
 
       if (!response.ok) {
+        const parsed = (await response.json().catch(() => ({}))) as { error?: string };
+        setNetworkError(parsed.error ?? `Failed to start reconnection (HTTP ${response.status})`);
+
         return;
       }
 
       const result = (await response.json()) as { provider: string; authorizationUrl: string };
       launch({ authorizationUrl: result.authorizationUrl, provider: result.provider });
-    } catch {
+    } catch (error) {
       /*
-       * Errors surface in the launching state through the hook; no
-       * additional fallback UI needed because the banner already shows
-       * the reconnect prompt prominently.
+       * launch() is never reached on a transport failure, so the hook
+       * stays 'idle' and the button silently reverts. Surface the error
+       * inline so the builder gets feedback, mirroring ConnectionRequestCard.
        */
+      setNetworkError(error instanceof Error ? error.message : 'Unknown failure starting reconnection.');
     }
   }, [launch, payload.provider, projectId]);
 
@@ -89,6 +96,11 @@ export function ReconnectionRequiredBanner({ payload, projectId }: ReconnectionR
           <Button onClick={startReconnect} disabled={isLaunching} className="mt-2">
             {isLaunching ? 'Waiting for authorization...' : `Reconnect ${payload.providerDisplayName}`}
           </Button>
+          {networkError ? (
+            <p role="alert" className="mt-2 text-xs text-bolt-elements-icon-error">
+              {networkError}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

@@ -305,7 +305,7 @@ export default function ReportAbuse() {
                       data-testid="input-abuse-url"
                     />
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      Please provide the direct link to the Repl, profile, or comment
+                      Please provide the direct link to the project, profile, or comment
                     </p>
                   </div>
 

@@ -5,6 +5,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { normalizeVercelUser } from './vercel-connect';
 import { redactVercelConnection } from './vercel-redact';
+import { buildVercelRedeployRequest } from './vercel-redeploy';
 import { ConnectorApiKeyConnectButton } from '~/components/@settings/shared/connectors';
 import { ServiceHeader, ConnectionTestIndicator } from '~/components/@settings/shared/service-integration';
 import { Button } from '~/components/ui/Button';
@@ -65,20 +66,32 @@ export default function VercelTab() {
         icon: 'i-ph:arrows-clockwise',
         action: async (projectId: string) => {
           try {
-            const response = await fetch(`https://api.vercel.com/v1/deployments`, {
+            /*
+             * Redeploy the project's last production deployment from source via
+             * the v13 create-deployment API (deploymentId + project *name*).
+             */
+            const { url, body } = buildVercelRedeployRequest(projectId, connection.stats?.projects);
+
+            const response = await fetch(url, {
               method: 'POST',
               headers: {
                 Authorization: `Bearer ${connection.token}`,
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({
-                name: projectId,
-                target: 'production',
-              }),
+              body: JSON.stringify(body),
             });
 
             if (!response.ok) {
-              throw new Error('Failed to redeploy project');
+              let message = 'Failed to redeploy project';
+
+              try {
+                const errorData = (await response.json()) as { error?: { message?: string } };
+                message = errorData.error?.message || message;
+              } catch {
+                // response body was not JSON; keep the generic message
+              }
+
+              throw new Error(message);
             }
 
             toast.success('Project redeployment initiated');
@@ -169,8 +182,8 @@ export default function VercelTab() {
         variant: 'destructive',
       },
     ],
-    [connection.token],
-  ); // Only re-create when token changes
+    [connection.token, connection.stats?.projects],
+  ); // Re-create when token or the resolved project list changes
 
   // Initialize connection on component mount - check server-side token first
   useEffect(() => {
