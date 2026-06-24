@@ -1,23 +1,26 @@
 import {
+  Activity,
   ArrowRight,
-  BarChart,
-  CheckCircle,
+  Blocks,
+  CheckCircle2,
   ChevronRight,
-  Cloud,
   Code,
+  Code2,
   Cpu,
   Database,
-  FileCode,
+  FolderTree,
   GitBranch,
+  Globe2,
+  KeyRound,
   Layers,
-  Lock,
   Network,
-  Package,
   Rocket,
-  Settings,
-  Shield,
-  Terminal,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  TerminalSquare,
   Users,
+  Users2,
   Zap,
 } from 'lucide-react';
 import type React from 'react';
@@ -67,7 +70,7 @@ export default function Features() {
   const features: Feature[] = [
     // AI Agent
     {
-      icon: <Zap className="h-6 w-6" />,
+      icon: <Sparkles className="h-6 w-6" />,
       title: 'AI Agent - Your Personal Developer',
       description: 'Build complete apps just by describing what you want in any language',
       details: [
@@ -84,7 +87,7 @@ export default function Features() {
 
     // Development Environment
     {
-      icon: <Code className="h-6 w-6" />,
+      icon: <Code2 className="h-6 w-6" />,
       title: 'Friendly Code Editor',
       description: 'Write code easily with helpful suggestions and colorful highlighting',
       details: [
@@ -98,7 +101,7 @@ export default function Features() {
       category: 'Creating',
     },
     {
-      icon: <Terminal className="h-6 w-6" />,
+      icon: <TerminalSquare className="h-6 w-6" />,
       title: 'Command Center',
       description: 'Run your code and see results instantly, just like magic',
       details: [
@@ -112,7 +115,7 @@ export default function Features() {
       category: 'Creating',
     },
     {
-      icon: <FileCode className="h-6 w-6" />,
+      icon: <FolderTree className="h-6 w-6" />,
       title: 'Your Project Files',
       description: 'Organize your work just like folders on your computer',
       details: [
@@ -126,7 +129,7 @@ export default function Features() {
       category: 'Creating',
     },
     {
-      icon: <Package className="h-6 w-6" />,
+      icon: <Blocks className="h-6 w-6" />,
       title: 'Add Cool Features',
       description: 'Easily add pre-made tools to make your projects awesome',
       details: [
@@ -142,7 +145,7 @@ export default function Features() {
 
     // Collaboration
     {
-      icon: <Users className="h-6 w-6" />,
+      icon: <Users2 className="h-6 w-6" />,
       title: 'Learn Together',
       description: 'Get help from friends or mentors in real-time',
       details: [
@@ -173,7 +176,7 @@ export default function Features() {
 
     // Infrastructure
     {
-      icon: <Cloud className="h-6 w-6" />,
+      icon: <Globe2 className="h-6 w-6" />,
       title: 'Always Available',
       description: 'Your projects work from anywhere, anytime',
       details: [
@@ -219,7 +222,7 @@ export default function Features() {
 
     // Security
     {
-      icon: <Shield className="h-6 w-6" />,
+      icon: <ShieldCheck className="h-6 w-6" />,
       title: 'Enterprise Security',
       description: 'Bank-level security for your code and data',
       details: [
@@ -234,7 +237,7 @@ export default function Features() {
       id: 'security',
     },
     {
-      icon: <Lock className="h-6 w-6" />,
+      icon: <KeyRound className="h-6 w-6" />,
       title: 'Secret Management',
       description: 'Secure storage for API keys and credentials',
       details: [
@@ -250,7 +253,7 @@ export default function Features() {
 
     // Analytics
     {
-      icon: <BarChart className="h-6 w-6" />,
+      icon: <Activity className="h-6 w-6" />,
       title: 'Performance Monitoring',
       description: 'Real-time metrics and application monitoring',
       details: [
@@ -352,7 +355,9 @@ export default function Features() {
                           data-testid={`card-feature-${feature.id || index}`}
                         >
                           <CardHeader className="p-4 sm:p-6">
-                            <div className="p-2 sm:p-3 bg-primary/10 rounded-lg w-fit mb-3 sm:mb-4">{feature.icon}</div>
+                            <div className="flex items-center justify-center p-2 sm:p-3 bg-bolt-elements-background-depth-3 text-[#F26207] ring-1 ring-[#F26207]/30 rounded-lg w-fit mb-3 sm:mb-4">
+                              {feature.icon}
+                            </div>
                             <CardTitle className="text-base sm:text-[15px]">{feature.title}</CardTitle>
                             <CardDescription className="text-[11px] sm:text-[13px]">
                               {feature.description}
@@ -362,7 +367,7 @@ export default function Features() {
                             <ul className="space-y-1.5 sm:space-y-2">
                               {feature.details.map((detail, i) => (
                                 <li key={i} className="flex items-start gap-2 text-[11px] sm:text-[13px]">
-                                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                                  <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-[#F26207] flex-shrink-0 mt-0.5" />
                                   <span>{detail}</span>
                                 </li>
                               ))}
@@ -395,8 +400,8 @@ export default function Features() {
               </p>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded">
-                    <Cpu className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <div className="p-2 bg-bolt-elements-background-depth-3 ring-1 ring-[#F26207]/30 rounded">
+                    <Cpu className="h-5 w-5 text-[#F26207]" />
                   </div>
                   <div>
                     <h3 className="font-semibold" data-testid="text-feature-overview-environments">
@@ -408,8 +413,8 @@ export default function Features() {
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded">
-                    <Network className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <div className="p-2 bg-bolt-elements-background-depth-3 ring-1 ring-[#F26207]/30 rounded">
+                    <Network className="h-5 w-5 text-[#F26207]" />
                   </div>
                   <div>
                     <h3 className="font-semibold" data-testid="text-feature-overview-ecosystem">
@@ -421,8 +426,8 @@ export default function Features() {
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded">
-                    <Settings className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <div className="p-2 bg-bolt-elements-background-depth-3 ring-1 ring-[#F26207]/30 rounded">
+                    <Settings2 className="h-5 w-5 text-[#F26207]" />
                   </div>
                   <div>
                     <h3 className="font-semibold" data-testid="text-feature-overview-config">
@@ -434,7 +439,7 @@ export default function Features() {
               </div>
             </div>
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-purple-600/20 blur-3xl" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#F26207]/20 to-[#F99D25]/20 blur-3xl" />
               <Card className="relative">
                 <CardContent className="p-8">
                   <div className="space-y-4">

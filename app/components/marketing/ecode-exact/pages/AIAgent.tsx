@@ -8,6 +8,7 @@ import {
   FileCode,
   Globe,
   MessageSquare,
+  MessageSquarePlus,
   Package,
   PlayCircle,
   Rocket,
@@ -243,7 +244,7 @@ export default function AiAgent() {
 
                 <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
                   AI Agent v2
-                  <span className="block text-4xl md:text-5xl lg:text-6xl mt-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
+                  <span className="block text-4xl md:text-5xl lg:text-6xl mt-2 bg-gradient-to-r from-[#F26207] to-[#F99D25] bg-clip-text text-transparent">
                     Build Apps with Natural Language
                   </span>
                 </h1>
@@ -338,8 +339,8 @@ export default function AiAgent() {
 
             <div className="grid md:grid-cols-3 gap-8 mb-12">
               <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                  <MessageSquare className="h-8 w-8 text-primary" />
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto bg-gradient-to-br from-[#F26207] to-[#F99D25] shadow-lg shadow-[#F26207]/25">
+                  <MessageSquarePlus className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold">1. Describe Your Idea</h3>
                 <p className="text-muted-foreground">
@@ -348,8 +349,8 @@ export default function AiAgent() {
               </div>
 
               <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                  <Sparkles className="h-8 w-8 text-primary" />
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto bg-gradient-to-br from-[#F26207] to-[#F99D25] shadow-lg shadow-[#F26207]/25">
+                  <Sparkles className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold">2. AI Builds Everything</h3>
                 <p className="text-muted-foreground">
@@ -358,8 +359,8 @@ export default function AiAgent() {
               </div>
 
               <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                  <Rocket className="h-8 w-8 text-primary" />
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto bg-gradient-to-br from-[#F26207] to-[#F99D25] shadow-lg shadow-[#F26207]/25">
+                  <Rocket className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold">3. Your App is Ready</h3>
                 <p className="text-muted-foreground">
@@ -370,7 +371,7 @@ export default function AiAgent() {
 
             {/* Live Demo */}
             <Card className="overflow-hidden max-w-4xl mx-auto">
-              <CardHeader className="bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white">
+              <CardHeader className="bg-gradient-to-r from-[#F26207] to-[#F99D25] text-white">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-start gap-3 text-left">
                     <Sparkles className="mt-1 h-6 w-6" />
@@ -415,7 +416,7 @@ export default function AiAgent() {
         </section>
 
         {/* Video Demo Section */}
-        <section id="agent-demo" className="py-20 bg-gradient-to-b from-background to-muted/20">
+        <section id="agent-demo" className="pt-20 pb-12 bg-gradient-to-b from-background to-muted/20">
           <div className="container-responsive max-w-7xl">
             <div className="text-center mb-12">
               <h2 className="text-4xl md:text-5xl font-bold mb-4">Watch AI Agent v2 in Action</h2>
@@ -580,7 +581,7 @@ export default function AiAgent() {
         </section>
 
         {/* Capabilities Tabs */}
-        <section className="py-20">
+        <section className="pt-12 pb-20">
           <div className="container-responsive max-w-6xl">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">More than just code generation</h2>
@@ -773,7 +774,7 @@ export default function AiAgent() {
                 </div>
 
                 <div className="mt-12 text-center">
-                  <Card className="bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white max-w-2xl mx-auto">
+                  <Card className="bg-gradient-to-r from-[#F26207] to-[#F99D25] text-white max-w-2xl mx-auto">
                     <CardContent className="p-8">
                       <h3 className="text-2xl font-bold mb-4">Ready to build something amazing?</h3>
                       <p className="mb-6">Join thousands who are building apps without writing code</p>
