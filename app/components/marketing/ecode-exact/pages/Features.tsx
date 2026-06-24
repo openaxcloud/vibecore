@@ -13,6 +13,7 @@ import {
   Globe2,
   KeyRound,
   Layers,
+  LayoutDashboard,
   Network,
   Rocket,
   Settings2,
@@ -312,6 +313,67 @@ export default function Features() {
                 View documentation
               </Button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Product Screenshot Showcase — real captures of the live E-Code app */}
+      <section className="px-4 pb-4 sm:pb-8 md:pb-12">
+        <div className="container mx-auto max-w-6xl">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 sm:gap-8 items-stretch">
+            {/* Primary shot: the full IDE */}
+            <figure className="lg:col-span-3 group relative">
+              <div className="absolute -inset-2 bg-gradient-to-r from-[#F26207]/20 to-[#F99D25]/20 blur-2xl rounded-2xl pointer-events-none" />
+              <div className="relative rounded-xl overflow-hidden ring-1 ring-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-2xl">
+                <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#F26207]/70" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#F99D25]/70" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
+                  <span className="ml-2 text-[11px] sm:text-[13px] text-muted-foreground font-medium truncate">
+                    E-Code Workspace
+                  </span>
+                </div>
+                <img
+                  src="/ecode-static/assets/product/ide.png"
+                  alt="The E-Code IDE showing the AI Agent panel, code editor, file tree and live preview together in one workspace"
+                  width={1440}
+                  height={900}
+                  loading="lazy"
+                  className="block w-full h-auto"
+                  data-testid="img-features-ide"
+                />
+              </div>
+              <figcaption className="mt-3 flex items-start gap-2 text-[11px] sm:text-[13px] text-muted-foreground px-1">
+                <LayoutDashboard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#F26207] flex-shrink-0 mt-0.5" />
+                <span>The E-Code IDE: agent, editor, files and preview in one workspace.</span>
+              </figcaption>
+            </figure>
+
+            {/* Secondary shot: in-IDE deployments */}
+            <figure className="lg:col-span-2 group relative">
+              <div className="absolute -inset-2 bg-gradient-to-l from-[#F26207]/15 to-[#F99D25]/15 blur-2xl rounded-2xl pointer-events-none" />
+              <div className="relative rounded-xl overflow-hidden ring-1 ring-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-2xl">
+                <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+                  <Rocket className="h-3.5 w-3.5 text-[#F26207]" />
+                  <span className="text-[11px] sm:text-[13px] text-muted-foreground font-medium truncate">
+                    Deployments
+                  </span>
+                </div>
+                <img
+                  src="/ecode-static/assets/product/ide-deploy.png"
+                  alt="The in-IDE Deployments panel where E-Code ships your project to production"
+                  width={1440}
+                  height={900}
+                  loading="lazy"
+                  className="block w-full h-auto"
+                  data-testid="img-features-ide-deploy"
+                />
+              </div>
+              <figcaption className="mt-3 flex items-start gap-2 text-[11px] sm:text-[13px] text-muted-foreground px-1">
+                <Rocket className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#F26207] flex-shrink-0 mt-0.5" />
+                <span>Ship to production without leaving the editor.</span>
+              </figcaption>
+            </figure>
           </div>
         </div>
       </section>

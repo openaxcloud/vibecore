@@ -13,7 +13,6 @@ import {
   PlayCircle,
   Rocket,
   Settings,
-  Shield,
   Sparkles,
   Star,
   Timer,
@@ -27,7 +26,6 @@ import {
 } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import {
   Badge,
-  BRAND,
   Button,
   Card,
   CardContent,
@@ -62,76 +60,65 @@ export default function AiAgent() {
     }
   };
 
-  const trailerSegments = [
+  // Real product captures from the live E-Code app — never mocks.
+  const agentShots = [
     {
-      id: 'idea-to-app',
-      title: 'Idea to App in 60 Seconds',
-      description: 'Follow the E-Code Agent 2.0 as it transforms a plain-text idea into a production-ready interface.',
-      timestamp: '00:00',
-      videoSrc: '/assets/platform-demo.mp4',
-      poster: BRAND.assets.heroImage,
+      id: 'agent-editor',
+      title: 'Agent + Editor',
+      description: 'The agent chats on the left while it writes code in the editor and updates the file tree live.',
+      label: 'IDE workspace',
+      image: '/ecode-static/assets/product/ide.png',
     },
     {
-      id: 'api-integrations',
-      title: 'Instant API Integrations',
-      description: 'See how the agent wires databases and APIs without manual setup or configuration.',
-      timestamp: '00:28',
-      videoSrc: '/assets/platform-demo.mp4#t=28',
-      poster: BRAND.assets.heroImage,
+      id: 'git-workflow',
+      title: 'Built-in Git workflow',
+      description: 'Real Git panel: branch, working tree, the orange Commit button, and the commit graph.',
+      label: 'Version control',
+      image: '/ecode-static/assets/product/ide-git.png',
     },
     {
-      id: 'responsive-design',
-      title: 'Responsive UI Autodesign',
-      description: 'Watch responsive breakpoints, theming, and accessibility come together automatically.',
-      timestamp: '00:46',
-      videoSrc: '/assets/platform-demo.mp4#t=46',
-      poster: BRAND.assets.heroImage,
+      id: 'deployments',
+      title: 'In-IDE Deployments',
+      description: 'Ship to the cloud straight from the Deployments panel—no terminal, no context switch.',
+      label: 'Deploy',
+      image: '/ecode-static/assets/product/ide-deploy.png',
     },
   ];
 
-  const [selectedSegment, setSelectedSegment] = useState(trailerSegments[0]);
-
-  const heroMedia = {
-    videoSrc: '/assets/platform-demo.mp4',
-    poster: BRAND.assets.heroImage,
-  };
+  const [selectedShot, setSelectedShot] = useState(agentShots[0]);
 
   const quickReels = [
     {
-      id: 'multilingual',
-      title: 'Multilingual Demo',
-      description: 'Prompting and building entirely in Japanese.',
-      icon: Globe,
-      timestamp: '00:12',
-      videoSrc: '/assets/platform-demo.mp4#t=12',
-      poster: heroMedia.poster,
+      id: 'agent',
+      title: 'Agent Panel',
+      description: 'Conversational building, right next to your code.',
+      icon: Sparkles,
+      label: 'Live',
+      image: '/ecode-static/assets/product/ide.png',
     },
     {
-      id: 'database',
-      title: 'Database Integration',
-      description: 'Automatic PostgreSQL schema and seed data.',
-      icon: Database,
-      timestamp: '00:32',
-      videoSrc: '/assets/platform-demo.mp4#t=32',
-      poster: heroMedia.poster,
+      id: 'git',
+      title: 'Git Workflow',
+      description: 'Branches, working tree, and one-click commits.',
+      icon: Code,
+      label: 'Source',
+      image: '/ecode-static/assets/product/ide-git.png',
     },
     {
-      id: 'security',
-      title: 'Auth & Security',
-      description: 'Passwordless login and audit logging in seconds.',
-      icon: Shield,
-      timestamp: '00:44',
-      videoSrc: '/assets/platform-demo.mp4#t=44',
-      poster: heroMedia.poster,
-    },
-    {
-      id: 'deployment',
+      id: 'deploy',
       title: 'Instant Deploy',
-      description: 'Pushes live to the cloud with monitoring.',
+      description: 'Publish to the cloud from the Deployments panel.',
       icon: Rocket,
-      timestamp: '00:58',
-      videoSrc: '/assets/platform-demo.mp4#t=58',
-      poster: heroMedia.poster,
+      label: 'Deploy',
+      image: '/ecode-static/assets/product/ide-deploy.png',
+    },
+    {
+      id: 'mobile',
+      title: 'On Mobile',
+      description: 'The full app, responsive down to 390px.',
+      icon: Globe,
+      label: 'Mobile',
+      image: '/ecode-static/assets/product/mobile.png',
     },
   ];
 
@@ -287,39 +274,35 @@ export default function AiAgent() {
               </div>
 
               <div className="relative">
-                <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl border bg-slate-900">
-                  <video
-                    key={heroMedia.videoSrc}
-                    className="absolute inset-0 h-full w-full object-cover"
-                    src={heroMedia.videoSrc}
-                    poster={heroMedia.poster}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    aria-label="E-Code Agent 2.0 building an application from an idea"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-900/40 to-transparent" />
-                  <div className="absolute bottom-6 left-6 right-6 flex flex-col gap-3 text-left">
-                    <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1 text-[11px] font-semibold text-white backdrop-blur">
-                      <PlayCircle className="h-4 w-4" />
-                      Trailer: E-Code Agent 2.0 builds a marketplace in minutes
-                    </div>
-                    <p className="text-[15px] font-semibold text-white drop-shadow">
-                      Witness idea-to-deployment in a single take—captured directly from the live platform.
-                    </p>
-                    <div className="flex flex-wrap gap-3 text-[13px] text-white/80">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-black/40 px-3 py-1">
-                        <Timer className="h-4 w-4" />
-                        1:12 total runtime
-                      </span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-black/40 px-3 py-1">
-                        <Sparkles className="h-4 w-4" />
-                        Full-stack build with UI + API
-                      </span>
-                    </div>
+                {/* Real capture of the E-Code Agent working inside the IDE */}
+                <figure className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-slate-900">
+                  {/* Browser-ish chrome */}
+                  <div className="flex items-center gap-2 border-b border-white/10 bg-slate-950/80 px-4 py-3">
+                    <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+                    <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+                    <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+                    <span className="ml-3 inline-flex items-center gap-1.5 rounded-md bg-white/5 px-3 py-1 text-[11px] font-medium text-white/60">
+                      <Sparkles className="h-3 w-3 text-[#F26207]" />
+                      app.e-code.ai
+                    </span>
                   </div>
-                </div>
+                  <img
+                    src="/ecode-static/assets/product/ide.png"
+                    alt="The E-Code Agent building an app inside the IDE — agent panel, code editor, file tree and run/publish bar"
+                    className="block w-full h-auto"
+                    loading="eager"
+                  />
+                  <figcaption className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-2 text-[11px] text-white">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 backdrop-blur">
+                      <Sparkles className="h-3.5 w-3.5 text-[#F99D25]" />
+                      Agent + Editor, captured live
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 backdrop-blur">
+                      <Rocket className="h-3.5 w-3.5 text-[#F99D25]" />
+                      Run &amp; Publish from one bar
+                    </span>
+                  </figcaption>
+                </figure>
                 <div className="absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
                 <div className="absolute -z-10 -bottom-10 -left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
               </div>
@@ -369,45 +352,40 @@ export default function AiAgent() {
               </div>
             </div>
 
-            {/* Live Demo */}
+            {/* Real IDE capture — the Agent at work */}
             <Card className="overflow-hidden max-w-4xl mx-auto">
               <CardHeader className="bg-gradient-to-r from-[#F26207] to-[#F99D25] text-white">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-start gap-3 text-left">
                     <Sparkles className="mt-1 h-6 w-6" />
                     <div>
-                      <CardTitle>E-Code Agent 2.0: Idea-to-App Trailer</CardTitle>
+                      <CardTitle>The E-Code Agent, inside the IDE</CardTitle>
                       <CardDescription className="text-white/80">
-                        Experience the full build of a customer feedback portal from prompt to deployment.
+                        A real capture: the agent chats on the left while it writes files in the editor and watches the
+                        file tree update in real time.
                       </CardDescription>
                     </div>
                   </div>
                   <Badge variant="secondary" className="self-start bg-white/20 text-white md:self-center">
-                    <Timer className="h-3 w-3 mr-1" />
-                    1:12
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    Live capture
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent className="p-0 bg-black">
-                <div className="relative aspect-video w-full">
-                  <video
-                    key="primary-trailer"
-                    className="h-full w-full object-cover"
-                    src="/assets/platform-demo.mp4"
-                    poster={BRAND.assets.heroImage}
-                    controls
-                    preload="metadata"
-                    playsInline
-                    aria-label="E-Code Agent 2.0 builds a customer feedback portal"
-                  />
-                </div>
+                <img
+                  src="/ecode-static/assets/product/ide.png"
+                  alt="Full E-Code IDE — Agent panel, code editor, file tree and the Run/Publish bar working together"
+                  className="block w-full h-auto"
+                  loading="lazy"
+                />
                 <div className="space-y-2 px-6 py-6 text-[13px] text-muted-foreground md:flex md:items-center md:justify-between md:gap-6">
                   <p className="md:max-w-2xl">
-                    The trailer showcases the agent drafting requirements, generating UI layouts, provisioning backend
-                    services, and publishing the finished app—all without a single manual command.
+                    Everything you see is the live product: the agent drafts requirements, generates the UI, wires up
+                    the backend, and exposes a one-click Run and Publish bar—no manual commands.
                   </p>
                   <Button size="sm" variant="secondary" className="mt-4 md:mt-0" asChild>
-                    <a href="#agent-demo">Watch detailed breakdown</a>
+                    <a href="#agent-demo">See the Git workflow</a>
                   </Button>
                 </div>
               </CardContent>
@@ -432,28 +410,27 @@ export default function AiAgent() {
                 transition={{ delay: 0.1 }}
                 className="lg:col-span-2"
               >
-                <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl border bg-slate-900">
-                  <video
-                    key={selectedSegment.id}
-                    className="absolute inset-0 h-full w-full object-cover"
-                    src={selectedSegment.videoSrc}
-                    poster={selectedSegment.poster}
-                    controls
-                    preload="metadata"
-                    playsInline
-                    aria-label={`${selectedSegment.title} — ${selectedSegment.description}`}
-                  />
-                  <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/70 via-black/20 to-transparent px-6 py-4 text-[11px] text-white">
-                    <span className="inline-flex items-center gap-2 font-semibold uppercase tracking-wide">
-                      <PlayCircle className="h-4 w-4" /> Segment {selectedSegment.timestamp}
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1">
-                      <Sparkles className="h-3 w-3" /> Recorded in the live studio
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-slate-900">
+                  {/* Browser-ish chrome */}
+                  <div className="flex items-center gap-2 border-b border-white/10 bg-slate-950/80 px-4 py-3">
+                    <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+                    <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+                    <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+                    <span className="ml-3 inline-flex items-center gap-1.5 rounded-md bg-white/5 px-3 py-1 text-[11px] font-medium text-white/60">
+                      <Sparkles className="h-3 w-3 text-[#F26207]" />
+                      {selectedShot.label}
                     </span>
                   </div>
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-6 text-white">
-                    <h3 className="text-[15px] font-semibold">{selectedSegment.title}</h3>
-                    <p className="text-[13px] text-white/80">{selectedSegment.description}</p>
+                  <img
+                    key={selectedShot.id}
+                    src={selectedShot.image}
+                    alt={`${selectedShot.title} — ${selectedShot.description}`}
+                    className="block w-full h-auto"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-6 text-white">
+                    <h3 className="text-[15px] font-semibold">{selectedShot.title}</h3>
+                    <p className="text-[13px] text-white/80">{selectedShot.description}</p>
                   </div>
                 </div>
               </LazyMotionDiv>
@@ -466,42 +443,41 @@ export default function AiAgent() {
               >
                 <Card className="hover:shadow-lg transition-all">
                   <CardHeader>
-                    <CardTitle className="text-[15px]">Featured Demos</CardTitle>
+                    <CardTitle className="text-[15px]">Explore the IDE</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {trailerSegments.map((segment) => (
+                    {agentShots.map((shot) => (
                       <button
-                        key={segment.id}
+                        key={shot.id}
                         type="button"
-                        onClick={() => setSelectedSegment(segment)}
+                        onClick={() => setSelectedShot(shot)}
+                        aria-pressed={selectedShot.id === shot.id}
                         className={`w-full text-left p-3 rounded-lg transition-colors group ${
-                          selectedSegment.id === segment.id
-                            ? 'bg-muted border border-primary/40 shadow-sm'
-                            : 'hover:bg-muted'
+                          selectedShot.id === shot.id ? 'bg-muted border border-primary/40 shadow-sm' : 'hover:bg-muted'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <img
-                            src={BRAND.assets.aiAvatar}
-                            alt="E-Code Agent avatar"
-                            className="h-10 w-10 rounded-lg border object-cover"
+                            src={shot.image}
+                            alt={`${shot.title} preview`}
+                            className="h-12 w-20 flex-shrink-0 rounded-md border object-cover object-left-top"
                             loading="lazy"
                           />
                           <div className="flex-1">
                             <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                               <span className="inline-flex items-center gap-1">
-                                <Timer className="h-3 w-3 text-primary" />
-                                {segment.timestamp}
+                                <Sparkles className="h-3 w-3 text-primary" />
+                                {shot.label}
                               </span>
-                              {selectedSegment.id === segment.id && (
+                              {selectedShot.id === shot.id && (
                                 <span className="inline-flex items-center gap-1 text-primary">
-                                  <PlayCircle className="h-3 w-3" />
-                                  Now playing
+                                  <CheckCircle className="h-3 w-3" />
+                                  Viewing
                                 </span>
                               )}
                             </div>
-                            <p className="font-medium">{segment.title}</p>
-                            <p className="text-[13px] text-muted-foreground">{segment.description}</p>
+                            <p className="font-medium">{shot.title}</p>
+                            <p className="text-[13px] text-muted-foreground">{shot.description}</p>
                           </div>
                         </div>
                       </button>
@@ -513,28 +489,28 @@ export default function AiAgent() {
                   <CardHeader>
                     <CardTitle className="text-[15px] flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-primary" />
-                      Live Demo Stats
+                      What you&apos;re looking at
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3 text-[13px]">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Average Build Time</span>
-                        <span className="font-semibold">47 seconds</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Lines of Code Generated</span>
-                        <span className="font-semibold">1,247</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Files Created</span>
-                        <span className="font-semibold">23</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Success Rate</span>
-                        <span className="font-semibold text-green-600">99.7%</span>
-                      </div>
-                    </div>
+                    <ul className="space-y-3 text-[13px]">
+                      <li className="flex items-start gap-2">
+                        <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>An Agent panel that builds alongside you, in plain language.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Code className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>A real code editor and file tree—edit anything by hand at any point.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Globe className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Built-in Git: branches, working tree, and one-click commits.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Rocket className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Deploy to the cloud from the same window, no terminal required.</span>
+                      </li>
+                    </ul>
                   </CardContent>
                 </Card>
               </LazyMotionDiv>
@@ -555,22 +531,18 @@ export default function AiAgent() {
                         <CardTitle className="text-base">{reel.title}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <div className="relative overflow-hidden rounded-lg border">
-                          <video
-                            className="h-28 w-full object-cover"
-                            src={reel.videoSrc}
-                            poster={reel.poster}
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
+                        <div className="relative overflow-hidden rounded-lg border bg-slate-900">
+                          <img
+                            className="h-28 w-full object-cover object-left-top"
+                            src={reel.image}
+                            alt={`${reel.title} — ${reel.description}`}
+                            loading="lazy"
                           />
                           <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
-                            <Timer className="h-3 w-3" /> {reel.timestamp}
+                            <Sparkles className="h-3 w-3" /> {reel.label}
                           </span>
                         </div>
                         <p className="text-[13px] text-muted-foreground">{reel.description}</p>
-                        <p className="text-[11px] font-semibold text-primary">Watch Now →</p>
                       </CardContent>
                     </Card>
                   </div>
