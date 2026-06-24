@@ -4,6 +4,10 @@ import {
   SiTypescript,
   SiGo,
   SiReact,
+  SiNextdotjs,
+  SiVuedotjs,
+  SiSvelte,
+  SiTailwindcss,
   SiNodedotjs,
   SiRust,
   SiPhp,
@@ -17,6 +21,15 @@ const languages = [
   { name: 'TypeScript', icon: SiTypescript, color: '#3178C6' },
   { name: 'Go', icon: SiGo, color: '#00ADD8' },
   { name: 'React', icon: SiReact, color: '#61DAFB' },
+
+  /*
+   * Next.js's brand mark is pure-black, which disappears on the dark
+   * --ecode-surface tile; use a near-white tone so it stays legible.
+   */
+  { name: 'Next.js', icon: SiNextdotjs, color: '#F5F5F5' },
+  { name: 'Vue', icon: SiVuedotjs, color: '#4FC08D' },
+  { name: 'Svelte', icon: SiSvelte, color: '#FF3E00' },
+  { name: 'Tailwind', icon: SiTailwindcss, color: '#06B6D4' },
   { name: 'Node.js', icon: SiNodedotjs, color: '#339933' },
 
   /*

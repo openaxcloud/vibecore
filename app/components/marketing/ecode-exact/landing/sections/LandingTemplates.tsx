@@ -1,4 +1,6 @@
-import { ArrowRight, Loader2, Store, Briefcase, BarChart3, MessageSquare, BookOpen, Settings } from 'lucide-react';
+import { ArrowRight, Loader2, LayoutDashboard } from 'lucide-react';
+import type { IconType } from 'react-icons';
+import { SiChartdotjs, SiReadthedocs, SiShopify, SiSocketdotio, SiStripe } from 'react-icons/si';
 import {
   Badge,
   Button,
@@ -20,48 +22,62 @@ const defaultTemplates = [
     id: 1,
     name: 'SaaS Starter',
     description: 'Complete SaaS with auth, billing, dashboard',
-    icon: 'briefcase',
+    icon: 'stripe',
     category: 'Business',
   },
   {
     id: 2,
     name: 'E-Commerce',
     description: 'Full store with cart, checkout, inventory',
-    icon: 'store',
+    icon: 'shopify',
     category: 'Commerce',
   },
   {
     id: 3,
     name: 'Analytics Dashboard',
     description: 'Real-time charts and data visualization',
-    icon: 'bar-chart',
+    icon: 'chartjs',
     category: 'Analytics',
   },
   {
     id: 4,
     name: 'Chat Application',
     description: 'Real-time messaging with WebSocket',
-    icon: 'message',
+    icon: 'socketio',
     category: 'Communication',
   },
   {
     id: 5,
     name: 'Documentation',
     description: 'Beautiful docs with search and versioning',
-    icon: 'book',
+    icon: 'docs',
     category: 'Content',
   },
-  { id: 6, name: 'Admin Panel', description: 'Full admin dashboard with CRUD', icon: 'settings', category: 'Business' },
+  { id: 6, name: 'Admin Panel', description: 'Full admin dashboard with CRUD', icon: 'admin', category: 'Business' },
 ];
 
-const iconMap: Record<string, any> = {
-  briefcase: Briefcase,
-  store: Store,
-  'bar-chart': BarChart3,
-  message: MessageSquare,
-  book: BookOpen,
-  settings: Settings,
+interface TemplateIcon {
+  Icon: IconType;
+
+  /** Simple Icons brand hex, or undefined to fall back to E-Code orange. */
+  brand?: string;
+}
+
+/**
+ * Maps each template's tech to its real brand logo (react-icons Simple Icons),
+ * rendered in the brand's official color. Generic concepts (e.g. a CRUD admin
+ * panel with no single defining tech) fall back to a lucide glyph in E-Code orange.
+ */
+const iconMap: Record<string, TemplateIcon> = {
+  stripe: { Icon: SiStripe, brand: '#635BFF' },
+  shopify: { Icon: SiShopify, brand: '#7AB55C' },
+  chartjs: { Icon: SiChartdotjs, brand: '#FF6384' },
+  socketio: { Icon: SiSocketdotio, brand: '#FFFFFF' },
+  docs: { Icon: SiReadthedocs, brand: '#8CA1AF' },
+  admin: { Icon: LayoutDashboard },
 };
+
+const fallbackIcon: TemplateIcon = { Icon: LayoutDashboard };
 
 export default function LandingTemplates({ templates, isLoading }: LandingTemplatesProps) {
   const [, navigate] = useWouterLocation();
@@ -84,7 +100,7 @@ export default function LandingTemplates({ templates, isLoading }: LandingTempla
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {displayTemplates.map((template: any, index: number) => {
-              const IconComponent = iconMap[template.icon] || Briefcase;
+              const { Icon: IconComponent, brand } = iconMap[template.icon] || fallbackIcon;
               return (
                 <Card
                   key={template.id || index}
@@ -94,8 +110,14 @@ export default function LandingTemplates({ templates, isLoading }: LandingTempla
                 >
                   <CardHeader>
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-ecode-accent flex items-center justify-center">
-                        <IconComponent className="h-5 w-5 text-white" />
+                      <div
+                        className={
+                          brand
+                            ? 'w-10 h-10 rounded-lg bg-[var(--ecode-surface-tertiary)] border border-[var(--ecode-border)] flex items-center justify-center'
+                            : 'w-10 h-10 rounded-lg bg-ecode-accent flex items-center justify-center'
+                        }
+                      >
+                        <IconComponent className="h-5 w-5" style={{ color: brand ?? '#FFFFFF' }} />
                       </div>
                       <div>
                         <CardTitle className="text-[15px]">{template.name}</CardTitle>

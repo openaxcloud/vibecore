@@ -1,23 +1,23 @@
-import { MessageSquare, Code, Rocket, CheckCircle } from 'lucide-react';
+import { MessageSquarePlus, Code2, Rocket, Gauge } from 'lucide-react';
 
 const steps = [
   {
-    icon: <MessageSquare className="h-8 w-8" />,
+    icon: <MessageSquarePlus className="h-8 w-8" aria-hidden="true" />,
     title: 'Describe Your App',
     description: 'Tell our AI what you want to build in plain language',
   },
   {
-    icon: <Code className="h-8 w-8" />,
+    icon: <Code2 className="h-8 w-8" aria-hidden="true" />,
     title: 'AI Generates Code',
     description: 'Watch as production-ready code is created in real-time',
   },
   {
-    icon: <Rocket className="h-8 w-8" />,
+    icon: <Rocket className="h-8 w-8" aria-hidden="true" />,
     title: 'Deploy Instantly',
     description: 'One-click deployment to global edge network',
   },
   {
-    icon: <CheckCircle className="h-8 w-8" />,
+    icon: <Gauge className="h-8 w-8" aria-hidden="true" />,
     title: 'Scale Automatically',
     description: 'Auto-scaling infrastructure handles any traffic',
   },

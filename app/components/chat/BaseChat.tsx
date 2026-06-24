@@ -11112,7 +11112,7 @@ function ProjectIdePanelContent({
           {workspaceId ? <input type="hidden" name="workspaceId" value={workspaceId} /> : null}
           <h3>Deployment wizard</h3>
           <p>
-            Uses the existing Bolt build defaults and records the SaaS deployment with quotas, audit logs and redacted
+            Uses the existing E-Code build defaults and records the SaaS deployment with quotas, audit logs and redacted
             output.
           </p>
           <label>

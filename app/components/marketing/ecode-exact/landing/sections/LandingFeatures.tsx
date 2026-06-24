@@ -1,4 +1,4 @@
-import { Rocket, Brain, Shield, Users2, Gauge, Globe2 } from 'lucide-react';
+import { Rocket, Brain, Shield, MessagesSquare, Gauge, Globe2 } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -24,7 +24,7 @@ const features = [
     description: 'SOC 2 Type II certified with end-to-end encryption, RBAC, and continuous security monitoring',
   },
   {
-    icon: <Users2 className="h-6 w-6" />,
+    icon: <MessagesSquare className="h-6 w-6" />,
     title: 'Real-Time Collaboration',
     description: 'Multiple developers can code simultaneously with instant sync and conflict resolution',
   },
@@ -63,10 +63,10 @@ export default function LandingFeatures() {
             >
               <CardHeader>
                 <div
-                  className="w-12 h-12 rounded-xl bg-gradient-to-br from-ecode-accent/20 to-ecode-secondary-accent/20 flex items-center justify-center mb-4 transition-all duration-300 group-hover:scale-110 group-hover:from-ecode-accent/30 group-hover:to-ecode-secondary-accent/30"
+                  className="w-12 h-12 rounded-xl bg-gradient-to-br from-ecode-accent to-ecode-secondary-accent flex items-center justify-center mb-4 shadow-[0_4px_16px_-4px_rgba(242,98,7,0.5)] transition-all duration-300 group-hover:scale-110"
                   data-testid={`icon-feature-${index}`}
                 >
-                  <div className="text-ecode-accent">{feature.icon}</div>
+                  <div className="text-white">{feature.icon}</div>
                 </div>
                 <CardTitle className="text-xl text-[var(--ecode-text)]" data-testid={`text-feature-title-${index}`}>
                   {feature.title}

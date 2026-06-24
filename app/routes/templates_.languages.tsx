@@ -1,6 +1,7 @@
 import { data as json, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 import { Link, useLoaderData } from 'react-router';
 
+import { getLanguageDisplayName, getLanguageIcon } from './templates_.languages.icons';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 import { getEcodeTemplateCatalog } from '~/lib/marketing/ecode-template-catalog.server';
 
@@ -59,17 +60,24 @@ export default function TemplatesLanguagesRoute() {
             className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
             aria-label="Template count by language"
           >
-            {languages.map((language) => (
-              <li
-                key={language.name}
-                className="flex items-center justify-between rounded-xl border border-[var(--ecode-border,#E5E7EB)] bg-[var(--ecode-surface,#FFFFFF)] px-4 py-3"
-              >
-                <span className="font-medium">{language.name}</span>
-                <span className="ml-2 inline-flex items-center rounded-full border border-[var(--ecode-border,#E5E7EB)] px-2 py-0.5 text-xs font-medium text-[var(--ecode-text-muted,#6E7681)]">
-                  {language.count}
-                </span>
-              </li>
-            ))}
+            {languages.map((language) => {
+              const { Icon, color } = getLanguageIcon(language.name);
+
+              return (
+                <li
+                  key={language.name}
+                  className="flex items-center justify-between gap-2 rounded-xl border border-[var(--ecode-border,#E5E7EB)] bg-[var(--ecode-surface,#FFFFFF)] px-4 py-3"
+                >
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <Icon className="h-5 w-5 shrink-0" style={{ color }} aria-hidden="true" />
+                    <span className="truncate font-medium">{getLanguageDisplayName(language.name)}</span>
+                  </span>
+                  <span className="ml-2 inline-flex shrink-0 items-center rounded-full border border-[var(--ecode-border,#E5E7EB)] px-2 py-0.5 text-xs font-medium text-[var(--ecode-text-muted,#6E7681)]">
+                    {language.count}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
 
           <div className="mt-10">

@@ -21,8 +21,32 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import type React from 'react';
+import {
+  SiAngular,
+  SiAnthropic,
+  SiAstro,
+  SiExpo,
+  SiFastify,
+  SiFramer,
+  SiJavascript,
+  SiNextdotjs,
+  SiNodedotjs,
+  SiOpenai,
+  SiPostgresql,
+  SiPrisma,
+  SiQwik,
+  SiReact,
+  SiRemix,
+  SiShadcnui,
+  SiSolid,
+  SiSvelte,
+  SiTailwindcss,
+  SiTypescript,
+  SiVite,
+  SiVuedotjs,
+} from 'react-icons/si';
 import { Link } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 import { classNames } from '~/utils/classNames';
@@ -513,7 +537,45 @@ function SectionHeader({ eyebrow, title, description }: { eyebrow: string; title
   );
 }
 
+type TechBrand = { icon: ComponentType<{ className?: string; style?: React.CSSProperties }>; color: string };
+
+/*
+ * Real Simple Icons logos in their official brand colors, keyed by the exact
+ * technology labels emitted by the E-Code template catalog (ecode-template-catalog.server.ts).
+ */
+const TECH_BRANDS: Record<string, TechBrand> = {
+  React: { icon: SiReact, color: '#61DAFB' },
+  Vite: { icon: SiVite, color: '#646CFF' },
+  TypeScript: { icon: SiTypescript, color: '#3178C6' },
+  'Next.js': { icon: SiNextdotjs, color: '#FFFFFF' },
+  Prisma: { icon: SiPrisma, color: '#5A67D8' },
+  'Tailwind CSS': { icon: SiTailwindcss, color: '#06B6D4' },
+  'Node.js': { icon: SiNodedotjs, color: '#5FA04E' },
+  Fastify: { icon: SiFastify, color: '#FFFFFF' },
+  PostgreSQL: { icon: SiPostgresql, color: '#4169E1' },
+  OpenAI: { icon: SiOpenai, color: '#FFFFFF' },
+  Anthropic: { icon: SiAnthropic, color: '#D97757' },
+  Remix: { icon: SiRemix, color: '#FFFFFF' },
+  'Framer Motion': { icon: SiFramer, color: '#0055FF' },
+  Expo: { icon: SiExpo, color: '#FFFFFF' },
+  Angular: { icon: SiAngular, color: '#DD0031' },
+  Astro: { icon: SiAstro, color: '#FF5D01' },
+  Qwik: { icon: SiQwik, color: '#AC7EF4' },
+  SolidJS: { icon: SiSolid, color: '#2C4F7C' },
+  SvelteKit: { icon: SiSvelte, color: '#FF3E00' },
+  'Vue.js': { icon: SiVuedotjs, color: '#4FC08D' },
+  'shadcn/ui': { icon: SiShadcnui, color: '#FFFFFF' },
+  JavaScript: { icon: SiJavascript, color: '#F7DF1E' },
+};
+
+function resolveTechBrand(technology: string): TechBrand | undefined {
+  return TECH_BRANDS[technology];
+}
+
 function TemplateMarketingCard({ template, featured = false }: { template: PublicTemplateCard; featured?: boolean }) {
+  const primaryBrand = template.technologies.map(resolveTechBrand).find(Boolean);
+  const PrimaryIcon = primaryBrand?.icon ?? Code2;
+
   return (
     <article
       className={classNames(
@@ -524,11 +586,22 @@ function TemplateMarketingCard({ template, featured = false }: { template: Publi
       )}
     >
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-[var(--ecode-text-muted)]">
-            {template.categoryName}
-          </p>
-          <h3 className="mt-3 text-2xl font-bold tracking-tight text-[var(--ecode-text)]">{template.name}</h3>
+        <div className="flex items-start gap-4">
+          <span
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)]"
+            aria-hidden
+          >
+            <PrimaryIcon
+              className="h-6 w-6"
+              style={primaryBrand ? { color: primaryBrand.color } : { color: 'var(--ecode-accent)' }}
+            />
+          </span>
+          <div>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-[var(--ecode-text-muted)]">
+              {template.categoryName}
+            </p>
+            <h3 className="mt-2 text-2xl font-bold tracking-tight text-[var(--ecode-text)]">{template.name}</h3>
+          </div>
         </div>
         {template.trending ? (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--ecode-accent)] px-3 py-1 text-[11px] font-semibold text-white">
@@ -545,14 +618,20 @@ function TemplateMarketingCard({ template, featured = false }: { template: Publi
         {template.description}
       </p>
       <div className="mt-6 flex flex-wrap gap-2">
-        {template.technologies.slice(0, 4).map((technology) => (
-          <span
-            key={technology}
-            className="rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[12px] font-medium text-[var(--ecode-text-secondary)]"
-          >
-            {technology}
-          </span>
-        ))}
+        {template.technologies.slice(0, 4).map((technology) => {
+          const brand = resolveTechBrand(technology);
+          const TechIcon = brand?.icon;
+
+          return (
+            <span
+              key={technology}
+              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[12px] font-medium text-[var(--ecode-text-secondary)]"
+            >
+              {TechIcon ? <TechIcon className="h-3.5 w-3.5" style={{ color: brand?.color }} aria-hidden /> : null}
+              {technology}
+            </span>
+          );
+        })}
       </div>
       <div className="mt-auto pt-8">
         <div className="mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]">
