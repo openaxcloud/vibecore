@@ -690,14 +690,26 @@ export function buildDeploymentUrl(project: ProjectRecord, deployment: Deploymen
 }
 
 /**
- * Public-facing host that backs the `/static-deployments/<id>/*` route. We
- * resolve it in the same order the rest of the codebase resolves the API
- * base URL: explicit `STATIC_DEPLOY_BASE_URL`, then `SAAS_API_URL`, then a
- * local-dev default. Strips trailing slashes so callers can concatenate
- * `/static-deployments/...` safely.
+ * Public-facing host that backs the `/static-deployments/<id>/*` route. This
+ * URL is persisted on the Deployment row and shown to the user as the live URL
+ * of their published app, so it MUST be browser-reachable — not the internal
+ * cluster address.
+ *
+ * Resolution order: explicit `STATIC_DEPLOY_BASE_URL`, then the public API base
+ * URL (`PUBLIC_API_BASE_URL`, e.g. https://api.e-code.ai), then `SAAS_API_URL`,
+ * then a local-dev default. `SAAS_API_URL` in production is the in-cluster
+ * service DNS (`…svc.cluster.local:3001`) which is unreachable from a browser,
+ * so it must come AFTER the public base URL — otherwise every static deployment
+ * surfaces a dead `http://…svc.cluster.local/static-deployments/<id>/` link.
+ * Strips trailing slashes so callers can concatenate `/static-deployments/...`
+ * safely.
  */
 export function staticDeployPublicBaseUrl() {
-  const raw = process.env.STATIC_DEPLOY_BASE_URL?.trim() || process.env.SAAS_API_URL?.trim() || 'http://127.0.0.1:3001';
+  const raw =
+    process.env.STATIC_DEPLOY_BASE_URL?.trim() ||
+    process.env.PUBLIC_API_BASE_URL?.trim() ||
+    process.env.SAAS_API_URL?.trim() ||
+    'http://127.0.0.1:3001';
 
   return raw.replace(/\/+$/, '');
 }
