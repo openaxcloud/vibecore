@@ -365,9 +365,13 @@ export default function ProjectDeploymentsPage() {
               </div>
               <Field label="Build command" name="buildCommand" defaultValue="npm run build" />
               <Field label="Output directory" name="outputDirectory" defaultValue="dist" />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Git branch" name="branch" placeholder="main" />
+              <Field label="Git branch" name="branch" placeholder="main" />
+              <div className="grid gap-1">
                 <Field label="Custom domain" name="customDomain" placeholder="app.example.com" />
+                <p className="text-[11px] text-bolt-elements-textTertiary">
+                  Optional. After publishing, point your domain&apos;s DNS (CNAME) at the deployment. Managed TLS
+                  certificates for custom domains are coming soon.
+                </p>
               </div>
               <Field label="GitHub repository URL" name="repositoryUrl" placeholder="https://github.com/acme/app" />
               <Field

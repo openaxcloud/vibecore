@@ -74,11 +74,16 @@ const deploymentModes = [
   },
 ];
 
+/*
+ * Capability highlights — honest, defensible statements rather than fabricated
+ * metrics. Pre-launch we do not have an SLA, an edge network or deploy counts to
+ * cite, so these describe what publishing actually does today.
+ */
 const reliabilityHighlights = [
-  { value: '50 ms', label: 'Average build to live', accent: 'text-purple-500' },
-  { value: '99.99%', label: 'Managed uptime SLA', accent: 'text-blue-500' },
-  { value: '300+', label: 'Edge locations', accent: 'text-emerald-500' },
-  { value: '10M+', label: 'Apps deployed with E-Code', accent: 'text-amber-500' },
+  { value: 'Seconds', label: 'Build to live URL', accent: 'text-purple-500' },
+  { value: 'HTTPS', label: 'Managed TLS on every deploy', accent: 'text-blue-500' },
+  { value: '1-click', label: 'Publish from the editor', accent: 'text-emerald-500' },
+  { value: 'Live', label: 'Build logs & status', accent: 'text-amber-500' },
 ];
 
 const workflowSteps = [
