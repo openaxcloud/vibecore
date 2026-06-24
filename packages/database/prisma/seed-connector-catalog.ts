@@ -196,6 +196,24 @@ export const CONNECTOR_CATALOG_SEEDS: ConnectorCatalogSeed[] = [
     displayOrder: 20,
     enabled: true,
   },
+  {
+    provider: 'bitbucket',
+    displayName: 'Bitbucket',
+    description: 'Connect to Bitbucket to manage repositories, branches and pull requests.',
+    category: 'dev',
+    authType: 'oauth',
+    section: 'connectors',
+    logoUrl: '/integrations/logos/bitbucket.svg',
+    authorizeUrl: 'https://bitbucket.org/site/oauth2/authorize',
+    tokenUrl: 'https://bitbucket.org/site/oauth2/access_token',
+    userInfoUrl: 'https://api.bitbucket.org/2.0/user',
+    defaultScopes: ['account', 'repository', 'repository:write', 'pullrequest'],
+    availableScopes: ['account', 'repository', 'repository:write', 'pullrequest', 'pullrequest:write', 'webhook'],
+    minPlanTier: 'pro',
+    forAgentUse: true,
+    displayOrder: 30,
+    enabled: true,
+  },
 ];
 
 // MCP catalog entries that are surfaced inside the new IDE Integrations
