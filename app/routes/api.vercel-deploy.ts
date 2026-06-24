@@ -281,6 +281,18 @@ export async function action({ request }: ActionFunctionArgs) {
       return json({ error: 'Not connected to Vercel' }, { status: 401 });
     }
 
+    /*
+     * `projectId` is read straight from the untrusted request body. If a caller
+     * supplies it for the existing-project branch, validate it before it is
+     * interpolated into the upstream v9/projects URL below. Without this a value
+     * like `prj?teamId=<victim>` injects an extra query parameter and path
+     * characters (`/`, `..`) can re-target the request path. Mirrors the loader
+     * guard at the top of this file.
+     */
+    if (projectId !== undefined && !isValidVercelProjectId(projectId)) {
+      return json({ error: 'Invalid projectId' }, { status: 400 });
+    }
+
     let targetProjectId = projectId;
     let projectInfo: VercelProjectInfo | undefined;
 
@@ -326,11 +338,14 @@ export async function action({ request }: ActionFunctionArgs) {
       };
     } else {
       // Get existing project info
-      const projectResponse = await timeoutFetch(`https://api.vercel.com/v9/projects/${targetProjectId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const projectResponse = await timeoutFetch(
+        `https://api.vercel.com/v9/projects/${encodeURIComponent(targetProjectId)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       if (projectResponse.ok) {
         const existingProject = (await projectResponse.json()) as any;

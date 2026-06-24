@@ -13,6 +13,15 @@ export function resolveCompactPreviewRunState({
     return 'stopping';
   }
 
+  /*
+   * The preview dev-server can fail to launch while the workspace pod itself stays RUNNING.
+   * Surface the dev-server 'error' state (retry affordance) instead of masking it behind the
+   * pod-derived `runtimeRunning` flag, which is independent of the preview server status.
+   */
+  if (previewServerStatus === 'error') {
+    return 'error';
+  }
+
   if (runtimeRunning || previewServerStatus === 'running') {
     return 'running';
   }
@@ -23,10 +32,6 @@ export function resolveCompactPreviewRunState({
 
   if (previewServerStatus === 'static') {
     return 'static';
-  }
-
-  if (previewServerStatus === 'error') {
-    return 'error';
   }
 
   return 'idle';

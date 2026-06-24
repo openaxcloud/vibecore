@@ -85,8 +85,10 @@ export function shouldReplayPendingPrompt(files: FileMap | undefined): boolean {
  * Recover the original generation prompt from a seeded README so the "Generate
  * app" CTA can re-run generation for a stranded project (one whose one-shot
  * generation never produced files and whose pendingPrompt is already gone). The
- * AI starter README ends with `Prompt:\n\n<prompt>` (see starterFiles('ai')).
+ * AI starter README ends with `...\n\nPrompt:\n\n<prompt>\n` (see starterFiles('ai')).
  */
+const PROMPT_SECTION_DELIMITER = '\n\nPrompt:\n\n';
+
 export function extractGenerationPrompt(files: FileMap | undefined): string | undefined {
   if (!files) {
     return undefined;
@@ -101,13 +103,22 @@ export function extractGenerationPrompt(files: FileMap | undefined): string | un
     return undefined;
   }
 
-  const marker = readme.content.lastIndexOf('Prompt:');
+  /*
+   * Anchor on the FIRST occurrence of the exact template header delimiter
+   * (`\n\nPrompt:\n\n`). The header is emitted by the README template before any
+   * user-supplied prompt text, so the first match is always the section header.
+   * A previous `lastIndexOf('Prompt:')` truncated the recovered prompt whenever
+   * the user's own prompt contained the substring "Prompt:" (e.g. "Build a tool
+   * to manage my Prompt: templates"), returning only the tail after that inner
+   * occurrence and re-running generation against a corrupted prompt.
+   */
+  const marker = readme.content.indexOf(PROMPT_SECTION_DELIMITER);
 
   if (marker === -1) {
     return undefined;
   }
 
-  const prompt = readme.content.slice(marker + 'Prompt:'.length).trim();
+  const prompt = readme.content.slice(marker + PROMPT_SECTION_DELIMITER.length).trim();
 
   return prompt || undefined;
 }

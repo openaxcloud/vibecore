@@ -88,6 +88,7 @@ export function ConnectorApiKeyConnectButton({
 
         setSuccess(`Connected as ${data.accountLabel}`);
         setToken('');
+        setExpanded(false);
         logStore.logSystem(`${displayName} connection established for ${data.accountLabel}`);
         onConnected?.({ userConnectionId: data.userConnectionId, accountLabel: data.accountLabel });
       } catch (caught) {

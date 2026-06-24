@@ -124,6 +124,20 @@ describe('extractGenerationPrompt', () => {
     );
   });
 
+  it('recovers the FULL prompt when the user prompt itself contains "Prompt:"', () => {
+    /*
+     * Regression: lastIndexOf('Prompt:') landed on the occurrence inside the user
+     * prompt, truncating the recovered prompt to just the tail. The template header
+     * delimiter (\n\nPrompt:\n\n) must anchor on the first/section-header occurrence.
+     */
+    const userPrompt = 'Build a tool to manage my Prompt: templates with tags and search.';
+
+    const files: FileMap = {
+      '/home/project/README.md': { type: 'file', content: aiReadme(userPrompt), isBinary: false },
+    };
+    expect(extractGenerationPrompt(files)).toBe(userPrompt);
+  });
+
   it('returns undefined when there is no AI-seeded README', () => {
     const files: FileMap = {
       '/home/project/README.md': { type: 'file', content: '# Just a normal readme', isBinary: false },

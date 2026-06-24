@@ -42,4 +42,17 @@ describe('compact preview run state', () => {
     expect(compactPreviewRunText(state)).toBe('Retry');
     expect(compactPreviewRunIcon(state)).toBe('i-ph:warning-fill');
   });
+
+  it('surfaces a preview dev-server error even while the workspace pod stays running', () => {
+    /*
+     * Regression: the dev server can fail to launch while the remote pod is still RUNNING.
+     * The compact control must expose the retry affordance instead of masking it as 'running'.
+     */
+    const state = resolveCompactPreviewRunState({ previewServerStatus: 'error', runtimeRunning: true });
+
+    expect(state).toBe('error');
+    expect(isCompactPreviewRunActive(state)).toBe(false);
+    expect(compactPreviewRunAriaLabel(state)).toBe('Retry run');
+    expect(compactPreviewRunIcon(state)).toBe('i-ph:warning-fill');
+  });
 });

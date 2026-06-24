@@ -3,6 +3,7 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { useEffect, useState } from 'react';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { vercelConnection } from '~/lib/stores/vercel';
+import { isValidVercelProjectId } from '~/lib/vercel-project-id';
 
 /**
  * Pure helper that extracts a deployment URL from the /api/vercel-deploy
@@ -24,6 +25,32 @@ export function parseDeploymentResponse(data: unknown): string | null {
   }
 
   return null;
+}
+
+/**
+ * Pure helper that picks the cleanest public deploy URL from a Vercel
+ * `GET /v9/projects/{id}` response. Prefers a production alias that ends in
+ * `.vercel.app` but is not the noisy `-projects.vercel.app` form, otherwise
+ * falls back to the first production alias. Returns a fully-qualified URL or
+ * null. Kept separate so it can be unit-tested without a DOM/fetch environment.
+ */
+export function parseProjectAliasUrl(projectDetails: unknown): string | null {
+  const aliases = (projectDetails as { targets?: { production?: { alias?: unknown } } } | null)?.targets?.production
+    ?.alias;
+
+  if (!Array.isArray(aliases) || aliases.length === 0) {
+    return null;
+  }
+
+  const stringAliases = aliases.filter((a): a is string => typeof a === 'string');
+
+  if (stringAliases.length === 0) {
+    return null;
+  }
+
+  const cleanUrl = stringAliases.find((a) => a.endsWith('.vercel.app') && !a.includes('-projects.vercel.app'));
+
+  return `https://${cleanUrl ?? stringAliases[0]}`;
 }
 
 export function VercelDeploymentLink() {
@@ -54,31 +81,18 @@ export function VercelDeploymentLink() {
       setIsLoading(true);
 
       try {
-        // Fetch projects directly from the API
-        const projectsResponse = await fetch('https://api.vercel.com/v9/projects', {
-          headers: {
-            Authorization: `Bearer ${connection.token}`,
-            'Content-Type': 'application/json',
-          },
-          cache: 'no-store',
-        });
-
-        if (!projectsResponse.ok) {
-          throw new Error(`Failed to fetch projects: ${projectsResponse.status}`);
-        }
-
-        const projectsData = (await projectsResponse.json()) as any;
-        const projects = projectsData.projects || [];
-
-        // Extract the chat number from currentChatId
-        const chatNumber = currentChatId.split('-')[0];
-
-        // Find project by matching the chat number in the name
-        const project = projects.find((p: { name: string | string[] }) => p.name.includes(`bolt-diy-${chatNumber}`));
-
-        if (project) {
-          // Fetch project details including deployments
-          const projectDetailsResponse = await fetch(`https://api.vercel.com/v9/projects/${project.id}`, {
+        /*
+         * Resolve the project directly from the stored project id. The deployer
+         * (VercelDeploy.client.tsx) persists `data.project.id` under
+         * `vercel-project-<chatId>`, and current project names are built by
+         * buildVercelProjectName() as `ecode-<sanitized-chatId>-<ts>` — there is
+         * no `bolt-diy-`/chat-number substring to match on, so the old
+         * `GET /v9/projects` name search was dead. Validate the id before
+         * interpolating it into the upstream URL.
+         */
+        if (isValidVercelProjectId(projectId)) {
+          // Fetch project details including production aliases
+          const projectDetailsResponse = await fetch(`https://api.vercel.com/v9/projects/${projectId}`, {
             headers: {
               Authorization: `Bearer ${connection.token}`,
               'Content-Type': 'application/json',
@@ -89,33 +103,21 @@ export function VercelDeploymentLink() {
           if (projectDetailsResponse.ok) {
             const projectDetails = (await projectDetailsResponse.json()) as any;
 
-            // Try to get URL from production aliases first
-            if (projectDetails.targets?.production?.alias && projectDetails.targets.production.alias.length > 0) {
-              // Find the clean URL (without -projects.vercel.app)
-              const cleanUrl = projectDetails.targets.production.alias.find(
-                (a: string) => a.endsWith('.vercel.app') && !a.includes('-projects.vercel.app'),
-              );
+            // Prefer the clean production-alias URL when available
+            const aliasUrl = parseProjectAliasUrl(projectDetails);
 
-              if (cleanUrl) {
-                if (!cancelled) {
-                  setDeploymentUrl(`https://${cleanUrl}`);
-                }
-
-                return;
-              } else {
-                // If no clean URL found, use the first alias
-                if (!cancelled) {
-                  setDeploymentUrl(`https://${projectDetails.targets.production.alias[0]}`);
-                }
-
-                return;
+            if (aliasUrl) {
+              if (!cancelled) {
+                setDeploymentUrl(aliasUrl);
               }
+
+              return;
             }
           }
 
           // If no aliases or project details failed, try fetching deployments
           const deploymentsResponse = await fetch(
-            `https://api.vercel.com/v6/deployments?projectId=${project.id}&limit=1`,
+            `https://api.vercel.com/v6/deployments?projectId=${projectId}&limit=1`,
             {
               headers: {
                 Authorization: `Bearer ${connection.token}`,

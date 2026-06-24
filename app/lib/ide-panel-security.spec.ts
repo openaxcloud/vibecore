@@ -11,6 +11,23 @@ describe('vulnerabilitiesFromSecretScan', () => {
     expect(finding.details).not.toContain('sk-live-super-secret-value');
   });
 
+  it('redacts colon-delimited secret values (YAML/JSON form)', () => {
+    const grepLine = 'config/app.yml:5:api_secret: sk-live-colon-secret-value';
+    const [finding] = vulnerabilitiesFromSecretScan(grepLine, '2026-01-01T00:00:00.000Z');
+
+    expect(finding.details).toBe('config/app.yml:5:api_secret: ***');
+    expect(finding.details).not.toContain('sk-live-colon-secret-value');
+  });
+
+  it('redacts JSON quoted colon-delimited secrets without leaking the value', () => {
+    const grepLine = 'src/secrets.json:3:    "token": "ghp_abcdef1234567890"';
+    const [finding] = vulnerabilitiesFromSecretScan(grepLine, '2026-01-01T00:00:00.000Z');
+
+    expect(finding.details).not.toContain('ghp_abcdef1234567890');
+    expect(finding.details.startsWith('src/secrets.json:3:    "token": ')).toBe(true);
+    expect(finding.details.endsWith('***')).toBe(true);
+  });
+
   it('never embeds the raw matched line in the finding id', () => {
     const secret = 'sk-live-super-secret-value';
     const grepLine = `src/config.ts:12:API_KEY=${secret}`;

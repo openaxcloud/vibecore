@@ -18,7 +18,12 @@ const languages = [
   { name: 'Go', icon: SiGo, color: '#00ADD8' },
   { name: 'React', icon: SiReact, color: '#61DAFB' },
   { name: 'Node.js', icon: SiNodedotjs, color: '#339933' },
-  { name: 'Rust', icon: SiRust, color: '#000000' },
+
+  /*
+   * Rust's monochrome logo is pure-black, which disappears on the dark
+   * --ecode-surface tile; use Rust's documented dark-mode tone so it stays visible.
+   */
+  { name: 'Rust', icon: SiRust, color: '#DEA584' },
   { name: 'PHP', icon: SiPhp, color: '#777BB4' },
   { name: 'Docker', icon: SiDocker, color: '#2496ED' },
   { name: 'Kubernetes', icon: SiKubernetes, color: '#326CE5' },

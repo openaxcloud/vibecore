@@ -78,7 +78,7 @@ async function optionalAiCostCents(request: Request, organizationId: string) {
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const orgs = await apiRequest<{ organizations: Organization[] }>(request, '/orgs');
-  const organization = orgs.organizations[0];
+  const organization = Array.isArray(orgs?.organizations) ? orgs.organizations[0] : undefined;
 
   if (!organization) {
     return {
@@ -95,10 +95,11 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   ]);
 
   const { billing, billingAccessLimited } = billingResult;
+  const projects = Array.isArray(result?.projects) ? result.projects : [];
 
   return {
     usageSummary: {
-      projects: result.projects.length,
+      projects: projects.length,
 
       /*
        * Live count from the API; fall back to 0 (never sum the append-only
@@ -110,7 +111,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       aiCostCents,
     },
     billingAccessLimited,
-    projects: [...result.projects]
+    projects: [...projects]
       .sort((a, b) => {
         /*
          * "Recent" must mean most-recently-updated, matching the /recent-projects

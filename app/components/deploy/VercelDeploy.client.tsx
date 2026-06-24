@@ -152,6 +152,19 @@ export function useVercelDeploy() {
         localStorage.setItem(`vercel-project-${currentChatId}`, data.project.id);
       }
 
+      /*
+       * A 202 (or an explicit `pending` flag) means the server could not confirm
+       * a terminal state on Vercel's side — the deployment is still in progress
+       * and must NOT be reported as a verified success. Keep the deploy artifact
+       * in the running state and tell the user it is still deploying.
+       */
+      if (response.status === 202 || data.pending) {
+        deployArtifact.runner.handleDeployAction('deploying', 'running', { source: 'vercel' });
+        toast.info('Your Vercel deployment is still in progress. Check the Vercel dashboard for the final status.');
+
+        return true;
+      }
+
       // Notify that deployment completed successfully
       deployArtifact.runner.handleDeployAction('complete', 'complete', {
         url: data.deploy.url,

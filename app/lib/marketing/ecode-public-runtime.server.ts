@@ -458,23 +458,38 @@ export function ecodeMarketplacePublishersLoader() {
 
 /**
  * Build the community category summaries with post counts derived from the
- * template catalog. Counts are keyed by the catalog's real category values
- * ('web', 'api', 'ml-ai', 'mobile', 'starter' — see CATEGORY_LABELS in
- * ecode-template-catalog.server). Earlier code read counts.ai / counts.backend,
- * which are never category keys, so Challenges/Discussion were permanently 0.
+ * actual post→category assignment (see communityPostCategory). Earlier code
+ * keyed counts off catalog category values ('web'/'ml-ai'/'api'), but
+ * communityPosts() only ever assigns 'showcase'/'tutorials'/'discussion' by
+ * cycling index % 3. That mismatch advertised a nonzero 'Challenges' badge
+ * (and arbitrary Tutorials/Discussion counts) for a tab that filtered to zero
+ * posts. Counting the real assignments keeps every badge truthful: 'challenges'
+ * shows 0 and is honestly empty, while showcase/tutorials/discussion report the
+ * exact number of posts a ?category= request will return.
  */
 export function buildCommunityCategories(templates: Array<{ category: string }>) {
-  const counts = templates.reduce<Record<string, number>>((acc, template) => {
-    acc[template.category] = (acc[template.category] ?? 0) + 1;
+  const counts = templates.reduce<Record<string, number>>((acc, _template, index) => {
+    const category = communityPostCategory(index);
+    acc[category] = (acc[category] ?? 0) + 1;
+
     return acc;
   }, {});
 
   return [
-    { id: 'showcase', name: 'Showcase', icon: 'Star', postCount: templates.length },
-    { id: 'tutorials', name: 'Tutorials', icon: 'Code', postCount: counts.web ?? 0 },
-    { id: 'challenges', name: 'Challenges', icon: 'Trophy', postCount: counts['ml-ai'] ?? 0 },
-    { id: 'discussion', name: 'Discussion', icon: 'MessageSquare', postCount: counts.api ?? 0 },
+    { id: 'showcase', name: 'Showcase', icon: 'Star', postCount: counts.showcase ?? 0 },
+    { id: 'tutorials', name: 'Tutorials', icon: 'Code', postCount: counts.tutorials ?? 0 },
+    { id: 'challenges', name: 'Challenges', icon: 'Trophy', postCount: counts.challenges ?? 0 },
+    { id: 'discussion', name: 'Discussion', icon: 'MessageSquare', postCount: counts.discussion ?? 0 },
   ];
+}
+
+/*
+ * Single source of truth for the post→category mapping. buildCommunityCategories
+ * (badge counts) and communityPosts (the list each ?category= request filters)
+ * must agree, otherwise a tab advertises a count it can never satisfy.
+ */
+export function communityPostCategory(index: number): 'showcase' | 'tutorials' | 'discussion' {
+  return index % 3 === 0 ? 'showcase' : index % 3 === 1 ? 'tutorials' : 'discussion';
 }
 
 function communityCategories() {
@@ -493,7 +508,7 @@ function communityPosts() {
       avatarUrl: undefined,
       reputation: 0,
     },
-    category: index % 3 === 0 ? 'showcase' : index % 3 === 1 ? 'tutorials' : 'discussion',
+    category: communityPostCategory(index),
     tags: template.tags.slice(0, 5),
     likes: template.stats.stars,
     comments: 0,

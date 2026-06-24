@@ -19,7 +19,7 @@ import { ImpersonationBanner } from './components/dashboard/ImpersonationBanner'
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { installEditorPwaServiceWorker } from '@vibecore/editor';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { I18nextProvider } from 'react-i18next';
@@ -284,15 +284,35 @@ export function Layout({ children }: { children: React.ReactNode }) {
 function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const showIdeBootFallback = /^\/projects\/[^/]+\/ide(?:\/|$)/.test(location.pathname);
+  const editorServiceWorkerInstalled = useRef(false);
 
+  /*
+   * Manage the editor PWA service worker across SPA navigations. This must
+   * re-evaluate on every route change (not just first mount): if the entry
+   * path is a public marketing route the effect clears SW state and returns,
+   * but the user can then client-side navigate into an authenticated app route
+   * (e.g. /dashboard, /projects/:id/ide). With an empty dependency array the
+   * editor SW would never be installed for the rest of that session. Depend on
+   * location.pathname (like reconcileMarketingChrome) and (re)install whenever
+   * we land on a non-marketing route, guarding against duplicate registration.
+   */
   useEffect(() => {
-    if (isPublicMarketingPath(window.location.pathname)) {
+    if (isPublicMarketingPath(location.pathname)) {
       clearMarketingPageServiceWorkerState();
+
+      // Unregistered above; allow a fresh install when re-entering the app.
+      editorServiceWorkerInstalled.current = false;
+
       return;
     }
 
+    if (editorServiceWorkerInstalled.current) {
+      return;
+    }
+
+    editorServiceWorkerInstalled.current = true;
     installEditorPwaServiceWorker();
-  }, []);
+  }, [location.pathname]);
 
   return (
     <>

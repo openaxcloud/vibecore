@@ -234,7 +234,15 @@ export async function selectContext(props: {
   const updateContextBuffer = response.match(/<updateContextBuffer>([\s\S]*?)<\/updateContextBuffer>/);
 
   if (!updateContextBuffer) {
-    throw new Error('Invalid response. Please follow the response format');
+    /*
+     * The model omitted the <updateContextBuffer> wrapper — a common, recoverable
+     * formatting deviation, not a fatal error. Mirror the zero-files fallback below:
+     * best-effort context narrowing must not abort the user's chat turn. Returning
+     * the existing context buffer keeps the previously-selected files AND lets the
+     * caller retain the already-computed chat summary (its catch would discard both).
+     */
+    logger.warn('Context selection response missing <updateContextBuffer>; falling back to existing context buffer.');
+    return contextFiles;
   }
 
   const includeFiles =

@@ -12,12 +12,43 @@ export default class XAIProvider extends BaseProvider {
     apiTokenKey: 'XAI_API_KEY',
   };
 
+  /*
+   * Each model must declare maxCompletionTokens explicitly. Without it,
+   * getCompletionTokenLimit() in stream-text.ts falls through to the
+   * PROVIDER_COMPLETION_LIMITS['xAI'] = 8192 floor, which silently truncates
+   * large multi-file generations mid-file. Grok-4 supports far larger outputs,
+   * so we widen the completion budget to match (mirroring the OpenAI per-id caps).
+   */
   staticModels: ModelInfo[] = [
-    { name: 'grok-4', label: 'xAI Grok 4', provider: 'xAI', maxTokenAllowed: 256000 },
-    { name: 'grok-4-07-09', label: 'xAI Grok 4 (07-09)', provider: 'xAI', maxTokenAllowed: 256000 },
-    { name: 'grok-3-mini', label: 'xAI Grok 3 Mini', provider: 'xAI', maxTokenAllowed: 131000 },
-    { name: 'grok-3-mini-fast', label: 'xAI Grok 3 Mini Fast', provider: 'xAI', maxTokenAllowed: 131000 },
-    { name: 'grok-code-fast-1', label: 'xAI Grok Code Fast 1', provider: 'xAI', maxTokenAllowed: 131000 },
+    { name: 'grok-4', label: 'xAI Grok 4', provider: 'xAI', maxTokenAllowed: 256000, maxCompletionTokens: 32768 },
+    {
+      name: 'grok-4-07-09',
+      label: 'xAI Grok 4 (07-09)',
+      provider: 'xAI',
+      maxTokenAllowed: 256000,
+      maxCompletionTokens: 32768,
+    },
+    {
+      name: 'grok-3-mini',
+      label: 'xAI Grok 3 Mini',
+      provider: 'xAI',
+      maxTokenAllowed: 131000,
+      maxCompletionTokens: 16384,
+    },
+    {
+      name: 'grok-3-mini-fast',
+      label: 'xAI Grok 3 Mini Fast',
+      provider: 'xAI',
+      maxTokenAllowed: 131000,
+      maxCompletionTokens: 16384,
+    },
+    {
+      name: 'grok-code-fast-1',
+      label: 'xAI Grok Code Fast 1',
+      provider: 'xAI',
+      maxTokenAllowed: 131000,
+      maxCompletionTokens: 16384,
+    },
   ];
 
   getModelInstance(options: {

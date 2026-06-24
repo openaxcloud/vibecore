@@ -1,4 +1,6 @@
 import { Building2, ShieldCheck, Server, Network, Gauge, Headphones, CheckCircle, Send } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import { useEcodeToast } from '~/components/marketing/ecode-exact/EcodeExactLandingControls';
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
@@ -12,7 +14,127 @@ import {
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { Badge } from '~/components/marketing/ecode-exact/EcodeExactUi';
 
+export type ContactSalesLead = {
+  name: string;
+  email: string;
+  company: string;
+  teamSize: string;
+  message: string;
+  pagePath: string;
+};
+
+type ContactSalesResponse = {
+  success?: boolean;
+  fallbackMailto?: string;
+  error?: string;
+};
+
+export function buildContactSalesMailto(lead: ContactSalesLead) {
+  const subject = `E-Code Enterprise inquiry${lead.company ? ` — ${lead.company}` : ''}`;
+
+  const body = [
+    lead.name ? `Name: ${lead.name}` : undefined,
+    lead.email ? `Work email: ${lead.email}` : undefined,
+    lead.company ? `Company: ${lead.company}` : undefined,
+    lead.teamSize ? `Team size: ${lead.teamSize}` : undefined,
+    lead.pagePath ? `Page path: ${lead.pagePath}` : undefined,
+    '',
+    'How can we help?',
+    lead.message,
+  ]
+    .filter((line) => line !== undefined)
+    .join('\n');
+
+  return `mailto:sales@e-code.ai?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+async function submitContactSalesLead(lead: ContactSalesLead) {
+  const response = await fetch('/api/contact/sales', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(lead),
+  });
+
+  const data = (await response.json().catch(() => ({}))) as ContactSalesResponse;
+
+  if (!response.ok) {
+    if (data.fallbackMailto) {
+      return { fallbackMailto: data.fallbackMailto };
+    }
+
+    throw new Error(data.error || 'Failed to submit your request.');
+  }
+
+  return data;
+}
+
 export default function ContactSales() {
+  const { toast } = useEcodeToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    const formElement = e.currentTarget;
+    const formData = new FormData(formElement);
+    const pagePath = typeof window !== 'undefined' ? window.location.pathname : '/contact-sales';
+
+    const lead: ContactSalesLead = {
+      name: String(formData.get('name') ?? '').trim(),
+      email: String(formData.get('email') ?? '').trim(),
+      company: String(formData.get('company') ?? '').trim(),
+      teamSize: String(formData.get('teamSize') ?? '').trim(),
+      message: String(formData.get('message') ?? '').trim(),
+      pagePath,
+    };
+
+    try {
+      const result = await submitContactSalesLead(lead);
+
+      if (result.fallbackMailto) {
+        if (typeof window !== 'undefined') {
+          window.location.href = result.fallbackMailto || buildContactSalesMailto(lead);
+        }
+
+        toast({
+          title: 'Opening email client',
+          description: 'Your details were prepared for sales@e-code.ai.',
+        });
+      } else {
+        toast({
+          title: 'Request received',
+          description: 'Thanks for reaching out. Our sales team will be in touch within one business day.',
+        });
+        formElement.reset();
+      }
+    } catch (error) {
+      /*
+       * No contact-sales intake backend is wired yet (the POST 404s in dev/prod),
+       * and even once it exists it may reject or be unreachable. Rather than
+       * silently dropping the lead — the original bug, where the native form did
+       * a GET navigation and lost everything — fall back to a client-built mailto
+       * so the prospect can still reach sales@e-code.ai with their message intact.
+       */
+      if (typeof window !== 'undefined') {
+        window.location.href = buildContactSalesMailto(lead);
+      }
+
+      toast({
+        title: 'Opening email client',
+        description:
+          error instanceof Error
+            ? `${error.message} We've prepared your request for sales@e-code.ai instead.`
+            : "We couldn't reach the server, so we've prepared your request for sales@e-code.ai instead.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const enterpriseFeatures = [
     {
       icon: ShieldCheck,
@@ -144,7 +266,7 @@ export default function ContactSales() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form className="space-y-6" data-testid="form-contact-sales">
+                  <form className="space-y-6" onSubmit={handleSubmit} data-testid="form-contact-sales">
                     <div className="grid sm:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label htmlFor="contact-name" className="text-[13px] font-medium">
@@ -222,12 +344,19 @@ export default function ContactSales() {
 
                     <button
                       type="submit"
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-md px-6 py-3 text-[15px] font-medium text-white min-h-[44px] hover:opacity-90 transition-opacity"
+                      disabled={isSubmitting}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-md px-6 py-3 text-[15px] font-medium text-white min-h-[44px] hover:opacity-90 transition-opacity disabled:opacity-60 disabled:pointer-events-none"
                       style={{ backgroundColor: 'var(--ecode-accent)' }}
                       data-testid="button-contact-sales-submit"
                     >
-                      <Send className="h-4 w-4" />
-                      Contact sales
+                      {isSubmitting ? (
+                        <>Sending...</>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4" />
+                          Contact sales
+                        </>
+                      )}
                     </button>
 
                     <p className="text-[13px] text-muted-foreground text-center">

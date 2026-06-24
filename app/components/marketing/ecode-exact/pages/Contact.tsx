@@ -1,4 +1,6 @@
 import { Mail, MessageCircle, Newspaper, ShieldCheck, MapPin, Send } from 'lucide-react';
+import { type FormEvent } from 'react';
+import { useEcodeToast } from '~/components/marketing/ecode-exact/EcodeExactLandingControls';
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
@@ -12,7 +14,73 @@ import {
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { Badge } from '~/components/marketing/ecode-exact/EcodeExactUi';
 
+export type ContactMessage = {
+  name: string;
+  email: string;
+  message: string;
+};
+
+/**
+ * The public "Send Us a Message" form has no backend route/action wired up.
+ * Rather than letting the submit button perform a native GET navigation (which
+ * silently drops the user's message into the URL query string and never
+ * delivers it), we compose a mailto: to hello@e-code.ai so the typed message
+ * is never lost. The `Reply-To` is carried in the body since mailto: cannot set
+ * arbitrary headers reliably across clients.
+ */
+export function buildContactMailto({ name, email, message }: ContactMessage) {
+  const trimmedName = name.trim();
+  const subject = trimmedName ? `Message from ${trimmedName}` : 'Message via E-Code contact form';
+
+  const body = [
+    trimmedName ? `Name: ${trimmedName}` : undefined,
+    email.trim() ? `Email: ${email.trim()}` : undefined,
+    '',
+    message.trim(),
+  ]
+    .filter((line) => line !== undefined)
+    .join('\n');
+
+  return `mailto:hello@e-code.ai?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
 export default function Contact() {
+  const { toast } = useEcodeToast();
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const formElement = e.currentTarget;
+    const formData = new FormData(formElement);
+
+    const payload: ContactMessage = {
+      name: String(formData.get('name') ?? ''),
+      email: String(formData.get('email') ?? ''),
+      message: String(formData.get('message') ?? ''),
+    };
+
+    if (!payload.message.trim()) {
+      toast({
+        title: 'Message is empty',
+        description: 'Please tell us how we can help before sending.',
+        variant: 'destructive',
+      });
+
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      window.location.href = buildContactMailto(payload);
+    }
+
+    toast({
+      title: 'Opening your email client',
+      description: "We've prepared your message for hello@e-code.ai so nothing gets lost.",
+    });
+
+    formElement.reset();
+  };
+
   const channels = [
     {
       icon: Mail,
@@ -108,7 +176,7 @@ export default function Contact() {
                   <CardDescription>Tell us a little about what you need.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form className="space-y-6" data-testid="form-contact">
+                  <form className="space-y-6" data-testid="form-contact" onSubmit={handleSubmit}>
                     <div className="grid sm:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label htmlFor="contact-name" className="text-[13px] font-medium">

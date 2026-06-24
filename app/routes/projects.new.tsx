@@ -59,6 +59,11 @@ import type { ProviderInfo } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 import { projectIdePath } from '~/utils/project-url';
 import { categorizeProjectsNewError, type ProjectsNewErrorDescriptor } from '~/utils/projects-new-error';
+import {
+  findRecentlyCreatedAiProject,
+  mayHaveCreatedProject,
+  type RecoverableProject,
+} from '~/utils/projects-new-recover';
 import { estimatePromptCost, formatEstimatedCost } from '~/utils/prompt-cost';
 import { detectPromptLanguage } from '~/utils/prompt-language';
 import { describeFlaggedCategories, moderateProjectPrompt } from '~/utils/prompt-moderation.server';
@@ -496,6 +501,22 @@ async function projectQuotaActionMessage(error: unknown) {
   return /quota exceeded for projects\.count/i.test(message) ? PROJECT_QUOTA_EXCEEDED_MESSAGE : undefined;
 }
 
+/*
+ * Re-fetch the org's projects so a lost from-ai response can be reconciled
+ * against what the server actually persisted. Best-effort: if this listing
+ * itself fails we return an empty array and the caller falls back to its
+ * normal empty-project path.
+ */
+async function listOrgProjects(request: Request, orgId: string): Promise<RecoverableProject[]> {
+  try {
+    const { projects } = await apiRequest<{ projects: RecoverableProject[] }>(request, `/orgs/${orgId}/projects`);
+
+    return Array.isArray(projects) ? projects : [];
+  } catch {
+    return [];
+  }
+}
+
 async function createProjectOrReturnQuotaError(
   request: Request,
   path: string,
@@ -661,6 +682,8 @@ export async function action({ request, context }: EnterpriseActionArgs) {
   let aiGenerationError: string | undefined;
 
   if (prompt) {
+    const attemptStartedAt = Date.now();
+
     try {
       const created = await createProjectOrReturnQuotaError(request, `/orgs/${organization.id}/projects/from-ai`, {
         name,
@@ -680,14 +703,30 @@ export async function action({ request, context }: EnterpriseActionArgs) {
       aiGenerationFailed = true;
       aiGenerationError = error instanceof Error ? error.message : 'AI generation failed';
 
-      // Fall back to creating an empty project so the user keeps their prompt and can retry inside the IDE.
-      const created = await createProjectOrReturnQuotaError(request, `/orgs/${organization.id}/projects`, { name });
+      /*
+       * `from-ai` creates the project + consumes projects.count + returns 201
+       * BEFORE the client reads the body. If the failure could have left a
+       * project committed server-side (a lost response rather than an HTTP
+       * error reply), re-fetch the org's projects and reuse the one this
+       * request just created instead of creating a duplicate and
+       * double-charging the quota.
+       */
+      const recovered = mayHaveCreatedProject(error)
+        ? findRecentlyCreatedAiProject(await listOrgProjects(request, organization.id), { name, attemptStartedAt })
+        : undefined;
 
-      if (!created.ok) {
-        return projectCreateActionError(created);
+      if (recovered) {
+        result = { project: recovered };
+      } else {
+        // Fall back to creating an empty project so the user keeps their prompt and can retry inside the IDE.
+        const created = await createProjectOrReturnQuotaError(request, `/orgs/${organization.id}/projects`, { name });
+
+        if (!created.ok) {
+          return projectCreateActionError(created);
+        }
+
+        result = created.result;
       }
-
-      result = created.result;
     }
   } else {
     const created = await createProjectOrReturnQuotaError(request, `/orgs/${organization.id}/projects`, { name });

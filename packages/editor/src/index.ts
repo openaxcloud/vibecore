@@ -1912,9 +1912,22 @@ export function installEditorPwaServiceWorker(scriptUrl = '/sw.js') {
     return;
   }
 
-  window.addEventListener('load', () => {
+  const register = () => {
     navigator.serviceWorker.register(scriptUrl).catch(() => undefined);
-  });
+  };
+
+  /*
+   * This is typically called from a React effect, which runs *after* the
+   * document 'load' event has already fired on a normal hard page load. In
+   * that case adding a 'load' listener would never invoke the callback and the
+   * service worker would never register. Register immediately when the
+   * document has finished loading; otherwise defer until 'load'.
+   */
+  if (typeof document === 'undefined' || document.readyState === 'complete') {
+    register();
+  } else {
+    window.addEventListener('load', register, { once: true });
+  }
 }
 
 export const editorBreakpoints = {

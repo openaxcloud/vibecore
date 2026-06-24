@@ -106,7 +106,7 @@ export function useEditChatDescription({
           toast.error('Description must be between 1 and 100 characters.');
           return false;
         case 'invalid-characters':
-          toast.error('Description can only contain letters, numbers, spaces, and basic punctuation.');
+          toast.error('Description cannot contain angle brackets (< >) or control characters.');
           return false;
         case 'valid':
         default:

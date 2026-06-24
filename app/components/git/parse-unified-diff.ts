@@ -67,6 +67,16 @@ export function parseUnifiedDiff(diff: string): DiffRow[] {
     }
 
     /*
+     * A `diff ` / `diff --git ` line begins a new file's header block. Reset the
+     * in-hunk flag so the HEADER_META_PREFIXES branch re-engages for this file's
+     * own header (index/---/+++/rename/…) instead of misclassifying those lines
+     * as +/- content or context rows (which would also desync the gutters).
+     */
+    if (raw.startsWith('diff ')) {
+      inHunk = false;
+    }
+
+    /*
      * Header lines (diff/index/---/+++/rename/…) only count as meta before the
      * first hunk; once inside a hunk they are real +/- content lines.
      */

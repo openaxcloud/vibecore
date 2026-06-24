@@ -22,8 +22,13 @@ export function validateChatDescription(desc: string, baseline: string): ChatDes
     return 'invalid-length';
   }
 
-  // Allow letters, numbers, spaces, and common punctuation but exclude characters that could cause issues
-  const characterValid = /^[a-zA-Z0-9\s\-_.,!?()[\]{}'"]+$/.test(trimmedDesc);
+  /*
+   * Allow any Unicode text (accented Latin, Cyrillic, CJK, Arabic, emoji, …) so that
+   * non-ASCII titles like 'Mon café', 'проект' or '日本語' are accepted. Only reject the
+   * genuinely dangerous characters: angle brackets that could open markup, plus ASCII and
+   * Unicode C1 control characters / line breaks (titles are single-line).
+   */
+  const characterValid = !/[<>\u0000-\u001f\u007f-\u009f]/u.test(trimmedDesc);
 
   if (!characterValid) {
     return 'invalid-characters';
