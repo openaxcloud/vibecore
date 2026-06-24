@@ -54,8 +54,8 @@ export function GitBranchSyncControls({
    * ~24px/10px). Standard IDE control density: 30px secondary buttons, 13px text.
    */
   const secondaryButton = classNames(
-    'inline-flex h-[30px] w-full items-center justify-center gap-1.5 rounded-[6px] border border-bolt-elements-borderColor',
-    'text-[13px] font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60',
+    'inline-flex h-[32px] w-full items-center justify-center gap-1.5 rounded-[6px] border border-bolt-elements-borderColor',
+    'text-[13.3px] font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60',
     'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus focus:ring-offset-1 focus:ring-offset-bolt-elements-background-depth-2',
   );
 
@@ -65,7 +65,7 @@ export function GitBranchSyncControls({
       aria-labelledby={`${idPrefix}-sync-heading`}
     >
       <div className="flex items-center justify-between gap-2">
-        <h3 id={`${idPrefix}-sync-heading`} className="text-[13px] font-semibold text-bolt-elements-textPrimary">
+        <h3 id={`${idPrefix}-sync-heading`} className="text-[14px] font-medium text-bolt-elements-textPrimary">
           Remote Updates
         </h3>
         {repoUrl ? (
@@ -116,7 +116,7 @@ export function GitBranchSyncControls({
           disabled={busy}
           data-testid="git-sync-changes"
           className={classNames(
-            'inline-flex h-[34px] w-full items-center justify-center gap-2 rounded-[6px] text-[13px] font-semibold text-white disabled:opacity-60',
+            'inline-flex h-[32px] w-full items-center justify-center gap-2 rounded-[6px] text-[13.3px] font-semibold text-white disabled:opacity-60',
             'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus focus:ring-offset-2 focus:ring-offset-bolt-elements-background-depth-2',
           )}
           style={{ background: 'var(--ecode-accent, #F26207)' }}

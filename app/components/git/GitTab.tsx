@@ -148,7 +148,7 @@ function PanelButton({
       {...props}
       type={props.type ?? 'submit'}
       className={classNames(
-        'inline-flex h-[34px] items-center justify-center rounded-[6px] px-3 text-[13px] font-medium disabled:opacity-60',
+        'inline-flex h-[32px] items-center justify-center rounded-[6px] px-3 text-[13.3px] font-medium disabled:opacity-60',
         variant === 'outline'
           ? 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3'
           : 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover',
@@ -1219,7 +1219,11 @@ export function GitTab({ projectId }: GitTabProps) {
                 {unserializableStagedFiles.join(', ')}
               </p>
             ) : null}
-            <PanelButton disabled={busy || stagedFiles.length === 0 || unserializableStagedFiles.length > 0}>
+            <PanelButton
+              disabled={busy || stagedFiles.length === 0 || unserializableStagedFiles.length > 0}
+              className="w-full font-semibold text-white hover:opacity-90"
+              style={{ background: 'var(--ecode-accent, #F26207)' }}
+            >
               Commit changes
             </PanelButton>
           </form>
