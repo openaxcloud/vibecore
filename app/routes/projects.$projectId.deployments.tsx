@@ -24,6 +24,7 @@ import {
   shouldPollDeployments,
 } from './projects.$projectId.deployments.view';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
+import { ComputeTierPreview } from '~/components/deploy/ComputeTierPreview';
 import { DeploymentTypeSelector } from '~/components/deploy/DeploymentTypeSelector';
 import {
   DEFAULT_DEPLOYMENT_TYPE,
@@ -425,6 +426,8 @@ function ComingSoonPanel({ type }: { type?: DeploymentType }) {
           <p className="mt-1 text-xs text-bolt-elements-textSecondary">{type.description}</p>
         </div>
       </div>
+
+      <ComputeTierPreview tier={type.id} />
 
       {type.requires ? (
         <div className="grid gap-3 sm:grid-cols-2">
