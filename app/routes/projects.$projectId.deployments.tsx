@@ -9,10 +9,11 @@ import {
   RotateCcw,
   Rocket,
   ShieldCheck,
+  Sparkles,
   TerminalSquare,
   type LucideIcon,
 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type React from 'react';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation, useRevalidator, useSearchParams } from 'react-router';
@@ -23,6 +24,13 @@ import {
   shouldPollDeployments,
 } from './projects.$projectId.deployments.view';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
+import { DeploymentTypeSelector } from '~/components/deploy/DeploymentTypeSelector';
+import {
+  DEFAULT_DEPLOYMENT_TYPE,
+  getDeploymentType,
+  type DeploymentType,
+  type DeploymentTypeId,
+} from '~/components/deploy/deployment-types';
 import { Button } from '~/components/ui/Button';
 import {
   apiErrorMessage,
@@ -230,6 +238,14 @@ export default function ProjectDeploymentsPage() {
   const [searchParams] = useSearchParams();
   const workspaceId = searchParams.get('workspace') ?? '';
 
+  /*
+   * Replit-style Publish: the deployment-type selector is the primary choice.
+   * Only `static` is deployable today (the managed backend is static-only), so
+   * the compute tiers render an honest "coming soon" panel instead of a form
+   * that would fail server-side. Default to the one tier that actually ships.
+   */
+  const [deployType, setDeployType] = useState<DeploymentTypeId>(DEFAULT_DEPLOYMENT_TYPE);
+
   return (
     <ProjectShell
       projectId={project.id}
@@ -286,87 +302,157 @@ export default function ProjectDeploymentsPage() {
           </div>
         </section>
 
-        <Form
-          method="post"
-          className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md"
-        >
-          <input type="hidden" name="workspaceId" value={workspaceId} />
-          <div>
-            <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Deployment wizard</h2>
-            <p className="text-xs text-bolt-elements-textSecondary">
-              Provider, environment, build command, output directory and controlled secret injection.
-            </p>
+        <div className="grid gap-4">
+          <div className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md">
+            <DeploymentTypeSelector selected={deployType} onSelect={setDeployType} />
           </div>
 
-          <fieldset className="grid gap-2 border-0 p-0">
-            <legend className="text-xs font-medium uppercase tracking-[0.04em] text-bolt-elements-textTertiary">
-              Provider
-            </legend>
-            <div className="grid gap-2">
-              {providers.map((provider, index) => {
-                const Icon = provider.icon;
-                return (
-                  <label
-                    key={provider.id}
-                    className="flex cursor-pointer items-center gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 transition-colors hover:bg-bolt-elements-background-depth-3"
-                  >
-                    <input
-                      className="h-4 w-4 accent-bolt-elements-focus"
-                      type="radio"
-                      name="provider"
-                      value={provider.id}
-                      defaultChecked={index === 0}
-                    />
-                    <Icon className="h-4 w-4 text-bolt-elements-item-contentAccent" aria-hidden />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium text-bolt-elements-textPrimary">{provider.name}</span>
-                      <span className="block truncate text-xs text-bolt-elements-textSecondary">{provider.detail}</span>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
+          {deployType === 'static' ? (
+            <Form
+              method="post"
+              className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md"
+            >
+              <input type="hidden" name="workspaceId" value={workspaceId} />
+              <div>
+                <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Deployment wizard</h2>
+                <p className="text-xs text-bolt-elements-textSecondary">
+                  Provider, environment, build command, output directory and controlled secret injection.
+                </p>
+              </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field as="select" label="Environment" name="environment" defaultValue="preview">
-              <option value="preview">Preview</option>
-              <option value="staging">Staging</option>
-              <option value="production">Production</option>
-            </Field>
-            <Field label="Framework" name="framework" placeholder="Auto detect" />
-          </div>
-          <Field label="Build command" name="buildCommand" defaultValue="npm run build" />
-          <Field label="Output directory" name="outputDirectory" defaultValue="dist" />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Git branch" name="branch" placeholder="main" />
-            <Field label="Custom domain" name="customDomain" placeholder="app.example.com" />
-          </div>
-          <Field label="GitHub repository URL" name="repositoryUrl" placeholder="https://github.com/acme/app" />
-          <Field
-            as="textarea"
-            label="Environment variables"
-            name="envVars"
-            placeholder={'PUBLIC_API_URL=https://api.example.com\nSECRET_TOKEN=redacted-in-logs'}
-          />
-          <Field label="Inject user-scoped secrets" name="injectSecrets" placeholder="DATABASE_URL,STRIPE_SECRET_KEY" />
-          <label className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
-            <input
-              className="h-4 w-4 accent-bolt-elements-focus"
-              type="checkbox"
-              name="previewDeployment"
-              defaultChecked
-            />
-            Create preview deployment URL when environment is not production.
-          </label>
+              <fieldset className="grid gap-2 border-0 p-0">
+                <legend className="text-xs font-medium uppercase tracking-[0.04em] text-bolt-elements-textTertiary">
+                  Provider
+                </legend>
+                <div className="grid gap-2">
+                  {providers.map((provider, index) => {
+                    const Icon = provider.icon;
+                    return (
+                      <label
+                        key={provider.id}
+                        className="flex cursor-pointer items-center gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 transition-colors hover:bg-bolt-elements-background-depth-3"
+                      >
+                        <input
+                          className="h-4 w-4 accent-bolt-elements-focus"
+                          type="radio"
+                          name="provider"
+                          value={provider.id}
+                          defaultChecked={index === 0}
+                        />
+                        <Icon className="h-4 w-4 text-bolt-elements-item-contentAccent" aria-hidden />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-medium text-bolt-elements-textPrimary">
+                            {provider.name}
+                          </span>
+                          <span className="block truncate text-xs text-bolt-elements-textSecondary">
+                            {provider.detail}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
 
-          <Button type="submit" disabled={busy} className="gap-2">
-            <Rocket className="h-4 w-4" aria-hidden />
-            {busy ? 'Deploying...' : 'Deploy project'}
-          </Button>
-        </Form>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field as="select" label="Environment" name="environment" defaultValue="preview">
+                  <option value="preview">Preview</option>
+                  <option value="staging">Staging</option>
+                  <option value="production">Production</option>
+                </Field>
+                <Field label="Framework" name="framework" placeholder="Auto detect" />
+              </div>
+              <Field label="Build command" name="buildCommand" defaultValue="npm run build" />
+              <Field label="Output directory" name="outputDirectory" defaultValue="dist" />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Git branch" name="branch" placeholder="main" />
+                <Field label="Custom domain" name="customDomain" placeholder="app.example.com" />
+              </div>
+              <Field label="GitHub repository URL" name="repositoryUrl" placeholder="https://github.com/acme/app" />
+              <Field
+                as="textarea"
+                label="Environment variables"
+                name="envVars"
+                placeholder={'PUBLIC_API_URL=https://api.example.com\nSECRET_TOKEN=redacted-in-logs'}
+              />
+              <Field
+                label="Inject user-scoped secrets"
+                name="injectSecrets"
+                placeholder="DATABASE_URL,STRIPE_SECRET_KEY"
+              />
+              <label className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
+                <input
+                  className="h-4 w-4 accent-bolt-elements-focus"
+                  type="checkbox"
+                  name="previewDeployment"
+                  defaultChecked
+                />
+                Create preview deployment URL when environment is not production.
+              </label>
+
+              <Button type="submit" disabled={busy} className="gap-2">
+                <Rocket className="h-4 w-4" aria-hidden />
+                {busy ? 'Deploying...' : 'Deploy project'}
+              </Button>
+            </Form>
+          ) : (
+            <ComingSoonPanel type={getDeploymentType(deployType)} />
+          )}
+        </div>
       </div>
     </ProjectShell>
+  );
+}
+
+function ComingSoonPanel({ type }: { type?: DeploymentType }) {
+  if (!type) {
+    return null;
+  }
+
+  return (
+    <div className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
+          <Sparkles className="h-4 w-4 text-bolt-elements-item-contentAccent" aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
+            {type.name}
+            <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
+              Coming soon
+            </span>
+          </h2>
+          <p className="mt-1 text-xs text-bolt-elements-textSecondary">{type.description}</p>
+        </div>
+      </div>
+
+      {type.requires ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <RequirementList title="In progress (platform)" items={type.requires.code} />
+          <RequirementList title="Requires scale infrastructure" items={type.requires.infra} />
+        </div>
+      ) : null}
+
+      <p className="text-xs text-bolt-elements-textTertiary">
+        Need this tier now? Use Static for front-end apps today, or contact us to prioritise managed compute.
+      </p>
+    </div>
+  );
+}
+
+function RequirementList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
+      <p className="text-[11px] font-medium uppercase tracking-[0.04em] text-bolt-elements-textTertiary">{title}</p>
+      <ul className="mt-2 grid gap-1.5">
+        {items.map((item) => (
+          <li key={item} className="flex gap-2 text-xs text-bolt-elements-textSecondary">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-bolt-elements-textTertiary" aria-hidden />
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
