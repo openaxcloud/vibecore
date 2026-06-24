@@ -47,6 +47,58 @@ html:has([data-ecode-static-shell]) body {
   font-size: 16px;
 }
 
+/*
+ * Homogeneous marketing typography scale (Avi: titles + paragraphs must be the
+ * SAME size across every public page, not ad-hoc per page). One central set of
+ * tokens + utility classes, sized with clamp() to match the homepage hero scale
+ * and stay consistent at 390 / 768 / 1440. Pages apply .mkt-h1/.mkt-h2/.mkt-h3/
+ * .mkt-lead/.mkt-body instead of bespoke text-3xl/4xl/5xl combinations.
+ */
+:root {
+  --mkt-h1: clamp(2rem, 1.2rem + 3.4vw, 3.5rem); /* 32px → 56px */
+  --mkt-h2: clamp(1.625rem, 1.2rem + 1.9vw, 2.25rem); /* 26px → 36px */
+  --mkt-h3: clamp(1.25rem, 1.05rem + 0.85vw, 1.5rem); /* 20px → 24px */
+  --mkt-lead: clamp(1.0625rem, 0.98rem + 0.4vw, 1.25rem); /* 17px → 20px */
+  --mkt-body: 1rem; /* 16px */
+  --mkt-small: 0.875rem; /* 14px */
+}
+
+.mkt-h1 {
+  font-size: var(--mkt-h1);
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.mkt-h2 {
+  font-size: var(--mkt-h2);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.mkt-h3 {
+  font-size: var(--mkt-h3);
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.mkt-lead {
+  font-size: var(--mkt-lead);
+  line-height: 1.6;
+}
+
+.mkt-body {
+  font-size: var(--mkt-body);
+  line-height: 1.65;
+}
+
+.mkt-small {
+  font-size: var(--mkt-small);
+  line-height: 1.5;
+}
+
 // Mobile + tablet: step the marketing/static scope's base font down one notch
 // too, so the whole UI (app shell and marketing) shrinks consistently.
 @media (max-width: 1024px) {
