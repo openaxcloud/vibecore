@@ -32,7 +32,7 @@ vi.mock('../utils/store', () => ({
   store: { get: vi.fn(), set: vi.fn() },
 }));
 
-import { brandName, trayIconCandidates } from './native-services.js';
+import { brandName, defaultExportFileName, trayIconCandidates } from './native-services.js';
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -73,5 +73,29 @@ describe('brandName', () => {
       throw new Error('app not ready');
     });
     expect(brandName()).toBe('E-Code');
+  });
+});
+
+describe('defaultExportFileName', () => {
+  it('derives a brand-correct Save-dialog filename, never the internal codename', () => {
+    appMock.getName.mockReturnValue('E-Code');
+
+    const name = defaultExportFileName();
+
+    expect(name).toBe('e-code-project.zip');
+    expect(name).not.toContain('vibecore');
+  });
+
+  it('never leaks the internal codename even if app.getName() returns it', () => {
+    appMock.getName.mockReturnValue('VibeCore');
+
+    // brandName() rejects the codename and falls back to the 'E-Code' literal.
+    expect(defaultExportFileName()).toBe('e-code-project.zip');
+    expect(defaultExportFileName()).not.toContain('vibecore');
+  });
+
+  it('slugifies a packaged productName into a filesystem-safe basename', () => {
+    appMock.getName.mockReturnValue('My Cool App!');
+    expect(defaultExportFileName()).toBe('my-cool-app-project.zip');
   });
 });

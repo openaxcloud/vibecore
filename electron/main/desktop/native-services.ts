@@ -29,6 +29,21 @@ export function brandName(): string {
 }
 
 /**
+ * Brand-correct default filename for the "Export Project" Save dialog. Derived
+ * from {@link brandName} so a packaged build's productName flows through, while
+ * never surfacing the internal codename. The result is a safe, lowercase,
+ * filesystem-friendly basename ending in `.zip` (e.g. `ecode-project.zip`).
+ */
+export function defaultExportFileName(): string {
+  const slug = brandName()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return `${slug || 'ecode'}-project.zip`;
+}
+
+/**
  * Ordered list of candidate tray-icon paths, most-preferred first.
  *
  * The repo's `public/` directory is NOT in the electron-builder `files` allowlist,
@@ -68,11 +83,11 @@ export function setupNativeDesktopServices(getWindow: () => BrowserWindow | unde
 
     const result = owner
       ? await dialog.showSaveDialog(owner, {
-          defaultPath: defaultPath ?? 'vibecore-project.zip',
+          defaultPath: defaultPath ?? defaultExportFileName(),
           filters: [{ name: 'Zip archive', extensions: ['zip'] }],
         })
       : await dialog.showSaveDialog({
-          defaultPath: defaultPath ?? 'vibecore-project.zip',
+          defaultPath: defaultPath ?? defaultExportFileName(),
           filters: [{ name: 'Zip archive', extensions: ['zip'] }],
         });
 

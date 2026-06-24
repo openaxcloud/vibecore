@@ -1,5 +1,6 @@
 import { app, crashReporter, ipcMain } from 'electron';
 import log from 'electron-log';
+import { brandName } from './native-services.js';
 
 export interface CrashReporterConfig {
   submitURL?: string;
@@ -17,8 +18,8 @@ export function setupCrashReporting(config: CrashReporterConfig = {}) {
   crashReporter.start({
     submitURL,
     uploadToServer: config.uploadToServer ?? true,
-    productName: app.getName(),
-    companyName: 'VibeCore',
+    productName: brandName(),
+    companyName: brandName(),
     extra: {
       version: app.getVersion(),
       channel: process.env.DESKTOP_RELEASE_CHANNEL ?? 'local',

@@ -217,8 +217,8 @@ export function extractPushActionData(event: PushActionEventLike) {
 export async function shareProjectLink(projectId: string, url: string) {
   await Haptics.impact({ style: ImpactStyle.Light }).catch(() => undefined);
   await Share.share({
-    title: 'Vibecore project',
-    text: `Open project ${projectId}`,
+    title: 'E-Code project',
+    text: `Open project ${projectId} on E-Code`,
     url,
     dialogTitle: 'Share project',
   });

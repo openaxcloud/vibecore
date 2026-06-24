@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const addListener = vi.fn();
 const requestPermissions = vi.fn();
 const register = vi.fn();
+const share = vi.fn();
 
 vi.mock('@capacitor/push-notifications', () => ({
   PushNotifications: {
@@ -14,7 +15,18 @@ vi.mock('@capacitor/push-notifications', () => ({
   },
 }));
 
-import { configurePushNotifications, handleDeepLink, runCleanup } from './native';
+vi.mock('@capacitor/share', () => ({
+  Share: {
+    share: (...args: unknown[]) => share(...args),
+  },
+}));
+
+vi.mock('@capacitor/haptics', () => ({
+  Haptics: { impact: () => Promise.resolve() },
+  ImpactStyle: { Light: 'LIGHT' },
+}));
+
+import { configurePushNotifications, handleDeepLink, runCleanup, shareProjectLink } from './native';
 
 describe('handleDeepLink (cold-start + appUrlOpen routing)', () => {
   it('dispatches the runtime event and invokes the callback for a supported launch URL', () => {
@@ -76,6 +88,29 @@ describe('runCleanup (failed-bootstrap teardown does not leak listeners)', () =>
     await expect(runCleanup(cleanup)).resolves.toBeUndefined();
 
     expect(calls).toEqual(['first', 'third']);
+  });
+});
+
+describe('shareProjectLink (native share payload uses the E-Code brand)', () => {
+  beforeEach(() => {
+    share.mockReset();
+    share.mockResolvedValue(undefined);
+  });
+
+  it('shares the E-Code brand and never leaks the internal codename', async () => {
+    await shareProjectLink('project_123', 'https://app.e-code.ai/projects/project_123');
+
+    expect(share).toHaveBeenCalledTimes(1);
+
+    const payload = share.mock.calls[0][0] as { title: string; text: string; url: string; dialogTitle: string };
+
+    expect(payload.title).toBe('E-Code project');
+    expect(payload.text).toBe('Open project project_123 on E-Code');
+    expect(payload.url).toBe('https://app.e-code.ai/projects/project_123');
+
+    // Regression guard: no Vibecore/Bolt codename surfaced to the OS share sheet or recipient.
+    const serialized = JSON.stringify(payload);
+    expect(serialized).not.toMatch(/vibecore|bolt/i);
   });
 });
 
