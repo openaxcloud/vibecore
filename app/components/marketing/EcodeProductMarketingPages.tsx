@@ -689,7 +689,7 @@ export function EcodeAiAgentPage() {
           <Container className="relative grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
             <div>
               <Badge icon={Sparkles}>E-CODE AGENT 2.0 POWERED</Badge>
-              <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-normal text-bolt-elements-textPrimary sm:text-5xl lg:text-6xl">
+              <h1 className="mt-6 max-w-3xl mkt-h1 text-bolt-elements-textPrimary">
                 AI Agent v2{' '}
                 <span className="block bg-gradient-to-r from-[var(--ecode-accent)] via-amber-400 to-[#F99D25] bg-clip-text text-transparent">
                   Build Apps with Natural Language
@@ -932,7 +932,7 @@ export function EcodeAiPlatformPage() {
           <Container className="relative grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
               <Badge icon={Sparkles}>POWERED BY E-CODE.AI</Badge>
-              <h1 className="mt-6 text-4xl font-bold tracking-normal text-bolt-elements-textPrimary sm:text-6xl">
+              <h1 className="mt-6 mkt-h1 text-bolt-elements-textPrimary">
                 Enterprise AI That{' '}
                 <span className="block bg-gradient-to-r from-[var(--ecode-accent)] via-amber-400 to-[#F99D25] bg-clip-text text-transparent">
                   Builds Applications
@@ -1098,9 +1098,7 @@ export function EcodeFeaturesPage() {
           <Container className="grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
             <div>
               <Badge icon={Layers}>Everything you need in one place</Badge>
-              <h1 className="mt-6 text-4xl font-bold tracking-normal text-bolt-elements-textPrimary sm:text-6xl">
-                Features that empower developers
-              </h1>
+              <h1 className="mt-6 mkt-h1 text-bolt-elements-textPrimary">Features that empower developers</h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-bolt-elements-textSecondary">
                 From writing your first line of code to deploying at scale, E-Code provides all the tools you need in a
                 single platform.
@@ -1197,9 +1195,7 @@ export function EcodeMobilePage() {
           <Container className="relative grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
             <div>
               <Badge icon={Smartphone}>Build from anywhere</Badge>
-              <h1 className="mt-6 text-4xl font-bold tracking-normal text-bolt-elements-textPrimary sm:text-6xl">
-                The full E-Code workspace, now mobile
-              </h1>
+              <h1 className="mt-6 mkt-h1 text-bolt-elements-textPrimary">The full E-Code workspace, now mobile</h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-bolt-elements-textSecondary">
                 Edit code, run terminals, collaborate, review Git history and deploy production apps from phone or
                 tablet.
@@ -1271,7 +1267,7 @@ export function EcodePricingPage() {
         <section className="py-16 sm:py-24">
           <Container className="text-center">
             <Badge icon={Star}>Save up to 20% with annual billing</Badge>
-            <h1 className="mx-auto mt-6 max-w-4xl text-4xl font-bold tracking-normal text-bolt-elements-textPrimary sm:text-6xl">
+            <h1 className="mx-auto mt-6 max-w-4xl mkt-h1 text-bolt-elements-textPrimary">
               Pricing that scales{' '}
               <span className="block bg-gradient-to-r from-[var(--ecode-accent)] to-amber-400 bg-clip-text text-transparent">
                 with your growth
@@ -1506,7 +1502,7 @@ export function EcodeDeploymentsPage() {
           <Container className="relative grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
             <div>
               <Badge icon={Rocket}>Deploy from idea to internet in one click</Badge>
-              <h1 className="mt-6 text-4xl font-bold tracking-normal text-bolt-elements-textPrimary sm:text-6xl">
+              <h1 className="mt-6 mkt-h1 text-bolt-elements-textPrimary">
                 Launch production-grade apps straight from your workspace
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-bolt-elements-textSecondary">
@@ -1605,9 +1601,7 @@ export function EcodeBountiesPage() {
           <Container className="relative grid gap-12 lg:grid-cols-[1fr_0.9fr] lg:items-center">
             <div>
               <Badge icon={Handshake}>Developer marketplace</Badge>
-              <h1 className="mt-6 text-4xl font-bold tracking-normal sm:text-6xl">
-                Ship features faster with outcome-based bounties
-              </h1>
+              <h1 className="mt-6 mkt-h1">Ship features faster with outcome-based bounties</h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-white/75">
                 Publish challenges, collaborate with expert builders and pay on delivery. E-Code handles recruiting,
                 secure review environments and automated payouts.
@@ -1723,7 +1717,7 @@ export function EcodeTeamsPage() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(242,98,7,0.16),transparent_30%),radial-gradient(circle_at_80%_10%,rgba(249,157,37,0.14),transparent_28%)]" />
           <Container className="relative text-center">
             <Badge icon={Users}>Teams</Badge>
-            <h1 className="mx-auto mt-6 max-w-4xl text-4xl font-bold tracking-normal text-bolt-elements-textPrimary sm:text-6xl">
+            <h1 className="mx-auto mt-6 max-w-4xl mkt-h1 text-bolt-elements-textPrimary">
               Build Together, Ship Faster
             </h1>
             <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-bolt-elements-textSecondary">
