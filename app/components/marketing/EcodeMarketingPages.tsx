@@ -99,6 +99,46 @@ const productFigures: Record<string, { src: string; alt: string; caption: string
     alt: 'E-Code dashboard view with charts and operational telemetry',
     caption: 'Data-rich dashboards with auth, charts, filters and team access.',
   },
+  'app-builder': {
+    src: `${PRODUCT_BASE}/ide.png`,
+    alt: 'E-Code workspace building a full-stack app from a prompt',
+    caption: 'Prompt to full-stack app: editor, terminal, preview and agent together.',
+  },
+  'website-builder': {
+    src: `${PRODUCT_BASE}/ide.png`,
+    alt: 'E-Code workspace building a marketing website with live preview',
+    caption: 'Design, edit and preview a polished site without local setup.',
+  },
+  'game-builder': {
+    src: `${PRODUCT_BASE}/ide.png`,
+    alt: 'E-Code workspace building an interactive game with live preview',
+    caption: 'Build and play-test interactive experiences in one workspace.',
+  },
+  'chatbot-builder': {
+    src: `${PRODUCT_BASE}/ide.png`,
+    alt: 'E-Code workspace wiring an AI chatbot with the agent panel',
+    caption: 'Compose, test and ship conversational assistants end to end.',
+  },
+  'internal-ai-builder': {
+    src: `${PRODUCT_BASE}/ide-git.png`,
+    alt: 'E-Code workspace with version control for internal AI tools',
+    caption: 'Private AI tools with real version control and team review.',
+  },
+  enterprise: {
+    src: `${PRODUCT_BASE}/ide-deploy.png`,
+    alt: 'E-Code enterprise deployment panel with release controls and logs',
+    caption: 'SSO, audit logs and governed deploys with runtime health checks.',
+  },
+  startups: {
+    src: `${PRODUCT_BASE}/ide.png`,
+    alt: 'E-Code workspace shipping a startup MVP from a prompt',
+    caption: 'Ship your MVP fast: build, preview and deploy in one place.',
+  },
+  freelancers: {
+    src: `${PRODUCT_BASE}/ide-git.png`,
+    alt: 'E-Code workspace with version control for client project delivery',
+    caption: 'Deliver client work faster with built-in version control.',
+  },
 };
 
 export const marketingPages = {
