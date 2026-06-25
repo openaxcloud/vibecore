@@ -30,7 +30,13 @@ export default function LlmErrorAlert({ alert, clearAlert }: Props) {
       case 'rate_limit':
         return `Rate limit exceeded for ${provider}. Please wait before retrying.`;
       case 'quota':
-        return `Quota exceeded for ${provider}. Please check your account limits.`;
+        /*
+         * This is a plan/organization allowance (e.g. monthly AI token budget),
+         * not the upstream provider's rate-limit — so don't name the provider and
+         * don't imply that simply waiting a moment will clear it. It refills next
+         * billing period; the way out is upgrading the plan or raising the limit.
+         */
+        return `You've reached your plan's AI usage limit for this billing period. Upgrade your plan or check your account limits — it refills next period.`;
       default:
         return 'An error occurred while processing your request.';
     }

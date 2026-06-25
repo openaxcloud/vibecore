@@ -735,15 +735,26 @@ export const ChatImpl = memo(
         let errorType: LlmErrorAlertType['errorType'] = 'unknown';
         let title = 'Request Failed';
 
-        if (errorInfo.statusCode === 401 || errorInfo.message.toLowerCase().includes('api key')) {
+        const lowerMessage = errorInfo.message.toLowerCase();
+        const errorCode = typeof (errorInfo as { code?: unknown }).code === 'string' ? (errorInfo as { code: string }).code : '';
+
+        if (errorInfo.statusCode === 401 || lowerMessage.includes('api key')) {
           errorType = 'authentication';
           title = 'Authentication Error';
-        } else if (errorInfo.statusCode === 429 || errorInfo.message.toLowerCase().includes('rate limit')) {
-          errorType = 'rate_limit';
-          title = 'Rate Limit Exceeded';
-        } else if (errorInfo.message.toLowerCase().includes('quota')) {
+        } else if (errorCode === 'QUOTA_EXCEEDED' || lowerMessage.includes('quota')) {
+          /*
+           * A plan/org quota exhaustion surfaces as a 429 too, but it is NOT a
+           * transient provider rate-limit — waiting will not clear it (it refills
+           * next billing period). Classify it as 'quota' BEFORE the generic 429
+           * branch so we don't mislabel an exhausted org allowance as an upstream
+           * provider rate-limit (e.g. "Rate limit exceeded for OpenAI"), which
+           * sends users chasing a non-existent provider outage.
+           */
           errorType = 'quota';
           title = 'Quota Exceeded';
+        } else if (errorInfo.statusCode === 429 || lowerMessage.includes('rate limit')) {
+          errorType = 'rate_limit';
+          title = 'Rate Limit Exceeded';
         } else if (errorInfo.statusCode >= 500) {
           errorType = 'network';
           title = 'Server Error';
