@@ -85,7 +85,12 @@ export default function AiAgent() {
     },
   ];
 
-  const [selectedShot, setSelectedShot] = useState(agentShots[0]);
+  /*
+   * Default the explorer to the Git shot so the three large screenshots on the page
+   * (hero = ide.png, Live Demo = ide-deploy.png, explorer = ide-git.png) are distinct
+   * rather than repeating the same IDE image.
+   */
+  const [selectedShot, setSelectedShot] = useState(agentShots[1] ?? agentShots[0]);
 
   const quickReels = [
     {
@@ -212,7 +217,7 @@ export default function AiAgent() {
 
       <main className="flex-1">
         {/* Hero Section - Fortune 500 Style */}
-        <section className="relative min-h-[85vh] flex items-center overflow-hidden bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-950 dark:to-gray-950">
+        <section className="relative min-h-[85vh] flex items-center overflow-hidden pt-20 pb-12 sm:pt-24 lg:pt-16 bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-950 dark:to-gray-950">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent" />
             <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
@@ -372,8 +377,8 @@ export default function AiAgent() {
               </CardHeader>
               <CardContent className="p-0 bg-black">
                 <img
-                  src="/ecode-static/assets/product/ide.png"
-                  alt="Full E-Code IDE — Agent panel, code editor, file tree and the Run/Publish bar working together"
+                  src="/ecode-static/assets/product/ide-deploy.png"
+                  alt="E-Code in-IDE Deployments panel — publish to a live URL without leaving the editor"
                   className="block w-full h-auto"
                   loading="lazy"
                 />
