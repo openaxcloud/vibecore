@@ -187,9 +187,27 @@ const socialLinks = [
 
 const mobileMenuSections = [
   { title: 'Product', items: productItems, icon: Sparkles, iconClassName: 'text-ecode-accent', bordered: false },
-  { title: 'Solutions', items: solutionsItems, icon: ArrowUpRight, iconClassName: 'text-indigo-400', bordered: true },
-  { title: 'Resources', items: resourcesItems, icon: Search, iconClassName: 'text-sky-400', bordered: true },
-  { title: 'Company', items: companyItems, icon: ChevronRight, iconClassName: 'text-indigo-400', bordered: true },
+  {
+    title: 'Solutions',
+    items: solutionsItems,
+    icon: ArrowUpRight,
+    iconClassName: 'text-[var(--ecode-accent)]',
+    bordered: true,
+  },
+  {
+    title: 'Resources',
+    items: resourcesItems,
+    icon: Search,
+    iconClassName: 'text-[var(--ecode-accent)]',
+    bordered: true,
+  },
+  {
+    title: 'Company',
+    items: companyItems,
+    icon: ChevronRight,
+    iconClassName: 'text-[var(--ecode-accent)]',
+    bordered: true,
+  },
 ] as const;
 
 const ECODE_PUBLIC_ROOT_FONT_SIZE = '16px';
@@ -368,7 +386,7 @@ export function EcodeExactPublicNavbar() {
             </p>
           </div>
           <button
-            className="inline-flex items-center gap-1 text-[var(--ecode-accent)] hover:text-[var(--ecode-accent-hover)] dark:text-sky-200 dark:hover:text-white transition-colors"
+            className="inline-flex items-center gap-1 text-[var(--ecode-accent)] hover:text-[var(--ecode-accent-hover)] dark:text-[#F99D25] dark:hover:text-white transition-colors"
             onClick={() => navigate('/contact-sales')}
             aria-label="Talk to a sales expert"
           >
@@ -548,7 +566,7 @@ function MegaMenu({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const Icon = icon === 'sparkles' ? Sparkles : icon === 'search' ? Search : ChevronRight;
-  const iconClass = icon === 'arrow' || icon === 'chevron' ? 'text-indigo-300' : 'text-sky-300';
+  const iconClass = icon === 'arrow' || icon === 'chevron' ? 'text-[#F99D25]' : 'text-[#F99D25]';
 
   return (
     <div
@@ -590,7 +608,7 @@ function MegaMenu({
               <li key={item.title}>
                 <Link
                   href={item.href}
-                  className="block rounded-xl border border-border bg-surface-solid p-4 transition-all duration-200 hover:-translate-y-1 hover:bg-surface-hover-solid hover:shadow-lg hover:shadow-sky-500"
+                  className="block rounded-xl border border-border bg-surface-solid p-4 transition-all duration-200 hover:-translate-y-1 hover:bg-surface-hover-solid hover:shadow-lg hover:shadow-[var(--ecode-accent)]"
                   role="menuitem"
                 >
                   <div className="text-[13px] font-semibold text-[var(--ecode-text)] dark:text-white flex items-center gap-2">
@@ -682,7 +700,7 @@ export function EcodeExactPublicFooter() {
             </p>
             <div className="flex flex-wrap gap-3">
               <Button
-                className="bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500 min-h-[44px]"
+                className="bg-gradient-to-r from-[var(--ecode-accent)] via-[var(--ecode-accent)] to-[var(--ecode-accent)] text-white shadow-lg shadow-[var(--ecode-accent)] min-h-[44px]"
                 onClick={() => navigate('/contact-sales')}
                 data-testid="button-footer-contact-sales"
               >
@@ -753,11 +771,11 @@ export function EcodeExactPublicFooter() {
             SOC2 Type II, ISO 27001, GDPR &amp; HIPAA ready.
           </div>
           <div className="flex items-center gap-3 text-[13px] text-[var(--ecode-text-secondary)] dark:text-slate-300">
-            <Globe2 className="h-5 w-5 text-sky-500 dark:text-sky-300" />
+            <Globe2 className="h-5 w-5 text-[var(--ecode-accent)] dark:text-[#F99D25]" />
             18 global regions with enterprise data residency.
           </div>
           <div className="flex items-center gap-3 text-[13px] text-[var(--ecode-text-secondary)] dark:text-slate-300">
-            <Sparkles className="h-5 w-5 text-indigo-500 dark:text-indigo-300" />
+            <Sparkles className="h-5 w-5 text-[var(--ecode-accent)] dark:text-[#F99D25]" />
             AI governance, policy controls, and audit logging.
           </div>
           <div className="flex flex-wrap items-center gap-4">
