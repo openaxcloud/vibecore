@@ -322,6 +322,36 @@ export function EcodeExactPublicNavbar() {
   const navigate = useMarketingNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  /*
+   * Guarantee marketing document chrome whenever this navbar is mounted. The
+   * boot script + root-level reconcileMarketingChrome() cover most routes, but
+   * some marketing pages (confirmed live: /partners) end up with
+   * data-ecode-public-chrome unset → the html root falls back to the IDE's ~12px
+   * type scale, so rem-based .mkt-* headings render too small (h1 42px vs 56px on
+   * pages that DO get chrome). The navbar only ever renders on public marketing
+   * pages, so asserting the chrome here is always correct and fixes every such
+   * page in one place. Restore the prior values on unmount so navigating into an
+   * app route doesn't leave the IDE stuck at the 16px marketing scale.
+   */
+  useEffect(() => {
+    const root = document.documentElement;
+    const prevChrome = root.getAttribute('data-ecode-public-chrome');
+    const prevFontSize = root.style.fontSize;
+
+    root.setAttribute('data-ecode-public-chrome', 'homepage');
+    root.style.fontSize = '16px';
+
+    return () => {
+      if (prevChrome === null) {
+        root.removeAttribute('data-ecode-public-chrome');
+      } else {
+        root.setAttribute('data-ecode-public-chrome', prevChrome);
+      }
+
+      root.style.fontSize = prevFontSize;
+    };
+  }, []);
+
   return (
     <header className="sticky top-0 z-50 w-full">
       <div className="hidden md:block border-b border-[var(--ecode-border)] dark:border-border bg-background dark:bg-background">
