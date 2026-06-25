@@ -93,10 +93,10 @@ export default function PublicDeploymentsPage() {
             <Badge className="mb-6 border-[var(--ecode-accent)]/30 bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)]">
               Deploy from idea to internet in one click
             </Badge>
-            <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+            <h1 className="mkt-h1 font-semibold tracking-tight text-foreground">
               Launch production-grade apps straight from your workspace
             </h1>
-            <p className="mt-6 max-w-2xl text-[15px] text-muted-foreground">
+            <p className="mt-6 max-w-2xl mkt-lead text-muted-foreground">
               E-Code Deployments pairs the simplicity of an in-browser IDE with the rigor of a global cloud platform.
               Ship instantly, observe everything, and meet enterprise requirements without bolting together tools.
             </p>
@@ -128,9 +128,9 @@ export default function PublicDeploymentsPage() {
                     <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)]">
                       <Icon className="h-5 w-5" />
                     </span>
-                    <CardTitle className="text-[15px] font-semibold">{title}</CardTitle>
+                    <CardTitle className="mkt-h3 font-semibold">{title}</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-[13px] text-muted-foreground">{description}</CardContent>
+                  <CardContent className="mkt-body text-muted-foreground">{description}</CardContent>
                 </Card>
               ))}
             </div>
@@ -196,10 +196,10 @@ export default function PublicDeploymentsPage() {
       {/* Deployment modes */}
       <section className="px-6 py-24 lg:px-10">
         <div className="mx-auto max-w-6xl text-center">
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h2 className="mkt-h2 font-semibold tracking-tight">
             Built for teams that refuse to compromise on speed or reliability
           </h2>
-          <p className="mt-4 text-[15px] text-muted-foreground">
+          <p className="mt-4 mkt-body text-muted-foreground">
             The exact workflows you saw inside the workspace deployment tab—now available to every project in your
             organization with a consistent, secure experience.
           </p>
@@ -211,7 +211,7 @@ export default function PublicDeploymentsPage() {
                 <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)]">
                   <Icon className="h-6 w-6" />
                 </div>
-                <CardTitle className="text-2xl font-semibold">{label}</CardTitle>
+                <CardTitle className="mkt-h3 font-semibold">{label}</CardTitle>
                 <p className="text-muted-foreground">{description}</p>
               </CardHeader>
               <CardContent>
@@ -232,10 +232,8 @@ export default function PublicDeploymentsPage() {
       {/* Reliability strip */}
       <section className="border-y border-[var(--ecode-border)] bg-[var(--ecode-surface)]/40 px-6 py-24 lg:px-10">
         <div className="mx-auto max-w-6xl text-center">
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            What you actually get when you press publish
-          </h2>
-          <p className="mt-4 text-[15px] text-muted-foreground">
+          <h2 className="mkt-h2 font-semibold tracking-tight">What you actually get when you press publish</h2>
+          <p className="mt-4 mkt-body text-muted-foreground">
             Each deployment inherits the same automation and observability the E-Code team relies on for its own
             production services.
           </p>
@@ -245,7 +243,7 @@ export default function PublicDeploymentsPage() {
             <Card key={label} className="border-[var(--ecode-border)] bg-background">
               <CardContent className="p-6 text-center">
                 <p className="text-4xl font-semibold text-[var(--ecode-accent)]">{value}</p>
-                <p className="mt-2 text-[13px] text-muted-foreground">{label}</p>
+                <p className="mt-2 mkt-small text-muted-foreground">{label}</p>
               </CardContent>
             </Card>
           ))}

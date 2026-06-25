@@ -129,10 +129,10 @@ export default function Contact() {
               >
                 <Mail className="h-7 w-7" />
               </span>
-              <h1 className="text-4xl font-bold mb-4" data-testid="heading-contact">
+              <h1 className="mkt-h1 font-bold mb-4" data-testid="heading-contact">
                 Get in Touch
               </h1>
-              <p className="text-[15px] text-muted-foreground mb-8">
+              <p className="mkt-lead text-muted-foreground mb-8">
                 Whether you have a question about features, pricing, security, or anything else, our team is ready to
                 help.
               </p>
@@ -146,7 +146,7 @@ export default function Contact() {
         {/* Contact Channels */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">How Can We Help?</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">How Can We Help?</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {channels.map((channel) => {
@@ -160,11 +160,11 @@ export default function Contact() {
                       >
                         <Icon className="h-6 w-6" />
                       </span>
-                      <h3 className="font-semibold mb-2">{channel.title}</h3>
-                      <p className="text-[13px] text-muted-foreground mb-4">{channel.description}</p>
+                      <h3 className="mkt-h3 font-semibold mb-2">{channel.title}</h3>
+                      <p className="mkt-body text-muted-foreground mb-4">{channel.description}</p>
                       <a
                         href={`mailto:${channel.email}`}
-                        className="text-[13px] font-medium text-[var(--ecode-accent)] hover:underline break-all"
+                        className="mkt-small font-medium text-[var(--ecode-accent)] hover:underline break-all"
                         data-testid={`link-contact-${channel.title.toLowerCase()}`}
                       >
                         {channel.email}
@@ -181,8 +181,8 @@ export default function Contact() {
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
             <div className="max-w-2xl mx-auto">
-              <h2 className="text-3xl font-bold text-center mb-4">Send Us a Message</h2>
-              <p className="text-[15px] text-muted-foreground text-center mb-12">
+              <h2 className="mkt-h2 font-bold text-center mb-4">Send Us a Message</h2>
+              <p className="mkt-body text-muted-foreground text-center mb-12">
                 Fill out the form below and the right team will get back to you.
               </p>
 
@@ -195,7 +195,7 @@ export default function Contact() {
                   <form className="space-y-6" data-testid="form-contact" onSubmit={handleSubmit}>
                     <div className="grid sm:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label htmlFor="contact-name" className="text-[13px] font-medium">
+                        <label htmlFor="contact-name" className="mkt-small font-medium">
                           Name
                         </label>
                         <input
@@ -208,7 +208,7 @@ export default function Contact() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="contact-email" className="text-[13px] font-medium">
+                        <label htmlFor="contact-email" className="mkt-small font-medium">
                           Email
                         </label>
                         <input
@@ -223,7 +223,7 @@ export default function Contact() {
                     </div>
 
                     <div className="space-y-2">
-                      <label htmlFor="contact-message" className="text-[13px] font-medium">
+                      <label htmlFor="contact-message" className="mkt-small font-medium">
                         Message
                       </label>
                       <textarea
@@ -260,8 +260,8 @@ export default function Contact() {
                 <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl mb-4 text-[var(--ecode-accent)] bg-[var(--bolt-elements-background-depth-2,rgba(255,255,255,0.04))] ring-1 ring-[var(--ecode-border)]">
                   <Globe className="h-6 w-6" />
                 </span>
-                <h2 className="text-3xl font-bold mb-4">Remote-first, built in the open</h2>
-                <p className="text-[15px] text-muted-foreground mb-4">
+                <h2 className="mkt-h2 font-bold mb-4">Remote-first, built in the open</h2>
+                <p className="mkt-body text-muted-foreground mb-4">
                   E-Code is a remote-first company with team members around the world. There is no front desk to visit,
                   but there is always someone online. For partnership or general inquiries, reach out to{' '}
                   <a href="mailto:hello@e-code.ai" className="font-medium text-[var(--ecode-accent)] hover:underline">
@@ -269,7 +269,7 @@ export default function Contact() {
                   </a>{' '}
                   and we will point you to the right person.
                 </p>
-                <p className="text-[15px] text-muted-foreground">
+                <p className="mkt-body text-muted-foreground">
                   Prefer to just start building? Spin up a project in your browser and talk to the AI agent directly.
                 </p>
               </div>
@@ -299,8 +299,8 @@ export default function Contact() {
               <span className="inline-flex h-14 w-14 items-center justify-center rounded-xl mb-5 bg-white/15 backdrop-blur-sm">
                 <Rocket className="h-7 w-7" />
               </span>
-              <h2 className="text-3xl font-bold mb-3">Start building with E-Code today</h2>
-              <p className="text-[15px] text-white/90 max-w-xl mx-auto mb-8">
+              <h2 className="mkt-h2 font-bold mb-3">Start building with E-Code today</h2>
+              <p className="mkt-body text-white/90 max-w-xl mx-auto mb-8">
                 Describe what you want to build and the AI agent writes, runs, and deploys it — no setup required. No
                 credit card to get started.
               </p>

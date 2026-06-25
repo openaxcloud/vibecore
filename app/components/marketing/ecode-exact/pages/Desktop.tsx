@@ -158,13 +158,10 @@ export default function Desktop() {
                 <Monitor className="h-3.5 w-3.5" />
                 Public beta · macOS, Windows &amp; Linux
               </Badge>
-              <h1
-                className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight mb-5"
-                data-testid="heading-desktop"
-              >
+              <h1 className="mkt-h1 font-bold tracking-tight leading-tight mb-5" data-testid="heading-desktop">
                 E-Code on your desktop
               </h1>
-              <p className="text-[15px] sm:text-base text-muted-foreground leading-relaxed mb-8 max-w-2xl">
+              <p className="mkt-lead text-muted-foreground leading-relaxed mb-8 max-w-2xl">
                 The full E-Code AI development platform as a native app — the same Agent, editor, terminal, and previews
                 you know from the web, now faster, offline-ready, and built into your operating system.
               </p>
@@ -188,7 +185,7 @@ export default function Desktop() {
                 alt="The full E-Code desktop IDE: AI Agent panel, code editor, file tree, terminal, and Run/Publish bar"
                 priority
               />
-              <p className="text-[12px] text-muted-foreground text-center mt-4">
+              <p className="mkt-small text-muted-foreground text-center mt-4">
                 The real E-Code desktop IDE — Agent panel, editor, files, terminal, and the Run / Publish bar.
               </p>
             </div>
@@ -199,8 +196,8 @@ export default function Desktop() {
         <section className="py-responsive">
           <div className="container-responsive">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3">Download the desktop app</h2>
-              <p className="text-[15px] text-muted-foreground leading-relaxed">
+              <h2 className="mkt-h2 font-bold tracking-tight mb-3">Download the desktop app</h2>
+              <p className="mkt-lead text-muted-foreground leading-relaxed">
                 Code-signed and notarized builds for every major platform. Auto-updates keep you on the latest release.
               </p>
             </div>
@@ -214,8 +211,8 @@ export default function Desktop() {
                       <span className="flex items-center justify-center h-14 w-14 rounded-xl bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor mb-5">
                         <Icon className="h-7 w-7 text-primary" />
                       </span>
-                      <h3 className="font-semibold text-base mb-1.5">Download for {dl.os}</h3>
-                      <p className="text-[13px] text-muted-foreground leading-relaxed mb-6">{dl.hint}</p>
+                      <h3 className="mkt-h3 font-semibold mb-1.5">Download for {dl.os}</h3>
+                      <p className="mkt-body text-muted-foreground leading-relaxed mb-6">{dl.hint}</p>
                       <a
                         href={desktopDownloadUrl(dl.file)}
                         download
@@ -226,7 +223,7 @@ export default function Desktop() {
                         <Download className="h-4 w-4" />
                         {dl.os}
                       </a>
-                      <p className="text-[11px] text-muted-foreground mt-3 font-mono">{dl.file}</p>
+                      <p className="mkt-small text-muted-foreground mt-3 font-mono">{dl.file}</p>
                     </CardContent>
                   </Card>
                 );
@@ -239,8 +236,8 @@ export default function Desktop() {
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3">Why go native</h2>
-              <p className="text-[15px] text-muted-foreground leading-relaxed">
+              <h2 className="mkt-h2 font-bold tracking-tight mb-3">Why go native</h2>
+              <p className="mkt-lead text-muted-foreground leading-relaxed">
                 Everything the web app does, plus the speed, reach, and OS integration only a desktop app can offer.
               </p>
             </div>
@@ -254,8 +251,8 @@ export default function Desktop() {
                       <span className="flex items-center justify-center h-11 w-11 rounded-lg bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor mb-4">
                         <Icon className="h-5 w-5 text-primary" />
                       </span>
-                      <h3 className="font-semibold text-base mb-2">{cap.title}</h3>
-                      <p className="text-[13px] text-muted-foreground leading-relaxed">{cap.description}</p>
+                      <h3 className="mkt-h3 font-semibold mb-2">{cap.title}</h3>
+                      <p className="mkt-body text-muted-foreground leading-relaxed">{cap.description}</p>
                     </CardContent>
                   </Card>
                 );
@@ -276,10 +273,8 @@ export default function Desktop() {
                   <GitBranch className="h-3.5 w-3.5" />
                   Built-in version control
                 </Badge>
-                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight mb-4">
-                  Full Git, right in the window
-                </h2>
-                <p className="text-[15px] text-muted-foreground leading-relaxed mb-6">
+                <h2 className="mkt-h2 font-bold tracking-tight leading-tight mb-4">Full Git, right in the window</h2>
+                <p className="mkt-lead text-muted-foreground leading-relaxed mb-6">
                   Stage, commit, branch, and review your history without leaving the editor. The native app surfaces the
                   same first-class Git panel as the web — backed by your local file system.
                 </p>
@@ -291,7 +286,7 @@ export default function Desktop() {
                   ].map((row) => {
                     const Icon = row.icon;
                     return (
-                      <li key={row.text} className="flex items-start gap-3 text-[14px]">
+                      <li key={row.text} className="flex items-start gap-3 mkt-body">
                         <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                         <span>{row.text}</span>
                       </li>
@@ -312,8 +307,8 @@ export default function Desktop() {
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3">System requirements</h2>
-              <p className="text-[15px] text-muted-foreground leading-relaxed">
+              <h2 className="mkt-h2 font-bold tracking-tight mb-3">System requirements</h2>
+              <p className="mkt-lead text-muted-foreground leading-relaxed">
                 Lightweight by design — E-Code runs comfortably on the machine you already have.
               </p>
             </div>
@@ -335,7 +330,7 @@ export default function Desktop() {
                     <CardContent>
                       <ul className="space-y-2.5">
                         {req.specs.map((spec) => (
-                          <li key={spec} className="flex items-start gap-2.5 text-[13px] text-muted-foreground">
+                          <li key={spec} className="flex items-start gap-2.5 mkt-body text-muted-foreground">
                             <Cpu className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
                             <span>{spec}</span>
                           </li>
@@ -347,7 +342,7 @@ export default function Desktop() {
               })}
             </div>
 
-            <p className="text-[13px] text-muted-foreground text-center mt-10">
+            <p className="mkt-small text-muted-foreground text-center mt-10">
               All builds are code-signed and notarized · automatic background updates
             </p>
           </div>
@@ -357,8 +352,8 @@ export default function Desktop() {
         <section className="py-responsive">
           <div className="container-responsive">
             <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">Bring E-Code everywhere you build</h2>
-              <p className="text-[15px] text-muted-foreground leading-relaxed mb-8 max-w-2xl mx-auto">
+              <h2 className="mkt-h2 font-bold tracking-tight mb-4">Bring E-Code everywhere you build</h2>
+              <p className="mkt-lead text-muted-foreground leading-relaxed mb-8 max-w-2xl mx-auto">
                 The same projects, agents, and previews you know from the web — now with the speed and reach of a native
                 desktop app.
               </p>

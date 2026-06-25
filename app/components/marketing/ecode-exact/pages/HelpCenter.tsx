@@ -85,10 +85,10 @@ export default function HelpCenter() {
           <div className="container-responsive">
             <div className="text-center max-w-3xl mx-auto">
               <LifeBuoy className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
-              <h1 className="text-4xl font-bold mb-4" data-testid="heading-help-center">
+              <h1 className="mkt-h1 font-bold mb-4" data-testid="heading-help-center">
                 How can we help?
               </h1>
-              <p className="text-[15px] text-muted-foreground mb-8">
+              <p className="mkt-lead text-muted-foreground mb-8">
                 Search our guides or browse by topic to get the most out of E-Code.
               </p>
 
@@ -128,7 +128,7 @@ export default function HelpCenter() {
         {hasNoResults && (
           <section className="py-responsive" data-testid="help-search-no-results">
             <div className="container-responsive text-center">
-              <p className="text-[15px] text-muted-foreground">
+              <p className="mkt-body text-muted-foreground">
                 No results found for &ldquo;{submittedQuery.trim()}&rdquo;. Try a different search or browse the topics
                 below.
               </p>
@@ -140,7 +140,7 @@ export default function HelpCenter() {
         {visibleTopics.length > 0 && (
           <section className="py-responsive">
             <div className="container-responsive">
-              <h2 className="text-3xl font-bold text-center mb-12">
+              <h2 className="mkt-h2 font-bold text-center mb-12">
                 {hasActiveSearch ? 'Matching topics' : 'Browse by topic'}
               </h2>
 
@@ -171,7 +171,7 @@ export default function HelpCenter() {
         {visibleArticles.length > 0 && (
           <section className="py-responsive bg-muted">
             <div className="container-responsive">
-              <h2 className="text-3xl font-bold text-center mb-12">
+              <h2 className="mkt-h2 font-bold text-center mb-12">
                 {hasActiveSearch ? 'Matching articles' : 'Popular articles'}
               </h2>
 
@@ -202,8 +202,8 @@ export default function HelpCenter() {
             <div className="container-responsive">
               <div className="grid lg:grid-cols-2 gap-10 items-center">
                 <div>
-                  <h2 className="text-3xl font-bold mb-4">Get oriented in the workspace</h2>
-                  <p className="text-[15px] text-muted-foreground mb-6 max-w-xl">
+                  <h2 className="mkt-h2 font-bold mb-4">Get oriented in the workspace</h2>
+                  <p className="mkt-body text-muted-foreground mb-6 max-w-xl">
                     Most questions answer themselves once you know where things live. The E-Code IDE puts the AI agent,
                     code editor, file tree and live preview together in a single workspace — exactly what you see below.
                   </p>
@@ -253,8 +253,8 @@ export default function HelpCenter() {
         <section className="py-responsive bg-muted">
           <div className="container-responsive text-center">
             <LifeBuoy className="h-10 w-10 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
-            <h2 className="text-3xl font-bold mb-4">Still need help?</h2>
-            <p className="text-[15px] text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <h2 className="mkt-h2 font-bold mb-4">Still need help?</h2>
+            <p className="mkt-body text-muted-foreground mb-8 max-w-2xl mx-auto">
               Can&apos;t find what you&apos;re looking for? Our support team is here to help you get unblocked.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

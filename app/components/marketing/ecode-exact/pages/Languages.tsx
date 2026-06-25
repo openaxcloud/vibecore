@@ -49,10 +49,10 @@ export default function Languages() {
           <div className="container-responsive">
             <div className="text-center max-w-3xl mx-auto">
               <Code2 className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
-              <h1 className="text-4xl font-bold mb-4" data-testid="heading-languages">
+              <h1 className="mkt-h1 font-bold mb-4" data-testid="heading-languages">
                 Build in any language
               </h1>
-              <p className="text-[15px] text-muted-foreground mb-8">
+              <p className="mkt-lead text-muted-foreground mb-8">
                 E-Code supports every major programming language with instant environments, package managers and live
                 previews — no local setup required.
               </p>
@@ -66,7 +66,7 @@ export default function Languages() {
         {/* Languages Grid */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">Supported languages</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">Supported languages</h2>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {languages.map((language) => (
@@ -74,9 +74,9 @@ export default function Languages() {
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3 mb-3">
                       <Terminal className="h-6 w-6" style={{ color: 'var(--ecode-accent)' }} />
-                      <h3 className="font-semibold text-[17px]">{language.name}</h3>
+                      <h3 className="font-semibold mkt-h3">{language.name}</h3>
                     </div>
-                    <p className="text-[13px] text-muted-foreground mb-4">{language.note}</p>
+                    <p className="mkt-body text-muted-foreground mb-4">{language.note}</p>
                     <a
                       href="/"
                       className="inline-flex items-center gap-1 text-[13px] font-medium hover:underline"
@@ -98,8 +98,8 @@ export default function Languages() {
           <div className="container-responsive">
             <div className="text-center max-w-2xl mx-auto mb-12">
               <Layers className="h-10 w-10 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
-              <h2 className="text-3xl font-bold mb-4">Frameworks and runtimes</h2>
-              <p className="text-[15px] text-muted-foreground">
+              <h2 className="mkt-h2 font-bold mb-4">Frameworks and runtimes</h2>
+              <p className="mkt-lead text-muted-foreground">
                 Spin up the stack you already know. E-Code detects your project and installs dependencies automatically.
               </p>
             </div>
@@ -108,8 +108,8 @@ export default function Languages() {
               {frameworks.map((framework) => (
                 <Card key={framework.name}>
                   <CardHeader>
-                    <CardTitle className="text-[17px]">{framework.name}</CardTitle>
-                    <CardDescription className="text-[13px]">{framework.note}</CardDescription>
+                    <CardTitle className="mkt-h3">{framework.name}</CardTitle>
+                    <CardDescription className="mkt-body">{framework.note}</CardDescription>
                   </CardHeader>
                 </Card>
               ))}
@@ -120,14 +120,14 @@ export default function Languages() {
         {/* Why E-Code */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">One workspace, every stack</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">One workspace, every stack</h2>
 
             <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
               <div className="flex gap-4">
                 <Sparkles className="h-6 w-6 flex-shrink-0 mt-1" style={{ color: 'var(--ecode-accent)' }} />
                 <div>
-                  <h3 className="font-semibold mb-2">AI-native</h3>
-                  <p className="text-[13px] text-muted-foreground">
+                  <h3 className="mkt-h3 font-semibold mb-2">AI-native</h3>
+                  <p className="mkt-body text-muted-foreground">
                     Describe what you want and generate working code in any supported language.
                   </p>
                 </div>
@@ -135,8 +135,8 @@ export default function Languages() {
               <div className="flex gap-4">
                 <Terminal className="h-6 w-6 flex-shrink-0 mt-1" style={{ color: 'var(--ecode-accent)' }} />
                 <div>
-                  <h3 className="font-semibold mb-2">Instant environments</h3>
-                  <p className="text-[13px] text-muted-foreground">
+                  <h3 className="mkt-h3 font-semibold mb-2">Instant environments</h3>
+                  <p className="mkt-body text-muted-foreground">
                     Compilers, package managers and a full terminal are ready the moment you open a project.
                   </p>
                 </div>
@@ -144,8 +144,8 @@ export default function Languages() {
               <div className="flex gap-4">
                 <Layers className="h-6 w-6 flex-shrink-0 mt-1" style={{ color: 'var(--ecode-accent)' }} />
                 <div>
-                  <h3 className="font-semibold mb-2">Mix and match</h3>
-                  <p className="text-[13px] text-muted-foreground">
+                  <h3 className="mkt-h3 font-semibold mb-2">Mix and match</h3>
+                  <p className="mkt-body text-muted-foreground">
                     Combine a Python backend with a TypeScript front-end in a single workspace.
                   </p>
                 </div>

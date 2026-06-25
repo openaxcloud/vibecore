@@ -147,10 +147,10 @@ export default function Partners() {
                   <Handshake className="h-4 w-4" style={{ color: 'var(--ecode-accent)' }} />
                   Partner Program
                 </span>
-                <h1 className="mt-5 text-4xl md:text-5xl font-bold tracking-tight" data-testid="heading-partners">
+                <h1 className="mt-5 mkt-h1 font-bold tracking-tight" data-testid="heading-partners">
                   Partner with E-Code
                 </h1>
-                <p className="mt-4 text-[15px] md:text-base text-muted-foreground">
+                <p className="mt-4 mkt-lead text-muted-foreground">
                   Build, sell, and deliver alongside the AI development platform teams use to ship production apps. Join
                   a program designed to grow your business.
                 </p>
@@ -214,8 +214,8 @@ export default function Partners() {
         {/* Partner Programs */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-4">Partner Programs</h2>
-            <p className="text-[15px] text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
+            <h2 className="mkt-h2 font-bold text-center mb-4">Partner Programs</h2>
+            <p className="mkt-body text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
               Whatever you build or whoever you serve, there is an E-Code program built for you.
             </p>
 
@@ -237,7 +237,7 @@ export default function Partners() {
                     <CardContent className="mt-auto">
                       <ul className="space-y-2">
                         {program.points.map((point) => (
-                          <li key={point} className="flex gap-2 text-[13px] text-muted-foreground">
+                          <li key={point} className="flex gap-2 mkt-small text-muted-foreground">
                             <CheckCircle2
                               className="h-4 w-4 flex-shrink-0 mt-0.5"
                               style={{ color: 'var(--ecode-accent)' }}
@@ -257,8 +257,8 @@ export default function Partners() {
         {/* Integrations — real platforms partners build on */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-4">Build on a Connected Platform</h2>
-            <p className="text-[15px] text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
+            <h2 className="mkt-h2 font-bold text-center mb-4">Build on a Connected Platform</h2>
+            <p className="mkt-body text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
               E-Code already connects to the tools your customers rely on — through OAuth integrations and MCP
               connectors. Technology partners plug straight into these surfaces.
             </p>
@@ -272,7 +272,7 @@ export default function Partners() {
                     className="flex flex-col items-center justify-center gap-2 rounded-lg border border-[var(--ecode-border)] bg-surface-solid px-4 py-5 text-center"
                   >
                     <Icon className="h-7 w-7 text-foreground" aria-hidden />
-                    <span className="text-[13px] font-medium text-muted-foreground">{integration.label}</span>
+                    <span className="mkt-small font-medium text-muted-foreground">{integration.label}</span>
                   </div>
                 );
               })}
@@ -283,7 +283,7 @@ export default function Partners() {
         {/* Benefits */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">Why Partner With Us</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">Why Partner With Us</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {benefits.map((benefit) => {
@@ -297,8 +297,8 @@ export default function Partners() {
                       >
                         <Icon className="h-6 w-6" />
                       </span>
-                      <h3 className="font-semibold mb-2">{benefit.title}</h3>
-                      <p className="text-[13px] text-muted-foreground">{benefit.description}</p>
+                      <h3 className="mkt-h3 font-semibold mb-2">{benefit.title}</h3>
+                      <p className="mkt-small text-muted-foreground">{benefit.description}</p>
                     </CardContent>
                   </Card>
                 );
@@ -310,7 +310,7 @@ export default function Partners() {
         {/* How It Works */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">How It Works</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-5xl mx-auto">
               {steps.map((step, index) => {
@@ -328,8 +328,8 @@ export default function Partners() {
                         {index + 1}
                       </span>
                     </div>
-                    <h3 className="font-semibold mb-2">{step.title}</h3>
-                    <p className="text-[13px] text-muted-foreground">{step.description}</p>
+                    <h3 className="mkt-h3 font-semibold mb-2">{step.title}</h3>
+                    <p className="mkt-small text-muted-foreground">{step.description}</p>
                   </div>
                 );
               })}
@@ -345,8 +345,8 @@ export default function Partners() {
                 className="absolute -z-10 -top-16 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full blur-3xl"
                 style={{ backgroundColor: 'color-mix(in srgb, var(--ecode-accent) 18%, transparent)' }}
               />
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to build together?</h2>
-              <p className="text-[15px] text-muted-foreground mb-8 max-w-2xl mx-auto">
+              <h2 className="mkt-h2 font-bold mb-4">Ready to build together?</h2>
+              <p className="mkt-body text-muted-foreground mb-8 max-w-2xl mx-auto">
                 Tell us about your business and our partnerships team will help you find the right program and get
                 started.
               </p>

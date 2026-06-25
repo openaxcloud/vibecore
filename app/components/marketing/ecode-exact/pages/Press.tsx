@@ -135,10 +135,10 @@ export default function Press() {
               >
                 <Newspaper className="h-7 w-7 text-white" />
               </span>
-              <h1 className="text-4xl font-bold mb-4" data-testid="heading-press">
+              <h1 className="mkt-h1 font-bold mb-4" data-testid="heading-press">
                 Press &amp; Media
               </h1>
-              <p className="text-[15px] text-muted-foreground mb-8">
+              <p className="mkt-lead text-muted-foreground mb-8">
                 Everything you need to tell the E-Code story — brand assets, real product captures, and the facts about
                 what the platform does.
               </p>
@@ -163,8 +163,8 @@ export default function Press() {
                       <Mail className="h-5 w-5 text-white" />
                     </span>
                     <div>
-                      <h3 className="font-semibold">Media inquiries</h3>
-                      <p className="text-[13px] text-muted-foreground">
+                      <h3 className="mkt-h3 font-semibold">Media inquiries</h3>
+                      <p className="mkt-small text-muted-foreground">
                         Reach our press team for interviews, quotes, and assets
                       </p>
                     </div>
@@ -193,8 +193,8 @@ export default function Press() {
               >
                 <Camera className="h-5 w-5 text-white" />
               </span>
-              <h2 className="text-3xl font-bold mb-4">Product Screenshots</h2>
-              <p className="text-[15px] text-muted-foreground">
+              <h2 className="mkt-h2 font-bold mb-4">Product Screenshots</h2>
+              <p className="mkt-body text-muted-foreground">
                 Real captures of the E-Code platform — free to use in coverage. Please credit &ldquo;E-Code&rdquo;.
               </p>
             </div>
@@ -211,7 +211,7 @@ export default function Press() {
                     loading="lazy"
                     className="w-full aspect-video object-cover object-top"
                   />
-                  <figcaption className="px-4 py-3 text-[13px] text-muted-foreground border-t border-border">
+                  <figcaption className="px-4 py-3 mkt-small text-muted-foreground border-t border-border">
                     {shot.label}
                   </figcaption>
                 </figure>
@@ -226,7 +226,7 @@ export default function Press() {
                   loading="lazy"
                   className="w-full object-cover object-top"
                 />
-                <figcaption className="px-4 py-3 text-[13px] text-muted-foreground border-t border-border text-center">
+                <figcaption className="px-4 py-3 mkt-small text-muted-foreground border-t border-border text-center">
                   E-Code on mobile
                 </figcaption>
               </figure>
@@ -237,8 +237,8 @@ export default function Press() {
         {/* Brand Assets */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-4">Brand Assets &amp; Logos</h2>
-            <p className="text-[15px] text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
+            <h2 className="mkt-h2 font-bold text-center mb-4">Brand Assets &amp; Logos</h2>
+            <p className="mkt-body text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
               The official E-Code brand system. Please follow our guidelines when using these — keep the orange accent
               and IBM Plex type intact, and never recolor the mark.
             </p>
@@ -252,9 +252,9 @@ export default function Press() {
                       <div className="flex items-center justify-center h-24 mb-4 rounded-md bg-muted border border-border">
                         <Icon className="h-9 w-9" style={{ color: ACCENT }} />
                       </div>
-                      <h3 className="font-semibold mb-1">{asset.name}</h3>
-                      <p className="text-[13px] text-muted-foreground mb-3">{asset.desc}</p>
-                      <span className="text-[12px] font-medium text-muted-foreground">{asset.format}</span>
+                      <h3 className="mkt-h3 font-semibold mb-1">{asset.name}</h3>
+                      <p className="mkt-small text-muted-foreground mb-3">{asset.desc}</p>
+                      <span className="mkt-small font-medium text-muted-foreground">{asset.format}</span>
                     </CardContent>
                   </Card>
                 );
@@ -266,8 +266,8 @@ export default function Press() {
         {/* Story Angles */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-4">Story Angles</h2>
-            <p className="text-[15px] text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
+            <h2 className="mkt-h2 font-bold text-center mb-4">Story Angles</h2>
+            <p className="mkt-body text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
               What makes E-Code worth covering — every angle below is something you can see for yourself in the product.
             </p>
 
@@ -283,8 +283,8 @@ export default function Press() {
                       >
                         <Icon className="h-5 w-5 text-white" />
                       </span>
-                      <h3 className="font-semibold mb-2">{angle.title}</h3>
-                      <p className="text-[14px] text-muted-foreground leading-relaxed">{angle.body}</p>
+                      <h3 className="mkt-h3 font-semibold mb-2">{angle.title}</h3>
+                      <p className="mkt-body text-muted-foreground leading-relaxed">{angle.body}</p>
                     </CardContent>
                   </Card>
                 );
@@ -296,7 +296,7 @@ export default function Press() {
         {/* Platform Facts */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">Platform Facts</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">Platform Facts</h2>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
               {platformFacts.map((fact) => {
@@ -310,7 +310,7 @@ export default function Press() {
                       >
                         <Icon className="h-5 w-5 text-white" />
                       </span>
-                      <h3 className="text-[13px] text-muted-foreground mb-1">{fact.label}</h3>
+                      <h3 className="mkt-small text-muted-foreground mb-1">{fact.label}</h3>
                       <p className="font-semibold">{fact.value}</p>
                     </CardContent>
                   </Card>
@@ -335,16 +335,14 @@ export default function Press() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground leading-relaxed">
+                  <p className="mkt-body text-muted-foreground leading-relaxed">
                     E-Code is an AI-native development platform where anyone can describe an idea in plain language and
                     watch autonomous agents plan, build, run, and deploy a full-stack application in a live cloud IDE.
                     By combining multi-agent reasoning with a real workspace, terminal, and one-click deploys, E-Code
                     closes the gap between intent and shipped software.
                   </p>
                   <div className="mt-6 pt-6 border-t border-border">
-                    <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wide mb-3">
-                      Built on
-                    </p>
+                    <p className="mkt-small font-medium text-muted-foreground uppercase tracking-wide mb-3">Built on</p>
                     <div className="flex flex-wrap gap-3">
                       {techStack.map((tech) => {
                         const Icon = tech.icon;
@@ -375,8 +373,8 @@ export default function Press() {
                 background: `linear-gradient(135deg, ${ACCENT} 0%, var(--ecode-accent-2, #F99D25) 100%)`,
               }}
             >
-              <h2 className="text-3xl font-bold text-white mb-3">See E-Code for yourself</h2>
-              <p className="text-white/90 text-[15px] max-w-2xl mx-auto mb-8">
+              <h2 className="mkt-h2 font-bold text-white mb-3">See E-Code for yourself</h2>
+              <p className="text-white/90 mkt-lead max-w-2xl mx-auto mb-8">
                 The fastest way to understand the story is to build something. Spin up a project and ship it in minutes.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">

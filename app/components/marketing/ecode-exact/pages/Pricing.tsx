@@ -379,7 +379,7 @@ export default function Pricing() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
             <div className="animate-spin w-12 h-12 border-4 border-[var(--ecode-accent)] border-t-transparent rounded-full mx-auto" />
-            <p className="text-[15px] text-[var(--ecode-text-muted)]">Loading pricing plans...</p>
+            <p className="mkt-body text-[var(--ecode-text-muted)]">Loading pricing plans...</p>
           </div>
         </div>
       </div>
@@ -423,7 +423,7 @@ export default function Pricing() {
             </div>
 
             <h1
-              className="text-5xl sm:text-6xl lg:text-7xl font-bold animate-slide-in-up opacity-0"
+              className="mkt-h1 font-bold animate-slide-in-up opacity-0"
               style={{ animationDelay: '100ms', animationFillMode: 'forwards' }}
             >
               <span className="text-[var(--ecode-text)]">Pricing that scales</span>
@@ -434,7 +434,7 @@ export default function Pricing() {
             </h1>
 
             <p
-              className="text-xl sm:text-2xl text-[var(--ecode-text-muted)] max-w-3xl mx-auto animate-slide-in-up opacity-0"
+              className="mkt-lead text-[var(--ecode-text-muted)] max-w-3xl mx-auto animate-slide-in-up opacity-0"
               style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}
             >
               Start free and upgrade as you grow. No hidden fees, no surprises. Enterprise-grade features at
@@ -520,8 +520,8 @@ export default function Pricing() {
                       {tier.icon}
                     </div>
 
-                    <CardTitle className="text-2xl font-bold text-[var(--ecode-text)]">{tier.name}</CardTitle>
-                    <CardDescription className="text-base mt-2 text-[var(--ecode-text-muted)]">
+                    <CardTitle className="mkt-h3 font-bold text-[var(--ecode-text)]">{tier.name}</CardTitle>
+                    <CardDescription className="mkt-body mt-2 text-[var(--ecode-text-muted)]">
                       {tier.description}
                     </CardDescription>
 
@@ -530,7 +530,7 @@ export default function Pricing() {
                       {tier.enterprise ? (
                         <div>
                           <div className="text-4xl font-bold text-[var(--ecode-text)]">Custom</div>
-                          <p className="text-[13px] text-[var(--ecode-text-muted)] mt-1">Contact for pricing</p>
+                          <p className="mkt-small text-[var(--ecode-text-muted)] mt-1">Contact for pricing</p>
                         </div>
                       ) : (
                         <div>
@@ -546,7 +546,7 @@ export default function Pricing() {
                             </span>
                           </div>
                           {billingPeriod === 'yearly' && tier.monthlyPrice > 0 && (
-                            <p className="text-[13px] text-[var(--ecode-accent)] mt-1 font-medium">
+                            <p className="mkt-small text-[var(--ecode-accent)] mt-1 font-medium">
                               Save ${(tier.monthlyPrice - tier.yearlyPrice) * 12}/year
                             </p>
                           )}
@@ -588,7 +588,7 @@ export default function Pricing() {
                               <X className="h-5 w-5 text-[var(--ecode-text-muted)]/50 mt-0.5" />
                             )}
                             <span
-                              className={`text-[13px] transition-colors duration-200 ${
+                              className={`mkt-small transition-colors duration-200 ${
                                 !feature.included
                                   ? 'text-[var(--ecode-text-muted)]/50 line-through'
                                   : feature.highlight
@@ -647,8 +647,8 @@ export default function Pricing() {
       >
         <div className="container-responsive max-w-7xl">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4 text-[var(--ecode-text)] animate-fadeIn">Compare plans in detail</h2>
-            <p className="text-xl text-[var(--ecode-text-muted)] animate-fadeIn">
+            <h2 className="mkt-h2 font-bold mb-4 text-[var(--ecode-text)] animate-fadeIn">Compare plans in detail</h2>
+            <p className="mkt-lead text-[var(--ecode-text-muted)] animate-fadeIn">
               Every feature, every detail, side by side
             </p>
           </div>
@@ -689,7 +689,7 @@ export default function Pricing() {
                           >
                             {column.label}
                           </div>
-                          <div className="text-[13px] text-[var(--ecode-text-muted)] mt-1">{column.sublabel}</div>
+                          <div className="mkt-small text-[var(--ecode-text-muted)] mt-1">{column.sublabel}</div>
                         </th>
                       ))}
                     </tr>
@@ -699,7 +699,7 @@ export default function Pricing() {
                       <Fragment key={categoryIdx}>
                         <tr className="bg-[var(--ecode-surface-tertiary,var(--ecode-surface))]">
                           <td colSpan={5} className="px-6 py-3">
-                            <div className="font-semibold text-[13px] text-[var(--ecode-text-muted)] uppercase tracking-wider">
+                            <div className="mkt-small font-semibold text-[var(--ecode-text-muted)] uppercase tracking-wider">
                               {category.category}
                             </div>
                           </td>
@@ -759,8 +759,8 @@ export default function Pricing() {
                 <Building2 className="h-4 w-4 mr-2" />
                 Enterprise Solutions
               </Badge>
-              <h2 className="text-4xl sm:text-5xl font-bold">Built for the world's most demanding teams</h2>
-              <p className="text-xl opacity-90">
+              <h2 className="mkt-h2 font-bold">Built for the world's most demanding teams</h2>
+              <p className="mkt-lead opacity-90">
                 Get dedicated infrastructure, advanced security, and custom SLAs. Our enterprise plan scales with
                 organizations of any size.
               </p>
@@ -850,10 +850,10 @@ export default function Pricing() {
       <section className="py-20 bg-[var(--ecode-background)]" data-testid="section-faq">
         <div className="container-responsive max-w-4xl">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4 text-[var(--ecode-text)] animate-fadeIn">
+            <h2 className="mkt-h2 font-bold mb-4 text-[var(--ecode-text)] animate-fadeIn">
               Frequently asked questions
             </h2>
-            <p className="text-xl text-[var(--ecode-text-muted)] animate-fadeIn">Got questions? We've got answers</p>
+            <p className="mkt-lead text-[var(--ecode-text-muted)] animate-fadeIn">Got questions? We've got answers</p>
           </div>
 
           <div className="space-y-6">
@@ -899,7 +899,7 @@ export default function Pricing() {
                   data-testid={`faq-card-${idx}`}
                 >
                   <CardHeader>
-                    <CardTitle className="text-[15px] font-semibold text-[var(--ecode-text)]">{faq.question}</CardTitle>
+                    <CardTitle className="mkt-h3 font-semibold text-[var(--ecode-text)]">{faq.question}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-[var(--ecode-text-muted)]">{faq.answer}</p>
@@ -924,8 +924,8 @@ export default function Pricing() {
             transition={{ duration: 0.5 }}
             className="space-y-6"
           >
-            <h2 className="text-4xl sm:text-5xl font-bold text-white">Start building for free today</h2>
-            <p className="text-xl text-white/90 max-w-2xl mx-auto">
+            <h2 className="mkt-h2 font-bold text-white">Start building for free today</h2>
+            <p className="mkt-lead text-white/90 max-w-2xl mx-auto">
               Join developers worldwide who are shipping faster with E-Code. No credit card required.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">

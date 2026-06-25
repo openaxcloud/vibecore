@@ -145,10 +145,10 @@ export default function Tutorials() {
               >
                 <BookOpen className="h-7 w-7" style={{ color: 'var(--ecode-accent)' }} />
               </span>
-              <h1 className="text-4xl font-bold mb-4" data-testid="heading-tutorials">
+              <h1 className="mkt-h1 font-bold mb-4" data-testid="heading-tutorials">
                 Tutorials
               </h1>
-              <p className="text-[15px] text-muted-foreground mb-8">
+              <p className="mkt-lead text-muted-foreground mb-8">
                 Learn to build, deploy and collaborate with the AI agent — one short, hands-on lesson at a time.
               </p>
               <Badge variant="secondary" className="text-[15px] px-4 py-2">
@@ -188,7 +188,7 @@ export default function Tutorials() {
         {/* Tutorials Grid */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">Browse Tutorials</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">Browse Tutorials</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {tutorials.map((tutorial) => {
@@ -216,10 +216,10 @@ export default function Tutorials() {
                             {tutorial.duration}
                           </span>
                         </div>
-                        <CardTitle className="text-lg">{tutorial.title}</CardTitle>
+                        <CardTitle className="mkt-h3">{tutorial.title}</CardTitle>
                       </CardHeader>
                       <CardContent className="flex-1">
-                        <p className="text-[13px] text-muted-foreground">{tutorial.description}</p>
+                        <p className="mkt-body text-muted-foreground">{tutorial.description}</p>
                       </CardContent>
                     </Card>
                   </a>
@@ -233,8 +233,8 @@ export default function Tutorials() {
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
             <div className="text-center max-w-3xl mx-auto mb-12">
-              <h2 className="text-3xl font-bold mb-4">Learning Paths</h2>
-              <p className="text-[15px] text-muted-foreground">
+              <h2 className="mkt-h2 font-bold mb-4">Learning Paths</h2>
+              <p className="mkt-lead text-muted-foreground">
                 Follow a guided sequence of tutorials to build a complete skill set, from your first prompt to shipping
                 with a team.
               </p>
@@ -291,8 +291,8 @@ export default function Tutorials() {
             <div className="relative overflow-hidden rounded-2xl ring-1 ring-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-6 py-12 sm:px-12 sm:py-16 text-center">
               <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-64 w-[36rem] max-w-full bg-gradient-to-r from-[#F26207]/25 to-[#F99D25]/25 blur-3xl pointer-events-none" />
               <div className="relative">
-                <h2 className="text-3xl font-bold mb-4">Ready to start building?</h2>
-                <p className="text-[15px] text-muted-foreground mb-8 max-w-2xl mx-auto">
+                <h2 className="mkt-h2 font-bold mb-4">Ready to start building?</h2>
+                <p className="mkt-body text-muted-foreground mb-8 max-w-2xl mx-auto">
                   Open a workspace and let the AI agent turn your first idea into a running app in minutes — free to
                   start, no credit card required.
                 </p>

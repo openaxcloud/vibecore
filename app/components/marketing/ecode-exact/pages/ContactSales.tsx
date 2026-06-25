@@ -199,10 +199,10 @@ export default function ContactSales() {
           <div className="container-responsive">
             <div className="text-center max-w-3xl mx-auto">
               <Building2 className="h-12 w-12 mx-auto mb-4 text-primary" />
-              <h1 className="text-4xl font-bold mb-4" data-testid="heading-contact-sales">
+              <h1 className="mkt-h1 font-bold mb-4" data-testid="heading-contact-sales">
                 Talk to our sales team
               </h1>
-              <p className="text-[15px] text-muted-foreground mb-8">
+              <p className="mkt-lead text-muted-foreground mb-8">
                 E-Code Enterprise brings SSO/SAML, custom quotas, single-tenant deployments, VPC peering, and dedicated
                 support to teams shipping software at scale.
               </p>
@@ -216,7 +216,7 @@ export default function ContactSales() {
         {/* Enterprise Features */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">Built for Enterprise</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">Built for Enterprise</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {enterpriseFeatures.map((feature) => {
@@ -225,8 +225,8 @@ export default function ContactSales() {
                   <Card key={feature.title}>
                     <CardContent className="pt-6 text-center">
                       <Icon className="h-12 w-12 mx-auto mb-4 text-primary" />
-                      <h3 className="font-semibold mb-2">{feature.title}</h3>
-                      <p className="text-[13px] text-muted-foreground">{feature.description}</p>
+                      <h3 className="mkt-h3 font-semibold mb-2">{feature.title}</h3>
+                      <p className="mkt-body text-muted-foreground">{feature.description}</p>
                     </CardContent>
                   </Card>
                 );
@@ -238,15 +238,15 @@ export default function ContactSales() {
         {/* What to Expect */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">What to expect</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">What to expect</h2>
 
             <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
               {whatToExpect.map((step) => (
                 <div key={step.title} className="flex gap-4">
                   <CheckCircle className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
                   <div>
-                    <h3 className="font-semibold mb-2">{step.title}</h3>
-                    <p className="text-muted-foreground">{step.description}</p>
+                    <h3 className="mkt-h3 font-semibold mb-2">{step.title}</h3>
+                    <p className="mkt-body text-muted-foreground">{step.description}</p>
                   </div>
                 </div>
               ))}
@@ -269,7 +269,7 @@ export default function ContactSales() {
                   <form className="space-y-6" onSubmit={handleSubmit} data-testid="form-contact-sales">
                     <div className="grid sm:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label htmlFor="contact-name" className="text-[13px] font-medium">
+                        <label htmlFor="contact-name" className="mkt-small font-medium">
                           Name
                         </label>
                         <input
@@ -282,7 +282,7 @@ export default function ContactSales() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="contact-email" className="text-[13px] font-medium">
+                        <label htmlFor="contact-email" className="mkt-small font-medium">
                           Work email
                         </label>
                         <input
@@ -295,7 +295,7 @@ export default function ContactSales() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="contact-company" className="text-[13px] font-medium">
+                        <label htmlFor="contact-company" className="mkt-small font-medium">
                           Company
                         </label>
                         <input
@@ -308,7 +308,7 @@ export default function ContactSales() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="contact-team-size" className="text-[13px] font-medium">
+                        <label htmlFor="contact-team-size" className="mkt-small font-medium">
                           Team size
                         </label>
                         <select
@@ -330,7 +330,7 @@ export default function ContactSales() {
                     </div>
 
                     <div className="space-y-2">
-                      <label htmlFor="contact-message" className="text-[13px] font-medium">
+                      <label htmlFor="contact-message" className="mkt-small font-medium">
                         How can we help?
                       </label>
                       <textarea
@@ -359,7 +359,7 @@ export default function ContactSales() {
                       )}
                     </button>
 
-                    <p className="text-[13px] text-muted-foreground text-center">
+                    <p className="mkt-small text-muted-foreground text-center">
                       By submitting, you agree to be contacted about E-Code Enterprise. We&apos;ll never share your
                       details.
                     </p>

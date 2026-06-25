@@ -147,10 +147,10 @@ export default function Changelog() {
               <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--ecode-accent)] shadow-lg shadow-[var(--ecode-accent)]/30 mb-5">
                 <Rocket className="h-7 w-7 text-white" />
               </span>
-              <h1 className="text-4xl font-bold mb-4" data-testid="heading-changelog">
+              <h1 className="mkt-h1 font-bold mb-4" data-testid="heading-changelog">
                 Changelog
               </h1>
-              <p className="text-[15px] text-muted-foreground mb-8">
+              <p className="mkt-lead text-muted-foreground mb-8">
                 Every feature, improvement, and fix shipping to E-Code — the AI software studio that turns a prompt into
                 a deployed app.
               </p>
@@ -171,7 +171,7 @@ export default function Changelog() {
                     <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
                     <span className="h-3 w-3 rounded-full bg-[#28c840]" />
                   </span>
-                  <span className="mx-auto text-[12px] font-medium text-muted-foreground truncate px-3">
+                  <span className="mx-auto mkt-small font-medium text-muted-foreground truncate px-3">
                     E-Code · Agent panel, editor, terminal & live preview
                   </span>
                   <span className="h-3 w-3" aria-hidden="true" />
@@ -184,7 +184,7 @@ export default function Changelog() {
                   className="block w-full h-auto"
                 />
               </div>
-              <figcaption className="mt-3 text-center text-[13px] text-muted-foreground">
+              <figcaption className="mt-3 text-center mkt-small text-muted-foreground">
                 The workspace where each release below lands.
               </figcaption>
             </figure>
@@ -222,7 +222,7 @@ export default function Changelog() {
                               <TypeIcon className="h-3.5 w-3.5" />
                               {release.type}
                             </span>
-                            <span className="text-[13px] text-muted-foreground">{release.date}</span>
+                            <span className="mkt-small text-muted-foreground">{release.date}</span>
                           </div>
                           <CardTitle className="mt-3">{release.title}</CardTitle>
                           <CardDescription>What changed in this release</CardDescription>
@@ -230,7 +230,7 @@ export default function Changelog() {
                         <CardContent>
                           <ul className="space-y-2">
                             {release.changes.map((change) => (
-                              <li key={change} className="flex gap-3 text-[15px] text-muted-foreground">
+                              <li key={change} className="flex gap-3 mkt-body text-muted-foreground">
                                 <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[var(--ecode-accent)]" />
                                 <span>{change}</span>
                               </li>
@@ -253,8 +253,8 @@ export default function Changelog() {
               <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--ecode-accent)] shadow-lg shadow-[var(--ecode-accent)]/30 mb-5">
                 <Sparkles className="h-7 w-7 text-white" />
               </span>
-              <h2 className="text-3xl font-bold mb-4">Start building with the latest E-Code</h2>
-              <p className="text-[15px] text-muted-foreground mb-8 max-w-2xl mx-auto">
+              <h2 className="mkt-h2 font-bold mb-4">Start building with the latest E-Code</h2>
+              <p className="mkt-body text-muted-foreground mb-8 max-w-2xl mx-auto">
                 Every release above is live in your workspace the moment you sign in. Describe what you want to build
                 and let the agents ship it.
               </p>

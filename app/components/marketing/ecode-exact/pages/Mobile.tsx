@@ -226,17 +226,14 @@ export default function Mobile() {
                   </span>
                 </div>
 
-                <h1
-                  className="mt-6 text-4xl font-bold leading-tight md:text-5xl lg:text-6xl"
-                  data-testid="heading-mobile"
-                >
+                <h1 className="mt-6 mkt-h1 font-bold leading-tight" data-testid="heading-mobile">
                   Your whole IDE,
                   <span className="block bg-gradient-to-r from-[#F26207] to-[#F99D25] bg-clip-text text-transparent">
                     in your pocket
                   </span>
                 </h1>
 
-                <p className="mx-auto mt-6 max-w-xl text-[15px] text-muted-foreground lg:mx-0 md:text-[17px]">
+                <p className="mx-auto mt-6 max-w-xl mkt-lead text-muted-foreground lg:mx-0">
                   E-Code is a cloud development platform — so the editor, agent, terminal, live preview, and deploy you
                   use on the desktop all open on your phone. No app to install, nothing to set up.
                 </p>
@@ -273,10 +270,10 @@ export default function Mobile() {
         <section className="py-responsive">
           <div className="container-responsive">
             <div className="mx-auto mb-12 max-w-3xl text-center">
-              <h2 className="text-3xl font-bold md:text-4xl">
+              <h2 className="mkt-h2 font-bold">
                 Everything you build with, <span className="text-[var(--ecode-accent)]">on the go</span>
               </h2>
-              <p className="mt-4 text-[15px] text-muted-foreground">
+              <p className="mt-4 mkt-body text-muted-foreground">
                 The same platform — not a stripped-down companion app. Here is what carries straight over to mobile.
               </p>
             </div>
@@ -305,8 +302,8 @@ export default function Mobile() {
                         {highlight.icon}
                       </span>
                       <span>
-                        <span className="block text-[17px] font-semibold">{highlight.title}</span>
-                        <span className="mt-1 block text-[13px] text-muted-foreground">{highlight.description}</span>
+                        <span className="block mkt-h3 font-semibold">{highlight.title}</span>
+                        <span className="mt-1 block mkt-small text-muted-foreground">{highlight.description}</span>
                       </span>
                     </button>
                   );
@@ -346,8 +343,8 @@ export default function Mobile() {
         {/* Stacks */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Bring any stack</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-[15px] text-muted-foreground">
+            <h2 className="mkt-h2 font-bold">Bring any stack</h2>
+            <p className="mx-auto mt-4 max-w-2xl mkt-body text-muted-foreground">
               Mobile workspaces run the same cloud runtime as the desktop — the frameworks and languages you already
               ship.
             </p>
@@ -369,10 +366,10 @@ export default function Mobile() {
         <section className="py-responsive">
           <div className="container-responsive">
             <div className="mx-auto mb-12 max-w-3xl text-center">
-              <h2 className="text-3xl font-bold md:text-4xl">
+              <h2 className="mkt-h2 font-bold">
                 Professional development, <span className="text-[var(--ecode-accent)]">pocket-sized</span>
               </h2>
-              <p className="mt-4 text-[15px] text-muted-foreground">
+              <p className="mt-4 mkt-body text-muted-foreground">
                 No compromises — the capabilities you rely on are present on every screen size.
               </p>
             </div>
@@ -384,8 +381,8 @@ export default function Mobile() {
                     <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)] transition-transform group-hover:scale-110">
                       {capability.icon}
                     </div>
-                    <h3 className="mb-2 text-[17px] font-semibold">{capability.title}</h3>
-                    <p className="text-[13px] text-muted-foreground">{capability.description}</p>
+                    <h3 className="mb-2 mkt-h3 font-semibold">{capability.title}</h3>
+                    <p className="mkt-small text-muted-foreground">{capability.description}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -397,16 +394,16 @@ export default function Mobile() {
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
             <div className="mx-auto mb-12 max-w-3xl text-center">
-              <h2 className="text-3xl font-bold md:text-4xl">
+              <h2 className="mkt-h2 font-bold">
                 From idea to live, <span className="text-[var(--ecode-accent)]">without a laptop</span>
               </h2>
             </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {flow.map((item) => (
                 <div key={item.step} className="rounded-xl border border-border bg-surface-solid p-6">
-                  <span className="text-[13px] font-mono font-semibold text-[var(--ecode-accent)]">{item.step}</span>
-                  <h3 className="mt-3 text-[17px] font-semibold">{item.title}</h3>
-                  <p className="mt-2 text-[13px] text-muted-foreground">{item.description}</p>
+                  <span className="mkt-small font-mono font-semibold text-[var(--ecode-accent)]">{item.step}</span>
+                  <h3 className="mt-3 mkt-h3 font-semibold">{item.title}</h3>
+                  <p className="mt-2 mkt-small text-muted-foreground">{item.description}</p>
                 </div>
               ))}
             </div>
@@ -417,13 +414,13 @@ export default function Mobile() {
         <section className="py-responsive">
           <div className="container-responsive max-w-5xl">
             <div className="mb-12 text-center">
-              <h2 className="text-3xl font-bold md:text-4xl">
+              <h2 className="mkt-h2 font-bold">
                 Why coding on <span className="text-[var(--ecode-accent)]">E-Code mobile</span> is different
               </h2>
             </div>
             <div className="grid gap-8 rounded-2xl border border-border bg-muted p-8 md:grid-cols-2">
               <div>
-                <h3 className="mb-6 text-xl font-bold text-muted-foreground">A typical mobile code editor</h3>
+                <h3 className="mb-6 mkt-h3 font-bold text-muted-foreground">A typical mobile code editor</h3>
                 <ul className="space-y-4">
                   {[
                     'A single file, no real project structure',
@@ -435,13 +432,13 @@ export default function Mobile() {
                       <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-muted-foreground/15 text-[13px] text-muted-foreground">
                         ×
                       </span>
-                      <span className="text-[13px] text-muted-foreground">{item}</span>
+                      <span className="mkt-small text-muted-foreground">{item}</span>
                     </li>
                   ))}
                 </ul>
               </div>
               <div>
-                <h3 className="mb-6 text-xl font-bold text-[var(--ecode-accent)]">E-Code mobile</h3>
+                <h3 className="mb-6 mkt-h3 font-bold text-[var(--ecode-accent)]">E-Code mobile</h3>
                 <ul className="space-y-4">
                   {[
                     'Full multi-file workspaces in the cloud',
@@ -453,7 +450,7 @@ export default function Mobile() {
                       <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--ecode-accent)]/15">
                         <Check className="h-4 w-4 text-[var(--ecode-accent)]" />
                       </span>
-                      <span className="text-[13px]">{item}</span>
+                      <span className="mkt-small">{item}</span>
                     </li>
                   ))}
                 </ul>
@@ -465,8 +462,8 @@ export default function Mobile() {
         {/* End CTA */}
         <section className="py-responsive bg-gradient-to-b from-background to-muted">
           <div className="container-responsive max-w-3xl text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Ready to build from anywhere?</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[15px] text-muted-foreground md:text-[17px]">
+            <h2 className="mkt-h2 font-bold">Ready to build from anywhere?</h2>
+            <p className="mx-auto mt-4 max-w-xl mkt-lead text-muted-foreground">
               Open E-Code in your mobile browser and start a workspace in seconds — the same projects, agent, and
               previews follow you across every device.
             </p>

@@ -88,13 +88,10 @@ export default function StatusPage() {
               <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#F26207] mb-5">
                 <Activity className="h-6 w-6 text-white" />
               </span>
-              <h1
-                className="text-3xl sm:text-4xl lg:text-5xl font-bold text-bolt-elements-textPrimary mb-4"
-                data-testid="heading-status"
-              >
+              <h1 className="mkt-h1 font-bold text-bolt-elements-textPrimary mb-4" data-testid="heading-status">
                 Platform status
               </h1>
-              <p className="text-base sm:text-lg text-bolt-elements-textSecondary mb-8 leading-relaxed">
+              <p className="mkt-lead text-bolt-elements-textSecondary mb-8 leading-relaxed">
                 A live look at the services behind E-Code and how we keep you informed when something needs attention.
               </p>
 
@@ -115,10 +112,8 @@ export default function StatusPage() {
         <section className="bg-bolt-elements-background-depth-2 border-y border-bolt-elements-borderColor">
           <div className="container-responsive py-16 sm:py-24">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-bolt-elements-textPrimary mb-4">
-                Core services
-              </h2>
-              <p className="text-base sm:text-lg text-bolt-elements-textSecondary leading-relaxed">
+              <h2 className="mkt-h2 font-bold text-bolt-elements-textPrimary mb-4">Core services</h2>
+              <p className="mkt-body text-bolt-elements-textSecondary leading-relaxed">
                 The building blocks that run every project on E-Code.
               </p>
             </div>
@@ -139,7 +134,7 @@ export default function StatusPage() {
                           </span>
                           <div>
                             <h3 className="font-semibold text-bolt-elements-textPrimary">{component.name}</h3>
-                            <p className="text-[13px] text-bolt-elements-textSecondary leading-relaxed mt-0.5">
+                            <p className="mkt-small text-bolt-elements-textSecondary leading-relaxed mt-0.5">
                               {component.description}
                             </p>
                           </div>
@@ -167,9 +162,7 @@ export default function StatusPage() {
                 <Badge variant="secondary" className="mb-5 border-[#F26207]/30 bg-[#F26207]/10 text-[#F26207]">
                   Reliability
                 </Badge>
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-bolt-elements-textPrimary mb-6">
-                  How we keep E-Code running
-                </h2>
+                <h2 className="mkt-h2 font-bold text-bolt-elements-textPrimary mb-6">How we keep E-Code running</h2>
                 <div className="space-y-6">
                   {principles.map((principle) => {
                     const Icon = principle.icon;
@@ -180,7 +173,7 @@ export default function StatusPage() {
                         </span>
                         <div>
                           <h3 className="font-semibold text-bolt-elements-textPrimary mb-1">{principle.title}</h3>
-                          <p className="text-[15px] text-bolt-elements-textSecondary leading-relaxed">
+                          <p className="mkt-body text-bolt-elements-textSecondary leading-relaxed">
                             {principle.description}
                           </p>
                         </div>
@@ -224,7 +217,7 @@ export default function StatusPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-[15px] text-bolt-elements-textSecondary leading-relaxed">
+                  <p className="mkt-body text-bolt-elements-textSecondary leading-relaxed">
                     Code generation depends on upstream AI providers such as OpenAI and Anthropic. When a provider
                     degrades, the agent can fall back to an available model so you can keep working — and we report any
                     provider-side disruption here.
@@ -245,10 +238,10 @@ export default function StatusPage() {
                 <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#F26207] mb-5">
                   <Rocket className="h-6 w-6 text-white" />
                 </span>
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-bolt-elements-textPrimary mb-4">
+                <h2 className="mkt-h2 font-bold text-bolt-elements-textPrimary mb-4">
                   Build on a platform that stays up
                 </h2>
-                <p className="text-base sm:text-lg text-bolt-elements-textSecondary mb-8 leading-relaxed">
+                <p className="mkt-lead text-bolt-elements-textSecondary mb-8 leading-relaxed">
                   Spin up a workspace, ship a deployment, and let the agent do the heavy lifting. Your next app is one
                   prompt away.
                 </p>

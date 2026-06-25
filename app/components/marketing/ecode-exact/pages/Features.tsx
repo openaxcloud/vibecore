@@ -288,8 +288,8 @@ export default function Features() {
               <Zap className="h-3 w-3 mr-1" />
               Everything you need in one place
             </Badge>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">Features that empower developers</h1>
-            <p className="text-base sm:text-[15px] md:text-xl text-muted-foreground max-w-3xl mx-auto px-4 sm:px-0">
+            <h1 className="mkt-h1 font-bold">Features that empower developers</h1>
+            <p className="mkt-lead text-muted-foreground max-w-3xl mx-auto px-4 sm:px-0">
               From writing your first line of code to deploying at scale, E-Code provides all the tools you need in a
               single platform.
             </p>
@@ -420,10 +420,8 @@ export default function Features() {
                             <div className="flex items-center justify-center p-2 sm:p-3 bg-bolt-elements-background-depth-3 text-[#F26207] ring-1 ring-[#F26207]/30 rounded-lg w-fit mb-3 sm:mb-4">
                               {feature.icon}
                             </div>
-                            <CardTitle className="text-base sm:text-[15px]">{feature.title}</CardTitle>
-                            <CardDescription className="text-[11px] sm:text-[13px]">
-                              {feature.description}
-                            </CardDescription>
+                            <CardTitle className="mkt-h3">{feature.title}</CardTitle>
+                            <CardDescription className="mkt-small">{feature.description}</CardDescription>
                           </CardHeader>
                           <CardContent className="p-4 sm:p-6 pt-0">
                             <ul className="space-y-1.5 sm:space-y-2">
@@ -455,8 +453,8 @@ export default function Features() {
                 <Layers className="h-3 w-3 mr-1" />
                 Complete Platform
               </Badge>
-              <h2 className="text-3xl font-bold mb-4">Everything works together seamlessly</h2>
-              <p className="text-[15px] text-muted-foreground mb-6">
+              <h2 className="mkt-h2 font-bold mb-4">Everything works together seamlessly</h2>
+              <p className="mkt-body text-muted-foreground mb-6">
                 Our integrated platform means you spend less time configuring and more time building. Everything from
                 development to deployment is designed to work together perfectly.
               </p>
@@ -466,10 +464,10 @@ export default function Features() {
                     <Cpu className="h-5 w-5 text-[#F26207]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold" data-testid="text-feature-overview-environments">
+                    <h3 className="mkt-h3 font-semibold" data-testid="text-feature-overview-environments">
                       Instant Environments
                     </h3>
-                    <p className="text-[13px] text-muted-foreground">
+                    <p className="mkt-small text-muted-foreground">
                       Spin up development environments in seconds, not hours
                     </p>
                   </div>
@@ -479,10 +477,10 @@ export default function Features() {
                     <Network className="h-5 w-5 text-[#F26207]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold" data-testid="text-feature-overview-ecosystem">
+                    <h3 className="mkt-h3 font-semibold" data-testid="text-feature-overview-ecosystem">
                       Connected Ecosystem
                     </h3>
-                    <p className="text-[13px] text-muted-foreground">
+                    <p className="mkt-small text-muted-foreground">
                       All tools and services work together out of the box
                     </p>
                   </div>
@@ -492,10 +490,10 @@ export default function Features() {
                     <Settings2 className="h-5 w-5 text-[#F26207]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold" data-testid="text-feature-overview-config">
+                    <h3 className="mkt-h3 font-semibold" data-testid="text-feature-overview-config">
                       Zero Configuration
                     </h3>
-                    <p className="text-[13px] text-muted-foreground">Focus on coding, we handle the infrastructure</p>
+                    <p className="mkt-small text-muted-foreground">Focus on coding, we handle the infrastructure</p>
                   </div>
                 </div>
               </div>
@@ -509,21 +507,21 @@ export default function Features() {
                       <Code className="h-8 w-8 text-primary" />
                       <div>
                         <p className="font-semibold">Write Code</p>
-                        <p className="text-[13px] text-muted-foreground">In any language</p>
+                        <p className="mkt-small text-muted-foreground">In any language</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
                       <Users className="h-8 w-8 text-primary" />
                       <div>
                         <p className="font-semibold">Collaborate</p>
-                        <p className="text-[13px] text-muted-foreground">In real-time</p>
+                        <p className="mkt-small text-muted-foreground">In real-time</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
                       <Rocket className="h-8 w-8 text-primary" />
                       <div>
                         <p className="font-semibold">Deploy</p>
-                        <p className="text-[13px] text-muted-foreground">With one click</p>
+                        <p className="mkt-small text-muted-foreground">With one click</p>
                       </div>
                     </div>
                   </div>
@@ -537,8 +535,8 @@ export default function Features() {
       {/* CTA Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-3xl font-bold mb-4">Experience the future of development</h2>
-          <p className="text-[15px] text-muted-foreground mb-8">
+          <h2 className="mkt-h2 font-bold mb-4">Experience the future of development</h2>
+          <p className="mkt-body text-muted-foreground mb-8">
             Join developers worldwide who are building faster with E-Code
           </p>
           <div className="flex gap-4 justify-center">
