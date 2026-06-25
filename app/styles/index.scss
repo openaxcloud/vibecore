@@ -76,39 +76,49 @@ html[data-ecode-public-chrome='homepage'] body {
   --mkt-small: 0.875rem; /* 14px */
 }
 
-.mkt-h1 {
-  font-size: var(--mkt-h1);
+/*
+ * The selectors are intentionally doubled (.mkt-h1.mkt-h1) to raise specificity
+ * to (0,2,0) and the sizes are inlined with `!important`. The marketing scope
+ * ships high-specificity text overrides (e.g. `:is([data-ecode-static-shell]…)
+ * :where([class~='text-…']) { font-size: …!important }`) declared LATER in this
+ * file, which was silently beating `.mkt-h1 { font-size: var(--mkt-h1) }` — h1
+ * elements carrying `mkt-h1` rendered at 14px on live prod despite the class.
+ * Doubling the class + !important + inline clamp (no var dependency) makes these
+ * tokens win regardless of source order, ancestor scope, or token availability.
+ */
+.mkt-h1.mkt-h1 {
+  font-size: clamp(2rem, 1.2rem + 3.4vw, 3.5rem) !important;
   line-height: 1.08;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
-.mkt-h2 {
-  font-size: var(--mkt-h2);
+.mkt-h2.mkt-h2 {
+  font-size: clamp(1.625rem, 1.2rem + 1.9vw, 2.25rem) !important;
   line-height: 1.15;
   font-weight: 700;
   letter-spacing: -0.015em;
 }
 
-.mkt-h3 {
-  font-size: var(--mkt-h3);
+.mkt-h3.mkt-h3 {
+  font-size: clamp(1.25rem, 1.05rem + 0.85vw, 1.5rem) !important;
   line-height: 1.25;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
-.mkt-lead {
-  font-size: var(--mkt-lead);
+.mkt-lead.mkt-lead {
+  font-size: clamp(1.0625rem, 0.98rem + 0.4vw, 1.25rem) !important;
   line-height: 1.6;
 }
 
-.mkt-body {
-  font-size: var(--mkt-body);
+.mkt-body.mkt-body {
+  font-size: 1rem !important;
   line-height: 1.65;
 }
 
-.mkt-small {
-  font-size: var(--mkt-small);
+.mkt-small.mkt-small {
+  font-size: 0.875rem !important;
   line-height: 1.5;
 }
 
