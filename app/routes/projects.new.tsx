@@ -25,9 +25,9 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MetaFunction } from 'react-router';
-import { Form, Link, useActionData, useLoaderData, useNavigation, useRouteError } from 'react-router';
+import { Form, Link, useActionData, useLoaderData, useNavigation, useRouteError, useSubmit } from 'react-router';
 import { AppShell, TemplateGallery } from '~/components/dashboard/SaaSLayout';
 import {
   Select,
@@ -787,6 +787,57 @@ export default function NewProjectPage() {
   const [modelsError, setModelsError] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
+  const submit = useSubmit();
+  const composerAutoSubmittedRef = useRef(false);
+
+  /*
+   * Homepage "Build Now" hand-off. The landing composer stashes the prompt in
+   * sessionStorage (keeping it out of the URL) and navigates here with a
+   * `composerBuildIntent` flag. On arrival — including the post-login return for
+   * a logged-out visitor, since the loader bounces them through
+   * /login?returnTo=/projects/new and same-origin sessionStorage survives the
+   * redirect — seed the prompt and submit the create form once, so "Build Now"
+   * creates the project and opens the IDE without a second click.
+   *
+   * A URL `?prompt=` (signup carry-through / shared link) is intentionally left
+   * for manual review and never auto-submits. The ref + immediate sessionStorage
+   * cleanup guarantee a single attempt, so a quota/validation error that returns
+   * to this form doesn't re-fire an infinite create loop.
+   */
+  useEffect(() => {
+    if (composerAutoSubmittedRef.current || initialModelsPayload.initialPrompt) {
+      return;
+    }
+
+    let stashedPrompt: string | null = null;
+    let intent: string | null = null;
+
+    try {
+      stashedPrompt = sessionStorage.getItem('pendingAppDescription');
+      intent = sessionStorage.getItem('composerBuildIntent');
+    } catch {
+      return;
+    }
+
+    if (intent !== '1' || !stashedPrompt || !stashedPrompt.trim()) {
+      return;
+    }
+
+    composerAutoSubmittedRef.current = true;
+
+    try {
+      sessionStorage.removeItem('composerBuildIntent');
+      sessionStorage.removeItem('pendingAppDescription');
+      sessionStorage.removeItem('pendingBuildMode');
+      sessionStorage.removeItem('triggerBuildOnLanding');
+    } catch {
+      // best-effort cleanup; the ref above already prevents a re-submit
+    }
+
+    const handoffPrompt = stashedPrompt.trim().slice(0, PROMPT_MAX_CHARS);
+    setPrompt(handoffPrompt);
+    submit({ prompt: handoffPrompt }, { method: 'post' });
+  }, [initialModelsPayload.initialPrompt, submit]);
 
   const activeCategory =
     artifactCategories.find((category) => category.id === selectedCategory) ?? artifactCategories[0];
