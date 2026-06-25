@@ -55,7 +55,9 @@ html:has([data-ecode-static-shell]) body {
  * contains them WITHOUT creating a scroll container (so the sticky header keeps
  * working, unlike overflow-x: hidden on <html>).
  */
+html:has([data-ecode-static-shell]),
 html:has([data-ecode-static-shell]) body,
+html[data-ecode-public-chrome='homepage'],
 html[data-ecode-public-chrome='homepage'] body {
   overflow-x: clip;
 }

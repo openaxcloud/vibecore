@@ -134,7 +134,7 @@ export default function Partners() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col" data-testid="page-partners">
+    <div className="min-h-screen flex flex-col overflow-x-clip" data-testid="page-partners">
       <PublicNavbar />
 
       <main className="flex-1">
