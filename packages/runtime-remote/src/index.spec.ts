@@ -143,6 +143,28 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     expect(unbound.hasWorkspaceId()).toBe(true);
   });
 
+  it('exposes the LOGICAL workdir (/home/project), matching WORK_DIR + the WebContainer adapter — NOT the agent disk root', async () => {
+    /*
+     * Regression: when this was the agent's physical root ('/workspace'), the
+     * strip helpers that relativise '/home/project/...' app paths (FilesStore /
+     * snapshot-restore keys) failed to match, sent 'home/project/...', and the
+     * agent wrote files under '/workspace/home/project/...' while the install/dev
+     * command ran in '/workspace' → ENOENT on reopen. The adapter must report the
+     * logical app root; the agent maps it onto WORKSPACE_ROOT internally.
+     */
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token',
+      workspaceId: 'ws-1',
+      fetchImpl: createFetchMock() as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    // Hardcoded, not adopted from the API response (which reports the disk root).
+    await adapter.startWorkspace();
+    expect(adapter.workdir).toBe('/home/project');
+  });
+
   it('opens project workspace, loads file tree, saves edits, runs patches, and opens previews', async () => {
     const fetchMock = createFetchMock();
 

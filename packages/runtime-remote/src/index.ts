@@ -94,7 +94,21 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     this.#workspaceId = options.workspaceId;
     this.#fetch = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
     this.#WebSocket = options.WebSocketImpl ?? (globalThis.WebSocket as WebSocketConstructor | undefined);
-    this.workdir = '/workspace';
+    /*
+     * LOGICAL workdir = the app's canonical project root (WORK_DIR = '/home/project'),
+     * matching the WebContainer adapter and the FilesStore/EditorStore key space.
+     * It is NOT the agent's physical disk root: the workspace-agent stores files
+     * under WORKSPACE_ROOT (/workspace) and resolves every path it receives RELATIVE
+     * to that root. Callers strip THIS workdir off absolute app paths (FilesStore
+     * keys, snapshot-restore keys — all '/home/project/...') to get the relative
+     * path the agent expects. When this was '/workspace', those '/home/project/...'
+     * paths failed the strip and were sent as 'home/project/...', so the agent
+     * materialised files under '/workspace/home/project/...' while the install/dev
+     * command ran in '/workspace' → `ENOENT: /workspace/package.json` on reopen.
+     * Generation was unaffected (it emits relative paths), which is why only
+     * reopened/snapshot-restored projects broke.
+     */
+    this.workdir = '/home/project';
   }
 
   async boot(): Promise<void> {
