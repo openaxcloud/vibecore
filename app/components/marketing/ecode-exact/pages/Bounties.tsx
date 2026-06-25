@@ -116,10 +116,10 @@ export default function MarketingBounties() {
                 <Trophy className="mr-1 h-3 w-3 text-[#F26207]" />
                 Developer marketplace
               </Badge>
-              <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-6xl">
+              <h1 className="mkt-h1 font-bold tracking-tight">
                 Ship features faster with <span className="text-[#F26207]">outcome-based bounties</span>
               </h1>
-              <p className="max-w-2xl text-base text-muted-foreground sm:text-[15px] md:text-xl">
+              <p className="mkt-lead max-w-2xl text-muted-foreground">
                 Publish a challenge, collaborate with builders inside live E-Code workspaces, and release the reward on
                 delivery. Briefs, review sandboxes, and sign-off all live in one platform.
               </p>
@@ -174,7 +174,7 @@ export default function MarketingBounties() {
                   data-testid="img-bounties-ide"
                 />
               </div>
-              <figcaption className="mt-3 flex items-start gap-2 px-1 text-[11px] text-muted-foreground sm:text-[13px]">
+              <figcaption className="mkt-small mt-3 flex items-start gap-2 px-1 text-muted-foreground">
                 <LayoutDashboard className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#F26207] sm:h-4 sm:w-4" />
                 <span>Every bounty submission is a real, runnable E-Code project — not a screenshot or a PDF.</span>
               </figcaption>
@@ -185,8 +185,8 @@ export default function MarketingBounties() {
         {/* Highlights */}
         <section className="mx-auto max-w-6xl space-y-10 px-4 py-16 sm:py-20">
           <div className="space-y-4 text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Built for product and platform teams</h2>
-            <p className="mx-auto max-w-2xl text-[15px] text-muted-foreground">
+            <h2 className="mkt-h2 font-bold">Built for product and platform teams</h2>
+            <p className="mkt-lead mx-auto max-w-2xl text-muted-foreground">
               Bring in external builders without giving up governance, review, or predictable delivery.
             </p>
           </div>
@@ -199,8 +199,8 @@ export default function MarketingBounties() {
                 <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-bolt-elements-background-depth-3 text-[#F26207] ring-1 ring-[#F26207]/30">
                   <Icon className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-semibold">{title}</h3>
-                <p className="text-[13px] leading-relaxed text-muted-foreground">{description}</p>
+                <h3 className="mkt-h3 font-semibold">{title}</h3>
+                <p className="mkt-body leading-relaxed text-muted-foreground">{description}</p>
               </div>
             ))}
           </div>
@@ -214,12 +214,12 @@ export default function MarketingBounties() {
                 <Sparkles className="mr-1 h-3 w-3 text-[#F26207]" />
                 Managed workflow
               </Badge>
-              <h2 className="text-3xl font-bold md:text-4xl">A managed pipeline from brief to reward</h2>
-              <p className="text-[15px] text-muted-foreground">
+              <h2 className="mkt-h2 font-bold">A managed pipeline from brief to reward</h2>
+              <p className="mkt-lead text-muted-foreground">
                 Every bounty runs through secure workspaces, live review, and clear sign-off. Keep stakeholders aligned
                 with one source of truth.
               </p>
-              <ul className="space-y-4 text-[13px] leading-relaxed text-muted-foreground">
+              <ul className="mkt-body space-y-4 leading-relaxed text-muted-foreground">
                 {pipeline.map(({ icon: Icon, title, copy }) => (
                   <li key={title} className="flex items-start gap-3">
                     <span className="mt-0.5 inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-bolt-elements-background-depth-3 text-[#F26207] ring-1 ring-[#F26207]/30">
@@ -247,8 +247,8 @@ export default function MarketingBounties() {
                     </span>
                     <span className="text-[13px] font-semibold text-[#F26207]">{step}</span>
                   </div>
-                  <h3 className="relative mt-3 text-xl font-semibold">{title}</h3>
-                  <p className="relative mt-2 text-[13px] leading-relaxed text-muted-foreground">{copy}</p>
+                  <h3 className="mkt-h3 relative mt-3 font-semibold">{title}</h3>
+                  <p className="mkt-body relative mt-2 leading-relaxed text-muted-foreground">{copy}</p>
                 </div>
               ))}
             </div>
@@ -263,8 +263,8 @@ export default function MarketingBounties() {
                 <Globe2 className="mr-1 h-3 w-3 text-[#F26207]" />
                 Every product surface
               </Badge>
-              <h2 className="text-3xl font-bold md:text-4xl">Post bounties across the whole stack</h2>
-              <p className="text-[15px] text-muted-foreground">
+              <h2 className="mkt-h2 font-bold">Post bounties across the whole stack</h2>
+              <p className="mkt-lead text-muted-foreground">
                 Whatever you need built, scope it as a bounty and filter by stack, experience, and reputation so the
                 right builders find it.
               </p>
@@ -308,7 +308,7 @@ export default function MarketingBounties() {
                   data-testid="img-bounties-dashboard"
                 />
               </div>
-              <figcaption className="mt-3 flex items-start gap-2 px-1 text-[11px] text-muted-foreground sm:text-[13px]">
+              <figcaption className="mkt-small mt-3 flex items-start gap-2 px-1 text-muted-foreground">
                 <LayoutDashboard className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#F26207] sm:h-4 sm:w-4" />
                 <span>Track every bounty, submission, and reward from one dashboard.</span>
               </figcaption>
@@ -322,8 +322,8 @@ export default function MarketingBounties() {
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_#ffffff33,_transparent_60%)]" />
             <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-5">
               <Rocket className="h-10 w-10" />
-              <h2 className="text-3xl font-bold md:text-4xl">Ready to put a bounty on your roadmap?</h2>
-              <p className="text-[15px] text-white/90 md:text-xl">
+              <h2 className="mkt-h2 font-bold">Ready to put a bounty on your roadmap?</h2>
+              <p className="mkt-lead text-white/90">
                 Spin up a bounty, invite builders, and start reviewing real, runnable submissions in minutes.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">

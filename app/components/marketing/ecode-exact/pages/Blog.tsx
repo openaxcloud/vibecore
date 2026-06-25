@@ -122,10 +122,10 @@ export default function Blog() {
               <span className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-bolt-elements-background-depth-3 ring-1 ring-bolt-elements-borderColor mb-5">
                 <Newspaper className="h-6 w-6 text-[#F26207]" />
               </span>
-              <h1 className="text-4xl font-bold mb-4" data-testid="heading-blog">
+              <h1 className="mkt-h1 mb-4" data-testid="heading-blog">
                 The E-Code Blog
               </h1>
-              <p className="text-[15px] text-muted-foreground mb-8">
+              <p className="mkt-lead text-muted-foreground mb-8">
                 Product updates, engineering deep-dives and the future of AI-native software development.
               </p>
               <Badge variant="secondary" className="text-[15px] px-4 py-2">
@@ -164,7 +164,7 @@ export default function Blog() {
         {/* Featured Post */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold mb-8">Featured</h2>
+            <h2 className="mkt-h2 mb-8">Featured</h2>
 
             <Card className="overflow-hidden" data-testid="link-featured-post">
               <div className="grid md:grid-cols-2 gap-0">
@@ -174,9 +174,7 @@ export default function Blog() {
                     <span className="h-2.5 w-2.5 rounded-full bg-[#F26207]/70" />
                     <span className="h-2.5 w-2.5 rounded-full bg-[#F99D25]/70" />
                     <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
-                    <span className="ml-2 text-[11px] sm:text-[13px] text-muted-foreground font-medium truncate">
-                      E-Code Workspace
-                    </span>
+                    <span className="ml-2 mkt-small text-muted-foreground font-medium truncate">E-Code Workspace</span>
                   </div>
                   <img
                     src={featured.image}
@@ -192,10 +190,10 @@ export default function Blog() {
                   <Badge variant="secondary" className="w-fit mb-3">
                     {featured.category}
                   </Badge>
-                  <h3 className="text-2xl font-bold mb-3">{featured.title}</h3>
-                  <p className="text-[15px] text-muted-foreground mb-6">{featured.excerpt}</p>
+                  <h3 className="mkt-h3 mb-3">{featured.title}</h3>
+                  <p className="mkt-body text-muted-foreground mb-6">{featured.excerpt}</p>
                   <div className="flex items-center justify-between">
-                    <div className="text-[13px] text-muted-foreground">
+                    <div className="mkt-small text-muted-foreground">
                       <span className="font-medium text-foreground">E-Code Team</span>
                       <span className="flex items-center gap-1 mt-1">
                         <Calendar className="h-3.5 w-3.5" />
@@ -220,7 +218,7 @@ export default function Blog() {
         {/* Latest Posts */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold mb-12">Latest Posts</h2>
+            <h2 className="mkt-h2 mb-12">Latest Posts</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {visiblePosts.map((post) => {
@@ -234,12 +232,12 @@ export default function Blog() {
                           <Icon className="h-4 w-4 text-[#F26207]" />
                         </span>
                       </div>
-                      <CardTitle className="text-lg leading-snug">{post.title}</CardTitle>
+                      <CardTitle className="mkt-h3 leading-snug">{post.title}</CardTitle>
                       <CardDescription>{post.excerpt}</CardDescription>
                     </CardHeader>
                     <CardContent className="mt-auto">
                       <div className="flex items-center justify-between">
-                        <div className="text-[13px] text-muted-foreground">
+                        <div className="mkt-small text-muted-foreground">
                           <span className="font-medium text-foreground">E-Code Team</span>
                           <span className="flex items-center gap-1 mt-1">
                             <Calendar className="h-3.5 w-3.5" />
@@ -262,7 +260,7 @@ export default function Blog() {
             </div>
 
             {visiblePosts.length === 0 && (
-              <p className="text-[15px] text-muted-foreground text-center" data-testid="text-no-posts">
+              <p className="mkt-body text-muted-foreground text-center" data-testid="text-no-posts">
                 No posts in this category yet.
               </p>
             )}
@@ -278,8 +276,8 @@ export default function Blog() {
                 <span className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-[#F26207] mb-5">
                   <Rocket className="h-6 w-6 text-white" />
                 </span>
-                <h2 className="text-3xl font-bold mb-4">Stop reading, start building</h2>
-                <p className="text-[15px] text-muted-foreground mb-8">
+                <h2 className="mkt-h2 mb-4">Stop reading, start building</h2>
+                <p className="mkt-body text-muted-foreground mb-8">
                   Describe your idea in plain language and let the E-Code Agent build, run and ship it for you.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">

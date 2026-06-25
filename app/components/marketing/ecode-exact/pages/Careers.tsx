@@ -144,13 +144,10 @@ export default function Careers() {
               <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#F26207] mb-6">
                 <Briefcase className="h-6 w-6 text-white" />
               </span>
-              <h1
-                className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-bolt-elements-textPrimary mb-6"
-                data-testid="heading-careers"
-              >
+              <h1 className="mkt-h1 tracking-tight text-bolt-elements-textPrimary mb-6" data-testid="heading-careers">
                 Build the future with us
               </h1>
-              <p className="text-base sm:text-lg text-bolt-elements-textSecondary leading-relaxed mb-8">
+              <p className="mkt-lead text-bolt-elements-textSecondary mb-8">
                 We&apos;re a small, ambitious team making software creation as natural as describing an idea. Help us
                 put an AI-native development platform in the hands of builders everywhere.
               </p>
@@ -175,18 +172,16 @@ export default function Careers() {
                   <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F26207]">
                     <LayoutDashboard className="h-4 w-4 text-white" />
                   </span>
-                  <span className="text-[13px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                  <span className="mkt-small font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
                     What you&apos;ll build
                   </span>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-bolt-elements-textPrimary mb-4">
-                  A platform builders use every day
-                </h2>
-                <p className="text-bolt-elements-textSecondary leading-relaxed mb-4">
+                <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-4">A platform builders use every day</h2>
+                <p className="mkt-body text-bolt-elements-textSecondary mb-4">
                   E-Code pairs an autonomous coding agent with a complete cloud workspace — editor, terminal, live
                   preview, Git, and one-click deploy — so anyone can go from a prompt to a running app in the browser.
                 </p>
-                <p className="text-bolt-elements-textSecondary leading-relaxed">
+                <p className="mkt-body text-bolt-elements-textSecondary">
                   You&apos;ll work on the product surfaces our users touch every day, from the agent and IDE to the
                   dashboard that ties their projects together. It&apos;s real software, shipped to real people, fast.
                 </p>
@@ -200,7 +195,7 @@ export default function Careers() {
                     <span className="h-2.5 w-2.5 rounded-full bg-[#F26207]/70" />
                     <span className="h-2.5 w-2.5 rounded-full bg-[#F99D25]/70" />
                     <span className="h-2.5 w-2.5 rounded-full bg-bolt-elements-textTertiary/40" />
-                    <span className="ml-2 text-[11px] sm:text-[13px] text-bolt-elements-textSecondary font-medium truncate">
+                    <span className="ml-2 mkt-small text-bolt-elements-textSecondary font-medium truncate">
                       E-Code Dashboard
                     </span>
                   </div>
@@ -214,7 +209,7 @@ export default function Careers() {
                     data-testid="img-careers-dashboard"
                   />
                 </div>
-                <figcaption className="mt-3 flex items-start gap-2 text-[11px] sm:text-[13px] text-bolt-elements-textSecondary px-1">
+                <figcaption className="mt-3 flex items-start gap-2 mkt-small text-bolt-elements-textSecondary px-1">
                   <Compass className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#F26207] flex-shrink-0 mt-0.5" />
                   <span>The E-Code dashboard: where every project, deploy and teammate comes together.</span>
                 </figcaption>
@@ -227,10 +222,8 @@ export default function Careers() {
         <section className="border-b border-bolt-elements-borderColor">
           <div className="container-responsive py-14 sm:py-20">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold text-bolt-elements-textPrimary mb-3">
-                Why you&apos;ll love it here
-              </h2>
-              <p className="text-bolt-elements-textSecondary">
+              <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-3">Why you&apos;ll love it here</h2>
+              <p className="mkt-body text-bolt-elements-textSecondary">
                 The support and flexibility to do the best work of your career.
               </p>
             </div>
@@ -258,8 +251,8 @@ export default function Careers() {
         <section className="bg-bolt-elements-background-depth-2 border-b border-bolt-elements-borderColor">
           <div className="container-responsive py-14 sm:py-20">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold text-bolt-elements-textPrimary mb-3">Open roles</h2>
-              <p className="text-bolt-elements-textSecondary">
+              <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-3">Open roles</h2>
+              <p className="mkt-body text-bolt-elements-textSecondary">
                 Don&apos;t see the perfect fit? We&apos;re always glad to meet great people — reach out anyway.
               </p>
             </div>
@@ -269,8 +262,8 @@ export default function Careers() {
                 <Card key={role.title} className="bg-bolt-elements-background-depth-1">
                   <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6">
                     <div>
-                      <h3 className="font-semibold text-bolt-elements-textPrimary mb-1">{role.title}</h3>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-bolt-elements-textSecondary">
+                      <h3 className="mkt-h3 text-bolt-elements-textPrimary mb-1">{role.title}</h3>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mkt-small text-bolt-elements-textSecondary">
                         <span className="inline-flex items-center gap-1.5">
                           <Users className="h-4 w-4 text-[#F26207]" />
                           {role.team}
@@ -305,8 +298,8 @@ export default function Careers() {
         <section className="border-b border-bolt-elements-borderColor">
           <div className="container-responsive py-14 sm:py-20">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold text-bolt-elements-textPrimary mb-3">How we work</h2>
-              <p className="text-bolt-elements-textSecondary">
+              <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-3">How we work</h2>
+              <p className="mkt-body text-bolt-elements-textSecondary">
                 A few principles that shape how we collaborate, make decisions, and treat each other.
               </p>
             </div>
@@ -320,8 +313,8 @@ export default function Careers() {
                       <Icon className="h-5 w-5 text-white" />
                     </span>
                     <div>
-                      <h3 className="font-semibold text-bolt-elements-textPrimary mb-1.5">{value.title}</h3>
-                      <p className="text-bolt-elements-textSecondary leading-relaxed">{value.description}</p>
+                      <h3 className="mkt-h3 text-bolt-elements-textPrimary mb-1.5">{value.title}</h3>
+                      <p className="mkt-body text-bolt-elements-textSecondary">{value.description}</p>
                     </div>
                   </div>
                 );
@@ -347,12 +340,12 @@ export default function Careers() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-bolt-elements-textSecondary leading-relaxed">
+                  <p className="mkt-body text-bolt-elements-textSecondary">
                     E-Code is an equal-opportunity employer. We welcome applicants of every race, gender, age, religion,
                     identity, ability and experience, and we&apos;re committed to a hiring process that is fair,
                     accessible and free of bias.
                   </p>
-                  <p className="text-bolt-elements-textSecondary leading-relaxed">
+                  <p className="mkt-body text-bolt-elements-textSecondary">
                     Need an accommodation during the interview process? Let us know on your application and we&apos;ll
                     make it happen — no questions asked.
                   </p>
@@ -372,10 +365,8 @@ export default function Careers() {
                 <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#F26207] mb-5">
                   <Send className="h-6 w-6 text-white" />
                 </span>
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-bolt-elements-textPrimary mb-4">
-                  Let&apos;s talk
-                </h2>
-                <p className="text-base sm:text-lg text-bolt-elements-textSecondary mb-8 leading-relaxed">
+                <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-4">Let&apos;s talk</h2>
+                <p className="mkt-lead text-bolt-elements-textSecondary mb-8">
                   Tell us what you&apos;re great at and where you want to grow. We read every message and reply to every
                   candidate.
                 </p>

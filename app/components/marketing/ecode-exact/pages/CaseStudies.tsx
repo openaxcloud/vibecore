@@ -127,13 +127,10 @@ export default function CaseStudies() {
               <Sparkles className="h-4 w-4" />
               How teams build with E-Code
             </span>
-            <h1
-              className="mt-6 text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight"
-              data-testid="heading-case-studies"
-            >
+            <h1 className="mt-6 mkt-h1 font-bold tracking-tight" data-testid="heading-case-studies">
               From a prompt to a deployed app
             </h1>
-            <p className="mt-5 text-[15px] sm:text-lg text-bolt-elements-textSecondary">
+            <p className="mt-5 mkt-lead text-bolt-elements-textSecondary">
               E-Code turns plain-language ideas into real software — the AI Agent writes the code, a live preview runs
               it, Git keeps it versioned, and one click ships it to production. Here is what that looks like in
               practice.
@@ -173,7 +170,7 @@ export default function CaseStudies() {
                     <div className="relative rounded-xl overflow-hidden ring-1 ring-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-2xl">
                       <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
                         <Icon className="h-3.5 w-3.5" style={{ color: ACCENT }} />
-                        <span className="text-[11px] sm:text-[13px] text-bolt-elements-textSecondary font-medium truncate">
+                        <span className="mkt-small text-bolt-elements-textSecondary font-medium truncate">
                           {shot.label}
                         </span>
                       </div>
@@ -187,7 +184,7 @@ export default function CaseStudies() {
                         data-testid={shot.testid}
                       />
                     </div>
-                    <figcaption className="mt-3 flex items-start gap-2 text-[11px] sm:text-[13px] text-bolt-elements-textSecondary px-1">
+                    <figcaption className="mt-3 flex items-start gap-2 mkt-small text-bolt-elements-textSecondary px-1">
                       <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5" style={{ color: ACCENT }} />
                       <span>{shot.caption}</span>
                     </figcaption>
@@ -202,8 +199,8 @@ export default function CaseStudies() {
         <section className="py-12 sm:py-16 md:py-20 px-4">
           <div className="max-w-6xl mx-auto">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">The build loop, end to end</h2>
-              <p className="mt-4 text-[15px] text-bolt-elements-textSecondary">
+              <h2 className="mkt-h2 font-bold tracking-tight">The build loop, end to end</h2>
+              <p className="mt-4 mkt-body text-bolt-elements-textSecondary">
                 Every project on E-Code follows the same path — describe, preview, version, and deploy — without ever
                 leaving the browser.
               </p>
@@ -224,10 +221,8 @@ export default function CaseStudies() {
                     >
                       <Icon className="h-5 w-5" style={{ color: ACCENT }} />
                     </div>
-                    <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                    <p className="text-[13px] sm:text-[14px] text-bolt-elements-textSecondary leading-relaxed">
-                      {item.body}
-                    </p>
+                    <h3 className="mkt-h3 font-semibold mb-2">{item.title}</h3>
+                    <p className="mkt-body text-bolt-elements-textSecondary leading-relaxed">{item.body}</p>
                   </div>
                 );
               })}
@@ -243,9 +238,7 @@ export default function CaseStudies() {
               <div className="relative rounded-xl overflow-hidden ring-1 ring-bolt-elements-borderColor bg-bolt-elements-background-depth-1 shadow-2xl">
                 <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
                   <Rocket className="h-3.5 w-3.5" style={{ color: ACCENT }} />
-                  <span className="text-[11px] sm:text-[13px] text-bolt-elements-textSecondary font-medium truncate">
-                    Deployments
-                  </span>
+                  <span className="mkt-small text-bolt-elements-textSecondary font-medium truncate">Deployments</span>
                 </div>
                 <img
                   src="/ecode-static/assets/product/ide-deploy.png"
@@ -257,15 +250,15 @@ export default function CaseStudies() {
                   data-testid="img-case-studies-deploy"
                 />
               </div>
-              <figcaption className="mt-3 flex items-start gap-2 text-[11px] sm:text-[13px] text-bolt-elements-textSecondary px-1">
+              <figcaption className="mt-3 flex items-start gap-2 mkt-small text-bolt-elements-textSecondary px-1">
                 <Rocket className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5" style={{ color: ACCENT }} />
                 <span>Ship to a live URL from the in-editor Deployments panel.</span>
               </figcaption>
             </figure>
 
             <div className="order-1 lg:order-2">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">What you can ship</h2>
-              <p className="mt-4 text-[15px] text-bolt-elements-textSecondary">
+              <h2 className="mkt-h2 font-bold tracking-tight">What you can ship</h2>
+              <p className="mt-4 mkt-body text-bolt-elements-textSecondary">
                 E-Code is a full cloud development platform — the same surfaces that power the IDE are available to
                 every project, from a one-page site to a database-backed app.
               </p>
@@ -281,10 +274,8 @@ export default function CaseStudies() {
                         <Icon className="h-5 w-5" style={{ color: ACCENT }} />
                       </div>
                       <div>
-                        <h3 className="text-[15px] font-semibold">{cap.title}</h3>
-                        <p className="mt-1 text-[13px] sm:text-[14px] text-bolt-elements-textSecondary leading-relaxed">
-                          {cap.body}
-                        </p>
+                        <h3 className="mkt-h3 font-semibold">{cap.title}</h3>
+                        <p className="mt-1 mkt-body text-bolt-elements-textSecondary leading-relaxed">{cap.body}</p>
                       </div>
                     </li>
                   );
@@ -306,8 +297,8 @@ export default function CaseStudies() {
                 background: 'radial-gradient(50% 80% at 50% 0%, rgba(242,98,7,0.18) 0%, rgba(242,98,7,0) 70%)',
               }}
             />
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Write your own story</h2>
-            <p className="mt-4 text-[15px] sm:text-lg text-bolt-elements-textSecondary max-w-2xl mx-auto">
+            <h2 className="mkt-h2 font-bold tracking-tight">Write your own story</h2>
+            <p className="mt-4 mkt-lead text-bolt-elements-textSecondary max-w-2xl mx-auto">
               Start a project, describe what you want, and watch E-Code build it. No setup, no credit card to begin.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">

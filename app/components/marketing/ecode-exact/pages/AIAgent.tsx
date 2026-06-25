@@ -229,14 +229,14 @@ export default function AiAgent() {
                   E-CODE AGENT 2.0 POWERED
                 </Badge>
 
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
+                <h1 className="mkt-h1 tracking-tight mb-6">
                   AI Agent v2
-                  <span className="block text-4xl md:text-5xl lg:text-6xl mt-2 bg-gradient-to-r from-[#F26207] to-[#F99D25] bg-clip-text text-transparent">
+                  <span className="block mkt-h2 mt-2 bg-gradient-to-r from-[#F26207] to-[#F99D25] bg-clip-text text-transparent">
                     Build Apps with Natural Language
                   </span>
                 </h1>
 
-                <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto lg:mx-0">
+                <p className="mkt-lead text-muted-foreground mb-8 max-w-2xl mx-auto lg:mx-0">
                   Describe your idea. Watch it build. Deploy instantly. No coding required—our AI handles everything.
                 </p>
 
@@ -314,10 +314,8 @@ export default function AiAgent() {
         <section className="py-20 bg-muted/30">
           <div className="container-responsive max-w-6xl">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Building apps is now as easy as having a conversation
-              </h2>
-              <p className="text-[15px] text-muted-foreground">Just describe what you want. Watch it come to life.</p>
+              <h2 className="mkt-h2 mb-4">Building apps is now as easy as having a conversation</h2>
+              <p className="mkt-body text-muted-foreground">Just describe what you want. Watch it come to life.</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8 mb-12">
@@ -325,8 +323,8 @@ export default function AiAgent() {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto bg-gradient-to-br from-[#F26207] to-[#F99D25] shadow-lg shadow-[#F26207]/25">
                   <MessageSquarePlus className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold">1. Describe Your Idea</h3>
-                <p className="text-muted-foreground">
+                <h3 className="mkt-h3">1. Describe Your Idea</h3>
+                <p className="mkt-body text-muted-foreground">
                   Describe what you want in any language. "Build me a recipe app with search and favorites"
                 </p>
               </div>
@@ -335,8 +333,8 @@ export default function AiAgent() {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto bg-gradient-to-br from-[#F26207] to-[#F99D25] shadow-lg shadow-[#F26207]/25">
                   <Sparkles className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold">2. AI Builds Everything</h3>
-                <p className="text-muted-foreground">
+                <h3 className="mkt-h3">2. AI Builds Everything</h3>
+                <p className="mkt-body text-muted-foreground">
                   Watch as the AI creates files, writes code, and sets up your entire project
                 </p>
               </div>
@@ -345,8 +343,8 @@ export default function AiAgent() {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto bg-gradient-to-br from-[#F26207] to-[#F99D25] shadow-lg shadow-[#F26207]/25">
                   <Rocket className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold">3. Your App is Ready</h3>
-                <p className="text-muted-foreground">
+                <h3 className="mkt-h3">3. Your App is Ready</h3>
+                <p className="mkt-body text-muted-foreground">
                   In under a minute, your app is running and ready to share with the world
                 </p>
               </div>
@@ -379,7 +377,7 @@ export default function AiAgent() {
                   className="block w-full h-auto"
                   loading="lazy"
                 />
-                <div className="space-y-2 px-6 py-6 text-[13px] text-muted-foreground md:flex md:items-center md:justify-between md:gap-6">
+                <div className="space-y-2 px-6 py-6 mkt-small text-muted-foreground md:flex md:items-center md:justify-between md:gap-6">
                   <p className="md:max-w-2xl">
                     Everything you see is the live product: the agent drafts requirements, generates the UI, wires up
                     the backend, and exposes a one-click Run and Publish bar—no manual commands.
@@ -397,8 +395,8 @@ export default function AiAgent() {
         <section id="agent-demo" className="pt-20 pb-12 bg-gradient-to-b from-background to-muted/20">
           <div className="container-responsive max-w-7xl">
             <div className="text-center mb-12">
-              <h2 className="text-4xl md:text-5xl font-bold mb-4">Watch AI Agent v2 in Action</h2>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              <h2 className="mkt-h2 mb-4">Watch AI Agent v2 in Action</h2>
+              <p className="mkt-lead text-muted-foreground max-w-3xl mx-auto">
                 Real-time demonstrations of AI building production-ready applications from natural language
               </p>
             </div>
@@ -429,8 +427,8 @@ export default function AiAgent() {
                     loading="lazy"
                   />
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-6 text-white">
-                    <h3 className="text-[15px] font-semibold">{selectedShot.title}</h3>
-                    <p className="text-[13px] text-white/80">{selectedShot.description}</p>
+                    <h3 className="mkt-h3 text-white">{selectedShot.title}</h3>
+                    <p className="mkt-small text-white/80">{selectedShot.description}</p>
                   </div>
                 </div>
               </LazyMotionDiv>
@@ -443,7 +441,7 @@ export default function AiAgent() {
               >
                 <Card className="hover:shadow-lg transition-all">
                   <CardHeader>
-                    <CardTitle className="text-[15px]">Explore the IDE</CardTitle>
+                    <CardTitle className="mkt-h3">Explore the IDE</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {agentShots.map((shot) => (
@@ -477,7 +475,7 @@ export default function AiAgent() {
                               )}
                             </div>
                             <p className="font-medium">{shot.title}</p>
-                            <p className="text-[13px] text-muted-foreground">{shot.description}</p>
+                            <p className="mkt-small text-muted-foreground">{shot.description}</p>
                           </div>
                         </div>
                       </button>
@@ -487,7 +485,7 @@ export default function AiAgent() {
 
                 <Card className="bg-primary/5 border-primary/20">
                   <CardHeader>
-                    <CardTitle className="text-[15px] flex items-center gap-2">
+                    <CardTitle className="mkt-h3 flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-primary" />
                       What you&apos;re looking at
                     </CardTitle>
@@ -528,7 +526,7 @@ export default function AiAgent() {
                     <Card className="group hover:shadow-lg transition-all cursor-pointer">
                       <CardHeader className="pb-3">
                         <Icon className="h-8 w-8 text-primary mb-2" />
-                        <CardTitle className="text-base">{reel.title}</CardTitle>
+                        <CardTitle className="mkt-h3">{reel.title}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">
                         <div className="relative overflow-hidden rounded-lg border bg-slate-900">
@@ -542,7 +540,7 @@ export default function AiAgent() {
                             <Sparkles className="h-3 w-3" /> {reel.label}
                           </span>
                         </div>
-                        <p className="text-[13px] text-muted-foreground">{reel.description}</p>
+                        <p className="mkt-small text-muted-foreground">{reel.description}</p>
                       </CardContent>
                     </Card>
                   </div>
@@ -556,8 +554,8 @@ export default function AiAgent() {
         <section className="pt-12 pb-20">
           <div className="container-responsive max-w-6xl">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">More than just code generation</h2>
-              <p className="text-[15px] text-muted-foreground">
+              <h2 className="mkt-h2 mb-4">More than just code generation</h2>
+              <p className="mkt-body text-muted-foreground">
                 A complete development partner that thinks, designs, and builds
               </p>
             </div>
@@ -586,7 +584,7 @@ export default function AiAgent() {
                           {cap.examples.map((example, i) => (
                             <li key={i} className="flex items-start gap-2">
                               <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
-                              <span className="text-[13px]">{example}</span>
+                              <span className="mkt-body">{example}</span>
                             </li>
                           ))}
                         </ul>
@@ -604,7 +602,7 @@ export default function AiAgent() {
                       <CardTitle>Multi-Language Support</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground mb-4">Builds apps in any language or framework</p>
+                      <p className="mkt-body text-muted-foreground mb-4">Builds apps in any language or framework</p>
                       <div className="flex flex-wrap gap-2">
                         <Badge variant="secondary">JavaScript</Badge>
                         <Badge variant="secondary">Python</Badge>
@@ -622,8 +620,8 @@ export default function AiAgent() {
                       <CardTitle>Smart Architecture</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground mb-4">Makes intelligent decisions about structure</p>
-                      <ul className="space-y-1 text-[13px]">
+                      <p className="mkt-body text-muted-foreground mb-4">Makes intelligent decisions about structure</p>
+                      <ul className="space-y-1 mkt-small">
                         <li>• Proper file organization</li>
                         <li>• Best practice patterns</li>
                         <li>• Scalable architecture</li>
@@ -638,17 +636,17 @@ export default function AiAgent() {
                       <CardTitle>Lightning Fast</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground mb-4">Complete apps in under a minute</p>
+                      <p className="mkt-body text-muted-foreground mb-4">Complete apps in under a minute</p>
                       <div className="space-y-2">
-                        <div className="flex justify-between text-[13px]">
+                        <div className="flex justify-between mkt-small">
                           <span>Simple apps</span>
                           <span className="font-semibold">20-30s</span>
                         </div>
-                        <div className="flex justify-between text-[13px]">
+                        <div className="flex justify-between mkt-small">
                           <span>Complex apps</span>
                           <span className="font-semibold">45-60s</span>
                         </div>
-                        <div className="flex justify-between text-[13px]">
+                        <div className="flex justify-between mkt-small">
                           <span>With database</span>
                           <span className="font-semibold">+15s</span>
                         </div>
@@ -662,7 +660,7 @@ export default function AiAgent() {
                 <div className="space-y-8">
                   {useCases.map((category, idx) => (
                     <div key={idx}>
-                      <h3 className="text-xl font-semibold mb-4">{category.category} Apps</h3>
+                      <h3 className="mkt-h3 mb-4">{category.category} Apps</h3>
                       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {category.apps.map((app, i) => (
                           <Card key={i} className="hover:shadow-lg transition-all cursor-pointer">
@@ -686,7 +684,7 @@ export default function AiAgent() {
               <TabsContent value="comparison" className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-8">
                   <div>
-                    <h3 className="text-2xl font-semibold mb-6">Traditional Coding</h3>
+                    <h3 className="mkt-h3 mb-6">Traditional Coding</h3>
                     <ul className="space-y-3">
                       <li className="flex items-start gap-3">
                         <div className="w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
@@ -715,7 +713,7 @@ export default function AiAgent() {
                     </ul>
                   </div>
                   <div>
-                    <h3 className="text-2xl font-semibold mb-6">E-Code AI Agent</h3>
+                    <h3 className="mkt-h3 mb-6">E-Code AI Agent</h3>
                     <ul className="space-y-3">
                       <li className="flex items-start gap-3">
                         <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0">
@@ -748,8 +746,8 @@ export default function AiAgent() {
                 <div className="mt-12 text-center">
                   <Card className="bg-gradient-to-r from-[#F26207] to-[#F99D25] text-white max-w-2xl mx-auto">
                     <CardContent className="p-8">
-                      <h3 className="text-2xl font-bold mb-4">Ready to build something amazing?</h3>
-                      <p className="mb-6">Join thousands who are building apps without writing code</p>
+                      <h3 className="mkt-h3 mb-4">Ready to build something amazing?</h3>
+                      <p className="mkt-body mb-6">Join thousands who are building apps without writing code</p>
                       <Button size="lg" variant="secondary" onClick={handleGetStarted} className="gap-2">
                         Start Building Now
                         <ArrowRight className="h-4 w-4" />
@@ -789,8 +787,8 @@ export default function AiAgent() {
         {/* CTA Section */}
         <section className="py-20">
           <div className="container-responsive max-w-4xl text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Stop dreaming. Start building.</h2>
-            <p className="text-[15px] text-muted-foreground mb-8">
+            <h2 className="mkt-h2 mb-6">Stop dreaming. Start building.</h2>
+            <p className="mkt-body text-muted-foreground mb-8">
               Your ideas deserve to exist. Let our AI bring them to life.
             </p>
             <Button size="lg" onClick={handleGetStarted} className="gap-2">

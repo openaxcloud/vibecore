@@ -88,10 +88,10 @@ export default function Accessibility() {
               >
                 <AccessibilityIcon className="h-7 w-7 text-white" />
               </div>
-              <h1 className="text-4xl font-bold mb-4 md:text-5xl" data-testid="heading-accessibility">
+              <h1 className="mkt-h1 mb-4" data-testid="heading-accessibility">
                 Accessibility at E-Code
               </h1>
-              <p className="text-[15px] text-muted-foreground mb-8 md:text-[17px]">
+              <p className="mkt-lead text-muted-foreground mb-8">
                 We are building a development platform that everyone can use — regardless of ability or the assistive
                 technology they rely on.
               </p>
@@ -106,8 +106,8 @@ export default function Accessibility() {
         <section className="py-responsive">
           <div className="container-responsive">
             <div className="max-w-3xl mx-auto text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">Our Commitment</h2>
-              <p className="text-[15px] text-muted-foreground">
+              <h2 className="mkt-h2 mb-4">Our Commitment</h2>
+              <p className="mkt-body text-muted-foreground">
                 Accessibility is a core part of how we design and build E-Code. We follow the four guiding principles of
                 the Web Content Accessibility Guidelines, and we treat accessibility issues as bugs that deserve the
                 same priority as any other defect.
@@ -126,8 +126,8 @@ export default function Accessibility() {
                       >
                         <Icon className="h-6 w-6 text-white" />
                       </div>
-                      <h3 className="font-semibold mb-2">{item.title}</h3>
-                      <p className="text-[13px] text-muted-foreground">{item.description}</p>
+                      <h3 className="mkt-h3 font-semibold mb-2">{item.title}</h3>
+                      <p className="mkt-small text-muted-foreground">{item.description}</p>
                     </CardContent>
                   </Card>
                 );
@@ -147,7 +147,7 @@ export default function Accessibility() {
                 >
                   <Gauge className="h-6 w-6 text-white" />
                 </div>
-                <h2 className="text-3xl font-bold mb-4">Conformance Status</h2>
+                <h2 className="mkt-h2 mb-4">Conformance Status</h2>
                 <Card>
                   <CardHeader>
                     <CardTitle>WCAG 2.1 Level AA</CardTitle>
@@ -157,22 +157,22 @@ export default function Accessibility() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <h4 className="font-semibold mb-2">Target Standard</h4>
-                      <p className="text-[13px] text-muted-foreground">
+                      <h4 className="mkt-h3 font-semibold mb-2">Target Standard</h4>
+                      <p className="mkt-small text-muted-foreground">
                         We measure our product against WCAG 2.1 AA success criteria across the marketing site,
                         dashboard, and the in-browser IDE.
                       </p>
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-2">Ongoing Testing</h4>
-                      <p className="text-[13px] text-muted-foreground">
+                      <h4 className="mkt-h3 font-semibold mb-2">Ongoing Testing</h4>
+                      <p className="mkt-small text-muted-foreground">
                         Automated checks run in our pipeline and are supplemented by manual screen-reader and
                         keyboard-only testing on key user flows.
                       </p>
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-2">Known Limitations</h4>
-                      <p className="text-[13px] text-muted-foreground">
+                      <h4 className="mkt-h3 font-semibold mb-2">Known Limitations</h4>
+                      <p className="mkt-small text-muted-foreground">
                         Some highly interactive editor surfaces are still being improved. Where a gap exists, we
                         document it and prioritize a fix.
                       </p>
@@ -192,7 +192,7 @@ export default function Accessibility() {
                     draggable={false}
                   />
                 </div>
-                <figcaption className="mt-3 text-center text-[13px] text-muted-foreground">
+                <figcaption className="mt-3 text-center mkt-small text-muted-foreground">
                   The E-Code dashboard — built with semantic landmarks, visible focus, and accessible labels.
                 </figcaption>
               </figure>
@@ -210,8 +210,8 @@ export default function Accessibility() {
               >
                 <AudioLines className="h-6 w-6 text-white" />
               </div>
-              <h2 className="text-3xl font-bold">Supported Assistive Technology</h2>
-              <p className="text-[15px] text-muted-foreground mt-4 max-w-2xl mx-auto">
+              <h2 className="mkt-h2">Supported Assistive Technology</h2>
+              <p className="mkt-body text-muted-foreground mt-4 max-w-2xl mx-auto">
                 We test E-Code against the screen readers and input technologies our developers actually use.
               </p>
             </div>
@@ -229,8 +229,8 @@ export default function Accessibility() {
                         <Icon className="h-5 w-5" style={{ color: 'var(--ecode-accent)' }} />
                       </div>
                       <div>
-                        <h3 className="font-semibold">{tech.name}</h3>
-                        <p className="text-[13px] text-muted-foreground">{tech.detail}</p>
+                        <h3 className="mkt-h3 font-semibold">{tech.name}</h3>
+                        <p className="mkt-small text-muted-foreground">{tech.detail}</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -250,8 +250,8 @@ export default function Accessibility() {
               >
                 <Keyboard className="h-6 w-6 text-white" />
               </div>
-              <h2 className="text-3xl font-bold">Keyboard Navigation</h2>
-              <p className="text-[15px] text-muted-foreground mt-4 max-w-2xl mx-auto">
+              <h2 className="mkt-h2">Keyboard Navigation</h2>
+              <p className="mkt-body text-muted-foreground mt-4 max-w-2xl mx-auto">
                 Every interactive element is reachable and operable with a keyboard alone, with a clear visible focus
                 indicator at all times.
               </p>
@@ -264,7 +264,7 @@ export default function Accessibility() {
                     <kbd className="inline-block rounded border bg-background px-2 py-1 text-[13px] font-mono mb-3">
                       {shortcut.keys}
                     </kbd>
-                    <p className="text-[13px] text-muted-foreground">{shortcut.action}</p>
+                    <p className="mkt-small text-muted-foreground">{shortcut.action}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -281,8 +281,8 @@ export default function Accessibility() {
             >
               <Mail className="h-6 w-6 text-white" />
             </div>
-            <h2 className="text-3xl font-bold mb-4">Report an Accessibility Issue</h2>
-            <p className="text-[15px] text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <h2 className="mkt-h2 mb-4">Report an Accessibility Issue</h2>
+            <p className="mkt-body text-muted-foreground mb-8 max-w-2xl mx-auto">
               If you encounter a barrier while using E-Code, we want to hear about it. Please include the page, the
               assistive technology you were using, and a short description so we can reproduce and resolve it quickly.
             </p>
@@ -301,8 +301,8 @@ export default function Accessibility() {
         {/* End CTA */}
         <section className="py-responsive bg-gradient-to-b from-background to-muted">
           <div className="container-responsive max-w-3xl text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Build something everyone can use</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[15px] text-muted-foreground md:text-[17px]">
+            <h2 className="mkt-h2">Build something everyone can use</h2>
+            <p className="mkt-lead mx-auto mt-4 max-w-xl text-muted-foreground">
               Spin up an accessible workspace in seconds — the same projects, agent, and previews, fully keyboard- and
               screen-reader-navigable from day one.
             </p>

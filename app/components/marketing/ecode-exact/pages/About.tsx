@@ -116,10 +116,10 @@ export default function About() {
               <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-[13px]" style={{ color: '#F26207' }}>
                 Our story
               </Badge>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-bolt-elements-textPrimary mb-6">
+              <h1 className="mkt-h1 tracking-tight text-bolt-elements-textPrimary mb-6">
                 Building the future of software creation
               </h1>
-              <p className="text-base sm:text-lg text-bolt-elements-textSecondary leading-relaxed">
+              <p className="mkt-lead text-bolt-elements-textSecondary">
                 E-Code is an AI-native development platform that turns plain language into real, deployable
                 applications. We are on a mission to make software creation accessible to everyone.
               </p>
@@ -136,19 +136,17 @@ export default function About() {
                   <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F26207]">
                     <Target className="h-4 w-4 text-white" />
                   </span>
-                  <span className="text-[13px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                  <span className="mkt-small font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
                     Our mission
                   </span>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-bolt-elements-textPrimary mb-4">
-                  Everyone should be able to build
-                </h2>
-                <p className="text-bolt-elements-textSecondary leading-relaxed mb-4">
+                <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-4">Everyone should be able to build</h2>
+                <p className="mkt-body text-bolt-elements-textSecondary mb-4">
                   For decades, building software meant years of training, expensive teams, and slow feedback loops. We
                   believe the next generation of creators should be limited only by their imagination — not by syntax,
                   setup, or scale.
                 </p>
-                <p className="text-bolt-elements-textSecondary leading-relaxed">
+                <p className="mkt-body text-bolt-elements-textSecondary">
                   E-Code pairs an autonomous coding agent with a complete cloud workspace, so describing what you want
                   is enough to get a working app you can edit, run, and ship.
                 </p>
@@ -162,7 +160,7 @@ export default function About() {
                     <span className="h-2.5 w-2.5 rounded-full bg-[#F26207]/70" />
                     <span className="h-2.5 w-2.5 rounded-full bg-[#F99D25]/70" />
                     <span className="h-2.5 w-2.5 rounded-full bg-bolt-elements-textTertiary/40" />
-                    <span className="ml-2 text-[11px] sm:text-[13px] text-bolt-elements-textSecondary font-medium truncate">
+                    <span className="ml-2 mkt-small text-bolt-elements-textSecondary font-medium truncate">
                       E-Code Workspace
                     </span>
                   </div>
@@ -176,7 +174,7 @@ export default function About() {
                     data-testid="img-about-ide"
                   />
                 </div>
-                <figcaption className="mt-3 flex items-start gap-2 text-[11px] sm:text-[13px] text-bolt-elements-textSecondary px-1">
+                <figcaption className="mt-3 flex items-start gap-2 mkt-small text-bolt-elements-textSecondary px-1">
                   <LayoutDashboard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#F26207] flex-shrink-0 mt-0.5" />
                   <span>The E-Code IDE: agent, editor, files and live preview in one workspace.</span>
                 </figcaption>
@@ -192,8 +190,8 @@ export default function About() {
               <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#F26207] mb-4">
                 <Rocket className="h-5 w-5 text-white" />
               </span>
-              <h2 className="text-2xl sm:text-3xl font-bold text-bolt-elements-textPrimary mb-3">What powers E-Code</h2>
-              <p className="text-bolt-elements-textSecondary">
+              <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-3">What powers E-Code</h2>
+              <p className="mkt-body text-bolt-elements-textSecondary">
                 An autonomous agent and a full cloud workspace, working together so you can go from prompt to production
                 without leaving the browser.
               </p>
@@ -222,8 +220,8 @@ export default function About() {
         <section className="bg-bolt-elements-background-depth-2 border-b border-bolt-elements-borderColor">
           <div className="container-responsive py-14 sm:py-20">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold text-bolt-elements-textPrimary mb-3">What we value</h2>
-              <p className="text-bolt-elements-textSecondary">
+              <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-3">What we value</h2>
+              <p className="mkt-body text-bolt-elements-textSecondary">
                 The principles that guide every product decision we make.
               </p>
             </div>
@@ -259,10 +257,8 @@ export default function About() {
                 <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#F26207] mb-5">
                   <MessageSquare className="h-6 w-6 text-white" />
                 </span>
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-bolt-elements-textPrimary mb-4">
-                  Start building with E-Code
-                </h2>
-                <p className="text-base sm:text-lg text-bolt-elements-textSecondary mb-8 leading-relaxed">
+                <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-4">Start building with E-Code</h2>
+                <p className="mkt-lead text-bolt-elements-textSecondary mb-8">
                   Join the creators turning ideas into software every day. Your next app is one prompt away.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

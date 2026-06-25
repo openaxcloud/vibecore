@@ -274,14 +274,14 @@ export default function AI() {
                 THE E-CODE AI AGENT
               </Badge>
 
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 tracking-tight">
+              <h1 className="mkt-h1 mb-6 tracking-tight">
                 AI That
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#F26207] via-[#F26207] to-[#F99D25]">
                   Builds Your App
                 </span>
               </h1>
 
-              <p className="text-xl md:text-2xl text-muted-foreground mb-8 leading-relaxed max-w-2xl">
+              <p className="mkt-lead text-muted-foreground mb-8 max-w-2xl">
                 Describe what you want and the E-Code agent writes the code, runs it in a live cloud workspace, and
                 ships it — all from one prompt.
               </p>
@@ -318,7 +318,7 @@ export default function AI() {
                     <div key={item.label} className="text-center">
                       <Icon className="h-5 w-5 mx-auto mb-2 text-[#F26207]" />
                       <div className="text-2xl md:text-3xl font-bold text-[#F26207]">{item.value}</div>
-                      <div className="text-[13px] text-muted-foreground font-medium">{item.label}</div>
+                      <div className="mkt-small text-muted-foreground font-medium">{item.label}</div>
                     </div>
                   );
                 })}
@@ -337,7 +337,7 @@ export default function AI() {
                   <span className="h-2.5 w-2.5 rounded-full bg-[#F26207]/70" />
                   <span className="h-2.5 w-2.5 rounded-full bg-[#F99D25]/70" />
                   <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
-                  <span className="ml-2 text-[13px] text-muted-foreground font-medium truncate">
+                  <span className="ml-2 mkt-small text-muted-foreground font-medium truncate">
                     E-Code Workspace — AI Agent
                   </span>
                 </div>
@@ -359,7 +359,7 @@ export default function AI() {
       {/* Model providers — real LLMs wired into the platform */}
       <section className="py-12 border-y border-bolt-elements-borderColor bg-muted/20">
         <div className="container-responsive">
-          <p className="text-center text-[13px] font-medium uppercase tracking-widest text-muted-foreground mb-8">
+          <p className="mkt-small text-center font-medium uppercase tracking-widest text-muted-foreground mb-8">
             Powered by the leading AI models — choose the one that fits your build
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
@@ -372,7 +372,7 @@ export default function AI() {
                   data-testid={`model-${provider.name.replace(/\s+/g, '-').toLowerCase()}`}
                 >
                   <Icon className="h-6 w-6" aria-hidden />
-                  <span className="text-[15px] font-semibold">{provider.name}</span>
+                  <span className="mkt-small font-semibold">{provider.name}</span>
                 </div>
               );
             })}
@@ -384,8 +384,8 @@ export default function AI() {
       <section id="demo-video" className="py-20 bg-gradient-to-b from-muted/20 to-background">
         <div className="container-responsive">
           <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">See the AI Agent in Action</h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            <h2 className="mkt-h2 mb-4">See the AI Agent in Action</h2>
+            <p className="mkt-lead text-muted-foreground max-w-3xl mx-auto">
               Watch a full app go from a single prompt to a deployed, shareable URL.
             </p>
           </div>
@@ -419,15 +419,13 @@ export default function AI() {
                   >
                     Live Platform Demo
                   </Badge>
-                  <h3 className="text-2xl sm:text-3xl font-semibold leading-snug">
-                    From prompt to production in one session
-                  </h3>
-                  <p className="text-[13px] sm:text-base text-white/80">
+                  <h3 className="mkt-h3 font-semibold">From prompt to production in one session</h3>
+                  <p className="mkt-body text-white/80">
                     Follow along as the AI agent scaffolds a SaaS dashboard, configures infrastructure, and ships to the
                     cloud.
                   </p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-[13px] font-medium">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mkt-small font-medium">
                   <div className="flex items-center gap-2 bg-white/10 backdrop-blur rounded-lg px-3 py-2">
                     <CheckCircle className="h-4 w-4 text-[#F99D25] flex-shrink-0" />
                     <span>Multi-step planning</span>
@@ -497,12 +495,12 @@ export default function AI() {
                         <div className="p-2 bg-[#F26207]/10 rounded-lg group-hover:bg-[#F26207]/20 transition-colors">
                           <Icon className="h-5 w-5 text-[#F26207]" />
                         </div>
-                        <CardTitle className="text-[15px]">{highlight.title}</CardTitle>
+                        <CardTitle className="mkt-h3">{highlight.title}</CardTitle>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground text-[13px]">{highlight.description}</p>
-                      <div className="mt-3 text-[11px] text-[#F26207] font-medium">Jump to this chapter</div>
+                      <p className="text-muted-foreground mkt-body">{highlight.description}</p>
+                      <div className="mt-3 mkt-small text-[#F26207] font-medium">Jump to this chapter</div>
                     </CardContent>
                   </Card>
                 );
@@ -516,8 +514,8 @@ export default function AI() {
       <section className="py-20 bg-muted/30">
         <div className="container-responsive">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">How the AI Agent Works</h2>
-            <p className="text-[15px] text-muted-foreground max-w-2xl mx-auto">
+            <h2 className="mkt-h2 mb-4">How the AI Agent Works</h2>
+            <p className="mkt-lead text-muted-foreground max-w-2xl mx-auto">
               From idea to deployed app in three simple steps
             </p>
           </div>
@@ -527,8 +525,8 @@ export default function AI() {
               <div className="w-20 h-20 mx-auto mb-4 bg-[#F26207]/10 ring-1 ring-[#F26207]/20 rounded-2xl flex items-center justify-center text-[#F26207]">
                 <MessageSquare className="h-10 w-10" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">1. Describe Your Idea</h3>
-              <p className="text-muted-foreground">
+              <h3 className="mkt-h3 mb-2">1. Describe Your Idea</h3>
+              <p className="mkt-body text-muted-foreground">
                 Tell the agent what you want to build in plain language — any language you prefer.
               </p>
             </div>
@@ -537,8 +535,8 @@ export default function AI() {
               <div className="w-20 h-20 mx-auto mb-4 bg-[#F26207]/10 ring-1 ring-[#F26207]/20 rounded-2xl flex items-center justify-center text-[#F26207]">
                 <Brain className="h-10 w-10" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">2. AI Builds Everything</h3>
-              <p className="text-muted-foreground">
+              <h3 className="mkt-h3 mb-2">2. AI Builds Everything</h3>
+              <p className="mkt-body text-muted-foreground">
                 Watch as the agent creates files, writes code, and sets up your project in a live workspace.
               </p>
             </div>
@@ -547,8 +545,8 @@ export default function AI() {
               <div className="w-20 h-20 mx-auto mb-4 bg-[#F26207]/10 ring-1 ring-[#F26207]/20 rounded-2xl flex items-center justify-center text-[#F26207]">
                 <Globe className="h-10 w-10" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">3. Deploy Instantly</h3>
-              <p className="text-muted-foreground">
+              <h3 className="mkt-h3 mb-2">3. Deploy Instantly</h3>
+              <p className="mkt-body text-muted-foreground">
                 Ship to a live, shareable URL in one click — no extra configuration or setup needed.
               </p>
             </div>
@@ -560,8 +558,8 @@ export default function AI() {
       <section className="py-20">
         <div className="container-responsive">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">AI Agent Capabilities</h2>
-            <p className="text-[15px] text-muted-foreground">Powerful features that make building effortless</p>
+            <h2 className="mkt-h2 mb-4">AI Agent Capabilities</h2>
+            <p className="mkt-lead text-muted-foreground">Powerful features that make building effortless</p>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-12 items-start max-w-6xl mx-auto">
@@ -589,7 +587,7 @@ export default function AI() {
                           <Icon className="h-5 w-5" />
                         </div>
                         <div className="flex-1">
-                          <CardTitle className="text-[15px]">{feature.title}</CardTitle>
+                          <CardTitle className="mkt-h3">{feature.title}</CardTitle>
                           <CardDescription className="mt-1">{feature.description}</CardDescription>
                         </div>
                       </div>
@@ -624,8 +622,8 @@ export default function AI() {
       <section className="py-20 bg-muted/30">
         <div className="container-responsive">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Tools the Agent Can Use</h2>
-            <p className="text-[15px] text-muted-foreground max-w-2xl mx-auto">
+            <h2 className="mkt-h2 mb-4">Tools the Agent Can Use</h2>
+            <p className="mkt-lead text-muted-foreground max-w-2xl mx-auto">
               The agent reaches for real platform capabilities while it builds — the same ones you have in the IDE.
             </p>
           </div>
@@ -643,8 +641,8 @@ export default function AI() {
                     <div className="w-12 h-12 mx-auto mb-3 bg-[#F26207] rounded-lg flex items-center justify-center">
                       <Icon className="h-6 w-6 text-white" />
                     </div>
-                    <h3 className="font-semibold mb-1">{tool.name}</h3>
-                    <p className="text-[13px] text-muted-foreground">{tool.description}</p>
+                    <h3 className="mkt-h3 mb-1">{tool.name}</h3>
+                    <p className="mkt-body text-muted-foreground">{tool.description}</p>
                   </CardContent>
                 </Card>
               );
@@ -662,8 +660,8 @@ export default function AI() {
                 <GitBranch className="h-4 w-4 mr-1" />
                 Inside the workspace
               </Badge>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Not a black box — a real IDE</h2>
-              <p className="text-[15px] text-muted-foreground mb-6 leading-relaxed">
+              <h2 className="mkt-h2 mb-4">Not a black box — a real IDE</h2>
+              <p className="mkt-body text-muted-foreground mb-6">
                 The agent works in the same editor, terminal and Git panel you do. Review every change, commit and push
                 to your own repository, then deploy — all without leaving E-Code.
               </p>
@@ -673,7 +671,7 @@ export default function AI() {
                   'Connect GitHub or GitLab and push from the IDE',
                   'Run tests and scripts in the integrated terminal',
                 ].map((point) => (
-                  <li key={point} className="flex items-start gap-2 text-[15px]">
+                  <li key={point} className="flex items-start gap-2 mkt-body">
                     <CheckCircle className="h-5 w-5 text-[#F26207] mt-0.5 flex-shrink-0" />
                     <span>{point}</span>
                   </li>
@@ -686,7 +684,7 @@ export default function AI() {
               <div className="relative rounded-xl overflow-hidden ring-1 ring-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-2xl">
                 <div className="flex items-center gap-2 px-4 py-2.5 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
                   <GitBranch className="h-3.5 w-3.5 text-[#F26207]" />
-                  <span className="text-[13px] text-muted-foreground font-medium truncate">Git — E-Code IDE</span>
+                  <span className="mkt-small text-muted-foreground font-medium truncate">Git — E-Code IDE</span>
                 </div>
                 <img
                   src={`${PRODUCT}/ide-git.png`}
@@ -707,8 +705,8 @@ export default function AI() {
       <section className="py-20 bg-muted/30">
         <div className="container-responsive">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Who Builds with the AI Agent?</h2>
-            <p className="text-[15px] text-muted-foreground">From complete beginners to experienced developers</p>
+            <h2 className="mkt-h2 mb-4">Who Builds with the AI Agent?</h2>
+            <p className="mkt-lead text-muted-foreground">From complete beginners to experienced developers</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
@@ -750,8 +748,8 @@ export default function AI() {
             <div className="bg-gradient-to-r from-[#F26207] to-[#F99D25] p-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold mb-2">Try the AI Agent Now</h2>
-                  <p className="opacity-90">See how easy it is to build your first app</p>
+                  <h2 className="mkt-h2 mb-2">Try the AI Agent Now</h2>
+                  <p className="mkt-body opacity-90">See how easy it is to build your first app</p>
                 </div>
                 <Sparkles className="h-12 w-12 opacity-30" />
               </div>
@@ -759,7 +757,7 @@ export default function AI() {
             <CardContent className="p-8">
               <div className="space-y-6">
                 <div className="bg-muted rounded-lg p-4">
-                  <p className="text-[13px] text-muted-foreground mb-2">Example prompts to try:</p>
+                  <p className="mkt-small text-muted-foreground mb-2">Example prompts to try:</p>
                   <div className="space-y-2">
                     <Button
                       variant="outline"
@@ -813,8 +811,8 @@ export default function AI() {
             <div className="absolute -top-12 -right-12 w-56 h-56 bg-white/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-12 -left-12 w-56 h-56 bg-white/10 rounded-full blur-3xl pointer-events-none" />
             <div className="relative max-w-3xl mx-auto">
-              <h2 className="text-3xl md:text-5xl font-bold mb-4">Start building with AI today</h2>
-              <p className="text-[15px] md:text-lg text-white/90 mb-8">
+              <h2 className="mkt-h2 mb-4">Start building with AI today</h2>
+              <p className="mkt-lead text-white/90 mb-8">
                 No credit card required. Spin up your first app on the free tier and ship it from your browser.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
