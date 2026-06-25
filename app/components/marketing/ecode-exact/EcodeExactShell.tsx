@@ -19,7 +19,7 @@ import {
   Youtube,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Badge, Button, cn, Link, useMarketingNavigate } from './EcodeExactUi';
+import { Badge, Button, cn, Link, useMarketingNavigate, useWouterLocation } from './EcodeExactUi';
 import { publicChromeUserChoseDark, resolvePublicChromeTheme } from './ecode-public-theme';
 import { getThemeSwitcherPresentation } from './theme-switcher-presentation';
 import { ScrollArea } from '~/components/ui/ScrollArea';
@@ -136,6 +136,7 @@ const footerLinks = {
     { label: 'IDE', href: '/features' },
     { label: 'Multiplayer', href: '/features#multiplayer' },
     { label: 'Mobile App', href: '/mobile' },
+    { label: 'Desktop App', href: '/desktop' },
     { label: 'Teams', href: '/marketing/teams' },
     { label: 'Deployments', href: '/marketing/deployments' },
     { label: 'Pricing', href: '/pricing' },
@@ -580,10 +581,21 @@ function MegaMenu({
 }
 
 function NavPill({ href, children }: { href: string; children: React.ReactNode }) {
+  const [location] = useWouterLocation();
+  const current = (location || '').split(/[?#]/)[0];
+  const target = href.split(/[?#]/)[0];
+  const active = current === target;
+
   return (
     <Link
       href={href}
-      className="group inline-flex h-10 w-max items-center justify-center rounded-full border border-[var(--ecode-border)] dark:border-border px-5 text-[13px] font-medium text-[var(--ecode-text)] dark:text-slate-200 transition-colors hover:border-[var(--ecode-accent)] dark:hover:border-surface-hover-solid hover:text-[var(--ecode-accent)] dark:hover:text-white"
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'group inline-flex h-10 w-max items-center justify-center rounded-full border px-5 text-[13px] font-medium transition-colors',
+        active
+          ? 'border-[var(--ecode-accent)] text-[var(--ecode-accent)]'
+          : 'border-[var(--ecode-border)] dark:border-border text-[var(--ecode-text)] dark:text-slate-200 hover:border-[var(--ecode-accent)] dark:hover:border-surface-hover-solid hover:text-[var(--ecode-accent)] dark:hover:text-white',
+      )}
     >
       {children}
     </Link>
