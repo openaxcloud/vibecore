@@ -1207,12 +1207,8 @@ export function MarketingIndexPage({
               <span className="inline-flex items-center rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
                 E-Code
               </span>
-              <h1 className="mt-8 max-w-4xl text-5xl font-bold leading-[1.04] tracking-tight text-[var(--ecode-text)] sm:text-6xl lg:text-7xl">
-                {title}
-              </h1>
-              <p className="mt-6 max-w-3xl text-lg leading-8 text-[var(--ecode-text-secondary)] sm:text-xl">
-                {description}
-              </p>
+              <h1 className="mkt-h1 mt-8 max-w-4xl text-[var(--ecode-text)]">{title}</h1>
+              <p className="mkt-lead mt-6 max-w-3xl text-[var(--ecode-text-secondary)]">{description}</p>
             </div>
           </div>
         </section>
@@ -1291,12 +1287,8 @@ function MarketingPageContent({ page }: { page: MarketingPageDefinition }) {
               <Icon className="h-4 w-4" aria-hidden />
               {page.eyebrow}
             </span>
-            <h1 className="mt-8 max-w-4xl text-5xl font-bold leading-[1.04] tracking-tight text-[var(--ecode-text)] sm:text-6xl lg:text-7xl">
-              {page.title}
-            </h1>
-            <p className="mt-6 max-w-3xl text-lg leading-8 text-[var(--ecode-text-secondary)] sm:text-xl">
-              {page.description}
-            </p>
+            <h1 className="mkt-h1 mt-8 max-w-4xl text-[var(--ecode-text)]">{page.title}</h1>
+            <p className="mkt-lead mt-6 max-w-3xl text-[var(--ecode-text-secondary)]">{page.description}</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               {page.primaryAction ? (
                 <EcodeMarketingActionLink to={page.primaryAction[1]}>{page.primaryAction[0]}</EcodeMarketingActionLink>
