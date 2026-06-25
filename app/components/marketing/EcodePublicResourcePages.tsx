@@ -505,12 +505,8 @@ function ResourceHero({
             {icon}
             {eyebrow}
           </span>
-          <h1 className="mt-8 max-w-4xl text-5xl font-bold leading-[1.04] tracking-tight text-[var(--ecode-text)] sm:text-6xl lg:text-7xl">
-            {title}
-          </h1>
-          <p className="mt-6 max-w-3xl text-lg leading-8 text-[var(--ecode-text-secondary)] sm:text-xl">
-            {description}
-          </p>
+          <h1 className="mt-8 max-w-4xl mkt-h1 text-[var(--ecode-text)]">{title}</h1>
+          <p className="mt-6 max-w-3xl mkt-lead text-[var(--ecode-text-secondary)]">{description}</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <MarketingLinkButton to={primaryAction.to}>{primaryAction.label}</MarketingLinkButton>
             <MarketingLinkButton to={secondaryAction.to} variant="secondary">
