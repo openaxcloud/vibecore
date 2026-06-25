@@ -17,7 +17,7 @@ import {
   ShoppingCart,
   MessageSquare,
   Bot,
-  Globe,
+  LineChart,
   Briefcase,
   ListTodo,
 } from 'lucide-react';
@@ -69,19 +69,24 @@ export default function LandingOptimized() {
   const { data: templates = [], isLoading: templatesLoading } = useStaticTemplatesQuery<any[]>();
 
   const handleStartBuilding = async (description: string) => {
-    if (!user) {
-      sessionStorage.setItem('pendingAppDescription', description);
-      sessionStorage.setItem('triggerBuildOnLanding', 'true');
-      toast({
-        title: 'Sign in required',
-        description: 'Please sign in to create your workspace',
-      });
-      navigate('/login');
+    const trimmed = description.trim();
 
+    if (!trimmed) {
       return;
     }
 
-    setPendingBuildPrompt(description);
+    /*
+     * `usePublicAuth()` on the public marketing shell is a stub that always
+     * returns `{ user: null }`, so the old `if (!user)` branch fired for
+     * EVERYONE — logged-in users included — bouncing them to /login with no
+     * returnTo, which defaults to /dashboard and silently dropped the prompt.
+     * Don't gate on a client-side auth signal we can't observe here: open the
+     * build-mode picker for everyone and let /projects/new own auth. Its loader
+     * redirects logged-out visitors to /login?returnTo=/projects/new and resumes
+     * there after sign-in, so the prompt survives login without ever being
+     * detoured through /dashboard.
+     */
+    setPendingBuildPrompt(trimmed);
     setBuildModeDialogOpen(true);
   };
 
@@ -122,9 +127,27 @@ export default function LandingOptimized() {
      * flow consumes.
      */
     const prompt = buildPromptForMode(mode, pendingBuildPrompt);
-    sessionStorage.setItem('pendingAppDescription', prompt);
-    sessionStorage.setItem('pendingBuildMode', mode);
-    sessionStorage.removeItem('triggerBuildOnLanding');
+
+    /*
+     * Hand the prompt off via sessionStorage (NOT the URL) so the user's app
+     * idea never lands in a query string, browser history or Referer header,
+     * and so it survives the /projects/new -> /login?returnTo -> /projects/new
+     * round-trip for logged-out visitors (same-origin sessionStorage persists
+     * across the login redirect). `composerBuildIntent` tells /projects/new to
+     * auto-submit the create form on arrival instead of waiting for a click.
+     */
+    try {
+      sessionStorage.setItem('pendingAppDescription', prompt);
+      sessionStorage.setItem('pendingBuildMode', mode);
+      sessionStorage.setItem('composerBuildIntent', '1');
+      sessionStorage.removeItem('triggerBuildOnLanding');
+    } catch {
+      /*
+       * sessionStorage blocked (private mode) — /projects/new still renders; the
+       * visitor just retypes the idea once. Better than throwing here.
+       */
+    }
+
     setPendingBuildPrompt('');
 
     toast({
@@ -135,9 +158,7 @@ export default function LandingOptimized() {
           : 'Opening the builder to generate your full application',
     });
 
-    const params = new URLSearchParams({ prompt });
-    params.set('buildMode', mode);
-    navigate(`/projects/new?${params.toString()}`);
+    navigate('/projects/new');
   };
 
   /*
@@ -193,7 +214,7 @@ export default function LandingOptimized() {
       id: 'chatbot',
     },
     {
-      icon: <Globe className="h-4 w-4" />,
+      icon: <LineChart className="h-4 w-4" />,
       label: 'Analytics Dashboard',
       text: 'Design a Fortune 500-grade analytics dashboard with real-time interactive charts, KPI widgets, data tables with filtering, date range picker',
       color: 'from-ecode-yellow to-ecode-orange',

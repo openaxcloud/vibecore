@@ -736,7 +736,8 @@ export const ChatImpl = memo(
         let title = 'Request Failed';
 
         const lowerMessage = errorInfo.message.toLowerCase();
-        const errorCode = typeof (errorInfo as { code?: unknown }).code === 'string' ? (errorInfo as { code: string }).code : '';
+        const rawCode = (errorInfo as { code?: unknown }).code;
+        const errorCode = typeof rawCode === 'string' ? rawCode : '';
 
         if (errorInfo.statusCode === 401 || lowerMessage.includes('api key')) {
           errorType = 'authentication';

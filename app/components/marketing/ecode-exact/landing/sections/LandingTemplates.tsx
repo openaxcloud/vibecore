@@ -1,6 +1,4 @@
-import { ArrowRight, Loader2, LayoutDashboard } from 'lucide-react';
-import type { IconType } from 'react-icons';
-import { SiChartdotjs, SiReadthedocs, SiShopify, SiSocketdotio, SiStripe } from 'react-icons/si';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -11,6 +9,7 @@ import {
   CardTitle,
   useWouterLocation,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import { resolveTemplateTech } from '~/components/marketing/template-tech-icon';
 
 interface LandingTemplatesProps {
   templates: any[];
@@ -56,29 +55,6 @@ const defaultTemplates = [
   { id: 6, name: 'Admin Panel', description: 'Full admin dashboard with CRUD', icon: 'admin', category: 'Business' },
 ];
 
-interface TemplateIcon {
-  Icon: IconType;
-
-  /** Simple Icons brand hex, or undefined to fall back to E-Code orange. */
-  brand?: string;
-}
-
-/**
- * Maps each template's tech to its real brand logo (react-icons Simple Icons),
- * rendered in the brand's official color. Generic concepts (e.g. a CRUD admin
- * panel with no single defining tech) fall back to a lucide glyph in E-Code orange.
- */
-const iconMap: Record<string, TemplateIcon> = {
-  stripe: { Icon: SiStripe, brand: '#635BFF' },
-  shopify: { Icon: SiShopify, brand: '#7AB55C' },
-  chartjs: { Icon: SiChartdotjs, brand: '#FF6384' },
-  socketio: { Icon: SiSocketdotio, brand: '#FFFFFF' },
-  docs: { Icon: SiReadthedocs, brand: '#8CA1AF' },
-  admin: { Icon: LayoutDashboard },
-};
-
-const fallbackIcon: TemplateIcon = { Icon: LayoutDashboard };
-
 export default function LandingTemplates({ templates, isLoading }: LandingTemplatesProps) {
   const [, navigate] = useWouterLocation();
   const displayTemplates = templates.length > 0 ? templates.slice(0, 6) : defaultTemplates;
@@ -100,7 +76,7 @@ export default function LandingTemplates({ templates, isLoading }: LandingTempla
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {displayTemplates.map((template: any, index: number) => {
-              const { Icon: IconComponent, brand } = iconMap[template.icon] || fallbackIcon;
+              const { Icon: IconComponent, brand } = resolveTemplateTech(template);
               return (
                 <Card
                   key={template.id || index}

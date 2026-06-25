@@ -47,6 +47,7 @@ import {
 } from 'react-icons/si';
 import { Link } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
+import { resolveTechToken } from '~/components/marketing/template-tech-icon';
 import { classNames } from '~/utils/classNames';
 
 export type PublicTemplateCard = {
@@ -595,7 +596,22 @@ const TECH_BRANDS: Record<string, TechBrand> = {
 };
 
 function resolveTechBrand(technology: string): TechBrand | undefined {
-  return TECH_BRANDS[technology];
+  // Exact label first (rich local set: Anthropic, Framer, Angular, Qwik, …).
+  if (TECH_BRANDS[technology]) {
+    return TECH_BRANDS[technology];
+  }
+
+  // Case-insensitive match (catalog data may emit different casing).
+  const ci = Object.keys(TECH_BRANDS).find((k) => k.toLowerCase() === technology.toLowerCase());
+
+  if (ci) {
+    return TECH_BRANDS[ci];
+  }
+
+  // Tolerant token fallback (handles "react-vite", "nextjs", etc.).
+  const tb = resolveTechToken(technology);
+
+  return tb ? { icon: tb.Icon, color: tb.brand } : undefined;
 }
 
 function TemplateMarketingCard({ template, featured = false }: { template: PublicTemplateCard; featured?: boolean }) {
