@@ -9,6 +9,7 @@ import {
   type EnterpriseLoaderArgs,
   json,
   redirect,
+  requirePlatformAdmin,
   sessionCookie,
 } from '~/lib/enterprise-api.server';
 
@@ -225,6 +226,8 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => [
 ];
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
+  await requirePlatformAdmin(request);
+
   const section = params.section ?? 'overview';
   const config = adminSections[section];
 

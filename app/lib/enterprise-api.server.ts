@@ -181,6 +181,40 @@ export function loginRedirectFromRequest(request: Request) {
 }
 
 /*
+ * Gate a page loader behind the platform-admin role. The admin console lives at
+ * /admin/* and is intentionally NOT linked from the standard user navigation —
+ * it is reached by direct URL only. This makes the route itself enforce the
+ * role so a normal signed-in user who hits an /admin URL is bounced to their
+ * dashboard and never sees the admin shell/menu, while a platform admin passes
+ * through. Throws a redirect (to /login when signed-out, /dashboard when signed
+ * in but not an admin); returns the admin user otherwise. Defense-in-depth on
+ * top of the server API's own PLATFORM_ADMIN_REQUIRED checks.
+ */
+export async function requirePlatformAdmin(request: Request) {
+  let user: { platformAdmin?: boolean } | undefined;
+
+  try {
+    const payload = await apiRequest<{ user?: { platformAdmin?: boolean } }>(request, '/auth/me', {
+      redirectOn401: false,
+    });
+    user = payload.user;
+  } catch {
+    // Treat any failure to resolve the current user as "not authorized".
+    user = undefined;
+  }
+
+  if (!user) {
+    throw loginRedirectFromRequest(request);
+  }
+
+  if (!user.platformAdmin) {
+    throw redirect('/dashboard');
+  }
+
+  return user;
+}
+
+/*
  * Resource routes (any path under `/api/`) are consumed by `fetch()` from the
  * browser, not by full-page navigations. Redirecting them to `/login` would
  * be transparently followed by `fetch`, leaving the caller with a 200 HTML

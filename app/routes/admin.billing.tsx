@@ -4,6 +4,7 @@ import {
   apiRequest,
   formObject,
   json,
+  requirePlatformAdmin,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
@@ -22,7 +23,10 @@ type AdminBillingData = {
 };
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  await requirePlatformAdmin(request);
+
   const data = await apiRequest<AdminBillingData>(request, '/admin/billing');
+
   return json(data);
 }
 
