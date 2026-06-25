@@ -99,6 +99,47 @@ html:has([data-ecode-static-shell]) body {
   line-height: 1.5;
 }
 
+/*
+ * `.py-responsive` was used by ~21 marketing hero/sections but had NO CSS rule
+ * (confirmed live: computed padding-top was 0 at every breakpoint), so hero
+ * badges/eyebrows sat flush against the sticky header (the recurring
+ * "badge collé au header" defect) and sections had no vertical rhythm. Define it
+ * here as the single source of truth: a consistent responsive vertical padding so
+ * the first hero element always clears the ~65px sticky header on mobile/tablet
+ * and section spacing matches the homepage. `.pt-responsive` covers heroes that
+ * only need top spacing.
+ */
+.py-responsive {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+.pt-responsive {
+  padding-top: 3rem;
+}
+
+@media (min-width: 640px) {
+  .py-responsive {
+    padding-top: 4.5rem;
+    padding-bottom: 4.5rem;
+  }
+
+  .pt-responsive {
+    padding-top: 4.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .py-responsive {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
+  }
+
+  .pt-responsive {
+    padding-top: 6rem;
+  }
+}
+
 // Mobile + tablet: step the marketing/static scope's base font down one notch
 // too, so the whole UI (app shell and marketing) shrinks consistently.
 @media (max-width: 1024px) {
