@@ -12,7 +12,7 @@ export default function PublicTeamPage() {
       {/* Hero Section */}
       <section className="relative py-20 px-4 bg-gradient-to-b from-[#F26207]/5 to-white dark:from-gray-900 dark:to-gray-800">
         <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-[#F26207] to-[#F99D25] text-transparent bg-clip-text">
+          <h1 className="mkt-h1 mb-6 bg-gradient-to-r from-[#F26207] to-[#F99D25] text-transparent bg-clip-text">
             Build Together, Ship Faster
           </h1>
           <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
