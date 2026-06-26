@@ -5,6 +5,7 @@ import {
   CloudCog,
   GitBranch,
   Globe2,
+  Copy,
   History,
   RotateCcw,
   Rocket,
@@ -290,13 +291,30 @@ export default function ProjectDeploymentsPage() {
               <DeployActionButton type="button" onClick={() => setView('manage')}>
                 <Settings className="h-3.5 w-3.5" aria-hidden /> Adjust settings
               </DeployActionButton>
+              {latest?.url ? (
+                <DeployActionButton
+                  type="button"
+                  onClick={() => void navigator.clipboard?.writeText(latest.url as string)}
+                  title="Copy deployment link"
+                >
+                  <Copy className="h-3.5 w-3.5" aria-hidden /> Copy deployment link
+                </DeployActionButton>
+              ) : null}
               <DeployActionButton type="button" disabled title="Security scanning is coming soon">
                 <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Run security scan
               </DeployActionButton>
             </div>
 
             <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">Production</h2>
-            <DeploymentOverview deployment={latest} deploymentTypeId={deployType} />
+            <DeploymentOverview
+              deployment={latest}
+              deploymentTypeId={deployType}
+              databaseConnected={false}
+              usageHref="/usage"
+              onManage={() => setView('manage')}
+              onBuyDomain={() => setView('domains')}
+              onManageDatabase={() => setView('manage')}
+            />
           </section>
 
           <div className="grid gap-4">

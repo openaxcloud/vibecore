@@ -24,9 +24,29 @@ export interface OverviewDeployment {
 export function DeploymentOverview({
   deployment,
   deploymentTypeId = 'static',
+  databaseConnected = false,
+  usageHref = '/usage',
+  onManage,
+  onBuyDomain,
+  onManageDatabase,
 }: {
   deployment?: OverviewDeployment;
   deploymentTypeId?: string;
+
+  /** Whether a production database is attached (drives the Database row state). */
+  databaseConnected?: boolean;
+
+  /** Link target for "See all usage". */
+  usageHref?: string;
+
+  /** Switch to the Manage view (Type → Manage). */
+  onManage?: () => void;
+
+  /** Switch to the Domains view ("Buy a new domain"). */
+  onBuyDomain?: () => void;
+
+  /** Open database management. */
+  onManageDatabase?: () => void;
 }) {
   if (!deployment) {
     return (
@@ -64,18 +84,69 @@ export function DeploymentOverview({
         </span>
       </Row>
       <Row label="Domain">
-        {deployment.url ? (
-          <DomainValue url={deployment.url} />
-        ) : (
-          <span className="text-bolt-elements-textTertiary">Pending</span>
-        )}
-        {deployment.customDomain ? <DomainValue url={`https://${deployment.customDomain}`} /> : null}
+        <div className="flex flex-col gap-2">
+          {deployment.url ? (
+            <DomainValue url={deployment.url} />
+          ) : (
+            <span className="text-bolt-elements-textTertiary">Pending</span>
+          )}
+          {deployment.customDomain ? <DomainValue url={`https://${deployment.customDomain}`} /> : null}
+          <button type="button" onClick={onBuyDomain} className="inline-flex w-fit items-center gap-1.5 text-[13px]">
+            <span className="text-[var(--ecode-accent,#F26207)] hover:underline">Buy a new domain</span>
+            <span className="rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-bolt-elements-textTertiary">
+              Beta
+            </span>
+          </button>
+        </div>
       </Row>
       <Row label="Type">
-        <span>
-          <span className="font-medium text-bolt-elements-textPrimary">{type?.name ?? 'Static'}</span>
-          {resourceDetail ? <span className="text-bolt-elements-textTertiary"> · {resourceDetail}</span> : null}
-        </span>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span>
+            <span className="font-medium text-bolt-elements-textPrimary">{type?.name ?? 'Static'}</span>
+            {resourceDetail ? <span className="text-bolt-elements-textTertiary"> · {resourceDetail}</span> : null}
+          </span>
+          <button
+            type="button"
+            onClick={onManage}
+            className="text-[13px] text-[var(--ecode-accent,#F26207)] hover:underline"
+          >
+            Manage
+          </button>
+          <a
+            href={usageHref}
+            className="text-[13px] text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary hover:underline"
+          >
+            See all usage
+          </a>
+        </div>
+      </Row>
+      <Row label="Database">
+        <div className="flex flex-col gap-1">
+          <span className="inline-flex items-center gap-2">
+            <span
+              className={classNames(
+                'h-2 w-2 rounded-full',
+                databaseConnected ? 'bg-green-500' : 'bg-bolt-elements-textTertiary',
+              )}
+              aria-hidden
+            />
+            <span className="text-bolt-elements-textPrimary">
+              {databaseConnected ? 'Production database connected' : 'No production database'}
+            </span>
+            <button
+              type="button"
+              onClick={onManageDatabase}
+              className="text-[13px] text-[var(--ecode-accent,#F26207)] hover:underline"
+            >
+              Manage
+            </button>
+          </span>
+          <span className="text-[12px] text-bolt-elements-textTertiary">
+            {databaseConnected
+              ? 'Your deployment can read and write the production database.'
+              : 'Attach a managed Postgres database to give your deployment persistent storage.'}
+          </span>
+        </div>
       </Row>
       <Row label="Environment">
         <span className="capitalize">{deployment.environment ?? 'preview'}</span>
