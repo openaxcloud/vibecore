@@ -105,6 +105,7 @@ import { SupabaseChatAlert } from '~/components/chat/SupabaseAlert';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
 import { StickToBottom, useKeybindings, useStickToBottomContext } from '~/lib/hooks';
+import { useTextDirection } from '~/lib/i18n/direction';
 import { ChatBox } from './ChatBox';
 import { HeaderOverflowMenu } from './HeaderOverflowMenu';
 import { modelListFromResponse } from './modelList';
@@ -2354,6 +2355,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [searchParams, setSearchParams] = useSearchParams();
     const layout = useResponsiveLayout();
+    const textDirection = useTextDirection();
 
     /*
      * Workspace isolation — when the IDE is scoped to a specific workspace
@@ -5898,6 +5900,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const agentPanel = (
       <div
         data-testid="ide-agent-panel"
+        dir={textDirection}
         aria-live={projectIdeMode ? 'polite' : undefined}
         className={classNames(styles.Chat, 'flex h-full min-h-0 flex-col flex-grow', {
           'lg:min-w-[var(--chat-min-width)]': !projectIdeMode,

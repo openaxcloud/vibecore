@@ -19,12 +19,16 @@ import i18next, { type i18n as I18nInstance } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 import { detectUserLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from './language';
+import { ar } from './messages/ar';
 import { en } from './messages/en';
+import { es } from './messages/es';
 import { fr } from './messages/fr';
 
 const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string> }> = {
   en: { translation: { ...en } },
   fr: { translation: { ...fr } },
+  es: { translation: { ...es } },
+  ar: { translation: { ...ar } },
 };
 
 let initialized = false;

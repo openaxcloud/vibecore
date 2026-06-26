@@ -13,7 +13,7 @@
  *   4. Default to `'en'`.
  */
 
-export const SUPPORTED_LANGUAGES = ['en', 'fr'] as const;
+export const SUPPORTED_LANGUAGES = ['en', 'fr', 'es', 'ar'] as const;
 
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 

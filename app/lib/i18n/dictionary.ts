@@ -10,7 +10,9 @@
  */
 
 import { detectUserLanguage, type SupportedLanguage } from './language';
+import { ar } from './messages/ar';
 import { en } from './messages/en';
+import { es } from './messages/es';
 import { fr } from './messages/fr';
 
 /**
@@ -24,6 +26,8 @@ export type TranslationBundle = Partial<Record<TranslationKey, string>>;
 const MESSAGES: Record<SupportedLanguage, TranslationBundle> = {
   en,
   fr,
+  es,
+  ar,
 };
 
 let currentLanguage: SupportedLanguage = detectUserLanguage();
@@ -34,6 +38,14 @@ export function getCurrentLanguage(): SupportedLanguage {
 
 export function setCurrentLanguage(language: SupportedLanguage): void {
   currentLanguage = language;
+
+  /*
+   * Notify direction-aware surfaces (useTextDirection) so RTL/LTR flips without
+   * a reload when the user switches language in-session.
+   */
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('vibecore:language-change', { detail: { language } }));
+  }
 }
 
 /**
