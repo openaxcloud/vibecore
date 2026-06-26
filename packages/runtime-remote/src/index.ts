@@ -1035,6 +1035,19 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     let socket: WebSocketLike | undefined;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
+    let stableTimer: ReturnType<typeof setTimeout> | undefined;
+
+    /*
+     * Reset the reconnect backoff only after the socket has STAYED open this long,
+     * not the instant it opens. The server accepts the WS upgrade and only THEN
+     * runs auth (authorizeRuntimeWorkspace) / reaches the (possibly GC'd) workspace
+     * agent, so a rejected or dead-workspace socket opens and closes within a few
+     * hundred ms. Resetting `attempts` on open made every such close reconnect
+     * after ~1s forever — the WebSocket CLOSING/CLOSED flood seen in prod. Gating
+     * the reset on stability lets the exponential backoff grow for a flapping
+     * socket while still snapping back to fast reconnects for a healthy one.
+     */
+    const STABLE_CONNECTION_MS = 5_000;
 
     /*
      * The per-caller onMessage callbacks JSON.parse the frame inline; a single malformed
@@ -1081,16 +1094,34 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         }
 
         socket = opened;
-        attempts = 0;
         socket.addEventListener('message', safeOnMessage);
         socket.addEventListener('close', scheduleReconnect);
         socket.addEventListener('error', scheduleReconnect);
+
+        // Only clear the backoff once the socket proves stable (see STABLE_CONNECTION_MS).
+        if (stableTimer) {
+          clearTimeout(stableTimer);
+        }
+
+        stableTimer = setTimeout(() => {
+          attempts = 0;
+        }, STABLE_CONNECTION_MS);
       } catch {
         scheduleReconnect();
       }
     };
 
     const scheduleReconnect = () => {
+      /*
+       * A close/error before the stability window means this connection never
+       * proved healthy — cancel the pending backoff reset so `attempts` keeps
+       * climbing instead of snapping back to a ~1s reconnect.
+       */
+      if (stableTimer) {
+        clearTimeout(stableTimer);
+        stableTimer = undefined;
+      }
+
       if (stopped || reconnectTimer) {
         return;
       }
@@ -1110,6 +1141,10 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
       if (reconnectTimer) {
         clearTimeout(reconnectTimer);
+      }
+
+      if (stableTimer) {
+        clearTimeout(stableTimer);
       }
 
       if (socket) {

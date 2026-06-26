@@ -989,7 +989,7 @@ export function GitTab({ projectId }: GitTabProps) {
                       className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
                       onClick={() => setStaged(new Set())}
                     >
-                      Clear
+                      Unstage all
                     </button>
                   ) : null}
                   <button

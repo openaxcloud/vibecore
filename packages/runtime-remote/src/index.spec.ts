@@ -196,6 +196,51 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     expect((writeCall?.[1]?.headers as Headers).get('authorization')).toBe('Bearer token-123');
   });
 
+  it('grows the file-watch reconnect backoff when the socket opens then immediately closes (no 1s flood)', async () => {
+    /*
+     * Regression: a watch socket that the server accepts then closes within the
+     * stability window (post-upgrade auth failure / GC'd workspace) used to reset
+     * `attempts` to 0 on every open, reconnecting every ~1s forever — the prod
+     * WebSocket CLOSING/CLOSED flood. The backoff must keep growing instead.
+     */
+    vi.useFakeTimers();
+
+    try {
+      FakeWebSocket.instances = [];
+
+      const adapter = new RemoteKubernetesRuntimeAdapter({
+        baseUrl: 'https://runtime.example.com',
+        authToken: 'token-789',
+        workspaceId: 'ws-1',
+        fetchImpl: createFetchMock() as typeof fetch,
+        WebSocketImpl: FakeWebSocket,
+      });
+
+      const stop = await adapter.watchFiles(['src'], () => {});
+      expect(FakeWebSocket.instances.length).toBe(1);
+
+      // Socket #1 opened; close it well before the 5s stability window.
+      FakeWebSocket.instances.at(-1)!.close(1006);
+
+      // First reconnect lands at ~1s.
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(FakeWebSocket.instances.length).toBe(2);
+
+      // Socket #2 also closes immediately — the next reconnect must NOT be at +1s.
+      FakeWebSocket.instances.at(-1)!.close(1006);
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(FakeWebSocket.instances.length).toBe(2); // backoff grew past 1s
+
+      // It reconnects once the grown (~2s) backoff elapses.
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(FakeWebSocket.instances.length).toBe(3);
+
+      stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('supports terminal, file watch, and log WebSockets with realistic messages', async () => {
     FakeWebSocket.instances = [];
 
