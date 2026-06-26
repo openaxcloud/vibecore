@@ -1439,6 +1439,31 @@ export interface ApiStore {
     clientSecretEnc?: string | null;
     enabled?: boolean;
   }): Promise<{ provider: string; enabled: boolean; clientId: string | null; hasSecret: boolean }>;
+  /*
+   * Admin-managed Stripe config (singleton). Returns the encrypted blobs so the
+   * caller can decrypt them server-side; never expose these to the browser.
+   */
+  getStripeConfig(): Promise<{ secretKeyEnc: string | null; webhookSecretEnc: string | null } | null>;
+  /*
+   * Upsert the singleton. A field left `undefined` is preserved (so saving only
+   * the webhook secret doesn't wipe the secret key); pass `null` to clear.
+   */
+  upsertStripeConfig(input: {
+    secretKeyEnc?: string | null;
+    webhookSecretEnc?: string | null;
+    updatedByUserId?: string | null;
+  }): Promise<{ hasSecretKey: boolean; hasWebhookSecret: boolean }>;
+  /*
+   * Admin-set per-plan Stripe price IDs (not secrets). `undefined` leaves a field
+   * unchanged; `null` clears it. The plan row must already exist (seeded).
+   */
+  setPlanStripePrices(input: {
+    key: string;
+    stripeProductId?: string | null;
+    stripePriceId?: string | null;
+    stripePriceMonthlyId?: string | null;
+    stripePriceAnnualId?: string | null;
+  }): Promise<void>;
   listModelConfigs(options?: { enabledOnly?: boolean }): Promise<ModelConfigRecord[]>;
   // Admin-wide listings for the supervision console.
   listAdminCreditWallets(): Promise<CreditWalletRecord[]>;

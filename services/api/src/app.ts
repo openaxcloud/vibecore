@@ -5848,6 +5848,14 @@ export async function estimateAiTokens(content: string) {
 }
 
 async function seedBillingPlans(store: ApiStore) {
+  /*
+   * Admin-managed price IDs (set via /admin/stripe → Plan rows) are AUTHORITATIVE:
+   * an already-persisted price id wins over env, so an admin edit survives the
+   * next restart instead of being clobbered by a stale env var. Env is only the
+   * first-seed fallback for a blank field.
+   */
+  const existing = new Map((await store.listBillingPlans()).map((plan) => [plan.key, plan]));
+
   await Promise.all(
     billingPlans.map((plan) => {
       /*
@@ -5856,16 +5864,20 @@ async function seedBillingPlans(store: ApiStore) {
        * stays as the monthly fallback so existing single-price setups keep working.
        */
       const upper = plan.key.toUpperCase();
-      const monthly = process.env[`STRIPE_${upper}_PRICE_MONTHLY_ID`] ?? process.env[plan.stripePriceEnv];
-      const annual = process.env[`STRIPE_${upper}_PRICE_ANNUAL_ID`];
+      const prior = existing.get(plan.key);
+      const monthly =
+        prior?.stripePriceMonthlyId ??
+        process.env[`STRIPE_${upper}_PRICE_MONTHLY_ID`] ??
+        process.env[plan.stripePriceEnv];
+      const annual = prior?.stripePriceAnnualId ?? process.env[`STRIPE_${upper}_PRICE_ANNUAL_ID`];
 
       return store.upsertBillingPlan({
         key: plan.key,
         name: plan.name,
         monthlyCents: plan.monthlyCents,
         limits: plan.limits,
-        stripeProductId: process.env[plan.stripeProductEnv],
-        stripePriceId: process.env[plan.stripePriceEnv],
+        stripeProductId: prior?.stripeProductId ?? process.env[plan.stripeProductEnv],
+        stripePriceId: prior?.stripePriceId ?? process.env[plan.stripePriceEnv],
         stripePriceMonthlyId: monthly,
         stripePriceAnnualId: annual,
       });
@@ -6031,13 +6043,71 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     /\/+$/,
     '',
   );
-  const stripeClient =
-    process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_BASE_URL
-      ? new StripeBillingClient({
-          apiKey: requireProductionSecret('STRIPE_SECRET_KEY', process.env.STRIPE_SECRET_KEY, 'dev-stripe-key'),
-          baseUrl: process.env.STRIPE_API_BASE_URL,
-        })
-      : undefined;
+  /*
+   * Build a Stripe client from a resolved API key. Admin-managed config (DB)
+   * takes precedence over env; an empty key with no STRIPE_API_BASE_URL means
+   * Stripe is unconfigured (client undefined), exactly as before.
+   */
+  const buildStripeClient = (apiKey: string | undefined): StripeBillingClient | undefined => {
+    const key = apiKey?.trim();
+
+    if (!key && !process.env.STRIPE_API_BASE_URL) {
+      return undefined;
+    }
+
+    return new StripeBillingClient({
+      apiKey: key || requireProductionSecret('STRIPE_SECRET_KEY', process.env.STRIPE_SECRET_KEY, 'dev-stripe-key'),
+      baseUrl: process.env.STRIPE_API_BASE_URL,
+    });
+  };
+
+  // `let` so an admin-saved live key can rebuild the client without a redeploy.
+  let stripeClient = buildStripeClient(process.env.STRIPE_SECRET_KEY);
+
+  const decryptStripeField = (enc: string | null | undefined): string | undefined => {
+    if (!enc) {
+      return undefined;
+    }
+
+    try {
+      return decryptJson<{ value: string }>(enc).value || undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  /*
+   * DB-first → env-fallback. Called at startup and after an admin save so a key
+   * pasted in /admin/stripe takes effect immediately. Best-effort: a DB/decrypt
+   * failure keeps the current (env-based) client rather than dropping Stripe.
+   */
+  const reloadStripeConfig = async () => {
+    try {
+      const cfg = await store.getStripeConfig();
+      const dbKey = decryptStripeField(cfg?.secretKeyEnc);
+
+      if (dbKey) {
+        stripeClient = buildStripeClient(dbKey);
+      }
+    } catch {
+      // keep the env-based client
+    }
+  };
+
+  // Webhook secret resolved per request (webhooks are low-volume): DB-first → env.
+  const resolveStripeWebhookSecret = async (): Promise<string | undefined> => {
+    try {
+      const dbSecret = decryptStripeField((await store.getStripeConfig())?.webhookSecretEnc);
+
+      if (dbSecret) {
+        return dbSecret;
+      }
+    } catch {
+      // fall through to env
+    }
+
+    return process.env.STRIPE_WEBHOOK_SECRET;
+  };
 
   const collaborationBroker = createCollaborationBroker();
 
@@ -6120,6 +6190,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   await seedBillingPlans(store);
+  await reloadStripeConfig();
   await seedProviderRegistry(store);
 
   await app.register(helmet, {
@@ -17369,7 +17440,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.post('/billing/stripe/webhook', async (request, reply) => {
     const payload = request.rawBody ?? JSON.stringify(request.body ?? {});
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const webhookSecret = await resolveStripeWebhookSecret();
 
     if (!webhookSecret) {
       throw Object.assign(new Error('Stripe webhook secret is not configured'), {
@@ -18075,6 +18146,111 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { connector: updated };
+  });
+
+  /*
+   * Admin Stripe configuration. Lets a platform admin paste the live secret key +
+   * webhook signing secret (write-only, encrypted) and edit per-plan price IDs in
+   * the console instead of values-prod.yaml. GET never returns the secrets — only
+   * `hasX` flags (+ whether env still provides a fallback) and the (non-secret)
+   * price IDs. POST is platform-admin + step-up gated; a blank secret keeps the
+   * stored one. Saving rebuilds the Stripe client so the new key takes effect
+   * without a redeploy.
+   */
+  const stripeConfigView = async () => {
+    const cfg = await store.getStripeConfig();
+    const plans = await store.listBillingPlans();
+
+    return {
+      hasSecretKey: Boolean(cfg?.secretKeyEnc),
+      hasWebhookSecret: Boolean(cfg?.webhookSecretEnc),
+      envSecretKeyPresent: Boolean(process.env.STRIPE_SECRET_KEY),
+      envWebhookSecretPresent: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
+      stripeConfigured: Boolean(stripeClient),
+      plans: plans.map((plan) => ({
+        key: plan.key,
+        name: plan.name,
+        stripeProductId: plan.stripeProductId ?? '',
+        stripePriceId: plan.stripePriceId ?? '',
+        stripePriceMonthlyId: plan.stripePriceMonthlyId ?? '',
+        stripePriceAnnualId: plan.stripePriceAnnualId ?? '',
+      })),
+    };
+  };
+
+  app.get('/admin/stripe-config', async (request) => {
+    await requirePlatformAdmin(request);
+
+    return stripeConfigView();
+  });
+
+  app.post('/admin/stripe-config', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const body = parse(
+      z.object({
+        secretKey: z.string().optional(),
+        webhookSecret: z.string().optional(),
+        prices: z
+          .record(
+            z.string(),
+            z.object({
+              stripeProductId: z.string().optional(),
+              stripePriceId: z.string().optional(),
+              stripePriceMonthlyId: z.string().optional(),
+              stripePriceAnnualId: z.string().optional(),
+            }),
+          )
+          .optional(),
+      }),
+      request.body ?? {},
+    );
+
+    const hasNewSecretKey = typeof body.secretKey === 'string' && body.secretKey.trim().length > 0;
+    const hasNewWebhookSecret = typeof body.webhookSecret === 'string' && body.webhookSecret.trim().length > 0;
+
+    // undefined → keep the stored secret; only overwrite when a new one is typed.
+    await store.upsertStripeConfig({
+      ...(hasNewSecretKey ? { secretKeyEnc: encryptJson({ value: body.secretKey!.trim() }) } : {}),
+      ...(hasNewWebhookSecret ? { webhookSecretEnc: encryptJson({ value: body.webhookSecret!.trim() }) } : {}),
+      updatedByUserId: request.currentUser?.id ?? null,
+    });
+
+    const validPlanKeys = new Set<string>((await store.listBillingPlans()).map((plan) => plan.key));
+    const pricePlanKeys = body.prices ? Object.keys(body.prices).filter((key) => validPlanKeys.has(key)) : [];
+
+    // An empty string clears a price field (null); absent leaves it unchanged.
+    const toPatch = (value: string | undefined) =>
+      value === undefined ? undefined : value.trim() === '' ? null : value.trim();
+
+    for (const key of pricePlanKeys) {
+      const prices = body.prices![key];
+      await store.setPlanStripePrices({
+        key,
+        stripeProductId: toPatch(prices.stripeProductId),
+        stripePriceId: toPatch(prices.stripePriceId),
+        stripePriceMonthlyId: toPatch(prices.stripePriceMonthlyId),
+        stripePriceAnnualId: toPatch(prices.stripePriceAnnualId),
+      });
+    }
+
+    // Rebuild the Stripe client (and let the webhook secret resolver pick up the
+    // new value) so the change is live without a redeploy.
+    await reloadStripeConfig();
+
+    await audit(request, store, {
+      action: 'admin.stripe.configure',
+      resourceType: 'stripe-config',
+      resourceId: 'singleton',
+      metadata: {
+        secretKeyUpdated: hasNewSecretKey,
+        webhookSecretUpdated: hasNewWebhookSecret,
+        plansUpdated: pricePlanKeys,
+      },
+    });
+
+    return stripeConfigView();
   });
 
   app.get('/admin/wallets', async (request) => {

@@ -3285,6 +3285,63 @@ export class PrismaApiStore implements ApiStore {
     };
   }
 
+  async getStripeConfig() {
+    const row = await this.prisma.stripeConfig.findUnique({ where: { id: 'singleton' } });
+
+    if (!row) {
+      return null;
+    }
+
+    return { secretKeyEnc: row.secretKeyEnc, webhookSecretEnc: row.webhookSecretEnc };
+  }
+
+  async upsertStripeConfig(input: {
+    secretKeyEnc?: string | null;
+    webhookSecretEnc?: string | null;
+    updatedByUserId?: string | null;
+  }) {
+    // undefined → leave the column untouched; null → clear it.
+    const patch = {
+      ...(input.secretKeyEnc !== undefined ? { secretKeyEnc: input.secretKeyEnc } : {}),
+      ...(input.webhookSecretEnc !== undefined ? { webhookSecretEnc: input.webhookSecretEnc } : {}),
+      ...(input.updatedByUserId !== undefined ? { updatedByUserId: input.updatedByUserId } : {}),
+    };
+
+    const row = await this.prisma.stripeConfig.upsert({
+      where: { id: 'singleton' },
+      create: {
+        id: 'singleton',
+        secretKeyEnc: input.secretKeyEnc ?? null,
+        webhookSecretEnc: input.webhookSecretEnc ?? null,
+        updatedByUserId: input.updatedByUserId ?? null,
+      },
+      update: patch,
+    });
+
+    return { hasSecretKey: Boolean(row.secretKeyEnc), hasWebhookSecret: Boolean(row.webhookSecretEnc) };
+  }
+
+  async setPlanStripePrices(input: {
+    key: string;
+    stripeProductId?: string | null;
+    stripePriceId?: string | null;
+    stripePriceMonthlyId?: string | null;
+    stripePriceAnnualId?: string | null;
+  }) {
+    const data = {
+      ...(input.stripeProductId !== undefined ? { stripeProductId: input.stripeProductId } : {}),
+      ...(input.stripePriceId !== undefined ? { stripePriceId: input.stripePriceId } : {}),
+      ...(input.stripePriceMonthlyId !== undefined ? { stripePriceMonthlyId: input.stripePriceMonthlyId } : {}),
+      ...(input.stripePriceAnnualId !== undefined ? { stripePriceAnnualId: input.stripePriceAnnualId } : {}),
+    };
+
+    if (Object.keys(data).length === 0) {
+      return;
+    }
+
+    await this.prisma.plan.update({ where: { key: input.key }, data });
+  }
+
   async listAdminCreditWallets() {
     return (await this.prisma.creditWallet.findMany({ orderBy: { updatedAt: 'desc' }, take: 500 })).map(
       mapCreditWallet,

@@ -539,6 +539,15 @@ exports.Prisma.PlanScalarFieldEnum = {
   stripePriceAnnualId: 'stripePriceAnnualId'
 };
 
+exports.Prisma.StripeConfigScalarFieldEnum = {
+  id: 'id',
+  secretKeyEnc: 'secretKeyEnc',
+  webhookSecretEnc: 'webhookSecretEnc',
+  updatedByUserId: 'updatedByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.UsageEventScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -1335,6 +1344,7 @@ exports.Prisma.ModelName = {
   BillingCustomer: 'BillingCustomer',
   Subscription: 'Subscription',
   Plan: 'Plan',
+  StripeConfig: 'StripeConfig',
   UsageEvent: 'UsageEvent',
   QuotaLedger: 'QuotaLedger',
   QuotaOverride: 'QuotaOverride',

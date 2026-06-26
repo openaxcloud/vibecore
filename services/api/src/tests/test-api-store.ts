@@ -2539,6 +2539,59 @@ export class TestApiStore implements ApiStore {
     };
   }
 
+  private stripeConfig: { secretKeyEnc: string | null; webhookSecretEnc: string | null } | null = null;
+
+  async getStripeConfig() {
+    return this.stripeConfig;
+  }
+
+  async upsertStripeConfig(input: {
+    secretKeyEnc?: string | null;
+    webhookSecretEnc?: string | null;
+    updatedByUserId?: string | null;
+  }) {
+    const current = this.stripeConfig ?? { secretKeyEnc: null, webhookSecretEnc: null };
+    this.stripeConfig = {
+      secretKeyEnc: input.secretKeyEnc !== undefined ? input.secretKeyEnc : current.secretKeyEnc,
+      webhookSecretEnc: input.webhookSecretEnc !== undefined ? input.webhookSecretEnc : current.webhookSecretEnc,
+    };
+
+    return {
+      hasSecretKey: Boolean(this.stripeConfig.secretKeyEnc),
+      hasWebhookSecret: Boolean(this.stripeConfig.webhookSecretEnc),
+    };
+  }
+
+  async setPlanStripePrices(input: {
+    key: string;
+    stripeProductId?: string | null;
+    stripePriceId?: string | null;
+    stripePriceMonthlyId?: string | null;
+    stripePriceAnnualId?: string | null;
+  }) {
+    const plan = this.billingPlans.get(input.key as PlanKey);
+
+    if (!plan) {
+      return;
+    }
+
+    if (input.stripeProductId !== undefined) {
+      plan.stripeProductId = input.stripeProductId ?? undefined;
+    }
+
+    if (input.stripePriceId !== undefined) {
+      plan.stripePriceId = input.stripePriceId ?? undefined;
+    }
+
+    if (input.stripePriceMonthlyId !== undefined) {
+      plan.stripePriceMonthlyId = input.stripePriceMonthlyId ?? undefined;
+    }
+
+    if (input.stripePriceAnnualId !== undefined) {
+      plan.stripePriceAnnualId = input.stripePriceAnnualId ?? undefined;
+    }
+  }
+
   async listAdminCreditWallets() {
     return [...this.creditWallets.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }

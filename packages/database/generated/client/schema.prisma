@@ -743,6 +743,24 @@ model Plan {
   subscriptions        Subscription[]
 }
 
+/**
+ * Admin-managed Stripe configuration (singleton row, id = "singleton"). Lets a
+ * platform admin paste the live secret key + webhook signing secret in the admin
+ * console instead of editing values-prod.yaml. Both secrets are encrypted at rest
+ * (encryptJson) and write-only (never returned to the browser — only a hasX flag).
+ * Per-plan price IDs are NOT secrets and live in Plan.* ; they are edited via the
+ * same admin page. Billing reads this DB config FIRST and falls back to env, so an
+ * empty row keeps the current env-based behaviour with zero regression.
+ */
+model StripeConfig {
+  id               String   @id @default("singleton")
+  secretKeyEnc     String?
+  webhookSecretEnc String?
+  updatedByUserId  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
 model UsageEvent {
   id             String       @id @default(cuid())
   organizationId String
