@@ -52,6 +52,7 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 import { LLMManager } from '~/lib/modules/llm/manager';
+import { fetchAdminEnabledProviders } from '~/lib/modules/llm/provider-visibility.server';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { detectApplePlatform, submitShortcutLabel as resolveSubmitShortcutLabel } from '~/lib/platform-shortcut';
 import { providersStore } from '~/lib/stores/settings';
@@ -589,9 +590,24 @@ export async function loader({ request, context }: EnterpriseLoaderArgs) {
     icon: provider.icon,
   }));
 
+  /*
+   * Hide providers an admin disabled (admin visibility toggle). Fail-open: a null
+   * set (table broken/empty) or an empty filtered result leaves the full list so
+   * the composer never ends up with zero selectable providers.
+   */
+  const adminEnabled = await fetchAdminEnabledProviders(request);
+  const filteredProviders = adminEnabled ? providers.filter((provider) => adminEnabled.has(provider.name)) : providers;
+  const visibleProviders = filteredProviders.length > 0 ? filteredProviders : providers;
+  const fullModelList = llmManager.getStaticModelList();
+
+  const visibleModelList =
+    adminEnabled && filteredProviders.length > 0
+      ? fullModelList.filter((model) => !model.provider || adminEnabled.has(model.provider))
+      : fullModelList;
+
   return json<ModelsPayload & { initialPrompt: string }>({
-    modelList: llmManager.getStaticModelList(),
-    providers,
+    modelList: visibleModelList,
+    providers: visibleProviders,
     defaultProvider: {
       name: defaultProvider.name,
       staticModels: defaultProvider.staticModels,

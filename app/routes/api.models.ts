@@ -6,6 +6,7 @@ import {
   trimToUsableProviders,
 } from '~/lib/modules/llm/managed-models';
 import { LLMManager } from '~/lib/modules/llm/manager';
+import { fetchAdminEnabledProviders } from '~/lib/modules/llm/provider-visibility.server';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { ProviderInfo } from '~/types/model';
 
@@ -127,6 +128,22 @@ export async function loader({
       providers,
       defaultProvider,
       usableProviderNames,
+    }));
+  }
+
+  /*
+   * Apply the admin provider visibility toggle on top of the key-based trim: a
+   * provider an admin disabled is hidden from the selector even if it has a key.
+   * Fail-open (null) leaves the list untouched, so a broken table never hides all.
+   */
+  const adminEnabled = await fetchAdminEnabledProviders(request);
+
+  if (adminEnabled) {
+    ({ modelList, providers, defaultProvider } = trimToUsableProviders({
+      modelList,
+      providers,
+      defaultProvider,
+      usableProviderNames: adminEnabled,
     }));
   }
 

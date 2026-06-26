@@ -5896,6 +5896,42 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   ollama: 'Ollama',
 };
 
+/*
+ * The user-facing provider selector (web LLMManager) registers these 23 providers
+ * by DISPLAY NAME. The admin "AI providers" toggle (ProviderConfig.enabled) is the
+ * source of truth for which appear in the selector — a disabled provider is hidden
+ * even if it has a platform key. Seeded into ProviderConfig (by display name, so it
+ * matches the selector's provider.name) and exposed via GET /providers/enabled.
+ * Hardcoded because the API can't import the web registry (app/lib/modules/llm);
+ * keep in sync with registry.ts. A name added on the web but missing here simply
+ * stays visible (fail-open), never hidden.
+ */
+const KNOWN_LLM_PROVIDERS = [
+  'AmazonBedrock',
+  'Anthropic',
+  'Cerebras',
+  'Cohere',
+  'Deepseek',
+  'Fireworks',
+  'Github',
+  'Google',
+  'Groq',
+  'HuggingFace',
+  'Hyperbolic',
+  'LMStudio',
+  'Mistral',
+  'Moonshot',
+  'Ollama',
+  'OpenAI',
+  'OpenAILike',
+  'OpenRouter',
+  'Perplexity',
+  'Together',
+  'Z.ai',
+  'xAI',
+];
+const KNOWN_LLM_PROVIDER_SET = new Set(KNOWN_LLM_PROVIDERS);
+
 /** Map the ai-pricing plan key onto the Replit-parity credit plan key. */
 function aiPlanToCreditPlan(plan: AiPlanKey): CreditPlanKey {
   switch (plan) {
@@ -5938,6 +5974,17 @@ export async function seedProviderRegistry(store: ApiStore) {
           displayName: PROVIDER_DISPLAY_NAMES[provider] ?? provider,
           enabled: true,
         });
+      }
+    }
+
+    /*
+     * User-facing provider VISIBILITY rows: seed all 23 selector providers (by
+     * display name) so the admin can enable/disable each for users. Idempotent
+     * and additive — an existing row's `enabled` (an admin toggle) is preserved.
+     */
+    for (const name of KNOWN_LLM_PROVIDERS) {
+      if (!haveProvider.has(name)) {
+        await store.upsertProviderConfig({ provider: name, displayName: name, enabled: true });
       }
     }
 
@@ -18018,7 +18065,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   // --- Replit-parity admin supervision: registry, wallets, checkpoints --------
   app.get('/admin/providers', async (request) => {
     await requirePlatformAdmin(request);
-    return { providers: await store.listProviderConfigs() };
+    /*
+     * Show only the canonical user-facing providers (by display name) as toggles,
+     * not the legacy lowercase catalog rows that back the dormant model registry.
+     */
+    const all = await store.listProviderConfigs();
+    return { providers: all.filter((p) => KNOWN_LLM_PROVIDER_SET.has(p.provider)) };
+  });
+
+  /*
+   * The set of provider DISPLAY NAMES enabled for the user model selector. Read
+   * server-side by the web (/api/models + /projects/new loader) to hide providers
+   * an admin disabled. Any authenticated user; returns no secrets. A known provider
+   * with no row yet is treated as enabled (fail-open).
+   */
+  app.get('/providers/enabled', async (request: any) => {
+    if (!request.currentUser) {
+      throw Object.assign(new Error('Authentication required'), { statusCode: 401, code: 'UNAUTHORIZED' });
+    }
+
+    const byName = new Map((await store.listProviderConfigs()).map((p) => [p.provider, p.enabled] as const));
+
+    return { providers: KNOWN_LLM_PROVIDERS.filter((name) => byName.get(name) !== false) };
   });
 
   app.get('/admin/models', async (request) => {
