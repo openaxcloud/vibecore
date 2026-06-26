@@ -187,6 +187,23 @@ describe('validateProjectPrompt', () => {
     expect(result.characterCount).toBe('one two three\nfour five'.length);
   });
 
+  it('counts CJK (space-less) prompts as multiple words so Create is not silently disabled', () => {
+    /*
+     * Regression: a long Chinese/Japanese/Thai prompt has no ASCII whitespace, so
+     * the old split(/\s+/) returned wordCount=1 → failed the min-words gate → the
+     * Create button stayed disabled despite hundreds of characters (and the server
+     * validator rejected it identically). Intl.Segmenter must segment it into many
+     * word-like units. Skip if the runtime lacks Intl.Segmenter.
+     */
+    if (!('Segmenter' in Intl)) {
+      return;
+    }
+
+    const result = validateProjectPrompt('创建一个精美的个人作品集网站包含主页关于页面项目网格和联系表单');
+    expect(result.wordCount).toBeGreaterThanOrEqual(PROMPT_MIN_WORDS);
+    expect(result.errors.map((e) => e.code)).not.toContain('too_short');
+  });
+
   it('honours the minWords / maxChars / maxLines overrides', () => {
     const lenient = validateProjectPrompt('one two', { minWords: 1 });
     expect(lenient.errors).toEqual([]);

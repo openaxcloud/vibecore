@@ -190,7 +190,47 @@ export function detectPromptInjection(value: string): RegExp[] {
 function countWords(value: string): number {
   const trimmed = value.trim();
 
-  return trimmed ? trimmed.split(/\s+/).length : 0;
+  if (!trimmed) {
+    return 0;
+  }
+
+  /*
+   * Unicode-aware word count. A plain `split(/\s+/)` returns 1 for scripts that
+   * don't delimit words with ASCII whitespace (Chinese, Japanese, Thai, …): a
+   * long CJK prompt counted as a SINGLE word, failing the min-words gate so the
+   * Create button stayed silently disabled even though the character counter
+   * showed hundreds of characters (and the server validator rejected it the same
+   * way). Intl.Segmenter (word granularity) segments those scripts correctly; we
+   * fall back to the whitespace split where it isn't available.
+   */
+  try {
+    const intl = Intl as {
+      Segmenter?: new (
+        locales?: string,
+        options?: { granularity?: 'word' | 'sentence' | 'grapheme' },
+      ) => { segment: (input: string) => Iterable<{ isWordLike?: boolean }> };
+    };
+
+    if (intl.Segmenter) {
+      const segmenter = new intl.Segmenter(undefined, { granularity: 'word' });
+
+      let count = 0;
+
+      for (const segment of segmenter.segment(trimmed)) {
+        if (segment.isWordLike) {
+          count += 1;
+        }
+      }
+
+      if (count > 0) {
+        return count;
+      }
+    }
+  } catch {
+    // fall through to the whitespace heuristic
+  }
+
+  return trimmed.split(/\s+/).length;
 }
 
 function countLines(value: string): number {
