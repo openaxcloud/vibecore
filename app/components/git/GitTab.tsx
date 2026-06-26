@@ -835,6 +835,60 @@ export function GitTab({ projectId }: GitTabProps) {
           </div>
         ) : null}
 
+        {/*
+         * Remote Updates — Replit Git "Remote Updates" section: the linked repo
+         * (click → forge), the tracked ref (origin/<branch> • upstream), and the
+         * Settings + Fetch controls. Shown only when a remote is connected.
+         */}
+        {hasRemote && project?.gitRepositoryUrl ? (
+          <div
+            data-testid="git-remote-updates"
+            className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2.5"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-bolt-elements-textTertiary">
+                Remote Updates
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setShowSettings(true)}
+                  title="Git settings"
+                  className="inline-flex h-7 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 text-xs font-medium text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
+                >
+                  <span className="i-ph:gear text-sm" aria-hidden />
+                  Settings
+                </button>
+                <button
+                  type="button"
+                  data-testid="git-fetch"
+                  disabled={loading}
+                  onClick={() => void loadPanel()}
+                  title="Refresh and fetch"
+                  className="inline-flex h-7 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 text-xs font-medium text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary disabled:opacity-50"
+                >
+                  <span
+                    className={classNames('i-ph:arrows-clockwise text-sm', loading && 'animate-spin')}
+                    aria-hidden
+                  />
+                  Fetch
+                </button>
+              </div>
+            </div>
+            <a
+              href={project.gitRepositoryUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1.5 block truncate text-sm font-medium text-[var(--ecode-accent,#F26207)] hover:underline"
+            >
+              {project.gitRepositoryUrl.replace(/^https?:\/\/[^/]+\//, '').replace(/\.git$/, '')}
+            </a>
+            <span className="text-xs text-bolt-elements-textTertiary">
+              origin/{branch} • upstream · last fetched {timeAgo(lastLoadedAt)}
+            </span>
+          </div>
+        ) : null}
+
         {discardConfirm ? (
           <div
             className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
