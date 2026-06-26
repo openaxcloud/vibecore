@@ -72,6 +72,14 @@ const renameSchema = z.object({ from: safePathString, to: safePathString });
 const commandSchema = z.object({
   command: z.string().min(1),
   args: z.array(z.string()).default([]),
+  /*
+   * Optional working directory RELATIVE to the workspace root. The client sends
+   * this for projects whose package.json lives in a subdirectory (monorepo /
+   * "app in a subfolder"): without it every command ran in the root and
+   * `npm install` / `npm run dev` hit `ENOENT: package.json`. Resolved through
+   * resolveWorkspacePath so it can never escape the workspace.
+   */
+  cwd: safePathString.optional(),
   timeoutMs: z.number().int().positive().optional(),
 });
 
@@ -365,7 +373,10 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
   app.post('/commands/run', async (request) => {
     const body = commandSchema.parse(request.body);
-    return runCommand(root, body.command, body.args, {
+    // Run in the requested subdirectory (validated to stay within root) so a
+    // subfolder project's install/build resolves its own package.json.
+    const commandCwd = body.cwd ? resolveWorkspacePath(root, body.cwd) : root;
+    return runCommand(commandCwd, body.command, body.args, {
       timeoutMs: Math.min(body.timeoutMs ?? commandTimeoutMs, commandTimeoutMs),
       maxOutputBytes,
       maxProcesses,
@@ -591,7 +602,33 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           return;
         }
 
-        runCommandStream(root, payload.command, payload.args ?? [], {
+        /*
+         * Resolve the optional subdirectory cwd within root (a monorepo / subfolder
+         * project installs+runs where ITS package.json is). resolveWorkspacePath
+         * throws if the path escapes the workspace — surface that as an error frame
+         * instead of crashing the socket handler.
+         */
+        let commandCwd: string;
+
+        try {
+          commandCwd = payload.cwd ? resolveWorkspacePath(root, payload.cwd) : root;
+        } catch (error) {
+          try {
+            socket.send(
+              JSON.stringify({
+                type: 'error',
+                error: { message: error instanceof Error ? error.message : String(error) },
+                timestamp: new Date().toISOString(),
+              }),
+            );
+          } catch {
+            // socket already closing — drop the frame
+          }
+
+          return;
+        }
+
+        runCommandStream(commandCwd, payload.command, payload.args ?? [], {
           maxOutputBytes,
           maxProcesses,
           streamTimeoutMs,
@@ -1190,12 +1227,19 @@ function parseTerminalMessage(message: Buffer) {
   }
 }
 
-function parseCommandStreamMessage(message: Buffer): { command: string; args?: string[] } | undefined {
+function parseCommandStreamMessage(message: Buffer): { command: string; args?: string[]; cwd?: string } | undefined {
   try {
-    const parsed = JSON.parse(message.toString()) as { type?: string; payload?: { command?: string; args?: string[] } };
+    const parsed = JSON.parse(message.toString()) as {
+      type?: string;
+      payload?: { command?: string; args?: string[]; cwd?: string };
+    };
 
     if (parsed.type === 'hello' && typeof parsed.payload?.command === 'string') {
-      return { command: parsed.payload.command, args: parsed.payload.args ?? [] };
+      return {
+        command: parsed.payload.command,
+        args: parsed.payload.args ?? [],
+        cwd: typeof parsed.payload.cwd === 'string' && parsed.payload.cwd.length > 0 ? parsed.payload.cwd : undefined,
+      };
     }
   } catch {
     return undefined;

@@ -134,6 +134,43 @@ describe('workspace-agent', () => {
     expect(response.json()).toMatchObject({ code: 0, stdout: 'ok\n' });
   });
 
+  it('runs a command in the requested subdirectory cwd (monorepo / subfolder project)', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const headers = { authorization: `Bearer ${token}` };
+
+    // Materialise a subdirectory by writing a file into it.
+    await app.inject({
+      method: 'POST',
+      url: '/files/write',
+      headers,
+      payload: { path: 'packages/app/package.json', content: '{"name":"app"}' },
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/commands/run',
+      headers,
+      payload: { command: process.execPath, args: ['-e', 'process.stdout.write(process.cwd())'], cwd: 'packages/app' },
+    });
+
+    const body = response.json() as { code: number; stdout: string };
+    expect(body.code).toBe(0);
+    expect(body.stdout.endsWith('packages/app')).toBe(true);
+  });
+
+  it('rejects a command cwd that escapes the workspace root', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/commands/run',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { command: process.execPath, args: ['-e', 'console.log("x")'], cwd: '../../etc' },
+    });
+
+    expect(response.statusCode).toBeGreaterThanOrEqual(400);
+  });
+
   it('normalizes shell pipeline shorthand before spawning workspace commands', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId, commandTimeoutMs: 2_000 });
     const headers = { authorization: `Bearer ${token}` };
