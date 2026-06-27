@@ -30,6 +30,90 @@ function providerLabel(provider: string) {
   return PROVIDERS.find((item) => item.id === provider)?.label ?? provider;
 }
 
+/*
+ * .gitignore editor — loads the project's .gitignore from the running workspace
+ * (GET /api/projects/:id/files/.gitignore, empty when absent) and saves edits
+ * back (POST { content }). Real file IO, no mock.
+ */
+function GitIgnoreEditor({ projectId }: { projectId: string }) {
+  const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<string | undefined>();
+  const url = `/api/projects/${encodeURIComponent(projectId)}/files/.gitignore`;
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetch(url, { headers: { accept: 'text/plain' } })
+      .then((response) => (response.ok ? response.text() : ''))
+      .then((text) => {
+        if (!cancelled) {
+          setContent(text);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setContent('');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  const save = useCallback(async () => {
+    setSaving(true);
+    setStatus(undefined);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
+      setStatus(response.ok ? 'Saved' : 'Could not save');
+    } catch {
+      setStatus('Could not save');
+    } finally {
+      setSaving(false);
+    }
+  }, [content, url]);
+
+  return (
+    <section className="grid gap-2">
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">.gitignore</h4>
+      <textarea
+        value={content}
+        onChange={(event) => setContent(event.currentTarget.value)}
+        disabled={loading}
+        rows={6}
+        spellCheck={false}
+        aria-label=".gitignore contents"
+        placeholder={loading ? 'Loading…' : 'node_modules\n.env\ndist'}
+        className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1.5 font-mono text-xs outline-none focus:border-bolt-elements-focus"
+      />
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={saving || loading}
+          className="inline-flex h-8 items-center justify-center rounded-md bg-bolt-elements-button-primary-background px-3 text-sm font-medium text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover disabled:opacity-60"
+        >
+          {saving ? 'Saving…' : 'Save .gitignore'}
+        </button>
+        {status ? <span className="text-xs text-bolt-elements-textTertiary">{status}</span> : null}
+      </div>
+    </section>
+  );
+}
+
 export interface GitSettingsPanelProps {
   projectId: string;
   gitRepositoryUrl?: string | null;
@@ -347,6 +431,9 @@ export function GitSettingsPanel({
           </button>
         ) : null}
       </section>
+
+      {/* .gitignore */}
+      <GitIgnoreEditor projectId={projectId} />
 
       {/* Connections */}
       <section className="grid gap-2">
