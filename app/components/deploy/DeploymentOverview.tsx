@@ -169,10 +169,15 @@ function DomainValue({ url }: { url: string }) {
   const [showQr, setShowQr] = useState(false);
 
   const copy = () => {
-    void navigator.clipboard?.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
+    void navigator.clipboard
+      ?.writeText(url)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      })
+      .catch(() => {
+        // Clipboard can reject (permissions / insecure context) — don't crash the panel.
+      });
   };
 
   return (

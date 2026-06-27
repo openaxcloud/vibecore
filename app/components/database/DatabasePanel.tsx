@@ -140,7 +140,12 @@ export function DatabasePanel({ projectId }: { projectId: string }) {
         </div>
       </header>
 
-      {!enabled ? (
+      {loading && !data ? (
+        <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 py-10 text-center">
+          <RefreshCw className="mx-auto h-6 w-6 animate-spin text-bolt-elements-textTertiary" aria-hidden />
+          <p className="mt-3 text-sm text-bolt-elements-textSecondary">Loading databases…</p>
+        </div>
+      ) : !enabled ? (
         <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 py-10 text-center">
           <DatabaseIcon className="mx-auto h-7 w-7 text-bolt-elements-textTertiary" aria-hidden />
           <p className="mt-3 text-sm font-medium text-bolt-elements-textPrimary">No database yet</p>

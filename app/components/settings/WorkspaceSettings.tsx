@@ -138,11 +138,11 @@ export function WorkspaceSettings() {
       <Section title="Accessible Terminal">
         <ToggleRow
           label="Screen-reader friendly terminal output"
-          checked={editor.wordWrap}
-          onChange={(v) => patch({ wordWrap: v })}
+          checked={editor.accessibleTerminal}
+          onChange={(v) => patch({ accessibleTerminal: v })}
         />
         <p className="text-[12px] text-bolt-elements-textTertiary">
-          Wraps long lines and announces output for assistive technology.
+          Announces terminal output for assistive technology.
         </p>
       </Section>
 

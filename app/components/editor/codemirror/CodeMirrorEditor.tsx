@@ -561,77 +561,86 @@ function setEditorDocument(
     effects: [editableStateEffect.of(editable && !doc.isBinary && !locked)],
   });
 
-  getLanguage(doc.filePath).then((languageSupport) => {
-    /*
-     * The active document may have changed while getLanguage() was pending —
-     * don't reconfigure/scroll/focus the editor for a file the user left.
-     */
-    if (!languageSupport || !isStillCurrent()) {
-      return;
-    }
-
-    view.dispatch({
-      effects: [languageCompartment.reconfigure([languageSupport]), reconfigureTheme(theme)],
-    });
-
-    requestAnimationFrame(() => {
-      if (!isStillCurrent()) {
+  getLanguage(doc.filePath)
+    .then((languageSupport) => {
+      /*
+       * The active document may have changed while getLanguage() was pending —
+       * don't reconfigure/scroll/focus the editor for a file the user left.
+       */
+      if (!languageSupport || !isStillCurrent()) {
         return;
       }
 
-      const currentLeft = view.scrollDOM.scrollLeft;
-      const currentTop = view.scrollDOM.scrollTop;
-      const newLeft = doc.scroll?.left ?? 0;
-      const newTop = doc.scroll?.top ?? 0;
+      view.dispatch({
+        effects: [languageCompartment.reconfigure([languageSupport]), reconfigureTheme(theme)],
+      });
 
-      if (typeof doc.scroll?.line === 'number') {
-        const line = doc.scroll.line;
-        const column = doc.scroll.column ?? 0;
+      requestAnimationFrame(() => {
+        if (!isStillCurrent()) {
+          return;
+        }
 
-        try {
-          // Check if the line number is valid for the current document
-          const totalLines = view.state.doc.lines;
+        const currentLeft = view.scrollDOM.scrollLeft;
+        const currentTop = view.scrollDOM.scrollTop;
+        const newLeft = doc.scroll?.left ?? 0;
+        const newTop = doc.scroll?.top ?? 0;
 
-          // Only proceed if the line number is within the document's range
-          if (line < totalLines) {
-            const linePos = view.state.doc.line(line + 1).from + column;
-            view.dispatch({
-              selection: { anchor: linePos },
-              scrollIntoView: true,
-            });
-            view.focus();
-          } else {
-            logger.warn(`Invalid line number ${line + 1} in ${totalLines}-line document`);
+        if (typeof doc.scroll?.line === 'number') {
+          const line = doc.scroll.line;
+          const column = doc.scroll.column ?? 0;
+
+          try {
+            // Check if the line number is valid for the current document
+            const totalLines = view.state.doc.lines;
+
+            // Only proceed if the line number is within the document's range
+            if (line < totalLines) {
+              const linePos = view.state.doc.line(line + 1).from + column;
+              view.dispatch({
+                selection: { anchor: linePos },
+                scrollIntoView: true,
+              });
+              view.focus();
+            } else {
+              logger.warn(`Invalid line number ${line + 1} in ${totalLines}-line document`);
+            }
+          } catch (error) {
+            logger.error('Error scrolling to line:', error);
           }
-        } catch (error) {
-          logger.error('Error scrolling to line:', error);
+
+          return;
         }
 
-        return;
-      }
+        const needsScrolling = currentLeft !== newLeft || currentTop !== newTop;
 
-      const needsScrolling = currentLeft !== newLeft || currentTop !== newTop;
-
-      if (autoFocus && editable) {
-        if (needsScrolling) {
-          view.scrollDOM.addEventListener(
-            'scroll',
-            () => {
-              // The scroll fires asynchronously; bail if the user already left this file.
-              if (isStillCurrent()) {
-                view.focus();
-              }
-            },
-            { once: true },
-          );
-        } else {
-          view.focus();
+        if (autoFocus && editable) {
+          if (needsScrolling) {
+            view.scrollDOM.addEventListener(
+              'scroll',
+              () => {
+                // The scroll fires asynchronously; bail if the user already left this file.
+                if (isStillCurrent()) {
+                  view.focus();
+                }
+              },
+              { once: true },
+            );
+          } else {
+            view.focus();
+          }
         }
-      }
 
-      view.scrollDOM.scrollTo(newLeft, newTop);
+        view.scrollDOM.scrollTo(newLeft, newTop);
+      });
+    })
+    .catch((error) => {
+      /*
+       * getLanguage() does a dynamic import() of a code-split language module; that
+       * can reject (e.g. a stale chunk 404 after a deploy). Log instead of leaving
+       * an unhandled rejection — the editor stays usable, just without highlighting.
+       */
+      logger.error('Failed to load language support:', error);
     });
-  });
 }
 
 function getReadOnlyTooltip(state: EditorState) {

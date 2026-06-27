@@ -14,6 +14,7 @@ export interface EditorSettings {
   wordWrap: boolean;
   vimMode: boolean;
   formatOnSave: boolean;
+  accessibleTerminal: boolean;
 }
 
 export const EDITOR_SETTINGS_DEFAULTS: EditorSettings = {
@@ -22,6 +23,7 @@ export const EDITOR_SETTINGS_DEFAULTS: EditorSettings = {
   wordWrap: false,
   vimMode: false,
   formatOnSave: false,
+  accessibleTerminal: false,
 };
 
 export const EDITOR_SETTINGS_STORAGE_KEY = 'vibecore:editor-settings';
@@ -45,6 +47,7 @@ export function normalizeEditorSettings(input: Partial<EditorSettings> | null | 
     wordWrap: Boolean(merged.wordWrap),
     vimMode: Boolean(merged.vimMode),
     formatOnSave: Boolean(merged.formatOnSave),
+    accessibleTerminal: Boolean(merged.accessibleTerminal),
   };
 }
 

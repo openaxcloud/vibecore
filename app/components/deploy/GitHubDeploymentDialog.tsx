@@ -626,8 +626,10 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       </code>
                       <motion.button
                         onClick={() => {
-                          navigator.clipboard?.writeText(createdRepoUrl)?.catch(() => {});
-                          toast.success('URL copied to clipboard');
+                          void navigator.clipboard
+                            ?.writeText(createdRepoUrl)
+                            .then(() => toast.success('URL copied to clipboard'))
+                            .catch(() => toast.error('Failed to copy URL'));
                         }}
                         className="shrink-0 p-2 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary dark:text-bolt-elements-textSecondary-dark dark:hover:text-bolt-elements-textPrimary-dark bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-4 rounded-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark"
                         whileHover={{ scale: 1.05 }}
@@ -677,8 +679,10 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                     </motion.a>
                     <motion.button
                       onClick={() => {
-                        navigator.clipboard?.writeText(createdRepoUrl)?.catch(() => {});
-                        toast.success('URL copied to clipboard');
+                        void navigator.clipboard
+                          ?.writeText(createdRepoUrl)
+                          .then(() => toast.success('URL copied to clipboard'))
+                          .catch(() => toast.error('Failed to copy URL'));
                       }}
                       className="px-4 py-2 rounded-lg bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark hover:bg-bolt-elements-background-depth-3 dark:hover:bg-bolt-elements-background-depth-4 text-sm inline-flex items-center gap-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark"
                       whileHover={{ scale: 1.02 }}
