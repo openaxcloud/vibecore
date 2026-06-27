@@ -124,8 +124,10 @@ export const Inspector = ({ isActive, iframeRef, onElementSelect }: InspectorPro
             height: hoveredElement.rect.height,
           }}
         >
-          {/* Element info tooltip */}
-          <div className="absolute -top-8 left-0 bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary border border-bolt-elements-borderColor text-xs px-2 py-1 rounded whitespace-nowrap">
+          {/* Element info tooltip — flips below the element when there's no room above (near viewport top). */}
+          <div
+            className={`absolute ${hoveredElement.rect.y < 32 ? 'top-full mt-1' : '-top-8'} left-0 bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary border border-bolt-elements-borderColor text-xs px-2 py-1 rounded whitespace-nowrap`}
+          >
             {hoveredElement.tagName.toLowerCase()}
             {hoveredElement.id && `#${hoveredElement.id}`}
             {hoveredElement.className && `.${hoveredElement.className.split(' ')[0]}`}

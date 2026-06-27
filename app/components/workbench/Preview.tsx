@@ -1389,6 +1389,8 @@ export const Preview = memo(
 
           if (!newWindow) {
             console.error('Failed to open new window');
+            toast.error('Could not open the preview window — check if your browser is blocking pop-ups.');
+
             return;
           }
 
