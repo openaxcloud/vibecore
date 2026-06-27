@@ -7,15 +7,27 @@ import type { Theme } from '~/types/theme.js';
 export const darkTheme = EditorView.theme({}, { dark: true });
 export const themeSelection = new Compartment();
 
+/*
+ * Editor-typography (font size etc.) lives in its own compartment so Workspace
+ * Settings can reconfigure it live — see reconfigureEditorSettings. Without this
+ * the font size was baked in at state creation and only changed on remount.
+ */
+export const editorSettingsCompartment = new Compartment();
+
 export function getTheme(theme: Theme, settings: EditorSettings = {}): Extension {
   return [
-    getEditorTheme(settings),
+    editorSettingsCompartment.of(getEditorTheme(settings)),
     theme === 'dark' ? themeSelection.of([getDarkTheme()]) : themeSelection.of([getLightTheme()]),
   ];
 }
 
 export function reconfigureTheme(theme: Theme) {
   return themeSelection.reconfigure(theme === 'dark' ? getDarkTheme() : getLightTheme());
+}
+
+/** Live-reconfigure editor typography (font size) from Workspace Settings. */
+export function reconfigureEditorSettings(settings: EditorSettings = {}) {
+  return editorSettingsCompartment.reconfigure(getEditorTheme(settings));
 }
 
 function getEditorTheme(settings: EditorSettings) {

@@ -16,12 +16,14 @@ import {
   tooltips,
   type Tooltip,
 } from '@codemirror/view';
-import { memo, useEffect, useRef, useState, type MutableRefObject } from 'react';
+import { useStore } from '@nanostores/react';
+import { memo, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { BinaryContent } from './BinaryContent';
 import { createEnvMaskingExtension } from './EnvMasking';
-import { getTheme, reconfigureTheme } from './cm-theme';
+import { getTheme, reconfigureEditorSettings, reconfigureTheme } from './cm-theme';
 import { indentKeyBinding } from './indent';
 import { getLanguage } from './languages';
+import { editorSettingsStore } from '~/lib/stores/editor-settings';
 import type { Theme } from '~/types/theme';
 import { classNames } from '~/utils/classNames';
 import { debounce } from '~/utils/debounce';
@@ -32,6 +34,15 @@ const logger = createScopedLogger('CodeMirrorEditor');
 
 // Create a module-level reference to the current document for use in tooltip functions
 let currentDocRef: EditorDocument | undefined;
+
+/*
+ * Compartments for the user editor preferences that change at runtime (Workspace
+ * Settings → Editor). They are reconfigured live on the active view; new document
+ * states pick up the current value via `.of(...)` at creation. Font size is
+ * reconfigured through cm-theme's editorSettingsCompartment.
+ */
+const tabSizeCompartment = new Compartment();
+const wrapCompartment = new Compartment();
 
 export interface EditorDocument {
   value: string;
@@ -44,6 +55,7 @@ export interface EditorSettings {
   fontSize?: string;
   gutterFontSize?: string;
   tabSize?: number;
+  wordWrap?: boolean;
 }
 
 type TextEditorDocument = EditorDocument & {
@@ -153,6 +165,23 @@ export const CodeMirrorEditor = memo(
     const onChangeRef = useRef(onChange);
     const onSaveRef = useRef(onSave);
 
+    /*
+     * User editor preferences (Workspace Settings → Editor). Merged over the
+     * caller's `settings` prop so font size / tab size / word-wrap apply live; a
+     * dedicated effect below reconfigures the active view when they change.
+     */
+    const userEditorSettings = useStore(editorSettingsStore);
+
+    const effectiveSettings = useMemo<EditorSettings>(
+      () => ({
+        ...settings,
+        fontSize: `${userEditorSettings.fontSize}px`,
+        tabSize: userEditorSettings.tabSize,
+        wordWrap: userEditorSettings.wordWrap,
+      }),
+      [settings, userEditorSettings.fontSize, userEditorSettings.tabSize, userEditorSettings.wordWrap],
+    );
+
     /**
      * This effect is used to avoid side effects directly in the render function
      * and instead the refs are updated after each render.
@@ -259,6 +288,24 @@ export const CodeMirrorEditor = memo(
       });
     }, [theme]);
 
+    /*
+     * Apply Workspace Settings → Editor changes live to the active view: font
+     * size (via cm-theme's editor-settings compartment), tab size and word-wrap.
+     */
+    useEffect(() => {
+      if (!viewRef.current) {
+        return;
+      }
+
+      viewRef.current.dispatch({
+        effects: [
+          reconfigureEditorSettings(effectiveSettings),
+          tabSizeCompartment.reconfigure(EditorState.tabSize.of(effectiveSettings.tabSize ?? 2)),
+          wrapCompartment.reconfigure(effectiveSettings.wordWrap ? EditorView.lineWrapping : []),
+        ],
+      });
+    }, [effectiveSettings]);
+
     useEffect(() => {
       const insertText = (event: Event) => {
         const view = viewRef.current;
@@ -288,7 +335,7 @@ export const CodeMirrorEditor = memo(
       const theme = themeRef.current!;
 
       if (!doc) {
-        const state = newEditorState('', theme, settings, onScrollRef, debounceScroll, onSaveRef, () => true, [
+        const state = newEditorState('', theme, effectiveSettings, onScrollRef, debounceScroll, onSaveRef, () => true, [
           languageCompartment.of([]),
           envMaskingCompartment.of([]),
         ]);
@@ -315,7 +362,7 @@ export const CodeMirrorEditor = memo(
         state = newEditorState(
           doc.value,
           theme,
-          settings,
+          effectiveSettings,
           onScrollRef,
           debounceScroll,
           onSaveRef,
@@ -450,7 +497,8 @@ function newEditorState(
       dropCursor(),
       drawSelection(),
       bracketMatching(),
-      EditorState.tabSize.of(settings?.tabSize ?? 2),
+      tabSizeCompartment.of(EditorState.tabSize.of(settings?.tabSize ?? 2)),
+      wrapCompartment.of(settings?.wordWrap ? EditorView.lineWrapping : []),
       indentOnInput(),
       editableTooltipField,
       editableStateField,
