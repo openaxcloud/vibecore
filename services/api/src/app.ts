@@ -1790,6 +1790,12 @@ function stripSqlLiteralsAndComments(query: string): string {
   return out;
 }
 
+/*
+ * Read-only SQL guard, retained as a utility (e.g. for an opt-in read-only
+ * connection or a future viewer role). The IDE SQL pane no longer calls this:
+ * runDatabaseQuery runs full read/write for Replit parity. assertReadOnlyRedis
+ * still gates the Redis pane.
+ */
 export function assertReadOnlySql(query: string) {
   const stripped = stripSqlLiteralsAndComments(query);
 
@@ -2054,31 +2060,33 @@ async function runDatabaseQuery(
   limit = 50,
 ) {
   if (connection.kind === 'postgres') {
-    assertReadOnlySql(query);
-
     const client = new PgClient({ connectionString: connection.value });
 
     await client.connect();
 
     try {
       /*
-       * Engine-level enforcement: a READ ONLY transaction makes Postgres reject
-       * any write — INSERT/UPDATE/DELETE/DDL and data-modifying CTEs — with
-       * "cannot execute ... in a read-only transaction", regardless of how the
-       * SQL is phrased. This is the real backstop behind assertReadOnlySql.
+       * Replit-parity: the SQL pane is a full read/write runner against the
+       * project's OWN database — SELECT and INSERT/UPDATE/DELETE plus DDL
+       * (CREATE/ALTER/DROP). Wrap the run in a transaction so a multi-statement
+       * run is atomic: COMMIT on success, ROLLBACK on any error so a failed run
+       * never leaves partial writes behind.
        */
-      await client.query('BEGIN TRANSACTION READ ONLY');
+      await client.query('BEGIN');
 
       try {
         const result = await client.query(query);
 
+        await client.query('COMMIT');
+
         return {
-          columns: result.fields.map((field) => field.name),
-          rows: serializeDbRows(result.rows),
+          columns: (result.fields ?? []).map((field) => field.name),
+          rows: serializeDbRows(result.rows ?? []),
           rowCount: result.rowCount,
         };
-      } finally {
+      } catch (error) {
         await client.query('ROLLBACK').catch(() => undefined);
+        throw error;
       }
     } finally {
       await client.end();
@@ -2086,27 +2094,28 @@ async function runDatabaseQuery(
   }
 
   if (connection.kind === 'mysql') {
-    assertReadOnlySql(query);
-
     /*
-     * Force multipleStatements off even if the user's connection string sets it,
-     * so a single client.query() can never run a chained write.
+     * Keep multipleStatements off so one client.query() runs a single statement
+     * (no chained-statement surprises); the pane is read/write (Replit parity).
      */
     const client = await mysql.createConnection({ uri: connection.value, multipleStatements: false });
 
     try {
-      await client.query('START TRANSACTION READ ONLY');
+      await client.query('START TRANSACTION');
 
       try {
         const [rows, fields] = await client.query(query);
+
+        await client.query('COMMIT');
 
         return {
           columns: Array.isArray(fields) ? fields.map((field: any) => field.name).filter(Boolean) : [],
           rows: serializeDbRows(rows),
           rowCount: Array.isArray(rows) ? rows.length : undefined,
         };
-      } finally {
+      } catch (error) {
         await client.query('ROLLBACK').catch(() => undefined);
+        throw error;
       }
     } finally {
       await client.end();
