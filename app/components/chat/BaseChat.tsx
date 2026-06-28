@@ -54,6 +54,7 @@ import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from 
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseRollbackPanel } from '~/components/database/DatabaseRollbackPanel';
+import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { PanelBoundary, PanelErrorBoundary, PanelLoading, ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
@@ -14984,6 +14985,13 @@ function ProjectDatabasePanel({
 
   return (
     <div className="grid gap-4">
+      {/* Replit-parity Database panel (root cards + Overview/My Data/Settings on the live API). */}
+      {projectId ? (
+        <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
+          <DatabaseWorkbench projectId={projectId} />
+        </div>
+      ) : null}
+
       <div className="grid gap-3 md:grid-cols-4">
         {[
           ['Connections', String(connections.length)],
