@@ -68,6 +68,21 @@ export default function SecuritySettingsPage() {
           Sessions
         </LinkButton>
       </div>
+
+      <div className="mt-8">
+        <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Enterprise</h2>
+        <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+          SSO (SAML/OIDC) and SCIM directory provisioning for your organization.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <LinkButton to="/enterprise-sso-settings" variant="outline">
+            SSO settings
+          </LinkButton>
+          <LinkButton to="/scim-token-settings" variant="outline">
+            SCIM provisioning
+          </LinkButton>
+        </div>
+      </div>
     </AppShell>
   );
 }
