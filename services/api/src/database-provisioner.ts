@@ -27,10 +27,19 @@ export interface K8sApplyPort {
   apply(manifest: K8sManifest): Promise<void>;
   get(kind: string, namespace: string, name: string): Promise<{ status?: Record<string, unknown> } | undefined>;
   delete(kind: string, namespace: string, name: string): Promise<void>;
+  /**
+   * Read a Secret's decoded string data (or undefined if absent). Used to fetch the
+   * CNPG `<cluster>-app` connection secret (key `uri` = a ready DATABASE_URL). The
+   * manager restricts this to the project-databases namespace.
+   */
+  getSecret(namespace: string, name: string): Promise<Record<string, string> | undefined>;
 }
 
 export const DB_NAMESPACE = 'project-databases';
 const CNPG_API = 'postgresql.cnpg.io/v1';
+
+/** Default shared cluster for the free tier (overridable via DB_SHARED_CLUSTER). */
+export const DEFAULT_SHARED_CLUSTER = process.env.DB_SHARED_CLUSTER?.trim() || 'shared-pg-0';
 
 export function clusterName(projectId: string): string {
   return `db-${projectId}`.toLowerCase().slice(0, 53);
@@ -286,10 +295,25 @@ export interface RestoreProgress {
   clusterName: string;
 }
 
+export interface ProvisionInput {
+  projectId: string;
+  organizationId?: string;
+  retentionDays: number;
+  /** Plan-derived tier (resolveDatabaseTier). Defaults to 'isolated'. */
+  tier?: DatabaseTier;
+  /** Shared tier: the shared cluster to place this project's logical DB on. */
+  sharedClusterName?: string;
+}
+
 /** Provisioner contract used by the api routes + scheduler. */
 export interface DatabaseProvisioner {
   readonly active: boolean;
-  provisionInstance(input: { projectId: string; organizationId?: string; retentionDays: number }): Promise<ProvisionResult>;
+  provisionInstance(input: ProvisionInput): Promise<ProvisionResult>;
+  /**
+   * Resolve the project's `DATABASE_URL` once the backend is ready, or undefined if
+   * not ready yet (caller re-polls). Isolated: the CNPG `<cluster>-app` secret `uri`.
+   */
+  getConnectionUri(input: { projectId: string; tier?: DatabaseTier; sharedClusterName?: string }): Promise<string | undefined>;
   takeSnapshot(input: { projectId: string; snapshotId: string }): Promise<{ applied: boolean }>;
   startRestore(input: {
     projectId: string;
@@ -306,12 +330,12 @@ export interface DatabaseProvisioner {
 export class NoopProvisioner implements DatabaseProvisioner {
   readonly active = false;
 
-  async provisionInstance(input: {
-    projectId: string;
-    organizationId?: string;
-    retentionDays: number;
-  }): Promise<ProvisionResult> {
+  async provisionInstance(input: ProvisionInput): Promise<ProvisionResult> {
     return { clusterName: clusterName(input.projectId), applied: false };
+  }
+
+  async getConnectionUri(): Promise<string | undefined> {
+    return undefined;
   }
 
   async takeSnapshot(input: { projectId: string; snapshotId: string }): Promise<{ applied: boolean }> {
@@ -345,11 +369,28 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     private readonly backupServiceAccount?: string,
   ) {}
 
-  async provisionInstance(input: {
-    projectId: string;
-    organizationId?: string;
-    retentionDays: number;
-  }): Promise<ProvisionResult> {
+  async provisionInstance(input: ProvisionInput): Promise<ProvisionResult> {
+    if (input.tier === 'shared') {
+      /*
+       * Shared tier: place a logical DB on a shared cluster via the Database CRD +
+       * ensure a Pooler. The owner role + isolation SQL (buildTenantProvisionSql) +
+       * DATABASE_URL are applied by the admin-SQL slice (next); until then the DB CRD
+       * is created but getConnectionUri('shared') returns undefined.
+       */
+      const sharedCluster = input.sharedClusterName ?? DEFAULT_SHARED_CLUSTER;
+      await this.k8s.apply(buildPoolerManifest(sharedCluster));
+      await this.k8s.apply(
+        buildDatabaseCrManifest({
+          projectId: input.projectId,
+          organizationId: input.organizationId,
+          sharedClusterName: sharedCluster,
+        }),
+      );
+
+      return { clusterName: sharedCluster, applied: true };
+    }
+
+    // Isolated tier (paid / default): a dedicated cluster per project.
     await this.k8s.apply(
       buildClusterManifest({
         projectId: input.projectId,
@@ -362,6 +403,21 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     await this.k8s.apply(buildScheduledBackupManifest(input.projectId));
 
     return { clusterName: clusterName(input.projectId), applied: true };
+  }
+
+  async getConnectionUri(input: {
+    projectId: string;
+    tier?: DatabaseTier;
+    sharedClusterName?: string;
+  }): Promise<string | undefined> {
+    if (input.tier === 'shared') {
+      return undefined;
+    }
+
+    const secret = await this.k8s.getSecret(DB_NAMESPACE, `${clusterName(input.projectId)}-app`).catch(() => undefined);
+    const uri = secret?.uri?.trim();
+
+    return uri && uri.length > 0 ? uri : undefined;
   }
 
   async takeSnapshot(input: { projectId: string; snapshotId: string }): Promise<{ applied: boolean }> {
@@ -466,6 +522,28 @@ export class ManagerK8sPort implements K8sApplyPort {
       `/databases/resource?kind=${encodeURIComponent(kind)}&namespace=${encodeURIComponent(namespace)}&name=${encodeURIComponent(name)}`,
     );
     await res.body?.cancel().catch(() => {});
+  }
+
+  async getSecret(namespace: string, name: string): Promise<Record<string, string> | undefined> {
+    const res = await this.call(
+      'GET',
+      `/databases/secret?namespace=${encodeURIComponent(namespace)}&name=${encodeURIComponent(name)}`,
+    );
+
+    if (res.status === 404) {
+      await res.body?.cancel().catch(() => {});
+
+      return undefined;
+    }
+
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => {});
+      throw new Error(`manager getSecret failed: ${res.status}`);
+    }
+
+    const body = (await res.json().catch(() => undefined)) as { data?: Record<string, string> } | undefined;
+
+    return body?.data;
   }
 }
 

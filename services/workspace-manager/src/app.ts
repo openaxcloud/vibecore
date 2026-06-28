@@ -322,6 +322,32 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     return resource;
   });
 
+  /*
+   * Read a project-database connection Secret (decoded). Tightly scoped: only the
+   * project-databases namespace and only CNPG/vibecore connection secrets
+   * (`db-*-app` / `db-*-conn`) — never arbitrary secrets. The api uses this to fetch
+   * the `uri` (DATABASE_URL) once a cluster is healthy.
+   */
+  app.get('/databases/secret', async (request, reply) => {
+    const { namespace, name } = z.object({ namespace: z.string(), name: z.string() }).parse(request.query ?? {});
+
+    if (namespace !== DB_ROLLBACK_NAMESPACE || !/^db-[a-z0-9-]+-(app|conn)$/.test(name)) {
+      return reply.code(403).send({ error: 'Secret not permitted', code: 'DB_SECRET_FORBIDDEN' });
+    }
+
+    const resource = (await manager.k8s.get('Secret', namespace, name)) as { data?: Record<string, string> } | undefined;
+
+    if (!resource?.data) {
+      return reply.code(404).send({ error: 'Not found', code: 'DB_SECRET_NOT_FOUND' });
+    }
+
+    const data = Object.fromEntries(
+      Object.entries(resource.data).map(([key, value]) => [key, Buffer.from(value, 'base64').toString('utf8')]),
+    );
+
+    return { data };
+  });
+
   app.delete('/databases/resource', async (request, reply) => {
     const { kind, namespace, name } = z
       .object({ kind: z.string(), namespace: z.string(), name: z.string() })

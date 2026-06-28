@@ -94,7 +94,7 @@ import {
   deletionStatus,
   purgeDueAtMs,
 } from './data-deletion.js';
-import { clusterName, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
+import { clusterName, resolveDatabaseTier, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
 import {
   databaseRollbackEntitlement,
   isDatabaseRollbackEnabled,
@@ -20206,10 +20206,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const state = await billingState(project.organizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
-    const instance = await store.getDatabaseInstanceByProject(project.id);
+    let instance = await store.getDatabaseInstanceByProject(project.id);
 
     if (!instance) {
       return { entitlement, instance: null, snapshots: [], restores: [] };
+    }
+
+    /*
+     * Reconcile-on-read: once the backend is ready, resolve + inject DATABASE_URL
+     * (idempotent) and flip the instance to ACTIVE. Stored as a project secret so it
+     * auto-appears as a `postgres` connection in /databases (detectDatabaseKind) →
+     * the IDE panel's schema/query routes work against the native DB with no extra
+     * API. Best-effort: a not-ready/transient error just leaves it PROVISIONING.
+     */
+    if (instance.status !== 'ACTIVE') {
+      const provisioner = resolveDefaultDatabaseProvisioner();
+
+      if (provisioner.active) {
+        try {
+          const tier = resolveDatabaseTier(state?.plan.key);
+          const uri = await provisioner.getConnectionUri({ projectId: project.id, tier });
+
+          if (uri) {
+            await store.upsertProjectSecret({
+              projectId: project.id,
+              key: 'DATABASE_URL',
+              valueEncrypted: encryptJson({ value: uri }),
+            });
+            instance = (await store.updateDatabaseInstance(instance.id, { status: 'ACTIVE' })) ?? instance;
+          }
+        } catch (error) {
+          request.log?.warn?.({ err: error }, 'db connection-uri reconcile failed (non-fatal)');
+        }
+      }
     }
 
     const [snapshots, restores] = await Promise.all([
@@ -20344,6 +20373,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     const provisioner = resolveDefaultDatabaseProvisioner();
+    const tier = resolveDatabaseTier(state?.plan.key);
 
     if (provisioner.active) {
       await provisioner
@@ -20351,11 +20381,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           projectId: project.id,
           organizationId: project.organizationId,
           retentionDays: entitlement.retentionDays,
+          tier,
         })
         .catch((error) => request.log?.warn?.({ err: error }, 'db provision kickoff failed (non-fatal)'));
     }
 
-    return reply.code(202).send({ instance, created: true, clusterName: clusterName(project.id) });
+    return reply.code(202).send({ instance, created: true, clusterName: clusterName(project.id), tier });
   });
 
   /** Take a manual snapshot of a project's database (Phase 2, dormant). */

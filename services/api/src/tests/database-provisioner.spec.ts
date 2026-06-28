@@ -48,6 +48,12 @@ class FakeK8s implements K8sApplyPort {
   async delete(kind: string, _ns: string, name: string) {
     this.deleted.push(`${kind}/${name}`);
   }
+
+  secrets = new Map<string, Record<string, string>>();
+
+  async getSecret(_ns: string, name: string) {
+    return this.secrets.get(name);
+  }
 }
 
 describe('tiered routing (v3)', () => {
@@ -96,6 +102,32 @@ describe('tiered routing (v3)', () => {
     const active = buildClusterManifest({ projectId: 'p1', backupBucket: 'bkt', retentionDays: 28 });
     expect(active.metadata.annotations).toBeUndefined();
     expect((active.spec as any).instances).toBe(1);
+  });
+});
+
+describe('provisioner dispatch + DATABASE_URL resolution', () => {
+  it('isolated tier: applies a dedicated Cluster and reads the -app uri once present', async () => {
+    const k8s = new FakeK8s();
+    const p = new CnpgProvisioner(k8s, 'bkt');
+
+    const res = await p.provisionInstance({ projectId: 'p1', retentionDays: 28, tier: 'isolated' });
+    expect(res.clusterName).toBe(clusterName('p1'));
+    expect(k8s.applied.some((m) => m.kind === 'Cluster')).toBe(true);
+
+    expect(await p.getConnectionUri({ projectId: 'p1', tier: 'isolated' })).toBeUndefined();
+
+    k8s.secrets.set(`${clusterName('p1')}-app`, { uri: 'postgres://u:pw@db-p1-rw:5432/app' });
+    expect(await p.getConnectionUri({ projectId: 'p1', tier: 'isolated' })).toBe('postgres://u:pw@db-p1-rw:5432/app');
+  });
+
+  it('shared tier: applies a Pooler + Database CRD (no dedicated Cluster)', async () => {
+    const k8s = new FakeK8s();
+    const p = new CnpgProvisioner(k8s, 'bkt');
+
+    await p.provisionInstance({ projectId: 'p1', retentionDays: 7, tier: 'shared', sharedClusterName: 'shared-pg-0' });
+    expect(k8s.applied.some((m) => m.kind === 'Pooler')).toBe(true);
+    expect(k8s.applied.some((m) => m.kind === 'Database')).toBe(true);
+    expect(k8s.applied.some((m) => m.kind === 'Cluster')).toBe(false);
   });
 });
 
