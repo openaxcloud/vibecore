@@ -454,6 +454,13 @@ export const Preview = memo(
       pointerId: null as number | null,
     });
 
+    /*
+     * Mirror of resizingState.current.isResizing in React state so the resize
+     * dimension overlay re-renders (the ref was read in JSX, which never triggers
+     * a re-render → the opacity fade-in stuttered / didn't apply).
+     */
+    const [isResizing, setIsResizing] = useState(false);
+
     // Reduce scaling factor to make resizing less sensitive
     const SCALING_FACTOR = 1;
 
@@ -1140,6 +1147,7 @@ export const Preview = memo(
         windowWidth: window.innerWidth,
         pointerId: e.pointerId,
       };
+      setIsResizing(true);
     };
 
     const ResizeHandle = ({ side }: { side: ResizeSide }) => {
@@ -1249,6 +1257,7 @@ export const Preview = memo(
           side: null,
           pointerId: null,
         };
+        setIsResizing(false);
 
         document.body.style.userSelect = '';
         document.body.style.cursor = '';
@@ -1281,6 +1290,7 @@ export const Preview = memo(
             side: null,
             pointerId: null,
           };
+          setIsResizing(false);
 
           document.body.style.userSelect = '';
           document.body.style.cursor = '';
@@ -2349,7 +2359,7 @@ export const Preview = memo(
                     borderRadius: '4px',
                     fontSize: '12px',
                     pointerEvents: 'none',
-                    opacity: resizingState.current.isResizing ? 1 : 0,
+                    opacity: isResizing ? 1 : 0,
                     transition: 'opacity 0.3s',
                   }}
                 >
