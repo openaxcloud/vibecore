@@ -1,0 +1,589 @@
+# Bolt hidden / unsurfaced features audit
+
+Generated from the Step-0 exhaustive audit (8 agents, read-only over app/routes, app/components, app/lib/stores, services/*).
+Total features inventoried: 181. Replit tools mapped: 32.
+
+## List 1 — features in code, by surfaced state
+
+### surfaced = no  (75)
+- **Tab Synchronization (BroadcastChannel)** — `/Users/hb/dev/vibecore/app/lib/stores/previews.ts`
+  - Syncs preview state and storage across multiple browser tabs via BroadcastChannel. File change events broadcast preview refresh signals. Global UI preferences (language, sidebar state) sync across tabs.
+  - → should appear: Background service (no UI, but enables multi-tab consistency)
+- **File-triggered Preview Auto-reload** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Automatically reloads the preview iframe when files are applied via file:applied workspace event. Debounced to avoid excessive reloads during batch updates.
+  - → should appear: Background service (auto happens, visible as refresh in Network tab)
+- **IDE State Persistence (Preview Memory)** — `/Users/hb/dev/vibecore/app/lib/persistence/projectIdeMemory.ts`
+  - Saves and restores preview state across IDE reloads: selected port index and current preview path. Allows seamless resumption of testing.
+  - → should appear: Background service (transparent to user)
+- **Chat Share/History API** — `/Users/hb/dev/vibecore/app/routes/api.chat-share.ts, /Users/hb/dev/vibecore/app/routes/api.projects.$projectId.ai.conversations.ts`
+  - Backend API for sharing chat conversations, managing project AI conversation history, fetching transcripts, and managing messages across conversations.
+  - → should appear: API / Developer
+- **Chat Snapshot Storage (localStorage)** — `/Users/hb/dev/vibecore/app/components/sidebar/Menu.client.tsx (line 100-104)`
+  - Stores chat snapshots in localStorage with key pattern snapshot:{chatId} for recovery and persistence across sessions.
+  - → should appear: Internal / Storage
+- **Session Security** — `app/routes/session-security.tsx`
+  - Enterprise feature to configure session duration policy (in minutes) and IP allowlist for organization. Requires organization ID. Form-based settings submission.
+  - → should appear: Account settings: Security menu (referenced in /security-settings description as 'Inspect active devices, revoke sessions and manage organization session duration policy' but route not linked anywhere)
+- **SCIM Token Settings** — `app/routes/scim-token-settings.tsx`
+  - Create hashed SCIM bearer tokens for identity provider provisioning (user provisioning via SCIM protocol). Generate token with optional name, displays token once for copying.
+  - → should appear: Account settings: Admin/Enterprise menu (no navigation link; accessible only via direct URL /scim-token-settings; intended for enterprise SSO/provisioning setup)
+- **Runtime Token API** — `app/routes/api.runtime-token.ts`
+  - Reads session token from request cookie and returns it as JSON (no-store cache control). Used by clients to access runtime token for auth.
+  - → should appear: Internal API: Used by client-side code; not a user-facing feature (accessible via GET /api/runtime-token)
+- **Workspace Settings (Editor Preferences)** — `/Users/hb/dev/vibecore/app/routes/workspace-settings.tsx, /Users/hb/dev/vibecore/app/components/settings/WorkspaceSettings.tsx`
+  - Exposes editor preferences (font size, indentation, word wrap, vim mode, format-on-save, accessible terminal) and theme selection. Bound live to editorSettingsStore so changes apply immediately. Includes hints to model & provider settings and project-level run/install commands.
+  - → should appear: IDE (project workspace sidebar or tab), with link from /settings/profile dropdown or a dedicated 'Workspace Settings' navigation item
+- **Account Settings Route (Enterprise)** — `/Users/hb/dev/vibecore/app/routes/account-settings.tsx`
+  - Enterprise account settings page: name, email, timezone. Server-side form with database persistence. Requires auth/enterprise backend.
+  - → should appear: Admin dashboard or enterprise user settings
+- **Desktop Settings Route** — `/Users/hb/dev/vibecore/app/routes/desktop-settings.tsx`
+  - Desktop app settings UI: proxy configuration (mode/server), system tray toggle, device policy. Communicates via window.vibecoreDesktop bridge. Persists via desktop app.
+  - → should appear: Desktop app settings panel (only available when running Vibecore Desktop)
+- **Cloud Providers Tab (Admin/Developer)** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/providers/cloud/CloudProvidersTab.tsx`
+  - Configure cloud AI provider keys (OpenAI, Anthropic, Gemini, etc.). Window: 'developer', so filtered out of standard user settings panel. Should be in admin section or developer mode.
+  - → should appear: Admin dashboard or /admin/{section} (developer window)
+- **Local Providers Tab (Admin/Developer)** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/providers/local/LocalProvidersTab.tsx`
+  - Configure local AI providers (Ollama, LM Studio, OpenAI-compatible). Status dashboard, health checks, model cards. Window: 'developer', auto-enables when environment-configured. Marked BETA.
+  - → should appear: Admin dashboard or /admin/{section} (developer window)
+- **Debug Tab (Admin/Developer)** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/debug/DebugTab.tsx`
+  - Runtime diagnostics and debugging tools. Window: 'developer'.
+  - → should appear: /admin/{section} (developer window)
+- **Update Tab (Admin/Developer)** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/update/UpdateTab.tsx`
+  - Check upstream updates and changelog. Window: 'developer'.
+  - → should appear: /admin/{section} (developer window)
+- **Service Status Tab (Admin/Developer)** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/service-status/ServiceStatusTab.tsx`
+  - Application service endpoint health checks. Window: 'developer'.
+  - → should appear: /admin/{section} (developer window)
+- **Event Logs Tab (Admin/Developer)** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/event-logs/EventLogsTab.tsx`
+  - System event and audit log viewer. Window: 'developer'.
+  - → should appear: /admin/{section} (developer window)
+- **Task Manager Tab** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/task-manager/TaskManagerTab.tsx`
+  - Browser local data and task management UI. Window: 'developer'.
+  - → should appear: /admin/{section} (developer window)
+- **Security Settings Route** — `/Users/hb/dev/vibecore/app/routes/security-settings.tsx`
+  - User security preferences (likely 2FA, session management, etc.). Server-side form.
+  - → should appear: Settings > Security tab or /admin section
+- **Enterprise SSO Settings Route** — `/Users/hb/dev/vibecore/app/routes/enterprise-sso-settings.tsx`
+  - Enterprise Single Sign-On configuration.
+  - → should appear: Admin dashboard for enterprise users
+- **SCIM Token Settings Route** — `/Users/hb/dev/vibecore/app/routes/scim-token-settings.tsx`
+  - SCIM (System for Cross-domain Identity Management) token configuration for enterprise user provisioning.
+  - → should appear: Admin dashboard for enterprise users
+- **Theme Validation Route** — `/Users/hb/dev/vibecore/app/routes/theme-validation.tsx`
+  - Marketing/presentation page for theme validation (renders EcodeMarketingPages content).
+  - → should appear: Marketing site (/theme-validation)
+- **User Settings Surface Route** — `/Users/hb/dev/vibecore/app/routes/user.settings.tsx`
+  - Static EcodeSurfacePage for user/settings (marketing/documentation surface).
+  - → should appear: Marketing site or public help (/user/settings)
+- **Cloud Providers Tab (Developer)** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/providers/cloud/CloudProvidersTab.tsx`
+  - Configuration interface for cloud AI model providers, designed for admin ownership per Replit parity spec but currently marked as developer-window tab.
+  - → should appear: Admin Settings / Control Panel (developer window) - currently hidden from standard user panel
+- **Local Providers Tab (Developer)** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/providers/local/LocalProvidersTab.tsx`
+  - Configuration interface for local AI model providers (Ollama, LM Studio, etc.) with setup guides, marked as BETA and developer-window tab.
+  - → should appear: Admin Settings / Control Panel (developer window) - currently hidden from standard user panel
+- **Debug Tab (Developer)** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/debug/DebugTab.tsx`
+  - Runtime diagnostics display for runtime warnings and errors, part of developer-only surface for upstream status and diagnostics.
+  - → should appear: Admin Settings / Control Panel (developer window) - for admin diagnostics only
+- **Task Manager Tab (Developer)** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/task-manager/TaskManagerTab.tsx`
+  - Browser storage/localStorage inspection tool showing local storage entries and their sizes, with clear temporary data action.
+  - → should appear: Admin Settings / Control Panel (developer window) - for debugging local storage state
+- **Service Status Tab (Developer)** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/service-status/ServiceStatusTab.tsx`
+  - Health status indicator for application service endpoints and availability checks.
+  - → should appear: Admin Settings / Control Panel (developer window) - for admin status monitoring
+- **Update Tab (Developer)** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/update/UpdateTab.tsx`
+  - Upstream updates and changelog display for checking available updates and version information.
+  - → should appear: Admin Settings / Control Panel (developer window) - for admin update tracking
+- **Event Logs Tab (Developer)** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/event-logs/EventLogsTab.tsx`
+  - System event logs display for audit trail and diagnostic visibility of platform events.
+  - → should appear: Admin Settings / Control Panel (developer window) - for admin audit visibility
+- **Advanced Mobile Surface** — `/Users/hb/dev/vibecore/app/routes/advanced.$section.tsx`
+  - Responsive IDE surface and mobile delivery patterns (live at /advanced/mobile) - documented in marketing surface pages but not linked from main navigation.
+  - → should appear: Dashboard Navigation / Product Features - informational surface
+- **Advanced SSO Surface** — `/Users/hb/dev/vibecore/app/routes/advanced.$section.tsx`
+  - Enterprise SAML/OIDC, SCIM, domain controls and role mapping documentation (live at /advanced/sso) - defined in marketing surfaces but not exposed in UI.
+  - → should appear: Dashboard Navigation / Enterprise Settings - informational surface
+- **Advanced Collaboration Surface** — `/Users/hb/dev/vibecore/app/routes/advanced.$section.tsx`
+  - Team collaboration documentation covering review threads, shared context, access controls (live at /advanced/collaboration) - defined but not discoverable.
+  - → should appear: Dashboard Navigation / Team Features - informational surface
+- **Advanced Storage Surface** — `/Users/hb/dev/vibecore/app/routes/advanced.$section.tsx`
+  - Storage architecture documentation for object buckets, KV data, databases and media lifecycle (live at /advanced/storage) - defined but not linked.
+  - → should appear: Dashboard Navigation / Data Features - informational surface
+- **Advanced Community Surface** — `/Users/hb/dev/vibecore/app/routes/advanced.$section.tsx`
+  - Community architecture documentation for profiles, posts, moderation (live at /advanced/community) - defined but not discoverable in UI.
+  - → should appear: Dashboard Navigation / Community Settings - informational surface
+- **Agent Patch Proposals API** — `/Users/hb/dev/vibecore/app/routes/api.projects.$projectId.agent-patch-proposals.ts`
+  - API endpoint for managing AI agent-generated patch proposals with review and approval workflow.
+  - → should appear: IDE Agent Panel / Patch Review - reviewer UI for accepting/rejecting changes
+- **Agent Memory System** — `/Users/hb/dev/vibecore/app/routes/api.agent-memory.ts`
+  - Persistence layer for agent memory with context, preferences, search and export capabilities via /api/agent-memory endpoints.
+  - → should appear: Agent Assistant Tools / Memory Management - memory configuration interface
+- **Agent Self-Repair** — `/Users/hb/dev/vibecore/app/routes/api.agent.self-repair.ts`
+  - Self-correction mechanism allowing agent to fix its own errors through message feedback and iterative repair.
+  - → should appear: Agent Assistant Tools / Error Recovery - auto-correction interface
+- **Admin Section Routes** — `/Users/hb/dev/vibecore/app/routes/admin.$section.tsx`
+  - Platform control plane with sections: overview, health, users, organizations, projects, workspaces, terminals, previews, deployments, usage, AI usage, provider health, quotas, webhook logs, moderation.
+  - → should appear: Admin Dashboard - full admin interface at /admin/:section (requires platform admin)
+- **WebContainer preview iframe** — `/Users/hb/dev/vibecore/app/routes/webcontainer.preview.$id.tsx`
+  - Iframe endpoint for runtime preview isolation. Loads WebContainer preview at https://{previewId}.local-credentialless.webcontainer-api.io with BroadcastChannel messaging between tabs.
+  - → should appear: Infrastructure / Debugging
+- **Admin panel overview & control plane** — `/Users/hb/dev/vibecore/app/routes/admin.$section.tsx and admin._index.tsx`
+  - Full platform admin console with 26+ sections: health, users, organizations, projects, workspaces, terminals, previews, deployments, usage, AI usage, quotas, abuse events, security events, audit logs, admin audit logs, support tickets, account deletions, feature flags, system settings, costs, AI providers, models, OAuth providers, credit wallets, agent checkpoints, Stripe health. Requires platform-admin. Supports user suspension, MFA reset, strikes, impersonation; provider/model/flag toggles; quota overrides; OAuth configuration.
+  - → should appear: Admin dashboard tab
+- **Audit logs export** — `/Users/hb/dev/vibecore/app/routes/audit-logs.tsx`
+  - Enterprise audit trail export page. Exports org audit logs in JSON or CSV format. Requires first organization context from API.
+  - → should appear: Organization settings / Audit & Compliance
+- **System health & diagnostics API** — `/Users/hb/dev/vibecore/app/routes/api.system.diagnostics.ts`
+  - Backend diagnostic endpoint serving runtime, database, Redis, queue health and configuration status.
+  - → should appear: Admin / Monitoring
+- **Monitoring health API** — `/Users/hb/dev/vibecore/app/routes/api.monitoring.health.ts`
+  - Health check endpoint for runtime service status and uptime monitoring.
+  - → should appear: Infrastructure / Monitoring
+- **Monitoring performance API** — `/Users/hb/dev/vibecore/app/routes/api.monitoring.performance.ts`
+  - Performance metrics and response time tracking API for platform observability.
+  - → should appear: Admin / Monitoring
+- **Monitoring performance budget API** — `/Users/hb/dev/vibecore/app/routes/api.monitoring.performance-budget.ts`
+  - Performance budget thresholds and alerts configuration for deployment gates.
+  - → should appear: Admin / Monitoring
+- **Search (marketing page)** — `/Users/hb/dev/vibecore/app/routes/search.tsx`
+  - Static marketing search page (marketing pages collection). Not functional search UI — renders from marketingPages.search definition.
+  - → should appear: Marketing navigation (footer or docs search)
+- **Runtime test page** — `/Users/hb/dev/vibecore/app/routes/runtime-test.tsx`
+  - Static marketing page for runtime testing (from marketingPages['runtime-test']). Not a functional test runner.
+  - → should appear: Marketing / Docs (not user-facing feature)
+- **Theme validation page** — `/Users/hb/dev/vibecore/app/routes/theme-validation.tsx`
+  - Static marketing page for theme validation (from marketingPages['theme-validation']). Not a functional validator.
+  - → should appear: Marketing / Design docs (not user-facing feature)
+- **MCP (Model Context Protocol) page** — `/Users/hb/dev/vibecore/app/routes/mcp.tsx`
+  - Marketing page for MCP integration docs and features (from marketingPages.mcp).
+  - → should appear: Resources/Documentation navigation
+- **Polyglot runtime** — `/Users/hb/dev/vibecore/app/routes/polyglot.tsx`
+  - Marketing page for polyglot runtime capabilities (from marketingPages.polyglot).
+  - → should appear: Resources/Features navigation
+- **Health liveness probe** — `/Users/hb/dev/vibecore/app/routes/health.ts`
+  - Kubernetes/Docker HEALTHCHECK endpoint. Returns {status: 'ok'} without touching database. Used by orchestrators for readiness probes.
+  - → should appear: Infrastructure / Deployment
+- **Desktop app marketing page** — `/Users/hb/dev/vibecore/app/routes/desktop.tsx`
+  - Marketing landing page for E-Code desktop app (macOS, Windows, Linux).
+  - → should appear: Marketing navigation (in publicMarketingMenus.product)
+- **Advanced surface pages (dynamic)** — `/Users/hb/dev/vibecore/app/routes/advanced.$section.tsx`
+  - Dynamic routing for advanced surface pages using getEcodeAdvancedSurfacePage(). Returns 404 if section not found. Maps to EcodeAdvancedSurfaceRoute component.
+  - → should appear: Marketing / Documentation (internal routing pattern)
+- **Editor surface pages (dynamic)** — `/Users/hb/dev/vibecore/app/routes/editor.$id.tsx`
+  - Dynamic editor surface page routing via createEditorSurfacePage(). Renders editor-specific surface with metadata.
+  - → should appear: Product documentation / Feature preview
+- **Editor new page** — `/Users/hb/dev/vibecore/app/routes/editor.new.tsx`
+  - Static editor new surface page using getEcodeStandaloneSurfacePage('editor/new').
+  - → should appear: Product onboarding / First-run experience
+- **Mobile Terminal Tab (FROZEN)** — `NOTE: Not a dead route — explicitly marked as FROZEN in the sweep spec`
+  - Mobile terminal tab exists but is not being modified or surfaced per requirements.
+  - → should appear: N/A (FROZEN per spec)
+- **Metering Service** — `/Users/hb/dev/vibecore/services/api/src/metering-service.ts`
+  - Compute, object-storage, database, and deployment metering with usage event recording and credit debiting at Replit rates. Records incremental usage since last meter (seconds of runtime, GiB-months storage, etc).
+  - → should appear: Admin / Usage tracking dashboard
+- **Spend Alerts** — `/Users/hb/dev/vibecore/services/api/src/spend-alerts.ts`
+  - Usage-based spend alerts firing at 50%, 80%, and 100% of budget cap thresholds. Sends email notifications when spend milestones are crossed. De-duped per billing period.
+  - → should appear: Billing settings / Notifications
+- **Database Provisioning** — `/Users/hb/dev/vibecore/services/api/src/database-provisioner.ts`
+  - Provisions and manages project databases (PostgreSQL). Handles connection pooling, credential management, and database lifecycle.
+  - → should appear: Project settings / Resources tab
+- **Database Rollback** — `/Users/hb/dev/vibecore/services/api/src/database-rollback-service.ts`
+  - Manages database snapshot and restore functionality for point-in-time recovery.
+  - → should appear: Project snapshots / Database management
+- **Deployment Billing** — `/Users/hb/dev/vibecore/services/api/src/deployment-billing.ts`
+  - Billing logic for deployments—calculates costs based on deployment tier and resource usage.
+  - → should appear: Deployments / Billing overview
+- **Data Deletion** — `/Users/hb/dev/vibecore/services/api/src/data-deletion.ts`
+  - GDPR-compliant data deletion service for account/organization cleanup. Cascading deletion of user data, projects, and related resources.
+  - → should appear: Account settings / Data & privacy
+- **Account Lifecycle** — `/Users/hb/dev/vibecore/services/api/src/account-lifecycle.ts`
+  - User account onboarding, suspension, and lifecycle state management.
+  - → should appear: Admin / User management
+- **Telemetry** — `/Users/hb/dev/vibecore/services/api/src/telemetry.ts`
+  - Platform telemetry and analytics event tracking.
+  - → should appear: Admin dashboard / Analytics
+- **Email Service** — `/Users/hb/dev/vibecore/services/api/src/email.ts`
+  - System email delivery (alerts, notifications, password resets, spend alerts).
+  - → should appear: Background service
+- **Runtime Readiness** — `/Users/hb/dev/vibecore/services/api/src/runtime-readiness.ts`
+  - Health check and readiness probe for workspace runtime availability.
+  - → should appear: Admin health checks
+- **Strike System** — `/Users/hb/dev/vibecore/services/api/src/strike-system.ts`
+  - Compliance/abuse prevention system with strike tracking and suspension escalation.
+  - → should appear: Admin / Compliance
+- **Profile Store** — `/Users/hb/dev/vibecore/app/lib/stores/profile.ts`
+  - User profile management (username, bio, avatar) with localStorage persistence.
+  - → should appear: Account settings / Profile
+- **Project Database Route** — `/Users/hb/dev/vibecore/app/routes/projects.$projectId.database.tsx`
+  - Marketing surface page for project database UI (surface page, not functional).
+  - → should appear: Project sidebar / Database tab
+- **Project Preview Route** — `/Users/hb/dev/vibecore/app/routes/projects.$projectId.preview.tsx`
+  - Marketing surface page for project preview UI (surface page, not functional).
+  - → should appear: Project sidebar / Preview tab
+- **Audit Logs (Enterprise)** — `/Users/hb/dev/vibecore/app/routes/audit-logs.tsx`
+  - Export security-relevant organization events to CSV, JSON, or SIEM webhooks. Enterprise feature for compliance.
+  - → should appear: Admin / Organization settings
+- **SCIM Token Settings (Enterprise)** — `/Users/hb/dev/vibecore/app/routes/scim-token-settings.tsx`
+  - Create hashed SCIM bearer tokens for identity provider provisioning (SSO/SAML integration).
+  - → should appear: Enterprise / SSO settings
+- **Admin Dashboard** — `/Users/hb/dev/vibecore/app/routes/admin.$section.tsx`
+  - Platform-wide admin control plane with sections for: overview, health, users, organizations, projects, workspaces, terminals, previews, deployments, usage, AI usage, provider health, quotas, billing, OAuth providers, Stripe. Requires platform admin role.
+  - → should appear: Admin only
+- **Runtime Test Page** — `/Users/hb/dev/vibecore/app/routes/runtime-test.tsx`
+  - Marketing static page for runtime testing (internal reference page).
+  - → should appear: Not user-facing
+
+### surfaced = partial  (46)
+- **WebContainer Preview Routes** — `/Users/hb/dev/vibecore/app/routes/webcontainer.preview.$id.tsx, webcontainer.connect.$id.tsx`
+  - Provides external routes for previewing applications in dedicated browser windows at URLs like `https://{previewId}.local-credentialless.webcontainer-api.io`. Includes BroadcastChannel messaging for refresh coordination.
+  - → should appear: Routes/browser windows (used by 'Open in new window' feature)
+- **Runtime Port Detection & Watching** — `/Users/hb/dev/vibecore/app/lib/stores/previews.ts`
+  - Continuously monitors the workspace runtime for available dev server ports via watchPorts adapter. Maintains a list of running previews with their base URLs and ready states. Handles reconnection on failures.
+  - → should appear: Dashboard/IDE (port detection happens automatically, results visible in port dropdown)
+- **Preview Error Recovery** — `/Users/hb/dev/vibecore/app/components/workbench/preview-frame-recovery.ts`
+  - Handles transient 502 errors and connection failures during preview startup. Implements bounded auto-reload strategy to retry failed loads without infinite loops.
+  - → should appear: Background service (user sees auto-retries in progress overlay)
+- **Mobile Terminal Tab (FROZEN)** — `/Users/hb/dev/vibecore/app/components/chat/BaseChat.tsx, EditorPanel.tsx`
+  - Terminal tab in mobile IDE view, currently frozen per design (ref IMG_9149). Header structure and bottom dock UI must not be modified. Terminal functionality exists but layout/styling is locked.
+  - → should appear: Mobile IDE (tab switcher, DO NOT MODIFY per ref IMG_9149)
+- **Preview Ready/Not-Ready State Machine** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx, preview-address.ts`
+  - Tracks whether a detected preview port is ready to serve content. Auto-reloads iframe when port transitions from not-ready to ready to avoid stale error pages.
+  - → should appear: Background (visible in Network tab as 'detecting' vs 'ready' status)
+- **Chat History Sidebar** — `/Users/hb/dev/vibecore/app/components/sidebar/HistoryItem.tsx, /Users/hb/dev/vibecore/app/components/sidebar/Menu.client.tsx`
+  - Client-side chat history management with export, duplicate, rename, delete, bulk delete operations and search filtering. Persisted to IndexedDB. Includes selection mode for bulk operations.
+  - → should appear: Sidebar / Dashboard
+- **Chat Rewind (Message Regeneration)** — `/Users/hb/dev/vibecore/app/utils/chat-rewind.ts`
+  - Utility to compute message truncation for IDE-mode 'Regenerate from this prompt' action. Allows rewinding conversation to a specific message and regenerating assistant response from preceding user prompt.
+  - → should appear: IDE / Chat Interface
+- **Recent Projects** — `/Users/hb/dev/vibecore/app/routes/recent-projects.tsx`
+  - Dashboard view showing projects sorted by most recent updates. Accessible via command palette hint but not in main navigation menus.
+  - → should appear: Dashboard / Workspace Nav
+- **Audit Logs (Enterprise)** — `/Users/hb/dev/vibecore/app/routes/audit-logs.tsx`
+  - Security-relevant organization event audit log viewer with export to CSV/JSON/SIEM webhooks. Requires enterprise access and organization context.
+  - → should appear: Admin / Organization Settings
+- **SSH Connections** — `app/components/chat/BaseChat.tsx (lines 9546-9852)`
+  - Terminal panel for adding/managing SSH connections within workspace shell. Lists active SSH connections with status (connected/disconnected), allows adding new connections via form (name, host, port, username, optional private key), and toggle connection state.
+  - → should appear: IDE tab: Terminal/Shell Environment panel (only accessible when Terminal panel is loaded in project IDE, not in main dashboard nav)
+- **Recovery Codes** — `app/routes/recovery-codes.tsx`
+  - Generate and rotate one-time account recovery codes for MFA fallback authentication. User confirms action, receives new codes, can copy or download them.
+  - → should appear: Account settings: Security menu (accessed via /recovery-codes or from /mfa-setup complete screen; linked from /security-settings but requires manual navigation to /mfa-setup first)
+- **Editor Settings Store** — `/Users/hb/dev/vibecore/app/lib/stores/editor-settings.ts`
+  - Persistent store for editor preferences: fontSize (10-28px), tabSize (2/4/8), wordWrap, vimMode, formatOnSave, accessibleTerminal. Reads/writes to localStorage (key: 'vibecore:editor-settings'). Single source of truth for CodeMirror editor.
+  - → should appear: IDE (used by CodeMirror, read by SettingsTab indirectly)
+- **Project Settings Route** — `/Users/hb/dev/vibecore/app/routes/projects.$projectId.settings.tsx`
+  - Per-project metadata: name, description, git repository URL, git default branch. Persisted to /projects/{id}/settings backend endpoint. Includes run/install commands reference (deferred to .replit).
+  - → should appear: Project dashboard or settings tab within IDE
+- **MCP Servers Tab** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/mcp/McpTab.tsx`
+  - Model Context Protocol server configuration and marketplace. Window: 'user' but marked BETA. Allows users to install and manage MCP servers.
+  - → should appear: Settings > MCP Servers tab (control panel) - currently in user window but BETA
+- **Settings Tab Configuration Store** — `/Users/hb/dev/vibecore/app/lib/stores/settings.ts (tabConfigurationStore)`
+  - Persistent nanostores store for user-visible settings tab configuration (visibility, order, window type). Filters by window:'user' in ControlPanel. Initializes from DEFAULT_TAB_CONFIG or localStorage (key: 'bolt_tab_configuration').
+  - → should appear: Internal (ControlPanel reads this to render visible tabs)
+- **Keyboard Shortcuts Store** — `/Users/hb/dev/vibecore/app/lib/stores/settings.ts (shortcutsStore)`
+  - Nanostores map for keyboard shortcuts. Currently only toggleTheme is active (Cmd+Alt+Shift+D). extensible for toggleTerminal (backtick).
+  - → should appear: Settings > Keyboard Shortcuts section (Settings tab)
+- **Providers Store (AI Model Configuration)** — `/Users/hb/dev/vibecore/app/lib/stores/settings.ts (providersStore, updateProviderSettings)`
+  - Nanostores map for AI provider configuration (enabled state, settings). Auto-enables local providers when server-detected via /api/configured-providers. Persists to localStorage (key: 'provider_settings') and tracks auto-enabled status.
+  - → should appear: Cloud/Local Providers tabs (currently in developer window, should be in admin section)
+- **Teams Settings Route** — `/Users/hb/dev/vibecore/app/routes/teams.$id.settings.tsx`
+  - Per-team configuration (likely name, members, permissions).
+  - → should appear: Team management dashboard
+- **MCP Configuration API & Store** — `/Users/hb/dev/vibecore/app/lib/.server/mcp/load-config.server.ts, /Users/hb/dev/vibecore/app/lib/mcp/install-config.ts, /Users/hb/dev/vibecore/app/lib/stores/mcp.ts, /Users/hb/dev/vibecore/app/routes/api.mcp-update-config.ts, /Users/hb/dev/vibecore/app/routes/api.mcp.config.ts`
+  - MCP server configuration: server-side loading (load-config.server.ts), client-side install config (install-config.ts), store for MCP state, API endpoints for config updates and retrieval.
+  - → should appear: MCP Servers tab (Settings > MCP)
+- **MCP Configuration Tab** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/mcp/McpTab.tsx`
+  - Allows users to configure MCP (Model Context Protocol) servers with marketplace install discovery, server list management, JSON configuration editing, and availability checking.
+  - → should appear: Control Panel (Settings) - marked as BETA, visible in user window
+- **AI Agent Studio Surface** — `/Users/hb/dev/vibecore/app/routes/ai-agent.studio.tsx`
+  - Dedicated surface for AI agent planning, tool boundary supervision, patch review and preview-aware validation (live at /ai-agent/studio).
+  - → should appear: IDE / Agent Panel - supervisor interface for agent work
+- **Command Palette Preview** — `/Users/hb/dev/vibecore/app/routes/command-palette.tsx`
+  - Keyboard-first navigation preview for projects, billing, support, imports and IDE actions - informational/demo route.
+  - → should appear: Dashboard / Help & Navigation - command palette reference page
+- **IDE compatibility redirect ($id)** — `/Users/hb/dev/vibecore/app/routes/ide.$id.tsx`
+  - Legacy compatibility route that serves informational page redirecting /ide/:id requests to canonical /projects/:id/ide route. Preserves old link patterns.
+  - → should appear: Admin / Hidden routes list
+- **IDE new compatibility redirect** — `/Users/hb/dev/vibecore/app/routes/ide.new.tsx`
+  - Legacy compatibility route informing users that /ide/new now maps to /projects/new. Preserves old link pattern with redirect guidance.
+  - → should appear: Admin / Hidden routes list
+- **Mobile workspace compatibility** — `/Users/hb/dev/vibecore/app/routes/mobile-workspace.$projectId.tsx`
+  - Compatibility route for legacy /mobile-workspace/:projectId URLs directing users to canonical /projects/:projectId/ide. Preserves mobile IDE access patterns.
+  - → should appear: Admin / Hidden routes list
+- **Recent projects view** — `/Users/hb/dev/vibecore/app/routes/recent-projects.tsx`
+  - Renders projects sorted by updatedAt (most recent first). Linked from dashboard 'View all' button. Requires organization context.
+  - → should appear: Dashboard navigation (currently accessible via View all button)
+- **Git import route** — `/Users/hb/dev/vibecore/app/routes/git.tsx`
+  - Git URL import UI with BaseChat and GitUrlImport client component. Allows importing Git repositories into E-Code projects.
+  - → should appear: Dashboard import options (currently in importOptions as '/import-github')
+- **Community (posts, challenges, events)** — `/Users/hb/dev/vibecore/app/routes/community.tsx`
+  - Public community hub with posts, challenges, contributors, events. Shows 6 community posts (agent memory, mobile preview, deployments rollback, templates, team governance, demo day), 3 challenges (agent tools, mobile-first, secure deployment), 4 contributors (ranks/badges), 4 events (roundtable, workshops, clinic, hardening day).
+  - → should appear: Marketing/Resources navigation (in publicMarketingMenus.resources)
+- **Marketplace products** — `/Users/hb/dev/vibecore/app/routes/marketplace.tsx`
+  - Static marketing page for extensions marketplace (from marketingPages.marketplace).
+  - → should appear: Marketing navigation (in publicNav and footer)
+- **Mobile app marketing page** — `/Users/hb/dev/vibecore/app/routes/mobile.tsx`
+  - Marketing landing page for E-Code mobile app (iOS/Android).
+  - → should appear: Marketing navigation (in publicMarketingMenus.product)
+- **Feature Flags** — `/Users/hb/dev/vibecore/services/api/src/feature-flags.ts`
+  - Per-user feature flag evaluation with org-override-over-global support, staged rollout with deterministic bucketing, and route guards. Flags resolve based on enabled bit and rollout percentage.
+  - → should appear: Admin dashboard
+- **Credits & Wallet System** — `/Users/hb/dev/vibecore/services/api/src/credits-service.ts`
+  - Effort-based checkpoint orchestration with credit packs (earliest-expiry-first consumption), monthly wallet balance, pay-as-you-go overage, and usage limits. Gates AI requests and billable services.
+  - → should appear: Billing section / Settings
+- **Agent Memory** — `/Users/hb/dev/vibecore/services/api/src/agent-memory.ts`
+  - Long-term agent context storage with preferences, search, and context retrieval. Supports memory export/import and preference management. Accessible via /agent-memory endpoints.
+  - → should appear: AI settings / Agent configuration
+- **MCP Marketplace** — `/Users/hb/dev/vibecore/services/api/src/mcp-marketplace.ts`
+  - MCP (Model Context Protocol) server marketplace: lists extensions, categories, tags, templates, trending items, and publisher information. Supports tracking of marketplace template views.
+  - → should appear: IDE marketplace tab / Configuration tab
+- **Project Storage** — `/Users/hb/dev/vibecore/services/api/src/project-storage.ts`
+  - File and object storage management for projects. Handles project snapshots, exports, and persistent file storage.
+  - → should appear: Project snapshots / Storage management
+- **Supabase Integration** — `/Users/hb/dev/vibecore/app/lib/stores/supabase.ts`
+  - Nanostores atom tracking Supabase connection state (user, token, project selection, stats, credentials) with localStorage persistence.
+  - → should appear: Settings / Integrations tab
+- **Netlify Integration** — `/Users/hb/dev/vibecore/app/lib/stores/netlify.ts`
+  - Netlify connection management with auto-initialization from environment token, stats fetching, and localStorage caching.
+  - → should appear: Settings / Integrations tab
+- **Vercel Integration** — `/Users/hb/dev/vibecore/app/lib/stores/vercel.ts`
+  - Vercel deployment integration tracking connection state and project metadata.
+  - → should appear: Settings / Integrations tab
+- **GitHub Integration** — `/Users/hb/dev/vibecore/app/lib/stores/github.ts`
+  - GitHub repository and stats integration for source control and import workflows.
+  - → should appear: Settings / Integrations tab
+- **Provider Settings** — `/Users/hb/dev/vibecore/app/lib/stores/settings.ts`
+  - Client-side AI provider configuration (OpenAI, Claude, Ollama, LMStudio, OpenAILike). Manages enabled state, base URLs, and auto-enables server-detected providers.
+  - → should appear: IDE settings / Model provider section
+- **Git Import** — `/Users/hb/dev/vibecore/app/routes/git.tsx`
+  - Git repository URL import interface for loading existing projects from GitHub/GitLab URLs.
+  - → should appear: Project creation / Import wizard
+- **Quota Exceeded Handler** — `/Users/hb/dev/vibecore/app/routes/quota-exceeded.tsx`
+  - Error page displayed when backend quota checks block a requested action before cost is incurred. Provides links to upgrade plan or compare pricing.
+  - → should appear: Error boundary / Auto-redirect on quota hit
+- **Help Center** — `/Users/hb/dev/vibecore/app/routes/help.tsx`
+  - Help center marketing static page (alias route).
+  - → should appear: Footer / Help menu
+- **Forum** — `/Users/hb/dev/vibecore/app/routes/forum.tsx`
+  - Community forum marketing static page (external community discussion space).
+  - → should appear: Resources menu / Community
+- **QR Code Store** — `/Users/hb/dev/vibecore/app/lib/stores/qrCodeStore.ts`
+  - Simple nanostores atom tracking Expo URL for QR code generation (likely for mobile app previews).
+  - → should appear: IDE preview section / Mobile deploy
+- **AI Agent Studio** — `/Users/hb/dev/vibecore/app/routes/ai-agent.studio.tsx`
+  - Marketing surface page for AI agent studio product positioning.
+  - → should appear: Navigation / Product menu
+
+### surfaced = yes  (60)
+- **Port Dropdown (Multi-port Selection)** — `/Users/hb/dev/vibecore/app/components/workbench/PortDropdown.tsx`
+  - Allows users to switch between multiple detected dev server ports when running multiple preview servers simultaneously. Shows a list of available ports sorted by port number, with the active port highlighted.
+  - → should appear: IDE toolbar (Preview toolbar, address bar section)
+- **Inspector/Inspect-to-Code** — `/Users/hb/dev/vibecore/app/components/workbench/Inspector.tsx, InspectorPanel.tsx`
+  - Allows clicking elements in the preview to inspect their HTML (tag, classes, id), view computed styles, and open the source file that renders them. Overlays a blue border with element info tooltip when hovering.
+  - → should appear: IDE toolbar (Preview toolbar, 'Inspect' button + DevTools panel)
+- **Element DevTools Tab** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx, InspectorPanel.tsx`
+  - Shows the currently selected element's tag name, classes, id, and text content in a tab within the DevTools panel. Allows opening the matching source file.
+  - → should appear: IDE DevTools panel bottom section (Elements tab)
+- **Console Log Capture (DevTools Console)** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Captures console output from the preview iframe including console.log/error/warn messages and preview runtime errors. Displays up to 120 recent events with level badges (error, trace, etc).
+  - → should appear: IDE DevTools panel (Console tab)
+- **Network Activity Tracking (DevTools Network)** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Logs preview navigations and iframe load events including HTTP method, URL, status (loaded/reloaded/detecting/ready), and source (port/file:applied/upstream-retry/etc). Maintains up to 80 recent events.
+  - → should appear: IDE DevTools panel (Network tab)
+- **Screenshot Selection Tool** — `/Users/hb/dev/vibecore/app/components/workbench/ScreenshotSelector.tsx`
+  - Enables screen capture with area selection. Users can drag to select a portion of the preview, which captures and adds the screenshot as an image to the chat message input.
+  - → should appear: IDE toolbar (Preview toolbar, selection/crop icon button)
+- **Device Mode / Responsive Preview** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Switches between desktop, tablet, mobile, and custom width preview modes. Allows responsive testing of web apps at different viewport sizes with device presets.
+  - → should appear: IDE toolbar (Preview toolbar, device dropdown and mode toggle)
+- **Device Frame Rendering** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Renders a physical device bezel (notch, home button) around mobile/tablet previews in device mode. Supports both portrait and landscape orientations with frame styling.
+  - → should appear: IDE toolbar (when device mode is active: frame toggle, rotate button)
+- **Landscape/Portrait Orientation Toggle** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Rotates the device frame between portrait and landscape modes, swapping width/height and adjusting notch/home button positioning accordingly.
+  - → should appear: IDE toolbar (Preview toolbar device section, rotate icon - only visible in device mode)
+- **Responsive Preview Resizing** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Allows dragging left/right resize handles to adjust preview viewport width between 10-90% when device mode is active but frame is hidden. Shows pixel width overlay during resize.
+  - → should appear: IDE preview viewport (resize handles appear on sides when device mode active, width indicator above)
+- **Preset Device Window Templates** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Provides 12 preset device sizes (iPhone SE/12/Pro Max, iPad variants, laptops, desktops, 4K) that can be opened in new browser windows with optional device frames. Each preset includes dimensions and frame styling.
+  - → should appear: IDE toolbar (preview window browser button dropdown, responsive presets section)
+- **Open Preview in New Window/Tab** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Opens the active preview in a dedicated browser window (with specified dimensions) or new tab. Supports device frame overlay in popout windows.
+  - → should appear: IDE toolbar (Open button and preview window menu)
+- **Fullscreen Preview Mode** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Enters browser fullscreen mode for the preview viewport, allowing distraction-free testing of web applications.
+  - → should appear: IDE toolbar (Preview toolbar, fullscreen toggle icon)
+- **Address Bar Navigation** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx, preview-address.ts`
+  - Allows typing URLs or paths in the preview address bar to navigate within the running preview. Resolves relative paths, validates URLs, and maintains navigation history via browser back/forward buttons.
+  - → should appear: IDE toolbar (address bar in center section)
+- **Copy Preview URL** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Copies the current preview URL to clipboard so users can share or open the preview externally.
+  - → should appear: IDE toolbar (address bar Copy button)
+- **Expo QR Code Modal** — `/Users/hb/dev/vibecore/app/components/workbench/ExpoQrModal.tsx`
+  - Shows a QR code that can be scanned with the Expo Go app on a mobile device to preview React Native apps running in the IDE.
+  - → should appear: IDE toolbar (QR code icon button - only visible when expo URL is detected)
+- **Static HTML Preview** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Automatically renders projects with index.html or Bolt templates as static HTML previews when no dev server is running. Inlines module scripts when possible for better compatibility.
+  - → should appear: IDE preview viewport (auto-rendered, no UI control needed)
+- **Preview Boot Progress Tracking** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx, preview-frame-recovery.ts`
+  - Shows a multi-stage startup overlay with progress tracking (dependencies → build → server → ready). Displays current task and recent logs during boot. Auto-retries if preview loads before server is truly ready.
+  - → should appear: IDE preview viewport (loading/startup overlay)
+- **Splash Screen with Tips Carousel** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Shows an animated splash screen during preview boot with rotating tips about preview features, deployment, and collaboration. Includes progress bar and boot step indicators.
+  - → should appear: IDE preview viewport (during startup before app loads)
+- **Logs Panel (Webview + Server Logs)** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Separate tabbed panel showing webview logs (current URL, port, device, status) and full server/workspace logs. Can be toggled or docked to the right panel.
+  - → should appear: IDE preview viewport bottom (toggleable, or right sidebar when docked)
+- **DevTools Unified Panel (Console/Network/Elements)** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Integrated dev tools panel with three tabs: Console (logs), Network (navigation/requests), Elements (inspector). Shows up to 120 console events and 80 network events. Has Clear button per tab.
+  - → should appear: IDE preview viewport bottom (toggle with DevTools button)
+- **Preview History Navigation** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Back/Forward buttons to navigate through the preview iframe's history stack, allowing users to move between previously visited pages.
+  - → should appear: IDE toolbar (Preview toolbar, left side arrow buttons)
+- **Preview Refresh Button** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Manually refresh/reload the preview iframe, useful when dev server updates are ready or after code changes.
+  - → should appear: IDE toolbar (Preview toolbar, refresh/reload icon)
+- **Responsive Device Dropdown (Desktop/Tablet/Mobile/Custom)** — `/Users/hb/dev/vibecore/app/components/workbench/Preview.tsx`
+  - Select list to quickly switch between preset device types. Controls viewport sizing and aspect ratios for responsive testing.
+  - → should appear: IDE toolbar (Preview toolbar, device selector dropdown)
+- **Conversation Branches (Threads)** — `/Users/hb/dev/vibecore/app/components/chat/ConversationBranchesMenu.tsx, /Users/hb/dev/vibecore/app/lib/chat/chat-branches.ts, /Users/hb/dev/vibecore/app/lib/hooks/useProjectChatBranches.ts`
+  - Multi-branch conversation history with tree structure, supporting fork from message point, rename branches, delete branches with descendants, and switch between branches. Stores parentId, branchedFromMessageId, and archivedFromMessageId metadata.
+  - → should appear: IDE / Agent Panel
+- **Project Snapshots (Checkpoints)** — `/Users/hb/dev/vibecore/app/routes/projects.$projectId.snapshots.tsx`
+  - Manual and automatic project checkpoints for rollback. Supports creating snapshots with labels, listing snapshots with metadata (size, kind, createdAt), and restoring from snapshots to overwrite current project files.
+  - → should appear: Project Settings / Project Nav
+- **Custom Domains** — `app/routes/projects.$projectId.domains.tsx`
+  - Map project deployments to verified domains with TLS readiness. Add domain, generate DNS TXT verification token, verify domain ownership via DNS record check.
+  - → should appear: Project settings nav (visible in projectNav as 'Custom domains' suffix='/domains')
+- **API Keys** — `app/routes/api-keys.tsx`
+  - Create, scope, rotate and revoke API keys for programmatic access. Set scopes (read/write/admin), expiration (never/30/90/365 days), display token once on creation.
+  - → should appear: Account settings: User menu (visible in accountNav as 'API keys' to=/api-keys)
+- **MFA Setup** — `app/routes/mfa-setup.tsx`
+  - Two-factor authentication TOTP enrollment. Displays QR code for authenticator app, manual setup key, 6-digit code verification, auto-generates recovery codes on success. Step-up password auth required.
+  - → should appear: Account settings: Security menu (linked from /security-settings 'Set up 2FA' or 'Manage 2FA')
+- **Connected Accounts** — `app/routes/connected-accounts.tsx`
+  - Manage OAuth connections for GitHub (integration), Google (identity/SSO), Microsoft Entra ID (identity/OIDC). Shows connection status, linked account details, connect/disconnect actions.
+  - → should appear: Account settings: User menu (visible in accountNav as 'Connected accounts' to=/connected-accounts)
+- **Notifications** — `app/routes/notifications.tsx`
+  - Control notification preferences across surfaces (security, billing, deployments, team), delivery channels (email, in-app, webhook, mobile), and priority policies (critical/action/info).
+  - → should appear: Account settings: User menu (visible in accountNav as 'Notifications' to=/notifications)
+- **Security Settings** — `app/routes/security-settings.tsx`
+  - Dashboard for user security state. Displays MFA status badge, lists 2FA, recovery codes, and active sessions management options. Links to /mfa-setup, /recovery-codes, /session-security.
+  - → should appear: Account settings: User menu (visible in accountNav as 'Security' to=/security-settings)
+- **Share Link** — `app/routes/share.$token.tsx`
+  - Read-only share view for conversation snapshots. Validates token signature server-side, displays shared messages, optionally allows forking with authentication.
+  - → should appear: Public route: Shared conversation (rendered at /share/:token; not in nav but generated by share button in IDE)
+- **Theme Store & Toggle** — `/Users/hb/dev/vibecore/app/lib/stores/theme.ts, /Users/hb/dev/vibecore/app/components/ui/ThemeSwitch.tsx`
+  - Nanostores-backed theme state (dark/light). Persists to localStorage (key: 'bolt_theme'). applyThemeToDocument() updates HTML data-theme attribute and refreshes iOS Safari chrome meta tags. toggleTheme() is exposed in settings and keyboard shortcuts (Cmd+Alt+Shift+D).
+  - → should appear: Settings > Settings tab (shown), IDE toolbar (ThemeSwitch component), user profile dropdown
+- **Settings Tab (User Preferences)** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/settings/SettingsTab.tsx`
+  - User preference UI: language selection (10 languages), notifications toggle, timezone selection. Syncs to /api/user/preferences (DB-backed). Keyboard shortcuts section shows toggle theme shortcut. Persists to localStorage (bolt_user_profile) with optional backend sync.
+  - → should appear: Settings > Settings tab (control panel)
+- **Profile Tab** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/profile/ProfileTab.tsx`
+  - User profile editing UI (name, email, bio, avatar). Backend-persisted via profile store.
+  - → should appear: Settings > Profile tab (control panel), user dropdown menu
+- **Features Tab** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/features/FeaturesTab.tsx`
+  - Explore and acknowledge new features. Shows unviewed feature badges.
+  - → should appear: Settings > Features tab (control panel)
+- **Notifications Tab** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/notifications/NotificationsTab.tsx`
+  - View and manage user notifications. Shows unread count badge.
+  - → should appear: Settings > Notifications tab (control panel)
+- **Data Management Tab** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/data/DataTab.tsx`
+  - Manage user data and storage, including export options.
+  - → should appear: Settings > Data Management tab (control panel)
+- **Connections Tab** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/connections/ConnectionsTab.tsx`
+  - Review all active service and provider connections (GitHub, GitLab, Netlify, Vercel, Supabase, etc.). Links to individual provider tabs.
+  - → should appear: Settings > Connections tab (control panel)
+- **GitHub Integration Tab** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/github/GitHubTab.tsx`
+  - Connect GitHub account, select repositories, view stats and user profile.
+  - → should appear: Settings > GitHub tab (control panel)
+- **GitLab Integration Tab** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/gitlab/GitLabTab.tsx`
+  - Connect GitLab account, select repositories, view stats.
+  - → should appear: Settings > GitLab tab (control panel)
+- **Vercel Integration Tab** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/vercel/VercelTab.tsx`
+  - Connect Vercel account and manage deployments.
+  - → should appear: Settings > Vercel tab (control panel)
+- **Netlify Integration Tab** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/netlify/NetlifyTab.tsx`
+  - Connect Netlify account and manage site deployments.
+  - → should appear: Settings > Netlify tab (control panel)
+- **Supabase Integration Tab** — `/Users/hb/dev/vibecore/app/components/@settings/tabs/supabase/SupabaseTab.tsx`
+  - Configure Supabase database connection.
+  - → should appear: Settings > Supabase tab (control panel)
+- **Main Settings Route** — `/Users/hb/dev/vibecore/app/routes/settings.tsx`
+  - Parent route for /settings/* (likely redirects to /settings/profile or control panel).
+  - → should appear: Settings entry point
+- **CodeMirror Theme Configuration** — `/Users/hb/dev/vibecore/app/components/editor/codemirror/cm-theme.ts`
+  - Editor syntax highlighting theme tied to light/dark mode (reads themeStore).
+  - → should appear: Editor (CodeMirror automatically applies based on themeStore)
+- **Slash Commands Registry** — `/Users/hb/dev/vibecore/app/lib/chat/slash-commands.ts`
+  - Built-in slash commands for chat: /clear, /discuss, /build, /plan, /help, /file, /snapshot, /preview-error, /open, /diff, /run. Extensible via registerSlashCommand() with keyboard shortcut support and MRU ranking.
+  - → should appear: Chat Composer - activated by typing / in input
+- **Composer Slash Overlay** — `/Users/hb/dev/vibecore/app/components/chat/ComposerSlashOverlay.tsx`
+  - Surfaces the slash command palette UI while user types / in the composer, with fuzzy search, MRU ranking, argument input for commands that accept arguments.
+  - → should appear: Chat Composer - inline overlay triggered by slash prefix
+- **Command palette (full page)** — `/Users/hb/dev/vibecore/app/routes/command-palette.tsx`
+  - Dedicated page for command palette with project grid. Keyboard-first navigation view for projects, billing, support, imports and IDE actions.
+  - → should appear: Workspace navigation (already in workspaceNav with ⌘K shortcut)
+- **Usage & quotas dashboard** — `/Users/hb/dev/vibecore/app/routes/usage.tsx`
+  - Organization usage tracking: projects count, AI tokens, storage MB, runtime starts. Shows quota limits, usage, and active overrides (enterprise). Requires usage:read permission.
+  - → should appear: Organization navigation (in orgNav)
+- **Collaboration marketing page** — `/Users/hb/dev/vibecore/app/routes/collaboration.tsx`
+  - Marketing landing page for multiplayer collaboration features (real-time editing, comments, presence, shared workspaces).
+  - → should appear: Marketing navigation (in publicMarketingMenus.product)
+- **AI Agent marketing page** — `/Users/hb/dev/vibecore/app/routes/ai-agent.tsx`
+  - Marketing page for AI agent capabilities and building AI-powered apps with E-Code.
+  - → should appear: Marketing navigation (in publicMarketingMenus.product)
+- **Collaboration Presence** — `/Users/hb/dev/vibecore/services/api/src/collaboration-presence-cleanup.ts`
+  - Multi-replica presence cleanup logic preventing false presence-leave broadcasts when users reconnect to different API replicas. Compares updatedAt timestamps to retire only stale rows.
+  - → should appear: IDE (PresenceAvatars component)
+- **Deployments** — `/Users/hb/dev/vibecore/services/api/src/deployments.ts`
+  - Full deployment lifecycle management: provisioning, status tracking, domain binding, rollback, and artifact storage.
+  - → should appear: Project deployments tab
+- **MCP Store** — `/Users/hb/dev/vibecore/app/lib/stores/mcp.ts`
+  - Zustand store for MCP server configuration, tool availability, and settings persistence. Loads from DB-backed config with localStorage fallback.
+  - → should appear: IDE Configuration tab
+- **Snapshots** — `/Users/hb/dev/vibecore/app/routes/projects.$projectId.snapshots.tsx`
+  - Manual and automatic project checkpoint management for rollback, AI safety, and exports. Create/restore snapshots with labels and metadata.
+  - → should appear: Project sidebar
+- **Presence Avatars Component** — `/Users/hb/dev/vibecore/app/components/chat/PresenceAvatars.tsx`
+  - Stacked avatar display for collaboration presence indicator showing up to N users with typing/viewing/idle status. Used in agent panel for real-time collaboration feedback.
+  - → should appear: IDE chat panel
+- **Mobile App Landing** — `/Users/hb/dev/vibecore/app/routes/mobile.tsx`
+  - Marketing page for E-Code mobile app (iOS/Android IDE).
+  - → should appear: Navigation / Product menu
+- **Desktop App Landing** — `/Users/hb/dev/vibecore/app/routes/desktop.tsx`
+  - Marketing page for E-Code desktop app (macOS/Windows/Linux IDE).
+  - → should appear: Navigation / Product menu
+
+## List 2 — Replit tool gap (verdict per tool)
+- **Preview**: surfaced — COMPLETE - Live preview, QR codes, inspector, device emulation all implemented
+- **Console / Logs**: surfaced — COMPLETE - Logs panel with streaming, filtering, and live tail
+- **Shell / Terminal**: surfaced — COMPLETE - Interactive shell with execution, input binding, and terminal state persistence
+- **Git**: surfaced — COMPLETE - Branches, diffs, blame, stashes, conflict resolution, commit graph
+- **Database**: surfaced — COMPLETE - DB connections, schema browser, query builder, rollback/snapshots
+- **Object/App Storage**: surfaced — COMPLETE - Object storage management panel
+- **Secrets / Environment Variables**: surfaced — COMPLETE - Secret reveal flow with confirmation, environment variable management
+- **Packages / Dependencies**: surfaced — COMPLETE - Package management, audit, manifest display
+- **Deployments / Publishing**: surfaced — COMPLETE - Deployments, domains, publishing, build logs
+- **Auth / Connections**: code-only — ADD to IDE rail - Could be quick 'Reconnect account' / 'Auth status' panel; currently buried in settings
+- **Integrations**: surfaced — COMPLETE - Third-party service integrations management
+- **Extensions / Plugins**: surfaced — COMPLETE - MCP marketplace and extension installation
+- **Workflows**: surfaced — COMPLETE - Workflow automation/triggers management
+- **Security / Scanner**: surfaced — COMPLETE - Security scanning and vulnerability management
+- **MCP / Model Context Protocol**: surfaced — COMPLETE - MCP server discovery, installation, management
+- **Agent / AI Assistant**: surfaced — COMPLETE - Full AI agent with multi-step reasoning, checkpoint tracking, auto-apply
+- **Ports Management**: code-only — CONSIDER - Add dedicated Ports panel to monitor/manage exposed services; currently hidden in monitoring/preview
+- **SSH / Remote Access**: none — NOT IMPLEMENTED - Could add SSH key pair generation/display for remote dev use; low priority vs web-based terminal
+- **History / Checkpoints / Snapshots**: surfaced — COMPLETE - Snapshots/checkpoints with database restore; version history via Git
+- **Activity / Event Logs**: surfaced — COMPLETE - Audit trail and project activity timeline
+- **Collaborators / Multiplayer**: surfaced — COMPLETE - Real-time collaboration, presence, permissions
+- **Account / Workspace Settings**: surfaced — COMPLETE - IDE settings, keybindings, account, billing, sessions
+- **Usage / Billing**: code-only — BUILD - Add 'Billing' panel to IDE showing credit balance, effort-based usage per checkpoint, invoices; integrate CreditWallet model (in REPLIT_PARITY_SPEC P0 phase)
+- **Monitoring / Metrics**: surfaced — COMPLETE - Runtime health, error tracking, performance metrics
+- **Debugger**: surfaced — COMPLETE - Process inspection, log snapshot, debugger UI state management
+- **Themes / Appearance**: surfaced — COMPLETE - Dark/light theme toggle, persisted to localStorage and document
+- **Networking / Ports / Domains**: surfaced — COMPLETE - Domain management, port exposure, networking configuration
+- **Overview / Dashboard**: surfaced — COMPLETE - Project overview with streaming live updates, aggregated metrics
+- **Editor / File Editing**: surfaced — COMPLETE - Full code editor with LSP, IntelliSense, refactoring
+- **File Browser / Files**: surfaced — COMPLETE - File tree with full CRUD, drag-drop upload, git integration
+- **Search / Find**: surfaced — COMPLETE - Project-wide search with regex, file and symbol search
+- **File Locks / Collaborative Editing**: surfaced — COMPLETE - File locking to prevent concurrent edits in multi-user scenarios
