@@ -587,3 +587,250 @@ Total features inventoried: 181. Replit tools mapped: 32.
 - **File Browser / Files**: surfaced — COMPLETE - File tree with full CRUD, drag-drop upload, git integration
 - **Search / Find**: surfaced — COMPLETE - Project-wide search with regex, file and symbol search
 - **File Locks / Collaborative Editing**: surfaced — COMPLETE - File locking to prevent concurrent edits in multi-user scenarios
+
+---
+
+## packages/* re-scan — surfaceable capabilities (coverage now 100%)
+
+Re-scan of 19 packages via 7 cluster agents. 129 capabilities reported, 120 actionable (surfaceable Admin/User/IDE).
+
+- **Quota inspection & limits** [User] — `/Users/hb/dev/vibecore/app/routes/usage.tsx`
+  - Users view real-time quota usage across projects, workspaces, AI tokens, storage, snapshots, previews and deployments. Shows usage vs plan limits for each quota key (projects.count, ai.inputTokens, wo
+- **Credits wallet & balance** [User] — `/Users/hb/dev/vibecore/app/routes/billing.tsx`
+  - Users see monthly credit grants, remaining balance (monthlyCreditCents + dailyCreditCents), credit pack balances (6-month expiry), total available credits. Tracks PAYG spend against budget cap in cent
+- **Budget cap / spend limits** [User] — `/Users/hb/dev/vibecore/app/routes/billing.tsx`
+  - Users set and update usage-based (PAYG) spend limits in increments (e.g., $500 minimum to prevent accidental overspend). Separate from monthly included credits—when balance is exhausted, additional sp
+- **Spend usage indicators & alerts** [User] — `/Users/hb/dev/vibecore/app/routes/billing.tsx (spendUsageState function)`
+  - Visual spend gauge shows % of budget cap used (50% warn, 80% critical, 100% reached). Tone-coded bar (green/amber/red/dark red). Email alerts fire at 50%, 80%, and 100% thresholds per billing period. 
+- **AI model pricing transparency** [User] — `/Users/hb/dev/vibecore/packages/billing/src/ai-pricing.ts`
+  - Pricing catalog for AI models with per-provider/model cost in cents per million tokens (input/output). Models restricted by plan tier (e.g., Claude Opus only on business/enterprise). Used by settlemen
+- **Credit cost estimation & power-control multipliers** [User] — `/Users/hb/dev/vibecore/packages/billing/src/credits.ts (estimateCheckpointCostCents`
+  - Pre-flight cost estimates for agent checkpoints accounting for build tier (lite/economy/power: 0.4×–1.8×), power controls (high-power model: 4×, extended thinking: 2.5×, turbo: 6×). Surcharges are add
+- **Credit gate decision (blocked/credits/payg)** [User] — `/Users/hb/dev/vibecore/packages/billing/src/credits.ts (evaluateCreditGate function)`
+  - Decides if a request proceeds: covered by wallet balance (mode: credits), by PAYG overage under budget cap (mode: payg), or blocked (insufficient_credits, budget_cap_reached). Used by pre-flight /chec
+- **Plan catalog & entitlements** [User] — `/Users/hb/dev/vibecore/packages/billing/src/index.ts (creditPlanCatalog)`
+  - Plan definitions (Starter/Core/Pro/Enterprise) with monthly/annual pricing, included credits, collaborator/viewer/parallel-agent limits, database rollback window, badge-removal, publish regions, top-m
+- **Plan upgrade & checkout** [User] — `/Users/hb/dev/vibecore/app/routes/billing.tsx`
+  - Users initiate Stripe checkout for subscription upgrade (monthly or annual). Trial days configurable. Redirects to Stripe-hosted checkout session. Checkout creates/updates billing customer & subscript
+- **Billing portal & subscription management** [User] — `/Users/hb/dev/vibecore/services/api/src/app.ts (/orgs/:orgId/billing/portal endpoint)`
+  - Redirects to Stripe billing portal for users to update payment method, manage subscriptions, and download invoices. billing:manage permission required.
+- **Invoice history** [User] — `/Users/hb/dev/vibecore/services/api/src/app.ts (/orgs/:orgId/billing/invoices endpoint)`
+  - List invoices from Stripe (limit 20–100 per request) with status, amount due/paid, hosted URL, PDF link. Stripe-backed; no local invoice generation.
+- **Usage events log** [User] — `/Users/hb/dev/vibecore/app/routes/usage.tsx`
+  - Append-only ledger of quota usage events (projects created, AI messages sent, snapshots stored, etc.). 500 most recent per request. Type, quantity, timestamp. Aggregated into quota usage snapshot on d
+- **Quota overrides (admin-managed)** [Admin] — `/Users/hb/dev/vibecore/app/routes/admin.billing.tsx`
+  - Platform admins create audited quota overrides per org & quota key (e.g., raise projects.count to 500 with reason 'contract expansion'). Requires platform-admin + recent re-auth. Stored with expiry da
+- **Plan overrides (admin-managed)** [Admin] — `/Users/hb/dev/vibecore/app/routes/admin.billing.tsx`
+  - Platform admins override an org's billing plan with reason & re-auth. Changes the entitlements and limits resolved at gate time. Useful for contract corrections or temporary plan grants.
+- **Admin billing dashboard** [Admin] — `/Users/hb/dev/vibecore/app/routes/admin.billing.tsx`
+  - Platform admins view all plans, subscription records (org, status, Stripe ID, period end, cancellation state). Create plan/quota overrides inline with password re-auth. Read-only view of configured pl
+- **Admin quotas & overrides inspection** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts (/admin/quotas endpoint)`
+  - Platform admins see all organizations, their current billing plan, active quota overrides (key, limit, reason, expiry), and effective limits. Used for contract validation and emergency override review
+- **Admin costs dashboard** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts (/admin/costs endpoint)`
+  - Platform admins see aggregate AI cost (cents) and per-model/provider breakdown. Lists all AI cost records (model, provider, input/output tokens, cost, timestamp). Not yet a UI route; raw JSON from API
+- **Admin credit wallets inspection** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts (/admin/wallets endpoint)`
+  - Platform admins enumerate all org credit wallets with balance, pack totals, budget cap, PAYG spend, service-shutdown threshold. Used for billing state verification.
+- **Admin checkpoint settlement logs** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts (/admin/checkpoints endpoint)`
+  - Platform admins see recent agent checkpoints (200 most recent) with estimated vs actual credit cost, status, power controls (high-power, extended thinking, turbo), build tier. Helps audit settlement r
+- **Admin AI usage / cost breakdown** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts (/admin/ai-usage endpoint)`
+  - Platform admins see all AI cost records across the platform by model, provider, org, with token counts and cost-in-cents. CSV export support. No dedicated UI route; returns raw JSON.
+- **Admin usage events snapshot** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts (/admin/usage endpoint)`
+  - Platform admins see all usage events (quota type, org, quantity, timestamp) across the platform. Debugging & audit trail for quota enforcement.
+- **Audit logs (org-scoped)** [User] — `/Users/hb/dev/vibecore/services/api/src/app.ts (/orgs/:orgId/audit-logs/export endpoint)`
+  - Organization members with audit:export permission can export audit trail (JSON or CSV) of org-level actions (user login, project create, deployment, plan change). Supports redaction by org, user, or b
+- **Admin audit logs (platform-scoped)** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts (/admin/audit-logs`
+  - Platform admins export full platform audit trail (admin actions, user suspension, quota/plan overrides, re-auth events). JSON or CSV format. Separate from org audit logs; captures system-level governa
+- **Security events log** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts (/admin/security-events endpoint)`
+  - Platform admins view authentication, MFA, and security-audit activity (login attempts, 2FA setup, password changes, suspicious access). Aggregated event stream for compliance/investigation.
+- **Abuse events & resolution** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts (/admin/abuse-events endpoint)`
+  - Platform admins see abuse reports (quota abuse triggers on ai.messages, previews.public, workspaces.active), review event details, mark as resolved. Workspace suspension/org restrictions can follow. A
+- **Org audit log viewer with export (JSON/CSV)** [User/Admin] — `/Users/hb/dev/vibecore/packages/audit/src/index.ts`
+  - Retrieves organization-scoped audit trail filtered by action type (auth, member, project, workspace, billing, admin, apikey events). Redacts sensitive metadata by key pattern. Supports export to JSON 
+- **Security event filter (auth/MFA/security actions only)** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts (GET /admin/security-events)`
+  - Admin view that filters audit logs to show only authentication, MFA, and security-related events. Currently admin-only; no org-scoped user equivalent exists.
+- **Abuse event detection and monitoring dashboard** [Admin] — `/Users/hb/dev/vibecore/packages/security/src/index.ts (detectCommandAbuse`
+  - Displays abuse signals detected at runtime: crypto mining, fork bombs, port scanning, metadata service exfil, malware downloads, reverse shells, failed auth spikes, workspace creation spikes, excessiv
+- **Critical audit action labeling and filtering** [User/Admin] — `/Users/hb/dev/vibecore/packages/audit/src/index.ts (criticalAuditActions set)`
+  - Define-time list of 14 critical security actions (auth.login/logout, org.create/update, member add/role change/remove, project/workspace operations, billing, admin, apikey creation). Infrastructure ex
+- **Secret/PII redaction audit log data access** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts (PATCH /orgs/:orgId/audit-logs/redact)`
+  - Allows targeted redaction of audit log rows by orgId/userId/before-date (GDPR/privacy). Nulls ipAddress, replaces metadata with redaction tombstone. Returns count of actually redacted rows. Read-only 
+- **IP allowlist enforcement (CIDR + IPv6 validation)** [Admin] — `/Users/hb/dev/vibecore/packages/security/src/index.ts (isIpAllowed)`
+  - Validates incoming requests against org/user IP allowlist (supports CIDR ranges, IPv4, IPv6 with RFC normalization). Plumbing exists but no admin UI to configure, view, or audit allowlist changes per 
+- **Admin audit log trail (platform-level actions)** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts (GET /admin/admin-audit-logs)`
+  - Separate audit log for platform administrators' own actions (user suspension, role grants, quota overrides, feature flags, model toggles). Exported in admin.$section.tsx but limited filtering/search c
+- **Abuse event history and pattern analysis** [Admin] — `/Users/hb/dev/vibecore/services/api/src/prisma-store.ts (listAbuseEvents`
+  - Abuse events are queryable with org+type filters and keyset pagination. Database index exists for hot-path queries, but no trending/spike-detection UI or per-abuse-type dashboard.
+- **Session audit log inspection** [User] — `/Users/hb/dev/vibecore/services/api/src/app.ts:12980-13019`
+  - List active sessions for current user (GET /auth/sessions), revoke individual or all sessions with audit trail. Schema: Session model in Prisma (userId, tokenHash, expiresAt, ipAddress, userAgent, rev
+- **MFA recovery code inspection** [User] — `/Users/hb/dev/vibecore/packages/database/prisma/schema.prisma:980-990`
+  - System generates and stores hashed MFA recovery codes (10 codes by default via createRecoveryCodes). Currently minted during setup but no UI to view remaining/valid recovery codes. User can verify TOT
+- **Organization-scoped audit log export** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:21213-21238`
+  - GET /orgs/:orgId/audit-logs (read-only) and GET /orgs/:orgId/audit-logs/export (JSON/CSV download). Requires 'org:read' permission. Schema: AuditLog table tracks organizationId, actorUserId, action, r
+- **Quotas and usage limits inspection** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:19534-19564`
+  - GET /orgs/:orgId/usage and GET /orgs/:orgId/billing return usage events, quota limits, quota usage snapshot, subscription, plan, and active quota overrides (with expiry). Requires 'usage:read' permiss
+- **Custom role creation and permission assignment** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:13730-13779`
+  - GET /orgs/:orgId/roles (list) and POST /orgs/:orgId/roles (create). Requires 'roles:manage' permission. Enforces privilege-escalation guard: caller can only grant permissions they themselves hold. Sch
+- **Organization member role assignment** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:13264-13401`
+  - GET /orgs/:orgId/memberships (list), POST /orgs/:orgId/memberships (add), PATCH /orgs/:orgId/memberships/:userId (change role), DELETE /orgs/:orgId/memberships/:userId (remove). Schema: OrganizationMe
+- **Enterprise security settings (IP allowlist, session duration, MFA requirements)** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:13636-13657`
+  - GET /orgs/:orgId/enterprise-settings (read) and PATCH /orgs/:orgId/enterprise-settings (update). Configurable: ipAllowlist (CIDR/IP array), sessionDurationMinutes (enforce session timeout), requireMfa
+- **API key lifecycle and scoping** [User] — `/Users/hb/dev/vibecore/services/api/src/app.ts:8300-8389`
+  - GET /api/keys (list), POST /api/keys (create with rate limit), DELETE /api/keys/:keyId (revoke). Schema: ApiKey table with keyHash, keyPrefix, scopes (array), lastUsedAt, expiresAt. User-level or org-
+- **Platform admin impersonation** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:18549-18595`
+  - POST /admin/users/:userId/impersonate creates a time-limited session (IMPERSONATION_TTL_MS) with impersonatedBy flag set to admin's ID. Non-admin targets only. Logged to AdminAuditLog. Requires platfo
+- **User suspension and reactivation** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:18505-18526`
+  - POST /admin/users/:userId/suspend and POST /admin/users/:userId/unsuspend. Mutates 'admin.suspendedUserIds' system setting. Suspended users are blocked from login and workspace access. Requires platfo
+- **User force-logout (revoke all sessions)** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:19181-19189`
+  - POST /admin/users/:userId/force-logout revokes all active sessions for a user. Logged to AdminAuditLog. Requires platform-admin + recent re-auth.
+- **Platform admin MFA reset** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:19192-19203`
+  - POST /admin/users/:userId/reset-mfa clears mfaEnabled, mfaSecretEncrypted, and all recovery codes. Re-enables login for MFA-locked accounts. Requires platform-admin + MFA attestation + 60-second re-au
+- **Platform-wide audit log and admin action log** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:18411-18435`
+  - GET /admin/audit-logs and GET /admin/admin-audit-logs (JSON/CSV export). System-wide audit trail for all organizations. AdminAuditLog tracks action, metadata, ipAddress, actorUserId for sensitive oper
+- **Platform security events dashboard** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:18401-18409`
+  - GET /admin/security-events filters AuditLog for auth.*, security-tagged, and mfa-related actions. No dedicated storage; derived from existing audit logs.
+- **Organization quota overrides (admin)** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:19502-19533`
+  - POST /admin/orgs/:orgId/quota-overrides allows platform admin to temporarily override org quotas (e.g. projects, workspaces, deployments). Schema: QuotaOverride table with key, limit, reason, expiresA
+- **Platform-wide quotas and usage snapshot** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:18360-18374`
+  - GET /admin/quotas aggregates QuotaOverride and billing state for all organizations. No UI surface yet.
+- **SCIM token lifecycle** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:13822-13893`
+  - POST /orgs/:orgId/scim/tokens (create), GET /orgs/:orgId/scim/tokens (list), DELETE /orgs/:orgId/scim/tokens/:tokenId (revoke), POST /orgs/:orgId/scim/tokens/:tokenId/rotate. Schema: ScimToken table w
+- **SIEM webhook configuration and delivery tracking** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:13933-13958`
+  - POST /orgs/:orgId/siem-webhooks configures audit log export to SIEM endpoints. Schema: SiemWebhook table tracks url, secretHash, enabled, lastDeliveredAt, lastDeliveredId (keyset cursor).
+- **Platform admin MFA requirement enforcement** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:2296`
+  - System checks adminMfaRequired() environment variable. When true, platform-admin users are blocked from login and API access until MFA is enabled. Locked-out admins require MFA reset by another admin.
+- **User strike system (abuse escalation)** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:19109-19171`
+  - POST /admin/users/:userId/strikes manually escalates abuse strikes. Drives consequences (warning→suspension). Requires platform-admin. Strikeimplementation uses strike-system.ts with expiry (STRIKE_EX
+- **Session re-authentication for sensitive actions** [User] — `/Users/hb/dev/vibecore/services/api/src/app.ts:13032-13051`
+  - POST /auth/reauth requires password verification to step-up session. Marks session as lastReauthAt for time-window checks. Used to gate MFA setup, disable, and admin actions.
+- **Verified domain configuration for custom email** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:13658-13727`
+  - GET /orgs/:orgId/domains, POST /orgs/:orgId/domains, PATCH /orgs/:orgId/domains/:domain, POST /orgs/:orgId/domains/:domain/verify. Schema: VerifiedDomain table with verificationToken, verifiedAt, sslS
+- **SSO configuration (OIDC and SAML)** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:13780-13820`
+  - PUT /orgs/:orgId/sso/oidc and PUT /orgs/:orgId/sso/saml. Schema: SsoConfiguration table per org with type, enabled, encryptedConfig. Requires 'security:manage' and recent admin re-auth.
+- **Organization invitations with role-based expiry** [Admin] — `/Users/hb/dev/vibecore/services/api/src/app.ts:13453-13541`
+  - GET /orgs/:orgId/invitations (list pending), POST /orgs/:orgId/invitations/:inviteId/expire (revoke). Schema: OrganizationInvite tracks email, roleId, tokenHash, expiresAt, acceptedAt.
+- **Platform Performance Metrics Dashboard (latency, throughput, error rates)** [Admin] — `/Users/hb/dev/vibecore/packages/observability/src/index.ts (platformMetricDefinitions`
+  - Exposes 30+ Prometheus metrics covering API latency, request throughput, error rates, database/Redis latency, workspace lifecycle, AI token usage, provider health, storage/compute costs, and infrastru
+- **Organization-Level Cost Attribution by Source (AI, compute, storage)** [Admin] — `/Users/hb/dev/vibecore/packages/observability/src/index.ts (cost_estimate_cents metric) + /services/api/src/app.ts (gauge increment with organizationId + source labels)`
+  - Tracks platform cost estimates in cents per organization and cost source (AI, compute, storage). Metered as Prometheus gauge but never displayed—admins cannot currently see cost breakdown by org witho
+- **AI Provider Health Monitoring** [Admin] — `/Users/hb/dev/vibecore/packages/observability/src/index.ts (ai_provider_latency_seconds`
+  - Tracks latency and error rates per AI provider, with an admin endpoint at /admin/provider-health that fetches real-time health from the AI gateway. Endpoint exists but there's no admin UI panel to mon
+- **Workspace Lifecycle Analytics (cold start rates, failures, latency P50/P95/P99)** [Admin] — `/Users/hb/dev/vibecore/packages/observability/src/index.ts (workspace_starts_total`
+  - Tracks workspace start attempts, failures by reason (manager_failed, cold_start_pending), latency percentiles, and concurrent active count. Metrics are collected but only exported as raw Prometheus da
+- **Storage Resilience & Backup Diagnostics** [Admin] — `/Users/hb/dev/vibecore/packages/observability/src/index.ts (project_snapshot_restore_fallbacks_total`
+  - Monitors project archive/snapshot restore success/failure counts by reason, fallback storage usage, and PVC capacity utilization. Metrics exist but are only exposed as raw Prometheus—admins cannot ins
+- **Kubernetes Infrastructure Telemetry (pod failures, node capacity)** [Admin] — `/Users/hb/dev/vibecore/packages/observability/src/index.ts (kubernetes_pod_failures_total`
+  - Exposes pod failure counts and node pool allocatable capacity (for autoscaling). No admin UI exists to view cluster health or node pool utilization trends; only raw metrics available.
+- **Abuse Detection & Response Tracking** [Admin] — `/Users/hb/dev/vibecore/packages/observability/src/index.ts (abuse_events_total metric) + /services/api/src/app.ts (/admin/abuse-events endpoint with CRUD + resolve capability)`
+  - Tracks abuse event volume by type and severity. An /admin/abuse-events endpoint exists with full CRUD and resolve actions, but UI only supports viewing/creating via a raw admin JSON interface—no dashb
+- **Synthetic Health Checks & Alerting** [Admin] — `/Users/hb/dev/vibecore/packages/observability/src/index.ts (synthetic_check_success`
+  - Exposes synthetic check success (0/1 gauge) for database backups, restore dry runs, and health probes. Available only as raw metrics with no alerting rules or status dashboard in admin UI.
+- **Quota Monitoring & Enforcement Analytics** [Admin] — `/Users/hb/dev/vibecore/packages/observability/src/index.ts (queue_depth gauge) + /services/api/src/app.ts (/admin/quotas endpoint showing quota state + billing plans + active overrides per org)`
+  - Tracks organization quota usage (AI tokens, compute, storage, seats) against plan limits and active overrides. /admin/quotas endpoint exists returning all orgs with quotas/overrides/billing, but no UI
+- **Email & Webhook Delivery Observability** [Admin] — `/Users/hb/dev/vibecore/packages/observability/src/index.ts (stripe_webhook_failures_total`
+  - Counts Stripe webhook failures and Resend transactional-email events. Metrics exist but no admin dashboard to inspect failure reasons, retry rates, or delivery SLA tracking.
+- **Background Job Queue Monitoring** [Admin] — `/Users/hb/dev/vibecore/packages/observability/src/index.ts (queue_depth gauge`
+  - Monitors job queue depth by queue name and failure counts. Only exposed as raw Prometheus metrics—no admin UI for queue health, job throughput, or failure rate alerting.
+- **Authentication Failure Analysis** [Admin] — `/Users/hb/dev/vibecore/packages/observability/src/index.ts (auth_failures_total counter) + /services/api/src/app.ts (/admin/security-events filtering auth/mfa/security events)`
+  - Tracks auth failures by reason (invalid_credentials, mfa_required, invalid_mfa). /admin/security-events endpoint exists but no dashboard to visualize auth failure trends, MFA adoption, or suspicious p
+- **Model Registry & Enablement Control (per-plan model restrictions)** [Admin] — `/services/api/src/app.ts (/admin/models`
+  - Admins can list all LLM models and toggle enable/disable per provider/model + restrict by plan. No UI dashboard; configuration only via raw API calls. Users see /providers/enabled but only as a read-o
+- **Organization Audit Log Retention & Compliance Tracking** [Admin] — `/services/api/src/app.ts (/admin/audit-logs`
+  - Admins can view platform audit logs, export to JSON/CSV, and redact logs by actor/org/date range for compliance. Org members export audit logs via /orgs/:orgId/audit-logs/export. UI exists for export,
+- **Usage-Based Billing Event Inspection** [Admin] — `/services/api/src/app.ts (/admin/usage`
+  - Admins see all usage events and AI costs by provider/model. Users with usage:read permission see their own AI token usage. No analytics dashboard for usage trends, cost projections, or budget forecast
+- **RBAC Role Audit & Permission Escalation Prevention** [Admin] — `/Users/hb/dev/vibecore/packages/rbac/src/index.ts (rolePermissions mapping) + /services/api/src/app.ts (/orgs/:orgId/roles endpoints with privilege escalation checks)`
+  - Enforces custom role creation with permission escalation safeguards (admins can't grant permissions they don't hold). Roles are created/audited but no admin UI shows role usage, permission matrices, o
+- **SCIM Token Lifecycle & Expiration Alerts** [Admin] — `/services/api/src/app.ts (/orgs/:orgId/scim/tokens CRUD + rotate endpoints with expiration tracking)`
+  - Org admins manage SCIM tokens (create, list, rotate, revoke) with automatic expiration (30 days). No dashboard to view token age, usage frequency, or expiration reminders—relies on manual /orgs/:orgId
+- **SSO Configuration Audit & Provider Health** [Admin] — `/services/api/src/app.ts (/orgs/:orgId/sso/oidc and /sso/saml endpoints with encrypted config)`
+  - Org admins configure OIDC/SAML with encryption and audit logging. No UI to view SSO adoption across orgs, IdP health status, or MFA integration rates—only raw API access.
+- **Deployment & Framework Detection Telemetry** [Admin] — `/services/api/src/app.ts (/admin/deployments endpoint + detection logic) + observability framework detection metrics`
+  - Platform tracks deployments and auto-detects frameworks. /admin/deployments endpoint exists for admins to view all deployments, but no dashboard for deployment success rates, framework distribution, o
+- **Workspace indexing status and limits** [IDE-tab] — `/Users/hb/dev/vibecore/packages/editor/src/index.ts (lines 234-235`
+  - Tracks semantic file indexing with hard limits: max 250 files indexed, max 500KB per file. Could expose indexing status showing how many workspace files are indexed, which files are excluded, and why 
+- **Workspace symbol inspection** [IDE-tab] — `/Users/hb/dev/vibecore/packages/editor/src/index.ts (lines 286-375)`
+  - Extracts all symbols (functions, classes, variables, React components, CSS selectors) from indexed files with position metadata (line/column). Currently used internally for editor features (go-to-defi
+- **Language coverage inspection** [Admin] — `/Users/hb/dev/vibecore/packages/editor/src/index.ts (lines 237-284`
+  - Supports 17 languages (JS/TS, Python, Go, Rust, Java, C/C++, C#, CSS, HTML, JSON, Markdown). Could expose coverage report showing which languages are present in workspace, file counts per language, an
+- **File indexing eligibility scan** [Admin] — `/Users/hb/dev/vibecore/packages/editor/src/index.ts (lines 231-232`
+  - Determines if files are eligible for semantic indexing based on extension (.ts/.tsx/.py/.go/.rs/.java/.c/.css/.html/.json/.md/etc) and size (max 500KB). Could surface report of all workspace files wit
+- **Environment file detection and masking audit** [Admin] — `/Users/hb/dev/vibecore/packages/editor/src/index.ts (lines 1352-1360)`
+  - Detects .env, .env.* files and masks their secret values in the editor. Could expose audit log showing which .env files exist, which secrets are being masked, and alert on potential secrets in non-.en
+- **Responsive layout breakpoint configuration** [IDE-tab] — `/Users/hb/dev/vibecore/packages/editor/src/index.ts (lines 27-31`
+  - Defines editor breakpoints for mobile/tablet/desktop (768px, 900px, 1200px thresholds). Currently hardcoded. Could expose as tunable configuration panel for IDE layout customization.
+- **Editor capability feature flags** [IDE-tab] — `/Users/hb/dev/vibecore/packages/editor/src/index.ts (lines 1056-1102`
+  - Enables/disables editor features based on file size: minimap, ligatures, suggestions, code lens, inlay hints, bracket colorization, etc. Could expose feature toggle panel showing which capabilities ar
+- **Workspace Quota Status & Enforcement** [Admin] — `/Users/hb/dev/vibecore/packages/k8s-client/src/index.ts (lines 398-425`
+  - Tracks and enforces namespace-level resource quotas (pods: 500, CPU: 250, memory: 500Gi, storage: 4000Gi, PVCs: 500). Returns 402 (quota exceeded) when workspace start fails due to resource limits. Cu
+- **Workspace Plan & Resource Limits** [Admin] — `/Users/hb/dev/vibecore/packages/k8s-client/src/index.ts (lines 203-211`
+  - Resolves plan-based resource ceilings (free/pro/team/enterprise) and enforces per-container limits (CPU: 4 cores max, RAM: 8Gi max, storage: 100Gi max). Clamps user entitlements to prevent quota wedgi
+- **Container Resource Request/Limit Calculation** [Admin] — `/Users/hb/dev/vibecore/packages/k8s-client/src/index.ts (lines 454-480`
+  - Computes CPU/RAM requests as 1/4 of limits with floor minimums (50m CPU, 128Mi RAM); manages LimitRange admission. No UI to inspect calculated vs requested resources.
+- **Pod Health Monitoring** [Admin] — `/Users/hb/dev/vibecore/packages/k8s-client/src/index.ts (lines 346-372)`
+  - Configures readiness probes (HTTP /health, 5s interval, 3s timeout) and liveness probes (TCP 8080, 15s interval, 10-failure threshold). Detects hung agents and stale workspaces but no UI to view probe
+- **Pod Log Streaming** [Admin] — `/Users/hb/dev/vibecore/packages/k8s-client/src/index.ts (lines 706-723) and runtime-contract (line 14)`
+  - Streams last 500 pod logs (stderr/stdout) for workspace agent diagnostics. Runtime contract declares 'logs' as a capability but no UI exposes pod logs for admins.
+- **Network Policy & Egress Control** [Admin] — `/Users/hb/dev/vibecore/packages/k8s-client/src/index.ts (lines 525-590)`
+  - Enforces default-deny ingress, controlled egress (DNS only to kube-system, HTTPS 443 to external), blocks private CIDRs (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, metadata 169.254.169.254). No UI to 
+- **Security Context & Sandboxing** [Admin] — `/Users/hb/dev/vibecore/packages/k8s-client/src/index.ts (lines 374-381`
+  - Enforces gVisor sandboxing, non-root (UID 1000), capability drop (ALL), seccomp RuntimeDefault. Controlled via WORKSPACE_DISABLE_SANDBOX_SCHEDULING env var. No UI to inspect or toggle per workspace.
+- **Workspace Session Status & Lifecycle** [Admin] — `/Users/hb/dev/vibecore/packages/runtime-contract/src/index.ts (lines 16-24) and runtime-remote/src/index.ts (lines 118-262)`
+  - Tracks workspace status (booting/starting/running/stopped/error/failed). Exposes createdAt, updatedAt, metadata, and runtimeMode. Polling with 3-minute timeout for cold starts. No admin UI to list all
+- **Inactivity GC & Session Keepalive** [Admin] — `/Users/hb/dev/vibecore/packages/runtime-remote/src/index.ts (lines 253-255)`
+  - Keeps workspace alive by bumping lastActiveAt via /touch endpoint to prevent inactivity-based garbage collection. No UI to configure inactivity timeout or view when a workspace was last active.
+- **Workspace Event Telemetry** [Admin] — `/Users/hb/dev/vibecore/packages/workspace-sdk/src/index.ts (lines 3-10)`
+  - Defines WorkspaceEvent interface with type, workspaceId, projectId, orgId, message, createdAt. No event aggregation or audit log UI.
+- **Agent Token Signing & Verification** [Admin] — `/Users/hb/dev/vibecore/packages/workspace-sdk/src/index.ts (lines 25-67)`
+  - HMAC-SHA256 token signing/verification with expiry checking. Prevents token reuse across workspace IDs. No UI to manage or revoke tokens per workspace.
+- **Terminal & Process Reconnection Lifecycle** [Admin] — `/Users/hb/dev/vibecore/packages/runtime-remote/src/index.ts (lines 419-708)`
+  - Auto-reconnect with exponential backoff (max 8 attempts, 10s cap), TCP heartbeats every 20s to prevent LB idle-kill, reattach logic via sessionId. No UI to view terminal session history or reconnectio
+- **Port Watch & Preview URL Generation** [Admin] — `/Users/hb/dev/vibecore/packages/runtime-contract/src/index.ts (lines 109-120) and runtime-remote/src/index.ts (lines 746-758)`
+  - Watches for port open/close events, generates preview URLs. No admin view of all active ports across workspaces or preview URL audit log.
+- **File System Activity Watch** [Admin] — `/Users/hb/dev/vibecore/packages/runtime-contract/src/index.ts (lines 37-44) and runtime-remote/src/index.ts (lines 327-331)`
+  - Watches file changes (create/update/delete/rename) with WebSocket streaming. No admin UI to monitor file activity per workspace or audit user edits.
+- **Command Execution Audit Trail** [Admin] — `/Users/hb/dev/vibecore/packages/runtime-contract/src/index.ts (lines 62-86) and runtime-remote/src/index.ts (lines 340-417)`
+  - Streams command output/stderr/exit codes with timestamps. No admin UI to view command history or audit which commands were run in each workspace.
+- **Workspace Snapshot Management** [Admin] — `/Users/hb/dev/vibecore/packages/runtime-contract/src/index.ts (lines 122-128) and runtime-remote/src/index.ts (lines 760-774)`
+  - Creates/restores snapshots with labels and metadata. No admin UI to list, compare, or prune snapshots across workspaces.
+- **Kubernetes K8s Object Inspection** [Admin] — `/Users/hb/dev/vibecore/packages/k8s-client/src/index.ts (lines 147-153`
+  - Gets/lists K8s objects (Pod, PVC, Secret, Service) for a workspace. Admin could retrieve detailed resource status but no UI layers this inspection.
+- **Image Pinning & Production Validation** [Admin] — `/Users/hb/dev/vibecore/packages/k8s-client/src/index.ts (lines 176-200)`
+  - Enforces digest-pinned or semver-tagged images in production (rejects 'latest'). No UI to audit workspace image versions or enforce policy per org.
+- **Point-in-Time Database Rollback Management** [User] — `/Users/hb/dev/vibecore/packages/database/prisma/schema.prisma (lines 1690-1771: DatabaseInstance`
+  - Managed Postgres databases with PITR support: inspect instance status/size, view automated/manual recovery points with WAL LSN tracking, request point-in-time restores to specific timestamps within re
+- **Integration Reconnection Alerts** [User] — `/Users/hb/dev/vibecore/packages/database/prisma/schema.prisma (lines 1473-1484: ReconnectionAlert model)`
+  - Detect and surface when OAuth/API token connections fail health checks (expired, revoked, permission degraded), track resolution state (null = unresolved, resolvedAt = fixed), notify user of which int
+- **Integration Feature Requests (Product Feedback)** [User] — `/Users/hb/dev/vibecore/packages/database/prisma/schema.prisma (lines 1486-1500: IntegrationFeatureRequest model)`
+  - Track user-submitted feature requests for new integrations or enhanced integration capabilities (status: pending/approved/shipped), aggregate trends by integrationName to inform product roadmap priori
+- **Enterprise Domain Verification & SSL Management** [Admin] — `/Users/hb/dev/vibecore/packages/database/prisma/schema.prisma (lines 1003-1017: VerifiedDomain model)`
+  - Verify ownership of custom domains (pending_dns/verified), configure www-redirect, enable wildcard subdomains, track SSL status/renewal—plumbing exists but no UI to manage domain settings, verify DNS,
+- **Enterprise Session & Data Security Controls** [Admin] — `/Users/hb/dev/vibecore/packages/database/prisma/schema.prisma (lines 992-1001: EnterpriseOrganizationSettings model)`
+  - IP allowlist enforcement, session duration limits (default 43200 min = 30 days), MFA requirement for admins toggle, data retention window (default 365 days), legal hold flag for compliance—settings st
+- **SIEM Webhook Delivery & Audit Streaming** [Admin] — `/Users/hb/dev/vibecore/packages/database/prisma/schema.prisma (lines 1056-1072: SiemWebhook model)`
+  - Configure up to N webhooks per organization to stream audit logs to external SIEM (Splunk/Datadog/etc), track delivery cursor (lastDeliveredAt/Id for keyset pagination), encrypt webhook secret at rest
+- **Credit Wallet & Spend Caps** [Admin] — `/Users/hb/dev/vibecore/packages/database/prisma/schema.prisma (lines 1535-1555: CreditWallet model); /Users/hb/dev/vibecore/packages/billing/src/index.ts (lines 360-382: assertQuota)`
+  - Per-org credit balance cache, budget cap (pay-as-you-go spend limit), service shutdown threshold (halt services when reached), auto-topup config, spend alert progress (50/80/100%)—data model fully bui
+- **Credit Ledger & Audit Trail** [Admin] — `/Users/hb/dev/vibecore/packages/database/prisma/schema.prisma (lines 1586-1611: CreditLedger model)`
+  - Append-only credit transactions (grants/consumption/charges/refunds/adjustments), tied to agent checkpoints for traceability, expiry tracking for time-limited credits, full org/wallet/kind/checkpoint 
+- **Agent Checkpoints (Effort-Based Billing)** [User] — `/Users/hb/dev/vibecore/packages/database/prisma/schema.prisma (lines 1623-1650: AgentCheckpoint model)`
+  - One checkpoint per agent request bundling tokens/wall-time/compute into a single credit charge (proof-of-work), tracks build tier (lite/economy/power), turbo mode, extended thinking, cost-per-unit pri
+- **Consensus Records (Multi-Agent Verification)** [User] — `/Users/hb/dev/vibecore/packages/database/prisma/schema.prisma (lines 1282-1296: ConsensusRecord model)`
+  - Track consensus algorithm (QUORUM/BYZANTINE_PBFT/WEIGHTED_PLURALITY), outcome (ACCEPTED/REJECTED/PARTIAL/ABSTAINED), agreement score, round count, duration—built for agent orchestration but no UI to i
+- **Quota Inspection & Visualization** [User/Admin] — `/Users/hb/dev/vibecore/packages/quota/src/index.ts; /Users/hb/dev/vibecore/packages/database/prisma/schema.prisma (lines 779-804: QuotaLedger`
+  - Inspect current quota usage vs limits by key (projects.count, ai.messages, storage.gb, etc), view override history with reasons/expiry, see quota ledger (delta/reason for each change)—admin can set ov
+- **Custom RBAC Roles & Permissions Inspector** [Admin] — `/Users/hb/dev/vibecore/packages/rbac/src/index.ts (PermissionKey enum + rolePermissions map); /Users/hb/dev/vibecore/packages/database/prisma/schema.prisma (lines 1044-1054: CustomRole model)`
+  - Create org-scoped custom roles with arbitrary permission subsets, inspect built-in role permissions (owner/admin/member/editor/viewer), export/audit which users have which permissions—data model exist
+- **Security Incident & Abuse Event Dashboard** [Admin] — `/Users/hb/dev/vibecore/packages/security/src/index.ts (lines 281-436: AbuseSignal`
+  - Detect and record abuse signals (crypto mining, fork bombs, reverse shells, excessive AI usage, workspace creation spikes, storage abuse, CPU abuse, preview spam) with severity/action/reason—admin pan
+- **Secret Redaction & PII Scrubbing Audit** [Admin] — `/Users/hb/dev/vibecore/packages/security/src/index.ts (lines 1-37: secretValuePatterns`
+  - Automatically detect and redact secrets (API keys, tokens, PEM keys, creds in URLs) in logs/audit trails, pattern-matched for ~20 providers—admin can inspect which fields were redacted but no UI to co
+- **Observability Metrics & Prometheus Registry** [Admin] — `/Users/hb/dev/vibecore/packages/observability/src/index.ts (lines 12-62: platformMetricDefinitions`
+  - Platform exposes ~28 metrics (API latency, errors, workspace starts, AI tokens, abuse events, pod failures, PVC/storage usage, cost estimates, synthetic checks)—metrics collected but no admin UI to qu
+- **Admin Audit Log Export & SIEM Integration** [Admin] — `/Users/hb/dev/vibecore/packages/audit/src/index.ts (lines 1-41: AuditEvent`
+  - Separate audit trail for platform admin actions (auth, org/member/project changes, billing updates, API key changes), redacted metadata to remove secrets, bulk export capability—admin can request via 
+- **Provider & Model Registry Management** [Admin] — `/Users/hb/dev/vibecore/packages/billing/src/index.ts (lines 163-179`
+  - Admin-owned AI provider registry with per-provider secret key storage (by name, never literal), base URL override, BYOK flag; model registry gates user access by enabled flag + plan eligibility, track
+- **Plan Limits & Quota Enforcement Visualization** [User/Admin] — `/Users/hb/dev/vibecore/packages/billing/src/index.ts (lines 42-179: BillingPlan`
+  - Compare plan limits across all quota keys (projects, workspaces, storage, AI, terminals, deployments, etc), see featured/verified status, billing periods, included credits—limited UI to view own plan;
+- **Connector Policy Enforcement & Rate Limiting** [Admin] — `/Users/hb/dev/vibecore/packages/database/prisma/schema.prisma (lines 1458-1471: OrganizationConnectorPolicy model)`
+  - Per-org, per-provider policies: enable/disable connector access, restrict by role (allowedRoleKeys), set rate-limit overrides (per-org limits on top of global defaults)—stored but no org admin UI to c
