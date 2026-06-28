@@ -57,6 +57,21 @@ describe('CNPG manifest builders', () => {
     expect(backup.retentionPolicy).toBe('28d');
   });
 
+  it('omits serviceAccountTemplate without a backup GSA, adds the WI annotation with one', () => {
+    const plain = buildClusterManifest({ projectId: 'p1', backupBucket: 'bkt', retentionDays: 7 });
+    expect((plain.spec as any).serviceAccountTemplate).toBeUndefined();
+
+    const wi = buildClusterManifest({
+      projectId: 'p1',
+      backupBucket: 'bkt',
+      retentionDays: 7,
+      backupServiceAccount: 'cnpg-backups@proj.iam.gserviceaccount.com',
+    });
+    expect((wi.spec as any).serviceAccountTemplate.metadata.annotations['iam.gke.io/gcp-service-account']).toBe(
+      'cnpg-backups@proj.iam.gserviceaccount.com',
+    );
+  });
+
   it('builds a restore Cluster targeting an exact timestamp (PITR)', () => {
     const m = buildRestoreClusterManifest({
       projectId: 'p1',

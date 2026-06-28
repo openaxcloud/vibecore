@@ -60,13 +60,33 @@ export function buildBarmanObjectStore(projectId: string, backupBucket: string):
 }
 
 /** A project's managed Postgres cluster (1 instance, continuous WAL → GCS). */
+/*
+ * WI service-account annotation so the cluster's pods authenticate to GCS as the
+ * backup GSA (`googleCredentials.gkeEnvironment: true` in the barman block). CNPG
+ * creates one ServiceAccount per cluster (named after it); this annotates it.
+ * NOTE: the GSA must grant `roles/iam.workloadIdentityUser` to each cluster's KSA
+ * principal `[project-databases/<clusterName>]` — the operator/provisioner adds
+ * that binding at provision time, or use a namespace-wide WI binding.
+ */
+function serviceAccountTemplate(backupServiceAccount?: string): Record<string, unknown> | undefined {
+  if (!backupServiceAccount) {
+    return undefined;
+  }
+
+  return { metadata: { annotations: { 'iam.gke.io/gcp-service-account': backupServiceAccount } } };
+}
+
 export function buildClusterManifest(input: {
   projectId: string;
   organizationId?: string;
   backupBucket: string;
   retentionDays: number;
   storageGi?: number;
+  /** Backup GSA email — when set, the cluster pods get the WI annotation. */
+  backupServiceAccount?: string;
 }): K8sManifest {
+  const sat = serviceAccountTemplate(input.backupServiceAccount);
+
   return {
     apiVersion: CNPG_API,
     kind: 'Cluster',
@@ -83,6 +103,7 @@ export function buildClusterManifest(input: {
         requests: { cpu: '50m', memory: '256Mi' },
         limits: { cpu: '1', memory: '1Gi' },
       },
+      ...(sat ? { serviceAccountTemplate: sat } : {}),
       backup: {
         barmanObjectStore: buildBarmanObjectStore(input.projectId, input.backupBucket),
         retentionPolicy: `${Math.max(1, input.retentionDays)}d`,
@@ -128,8 +149,10 @@ export function buildRestoreClusterManifest(input: {
   targetTimeIso: string;
   backupBucket: string;
   storageGi?: number;
+  backupServiceAccount?: string;
 }): K8sManifest {
   const sourceName = `${clusterName(input.projectId)}-backup`;
+  const sat = serviceAccountTemplate(input.backupServiceAccount);
 
   return {
     apiVersion: CNPG_API,
@@ -142,6 +165,7 @@ export function buildRestoreClusterManifest(input: {
     spec: {
       instances: 1,
       storage: { size: `${Math.max(1, input.storageGi ?? 1)}Gi` },
+      ...(sat ? { serviceAccountTemplate: sat } : {}),
       bootstrap: {
         recovery: {
           source: sourceName,
@@ -221,6 +245,7 @@ export class CnpgProvisioner implements DatabaseProvisioner {
   constructor(
     private readonly k8s: K8sApplyPort,
     private readonly backupBucket: string,
+    private readonly backupServiceAccount?: string,
   ) {}
 
   async provisionInstance(input: {
@@ -234,6 +259,7 @@ export class CnpgProvisioner implements DatabaseProvisioner {
         organizationId: input.organizationId,
         backupBucket: this.backupBucket,
         retentionDays: input.retentionDays,
+        backupServiceAccount: this.backupServiceAccount,
       }),
     );
     await this.k8s.apply(buildScheduledBackupManifest(input.projectId));
@@ -260,6 +286,7 @@ export class CnpgProvisioner implements DatabaseProvisioner {
       restoreId: input.restoreId,
       targetTimeIso: input.targetTimeIso,
       backupBucket: this.backupBucket,
+      backupServiceAccount: this.backupServiceAccount,
     });
     await this.k8s.apply(manifest);
 
@@ -362,7 +389,8 @@ export function resolveDatabaseProvisioner(port?: K8sApplyPort): DatabaseProvisi
     return new NoopProvisioner();
   }
 
-  return new CnpgProvisioner(port, bucket);
+  // Optional WI backup GSA — when set, cluster pods archive WAL/backups to GCS as it.
+  return new CnpgProvisioner(port, bucket, process.env.DB_BACKUP_GSA?.trim() || undefined);
 }
 
 /** Build the default env-wired provisioner (ManagerK8sPort → ws-manager). */
