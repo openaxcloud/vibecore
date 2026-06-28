@@ -67,6 +67,23 @@ function readTables(data: unknown): Array<{ name: string; columns: string[] }> {
     .filter((t): t is { name: string; columns: string[] } => Boolean(t));
 }
 
+/*
+ * Escape a cell value for SQL literals. This is the user's own database (they
+ * already have full SQL access via the runner), so this is about CORRECTNESS
+ * (quotes/null/numbers), not a security boundary.
+ */
+function sqlLit(v: unknown): string {
+  if (v === null || v === undefined || v === '∅') {
+    return 'NULL';
+  }
+
+  if (typeof v === 'number' || typeof v === 'boolean') {
+    return String(v);
+  }
+
+  return `'${String(v).replace(/'/g, "''")}'`;
+}
+
 function normalizeRows(result: QueryResult): { columns: string[]; rows: unknown[][] } {
   const rows = result.rows ?? [];
 
@@ -93,6 +110,10 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
 
   const [connectionKey, setConnectionKey] = useState('');
   const [sql, setSql] = useState('SELECT 1;');
+
+  // Table currently browsed (set on a table click) — enables row edit/insert against it.
+  const [selectedTable, setSelectedTable] = useState('');
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     if (connFetcher.state === 'idle' && !connFetcher.data) {
@@ -182,6 +203,7 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                     onClick={() => {
                       const q = `SELECT * FROM ${t.name} LIMIT 100;`;
                       setSql(q);
+                      setSelectedTable(t.name);
                       runQuery(q);
                     }}
                     className="w-full truncate rounded px-2 py-1 text-left font-mono text-[12px] text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
@@ -222,6 +244,37 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                 {running ? 'Running…' : 'Run'}
               </button>
               <span className="text-[11px] text-bolt-elements-textTertiary">⌘/Ctrl + Enter</span>
+              {selectedTable ? (
+                <>
+                  <span className="mx-1 h-4 w-px bg-bolt-elements-borderColor" aria-hidden />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cols = tables.find((t) => t.name === selectedTable)?.columns ?? result?.columns ?? [];
+
+                      setSql(
+                        `INSERT INTO ${selectedTable} (${cols.join(', ')})\nVALUES (${cols.map(() => "''").join(', ')});`,
+                      );
+                    }}
+                    className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+                  >
+                    + Insert row
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditMode((v) => !v)}
+                    aria-pressed={editMode}
+                    className={classNames(
+                      'rounded-md border px-2.5 py-1 text-[12px]',
+                      editMode
+                        ? 'border-[var(--ecode-accent,#F26207)] text-[var(--ecode-accent,#F26207)]'
+                        : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+                    )}
+                  >
+                    {editMode ? 'Editing — click a cell' : 'Edit'}
+                  </button>
+                </>
+              ) : null}
             </div>
           </div>
 
@@ -244,7 +297,29 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                     <tr key={i} className="border-b border-bolt-elements-borderColor last:border-b-0">
                       {row.map((cell, j) => (
                         <td key={j} className="max-w-[280px] truncate px-3 py-1.5 text-bolt-elements-textSecondary">
-                          {cell === null || cell === undefined ? '∅' : String(cell)}
+                          {editMode && selectedTable ? (
+                            <input
+                              defaultValue={cell === null || cell === undefined ? '' : String(cell)}
+                              onBlur={(e) => {
+                                const next = e.currentTarget.value;
+                                const orig = cell === null || cell === undefined ? '' : String(cell);
+
+                                if (next === orig) {
+                                  return;
+                                }
+
+                                const where = result.columns.map((c, k) => `${c} = ${sqlLit(row[k])}`).join(' AND ');
+                                runQuery(
+                                  `UPDATE ${selectedTable} SET ${result.columns[j]} = ${sqlLit(next)} WHERE ${where};`,
+                                );
+                              }}
+                              className="w-full bg-bolt-elements-background-depth-1 px-1 text-bolt-elements-textPrimary outline-none focus:ring-1 focus:ring-[var(--ecode-accent,#F26207)]"
+                            />
+                          ) : cell === null || cell === undefined ? (
+                            '∅'
+                          ) : (
+                            String(cell)
+                          )}
                         </td>
                       ))}
                     </tr>
