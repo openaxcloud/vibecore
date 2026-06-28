@@ -35,6 +35,17 @@ spec:
       ports:
         - protocol: TCP
           port: 443
+    # Native per-project databases (CloudNativePG Pooler / cluster Postgres in the
+    # project-databases namespace) — needed by the api for the DATABASE_URL reconcile
+    # + the SQL/data panel API. Egress-ALLOW only; carries no traffic until the
+    # database feature flag is flipped, so this is a no-op for current prod.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: project-databases
+      ports:
+        - protocol: TCP
+          port: 5432
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
