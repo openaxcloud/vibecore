@@ -379,14 +379,14 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
               <div className="bg-bolt-elements-background-depth-3 rounded-lg p-2">
                 <div key={toolCallId} className="flex gap-1">
                   <div className="flex flex-col items-center ">
-                    <span className="mr-auto font-light font-normal text-md text-bolt-elements-textPrimary rounded-md">
+                    <span className="[margin-inline-end:auto] font-light font-normal text-md text-bolt-elements-textPrimary rounded-md">
                       {toolName}
                     </span>
                     <span className="text-xs text-bolt-elements-textSecondary font-light break-words max-w-64">
                       {annotation?.toolDescription}
                     </span>
                   </div>
-                  <div className="flex items-center justify-end gap-2 ml-auto">
+                  <div className="flex items-center justify-end gap-2 [margin-inline-start:auto]">
                     <button
                       className={classNames(
                         'h-10 px-2.5 py-1.5 rounded-lg text-xs h-auto',

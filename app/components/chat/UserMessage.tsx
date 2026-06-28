@@ -59,7 +59,7 @@ export function UserMessage({ content, parts }: UserMessageProps) {
             <div className="i-ph:user-fill text-accent-500 text-2xl" />
           )}
         </div>
-        <div className="bolt-user-message-bubble flex flex-col gap-3 bg-accent-500/10 backdrop-blur-sm px-3 py-2 w-auto rounded-lg mr-auto">
+        <div className="bolt-user-message-bubble flex flex-col gap-3 bg-accent-500/10 backdrop-blur-sm px-3 py-2 w-auto rounded-lg [margin-inline-end:auto]">
           {textContent && <Markdown html>{textContent}</Markdown>}
           {images.map((item, index) => (
             <img
@@ -78,7 +78,7 @@ export function UserMessage({ content, parts }: UserMessageProps) {
   const textContent = stripMetadata(content);
 
   return (
-    <div className="bolt-user-message bolt-user-message-bubble flex flex-col bg-accent-500/10 backdrop-blur-sm px-4 py-2.5 w-auto rounded-lg ml-auto">
+    <div className="bolt-user-message bolt-user-message-bubble flex flex-col bg-accent-500/10 backdrop-blur-sm px-4 py-2.5 w-auto rounded-lg [margin-inline-start:auto]">
       <div className="flex gap-3 mb-2">
         {images.map((item, index) => (
           <div key={index} className="relative flex rounded-lg border border-bolt-elements-borderColor overflow-hidden">

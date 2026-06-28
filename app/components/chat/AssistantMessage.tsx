@@ -507,7 +507,7 @@ export const AssistantMessage = memo(
               <div className="mb-2 flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
                 <span className="i-ph:users-three text-bolt-elements-item-contentAccent" aria-hidden />
                 <span>Parallel agents</span>
-                <span className="ml-auto text-[11px] font-normal text-bolt-elements-textSecondary">
+                <span className="[margin-inline-start:auto] text-[11px] font-normal text-bolt-elements-textSecondary">
                   {agentExecution
                     ? `consensus: ${(agentExecution.consensus?.outcome ?? agentExecution.status).toString().toLowerCase()}`
                     : agentLaneStreams?.some((lane) => lane.status === 'running')
