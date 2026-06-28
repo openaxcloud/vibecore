@@ -8,6 +8,9 @@ const RuntimeAdapterContext = createContext<RuntimeAdapter | undefined>(undefine
 let cachedRuntimeToken: string | undefined;
 let cachedRuntimeTokenExpiry: number | undefined;
 
+// Coalesces concurrent /api/runtime-token refreshes (single-flight) — see resolveRuntimeAuthToken.
+let inflightTokenFetch: Promise<string | undefined> | undefined;
+
 /*
  * Re-fetch this long before the real expiry so a request never goes out with a
  * token that expires mid-flight. Also the fallback TTL when no exp can be read.
@@ -126,39 +129,62 @@ async function resolveRuntimeAuthToken() {
     return cachedRuntimeToken;
   }
 
+  /*
+   * Single-flight: the files/watch, ports/watch and logs streams each resolve the
+   * auth token independently. Without coalescing they fire parallel
+   * /api/runtime-token fetches that race and thrash the cache (a major source of
+   * the WS auth-close storm). If a refresh is already in flight, every concurrent
+   * caller awaits the same promise.
+   */
+  if (inflightTokenFetch) {
+    return inflightTokenFetch;
+  }
+
   // Expired (or never set): drop it so a stale token is never reused on reconnect.
   invalidateRuntimeToken();
 
-  const response = await fetch('/api/runtime-token', {
-    credentials: 'include',
-    headers: { accept: 'application/json' },
-  });
+  const fetchPromise = (async (): Promise<string | undefined> => {
+    const response = await fetch('/api/runtime-token', {
+      credentials: 'include',
+      headers: { accept: 'application/json' },
+    });
 
-  if (!response.ok) {
-    return undefined;
-  }
+    if (!response.ok) {
+      return undefined;
+    }
 
-  /*
-   * A 200 with an empty/non-JSON body (proxy or HTML error page) would throw
-   * here and reject the auth-token provider that runs on every runtime request
-   * and reconnect; treat a parse failure as "no token" instead of crashing.
-   */
-  let payload: { token?: string };
+    /*
+     * A 200 with an empty/non-JSON body (proxy or HTML error page) would throw
+     * here and reject the auth-token provider that runs on every runtime request
+     * and reconnect; treat a parse failure as "no token" instead of crashing.
+     */
+    let payload: { token?: string };
+
+    try {
+      payload = (await response.json()) as { token?: string };
+    } catch {
+      return undefined;
+    }
+
+    if (!payload.token) {
+      return undefined;
+    }
+
+    cachedRuntimeToken = payload.token;
+
+    const expiry = readJwtExpiryMs(payload.token);
+    cachedRuntimeTokenExpiry = (expiry ?? Date.now() + RUNTIME_TOKEN_FALLBACK_TTL_MS) - RUNTIME_TOKEN_REFRESH_SKEW_MS;
+
+    return cachedRuntimeToken;
+  })();
+
+  inflightTokenFetch = fetchPromise;
 
   try {
-    payload = (await response.json()) as { token?: string };
-  } catch {
-    return undefined;
+    return await fetchPromise;
+  } finally {
+    if (inflightTokenFetch === fetchPromise) {
+      inflightTokenFetch = undefined;
+    }
   }
-
-  if (!payload.token) {
-    return undefined;
-  }
-
-  cachedRuntimeToken = payload.token;
-
-  const expiry = readJwtExpiryMs(payload.token);
-  cachedRuntimeTokenExpiry = (expiry ?? Date.now() + RUNTIME_TOKEN_FALLBACK_TTL_MS) - RUNTIME_TOKEN_REFRESH_SKEW_MS;
-
-  return cachedRuntimeToken;
 }
