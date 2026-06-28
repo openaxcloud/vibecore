@@ -143,7 +143,7 @@ export function DeploymentOverview({
           </span>
           <span className="text-[12px] text-bolt-elements-textTertiary">
             {databaseConnected
-              ? 'Your deployment can read and write the production database.'
+              ? 'Your production database is ready — your app can save and manage live user data securely.'
               : 'Attach a managed Postgres database to give your deployment persistent storage.'}
           </span>
         </div>
