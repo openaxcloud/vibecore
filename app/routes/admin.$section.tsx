@@ -18,7 +18,9 @@ type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string
 type AdminSectionConfig = {
   title: string;
   description: string;
-  endpoint: string;
+
+  /* Sections whose panel fetches its own data (e.g. developer-tools) omit this. */
+  endpoint?: string;
   primaryKey?: string;
 };
 
@@ -190,6 +192,11 @@ const adminSections: Record<string, AdminSectionConfig> = {
     description: 'Stripe secret-key configuration and connectivity (live/test mode).',
     endpoint: '/admin/stripe-health',
   },
+  'developer-tools': {
+    title: 'Developer tools',
+    description:
+      'Operational diagnostics (Debug, Task Manager, Service Status, Updates, Event Logs) — hidden from the user settings panel; reachable here by platform admins only.',
+  },
 };
 
 const navItems = [
@@ -219,6 +226,7 @@ const navItems = [
   'wallets',
   'checkpoints',
   'stripe-health',
+  'developer-tools',
 ];
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
@@ -235,7 +243,10 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     throw json({ error: 'Admin section is not available.' }, { status: 404 });
   }
 
-  const payload = await apiRequest<Record<string, JsonValue>>(request, config.endpoint);
+  // Sections without an endpoint (developer-tools) render self-fetching panels.
+  const payload = config.endpoint
+    ? await apiRequest<Record<string, JsonValue>>(request, config.endpoint)
+    : ({} as Record<string, JsonValue>);
 
   return { section, config, payload };
 }
@@ -506,14 +517,76 @@ export default function AdminSectionPage() {
           {section === 'feature-flags' ? <ToggleListPanel payload={payload} kind="feature-flags" /> : null}
           {section === 'oauth-providers' ? <OauthProvidersPanel payload={payload} /> : null}
           {section === 'quotas' ? <QuotaOverridePanel /> : null}
-          {!['overview', 'health', 'users', 'providers', 'models', 'feature-flags', 'oauth-providers'].includes(
-            section,
-          ) ? (
+          {section === 'developer-tools' ? <DeveloperToolsPanel /> : null}
+          {![
+            'overview',
+            'health',
+            'users',
+            'providers',
+            'models',
+            'feature-flags',
+            'oauth-providers',
+            'developer-tools',
+          ].includes(section) ? (
             <DataPanel config={config} payload={payload} />
           ) : null}
         </div>
       </div>
     </AppShell>
+  );
+}
+
+/*
+ * Developer / ops tabs inherited from the bolt @settings modal. They are marked
+ * window:'developer' (hidden from the user ControlPanel) but were hosted nowhere,
+ * so they were unreachable. We surface them here, platform-admin-gated. The tab
+ * components are self-contained (they fetch their own data) and lazy-loaded.
+ */
+const DevDebugTab = React.lazy(() => import('~/components/@settings/tabs/debug/DebugTab'));
+const DevTaskManagerTab = React.lazy(() => import('~/components/@settings/tabs/task-manager/TaskManagerTab'));
+const DevServiceStatusTab = React.lazy(() => import('~/components/@settings/tabs/service-status/ServiceStatusTab'));
+const DevUpdateTab = React.lazy(() => import('~/components/@settings/tabs/update/UpdateTab'));
+
+const DevEventLogsTab = React.lazy(() =>
+  import('~/components/@settings/tabs/event-logs/EventLogsTab').then((m) => ({ default: m.EventLogsTab })),
+);
+
+const DEV_TOOLS = [
+  { id: 'debug', label: 'Debug', Component: DevDebugTab },
+  { id: 'task-manager', label: 'Task Manager', Component: DevTaskManagerTab },
+  { id: 'service-status', label: 'Service Status', Component: DevServiceStatusTab },
+  { id: 'update', label: 'Updates', Component: DevUpdateTab },
+  { id: 'event-logs', label: 'Event Logs', Component: DevEventLogsTab },
+] as const;
+
+function DeveloperToolsPanel() {
+  const [active, setActive] = useState<(typeof DEV_TOOLS)[number]['id']>('debug');
+  const Active = DEV_TOOLS.find((t) => t.id === active)?.Component ?? DevDebugTab;
+
+  return (
+    <div className="grid gap-4">
+      <div className="inline-flex flex-wrap gap-1 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-1">
+        {DEV_TOOLS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setActive(t.id)}
+            className={
+              active === t.id
+                ? 'rounded-md bg-bolt-elements-item-contentAccent px-3 py-1.5 text-sm font-medium text-white'
+                : 'rounded-md px-3 py-1.5 text-sm text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3'
+            }
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
+        <React.Suspense fallback={<p className="text-sm text-bolt-elements-textTertiary">Loading {active}…</p>}>
+          <Active />
+        </React.Suspense>
+      </div>
+    </div>
   );
 }
 
