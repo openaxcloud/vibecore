@@ -18,7 +18,7 @@
 export interface K8sManifest {
   apiVersion: string;
   kind: string;
-  metadata: { name: string; namespace?: string; labels?: Record<string, string> };
+  metadata: { name: string; namespace?: string; labels?: Record<string, string>; annotations?: Record<string, string> };
   spec?: Record<string, unknown>;
 }
 
@@ -46,6 +46,96 @@ function dbLabels(projectId: string, organizationId?: string): Record<string, st
     'app.kubernetes.io/managed-by': 'vibecore',
     'vibecore.ai/project-id': projectId,
     ...(organizationId ? { 'vibecore.ai/org-id': organizationId } : {}),
+  };
+}
+
+/*
+ * TIER routing (see docs/DB_ARCHITECTURE_V3_TIERED.md). Replit isolates every prod
+ * project; we only mutualise the free/dev tier for cost. Plan → tier:
+ *   free            → 'shared'   (shared CNPG cluster + logical Database CRD)
+ *   team/enterprise → 'isolated' (dedicated per-project CNPG Cluster, hibernated)
+ * A project's PRODUCTION db is always 'isolated' regardless of plan (parity), wired
+ * by the caller passing tier='isolated' for prod.
+ */
+export type DatabaseTier = 'shared' | 'isolated';
+
+export function resolveDatabaseTier(planKey: string | undefined): DatabaseTier {
+  return planKey === 'team' || planKey === 'enterprise' ? 'isolated' : 'shared';
+}
+
+/** Safe Postgres identifier derived from a (cuid) project id. */
+function pgIdent(prefix: string, projectId: string): string {
+  const safe = projectId.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 40);
+
+  return `${prefix}${safe}`;
+}
+
+/** Shared-tier per-project logical db + owner role names. */
+export function sharedDbName(projectId: string): string {
+  return pgIdent('proj_', projectId);
+}
+
+export function tenantRoleName(projectId: string): string {
+  return pgIdent('t_', projectId);
+}
+
+/**
+ * SQL to provision + ISOLATE a shared-tier tenant on a shared cluster. Run as a
+ * privileged role. Identifiers are derived from the cuid project id (alnum only)
+ * and the password is bound as a parameter — never string-interpolated.
+ */
+export function buildTenantProvisionSql(projectId: string): { role: string; db: string; statements: string[] } {
+  const role = tenantRoleName(projectId);
+  const db = sharedDbName(projectId);
+
+  return {
+    role,
+    db,
+    statements: [
+      // role created with a bound password (caller passes it as the single param)
+      `DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${role}') THEN CREATE ROLE "${role}" LOGIN PASSWORD $1; END IF; END $$;`,
+      `SELECT 'CREATE DATABASE "${db}" OWNER "${role}"' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${db}')\\gexec`,
+      // Tenant isolation: only the owner may connect to its own db.
+      `REVOKE CONNECT ON DATABASE "${db}" FROM PUBLIC;`,
+      `GRANT CONNECT ON DATABASE "${db}" TO "${role}";`,
+    ],
+  };
+}
+
+/** Shared-tier: a CNPG Database CRD binding a logical db to a shared cluster. */
+export function buildDatabaseCrManifest(input: {
+  projectId: string;
+  organizationId?: string;
+  sharedClusterName: string;
+}): K8sManifest {
+  return {
+    apiVersion: CNPG_API,
+    kind: 'Database',
+    metadata: {
+      name: `db-${input.projectId}`.toLowerCase().slice(0, 53),
+      namespace: DB_NAMESPACE,
+      labels: dbLabels(input.projectId, input.organizationId),
+    },
+    spec: {
+      cluster: { name: input.sharedClusterName },
+      name: sharedDbName(input.projectId),
+      owner: tenantRoleName(input.projectId),
+    },
+  };
+}
+
+/** One PgBouncer Pooler (transaction mode) in front of a shared cluster. */
+export function buildPoolerManifest(sharedClusterName: string): K8sManifest {
+  return {
+    apiVersion: CNPG_API,
+    kind: 'Pooler',
+    metadata: { name: `${sharedClusterName}-pooler`, namespace: DB_NAMESPACE },
+    spec: {
+      cluster: { name: sharedClusterName },
+      instances: 2,
+      type: 'rw',
+      pgbouncer: { poolMode: 'transaction' },
+    },
   };
 }
 
@@ -84,6 +174,9 @@ export function buildClusterManifest(input: {
   storageGi?: number;
   /** Backup GSA email — when set, the cluster pods get the WI annotation. */
   backupServiceAccount?: string;
+  /** Isolated tier: start hibernated (scale-to-zero, PVC kept) — wake on first use. */
+  hibernated?: boolean;
+  instances?: number;
 }): K8sManifest {
   const sat = serviceAccountTemplate(input.backupServiceAccount);
 
@@ -94,9 +187,11 @@ export function buildClusterManifest(input: {
       name: clusterName(input.projectId),
       namespace: DB_NAMESPACE,
       labels: dbLabels(input.projectId, input.organizationId),
+      // CNPG declarative hibernation: 'on' scales pods to 0 but keeps the PVC.
+      ...(input.hibernated ? { annotations: { 'cnpg.io/hibernation': 'on' } } : {}),
     },
     spec: {
-      instances: 1,
+      instances: Math.max(1, input.instances ?? 1),
       imageName: undefined,
       storage: { size: `${Math.max(1, input.storageGi ?? 1)}Gi` },
       resources: {

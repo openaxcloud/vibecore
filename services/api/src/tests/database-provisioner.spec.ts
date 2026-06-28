@@ -4,10 +4,14 @@ import {
   DB_NAMESPACE,
   NoopProvisioner,
   buildClusterManifest,
+  buildDatabaseCrManifest,
+  buildPoolerManifest,
   buildRestoreClusterManifest,
   buildScheduledBackupManifest,
+  buildTenantProvisionSql,
   clusterName,
   resolveDatabaseProvisioner,
+  resolveDatabaseTier,
   type K8sApplyPort,
   type K8sManifest,
 } from '../database-provisioner.js';
@@ -45,6 +49,55 @@ class FakeK8s implements K8sApplyPort {
     this.deleted.push(`${kind}/${name}`);
   }
 }
+
+describe('tiered routing (v3)', () => {
+  it('routes free→shared and paid→isolated', () => {
+    expect(resolveDatabaseTier('free')).toBe('shared');
+    expect(resolveDatabaseTier(undefined)).toBe('shared');
+    expect(resolveDatabaseTier('team')).toBe('isolated');
+    expect(resolveDatabaseTier('enterprise')).toBe('isolated');
+  });
+
+  it('shared tier: Database CRD + isolation SQL with cuid-safe identifiers', () => {
+    const m = buildDatabaseCrManifest({ projectId: 'cmABC123', sharedClusterName: 'shared-pg-0' });
+    expect(m.kind).toBe('Database');
+    expect((m.spec as any).cluster.name).toBe('shared-pg-0');
+    expect((m.spec as any).name).toBe('proj_cmabc123');
+    expect((m.spec as any).owner).toBe('t_cmabc123');
+
+    const sql = buildTenantProvisionSql('cmABC123');
+    expect(sql.role).toBe('t_cmabc123');
+    expect(sql.db).toBe('proj_cmabc123');
+    // tenant isolation: PUBLIC connect revoked, owner-only granted
+    expect(sql.statements.some((s) => /REVOKE CONNECT ON DATABASE "proj_cmabc123" FROM PUBLIC/.test(s))).toBe(true);
+    expect(sql.statements.some((s) => /GRANT CONNECT ON DATABASE "proj_cmabc123" TO "t_cmabc123"/.test(s))).toBe(true);
+    // password is parameter-bound, never interpolated
+    expect(sql.statements.join('\n')).toContain('PASSWORD $1');
+  });
+
+  it('shared tier: one transaction-mode Pooler per shared cluster', () => {
+    const p = buildPoolerManifest('shared-pg-0');
+    expect(p.kind).toBe('Pooler');
+    expect((p.spec as any).pgbouncer.poolMode).toBe('transaction');
+    expect((p.spec as any).cluster.name).toBe('shared-pg-0');
+  });
+
+  it('isolated tier: hibernation annotation + instances honoured', () => {
+    const hib = buildClusterManifest({
+      projectId: 'p1',
+      backupBucket: 'bkt',
+      retentionDays: 28,
+      hibernated: true,
+      instances: 2,
+    });
+    expect(hib.metadata.annotations?.['cnpg.io/hibernation']).toBe('on');
+    expect((hib.spec as any).instances).toBe(2);
+
+    const active = buildClusterManifest({ projectId: 'p1', backupBucket: 'bkt', retentionDays: 28 });
+    expect(active.metadata.annotations).toBeUndefined();
+    expect((active.spec as any).instances).toBe(1);
+  });
+});
 
 describe('CNPG manifest builders', () => {
   it('builds a Cluster with WAL→GCS backup + retention', () => {
