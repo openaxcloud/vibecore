@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
   computeWorkspaceFilesSignature,
@@ -1300,35 +1300,55 @@ export function GitTab({ projectId }: GitTabProps) {
             <h3 className="mb-3 text-[13px] font-semibold text-bolt-elements-textPrimary">Commit graph</h3>
             {commits.length ? (
               <div className="grid gap-2">
-                {commits.map((commit, index) => (
-                  <button
-                    type="button"
-                    key={commit.sha}
-                    data-testid="git-commit-row"
-                    onClick={() => void loadCommit(commit.sha)}
-                    className={classNames(
-                      'grid w-full grid-cols-[20px_76px_minmax(0,1fr)] gap-3 rounded-md border bg-bolt-elements-background-depth-1 px-3 py-2 text-left text-sm hover:border-bolt-elements-item-contentAccent',
-                      commitDetail?.sha && commit.sha.startsWith(commitDetail.sha)
-                        ? 'border-bolt-elements-item-contentAccent'
-                        : 'border-bolt-elements-borderColor',
-                    )}
-                  >
-                    <div className="relative flex justify-center">
-                      <span className="mt-1 h-2.5 w-2.5 rounded-full bg-bolt-elements-item-contentAccent" />
-                      {index < commits.length - 1 && (
-                        <span className="absolute top-4 h-8 w-px bg-bolt-elements-borderColor" />
-                      )}
-                    </div>
-                    <code className="text-xs text-bolt-elements-textSecondary">{commit.shortSha}</code>
-                    <div className="min-w-0">
-                      <div className="truncate font-medium text-bolt-elements-textPrimary">{commit.message}</div>
-                      <div className="truncate text-xs text-bolt-elements-textSecondary">
-                        {timeAgo(commit.date)} {commit.refs ? `- ${commit.refs}` : ''}
-                        {commit.author ? ` - ${commit.author}` : ''}
-                      </div>
-                    </div>
-                  </button>
-                ))}
+                {commits.map((commit, index) => {
+                  /*
+                   * Split the graph by remote state using the ahead count: the first
+                   * `ahead` commits are local-only ("Not pushed to remote"), the rest are
+                   * "Up to date with remote" — matching Replit's source-control separators.
+                   */
+                  const aheadCount = status?.ahead ?? 0;
+
+                  return (
+                    <Fragment key={commit.sha}>
+                      {aheadCount > 0 && index === 0 ? (
+                        <div className="flex items-center gap-1.5 px-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
+                          <span className="i-ph:arrow-down" aria-hidden /> Not pushed to remote
+                        </div>
+                      ) : null}
+                      {index === aheadCount ? (
+                        <div className="flex items-center gap-1.5 px-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
+                          <span className="i-ph:arrow-down" aria-hidden /> Up to date with remote
+                        </div>
+                      ) : null}
+                      <button
+                        type="button"
+                        data-testid="git-commit-row"
+                        onClick={() => void loadCommit(commit.sha)}
+                        className={classNames(
+                          'grid w-full grid-cols-[20px_76px_minmax(0,1fr)] gap-3 rounded-md border bg-bolt-elements-background-depth-1 px-3 py-2 text-left text-sm hover:border-bolt-elements-item-contentAccent',
+                          commitDetail?.sha && commit.sha.startsWith(commitDetail.sha)
+                            ? 'border-bolt-elements-item-contentAccent'
+                            : 'border-bolt-elements-borderColor',
+                        )}
+                      >
+                        <div className="relative flex justify-center">
+                          <span className="mt-1 h-2.5 w-2.5 rounded-full bg-bolt-elements-item-contentAccent" />
+                          {index < commits.length - 1 && (
+                            <span className="absolute top-4 h-8 w-px bg-bolt-elements-borderColor" />
+                          )}
+                        </div>
+                        <code className="text-xs text-bolt-elements-textSecondary">{commit.shortSha}</code>
+                        <div className="min-w-0">
+                          <div className="truncate font-medium text-bolt-elements-textPrimary">{commit.message}</div>
+                          <div className="truncate text-xs text-bolt-elements-textSecondary">
+                            {timeAgo(commit.date)} {commit.refs ? `- ${commit.refs}` : ''}
+                            {commit.author ? ` - ${commit.author}` : ''}
+                          </div>
+                        </div>
+                      </button>
+                    </Fragment>
+                  );
+                })}
               </div>
             ) : (
               <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 text-sm text-bolt-elements-textSecondary">
