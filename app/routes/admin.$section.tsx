@@ -849,7 +849,8 @@ function ToggleListPanel({ payload, kind }: { payload: Record<string, JsonValue>
       <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
         <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Confirm changes with your password</h3>
         <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-          Enter your password once, then enable or disable each {noun}. Sent only with the action.
+          Step 1: enter your password below. Step 2: click <strong>Enable</strong> or <strong>Disable</strong> on a{' '}
+          {noun} row to apply the change — that button is the confirm. Your password is sent only with the action.
         </p>
         <input
           type="password"
@@ -1175,17 +1176,42 @@ function ToggleRow({ row, kind, password }: { row: Record<string, JsonValue>; ki
         <button
           type="button"
           className={btn}
-          disabled={busy}
+          disabled={busy || !password}
+          title={
+            !password
+              ? 'Enter your password above first'
+              : `${enabled ? 'Disable' : 'Enable'} this ${kind === 'feature-flags' ? 'flag' : kind.replace(/s$/, '')}`
+          }
           data-testid={`toggle-${kind}-${toggleRowId(row, kind)}`}
           onClick={toggle}
         >
-          {enabled ? 'Disable' : 'Enable'}
+          {busy ? (
+            <>
+              <span className="i-svg-spinners:90-ring-with-bg mr-1.5" aria-hidden />
+              Applying…
+            </>
+          ) : enabled ? (
+            'Disable'
+          ) : (
+            'Enable'
+          )}
         </button>
+        {!password && !busy ? (
+          <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">
+            Enter your password above, then click to apply.
+          </p>
+        ) : null}
         {fetcher.data?.message ? (
-          <p className="mt-1.5 text-xs text-green-600 dark:text-green-400">{fetcher.data.message}</p>
+          <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
+            <span className="i-ph:check-circle-fill" aria-hidden />
+            {fetcher.data.message}
+          </p>
         ) : null}
         {fetcher.data?.error ? (
-          <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{fetcher.data.error}</p>
+          <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
+            <span className="i-ph:warning-circle-fill" aria-hidden />
+            {fetcher.data.error}
+          </p>
         ) : null}
       </td>
     </tr>
