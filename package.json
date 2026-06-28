@@ -1,14 +1,14 @@
 {
-  "name": "bolt",
-  "description": "An AI Agent",
+  "name": "vibecore",
+  "description": "E-Code — AI-powered full-stack web development in the browser",
   "private": true,
   "license": "MIT",
   "sideEffects": false,
   "type": "module",
   "version": "1.0.0",
   "author": {
-    "name": "bolt.diy team",
-    "email": "maintainers@bolt.diy"
+    "name": "E-Code team",
+    "email": "maintainers@e-code.ai"
   },
   "scripts": {
     "platform:dev": "pnpm run dev:all",
