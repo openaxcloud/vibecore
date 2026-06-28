@@ -7622,6 +7622,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         {...(useMobileIde ? mobileSwipeHandlers : {})}
       >
         {!projectIdeMode && <ClientOnly>{() => <Menu />}</ClientOnly>}
+        {/* DO NOT MODIFY — mobile Terminal tab frozen per Avi (ref IMG_9149). Header structure
+            (back · activity · "Shell (Terminal)" · + · ⋮) is the reference; exclude from responsive/
+            fan-out/parity passes. */}
         {projectIdeMode && showMobileChrome && (
           <header className="bolt-mobile-ecode-header" data-testid="mobile-ide-header">
             <div className="bolt-mobile-ecode-header-inner">
@@ -7871,6 +7874,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </>
           )}
         </div>
+        {/* DO NOT MODIFY — mobile Terminal tab frozen per Avi (ref IMG_9149). Bottom dock
+            (record/run · tab-switcher · Files · </> · preview · apps · +N · + · ⋮) is the reference;
+            exclude from responsive/fan-out/parity passes. */}
         {showMobileChrome && (
           <nav className="bolt-mobile-replit-nav" aria-label="IDE panels" data-testid="mobile-bottom-navigation">
             <div className="bolt-mobile-replit-nav-bg" aria-hidden />
