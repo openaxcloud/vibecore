@@ -50,12 +50,14 @@ function dbLabels(projectId: string, organizationId?: string): Record<string, st
 }
 
 /*
- * TIER routing (see docs/DB_ARCHITECTURE_V3_TIERED.md). Replit isolates every prod
- * project; we only mutualise the free/dev tier for cost. Plan → tier:
+ * TIER routing by PLAN (NOT by dev/prod) — see docs/DB_ARCHITECTURE_V3_TIERED.md.
+ * Replit isolates every PAID project per-project from dev onward (Helium dev is
+ * already isolated, not just Neon prod); we only mutualise the FREE tier for cost.
  *   free            → 'shared'   (shared CNPG cluster + logical Database CRD)
  *   team/enterprise → 'isolated' (dedicated per-project CNPG Cluster, hibernated)
- * A project's PRODUCTION db is always 'isolated' regardless of plan (parity), wired
- * by the caller passing tier='isolated' for prod.
+ * Both the dev and prod database of a project use the SAME tier as its org plan: a
+ * paying customer is never on the shared cluster, even while developing. Hibernation
+ * (scale-to-zero) applies to both tiers for cost.
  */
 export type DatabaseTier = 'shared' | 'isolated';
 

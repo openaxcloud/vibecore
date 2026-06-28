@@ -12,17 +12,23 @@
 > isolation** than Replit (noisy-neighbour, cluster blast-radius, PITR is cluster-wide
 > not per-project). So v2 is fine for **free/dev only**, not for paid/prod.
 
-## Decision: tier selected by org plan
+## Decision: tier selected by org PLAN (not by environment)
 
-| Tier | Plans | Backend | Isolation | Cost |
+The axis is the **org plan**, NOT dev-vs-prod. A paying customer is isolated per
+project **from dev onward** (matching Replit: Helium dev is already isolated, not
+just Neon prod) — they are **never** on the shared cluster, even while developing.
+Both the project's dev and prod databases use the same tier as the org plan.
+
+| Tier | Plans (dev AND prod) | Backend | Isolation | Cost |
 |---|---|---|---|---|
-| **shared** (dev/free) | `free` (+ any project's **dev** DB) | shared CNPG cluster pool + per-project **`Database` CRD** + owner role + `REVOKE CONNECT FROM PUBLIC` + PgBouncer Pooler + hibernation | logical (DB-level) | ~$1–2/mo/project |
-| **isolated** (paid/prod) | `team`, `enterprise` (+ any **production** DB) | **dedicated per-project CNPG `Cluster`** with declarative **hibernation/scale-to-zero** (PVC + pod down when idle, wake on first request) — or a serverless connector (Neon) | full (own cluster, own PITR) | ~$0 idle (hibernated) → small when active |
+| **shared** | `free` | shared CNPG cluster pool + per-project **`Database` CRD** + owner role + `REVOKE CONNECT FROM PUBLIC` + PgBouncer Pooler + hibernation | logical (DB-level) | ~$1–2/mo/project |
+| **isolated** | `team`, `enterprise` | **dedicated per-project CNPG `Cluster`** with declarative **hibernation/scale-to-zero** (pod+PVC down when idle, wake on first request) — or a serverless connector (Neon) | full (own cluster + own per-project PITR) | **~$2–3/mo hibernated** (vs ~$10–11 always-on, GKE Autopilot) |
 
 Routing: `resolveDatabaseTier(planKey)` → `free → shared`, `team|enterprise → isolated`.
-Replit-parity dev/prod split layers on top: the **dev** DB is always `shared`-eligible
-(cheap, agent-writable); the **prod** DB created at publish is always `isolated`
-(real isolation + per-project PITR, not agent-writable).
+The Replit-parity dev/prod SPLIT (agent writes dev; publish creates prod; deploy-preview
+clones prod) layers **inside the org's tier** — a paid project gets two isolated DBs
+(dev + prod), a free project gets two shared logical DBs. Hibernation/scale-to-zero
+applies to **both** tiers for cost.
 
 Both tiers validated live on prod (2026-06-28, then cleaned up):
 - shared: 1 cluster + 2 `Database` CRs, tenant connects to own DB, cross-tenant =
@@ -41,8 +47,10 @@ Both tiers validated live on prod (2026-06-28, then cleaned up):
   workspace start / query. `DATABASE_URL` → the cluster's own `-rw` (or dedicated Pooler).
 - **Backups/PITR**: shared = cluster-scope (coarse); isolated = per-project (clean PITR,
   7d/28d by plan) — the parity-grade path for prod.
-- **Dev vs Prod**: agent only touches dev; publish applies dev schema to an isolated
-  prod DB (optional copy-data); deployment-preview = throwaway clone of prod.
+- **Dev vs Prod** (within the org's tier): agent only touches dev; publish applies the
+  dev schema to a SEPARATE prod DB **of the same tier** (free → another shared logical
+  DB; paid → another isolated cluster), optional copy-data; deployment-preview =
+  throwaway clone of prod. Prod is not agent-writable.
 - **`DATABASE_URL`**: app-scoped project secret, never public.
 - **External DBs (keep bolt integrations)**: the panel offers Native (CNPG, tiered) AND
   Connect-external (Supabase/Neon/any Postgres via connection string).
