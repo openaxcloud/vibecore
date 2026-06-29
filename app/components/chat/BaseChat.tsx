@@ -318,6 +318,7 @@ const IDE_MANAGEMENT_PANELS = [
   'packages',
   'skills',
   'monitoring',
+  'ports',
   'extensions',
   'integrations',
   'workflows',
@@ -389,6 +390,7 @@ const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: st
   env: { id: 'env', name: 'Environment variables', icon: 'i-ph:brackets-curly' },
   logs: { id: 'logs', name: 'Logs', icon: 'i-ph:list-magnifying-glass' },
   monitoring: { id: 'monitoring', name: 'Monitoring', icon: 'i-ph:chart-line' },
+  ports: { id: 'ports', name: 'Ports', icon: 'i-ph:plugs' },
   domains: { id: 'domains', name: 'Domains', icon: 'i-ph:globe' },
   overview: { id: 'overview', name: 'Overview', icon: 'i-ph:gauge' },
   web: { id: 'web', name: 'Webview', icon: 'i-ph:monitor' },
@@ -561,6 +563,13 @@ const ECODE_MOBILE_TOOLS = [
     icon: 'i-ph:chart-line',
   },
   {
+    id: 'ports',
+    section: 'tools',
+    title: 'Ports',
+    description: 'Forwarded ports',
+    icon: 'i-ph:plugs',
+  },
+  {
     id: 'env',
     section: 'tools',
     title: 'Environment variables',
@@ -631,6 +640,7 @@ const ECODE_MOBILE_MORE_ITEMS = [
   'snapshots',
   'extensions',
   'monitoring',
+  'ports',
   'security',
   'settings',
 ] as const;
@@ -650,6 +660,7 @@ const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> =
   packages: 'Dependencies manager',
   skills: 'Agent skills',
   monitoring: 'App metrics',
+  ports: 'Forwarded ports',
   extensions: 'Marketplace',
   integrations: 'Connected services',
   workflows: 'Task automation',
@@ -7439,6 +7450,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             ['deployments', 'Deployments', 'Publish your app', ''],
             ['security', 'Security', 'Security scanner', ''],
             ['monitoring', 'Monitoring', 'App metrics', ''],
+            ['ports', 'Ports', 'Forwarded ports', ''],
             ['extensions', 'Extensions', 'Marketplace', ''],
             ['snapshots', 'Snapshots', 'Create or restore checkpoints', ''],
             ['settings', 'Settings', 'Project settings', formatKeybindingCombo('cmd+,')],
@@ -10492,6 +10504,7 @@ function IdeTabBar({
     ],
     ['security', 'Security', 'Security scanner', 'i-ph:shield-check', 'var(--vc-ide-accent-error)', 'Security'],
     ['monitoring', 'Monitoring', 'App metrics', 'i-ph:chart-line', 'var(--vc-ide-accent-action)', 'Delivery'],
+    ['ports', 'Ports', 'Forwarded ports', 'i-ph:plugs', 'var(--vc-ide-accent-success)', 'Runtime'],
     ['extensions', 'Extensions', 'Marketplace', 'i-ph:puzzle-piece', 'var(--vc-ide-text-secondary)', 'Project'],
     ['snapshots', 'Snapshots', 'Rollback points', 'i-ph:stack', 'var(--vc-ide-accent-ai-start)', 'Project'],
     ['activity', 'Activity', 'Project timeline', 'i-ph:activity', 'var(--vc-ide-accent-action)', 'Team'],
@@ -10961,6 +10974,10 @@ function ProjectIdePanelContent({
 
   if (panel === 'skills') {
     return <ProjectSkillsPanel projectId={projectId} data={data} busy={busy} reload={reload} />;
+  }
+
+  if (panel === 'ports') {
+    return <ProjectPortsPanel data={data} projectId={projectId} onSubmit={onSubmit} busy={busy} />;
   }
 
   if (panel === 'monitoring') {
@@ -14028,6 +14045,99 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
             )}
           </div>
         </aside>
+      </section>
+    </div>
+  );
+}
+
+/*
+ * Ports — real, against the runtime. Lists the ports the running workspace has
+ * opened (GET /api/runtime/workspaces/:id/ports → {port, ready, url}) with a
+ * preview link per port, a primary-port selection and a public/private toggle,
+ * both persisted server-side (VIBECORE_PORTS_STATE) via the ide-panel action.
+ */
+function ProjectPortsPanel({
+  data,
+  projectId,
+  onSubmit,
+  busy,
+}: {
+  data: any;
+  projectId?: string;
+  onSubmit: any;
+  busy: boolean;
+}) {
+  const ports = runtimePortsFromPayload(data);
+  const portsState = data.portsState ?? {};
+  const primaryPort = portsState.primaryPort;
+  const visibility: Record<string, string> = portsState.visibility ?? {};
+
+  return (
+    <div className="bolt-project-managed-panel bolt-project-ports-panel">
+      <section className="grid gap-3">
+        <p className="text-xs text-bolt-elements-textSecondary">
+          Ports opened by the running workspace. Open a port&apos;s preview, choose the primary port, or set its
+          visibility.
+        </p>
+
+        {ports.length ? (
+          <div className="grid gap-2">
+            {ports.map((entry) => {
+              const portNumber = entry.port;
+              const isPrimary = primaryPort != null && Number(primaryPort) === Number(portNumber);
+              const vis = visibility[String(portNumber)] ?? 'public';
+
+              return (
+                <div
+                  key={String(portNumber)}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-xs"
+                >
+                  <div className="min-w-0">
+                    <strong className="text-bolt-elements-textPrimary">
+                      :{portNumber}
+                      {isPrimary ? ' · primary' : ''}
+                    </strong>
+                    <span className={`ml-2 ${entry.ready ? 'text-green-500' : 'text-amber-500'}`}>
+                      {entry.ready ? 'ready' : 'starting'}
+                    </span>
+                    <span className="ml-2 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-bolt-elements-textSecondary">
+                      {vis}
+                    </span>
+                    {entry.url ? (
+                      <div className="mt-0.5 truncate font-mono text-bolt-elements-textSecondary">{entry.url}</div>
+                    ) : null}
+                  </div>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    {entry.url ? (
+                      <a href={entry.url} target="_blank" rel="noreferrer" className="underline">
+                        Open preview
+                      </a>
+                    ) : null}
+                    <form onSubmit={onSubmit}>
+                      <input type="hidden" name="intent" value="set-primary" />
+                      <input type="hidden" name="port" value={String(portNumber)} />
+                      <button type="submit" disabled={busy || isPrimary}>
+                        {isPrimary ? 'Primary' : 'Set primary'}
+                      </button>
+                    </form>
+                    <form onSubmit={onSubmit}>
+                      <input type="hidden" name="intent" value="set-visibility" />
+                      <input type="hidden" name="port" value={String(portNumber)} />
+                      <input type="hidden" name="visibility" value={vis === 'public' ? 'private' : 'public'} />
+                      <button type="submit" disabled={busy || !projectId}>
+                        {vis === 'public' ? 'Make private' : 'Make public'}
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bolt-project-empty-panel">
+            No ports detected yet. Start your app (it must listen on a port) and refresh.
+          </div>
+        )}
       </section>
     </div>
   );

@@ -513,6 +513,37 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     }
   }
 
+  if (panel === 'ports') {
+    try {
+      const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
+      const workspaceCtx = await resolvePanelWorkspace(request, projectId, requestedWorkspaceId);
+      const workspaceId = workspaceCtx.selectedWorkspaceId ?? projectId;
+
+      /*
+       * Real forwarded ports straight from the runtime + the persisted
+       * primary/visibility config (VIBECORE_PORTS_STATE).
+       */
+      const [runtimePorts, envVars] = await Promise.all([
+        apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/ports`).catch(() => ({
+          ports: [],
+        })),
+        apiRequest(request, `/projects/${projectId}/env-vars`).catch(() => ({ envVars: [] })),
+      ]);
+
+      return json(
+        panelEnvelope(panel, project.project, {
+          ...(runtimePorts as any),
+          portsState: readPortsState(envVars),
+          workspaces: workspaceCtx.workspaceList,
+          selectedWorkspaceId: workspaceCtx.selectedWorkspaceId,
+          workspaceId,
+        }),
+      );
+    } catch (error) {
+      return json(panelEnvelopeError(panel, project.project, error));
+    }
+  }
+
   if (panel === 'database') {
     try {
       const schemaKey = url.searchParams.get('schemaKey');
@@ -1558,6 +1589,27 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         body: JSON.stringify({ key: body.key || 'DATABASE_URL', value: body.value ?? '' }),
       });
     }
+  } else if (panel === 'ports') {
+    /*
+     * Persist the primary port + per-port public/private visibility to
+     * VIBECORE_PORTS_STATE (the runtime detects the ports; this is the config).
+     */
+    const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`).catch(() => ({ envVars: [] }));
+    const state = readPortsState(envVars);
+    const port = Number.parseInt(body.port ?? '', 10);
+
+    if (Number.isFinite(port)) {
+      if (intent === 'set-primary') {
+        state.primaryPort = port;
+      } else if (intent === 'set-visibility') {
+        state.visibility[String(port)] = body.visibility === 'private' ? 'private' : 'public';
+      }
+    }
+
+    await apiRequest(request, `/projects/${projectId}/env-vars`, {
+      method: 'PUT',
+      body: JSON.stringify({ key: PORTS_STATE_ENV_KEY, value: JSON.stringify(state) }),
+    });
   } else if (panel === 'object-storage') {
     if (intent === 'list') {
       const search = new URLSearchParams({ delimiter: '/' });
@@ -2639,6 +2691,28 @@ const TERMINAL_STATE_ENV_KEY = 'VIBECORE_TERMINAL_STATE';
 const PACKAGES_STATE_ENV_KEY = 'VIBECORE_PACKAGES_STATE';
 const DEBUGGER_STATE_ENV_KEY = 'VIBECORE_DEBUGGER_STATE';
 const EXTENSIONS_STATE_ENV_KEY = 'VIBECORE_EXTENSIONS_STATE';
+const PORTS_STATE_ENV_KEY = 'VIBECORE_PORTS_STATE';
+
+/** Persisted Ports config: primary port + per-port public/private visibility. */
+function readPortsState(envVarsResponse: unknown): { primaryPort?: number; visibility: Record<string, string> } {
+  const envVars = (envVarsResponse as any)?.envVars ?? [];
+  const raw = envVars.find((item: any) => item.key === PORTS_STATE_ENV_KEY)?.value;
+
+  if (typeof raw !== 'string' || !raw.trim()) {
+    return { visibility: {} };
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as { primaryPort?: number; visibility?: Record<string, string> };
+
+    return {
+      primaryPort: typeof parsed.primaryPort === 'number' ? parsed.primaryPort : undefined,
+      visibility: parsed.visibility && typeof parsed.visibility === 'object' ? parsed.visibility : {},
+    };
+  } catch {
+    return { visibility: {} };
+  }
+}
 
 type ProjectPackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
 
