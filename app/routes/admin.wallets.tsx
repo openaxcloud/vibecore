@@ -1,4 +1,6 @@
-import { Form, useActionData, useLoaderData } from 'react-router';
+import { useEffect, useRef } from 'react';
+import { useFetcher, useLoaderData } from 'react-router';
+import { toast } from 'react-toastify';
 import { EnterpriseFormPage, TextField, SelectField, PrimaryButton } from '~/components/enterprise/EnterpriseFormPage';
 import {
   apiRequest,
@@ -162,7 +164,38 @@ export async function action({ request }: EnterpriseActionArgs) {
 
 export default function AdminWalletsPage() {
   const { wallets } = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
+
+  /*
+   * Fetcher (not <Form> navigation) so the Apply button shows a real loading
+   * state and a success/error toast fires — mirrors the admin System-settings
+   * Save pattern. A successful adjust also revalidates the loader, so the table
+   * above re-renders the org's new balance without a manual refresh.
+   */
+  const fetcher = useFetcher<typeof action>();
+  const busy = fetcher.state !== 'idle';
+  const formRef = useRef<HTMLFormElement>(null);
+  const handled = useRef<unknown>(null);
+
+  const actionData = fetcher.data as { status?: string; error?: string } | undefined;
+
+  useEffect(() => {
+    if (fetcher.state !== 'idle' || !fetcher.data || fetcher.data === handled.current) {
+      return;
+    }
+
+    handled.current = fetcher.data;
+
+    const result = fetcher.data as { status?: string; error?: string };
+
+    if (result.status) {
+      toast.success(result.status);
+
+      // Clear amount / reason / password after a successful adjustment.
+      formRef.current?.reset();
+    } else if (result.error) {
+      toast.error(result.error);
+    }
+  }, [fetcher.state, fetcher.data]);
 
   return (
     <EnterpriseFormPage
@@ -207,7 +240,11 @@ export default function AdminWalletsPage() {
           </table>
         </div>
 
-        <Form method="post" className="space-y-4 rounded-lg border border-bolt-elements-borderColor p-4">
+        <fetcher.Form
+          ref={formRef}
+          method="post"
+          className="space-y-4 rounded-lg border border-bolt-elements-borderColor p-4"
+        >
           <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-bolt-elements-textSecondary">
             Adjust a balance
           </h2>
@@ -256,8 +293,10 @@ export default function AdminWalletsPage() {
             required
           />
 
-          <PrimaryButton>Apply adjustment</PrimaryButton>
-        </Form>
+          <PrimaryButton type="submit" disabled={busy}>
+            {busy ? 'Applying…' : 'Apply adjustment'}
+          </PrimaryButton>
+        </fetcher.Form>
       </section>
     </EnterpriseFormPage>
   );
