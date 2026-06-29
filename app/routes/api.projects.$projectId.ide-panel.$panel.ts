@@ -471,13 +471,27 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
       const workspaceCtx = await resolvePanelWorkspace(request, projectId, requestedWorkspaceId);
 
-      const deployments = await apiRequest<{ deployments?: Array<Record<string, unknown>> }>(
-        request,
-        `/projects/${projectId}/deployments`,
-      );
+      const selectedWorkspaceId = workspaceCtx.selectedWorkspaceId;
+
+      /*
+       * Deploy → Overview (Replit parity) reads REAL data: the deployment list
+       * (provider/status/url/commitSha/branch), the project's database
+       * connections (Database connected), and the git commit graph (commit
+       * history scoping the deployment — hash + author + date). Each enrichment
+       * is best-effort so the panel never fails if git/db is unavailable.
+       */
+      const [deployments, databases, commitGraph] = await Promise.all([
+        apiRequest<{ deployments?: Array<Record<string, unknown>> }>(request, `/projects/${projectId}/deployments`),
+        apiRequest<{ connections?: unknown[] }>(request, `/projects/${projectId}/databases`).catch(() => ({
+          connections: [],
+        })),
+        apiRequest<{ commits?: unknown[] }>(
+          request,
+          `/projects/${projectId}/git/graph${selectedWorkspaceId ? `?workspaceId=${encodeURIComponent(selectedWorkspaceId)}` : ''}`,
+        ).catch(() => ({ commits: [] })),
+      ]);
 
       const deploymentList = Array.isArray(deployments.deployments) ? deployments.deployments : [];
-      const selectedWorkspaceId = workspaceCtx.selectedWorkspaceId;
       const primaryWorkspaceId = workspaceCtx.primaryWorkspaceId;
       const scopedDeployments = scopeDeploymentsForWorkspace(deploymentList, selectedWorkspaceId, primaryWorkspaceId);
 
@@ -485,6 +499,8 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         panelEnvelope(panel, project.project, {
           deployments: scopedDeployments,
           allDeployments: deploymentList,
+          connections: Array.isArray(databases.connections) ? databases.connections : [],
+          gitCommits: Array.isArray(commitGraph.commits) ? commitGraph.commits : [],
           workspaces: workspaceCtx.workspaceList,
           primaryWorkspaceId,
           activeWorkspaceId: workspaceCtx.activeWorkspaceId,

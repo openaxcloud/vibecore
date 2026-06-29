@@ -16867,6 +16867,11 @@ function ProjectSecretsPanel({
  * in the dedicated Domains panel), and Manage holds the lifecycle actions
  * (redeploy / rollback / cancel) plus the create-deployment wizard.
  */
+// Map a stored deployment provider id to its display label (real data, no mock).
+function formatDeployProvider(provider: string): string {
+  return BOLT_DEPLOY_PROVIDERS.find((entry) => entry.id === provider)?.name ?? provider;
+}
+
 function ProjectDeploymentsPanel({
   data,
   project,
@@ -16890,6 +16895,10 @@ function ProjectDeploymentsPanel({
   });
 
   const [tab, setTab] = useState<'overview' | 'logs' | 'domains' | 'manage'>('overview');
+
+  // Real Overview data wired from the deployments loader.
+  const connections = Array.isArray((data as any).connections) ? (data as any).connections : [];
+  const gitCommits = Array.isArray((data as any).gitCommits) ? (data as any).gitCommits : [];
 
   return (
     <div className="bolt-project-deploy-tool">
@@ -16926,29 +16935,28 @@ function ProjectDeploymentsPanel({
           </div>
 
           {/*
-           * Replit Overview widgets. We render real values where we have them and
-           * a graceful "—" where the backend is not built yet (Autoscale compute
-           * type, vCPU/memory resources, compute usage). These are intentionally
-           * NOT mocked — see the panel's backend-gap notes.
+           * Replit Overview widgets. Real values where the backend has them
+           * (Type = provider, Database = live project connections); a graceful
+           * "—" only where the data genuinely does not exist (we run no
+           * Autoscale compute tier, so vCPU/memory resources and compute usage
+           * have no backend). Never mocked.
            */}
           <div className="bolt-project-deploy-summary">
             <div>
               <span>Type</span>
-              <strong title="Compute type (e.g. Autoscale) — backend pending">—</strong>
+              <strong>{latestDeployment?.provider ? formatDeployProvider(latestDeployment.provider) : '—'}</strong>
             </div>
             <div>
               <span>Resources</span>
-              <strong title="vCPU / memory — backend pending">—</strong>
+              <strong title="vCPU / memory — no Autoscale compute backend">—</strong>
             </div>
             <div>
               <span>Usage</span>
-              <strong title="Compute usage this billing period — backend pending">—</strong>
+              <strong title="Compute usage this billing period — no metering backend">—</strong>
             </div>
             <div>
               <span>Database</span>
-              <strong>
-                {Array.isArray((data as any).connections) && (data as any).connections.length ? 'Connected' : '—'}
-              </strong>
+              <strong>{connections.length ? `Connected · ${connections.length}` : 'Not connected'}</strong>
             </div>
           </div>
 
@@ -16983,8 +16991,31 @@ function ProjectDeploymentsPanel({
             <div className="bolt-project-empty-panel">No deployments yet. Create one from the Manage tab.</div>
           )}
 
-          {/* Deploy-scoped commit history needs a backend we don't have yet. */}
-          <p className="text-xs text-bolt-elements-textTertiary">Commit history for deployments — coming soon.</p>
+          {/* Real commit history (hash + author + date) from the git graph. */}
+          <div className="grid gap-1">
+            <span className="text-[11px] uppercase tracking-wide text-bolt-elements-textSecondary">Commit history</span>
+            {gitCommits.length ? (
+              gitCommits.slice(0, 8).map((commit: any) => (
+                <div
+                  key={commit.sha}
+                  className="flex items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs"
+                >
+                  <div className="min-w-0">
+                    <span className="font-mono text-bolt-elements-textPrimary">
+                      {commit.shortSha ?? commit.sha?.slice(0, 7)}
+                    </span>
+                    <span className="ml-2 truncate text-bolt-elements-textSecondary">{commit.message}</span>
+                  </div>
+                  <span className="shrink-0 text-bolt-elements-textTertiary">
+                    {commit.author}
+                    {commit.date ? ` · ${new Date(commit.date).toLocaleDateString()}` : ''}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <span className="text-xs text-bolt-elements-textTertiary">No commits in this workspace yet.</span>
+            )}
+          </div>
         </section>
       ) : null}
 
