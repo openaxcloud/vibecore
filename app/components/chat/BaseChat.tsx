@@ -11876,17 +11876,22 @@ function ProjectSettingsPanel({
     items: Array<[string, string, string]>;
   }> = [
     {
-      group: 'Workspace settings',
+      // Replit parity: three settings groups — Workspace / Account / User.
+      group: 'Workspace',
       description: 'Shared project configuration and governance.',
       items: [
         ['project', 'Project', 'Metadata, repository and export controls'],
         ['security', 'Security', 'Password policy, sessions and account protection'],
-        ['usage', 'Usage', 'Plan, limits, usage events and quotas'],
         ['ai', 'AI', 'Provider routing, agent defaults and keys'],
       ],
     },
     {
-      group: 'Personal settings',
+      group: 'Account',
+      description: 'Plan, usage and billing for this account.',
+      items: [['usage', 'Usage', 'Plan, limits, usage events and quotas']],
+    },
+    {
+      group: 'User',
       description: 'Your profile, agent memory and IDE preferences.',
       items: [
         ['account', 'Account', 'Profile and connected accounts'],
@@ -16857,6 +16862,33 @@ function ProjectDeploymentsPanel({
             </div>
           </div>
 
+          {/*
+           * Replit Overview widgets. We render real values where we have them and
+           * a graceful "—" where the backend is not built yet (Autoscale compute
+           * type, vCPU/memory resources, compute usage). These are intentionally
+           * NOT mocked — see the panel's backend-gap notes.
+           */}
+          <div className="bolt-project-deploy-summary">
+            <div>
+              <span>Type</span>
+              <strong title="Compute type (e.g. Autoscale) — backend pending">—</strong>
+            </div>
+            <div>
+              <span>Resources</span>
+              <strong title="vCPU / memory — backend pending">—</strong>
+            </div>
+            <div>
+              <span>Usage</span>
+              <strong title="Compute usage this billing period — backend pending">—</strong>
+            </div>
+            <div>
+              <span>Database</span>
+              <strong>
+                {Array.isArray((data as any).connections) && (data as any).connections.length ? 'Connected' : '—'}
+              </strong>
+            </div>
+          </div>
+
           {deployments.length ? (
             deployments.map((deployment: any) => (
               <article key={deployment.id} className="bolt-project-deploy-card">
@@ -16874,6 +16906,12 @@ function ProjectDeploymentsPanel({
                     <a href={deployment.url} target="_blank" rel="noreferrer">
                       Open
                     </a>
+                    <button
+                      type="button"
+                      onClick={() => void navigator.clipboard?.writeText(deployment.url).catch(() => {})}
+                    >
+                      Copy link
+                    </button>
                   </div>
                 ) : null}
               </article>
@@ -16881,6 +16919,9 @@ function ProjectDeploymentsPanel({
           ) : (
             <div className="bolt-project-empty-panel">No deployments yet. Create one from the Manage tab.</div>
           )}
+
+          {/* Deploy-scoped commit history needs a backend we don't have yet. */}
+          <p className="text-xs text-bolt-elements-textTertiary">Commit history for deployments — coming soon.</p>
         </section>
       ) : null}
 
@@ -16937,6 +16978,8 @@ function ProjectDeploymentsPanel({
               verification in the dedicated Domains panel.
             </div>
           )}
+          {/* Buy-a-domain commerce flow needs a backend/registrar integration we don't have yet. */}
+          <p className="text-xs text-bolt-elements-textTertiary">Buy a domain — coming soon.</p>
         </section>
       ) : null}
 
