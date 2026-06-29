@@ -125,26 +125,29 @@ Stores SSH connection definitions; private key encrypted in project secrets
 
 ---
 
-## 4. Object Storage (GCS) — GAP ❌ (no backend today; build-spec frozen for IDE)
+## 4. Object Storage (GCS) — IMPLEMENTED ✅ (flag-gated; live-enable pending)
 
-No `@google-cloud/storage` dependency and no `/object-storage` routes exist. The current
-panel only writes an `OBJECT_STORAGE_BUCKET` env var. Frozen contract to build against
-(per-project bucket, Workload Identity, lifecycle, signed URLs):
+Real `@google-cloud/storage` backend, bucket-per-project, V4 signed URLs, lifecycle.
+Shipped on branch `feat/object-storage-gcs` @`2ded58b3` (`services/api/src/object-storage.ts`
++ routes in `app.ts`; 21 unit tests). **Dormant** until `OBJECT_STORAGE_ENABLED=true`
+(every route 404s while off). Auth = api pod Workload Identity (ADC). Live-enable still
+needs: deploy the api image + WI binding on the api KSA (see report).
 
-- **IDE proxy:** `POST/GET /api/projects/:projectId/ide-panel/object-storage`
-- **Proposed internal API** (`services/api/src/app.ts`, flag `OBJECT_STORAGE_ENABLED`):
+- **Internal API** (all gated; `requireProject` read on GETs, write on mutations):
   | method | route | body / query | response |
   |---|---|---|---|
   | POST | `/projects/:id/object-storage/bucket` | `{}` (ensures the project bucket) | `{ bucket, created, location }` |
-  | GET | `/projects/:id/object-storage/objects` | `?prefix=&delimiter=/` | `{ objects: [{ key, size, updated, contentType }], folders: ["a/"] }` |
-  | POST | `/projects/:id/object-storage/objects/upload-url` | `{ key, contentType }` | `{ url, method:"PUT", headers, expiresAt }` (V4 signed) |
-  | GET | `/projects/:id/object-storage/objects/download-url` | `?key=` | `{ url, expiresAt }` (V4 signed) |
+  | GET | `/projects/:id/object-storage/objects` | `?prefix=&delimiter=/` | `{ objects: [StoredObject], folders: ["a/"] }` |
+  | POST | `/projects/:id/object-storage/objects/upload-url` | `{ key, contentType? }` | `{ url, method:"PUT", headers:{"Content-Type"}, expiresAt }` (V4) |
+  | GET | `/projects/:id/object-storage/objects/download-url` | `?key=` | `{ url, expiresAt }` (V4) |
   | POST | `/projects/:id/object-storage/objects/move` | `{ from, to }` | `{ moved:true, key }` |
-  | DELETE | `/projects/:id/object-storage/objects` | `{ key }` or `{ prefix }` (folder) | `{ deleted:true, count }` |
-- **Object shape:** `{ key, size, updated:"ISO", contentType, etag }`.
-- Bucket name deterministic per project (e.g. `vc-<projectId>`); GCS auth via the
-  api pod's Workload-Identity SA; bucket lifecycle (e.g. TTL on a `tmp/` prefix) set at
-  bucket-ensure time. Signed URLs use V4, default 15-min TTL.
+  | DELETE | `/projects/:id/object-storage/objects` | `{ key }` **xor** `{ prefix }` (folder) | `{ deleted:true, count }` |
+- **StoredObject:** `{ key, size, updated:"ISO"|null, contentType:string|null, etag:string|null }`.
+- Errors: `{ error, code }` — `INVALID_KEY` (400, traversal/leading-slash guarded),
+  `FEATURE_NOT_ENABLED` (404 when flag off).
+- Bucket name deterministic `vc-<projectId>`; uniform bucket-level access; lifecycle
+  auto-deletes the `tmp/` prefix after `OBJECT_STORAGE_TMP_TTL_DAYS` (default 7);
+  signed URLs V4, 15-min TTL.
 
 ---
 
@@ -177,5 +180,5 @@ No skills backend, package, or UI exists today. Frozen contract:
 | 1 | Workflows | EXPOSED ✅ | real exec via runtime; logs per-run (no SSE) |
 | 2 | Security scanner | EXPOSED ✅ | npm audit + secret/SAST grep in workspace |
 | 3 | SSH store/test | EXPOSED ⚠️ | real ssh test; **keygen = GAP-SSH** |
-| 4 | Object Storage GCS | GAP ❌ | spec frozen; needs `@google-cloud/storage` + WI |
+| 4 | Object Storage GCS | IMPLEMENTED ✅ | real GCS backend `feat/object-storage-gcs@2ded58b3`, flag-gated; live-enable = deploy + api-KSA WI binding |
 | 5 | Skills registry | GAP ❌ | spec frozen; needs `ProjectSkill` table + catalog |
