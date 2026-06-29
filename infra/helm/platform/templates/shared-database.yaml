@@ -25,8 +25,20 @@
   `--set database.sharedCluster.enabled=true`.
 */ -}}
 {{- if dig "sharedCluster" "enabled" false (.Values.database | default dict) }}
-{{- $sc := .Values.database.sharedCluster }}
+{{- /*
+  Nil-safe BODY too: `--reuse-values --set database.sharedCluster.enabled=true`
+  leaves $sc as just `{enabled: true}` — every nested block (resources, pooler,
+  backup) is absent, so a `$sc.resources.requests.cpu` chain nil-pointers BEFORE
+  the leaf `default` runs. Default each level to an empty dict first so the
+  template renders with built-in defaults from `--set enabled=true` alone.
+*/ -}}
+{{- $sc := .Values.database.sharedCluster | default dict }}
 {{- $name := $sc.name | default "shared-pg-0" }}
+{{- $res := $sc.resources | default dict }}
+{{- $resReq := $res.requests | default dict }}
+{{- $resLim := $res.limits | default dict }}
+{{- $pooler := $sc.pooler | default dict }}
+{{- $backup := $sc.backup | default dict }}
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -41,34 +53,34 @@ spec:
     size: {{ $sc.storageGi | default 10 }}Gi
   resources:
     requests:
-      cpu: {{ $sc.resources.requests.cpu | default "100m" | quote }}
-      memory: {{ $sc.resources.requests.memory | default "512Mi" | quote }}
+      cpu: {{ $resReq.cpu | default "500m" | quote }}
+      memory: {{ $resReq.memory | default "1Gi" | quote }}
     limits:
-      cpu: {{ $sc.resources.limits.cpu | default "1" | quote }}
-      memory: {{ $sc.resources.limits.memory | default "2Gi" | quote }}
+      cpu: {{ $resLim.cpu | default "2" | quote }}
+      memory: {{ $resLim.memory | default "2Gi" | quote }}
   # The CNPG-managed `app` role provisions tenants, so it needs CREATEDB +
   # CREATEROLE. Idempotent — postInitSQL only runs on first bootstrap.
   bootstrap:
     initdb:
       postInitSQL:
         - ALTER ROLE app CREATEDB CREATEROLE
-  {{- if $sc.backup.enabled }}
-  {{- if $sc.backup.serviceAccount }}
+  {{- if $backup.enabled }}
+  {{- if $backup.serviceAccount }}
   serviceAccountTemplate:
     metadata:
       annotations:
-        iam.gke.io/gcp-service-account: {{ $sc.backup.serviceAccount | quote }}
+        iam.gke.io/gcp-service-account: {{ $backup.serviceAccount | quote }}
   {{- end }}
   backup:
     barmanObjectStore:
-      destinationPath: gs://{{ $sc.backup.bucket }}/db/{{ $name }}
+      destinationPath: gs://{{ $backup.bucket }}/db/{{ $name }}
       googleCredentials:
         gkeEnvironment: true
       wal:
         compression: gzip
       data:
         compression: gzip
-    retentionPolicy: {{ $sc.backup.retentionDays | default 7 }}d
+    retentionPolicy: {{ $backup.retentionDays | default 7 }}d
   {{- end }}
 ---
 apiVersion: postgresql.cnpg.io/v1
@@ -82,7 +94,7 @@ metadata:
 spec:
   cluster:
     name: {{ $name }}
-  instances: {{ $sc.pooler.instances | default 2 }}
+  instances: {{ $pooler.instances | default 2 }}
   type: rw
   pgbouncer:
     poolMode: transaction
