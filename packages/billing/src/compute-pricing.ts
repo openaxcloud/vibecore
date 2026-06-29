@@ -33,10 +33,23 @@ export const STORAGE_CENTS_PER_GIB_MONTH = 3;
 export const STORAGE_MIN_BILLING_DAYS = 7;
 /** Object storage data transfer: $0.10 per GiB. */
 export const STORAGE_TRANSFER_CENTS_PER_GIB = 10;
-/** Class A (basic/mutating) ops: $0.0006 per 1k requests = 0.06¢/1k. */
-export const STORAGE_CLASS_A_CENTS_PER_OP = 0.06 / 1000;
-/** Class B (advanced/read-metadata) ops: $0.0075 per 1k requests = 0.75¢/1k. */
-export const STORAGE_CLASS_B_CENTS_PER_OP = 0.75 / 1000;
+/**
+ * Class A (advanced / mutating ops — writes, lists, copies): **$0.0075 per 1k
+ * requests** = 0.75¢/1k. Class A is the *more expensive* class, matching Replit
+ * (docs.replit.com/billing/object-storage-billing) and the underlying GCS
+ * convention where writes/lists cost more than reads.
+ */
+export const STORAGE_CLASS_A_CENTS_PER_OP = 0.75 / 1000;
+/** Class B (basic / read ops — GET, HEAD): **$0.0006 per 1k requests** = 0.06¢/1k. */
+export const STORAGE_CLASS_B_CENTS_PER_OP = 0.06 / 1000;
+
+// --- Database guard-rails (docs.replit.com SQL database) --------------------
+/** Storage floor billed per database even when empty: 33 MB. */
+export const DATABASE_STORAGE_FLOOR_MB = 33;
+/** Hard storage cap per production database: 10 GiB. */
+export const DATABASE_STORAGE_CAP_GIB = 10;
+/** Idle suspend timeout: a database suspends after 5 minutes idle. */
+export const DATABASE_IDLE_TIMEOUT_SECONDS = 5 * 60;
 
 export type ReservedVmTier = 'shared-0.5' | 'dedicated-1' | 'dedicated-2' | 'dedicated-4';
 
@@ -116,4 +129,15 @@ export function objectStorageCents(input: {
 /** Database compute billed by active hours (uses the same Reserved-VM-style CU basis). */
 export function databaseComputeCents(input: { cpuMillicores: number; ramMb: number; hours: number }): number {
   return computeUnitsCents(workspaceComputeUnits(input.cpuMillicores, input.ramMb, clampNonNeg(input.hours) * 3600));
+}
+
+/**
+ * Billable database storage in GiB after applying Replit's floor (33 MB charged
+ * even when empty) and the 10 GiB hard cap per production database. Input is the
+ * measured peak storage for the period in MB.
+ */
+export function databaseBillableStorageGib(usedMb: number): number {
+  const flooredMb = Math.max(clampNonNeg(usedMb), DATABASE_STORAGE_FLOOR_MB);
+  const gib = flooredMb / 1024;
+  return Math.min(gib, DATABASE_STORAGE_CAP_GIB);
 }

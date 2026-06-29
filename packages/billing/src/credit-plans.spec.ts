@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { creditPlanByKey, creditPlanCatalog, findCreditPlan } from './index.js';
-import { migrateLegacyPlanKey, planCreditConfig } from './credits.js';
+import {
+  creditPlanByKey,
+  creditPlanCatalog,
+  findCreditPlan,
+  creditPackCatalog,
+  findCreditPack,
+  creditPackDiscountCents,
+  assertConcurrentPublishedApps,
+  MAX_CONCURRENT_PUBLISHED_APPS,
+} from './index.js';
+import { migrateLegacyPlanKey, planCreditConfig, CREDIT_PACK_VALIDITY_DAYS } from './credits.js';
 
 describe('creditPlanCatalog', () => {
   it('has exactly the four Replit-parity tiers', () => {
@@ -84,5 +93,49 @@ describe('migrateLegacyPlanKey (one-time backfill)', () => {
     expect(migrateLegacyPlanKey('pro')).toBe('core'); // legacy $29 pro → new $25 core
     expect(migrateLegacyPlanKey('team')).toBe('pro'); // legacy $99 team → new $100 pro
     expect(migrateLegacyPlanKey('enterprise')).toBe('enterprise');
+  });
+});
+
+describe('creditPackCatalog', () => {
+  it('has the four Replit SKUs at the exact discounted prices', () => {
+    expect(creditPackCatalog.map((p) => [p.creditCents, p.priceCents])).toEqual([
+      [10_000, 10_000], // $100 → $100
+      [30_000, 29_000], // $300 → $290
+      [50_000, 48_000], // $500 → $480
+      [100_000, 95_000], // $1000 → $950
+    ]);
+  });
+
+  it('discount is value − price, and never charges above value', () => {
+    expect(creditPackDiscountCents(findCreditPack('pack-300')!)).toBe(1000);
+    expect(creditPackDiscountCents(findCreditPack('pack-1000')!)).toBe(5000);
+    for (const pack of creditPackCatalog) {
+      expect(pack.priceCents).toBeLessThanOrEqual(pack.creditCents);
+    }
+  });
+
+  it('all packs expire after the 6-month validity window (no rollover)', () => {
+    for (const pack of creditPackCatalog) {
+      expect(pack.validityDays).toBe(CREDIT_PACK_VALIDITY_DAYS);
+    }
+    expect(CREDIT_PACK_VALIDITY_DAYS).toBe(182);
+  });
+
+  it('findCreditPack returns undefined for unknown ids', () => {
+    expect(findCreditPack('nope')).toBeUndefined();
+    expect(findCreditPack(undefined)).toBeUndefined();
+  });
+});
+
+describe('assertConcurrentPublishedApps', () => {
+  it('caps concurrent published apps at 20 (Replit parity)', () => {
+    expect(MAX_CONCURRENT_PUBLISHED_APPS).toBe(20);
+    expect(() => assertConcurrentPublishedApps({ active: 19 })).not.toThrow();
+    expect(() => assertConcurrentPublishedApps({ active: 20 })).toThrow(/limit reached/);
+  });
+
+  it('honours an explicit cap override', () => {
+    expect(() => assertConcurrentPublishedApps({ active: 5, cap: 5 })).toThrow();
+    expect(() => assertConcurrentPublishedApps({ active: 4, cap: 5 })).not.toThrow();
   });
 });
