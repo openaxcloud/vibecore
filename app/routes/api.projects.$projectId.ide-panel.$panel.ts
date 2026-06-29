@@ -767,17 +767,24 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   if (panel === 'workflows') {
     try {
-      const [dashboard, envVars, activity] = await Promise.all([
+      const [dashboard, envVars, activity, packages] = await Promise.all([
         apiRequest(request, `/projects/${projectId}/dashboard`),
         apiRequest(request, `/projects/${projectId}/env-vars`),
         apiRequest(request, `/projects/${projectId}/activity`),
+        apiRequest(request, `/projects/${projectId}/packages`).catch(() => null),
       ]);
+
+      const packageData = packages as Record<string, any> | null;
 
       return json(
         panelEnvelope(panel, project.project, {
           ...(dashboard as any),
           ...(envVars as any),
           ...(activity as any),
+
+          // For the "Install Packages" task type's package selector (Replit parity).
+          packageManager: packageData?.packageManager ?? null,
+          dependencies: packageData?.dependencies ?? [],
           workflowsState: readWorkflowsState(envVars),
         }),
       );
@@ -2016,6 +2023,30 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
         const [moved] = tasks.splice(index, 1);
         tasks.splice(nextIndex, 0, moved);
+
+        return { ...workflow, updatedAt: now, tasks: normalizeWorkflowTasks(tasks) };
+      });
+    } else if (intent === 'reorder-task') {
+      /*
+       * Drag-and-drop reorder (Replit parity): move `taskId` to an absolute
+       * `toIndex`, clamped to the list bounds. move-task (±1) stays for the
+       * keyboard/Up-Down fallback path.
+       */
+      state.workflows = state.workflows.map((workflow: any) => {
+        if (workflow.id !== workflowId) {
+          return workflow;
+        }
+
+        const tasks = normalizeWorkflowTasks(workflow.tasks ?? []);
+        const index = tasks.findIndex((task: any) => task.id === taskId);
+        const toIndex = Math.max(0, Math.min(tasks.length - 1, Number(body.toIndex)));
+
+        if (index < 0 || Number.isNaN(toIndex) || index === toIndex) {
+          return workflow;
+        }
+
+        const [moved] = tasks.splice(index, 1);
+        tasks.splice(toIndex, 0, moved);
 
         return { ...workflow, updatedAt: now, tasks: normalizeWorkflowTasks(tasks) };
       });

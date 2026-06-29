@@ -14478,9 +14478,15 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
   });
 
   const runs = state.runs ?? [];
+
+  // Replit parity: the package selector on "Install Packages" tasks.
+  const dependencies: Array<{ name?: string }> = data.dependencies ?? [];
+  const packageManager: string = data.packageManager || 'npm';
   const [query, setQuery] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
-  const [expandedId, setExpandedId] = useState<number | null>(workflows[0]?.id ?? null);
+
+  // Replit parity: every workflow is COLLAPSED by default (chevron to expand).
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const filtered = workflows.filter((workflow: any) =>
     String(workflow.name ?? '')
@@ -14520,7 +14526,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
           </button>
           <div>
             {workflow.isRunButton && <em data-kind="run-button">Run Button</em>}
-            {workflow.isGenerated && <em>Generated</em>}
+            {workflow.isGenerated && <em data-kind="generated">Generated</em>}
             {workflow.lastRunStatus && <em data-status={workflow.lastRunStatus}>{workflow.lastRunStatus}</em>}
             <form onSubmit={onSubmit}>
               <input type="hidden" name="intent" value="run-workflow" />
@@ -14537,30 +14543,6 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
           {tasks.length} task{tasks.length === 1 ? '' : 's'} · {workflow.executionMode}
           {workflow.lastRunAt ? ` · last run ${new Date(workflow.lastRunAt).toLocaleString()}` : ''}
         </small>
-
-        {!expanded && (
-          <div className="bolt-project-workflow-add-task compact">
-            {[
-              ['shell', 'Shell Command', 'i-ph:terminal-window'],
-              ['packages', 'Install Packages', 'i-ph:package'],
-              ['workflow', 'Run Workflow', 'i-ph:play-circle'],
-            ].map(([taskType, label, icon]) => (
-              <form key={taskType} onSubmit={onSubmit}>
-                <input type="hidden" name="intent" value="add-task" />
-                <input type="hidden" name="workflowId" value={workflow.id} />
-                <input type="hidden" name="taskType" value={taskType} />
-                <PanelButton
-                  disabled={busy}
-                  variant="outline"
-                  data-testid={`quick-add-${taskType}-task-${workflow.id}`}
-                >
-                  <span className={icon} aria-hidden />
-                  {label}
-                </PanelButton>
-              </form>
-            ))}
-          </div>
-        )}
 
         {workflowRuns.length ? (
           <section className="bolt-project-workflow-runs">
@@ -14582,23 +14564,54 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
 
         {expanded && (
           <div className="bolt-project-workflow-details">
-            <form onSubmit={onSubmit} className="bolt-project-workflow-form">
-              <input type="hidden" name="intent" value="update-workflow" />
-              <input type="hidden" name="workflowId" value={workflow.id} />
-              <label>
-                Workflow
-                <PanelInput name="name" defaultValue={workflow.name} data-testid={`workflow-name-${workflow.id}`} />
-              </label>
-              <label>
-                Mode
-                <select name="executionMode" defaultValue={workflow.executionMode}>
-                  <option value="sequential">Sequential</option>
-                  <option value="parallel">Parallel</option>
-                </select>
-              </label>
-              <input type="hidden" name="enabled" value={workflow.enabled === false ? 'false' : 'true'} />
-              <PanelButton disabled={busy}>Save workflow</PanelButton>
-            </form>
+            <div className="bolt-project-workflow-form">
+              {/* Name (field + Save) */}
+              <form onSubmit={onSubmit} className="bolt-project-workflow-name-form">
+                <input type="hidden" name="intent" value="update-workflow" />
+                <input type="hidden" name="workflowId" value={workflow.id} />
+                <input type="hidden" name="executionMode" value={workflow.executionMode} />
+                <input type="hidden" name="enabled" value={workflow.enabled === false ? 'false' : 'true'} />
+                <label>
+                  Workflow
+                  <PanelInput name="name" defaultValue={workflow.name} data-testid={`workflow-name-${workflow.id}`} />
+                </label>
+                <PanelButton disabled={busy}>Save</PanelButton>
+              </form>
+              {/* Sequential / Parallel toggle (instant, Replit parity) */}
+              <form
+                onSubmit={onSubmit}
+                className="bolt-project-workflow-mode-toggle"
+                role="group"
+                aria-label="Execution mode"
+              >
+                <input type="hidden" name="intent" value="update-workflow" />
+                <input type="hidden" name="workflowId" value={workflow.id} />
+                <input type="hidden" name="name" value={workflow.name} />
+                <input type="hidden" name="enabled" value={workflow.enabled === false ? 'false' : 'true'} />
+                <button
+                  type="submit"
+                  name="executionMode"
+                  value="sequential"
+                  data-active={workflow.executionMode !== 'parallel'}
+                  aria-pressed={workflow.executionMode !== 'parallel'}
+                  disabled={busy}
+                  data-testid={`workflow-mode-sequential-${workflow.id}`}
+                >
+                  Sequential
+                </button>
+                <button
+                  type="submit"
+                  name="executionMode"
+                  value="parallel"
+                  data-active={workflow.executionMode === 'parallel'}
+                  aria-pressed={workflow.executionMode === 'parallel'}
+                  disabled={busy}
+                  data-testid={`workflow-mode-parallel-${workflow.id}`}
+                >
+                  Parallel
+                </button>
+              </form>
+            </div>
 
             <div className="bolt-project-workflow-task-list">
               <div className="bolt-project-workflow-subhead">
@@ -14606,107 +14619,134 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                 <span>{workflow.executionMode === 'parallel' ? 'Run together' : 'Run in order'}</span>
               </div>
               {tasks.map((task: any, index: number) => (
-                <article key={task.id} className="bolt-project-workflow-task" data-testid={`workflow-task-${task.id}`}>
-                  <div>
-                    <span
-                      className={
-                        task.taskType === 'packages'
-                          ? 'i-ph:package'
-                          : task.taskType === 'workflow'
-                            ? 'i-ph:play-circle'
-                            : 'i-ph:terminal-window'
-                      }
-                      aria-hidden
-                    />
-                    <strong>
-                      {task.taskType === 'packages'
-                        ? 'Install Packages'
-                        : task.taskType === 'workflow'
-                          ? 'Run Workflow'
-                          : 'Shell Command'}
-                    </strong>
-                    <small>
-                      {task.taskType === 'workflow'
-                        ? `Workflow #${task.targetWorkflowId ?? 'not selected'}`
-                        : task.command}
-                    </small>
-                  </div>
+                <article
+                  key={task.id}
+                  className="bolt-project-workflow-task"
+                  data-testid={`workflow-task-${task.id}`}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => {
+                    event.preventDefault();
+
+                    const fromId = event.dataTransfer.getData('text/plain');
+
+                    if (!fromId) {
+                      return;
+                    }
+
+                    const reorderForm = event.currentTarget.querySelector<HTMLFormElement>('form[data-reorder]');
+                    const taskIdInput = reorderForm?.querySelector<HTMLInputElement>('input[name="taskId"]');
+
+                    if (reorderForm && taskIdInput) {
+                      taskIdInput.value = fromId;
+                      reorderForm.requestSubmit();
+                    }
+                  }}
+                >
+                  {/* Drag handle — reorder by dragging (Replit parity), not just Up/Down. */}
+                  <span
+                    className="bolt-project-workflow-task-drag i-ph:dots-six-vertical"
+                    aria-label="Drag to reorder"
+                    role="button"
+                    draggable
+                    onDragStart={(event) => {
+                      event.dataTransfer.setData('text/plain', String(task.id));
+                      event.dataTransfer.effectAllowed = 'move';
+                    }}
+                  />
+                  {/* Task TYPE dropdown — auto-submits so the type-specific control below refreshes. */}
+                  <form onSubmit={onSubmit} className="bolt-project-workflow-task-type">
+                    <input type="hidden" name="intent" value="update-task" />
+                    <input type="hidden" name="workflowId" value={workflow.id} />
+                    <input type="hidden" name="taskId" value={task.id} />
+                    <input type="hidden" name="command" value={task.command ?? ''} />
+                    <input type="hidden" name="targetWorkflowId" value={task.targetWorkflowId ?? ''} />
+                    <select
+                      name="taskType"
+                      defaultValue={task.taskType}
+                      data-testid={`task-type-${task.id}`}
+                      onChange={(event) => event.currentTarget.form?.requestSubmit()}
+                    >
+                      <option value="shell">Execute Shell Command</option>
+                      <option value="packages">Install Packages</option>
+                      <option value="workflow">Run Workflow</option>
+                    </select>
+                  </form>
+                  {/* Type-specific control + Save. */}
                   <form onSubmit={onSubmit} className="bolt-project-workflow-task-form">
                     <input type="hidden" name="intent" value="update-task" />
                     <input type="hidden" name="workflowId" value={workflow.id} />
                     <input type="hidden" name="taskId" value={task.id} />
-                    <select name="taskType" defaultValue={task.taskType} data-testid={`task-type-${task.id}`}>
-                      <option value="shell">Shell Command</option>
-                      <option value="packages">Install Packages</option>
-                      <option value="workflow">Run Workflow</option>
-                    </select>
-                    <PanelInput
-                      name="command"
-                      defaultValue={task.command ?? ''}
-                      placeholder={task.taskType === 'packages' ? 'pnpm install' : 'npm run dev'}
-                      data-testid={`task-command-${task.id}`}
-                    />
-                    <select name="targetWorkflowId" defaultValue={task.targetWorkflowId ?? ''}>
-                      <option value="">No target workflow</option>
-                      {workflows
-                        .filter((item: any) => item.id !== workflow.id)
-                        .map((item: any) => (
-                          <option key={item.id} value={item.id}>
-                            {item.name}
-                          </option>
-                        ))}
-                    </select>
-                    <PanelButton disabled={busy}>Save task</PanelButton>
+                    <input type="hidden" name="taskType" value={task.taskType} />
+                    {task.taskType === 'packages' ? (
+                      <select
+                        name="command"
+                        defaultValue={task.command || `${packageManager} install`}
+                        data-testid={`task-packages-${task.id}`}
+                      >
+                        <option value={`${packageManager} install`}>all</option>
+                        {dependencies
+                          .filter((dep) => dep?.name)
+                          .map((dep) => (
+                            <option key={dep.name} value={`${packageManager} install ${dep.name}`}>
+                              {dep.name}
+                            </option>
+                          ))}
+                      </select>
+                    ) : task.taskType === 'workflow' ? (
+                      <select name="targetWorkflowId" defaultValue={task.targetWorkflowId ?? ''}>
+                        <option value="">No target workflow</option>
+                        {workflows
+                          .filter((item: any) => item.id !== workflow.id)
+                          .map((item: any) => (
+                            <option key={item.id} value={item.id}>
+                              {item.name}
+                            </option>
+                          ))}
+                      </select>
+                    ) : (
+                      <PanelInput
+                        name="command"
+                        defaultValue={task.command ?? ''}
+                        placeholder="npm run dev"
+                        data-testid={`task-command-${task.id}`}
+                      />
+                    )}
+                    <PanelButton disabled={busy}>Save</PanelButton>
                   </form>
-                  <div className="bolt-project-workflow-task-actions">
-                    <form onSubmit={onSubmit}>
-                      <input type="hidden" name="intent" value="move-task" />
-                      <input type="hidden" name="workflowId" value={workflow.id} />
-                      <input type="hidden" name="taskId" value={task.id} />
-                      <input type="hidden" name="direction" value="up" />
-                      <PanelButton disabled={busy || index === 0} variant="outline">
-                        Up
-                      </PanelButton>
-                    </form>
-                    <form onSubmit={onSubmit}>
-                      <input type="hidden" name="intent" value="move-task" />
-                      <input type="hidden" name="workflowId" value={workflow.id} />
-                      <input type="hidden" name="taskId" value={task.id} />
-                      <input type="hidden" name="direction" value="down" />
-                      <PanelButton disabled={busy || index === tasks.length - 1} variant="outline">
-                        Down
-                      </PanelButton>
-                    </form>
-                    <form onSubmit={confirmThenSubmit(onSubmit, 'Remove this task from the workflow?')}>
-                      <input type="hidden" name="intent" value="delete-task" />
-                      <input type="hidden" name="workflowId" value={workflow.id} />
-                      <input type="hidden" name="taskId" value={task.id} />
-                      <PanelButton disabled={busy} variant="outline">
-                        Remove
-                      </PanelButton>
-                    </form>
-                  </div>
+                  {/* Trash (Replit parity). */}
+                  <form
+                    onSubmit={confirmThenSubmit(onSubmit, 'Remove this task from the workflow?')}
+                    className="bolt-project-workflow-task-delete"
+                  >
+                    <input type="hidden" name="intent" value="delete-task" />
+                    <input type="hidden" name="workflowId" value={workflow.id} />
+                    <input type="hidden" name="taskId" value={task.id} />
+                    <button type="submit" disabled={busy} aria-label="Delete task" title="Delete task">
+                      <span className="i-ph:trash" aria-hidden />
+                    </button>
+                  </form>
+                  {/* Hidden form the drop handler submits to reorder this task to `index`. */}
+                  <form onSubmit={onSubmit} data-reorder hidden>
+                    <input type="hidden" name="intent" value="reorder-task" />
+                    <input type="hidden" name="workflowId" value={workflow.id} />
+                    <input type="hidden" name="taskId" value="" />
+                    <input type="hidden" name="toIndex" value={index} />
+                  </form>
                 </article>
               ))}
               {!tasks.length && <div className="bolt-project-empty-panel">No tasks configured for this workflow.</div>}
             </div>
 
             <div className="bolt-project-workflow-add-task">
-              {[
-                ['shell', 'Shell Command', 'i-ph:terminal-window'],
-                ['packages', 'Install Packages', 'i-ph:package'],
-                ['workflow', 'Run Workflow', 'i-ph:play-circle'],
-              ].map(([taskType, label, icon]) => (
-                <form key={taskType} onSubmit={onSubmit}>
-                  <input type="hidden" name="intent" value="add-task" />
-                  <input type="hidden" name="workflowId" value={workflow.id} />
-                  <input type="hidden" name="taskType" value={taskType} />
-                  <PanelButton disabled={busy} variant="outline" data-testid={`add-${taskType}-task-${workflow.id}`}>
-                    <span className={icon} aria-hidden />
-                    {label}
-                  </PanelButton>
-                </form>
-              ))}
+              <form onSubmit={onSubmit}>
+                <input type="hidden" name="intent" value="add-task" />
+                <input type="hidden" name="workflowId" value={workflow.id} />
+                <input type="hidden" name="taskType" value="shell" />
+                <PanelButton disabled={busy} variant="outline" data-testid={`add-task-${workflow.id}`}>
+                  <span className="i-ph:plus" aria-hidden />
+                  Add task
+                </PanelButton>
+              </form>
             </div>
 
             <footer>
