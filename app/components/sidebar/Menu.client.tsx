@@ -366,7 +366,7 @@ export const Menu = () => {
           onClick={() => setOpen(true)}
           aria-label="Open menu"
           aria-expanded={open}
-          className="fixed top-3 left-3 z-sidebar flex lg:hidden items-center justify-center w-10 h-10 rounded-lg bg-white/90 dark:bg-gray-900/90 border border-bolt-elements-borderColor shadow-sm text-bolt-elements-textPrimary hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          className="fixed top-3 [inset-inline-start:0.75rem] z-sidebar flex lg:hidden items-center justify-center w-10 h-10 rounded-lg bg-white/90 dark:bg-gray-900/90 border border-bolt-elements-borderColor shadow-sm text-bolt-elements-textPrimary hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
           <span className="i-ph:list text-xl" />
         </button>
@@ -445,11 +445,11 @@ export const Menu = () => {
               </button>
             </div>
             <div className="relative w-full">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2">
+              <div className="absolute [inset-inline-start:0.75rem] top-1/2 -translate-y-1/2">
                 <span className="i-ph:magnifying-glass h-4 w-4 text-gray-400 dark:text-gray-500" />
               </div>
               <input
-                className="w-full bg-gray-50 dark:bg-gray-900 relative pl-9 pr-3 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500/50 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-800"
+                className="w-full bg-gray-50 dark:bg-gray-900 relative [padding-inline-start:2.25rem] [padding-inline-end:0.75rem] py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500/50 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-800"
                 type="search"
                 placeholder="Search chats..."
                 onChange={handleSearchChange}
